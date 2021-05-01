@@ -14,15 +14,19 @@
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLBuffer>
 
-// timer includes
-#include <chrono>
-#include <thread>
+
 
 #include <QKeyEvent>
 #include <QMouseEvent>
 
 #include <iostream>
 #include <map>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+// timer includes
+#include <chrono>
+#include <thread>
 
 #include "ECS/entitysystem.h"
 
@@ -31,10 +35,7 @@
 #include "constant.h"
 #include "Engine/map.h"
 #include "Engine/fontloader.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
+#include "UI/sentencesystem.h"
 
 class GameWindow : public QWindow, protected QOpenGLFunctions
 {
@@ -70,6 +71,8 @@ protected:
     void exposeEvent(QExposeEvent *event) override;
 
 private:
+    void renderGame();
+    void renderUi();
     void tick();
     bool m_animating = false;
     bool ticking = false;
@@ -90,6 +93,9 @@ private:
     TilesLoader *tileLoader;
     FontLoader *fontLoader;
     Input *inputHandler;
+
+    EntitySystem::Entity* fpsCounter;
+    EntitySystem::Entity* mousePosText;
 
     //camera var
     Camera *camera = nullptr;

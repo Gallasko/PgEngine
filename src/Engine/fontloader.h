@@ -25,6 +25,10 @@ public:
         inline int getId() const { return id; }
 		inline std::string getName() const { return name; }
 		inline QOpenGLVertexArrayObject* getMesh() const { return VAO; }
+		
+		inline unsigned int getWidth() const { return width; }
+        inline unsigned int getHeight() const { return height; }
+        inline unsigned int getOffset() const { return yOffset; }
 
 	protected:
         inline void setId(int id) { this->id = id; }
@@ -33,10 +37,6 @@ public:
         inline void setOffset(unsigned int offset) { this->yOffset = offset; }
 		inline void setName(std::string name) { this->name = name; }
 		void setMesh(unsigned int xPos, unsigned int yPos, unsigned int atlasWidth, unsigned int atlasHeight); 
-
-        inline unsigned int getWidth() const { return width; }
-        inline unsigned int getHeight() const { return height; }
-        inline unsigned int getOffset() const { return yOffset; }
 
 	private:
 		int id = 0;

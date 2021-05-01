@@ -1,5 +1,4 @@
-#ifndef BLOCKLOADER_H
-#define BLOCKLOADER_H
+#pragma once
 
 #include <QOpenGLFunctions>
 #include <QOpenGLTexture>
@@ -65,5 +64,3 @@ private:
 	std::map<std::string, int> tilesDict;
 	int nbTilesId;
 };
-
-#endif

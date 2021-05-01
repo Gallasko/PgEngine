@@ -105,6 +105,70 @@ void GameWindow::initialize()
     Map map(&ecs, tileLoader, 10, 9, 10);
     tileMap = map.getMap();
 
+    auto debugText = ecs.createEntity();
+    auto debugTextC = ecs.attach<Sentence>(debugText, { "Debug: ", 8.0f, fontLoader});
+    
+    debugTextC->setX(10);
+    debugTextC->setY(10);
+
+    fpsCounter = ecs.createEntity();
+    auto fpsCounterC = ecs.attach<Sentence>(fpsCounter, {"00", 8.0f, fontLoader});
+    
+    fpsCounterC->setX(10);
+    fpsCounterC->setTopAnchor(debugTextC);
+    fpsCounterC->setTopMargin(10);
+
+    auto fpsText = ecs.createEntity();
+    auto fpsTextC = ecs.attach<Sentence>(fpsText, {"Fps", 8.0f, fontLoader});
+    
+    fpsTextC->setX(10);
+    fpsTextC->setTopAnchor(debugTextC);
+    fpsTextC->setTopMargin(10);
+    fpsTextC->setLeftAnchor(fpsCounterC);
+    fpsTextC->setLeftMargin(10);
+
+    auto text = ecs.createEntity();
+    auto textC = ecs.attach<Sentence>(text, {"ABCDEFGHIJKLMN", 4.0f, fontLoader});
+    
+    textC->setX(10);
+    textC->setTopAnchor(fpsCounterC);
+    textC->setTopMargin(10);
+
+    auto text2 = ecs.createEntity();
+    auto text2C = ecs.attach<Sentence>(text2, {"OPQRSTUVWXYZ", 4.0f, fontLoader});
+    
+    text2C->setX(10);
+    text2C->setTopAnchor(textC);
+    text2C->setTopMargin(10);
+
+    auto text3 = ecs.createEntity();
+    auto text3C = ecs.attach<Sentence>(text3, {"abcdefghijklmn", 4.0f, fontLoader});
+    
+    text3C->setX(10);
+    text3C->setTopAnchor(text2C);
+    text3C->setTopMargin(10);
+
+    auto text4 = ecs.createEntity();
+    auto text4C = ecs.attach<Sentence>(text4, {"opqrstuvwxyz", 4.0f, fontLoader});
+    
+    text4C->setX(10);
+    text4C->setTopAnchor(text3C);
+    text4C->setTopMargin(10);
+
+    auto mousePosLabel = ecs.createEntity();
+    auto mousePosLabelC = ecs.attach<Sentence>(mousePosLabel, {"Mouse Pos: ", 6.0f, fontLoader});
+    
+    mousePosLabelC->setX(10);
+    mousePosLabelC->setTopAnchor(text4C);
+    mousePosLabelC->setTopMargin(10);
+
+    mousePosText = ecs.createEntity();
+    auto mousePosTextC = ecs.attach<Sentence>(mousePosText, {"(0, 0)", 6.0f, fontLoader});
+    
+    mousePosTextC->setX(10);
+    mousePosTextC->setTopAnchor(mousePosLabelC);
+    mousePosTextC->setTopMargin(10);
+
     QObject::connect(inputHandler, SIGNAL(updatedKeyInput(Input*, double)), camera, SLOT(updateKeyboard(Input*, double)));
     QObject::connect(inputHandler, SIGNAL(updatedMouseInput(Input*, double)), camera, SLOT(updateMouse(Input*, double)));
 }
@@ -131,125 +195,20 @@ void GameWindow::render()
     if(currentTime - lastFPSCount >= 1000)
     {
         std::cout << nbFrames << std::endl;
+        
+        auto fpsText = fpsCounter->get<Sentence>();
+        fpsText->setText(std::to_string(nbFrames), fontLoader);
+
         nbFrames = 0;
         lastFPSCount += 1000;
     }
 
-    defaultShaderProgram->bind();
+    auto mousePosTextC = mousePosText->get<Sentence>();
+    mousePosTextC->setText("(" + std::to_string(mousePos.x()) + ", " + std::to_string(mousePos.y()) + ")", fontLoader);
 
-    QMatrix4x4 projection;
-    QMatrix4x4 view;
-    QMatrix4x4 model;
-    QMatrix4x4 scale;
+    renderGame();
 
-    float resolution = (float)width() / (float)height();
-
-    projection.setToIdentity();
-    //projection.perspective(60 / resolution, resolution, 0.1f, 100.0f); // Fix the zoom
-    projection.perspective(((float)height() * retinaScale) / 16.0f, resolution, 0.1f, 100.0f); // Fix the zoom
-    //projection.ortho(-resolution, resolution, -1, 1, -1, 1); // Fix the zoom
-
-    std::cout << ((float)height() * retinaScale) / 16.0f << std::endl;
-
-    //std::cout << camera->Zoom / resolution << std::endl;
-    //std::cout << (float)width() / (float)height() << std::endl;
-    //std::cout << (float)height() << std::endl;
-
-    view = camera->GetViewMatrix();
-    scale.setToIdentity();
-    scale.scale(QVector3D(0.3f, 0.3f, 0.0f));
-
-    glBindTexture(GL_TEXTURE_2D, baseTileTexture1);
-
-    float selectedTileX = ((mousePos.x() - width() * retinaScale / 2 )) / 64.0f * 1.6f;// + camera->Position.x();
-    float selectedTileY = ((height() * retinaScale / 2 - mousePos.y())) / 64.0f * 1.6f;// + camera->Position.y();
-
-    //std::cout << "X: " << selectedTileX << " Y: " << selectedTileY << std::endl; 
-
-    for(int x = 9; x >= 0; x--)
-    {
-        for(int y = 8; y >= 0; y--)
-        {
-            auto tilePos = tileMap[x][y]->get<Position>();
-            auto tileTex = tileMap[x][y]->get<TileHolder>();
-
-            //std::cout << "X: " << x << " Y: " << y << tileTex->tileId->getName() << std::endl;
-
-            model.setToIdentity();
-            model.translate(QVector3D((tilePos->x - tilePos->y) / 2, (tilePos->x + tilePos->y) / 4, 0.0f));
-
-            defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("projection"), projection);
-            defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
-            defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("model"), model);
-            defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("scale"), scale);
-
-            tileTex->tileId->getMesh()->bind();
-            glDrawElements(GL_TRIANGLES, 6*6, GL_UNSIGNED_INT, 0);
-
-            if(x == std::floor(selectedTileX / 2 + selectedTileY + 1) &&  y == std::floor(selectedTileY - selectedTileX / 2 + 1))
-            {
-                tileLoader->getTile("Selected Tile")->getMesh()->bind();
-                glDrawElements(GL_TRIANGLES, 6*6, GL_UNSIGNED_INT, 0);
-            }
-        }
-    }
-
-    glBindTexture(GL_TEXTURE_2D, fontTexture);
-
-    projection.setToIdentity();
-    view.setToIdentity();
-    
-    scale.setToIdentity();
-    scale.scale(QVector3D(8 / 75.0f, 9 / 75.0f, 0.0f));
-
-    model.setToIdentity();
-    model.translate(QVector3D(0.1f, 0.1f, 0.0f));
-
-    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("projection"), projection);
-    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
-    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("model"), model);
-    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("scale"), scale);
-
-    fontLoader->getChara("2")->getMesh()->bind();
-    //tileLoader->getTile("Dirt")->getMesh()->bind();
-    glDrawElements(GL_TRIANGLES, 6*6, GL_UNSIGNED_INT, 0);
-
-    scale.setToIdentity();
-    scale.scale(QVector3D(9 / 50.0f, 9 / 50.0f, 0.0f));
-
-    model.setToIdentity();
-    model.translate(QVector3D(0.1f + 6 * 10 / 50.0f, 0.1f, 0.0f));
-
-    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("projection"), projection);
-    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
-    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("model"), model);
-    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("scale"), scale);
-
-    fontLoader->getChara("0")->getMesh()->bind();
-    //tileLoader->getTile("Dirt")->getMesh()->bind();
-    glDrawElements(GL_TRIANGLES, 6*6, GL_UNSIGNED_INT, 0);
-
-/*
-    guiShaderProgram->bind();
-
-    glBindTexture(GL_TEXTURE_2D, baseMenu1);
-
-    projection.setToIdentity();
-    view.setToIdentity();
-    scale.setToIdentity();
-    scale.scale(QVector3D(2.0f, 2.0f, 0.0f));
-    scale.scale(QVector3D((width() * retinaScale - width() * retinaScale / 1.5f) / width() * retinaScale, (height() * retinaScale - height() * retinaScale / 1.5f) / height() * retinaScale, 0.0f));
-    model.setToIdentity();
-    model.translate(QVector3D(-0.5f, 0.5f, 0.0f));
-
-    guiShaderProgram->setUniformValue(guiShaderProgram->uniformLocation("projection"), projection);
-    guiShaderProgram->setUniformValue(guiShaderProgram->uniformLocation("view"), view);
-    guiShaderProgram->setUniformValue(guiShaderProgram->uniformLocation("model"), model);
-    guiShaderProgram->setUniformValue(guiShaderProgram->uniformLocation("scale"), scale);
-
-    VAO->bind();
-    glDrawElements(GL_TRIANGLES, 6*6, GL_UNSIGNED_INT, 0);
-*/
+    renderUi();
 
     lastTime = currentTime;
 }
@@ -362,6 +321,160 @@ void GameWindow::exposeEvent(QExposeEvent *event)
 
     if (isExposed())
         renderNow();
+}
+
+void GameWindow::renderGame()
+{
+    const qreal retinaScale = devicePixelRatio();
+
+    QMatrix4x4 projection;
+    QMatrix4x4 view;
+    QMatrix4x4 model;
+    QMatrix4x4 scale;
+
+    defaultShaderProgram->bind();
+
+    float resolution = (float)width() / (float)height();
+
+    float gameScale = 0.25f;
+
+    projection.setToIdentity();
+    //projection.perspective(60 / resolution, resolution, 0.1f, 100.0f); // Fix the zoom
+    projection.perspective(((float)height() * retinaScale) / 16.0f, resolution, 0.1f, 100.0f); // Fix the zoom
+    //projection.ortho(-resolution, resolution, -1, 1, -1, 1); // Fix the zoom
+
+    //std::cout << ((float)height() * retinaScale) / 16.0f << std::endl;
+
+    //std::cout << camera->Zoom / resolution << std::endl;
+    //std::cout << (float)width() / (float)height() << std::endl;
+    //std::cout << (float)height() << std::endl;
+
+    view = camera->GetViewMatrix();
+    scale.setToIdentity();
+    scale.scale(QVector3D(gameScale, gameScale, 0.0f));
+
+    glBindTexture(GL_TEXTURE_2D, baseTileTexture1);
+
+    float selectedTileX = ((mousePos.x() - width() * retinaScale / 2 )) / 64.0f * 1.6f;// + camera->Position.x();
+    float selectedTileY = ((height() * retinaScale / 2 - mousePos.y())) / 64.0f * 1.6f;// + camera->Position.y();
+
+    //std::cout << "X: " << selectedTileX << " Y: " << selectedTileY << std::endl; 
+
+    for(int x = 9; x >= 0; x--)
+    {
+        for(int y = 8; y >= 0; y--)
+        {
+            auto tilePos = tileMap[x][y]->get<Position>();
+            auto tileTex = tileMap[x][y]->get<TileHolder>();
+
+            //std::cout << "X: " << x << " Y: " << y << tileTex->tileId->getName() << std::endl;
+
+            model.setToIdentity();
+            model.translate(QVector3D((tilePos->x - tilePos->y) * gameScale / 2.0f, (tilePos->x + tilePos->y) * gameScale / 4.0f, 0.0f));
+
+            defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("projection"), projection);
+            defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
+            defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("model"), model);
+            defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("scale"), scale);
+
+            tileTex->tileId->getMesh()->bind();
+            glDrawElements(GL_TRIANGLES, 6*6, GL_UNSIGNED_INT, 0);
+
+            if(x == std::floor(selectedTileX / 2 + selectedTileY + 1) &&  y == std::floor(selectedTileY - selectedTileX / 2 + 1))
+            {
+                tileLoader->getTile("Selected Tile")->getMesh()->bind();
+                glDrawElements(GL_TRIANGLES, 6*6, GL_UNSIGNED_INT, 0);
+            }
+        }
+    }
+
+}
+
+void GameWindow::renderUi()
+{
+    const qreal retinaScale = devicePixelRatio();
+
+    QMatrix4x4 projection;
+    QMatrix4x4 view;
+    QMatrix4x4 model;
+    QMatrix4x4 scale;
+
+    projection.setToIdentity();
+    view.setToIdentity();
+
+    // Text rendering
+
+    glBindTexture(GL_TEXTURE_2D, fontTexture);
+
+    for(auto sentence : ecs.view<Sentence>())
+    {
+        if(sentence.visible)
+        {
+            int currentX = sentence.x;
+            for(int i = 0; i < sentence.nbChara; i++)
+            {
+                auto chara = sentence.letters[i];
+
+                scale.setToIdentity();
+                scale.scale(QVector3D((float)chara->getWidth() * sentence.scale / width(), (float)chara->getHeight() * sentence.scale / height(), 0.0f));
+
+                model.setToIdentity();
+                model.translate(QVector3D(-1.0f + (float)((chara->getWidth() * sentence.scale / 2) + currentX) / width(), 1.0f + (float)( -(chara->getHeight() * sentence.scale / 2) - chara->getOffset() * sentence.scale - sentence.y) / height(), 0.0f));
+
+                defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("projection"), projection);
+                defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
+                defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("model"), model);
+                defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("scale"), scale);
+
+                chara->getMesh()->bind();
+                glDrawElements(GL_TRIANGLES, 6*6, GL_UNSIGNED_INT, 0);
+
+                currentX += sentence.scale * chara->getWidth() + 1;
+            }
+        }
+    }
+    
+    // End Text Rendering
+
+    /*
+    static int textXPos = 0;
+    static int textYPos = 0;
+    static bool falling = true;
+
+    if(falling)
+    {
+        textYPos++;
+        if(textYPos == 2)
+            falling = false;
+    }
+    else{
+        textYPos--;
+        if(textYPos == -2)
+            falling = true;
+    }
+    */
+
+    /*
+    guiShaderProgram->bind();
+
+    glBindTexture(GL_TEXTURE_2D, baseMenu1);
+
+    projection.setToIdentity();
+    view.setToIdentity();
+    scale.setToIdentity();
+    scale.scale(QVector3D(2.0f, 2.0f, 0.0f));
+    scale.scale(QVector3D((width() * retinaScale - width() * retinaScale / 1.5f) / width() * retinaScale, (height() * retinaScale - height() * retinaScale / 1.5f) / height() * retinaScale, 0.0f));
+    model.setToIdentity();
+    model.translate(QVector3D(-0.5f, 0.5f, 0.0f));
+
+    guiShaderProgram->setUniformValue(guiShaderProgram->uniformLocation("projection"), projection);
+    guiShaderProgram->setUniformValue(guiShaderProgram->uniformLocation("view"), view);
+    guiShaderProgram->setUniformValue(guiShaderProgram->uniformLocation("model"), model);
+    guiShaderProgram->setUniformValue(guiShaderProgram->uniformLocation("scale"), scale);
+
+    VAO->bind();
+    glDrawElements(GL_TRIANGLES, 6*6, GL_UNSIGNED_INT, 0);
+    */
 }
 
 void GameWindow::tick()
