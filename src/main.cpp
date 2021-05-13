@@ -5,6 +5,10 @@
 
 int main(int argc, char *argv[])
 {
+    QSurfaceFormat format;
+    format.setSwapInterval(0);
+
+    QSurfaceFormat::setDefaultFormat(format);
 	QGuiApplication app(argc, argv);
 
 	GameWindow game;

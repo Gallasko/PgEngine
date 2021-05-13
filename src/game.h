@@ -13,8 +13,8 @@
 #include <QVector3D>
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLBuffer>
-
-
+#include <QOpenGLFramebufferObject>
+#include <QOpenGLExtraFunctions>
 
 #include <QKeyEvent>
 #include <QMouseEvent>
@@ -57,6 +57,7 @@ public:
     void mouseMoveEvent(QMouseEvent *event);
     void mousePressEvent(QMouseEvent *event);
     void mouseReleaseEvent(QMouseEvent *event);
+    void wheelEvent(QWheelEvent *event);
 
 public slots:
     void renderLater();
@@ -83,6 +84,11 @@ private:
 
     QOpenGLShaderProgram *defaultShaderProgram = nullptr;
     QOpenGLShaderProgram *guiShaderProgram = nullptr;
+    QOpenGLShaderProgram *textShaderProgram = nullptr;
+    QOpenGLVertexArrayObject *SquareVAO;
+	QOpenGLBuffer *SquareVBO;
+	QOpenGLBuffer *SquareEBO;
+
     unsigned int baseTileTexture1;
     unsigned int baseMenu1;
     unsigned int fontTexture;
@@ -104,6 +110,8 @@ private:
 	bool firstMouse = true;
     float xSensitivity = 1.0f;
     float ySensitivity = 1.0f;
+
+    float gameScale = 100.0f;
 
     QPoint mousePos;
 };

@@ -41,12 +41,17 @@ LIB		:= lib \
 
 DEPENDENCIES := dependencies
 
+SHADER := shader
+RESSOURCES := res
+
 ifeq ($(OS),Windows_NT)
 MAIN		 	 := main.exe
 SOURCEDIRS		 := $(SRC)
 INCLUDEDIRS		 := $(INCLUDE)
 LIBDIRS			 := $(LIB)
 DEPENDENCIESDIRS := $(DEPENDENCIES)
+SHADERDIR := $(SHADER)
+RESSOURCESDIR := $(RESSOURCES)
 FIXPATH = $(subst /,\,$1)
 RM			:= del /q /f
 MD	:= mkdir
@@ -56,6 +61,8 @@ SOURCEDIRS		 := $(shell find $(SRC) -type d)
 INCLUDEDIRS		 := $(shell find $(INCLUDE) -type d)
 LIBDIRS			 := $(shell find $(LIB) -type d)
 DEPENDENCIESDIRS := $(shell find $(DEPENDENCIES) -type d)
+SHADERDIR := $(shell find $(SHADER) -type d)
+RESSOURCESDIR := $(shell find $(RESSOURCES) -type d)
 FIXPATH = $1
 RM = rm -f
 MD	:= mkdir -p
@@ -67,7 +74,8 @@ INCLUDES	:= $(patsubst %,-I%, $(INCLUDEDIRS:%/=%))
 # define the C libs
 LIBS		:= $(patsubst %,-L%, $(LIBDIRS:%/=%)) \
 			   -lQt5Gui \
-			   -lQt5Core
+			   -lQt5Core \
+			   -lopengl32
 
 # define the C source files
 SOURCES		:= $(call rwildcard,$(SOURCEDIRS), *.cpp)
@@ -89,6 +97,8 @@ all: $(OUTPUT) $(MAIN)
 
 $(OUTPUT):
 	$(MD) $(OUTPUT)
+	$(MD) $(OUTPUT)/shader
+	$(MD) $(OUTPUT)/res
 
 $(MAIN): $(OBJECTS)
 	@echo Building Main ...
@@ -96,6 +106,12 @@ $(MAIN): $(OBJECTS)
 
 	@echo Copy the ddl dependencies
 	xcopy $(DEPENDENCIESDIRS) $(OUTPUT) /v /f /s /y /d
+
+	@echo Copy the ddl dependencies
+	xcopy $(SHADERDIR) $(OUTPUT)\shader /v /f /s /y /d
+	
+	@echo Copy the shader dir
+	xcopy $(RESSOURCESDIR) $(OUTPUT)\res /v /f /s /y /d
 
 # this is a suffix replacement rule for building .o's from .c's
 # it uses automatic variables $<: the name of the prerequisite of

@@ -69,6 +69,8 @@
         "fstream": "cpp",
         "sstream": "cpp",
         "cinttypes": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "bit": "cpp",
+        "stop_token": "cpp"
     }
 }

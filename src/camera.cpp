@@ -48,9 +48,9 @@ void Camera::ProcessKeyboard(constant::Camera_Movement direction, float deltaTim
 {
     float velocity = MovementSpeed * deltaTime;
     if (direction == constant::Camera_Movement::FORWARD)
-        Position += Front * velocity;
+        Position += Up * velocity;
     if (direction == constant::Camera_Movement::BACKWARD)
-        Position -= Front * velocity;
+        Position -= Up * velocity;
     if (direction == constant::Camera_Movement::LEFT)
         Position -= Right * velocity;
     if (direction == constant::Camera_Movement::RIGHT)

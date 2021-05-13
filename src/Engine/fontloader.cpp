@@ -24,10 +24,7 @@ void FontLoader::Font::setMesh(unsigned int xPos, unsigned int yPos, unsigned in
 {
     float xMin = xPos / (float)atlasWidth;
     float xMax = (xPos + width) / (float)atlasWidth;
-
-    //float yMin = (atlasHeight - (yPos - height)) / atlasHeight;
-    //float yMax = (atlasHeight - yPos) / atlasHeight;
-
+    
     float yMin = (yPos - height + 1) / (float)atlasHeight;
     float yMax = (yPos + 1) / (float)atlasHeight;
 
