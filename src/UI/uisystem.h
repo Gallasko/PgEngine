@@ -42,5 +42,7 @@ struct UiComponent
     void inline setBottomAnchor(UiComponent* component) { bottomAnchor = component; auto it = std::find(component->children.begin(), component->children.end(), this); if(it == component->children.end()) component->children.push_back(this); update(); }
     void inline setLeftAnchor(UiComponent* component) { leftAnchor = component; auto it = std::find(component->children.begin(), component->children.end(), this); if(it == component->children.end()) component->children.push_back(this); update(); }
     
+    bool updated = false;
+    
     void update();
 };

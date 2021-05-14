@@ -113,6 +113,8 @@ private:
 
     float gameScale = 100.0f;
 
+    qint64 currentTime = 0;
+
     QPoint mousePos;
 };
 

@@ -30,6 +30,8 @@ void UiComponent::update()
         this->x = leftAnchor->x + leftAnchor->width + leftMargin;
     }
 
+    updated = true;
+
     for(auto child : children)
         child->update();
 }
