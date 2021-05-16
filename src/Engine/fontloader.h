@@ -12,6 +12,8 @@
 #include <string>
 #include <map>
 
+#include "..\constant.h"
+
 class FontLoader : protected QOpenGLFunctions
 {
 public:
@@ -30,6 +32,8 @@ public:
         inline unsigned int getHeight() const { return height; }
         inline unsigned int getOffset() const { return yOffset; }
 
+		inline constant::SquareInfo getModelInfo() const { return modelInfo; }
+
 	protected:
         inline void setId(int id) { this->id = id; }
         inline void setWidth(unsigned int w) { this->width = w; }
@@ -44,6 +48,8 @@ public:
 		unsigned int width = 0;
 		unsigned int height = 0;
 		unsigned int yOffset = 0;
+
+		constant::SquareInfo modelInfo;
 
 		QOpenGLVertexArrayObject *VAO;
 		QOpenGLBuffer *VBO;

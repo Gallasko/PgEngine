@@ -175,20 +175,20 @@ void GameWindow::initialize()
     tileMap = map.getMap();
 
     auto debugText = ecs.createEntity();
-    auto debugTextC = ecs.attach<Sentence>(debugText, { "Debug: ", 8.0f, fontLoader});
+    auto debugTextC = ecs.attach<Sentence>(debugText, {{"Debug: ", constant::Vector4D(75.0f, 0.0f, 130.0f, 255.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 255.0f)}, 8.0f, fontLoader});
     
     debugTextC->setX(10);
     debugTextC->setY(10);
 
     fpsCounter = ecs.createEntity();
-    auto fpsCounterC = ecs.attach<Sentence>(fpsCounter, {"00", 8.0f, fontLoader});
+    auto fpsCounterC = ecs.attach<Sentence>(fpsCounter, {{"00"}, 8.0f, fontLoader});
     
     fpsCounterC->setX(10);
     fpsCounterC->setTopAnchor(debugTextC);
     fpsCounterC->setTopMargin(10);
 
     auto fpsText = ecs.createEntity();
-    auto fpsTextC = ecs.attach<Sentence>(fpsText, {"Fps", 8.0f, fontLoader});
+    auto fpsTextC = ecs.attach<Sentence>(fpsText, {{"Fps", constant::Vector4D(75.0f, 0.0f, 130.0f, 255.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 255.0f)}, 8.0f, fontLoader});
     
     fpsTextC->setX(10);
     fpsTextC->setTopAnchor(debugTextC);
@@ -197,42 +197,45 @@ void GameWindow::initialize()
     fpsTextC->setLeftMargin(10);
 
     auto text = ecs.createEntity();
-    auto textC = ecs.attach<Sentence>(text, {"ABCDEFGHIJKLMN", 4.0f, fontLoader});
-    
+    auto textC = ecs.attach<Sentence>(text, {{"ABCDEFGHIJKLMN", constant::Vector4D(0.0f, 0.0f, 128.0f, 255.0f), constant::Vector4D(255.0f, 255.0f, 255.0f, 190.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 255.0f)}, 4.0f, fontLoader});
+    //auto textC = ecs.attach<Sentence>(text, {{"ABCDEFGHIJKLMN", constant::Vector4D(75.0f, 0.0f, 130.0f, 255.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 255.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 0.0f)}, 4.0f, fontLoader});
+
     textC->setX(10);
     textC->setTopAnchor(fpsTextC);
     textC->setTopMargin(10);
 
     auto text2 = ecs.createEntity();
-    auto text2C = ecs.attach<Sentence>(text2, {"OPQRSTUVWXYZ", 4.0f, fontLoader});
+    auto text2C = ecs.attach<Sentence>(text2, {{"OPQRSTUVWXYZ"}, 4.0f, fontLoader});    
+    //auto text2C = ecs.attach<Sentence>(text2, {{"OPQRSTUVWXYZ", constant::Vector4D(75.0f, 0.0f, 130.0f, 255.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 255.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 0.0f)}, 4.0f, fontLoader});
+    
     
     text2C->setX(10);
     text2C->setTopAnchor(textC);
     text2C->setTopMargin(10);
 
     auto text3 = ecs.createEntity();
-    auto text3C = ecs.attach<Sentence>(text3, {"abcdefghijklmn", 4.0f, fontLoader});
+    auto text3C = ecs.attach<Sentence>(text3, {{"abcdefghijklmn"}, 4.0f, fontLoader});
     
     text3C->setX(10);
     text3C->setTopAnchor(text2C);
     text3C->setTopMargin(10);
 
     auto text4 = ecs.createEntity();
-    auto text4C = ecs.attach<Sentence>(text4, {"opqrstuvwxyz", 4.0f, fontLoader});
+    auto text4C = ecs.attach<Sentence>(text4, {{"opqrstuvwxyz"}, 4.0f, fontLoader});
     
     text4C->setX(10);
     text4C->setTopAnchor(text3C);
     text4C->setTopMargin(10);
 
     auto mousePosLabel = ecs.createEntity();
-    auto mousePosLabelC = ecs.attach<Sentence>(mousePosLabel, {"Mouse Pos: ", 6.0f, fontLoader});
+    auto mousePosLabelC = ecs.attach<Sentence>(mousePosLabel, {{"Mouse Pos: "}, 6.0f, fontLoader});
     
     mousePosLabelC->setX(10);
     mousePosLabelC->setTopAnchor(text4C);
     mousePosLabelC->setTopMargin(10);
 
     mousePosText = ecs.createEntity();
-    auto mousePosTextC = ecs.attach<Sentence>(mousePosText, {"(0, 0)", 6.0f, fontLoader});
+    auto mousePosTextC = ecs.attach<Sentence>(mousePosText, {{"(0, 0)"}, 6.0f, fontLoader});
     
     mousePosTextC->setX(10);
     mousePosTextC->setTopAnchor(mousePosLabelC);
@@ -261,7 +264,7 @@ void GameWindow::render()
 
     //fps counter
     nbFrames++;
-    if(currentTime - lastFPSCount >= 1000)
+    if(currentTime - lastFPSCount >= 1000 || currentTime < lastFPSCount)
     {
         auto fpsText = fpsCounter->get<Sentence>();
         if(fpsText != nullptr)
@@ -270,6 +273,9 @@ void GameWindow::render()
             std::cout << "Fps Text Error" << std::endl;
         nbFrames = 0;
         lastFPSCount += 1000;
+
+        if(currentTime < lastFPSCount)
+            lastFPSCount = currentTime;
     }
 
     auto mousePosTextC = mousePosText->get<Sentence>();
@@ -278,9 +284,9 @@ void GameWindow::render()
     else
         std::cout << " Mouse Pos Text error" << std::endl;
 
-    //renderGame();
+    renderGame();
 
-    renderUi();
+    //renderUi();
 
     lastTime = currentTime;
 }
@@ -421,8 +427,8 @@ void GameWindow::renderGame()
 
     // [ TODO ] Fix the camera deplacement
 
-    float selectedTileX = ((float)(mousePos.x() - width() / 2.0f )) / (gameScale / 2.0f) + camera->Position.x();
-    float selectedTileY = ((float)(height() / 2.0f - mousePos.y())) / (gameScale / 4.0f) + camera->Position.y();
+    float selectedTileX = ((float)(mousePos.x() - width() / 2.0f )) / (gameScale / 2.0f) + camera->Position.x() * width() / gameScale;
+    float selectedTileY = ((float)(height() / 2.0f - mousePos.y())) / (gameScale / 4.0f) + camera->Position.y() * height() / gameScale * 2;
 
     for(int x = 9; x >= 0; x--)
     {
@@ -472,38 +478,29 @@ void GameWindow::renderUi()
 
     glBindTexture(GL_TEXTURE_2D, fontTexture);
 
-    std::cout << currentTime << std::endl;
-    std::cout << static_cast<int>(currentTime) << std::endl;
-    std::cout << static_cast<int>(currentTime % 100000) << std::endl;
-
     textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("projection"), projection);
     textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("model"), model);
 
-    textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("time"), static_cast<int>(currentTime % 100000));
+    textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("time"), static_cast<int>(currentTime % 314159));
 
     for(auto sentence : ecs.view<Sentence>())
     {
         if(sentence.visible)
         {
-            int currentX = sentence.x;
-            for(int i = 0; i < sentence.nbChara; i++)
-            {
-                auto chara = sentence.letters[i];
+            if(sentence.initialised == false)
+                sentence.generateMesh();
 
-                scale.setToIdentity();
-                scale.scale(QVector3D((float)chara->getWidth() * sentence.scale / width(), (float)chara->getHeight() * sentence.scale / height(), 0.0f));
+            scale.setToIdentity();
+            scale.scale(QVector3D(1.0f / width(), 1.0f / height(), 0.0f));
 
-                view.setToIdentity();
-                view.translate(QVector3D(-1.0f + (float)((chara->getWidth() * sentence.scale / 2) + currentX) / width(), 1.0f + (float)( -(chara->getHeight() * sentence.scale / 2) - chara->getOffset() * sentence.scale - sentence.y) / height(), 0.0f));
+            view.setToIdentity();
+            view.translate(QVector3D(-1.0f + (float)(sentence.x) / width(), 1.0f + (float)( -sentence.y) / height(), 0.0f));
 
-                textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("view"), view);
-                textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("scale"), scale);
+            textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("view"), view);
+            textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("scale"), scale);
 
-                chara->getMesh()->bind();
-                glDrawElements(GL_TRIANGLES, 6*6, GL_UNSIGNED_INT, 0);
-
-                currentX += sentence.scale * chara->getWidth() + 1;
-            }
+            sentence.VAO->bind();
+            glDrawElements(GL_TRIANGLES, sentence.modelInfo.nbIndices * 6, GL_UNSIGNED_INT, 0);
         }
     }
 

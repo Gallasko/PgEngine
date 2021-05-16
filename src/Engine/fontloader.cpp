@@ -28,31 +28,20 @@ void FontLoader::Font::setMesh(unsigned int xPos, unsigned int yPos, unsigned in
     float yMin = (yPos - height + 1) / (float)atlasHeight;
     float yMax = (yPos + 1) / (float)atlasHeight;
 
-	auto tileVertices = new float[20];
-
-    //                 x                         y                         z                      texpos x                 texpos y
-	tileVertices[0] =  -0.5f; tileVertices[1] =   0.5f; tileVertices[2] =  0.0f; tileVertices[3] =  xMin; tileVertices[4] =  yMin;   
-	tileVertices[5] =   0.5f; tileVertices[6] =   0.5f; tileVertices[7] =  0.0f; tileVertices[8] =  xMax; tileVertices[9] =  yMin;
-	tileVertices[10] = -0.5f; tileVertices[11] = -0.5f; tileVertices[12] = 0.0f; tileVertices[13] = xMin; tileVertices[14] = yMax;
-	tileVertices[15] =  0.5f; tileVertices[16] = -0.5f; tileVertices[17] = 0.0f; tileVertices[18] = xMax; tileVertices[19] = yMax;
-
-	unsigned int nbTileVertices = 20;
-
-	auto tileVerticesIndice = new unsigned int[6];
-
-	tileVerticesIndice[0] = 0; tileVerticesIndice[1] = 1; tileVerticesIndice[2] = 2;
-	tileVerticesIndice[3] = 1; tileVerticesIndice[4] = 2; tileVerticesIndice[5] = 3;
-
-	unsigned int nbOfElements = 6;
+	//texpos x                 texpos y
+	modelInfo.vertices[3] =  xMin; modelInfo.vertices[4] =  yMin;   
+	modelInfo.vertices[8] =  xMax; modelInfo.vertices[9] =  yMin;
+	modelInfo.vertices[13] = xMin; modelInfo.vertices[14] = yMax;
+	modelInfo.vertices[18] = xMax; modelInfo.vertices[19] = yMax;
 
     VAO->bind();
 
     // position attribute
-    glEnableVertexAttribArray(0);
     VBO->bind();
     VBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
-    VBO->allocate(tileVertices, nbTileVertices * sizeof(float));
+    VBO->allocate(modelInfo.vertices, modelInfo.nbVertices * sizeof(float));
 
+    glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 
     // texture coord attribute
@@ -61,7 +50,7 @@ void FontLoader::Font::setMesh(unsigned int xPos, unsigned int yPos, unsigned in
 
     EBO->bind();
     EBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
-    EBO->allocate(tileVerticesIndice, nbOfElements * sizeof(unsigned int));
+    EBO->allocate(modelInfo.indices, modelInfo.nbIndices * sizeof(unsigned int));
 
     VAO->release();
 }
