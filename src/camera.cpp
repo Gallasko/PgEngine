@@ -100,8 +100,8 @@ void Camera::updateKeyboard(Input *inputHandler, double deltaTime)
 void Camera::updateMouse(Input *inputHandler, double deltaTime)
 {
     auto mouseDelta = inputHandler->getMouseDelta();
-    float xOffset = mouseDelta.x() * deltaTime;
-    float yOffset = mouseDelta.y() * deltaTime;
+    float xOffset = mouseDelta.x();
+    float yOffset = mouseDelta.y();
 
     ProcessMouseMovement(xOffset, yOffset, inputHandler);
 }

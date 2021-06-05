@@ -87,7 +87,7 @@ Input::InputState Input::registerMouseInput(Qt::MouseButton button, Input::Input
 Input::InputState Input::registerMouseMove(QPoint mousePos, QPoint mouseDelta)
 {
 	this->mousePos = mousePos;
-	this->mouseDelta = mouseDelta;
+	this->mouseDelta += mouseDelta;
 
 	return Input::InputState::INPUTREGISTERED;
 }
@@ -138,6 +138,9 @@ void Input::updateInput(double deltaTime)
 {
 	emit updatedKeyInput(this, deltaTime);
 	emit updatedMouseInput(this, deltaTime);
+
+	this->mouseDelta.setX(0);
+	this->mouseDelta.setY(0);
 
 	// Remove old data
 	auto removeKey = std::remove_if(keyContainer.begin(), keyContainer.end(), &CheckReleased<KeyInstance>);

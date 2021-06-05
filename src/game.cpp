@@ -208,7 +208,6 @@ void GameWindow::initialize()
     auto text2C = ecs.attach<Sentence>(text2, {{"OPQRSTUVWXYZ"}, 4.0f, fontLoader});    
     //auto text2C = ecs.attach<Sentence>(text2, {{"OPQRSTUVWXYZ", constant::Vector4D(75.0f, 0.0f, 130.0f, 255.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 255.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 0.0f)}, 4.0f, fontLoader});
     
-    
     text2C->setX(10);
     text2C->setTopAnchor(textC);
     text2C->setTopMargin(10);
@@ -241,8 +240,20 @@ void GameWindow::initialize()
     mousePosTextC->setTopAnchor(mousePosLabelC);
     mousePosTextC->setTopMargin(10);
 
+    goldText = ecs.createEntity();
+    auto goldTextC = ecs.attach<Sentence>(goldText, {{"0 TeclaFlooz"}, 6.0f, fontLoader});
+
+    goldTextC->setX(10);
+    goldTextC->setTopAnchor(mousePosTextC);
+    goldTextC->setTopMargin(10);
+
     QObject::connect(inputHandler, SIGNAL(updatedKeyInput(Input*, double)), camera, SLOT(updateKeyboard(Input*, double)));
     QObject::connect(inputHandler, SIGNAL(updatedMouseInput(Input*, double)), camera, SLOT(updateMouse(Input*, double)));
+
+    ticking = true;
+    std::thread t (&GameWindow::tick, this);
+
+    t.detach();
 }
 
 void GameWindow::render()
@@ -284,9 +295,12 @@ void GameWindow::render()
     else
         std::cout << " Mouse Pos Text error" << std::endl;
 
+    updateGameState();
+
     renderGame();
 
-    //renderUi();
+    if(debug)
+        renderUi();
 
     lastTime = currentTime;
 }
@@ -305,6 +319,12 @@ void GameWindow::keyPressEvent(QKeyEvent *event)
         event->ignore();
     else
         inputHandler->registerKeyInput((Qt::Key)event->key(), Input::InputState::KEYPRESSED);
+
+    if(inputHandler->isKeyPressed(Qt::Key_Control) && inputHandler->isKeyPressed(Qt::Key_3) && !debugSwitched)
+    {
+        debug = !debug;
+        debugSwitched = true;
+    }
 }
 
 void GameWindow::keyReleaseEvent(QKeyEvent *event)
@@ -313,6 +333,9 @@ void GameWindow::keyReleaseEvent(QKeyEvent *event)
         event->ignore();
     else
         inputHandler->registerKeyInput((Qt::Key)event->key(), Input::InputState::KEYRELEASED);
+
+    if(inputHandler->isKeyReleased(Qt::Key_Control) || inputHandler->isKeyReleased(Qt::Key_3))
+        debugSwitched = false;
 }
 
 void GameWindow::mouseMoveEvent(QMouseEvent *event)
@@ -321,8 +344,6 @@ void GameWindow::mouseMoveEvent(QMouseEvent *event)
 
     mouseDelta.setX((mousePos.x() - event->pos().x()) * xSensitivity);
     mouseDelta.setY((event->pos().y() - mousePos.y()) * ySensitivity); // reversed since y-coordinates go from bottom to top
-	
-    //std::cout << mouseDelta.x() << mouseDelta.y() << std::endl;
 
     inputHandler->registerMouseMove(event->pos(), mouseDelta);
 
@@ -345,7 +366,7 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
 
 void GameWindow::wheelEvent(QWheelEvent *event)
 {
-    gameScale += event->angleDelta().y() / 120;
+    gameScale += (event->angleDelta().y() / 120) * 5.0f;
 }
 
 void GameWindow::renderLater()
@@ -400,6 +421,11 @@ void GameWindow::exposeEvent(QExposeEvent *event)
 
     if (isExposed())
         renderNow();
+}
+
+void GameWindow::updateGameState()
+{
+    
 }
 
 void GameWindow::renderGame()
@@ -505,209 +531,6 @@ void GameWindow::renderUi()
     }
 
     textShaderProgram->release();
-
-    // Text rendering
-
-    //int i = 0;
-    //for(const auto& pos : ecs.view<Sentence>())
-    //    i++;
-
-    //std::cout << i << std::endl;
-
-    /*
-
-    for(auto& sentence : ecs.view<Sentence>())
-    {
-        if(sentence.visible)
-        {
-            //std::cout << sentence.text << ", is updated ? " << sentence.updated << std::endl;
-
-            if(!sentence.initialized)
-            {
-                glGenTextures(1, &sentence.texture);
-                //glGenFramebuffers(1, &sentence.frameBuffer);
-
-                sentence.initialized = true;
-            }
-
-            if(sentence.updated && sentence.initialized)
-            {
-                if(sentence.frameBuffer != nullptr)
-                    delete sentence.frameBuffer;
-
-                QOpenGLFramebufferObjectFormat format;
-                format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
-                sentence.frameBuffer = new QOpenGLFramebufferObject(sentence.width, sentence.height, format);
-                //sentence.frameBuffer->addColorAttachment(sentence.width * sentence.scale, sentence.height * sentence.scale);
-
-                sentence.frameBuffer->bind();
-
-                //sentence.texture = sentence.frameBuffer->texture();
-
-                //glBindFramebuffer(GL_FRAMEBUFFER, sentence.frameBuffer);
-
-                glActiveTexture(GL_TEXTURE0 + 0);
-                glBindTexture(GL_TEXTURE_2D, fontTexture);
-                
-                //glActiveTexture(GL_TEXTURE0 + 1);
-                //glBindTexture(GL_TEXTURE_2D, sentence.texture);
-
-                //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, sentence.width, sentence.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-                //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-                //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-                //glDrawBuffer(GL_COLOR_ATTACHMENT0);
-
-                //std::cout << (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) << std::endl;
-
-                QOpenGLExtraFunctions *f = QOpenGLContext::currentContext()->extraFunctions();
-
-                //f->glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, sentence.texture, 0);
-
-                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, sentence.texture, 0);
-
-                GLenum bufs[] = { GL_COLOR_ATTACHMENT1 };
-                f->glDrawBuffers(1, bufs);
-
-                glViewport(0, 0, sentence.width, sentence.height);
-
-                // Activation du test de profondeur
-                glEnable(GL_DEPTH_TEST);
-
-                glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-                textShaderProgram->bind();
-
-                int currentX = 0;
-                for(int i = 0; i < sentence.nbChara; i++)
-                {
-                    auto chara = sentence.letters[i];
-
-                    scale.setToIdentity();
-                    //scale.scale(QVector3D((float)chara->getWidth() * sentence.scale / width(), (float)chara->getHeight() * sentence.scale / height(), 0.0f));
-                    scale.scale(QVector3D((float)chara->getWidth() * sentence.scale * 2 / sentence.width, (float)chara->getHeight() * sentence.scale * 2 / sentence.height, 0.0f));
-
-                    model.setToIdentity();
-                    //model.translate(QVector3D(-1.0f + (float)((chara->getWidth() * sentence.scale / 2) + currentX) / width(), 1.0f + (float)( -(chara->getHeight() * sentence.scale / 2) - chara->getOffset() * sentence.scale - sentence.y) / height(), 0.0f));
-                    //model.translate(QVector3D(-1.0f + (float)((chara->getWidth() * sentence.scale / 2) + currentX) / width(), 1.0f + (float)( -(chara->getHeight() * sentence.scale / 2) - chara->getOffset() * sentence.scale) / height(), 0.0f));
-                    model.translate(QVector3D(-1.0f + (float)((chara->getWidth() * sentence.scale) + currentX) / sentence.width, 1.0f + (float)( -(chara->getHeight() * sentence.scale) - chara->getOffset() * sentence.scale) / sentence.height, 0.0f));
-
-                    textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("projection"), projection);
-                    textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("view"), view);
-                    textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("model"), model);
-                    textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("scale"), scale);
-
-                    textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("texture0"), 0);
-
-                    //textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("texture0"), fontTexture);
-                    
-                    chara->getMesh()->bind();
-                    glDrawElements(GL_TRIANGLES, 6*6, GL_UNSIGNED_INT, 0);
-
-                    currentX += 2 * sentence.scale * chara->getWidth() + 1;
-                }
-
-                textShaderProgram->release();
-
-                //glBindFramebuffer(GL_FRAMEBUFFER, 0);
-                //sentence.texture = sentence.frameBuffer->texture();
-                sentence.frameBuffer->release();
-
-                QImage im = sentence.frameBuffer->toImage();
-
-                im.save("asd.png");
-
-                glViewport(0, 0, width() * retinaScale, height() * retinaScale);
-
-                // Activation du test de profondeur
-                glDisable(GL_DEPTH_TEST);
-
-                sentence.updated = false;
-            }
-
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, sentence.frameBuffer->texture());
-            
-            //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-            //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-            // set texture filtering parameters
-            //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            // load image, create texture and generate mipmaps
-            
-            //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureAtlas.width(), textureAtlas.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, textureAtlas.bits());
-            glGenerateMipmap(GL_TEXTURE_2D);
-            //glBindTexture(GL_TEXTURE_2D, fontTexture);
-
-            defaultShaderProgram->bind();
-
-            scale.setToIdentity();
-            scale.scale(sentence.width / width(), sentence.height / height(), 1.0f);
-
-            model.setToIdentity();
-            //model.translate(QVector3D(-1.0f + (float)((sentence.width / 2) + sentence.x) / width(), 1.0f + (float)( -(sentence.height / 2) - sentence.y) / height(), 0.0f));
-            model.translate(QVector3D(-1.0f + (float)(sentence.x) / width(), 1.0f + (float)( -sentence.y) / height(), 0.0f));
-
-            defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("projection"), projection);
-            defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
-            defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("model"), model);
-            defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("scale"), scale);
-
-            defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("texture1"), 0);
-            
-            SquareVAO->bind();
-            glDrawElements(GL_TRIANGLES, 6*6, GL_UNSIGNED_INT, 0);
-        
-            // Désactivation de la texture
-            glBindTexture(GL_TEXTURE_2D, 0);
-
-        }
-    }
-
-    */
-    
-    // End Text Rendering
-
-    /*
-    static int textXPos = 0;
-    static int textYPos = 0;
-    static bool falling = true;
-
-    if(falling)
-    {
-        textYPos++;
-        if(textYPos == 2)
-            falling = false;
-    }
-    else{
-        textYPos--;
-        if(textYPos == -2)
-            falling = true;
-    }
-    */
-
-    /*
-    guiShaderProgram->bind();
-
-    glBindTexture(GL_TEXTURE_2D, baseMenu1);
-
-    projection.setToIdentity();
-    view.setToIdentity();
-    scale.setToIdentity();
-    scale.scale(QVector3D(2.0f, 2.0f, 0.0f));
-    scale.scale(QVector3D((width() * retinaScale - width() * retinaScale / 1.5f) / width() * retinaScale, (height() * retinaScale - height() * retinaScale / 1.5f) / height() * retinaScale, 0.0f));
-    model.setToIdentity();
-    model.translate(QVector3D(-0.5f, 0.5f, 0.0f));
-
-    guiShaderProgram->setUniformValue(guiShaderProgram->uniformLocation("projection"), projection);
-    guiShaderProgram->setUniformValue(guiShaderProgram->uniformLocation("view"), view);
-    guiShaderProgram->setUniformValue(guiShaderProgram->uniformLocation("model"), model);
-    guiShaderProgram->setUniformValue(guiShaderProgram->uniformLocation("scale"), scale);
-
-    VAO->bind();
-    glDrawElements(GL_TRIANGLES, 6*6, GL_UNSIGNED_INT, 0);
-    */
 }
 
 void GameWindow::tick()
@@ -719,7 +542,12 @@ void GameWindow::tick()
     {
         lastTime = QDateTime::currentMSecsSinceEpoch();
 
-
+        gold += 1;
+        auto goldTextC = goldText->get<Sentence>();
+        if(goldTextC != nullptr)
+            goldTextC->setText(std::to_string(gold) + " TeclaFlooz", fontLoader);
+        else
+            std::cout << " Gold Text error " << std::endl;
 
         currentTime = QDateTime::currentMSecsSinceEpoch();
         std::this_thread::sleep_for(std::chrono::milliseconds(40 - (currentTime - lastTime)));

@@ -72,6 +72,7 @@ protected:
     void exposeEvent(QExposeEvent *event) override;
 
 private:
+    void updateGameState();
     void renderGame();
     void renderUi();
     void tick();
@@ -102,6 +103,9 @@ private:
 
     EntitySystem::Entity* fpsCounter;
     EntitySystem::Entity* mousePosText;
+    EntitySystem::Entity* goldText;
+
+    long long gold = 0;
 
     //camera var
     Camera *camera = nullptr;
@@ -116,6 +120,9 @@ private:
     qint64 currentTime = 0;
 
     QPoint mousePos;
+
+    bool debug = false;
+    bool debugSwitched = false;
 };
 
 #endif // Game_h
