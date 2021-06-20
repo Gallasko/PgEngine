@@ -11,24 +11,27 @@
 #include <string>
 #include <map>
 
+#include "../constant.h"
+
 enum class TileType 
 {
     BLANK,
     HOUSE,
     SHOP,
     ROAD,
+	TERRAIN,
 	MISC
 };
 
 class TilesLoader : protected QOpenGLFunctions
 {
 public:
-	class Tiles : protected QOpenGLFunctions
+	class TilesId : protected QOpenGLFunctions
 	{
 	friend class TilesLoader;
 	public:
-		Tiles();
-		~Tiles();
+		TilesId();
+		~TilesId();
 
 		inline int getId() const { return id; }
 		inline std::string getName() const { return name; }
@@ -36,6 +39,8 @@ public:
 
 		inline bool operator==(const std::string& rhs) const { return name == rhs; } 
 		inline bool operator==(const TileType& rhs) const { return tileType == rhs; }
+
+		inline constant::SquareInfo getModelInfo() const { return modelInfo; }
 
 	protected:
 		inline void setId(int id) { this->id = id; }
@@ -48,6 +53,8 @@ public:
 		std::string name = "";
 		TileType tileType;
 
+		constant::SquareInfo modelInfo;
+
 		QOpenGLVertexArrayObject *VAO;
 		QOpenGLBuffer *VBO;
 		QOpenGLBuffer *EBO;
@@ -56,11 +63,11 @@ public:
 	TilesLoader(std::string tilesFolder);
 	~TilesLoader();
 
-	TilesLoader::Tiles* getTile(int id) const;
-	TilesLoader::Tiles* getTile(std::string tileName) const;
+	TilesLoader::TilesId* getTile(int id) const;
+	TilesLoader::TilesId* getTile(std::string tileName) const;
 
 private:
-	std::vector<TilesLoader::Tiles* > tilesList;
+	std::vector<TilesLoader::TilesId* > tilesList;
 	std::map<std::string, int> tilesDict;
 	int nbTilesId;
 };

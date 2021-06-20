@@ -79,7 +79,8 @@ void Sentence::setText(const SentenceText& sentence, FontLoader *font)
         modelInfo.vertices = new float [modelInfo.nbVertices];
         modelInfo.indices = new unsigned int [modelInfo.nbIndices];
 
-        int currentX = 0;
+        int currentX = 0.0f;
+        int outO = 0.0f; //Outline Offset
 
         constant::ModelInfo letterModel; 
 
@@ -87,35 +88,31 @@ void Sentence::setText(const SentenceText& sentence, FontLoader *font)
         {
             letter = font->getChara(std::string(1, sentence.text.at(i)));
 
+            outO = 0.0f;
+
             auto w = letter->getWidth() * scale;
             auto h = letter->getHeight() * scale;
             auto o = letter->getOffset() * scale;
 
             if(sentence.outline1.w == 0.0f)
-            {
-                w -= 2.0f * scale;
-                h -= 2.0f * scale;
-            }
+                outO += 1.0 * scale;
 
             if(sentence.outline2.w == 0.0f)
-            {
-                w -= 2.0f * scale;
-                h -= 2.0f * scale;
-            }
+                outO += 1.0 * scale;
 
             letterModel = letter->getModelInfo();
 
             // Coord
-            modelInfo.vertices[i * 72 + 0]  = currentX    ; modelInfo.vertices[i * 72 + 1]  =     -o; modelInfo.vertices[i * 72 + 2]  = 0.0f;
-			modelInfo.vertices[i * 72 + 18] = currentX + w; modelInfo.vertices[i * 72 + 19] =     -o; modelInfo.vertices[i * 72 + 20] = 0.0f;
-			modelInfo.vertices[i * 72 + 36] = currentX    ; modelInfo.vertices[i * 72 + 37] = -h - o; modelInfo.vertices[i * 72 + 38] = 0.0f;
-			modelInfo.vertices[i * 72 + 54] = currentX + w; modelInfo.vertices[i * 72 + 55] = -h - o; modelInfo.vertices[i * 72 + 56] = 0.0f;
+            modelInfo.vertices[i * 72 + 0]  = currentX - outO    ; modelInfo.vertices[i * 72 + 1]  =     -o + outO; modelInfo.vertices[i * 72 + 2]  = 0.0f;
+			modelInfo.vertices[i * 72 + 18] = currentX + w + outO; modelInfo.vertices[i * 72 + 19] =     -o + outO; modelInfo.vertices[i * 72 + 20] = 0.0f;
+			modelInfo.vertices[i * 72 + 36] = currentX - outO    ; modelInfo.vertices[i * 72 + 37] = -h - o - outO; modelInfo.vertices[i * 72 + 38] = 0.0f;
+			modelInfo.vertices[i * 72 + 54] = currentX + w + outO; modelInfo.vertices[i * 72 + 55] = -h - o - outO; modelInfo.vertices[i * 72 + 56] = 0.0f;
 
             // Tex Coord
-            modelInfo.vertices[i * 72 + 3]  = letterModel.vertices[3];  modelInfo.vertices[i * 72 + 4]  = letterModel.vertices[4];  
-            modelInfo.vertices[i * 72 + 21] = letterModel.vertices[8];  modelInfo.vertices[i * 72 + 22] = letterModel.vertices[9];
-            modelInfo.vertices[i * 72 + 39] = letterModel.vertices[13]; modelInfo.vertices[i * 72 + 40] = letterModel.vertices[14];
-            modelInfo.vertices[i * 72 + 57] = letterModel.vertices[18]; modelInfo.vertices[i * 72 + 58] = letterModel.vertices[19];
+            modelInfo.vertices[i * 72 + 3]  = letterModel.vertices[3]  - outO / font->getAtlasWidth(); modelInfo.vertices[i * 72 + 4]  = letterModel.vertices[4]  - outO / font->getAtlasHeight();  
+            modelInfo.vertices[i * 72 + 21] = letterModel.vertices[8]  + outO / font->getAtlasWidth(); modelInfo.vertices[i * 72 + 22] = letterModel.vertices[9]  - outO / font->getAtlasHeight();
+            modelInfo.vertices[i * 72 + 39] = letterModel.vertices[13] - outO / font->getAtlasWidth(); modelInfo.vertices[i * 72 + 40] = letterModel.vertices[14] + outO / font->getAtlasHeight();
+            modelInfo.vertices[i * 72 + 57] = letterModel.vertices[18] + outO / font->getAtlasWidth(); modelInfo.vertices[i * 72 + 58] = letterModel.vertices[19] + outO / font->getAtlasHeight();
 
             //Main Color
             modelInfo.vertices[i * 72 + 5]  = sentence.mainColor.x; modelInfo.vertices[i * 72 + 6]  = sentence.mainColor.y; modelInfo.vertices[i * 72 + 7]  = sentence.mainColor.z; modelInfo.vertices[i * 72 + 8]  = sentence.mainColor.w;

@@ -171,11 +171,16 @@ void GameWindow::initialize()
 
     fontLoader = new FontLoader("res/font/fontmap.ft");
 
-    Map map(&ecs, tileLoader, 10, 9, 10);
-    tileMap = map.getMap();
+    mapConstraint.width = 15;
+    mapConstraint.height = 15;
+    mapConstraint.seed = 1;
+ 
+    mapConstraint.noiseParam = {4, 5, 50, -1, 0.4};
+
+    gameMap = new Map(&ecs, tileLoader, mapConstraint);
 
     auto debugText = ecs.createEntity();
-    auto debugTextC = ecs.attach<Sentence>(debugText, {{"Debug: ", constant::Vector4D(75.0f, 0.0f, 130.0f, 255.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 255.0f)}, 8.0f, fontLoader});
+    auto debugTextC = ecs.attach<Sentence>(debugText, {{"Debug: ", constant::Vector4D(255.0f, 0.0f, 0.0f, 255.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 255.0f)}, 8.0f, fontLoader});
     
     debugTextC->setX(10);
     debugTextC->setY(10);
@@ -197,7 +202,7 @@ void GameWindow::initialize()
     fpsTextC->setLeftMargin(10);
 
     auto text = ecs.createEntity();
-    auto textC = ecs.attach<Sentence>(text, {{"ABCDEFGHIJKLMN", constant::Vector4D(0.0f, 0.0f, 128.0f, 255.0f), constant::Vector4D(255.0f, 255.0f, 255.0f, 190.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 255.0f)}, 4.0f, fontLoader});
+    auto textC = ecs.attach<Sentence>(text, {{"ABCDEFGHIJKLMN", constant::Vector4D(0.0f, 0.0f, 128.0f, 255.0f), constant::Vector4D(255.0f, 255.0f, 255.0f, 190.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 0.0f)}, 2.2f, fontLoader});
     //auto textC = ecs.attach<Sentence>(text, {{"ABCDEFGHIJKLMN", constant::Vector4D(75.0f, 0.0f, 130.0f, 255.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 255.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 0.0f)}, 4.0f, fontLoader});
 
     textC->setX(10);
@@ -205,47 +210,82 @@ void GameWindow::initialize()
     textC->setTopMargin(10);
 
     auto text2 = ecs.createEntity();
-    auto text2C = ecs.attach<Sentence>(text2, {{"OPQRSTUVWXYZ"}, 4.0f, fontLoader});    
-    //auto text2C = ecs.attach<Sentence>(text2, {{"OPQRSTUVWXYZ", constant::Vector4D(75.0f, 0.0f, 130.0f, 255.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 255.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 0.0f)}, 4.0f, fontLoader});
+    //auto text2C = ecs.attach<Sentence>(text2, {{"OPQRSTUVWXYZ"}, 4.0f, fontLoader});    
+    auto text2C = ecs.attach<Sentence>(text2, {{"OPQRSTUVWXYZ", constant::Vector4D(255.0f, 255.0f, 255.0f, 255.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 0.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 0.0f)}, 4.0f, fontLoader});
     
     text2C->setX(10);
     text2C->setTopAnchor(textC);
     text2C->setTopMargin(10);
 
     auto text3 = ecs.createEntity();
-    auto text3C = ecs.attach<Sentence>(text3, {{"abcdefghijklmn"}, 4.0f, fontLoader});
+    auto text3C = ecs.attach<Sentence>(text3, {{"abcdefghijklmn"}, 2.2f, fontLoader});
     
     text3C->setX(10);
     text3C->setTopAnchor(text2C);
     text3C->setTopMargin(10);
 
     auto text4 = ecs.createEntity();
-    auto text4C = ecs.attach<Sentence>(text4, {{"opqrstuvwxyz"}, 4.0f, fontLoader});
+    auto text4C = ecs.attach<Sentence>(text4, {{"opqrstuvwxyz"}, 1.5f, fontLoader});
     
     text4C->setX(10);
     text4C->setTopAnchor(text3C);
     text4C->setTopMargin(10);
 
     auto mousePosLabel = ecs.createEntity();
-    auto mousePosLabelC = ecs.attach<Sentence>(mousePosLabel, {{"Mouse Pos: "}, 6.0f, fontLoader});
+    auto mousePosLabelC = ecs.attach<Sentence>(mousePosLabel, {{"Mouse Pos: "}, 8.1f, fontLoader});
     
     mousePosLabelC->setX(10);
     mousePosLabelC->setTopAnchor(text4C);
     mousePosLabelC->setTopMargin(10);
 
     mousePosText = ecs.createEntity();
-    auto mousePosTextC = ecs.attach<Sentence>(mousePosText, {{"(0, 0)"}, 6.0f, fontLoader});
+    auto mousePosTextC = ecs.attach<Sentence>(mousePosText, {{"(0, 0)"}, 9.5f, fontLoader});
     
     mousePosTextC->setX(10);
     mousePosTextC->setTopAnchor(mousePosLabelC);
     mousePosTextC->setTopMargin(10);
 
+    auto tilePosLabel = ecs.createEntity();
+    auto tilePosLabelC = ecs.attach<Sentence>(tilePosLabel, {{"Tile Pos: "}, 4.0f, fontLoader});
+    
+    tilePosLabelC->setX(10);
+    tilePosLabelC->setTopAnchor(mousePosTextC);
+    tilePosLabelC->setTopMargin(10);
+
+    tilePosText = ecs.createEntity();
+    auto tilePosTextC = ecs.attach<Sentence>(tilePosText, {{"(0, 0)"}, 4.0f, fontLoader});
+    
+    tilePosTextC->setX(10);
+    tilePosTextC->setTopAnchor(tilePosLabelC);
+    tilePosTextC->setTopMargin(10);
+
+    tileType = ecs.createEntity();
+    auto tileTypeC = ecs.attach<Sentence>(tileType, {{"None"}, 4.0f, fontLoader});
+    
+    tileTypeC->setX(10);
+    tileTypeC->setTopAnchor(tilePosTextC);
+    tileTypeC->setTopMargin(10);
+
     goldText = ecs.createEntity();
-    auto goldTextC = ecs.attach<Sentence>(goldText, {{"0 TeclaFlooz"}, 6.0f, fontLoader});
+    auto goldTextC = ecs.attach<Sentence>(goldText, {{"0 TeclaFlooz"}, 4.0f, fontLoader});
 
     goldTextC->setX(10);
-    goldTextC->setTopAnchor(mousePosTextC);
+    goldTextC->setTopAnchor(tileTypeC);
     goldTextC->setTopMargin(10);
+
+    nbRenderedGameFrameText = ecs.createEntity();
+    auto nbRenderedGameFrameTextC = ecs.attach<Sentence>(nbRenderedGameFrameText, {{"Nb Rendered Game Frame: 0"}, 4.0f, fontLoader});
+
+    nbRenderedGameFrameTextC->setX(10);
+    nbRenderedGameFrameTextC->setTopAnchor(goldTextC);
+    nbRenderedGameFrameTextC->setTopMargin(10);
+
+    currentSeedText = ecs.createEntity();
+    auto currentSeedTextC = ecs.attach<Sentence>(currentSeedText, {{"Current Seed: 0"}, 4.0f, fontLoader});
+
+    currentSeedTextC->setX(10);
+    currentSeedTextC->setTopAnchor(nbRenderedGameFrameTextC);
+    currentSeedTextC->setTopMargin(10);
 
     QObject::connect(inputHandler, SIGNAL(updatedKeyInput(Input*, double)), camera, SLOT(updateKeyboard(Input*, double)));
     QObject::connect(inputHandler, SIGNAL(updatedMouseInput(Input*, double)), camera, SLOT(updateMouse(Input*, double)));
@@ -302,6 +342,12 @@ void GameWindow::render()
     if(debug)
         renderUi();
 
+    auto nbRenderedGameFrameTextC = nbRenderedGameFrameText->get<Sentence>();
+    if(nbRenderedGameFrameTextC != nullptr)
+        nbRenderedGameFrameTextC->setText("Render Time: " + std::to_string(currentTime - lastTime) + "ms", fontLoader);
+    else
+        std::cout << "Nb Rendered Game Frame Text Error" << std::endl;
+
     lastTime = currentTime;
 }
 
@@ -318,7 +364,22 @@ void GameWindow::keyPressEvent(QKeyEvent *event)
     if (event->isAutoRepeat())
         event->ignore();
     else
+    {
         inputHandler->registerKeyInput((Qt::Key)event->key(), Input::InputState::KEYPRESSED);
+        if(event->key() == Qt::Key_Plus)
+        {
+            mapConstraint.width += 5;
+            mapConstraint.height += 5;
+        }
+        else if(event->key() == Qt::Key_S)
+        {
+            if(mapConstraint.width > 5)
+            {
+                mapConstraint.width -= 5;
+                mapConstraint.height -= 5;
+            }
+        }
+    }
 
     if(inputHandler->isKeyPressed(Qt::Key_Control) && inputHandler->isKeyPressed(Qt::Key_3) && !debugSwitched)
     {
@@ -425,11 +486,19 @@ void GameWindow::exposeEvent(QExposeEvent *event)
 
 void GameWindow::updateGameState()
 {
-    
+
 }
 
 void GameWindow::renderGame()
 {
+    static unsigned long long nbRenderGameFrame = 0;
+/*
+    auto nbRenderedGameFrameTextC = nbRenderedGameFrameText->get<Sentence>();
+    if(nbRenderedGameFrameTextC != nullptr)
+        nbRenderedGameFrameTextC->setText("Nb Rendered Game Frame: " + std::to_string(nbRenderGameFrame), fontLoader);
+    else
+        std::cout << "Nb Rendered Game Frame Text Error" << std::endl;
+*/
     const qreal retinaScale = devicePixelRatio();
 
     QMatrix4x4 projection;
@@ -456,34 +525,99 @@ void GameWindow::renderGame()
     float selectedTileX = ((float)(mousePos.x() - width() / 2.0f )) / (gameScale / 2.0f) + camera->Position.x() * width() / gameScale;
     float selectedTileY = ((float)(height() / 2.0f - mousePos.y())) / (gameScale / 4.0f) + camera->Position.y() * height() / gameScale * 2;
 
-    for(int x = 9; x >= 0; x--)
+    bool tileSelected = false;
+
+    if(gameMap != nullptr)
     {
-        for(int y = 8; y >= 0; y--)
+        
+        auto tileMap = gameMap->getTileMap();
+
+        for(int x = gameMap->getWidth() - 1; x >= 0; x--)
         {
-            auto tilePos = tileMap[x][y]->get<Position>();
-            auto tileTex = tileMap[x][y]->get<TileHolder>();
-
-            model.setToIdentity();
-            model.translate(QVector3D((tilePos->x - tilePos->y) / 2.0f, (tilePos->x + tilePos->y) / 4.0f, 0.0f));
-
-            defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("projection"), projection);
-            defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
-            defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("model"), model);
-            defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("scale"), scale);
-            
-            tileTex->tileId->getMesh()->bind();
-            glDrawElements(GL_TRIANGLES, 6*6, GL_UNSIGNED_INT, 0);
-
-            if(x == std::floor(selectedTileX + selectedTileY + 1) &&  y == std::floor(selectedTileY - selectedTileX + 1))
+            for(int y = gameMap->getHeight() - 1; y >= 0; y--)
             {
-                tileLoader->getTile("Selected Tile")->getMesh()->bind();
+                auto tile = tileMap[x][y];
+
+                model.setToIdentity();
+                model.translate(QVector3D((tile->x - tile->y) / 2.0f, (tile->x + tile->y) / 4.0f, 0.0f));
+
+                defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("projection"), projection);
+                defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
+                defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("model"), model);
+                defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("scale"), scale);
+                
+                tile->tileId->getMesh()->bind();
                 glDrawElements(GL_TRIANGLES, 6*6, GL_UNSIGNED_INT, 0);
+
+                if(x == std::floor(selectedTileX + selectedTileY + 1) &&  y == std::floor(selectedTileY - selectedTileX + 1))
+                {
+                    auto tilePosTextC = tilePosText->get<Sentence>();
+                    if(tilePosTextC != nullptr)
+                        tilePosTextC->setText("(" + std::to_string(x) + ", " + std::to_string(y) + ") NValue: " + std::to_string(tile->nValue), fontLoader);
+                    else
+                        std::cout << " Tile Pos error " << std::endl;
+
+                    auto tileTypeC = tileType->get<Sentence>();
+                    if(tileTypeC != nullptr)
+                        tileTypeC->setText(tile->tileId->getName(), fontLoader);
+                    else
+                        std::cout << " Tile Type error " << std::endl;
+
+                    tileLoader->getTile("Selected Tile")->getMesh()->bind();
+                    glDrawElements(GL_TRIANGLES, 6*6, GL_UNSIGNED_INT, 0);
+
+                    tileSelected = true;
+                }
             }
         }
+        
+       /*
+        model.setToIdentity();
+        model.translate(QVector3D((0) / 2.0f, (0) / 4.0f, 0.0f));
+
+        defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("projection"), projection);
+        defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
+        defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("model"), model);
+        defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("scale"), scale);
+        
+        gameMap->getMesh()->bind();
+        glDrawElements(GL_TRIANGLES, 6*6, GL_UNSIGNED_INT, 0);
+        */
     }
 
     defaultShaderProgram->release();
 
+    if(nbRenderGameFrame % 250 == 0)
+    {
+        delete gameMap;
+
+        mapConstraint.seed = nbRenderGameFrame / 250;
+
+        gameMap = new Map(&ecs, tileLoader, mapConstraint);
+
+        auto currentSeedTextC = currentSeedText->get<Sentence>();
+        if(currentSeedTextC != nullptr)
+            currentSeedTextC->setText("Current Seed: " + std::to_string(mapConstraint.seed), fontLoader);
+        else
+            std::cout << " Current Seed Text error" << std::endl;
+    }
+
+    if(!tileSelected)
+    {
+        auto tilePosTextC = tilePosText->get<Sentence>();
+        if(tilePosTextC != nullptr)
+            tilePosTextC->setText(std::string("None Pos"), fontLoader);
+        else
+            std::cout << " Tile Pos error " << std::endl;
+
+        auto tileTypeC = tileType->get<Sentence>();
+        if(tileTypeC != nullptr)
+            tileTypeC->setText(std::string("None"), fontLoader);
+        else
+            std::cout << " Tile Type error " << std::endl;
+    }
+
+    nbRenderGameFrame++;
 }
 
 void GameWindow::renderUi()
@@ -535,12 +669,14 @@ void GameWindow::renderUi()
 
 void GameWindow::tick()
 {
-    auto currentTime = QDateTime::currentMSecsSinceEpoch();
-    auto lastTime = QDateTime::currentMSecsSinceEpoch();
+    static unsigned int tickTime = 0;
+
+    auto currentTickTime = QDateTime::currentMSecsSinceEpoch();
+    auto lastTickTime = QDateTime::currentMSecsSinceEpoch();
 
     while(ticking)
     {
-        lastTime = QDateTime::currentMSecsSinceEpoch();
+        lastTickTime = QDateTime::currentMSecsSinceEpoch();
 
         gold += 1;
         auto goldTextC = goldText->get<Sentence>();
@@ -549,7 +685,11 @@ void GameWindow::tick()
         else
             std::cout << " Gold Text error " << std::endl;
 
-        currentTime = QDateTime::currentMSecsSinceEpoch();
-        std::this_thread::sleep_for(std::chrono::milliseconds(40 - (currentTime - lastTime)));
+        tickTime++;
+
+        currentTickTime = QDateTime::currentMSecsSinceEpoch();
+        std::this_thread::sleep_for(std::chrono::milliseconds(40 - (currentTickTime - lastTickTime)));
     }
+
+    tickTime = 0;
 }

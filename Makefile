@@ -16,7 +16,7 @@ CXX = g++
 MOC = $(Qt_PATH)/bin/moc.exe
 
 # define any compile-time flags
-CXXFLAGS	:= -std=c++11 -Wall -Wextra -g
+CXXFLAGS	:= -std=c++11 -Wall -Wextra -g -o3
 
 # define library paths in addition to /usr/lib
 #   if I wanted to include libraries not in /usr/lib I'd specify

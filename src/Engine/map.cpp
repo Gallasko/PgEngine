@@ -1,5 +1,6 @@
 #include "map.h"
 
+/*
 Map::Map(EntitySystem *ecs, TilesLoader *tilesLoader, unsigned int width, unsigned int height, unsigned int nbMaxRoad) : ecs(ecs), tilesLoader(tilesLoader), width(width), height(height), nbMaxRoad(nbMaxRoad)
 {
     tileMap = new EntitySystem::Entity**[width];
@@ -368,4 +369,137 @@ Map::Map(EntitySystem *ecs, TilesLoader *tilesLoader, unsigned int width, unsign
 
     // [Building Placement]
 
+}
+*/
+
+Map::Map(EntitySystem *ecs, TilesLoader *tilesLoader, Map::MapConstraint constraint) : ecs(ecs), tilesLoader(tilesLoader), constraint(constraint)
+{
+    initializeOpenGLFunctions(); 
+
+	VAO = new QOpenGLVertexArrayObject();
+	VBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+	EBO = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
+
+	VAO->create();
+	VBO->create();
+	EBO->create();
+
+    tileMap = new Map::Tiles**[constraint.width];
+
+    for(int i = 0; i < constraint.width; i++)
+    {
+        tileMap[i] = new Map::Tiles*[constraint.height];
+
+        for(int j = 0; j < constraint.height; j++)
+            tileMap[i][j] = new Tiles(i, j, tilesLoader->getTile("Dirt"));
+    }
+
+    noiseGenerator = new NoiseGenerator(constraint.seed);
+    noiseGenerator->setParameters(constraint.noiseParam);
+
+    srand(constraint.seed);
+
+    for(int i = 0; i < constraint.width; i++)
+    {
+        for(int j = 0; j < constraint.height; j++)
+        {
+            auto nValue = noiseGenerator->noise2D(i, j);
+            
+            tileMap[i][j]->nValue = nValue;
+
+            if(nValue <= 5.5 && nValue > 3.5)
+                tileMap[i][j]->tileId = tilesLoader->getTile("Grass");
+            else if(nValue > 7.0)
+                tileMap[i][j]->tileId = tilesLoader->getTile("Mountain");
+            else if(nValue <= 3.5)
+                tileMap[i][j]->tileId = tilesLoader->getTile("Water");
+
+        } 
+    }
+
+    meshUpdate = false;
+}
+
+Map::~Map()
+{
+    for(int i = constraint.width - 1; i >= 0; i--)
+        delete[] tileMap[i];
+
+    delete[] tileMap;
+
+    delete noiseGenerator;
+
+    delete VAO;
+	delete VBO;
+	delete EBO;
+}
+
+void Map::generateMesh()
+{
+    updateModelInfo();
+
+    VAO->bind();
+
+    // position attribute
+    VBO->bind();
+    VBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
+    VBO->allocate(modelInfo.vertices, modelInfo.nbVertices * sizeof(float));
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+
+    // texture coord attribute
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+
+    EBO->bind();
+    EBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
+    EBO->allocate(modelInfo.indices, modelInfo.nbIndices * sizeof(unsigned int));
+
+    VAO->release();
+
+    meshUpdate = true;
+}
+
+void Map::updateModelInfo()
+{
+    modelInfo.nbVertices = 20 * constraint.width * constraint.height;
+    modelInfo.nbIndices = 6 * constraint.width * constraint.height;
+
+    if(modelInfo.vertices != nullptr)
+        delete modelInfo.vertices;
+    if(modelInfo.indices != nullptr)
+        delete modelInfo.indices;
+
+    modelInfo.vertices = new float [modelInfo.nbVertices];
+    modelInfo.indices = new unsigned int [modelInfo.nbIndices];
+
+    constant::ModelInfo tileModel;
+
+    unsigned int i = 0;
+
+    for(int x = 0; x < constraint.width; x++)
+    {
+        for(int y = 0; y < constraint.height; y++)
+        {
+            tileModel = tileMap[x][y]->tileId->getModelInfo();
+
+            // Coord
+            modelInfo.vertices[i * 20 + 0]  = x       ; modelInfo.vertices[i * 20 + 1]  = y       ; modelInfo.vertices[i * 20 + 2]  = 0.0f;
+            modelInfo.vertices[i * 20 + 5]  = x + 1.0f; modelInfo.vertices[i * 20 + 6]  = y       ; modelInfo.vertices[i * 20 + 7]  = 0.0f;
+            modelInfo.vertices[i * 20 + 10] = x       ; modelInfo.vertices[i * 20 + 11] = y + 1.0f; modelInfo.vertices[i * 20 + 12] = 0.0f;
+            modelInfo.vertices[i * 20 + 15] = x + 1.0f; modelInfo.vertices[i * 20 + 16] = y + 1.0f; modelInfo.vertices[i * 20 + 17] = 0.0f;
+
+            // Tex Coord
+            modelInfo.vertices[i * 20 + 3]  = tileModel.vertices[3];  modelInfo.vertices[i * 20 + 4]  = tileModel.vertices[4];  
+            modelInfo.vertices[i * 20 + 8]  = tileModel.vertices[8];  modelInfo.vertices[i * 20 + 9]  = tileModel.vertices[9];
+            modelInfo.vertices[i * 20 + 13] = tileModel.vertices[13]; modelInfo.vertices[i * 20 + 14] = tileModel.vertices[14];
+            modelInfo.vertices[i * 20 + 18] = tileModel.vertices[18]; modelInfo.vertices[i * 20 + 19] = tileModel.vertices[19];
+
+            modelInfo.indices[i * 6 + 0] = 4 * i + 0; modelInfo.indices[i * 6 + 1] = 4 * i + 1; modelInfo.indices[i * 6 + 2] = 4 * i + 2;
+            modelInfo.indices[i * 6 + 3] = 4 * i + 1; modelInfo.indices[i * 6 + 4] = 4 * i + 2; modelInfo.indices[i * 6 + 5] = 4 * i + 3;
+
+            i++;
+        }
+    }
 }

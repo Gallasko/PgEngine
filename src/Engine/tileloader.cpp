@@ -4,7 +4,7 @@
 #define SPRITESIZE 64.0f
 #define ATLASSIZE 1024.0f
 
-TilesLoader::Tiles::Tiles()
+TilesLoader::TilesId::TilesId()
 {
 	initializeOpenGLFunctions(); 
 
@@ -17,14 +17,14 @@ TilesLoader::Tiles::Tiles()
 	EBO->create();
 }
 
-TilesLoader::Tiles::~Tiles()
+TilesLoader::TilesId::~TilesId()
 {
 	delete VAO;
 	delete VBO;
 	delete EBO;
 }
 
-void TilesLoader::Tiles::setMesh(int textureId)
+void TilesLoader::TilesId::setMesh(int textureId)
 {
 	int column = textureId % (int)NBROWTEXTUREATLAS;
     float xMin = (column * SPRITESIZE) / ATLASSIZE;
@@ -34,22 +34,11 @@ void TilesLoader::Tiles::setMesh(int textureId)
     float yMin = (row * SPRITESIZE)  / ATLASSIZE;
     float yMax = ((row + 1) * SPRITESIZE)  / ATLASSIZE;
 
-	auto tileVertices = new float[20];
-
-    //                 x                         y                         z                      texpos x                 texpos y
-	tileVertices[0] =  -0.5f; tileVertices[1] =   0.5f; tileVertices[2] =  0.0f; tileVertices[3] =  xMin; tileVertices[4] =  yMin;   
-	tileVertices[5] =   0.5f; tileVertices[6] =   0.5f; tileVertices[7] =  0.0f; tileVertices[8] =  xMax; tileVertices[9] =  yMin;
-	tileVertices[10] = -0.5f; tileVertices[11] = -0.5f; tileVertices[12] = 0.0f; tileVertices[13] = xMin; tileVertices[14] = yMax;
-	tileVertices[15] =  0.5f; tileVertices[16] = -0.5f; tileVertices[17] = 0.0f; tileVertices[18] = xMax; tileVertices[19] = yMax;
-
-	unsigned int nbTileVertices = 20;
-
-	auto tileVerticesIndice = new unsigned int[6];
-
-	tileVerticesIndice[0] = 0; tileVerticesIndice[1] = 1; tileVerticesIndice[2] = 2;
-	tileVerticesIndice[3] = 1; tileVerticesIndice[4] = 2; tileVerticesIndice[5] = 3;
-
-	unsigned int nbOfElements = 6;
+	//texpos x                 texpos y
+	modelInfo.vertices[3] =  xMin; modelInfo.vertices[4] =  yMin;   
+	modelInfo.vertices[8] =  xMax; modelInfo.vertices[9] =  yMin;
+	modelInfo.vertices[13] = xMin; modelInfo.vertices[14] = yMax;
+	modelInfo.vertices[18] = xMax; modelInfo.vertices[19] = yMax;
 
     VAO->bind();
 
@@ -57,7 +46,7 @@ void TilesLoader::Tiles::setMesh(int textureId)
     glEnableVertexAttribArray(0);
     VBO->bind();
     VBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
-    VBO->allocate(tileVertices, nbTileVertices * sizeof(float));
+    VBO->allocate(modelInfo.vertices, modelInfo.nbVertices * sizeof(float));
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 
@@ -67,12 +56,12 @@ void TilesLoader::Tiles::setMesh(int textureId)
 
     EBO->bind();
     EBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
-    EBO->allocate(tileVerticesIndice, nbOfElements * sizeof(unsigned int));
+    EBO->allocate(modelInfo.indices, modelInfo.nbIndices * sizeof(unsigned int));
 
     VAO->release();
 }
 
-void TilesLoader::Tiles::setType(std::string type)
+void TilesLoader::TilesId::setType(std::string type)
 {
 	if(type == "Blank")
 		tileType = TileType::BLANK;
@@ -91,14 +80,14 @@ void TilesLoader::Tiles::setType(std::string type)
 TilesLoader::TilesLoader(std::string tilesFolder) : nbTilesId(0)
 {
 	std::ifstream f;
-	TilesLoader::Tiles *newTile;
+	TilesLoader::TilesId *newTile;
 
 	f.open(tilesFolder + std::to_string(nbTilesId) + ".tile", std::ifstream::in);
 
 	while (f.is_open())
 	{
 		std::cout << "Open file: " << tilesFolder + std::to_string(nbTilesId) + ".tile" << std::endl;
-		newTile = new TilesLoader::Tiles();
+		newTile = new TilesLoader::TilesId();
 
 		newTile->setId(nbTilesId);
 
@@ -130,10 +119,10 @@ TilesLoader::TilesLoader(std::string tilesFolder) : nbTilesId(0)
 
 TilesLoader::~TilesLoader()
 {
-	std::vector<TilesLoader::Tiles* >().swap(tilesList); //delete block list
+	std::vector<TilesLoader::TilesId* >().swap(tilesList); //delete block list
 }
 
-TilesLoader::Tiles* TilesLoader::getTile(int id) const
+TilesLoader::TilesId* TilesLoader::getTile(int id) const
 {
 	if(id < nbTilesId)
 		return tilesList[id];
@@ -141,7 +130,7 @@ TilesLoader::Tiles* TilesLoader::getTile(int id) const
 		return NULL;
 }
 
-TilesLoader::Tiles* TilesLoader::getTile(std::string tileName) const
+TilesLoader::TilesId* TilesLoader::getTile(std::string tileName) const
 {
 	auto it = tilesDict.find(tileName);
 

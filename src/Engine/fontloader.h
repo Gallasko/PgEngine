@@ -62,6 +62,9 @@ public:
 	FontLoader::Font* getChara(int id) const;
 	FontLoader::Font* getChara(std::string charaName) const;
 
+	inline unsigned int getAtlasWidth() const { return atlasWidth; }
+	inline unsigned int getAtlasHeight() const { return atlasHeight; }
+
 private:
 	std::vector<FontLoader::Font* > charaList;
 	std::map<std::string, int> charaDict;

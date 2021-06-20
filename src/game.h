@@ -94,23 +94,29 @@ private:
     unsigned int baseMenu1;
     unsigned int fontTexture;
 
-    EntitySystem::Entity*** tileMap;
+    Map *gameMap = nullptr;
 
     EntitySystem ecs;
     TilesLoader *tileLoader;
     FontLoader *fontLoader;
     Input *inputHandler;
 
+    // UI Element that need to be passed around
+    // May need to put them in a table
     EntitySystem::Entity* fpsCounter;
     EntitySystem::Entity* mousePosText;
+    EntitySystem::Entity* tilePosText;
+    EntitySystem::Entity* tileType;
     EntitySystem::Entity* goldText;
+    EntitySystem::Entity* nbRenderedGameFrameText;
+    EntitySystem::Entity* currentSeedText;
+
+    Map::MapConstraint mapConstraint;
 
     long long gold = 0;
 
     //camera var
     Camera *camera = nullptr;
-	//float lastCameraX = constant::SCREEN_WIDTH / 2.0f;
-	//float lastCameraY = constant::SCREEN_HEIGHT / 2.0f;
 	bool firstMouse = true;
     float xSensitivity = 1.0f;
     float ySensitivity = 1.0f;
@@ -123,6 +129,8 @@ private:
 
     bool debug = false;
     bool debugSwitched = false;
+
+    //std::map accessibleParam;
 };
 
 #endif // Game_h
