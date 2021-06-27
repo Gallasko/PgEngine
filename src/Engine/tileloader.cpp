@@ -86,7 +86,6 @@ TilesLoader::TilesLoader(std::string tilesFolder) : nbTilesId(0)
 
 	while (f.is_open())
 	{
-		std::cout << "Open file: " << tilesFolder + std::to_string(nbTilesId) + ".tile" << std::endl;
 		newTile = new TilesLoader::TilesId();
 
 		newTile->setId(nbTilesId);
@@ -108,8 +107,6 @@ TilesLoader::TilesLoader(std::string tilesFolder) : nbTilesId(0)
 
 		tilesList.push_back(newTile);
 		tilesDict[newTile->getName()] = nbTilesId;
-
-		std::cout << newTile->getName() << std::endl;
 
 		f.close();
 		nbTilesId++; 

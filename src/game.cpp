@@ -181,7 +181,7 @@ void GameWindow::initialize()
 
     auto debugText = ecs.createEntity();
     auto debugTextC = ecs.attach<Sentence>(debugText, {{"Debug: ", constant::Vector4D(255.0f, 0.0f, 0.0f, 255.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 255.0f)}, 8.0f, fontLoader});
-    
+
     debugTextC->setX(10);
     debugTextC->setY(10);
 
@@ -218,21 +218,21 @@ void GameWindow::initialize()
     text2C->setTopMargin(10);
 
     auto text3 = ecs.createEntity();
-    auto text3C = ecs.attach<Sentence>(text3, {{"abcdefghijklmn"}, 2.2f, fontLoader});
+    auto text3C = ecs.attach<Sentence>(text3, {{"abcdefghijklmn"}, 4.0f, fontLoader});
     
     text3C->setX(10);
     text3C->setTopAnchor(text2C);
     text3C->setTopMargin(10);
 
     auto text4 = ecs.createEntity();
-    auto text4C = ecs.attach<Sentence>(text4, {{"opqrstuvwxyz"}, 1.5f, fontLoader});
+    auto text4C = ecs.attach<Sentence>(text4, {{"opqrstuvwxyz"}, 4.0f, fontLoader});
     
     text4C->setX(10);
     text4C->setTopAnchor(text3C);
     text4C->setTopMargin(10);
 
     auto mousePosLabel = ecs.createEntity();
-    auto mousePosLabelC = ecs.attach<Sentence>(mousePosLabel, {{"Mouse Pos: "}, 8.1f, fontLoader});
+    auto mousePosLabelC = ecs.attach<Sentence>(mousePosLabel, {{"Mouse Pos: "}, 6.0f, fontLoader});
     
     mousePosLabelC->setX(10);
     mousePosLabelC->setTopAnchor(text4C);
@@ -240,8 +240,12 @@ void GameWindow::initialize()
 
     mousePosText = ecs.createEntity();
     auto mousePosTextC = ecs.attach<Sentence>(mousePosText, {{"(0, 0)"}, 9.5f, fontLoader});
+    auto mouseAreaTest = ecs.attach<MouseInputComponent>(mousePosText, {mousePosTextC});
+
+    mouseAreaTest->onPressed = [](Input* inputHandler, double deltaTime) { if(inputHandler->isButtonPressed(Qt::LeftButton)) std::cout << "Clicked" << std::endl; };
     
     mousePosTextC->setX(10);
+    mousePosTextC->setZ(2);
     mousePosTextC->setTopAnchor(mousePosLabelC);
     mousePosTextC->setTopMargin(10);
 
@@ -287,8 +291,23 @@ void GameWindow::initialize()
     currentSeedTextC->setTopAnchor(nbRenderedGameFrameTextC);
     currentSeedTextC->setTopMargin(10);
 
-    QObject::connect(inputHandler, SIGNAL(updatedKeyInput(Input*, double)), camera, SLOT(updateKeyboard(Input*, double)));
-    QObject::connect(inputHandler, SIGNAL(updatedMouseInput(Input*, double)), camera, SLOT(updateMouse(Input*, double)));
+    userText = ecs.createEntity();
+    auto userTextC = ecs.attach<Sentence>(userText, {{"Random Text"}, 4.0f, fontLoader});
+    auto userTextMouseC = ecs.attach<MouseInputComponent>(userText, {userTextC});
+    auto userTextKeyC = ecs.attach<KeyboardInputComponent>(userText, {userTextC});
+
+    userTextC->setX(10);
+    userTextC->setZ(1);
+    userTextC->setTopAnchor(currentSeedTextC);
+    userTextC->setTopMargin(10);
+
+    auto screenEntity = ecs.createEntity();
+    auto screenUi = ecs.attach<UiComponent>(screenEntity, {});
+    screenUi->width = width();
+    screenUi->height = height();
+    auto screenInput = ecs.attach<MouseInputComponent>(screenEntity, {screenUi});
+    screenInput->scale = AreaScale::FULLSCALE;
+    screenInput->onPressed = [](Input* inputHandler, double deltaTime) { if(inputHandler->isButtonPressed(Qt::LeftButton)) std::cout << "Clicked" << std::endl; };
 
     ticking = true;
     std::thread t (&GameWindow::tick, this);
@@ -337,10 +356,26 @@ void GameWindow::render()
 
     updateGameState();
 
-    renderGame();
+    //renderGame();
 
     if(debug)
+    {
+        auto mousePosTextC = mousePosText->get<Sentence>();
+        if(mousePosTextC != nullptr)
+            mousePosTextC->visible = true;
+        else
+            std::cout << " Mouse Pos Text error" << std::endl;
+
         renderUi();
+    }
+    else
+    {
+        auto mousePosTextC = mousePosText->get<Sentence>();
+        if(mousePosTextC != nullptr)
+            mousePosTextC->visible = false;
+        else
+            std::cout << " Mouse Pos Text error" << std::endl;
+    }
 
     auto nbRenderedGameFrameTextC = nbRenderedGameFrameText->get<Sentence>();
     if(nbRenderedGameFrameTextC != nullptr)
@@ -486,7 +521,22 @@ void GameWindow::exposeEvent(QExposeEvent *event)
 
 void GameWindow::updateGameState()
 {
+    int highestZ = -1;
 
+    // Take the Highest Z under the mouse and make only those element clickable  
+    for(auto mouseArea : ecs.view<MouseInputComponent>())
+        if(mousePos.x() > *mouseArea.x / static_cast<int>(mouseArea.scale) && mousePos.x() < (*mouseArea.x + *mouseArea.width) / static_cast<int>(mouseArea.scale) && mousePos.y() < (*mouseArea.y + *mouseArea.height) / static_cast<int>(mouseArea.scale) && mousePos.y() > *mouseArea.y / static_cast<int>(mouseArea.scale) && *mouseArea.enable)
+            if (*mouseArea.z > highestZ)
+                highestZ = *mouseArea.z;
+
+    for(auto mouseArea : ecs.view<MouseInputComponent>())
+    {
+        if(mousePos.x() > *mouseArea.x / static_cast<int>(mouseArea.scale) && mousePos.x() < (*mouseArea.x + *mouseArea.width) / static_cast<int>(mouseArea.scale) && mousePos.y() < (*mouseArea.y + *mouseArea.height) / static_cast<int>(mouseArea.scale) && mousePos.y() > *mouseArea.y / static_cast<int>(mouseArea.scale) && *mouseArea.enable && *mouseArea.z == highestZ)
+        {
+            std::cout << "Mouse Hovering: " << *mouseArea.x << ", " << *mouseArea.y << ", " << *mouseArea.width << ", " << *mouseArea.height << std::endl;
+            mouseArea.onPressed(inputHandler, 0.0f);
+        }
+    }
 }
 
 void GameWindow::renderGame()
@@ -529,7 +579,6 @@ void GameWindow::renderGame()
 
     if(gameMap != nullptr)
     {
-        
         auto tileMap = gameMap->getTileMap();
 
         for(int x = gameMap->getWidth() - 1; x >= 0; x--)
@@ -669,7 +718,7 @@ void GameWindow::renderUi()
 
 void GameWindow::tick()
 {
-    static unsigned int tickTime = 0;
+    unsigned int tickTime = 0;
 
     auto currentTickTime = QDateTime::currentMSecsSinceEpoch();
     auto lastTickTime = QDateTime::currentMSecsSinceEpoch();
@@ -690,6 +739,4 @@ void GameWindow::tick()
         currentTickTime = QDateTime::currentMSecsSinceEpoch();
         std::this_thread::sleep_for(std::chrono::milliseconds(40 - (currentTickTime - lastTickTime)));
     }
-
-    tickTime = 0;
 }

@@ -32,6 +32,7 @@
 
 #include "camera.h"
 #include "Input/input.h"
+#include "Input/inputcomponent.h"
 #include "constant.h"
 #include "Engine/map.h"
 #include "Engine/fontloader.h"
@@ -110,6 +111,7 @@ private:
     EntitySystem::Entity* goldText;
     EntitySystem::Entity* nbRenderedGameFrameText;
     EntitySystem::Entity* currentSeedText;
+    EntitySystem::Entity* userText;
 
     Map::MapConstraint mapConstraint;
 

@@ -67,7 +67,6 @@ FontLoader::FontLoader(std::string fontFile) : nbCharaId(0)
 
 	if(f.is_open())
 	{
-        std::cout << "Open Font file: " << fontFile << std::endl;
 
 		for(std::string line; std::getline(f, line); )
 		{
@@ -138,9 +137,6 @@ FontLoader::FontLoader(std::string fontFile) : nbCharaId(0)
 
                     nbCharaId++;
                     xPos += newChara->getWidth() + 1;
-
-                    std::cout << "Chara " << newChara->getName() << " Registered ";
-
                 }
                     
             }
@@ -149,7 +145,6 @@ FontLoader::FontLoader(std::string fontFile) : nbCharaId(0)
     }
 
     f.close();
-    std::cout << std::endl << "Font correctly loaded" << std::endl;
 }
 
 FontLoader::~FontLoader()

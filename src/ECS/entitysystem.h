@@ -5,6 +5,16 @@
 #include <vector>
 #include <typeinfo>
 
+template <typename View>
+int viewLen(View view)
+{
+    int i = 0;
+    for(const auto& pos : view)
+        i++;
+
+    return i;
+}
+
 class EntitySystem
 {
 public:
@@ -180,9 +190,6 @@ public:
 
     template <typename Component, typename... Group>
     EntitySystem::GroupList group();
-
-    //template <typename FirstComponent, typename... RestComponent>
-    //std::vector<Entity* > group();
 
 private:
     template <typename Component, typename... Args>

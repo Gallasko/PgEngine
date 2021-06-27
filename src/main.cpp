@@ -18,6 +18,5 @@ int main(int argc, char *argv[])
 
     QObject::connect(&game, SIGNAL(quitApp()), &app, SLOT(quit()));
 
-
 	return app.exec();
 }

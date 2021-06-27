@@ -5,7 +5,6 @@
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLBuffer>
 
-#include <iostream>
 #include <fstream>
 #include <vector>
 #include <string>

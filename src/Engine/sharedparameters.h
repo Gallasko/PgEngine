@@ -2,7 +2,7 @@
 
 #include <string>
 #include <unordered_map>
-
+/*
 class SharedParameters
 {
 public:
@@ -36,3 +36,4 @@ public:
 private:
     std::unordered_map<std::string, SharedParameters::Data*> parametersList;
 };
+*/
