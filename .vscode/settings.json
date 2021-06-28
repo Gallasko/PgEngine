@@ -71,6 +71,7 @@
         "cinttypes": "cpp",
         "variant": "cpp",
         "bit": "cpp",
-        "stop_token": "cpp"
+        "stop_token": "cpp",
+        "qcoreapplication": "cpp"
     }
 }

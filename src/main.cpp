@@ -3,6 +3,8 @@
 
 #include "game.h"
 
+#include <QTimer>
+
 int main(int argc, char *argv[])
 {
     QSurfaceFormat format;
@@ -15,6 +17,10 @@ int main(int argc, char *argv[])
     game.resize(640, 480);
     game.setAnimating(true);
     game.show();
+
+    QTimer* timer = new QTimer();
+    QObject::connect( timer, SIGNAL( timeout() ), &game, SLOT( renderNow() ) );
+    timer->start(0);
 
     QObject::connect(&game, SIGNAL(quitApp()), &app, SLOT(quit()));
 

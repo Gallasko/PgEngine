@@ -294,7 +294,9 @@ void GameWindow::initialize()
     userText = ecs.createEntity();
     auto userTextC = ecs.attach<Sentence>(userText, {{"Random Text"}, 4.0f, fontLoader});
     auto userTextMouseC = ecs.attach<MouseInputComponent>(userText, {userTextC});
-    auto userTextKeyC = ecs.attach<KeyboardInputComponent>(userText, {userTextC});
+    //auto userTextKeyC = ecs.attach<KeyboardInputComponent<GameWindow>>(userText, {this});
+
+    //userTextKeyC->onKey = &changeRandomText;
 
     userTextC->setX(10);
     userTextC->setZ(1);
@@ -307,7 +309,16 @@ void GameWindow::initialize()
     screenUi->height = height();
     auto screenInput = ecs.attach<MouseInputComponent>(screenEntity, {screenUi});
     screenInput->scale = AreaScale::FULLSCALE;
-    screenInput->onPressed = [](Input* inputHandler, double deltaTime) { if(inputHandler->isButtonPressed(Qt::LeftButton)) std::cout << "Clicked" << std::endl; };
+    screenInput->onPressed = [](Input* inputHandler, double deltaTime) { 
+        static double msHeld = 0;
+        if(inputHandler->isButtonPressed(Qt::LeftButton)) 
+        {   
+            msHeld += deltaTime;
+            std::cout << "Button Held for " << msHeld << "ms" << std::endl;
+        }
+        else
+            msHeld = 0;
+    };
 
     ticking = true;
     std::thread t (&GameWindow::tick, this);
@@ -317,6 +328,16 @@ void GameWindow::initialize()
 
 void GameWindow::render()
 {
+    //auto start = std::chrono::high_resolution_clock::now();
+    //auto finish = std::chrono::high_resolution_clock::now();
+
+    //start = std::chrono::high_resolution_clock::now();
+
+    //auto elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(finish - start).count();
+    //std::cout << elapsedTime << "us" << std::endl;
+
+    //finish = start;
+
     currentTime = QDateTime::currentMSecsSinceEpoch();
     static auto lastTime = QDateTime::currentMSecsSinceEpoch();
 
@@ -354,11 +375,11 @@ void GameWindow::render()
     else
         std::cout << " Mouse Pos Text error" << std::endl;
 
-    updateGameState();
+    updateGameState(float(currentTime - lastTime) / 1000);
 
-    //renderGame();
+    renderGame();
 
-    if(debug)
+    if(!debug)
     {
         auto mousePosTextC = mousePosText->get<Sentence>();
         if(mousePosTextC != nullptr)
@@ -384,6 +405,7 @@ void GameWindow::render()
         std::cout << "Nb Rendered Game Frame Text Error" << std::endl;
 
     lastTime = currentTime;
+
 }
 
 void GameWindow::setAnimating(bool animating)
@@ -495,9 +517,13 @@ void GameWindow::renderNow()
     render();
 
     m_context->swapBuffers(this);
-
+/*
     if (m_animating)
+    {
+        //renderNow();
         renderLater();
+    }
+*/
 }
 
 bool GameWindow::event(QEvent *event)
@@ -507,6 +533,7 @@ bool GameWindow::event(QEvent *event)
         renderNow();
         return true;
     default:
+        std::cout << event->type() << std::endl;
         return QWindow::event(event);
     }
 }
@@ -519,7 +546,7 @@ void GameWindow::exposeEvent(QExposeEvent *event)
         renderNow();
 }
 
-void GameWindow::updateGameState()
+void GameWindow::updateGameState(double deltaTime)
 {
     int highestZ = -1;
 
@@ -533,8 +560,8 @@ void GameWindow::updateGameState()
     {
         if(mousePos.x() > *mouseArea.x / static_cast<int>(mouseArea.scale) && mousePos.x() < (*mouseArea.x + *mouseArea.width) / static_cast<int>(mouseArea.scale) && mousePos.y() < (*mouseArea.y + *mouseArea.height) / static_cast<int>(mouseArea.scale) && mousePos.y() > *mouseArea.y / static_cast<int>(mouseArea.scale) && *mouseArea.enable && *mouseArea.z == highestZ)
         {
-            std::cout << "Mouse Hovering: " << *mouseArea.x << ", " << *mouseArea.y << ", " << *mouseArea.width << ", " << *mouseArea.height << std::endl;
-            mouseArea.onPressed(inputHandler, 0.0f);
+            //std::cout << "Mouse Hovering: " << *mouseArea.x << ", " << *mouseArea.y << ", " << *mouseArea.width << ", " << *mouseArea.height << std::endl;
+            mouseArea.onPressed(inputHandler, deltaTime);
         }
     }
 }

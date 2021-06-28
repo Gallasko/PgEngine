@@ -60,6 +60,8 @@ public:
     void mouseReleaseEvent(QMouseEvent *event);
     void wheelEvent(QWheelEvent *event);
 
+    void changeRandomText(Input* inputHandler, double deltaTime);
+
 public slots:
     void renderLater();
     void renderNow();
@@ -73,7 +75,7 @@ protected:
     void exposeEvent(QExposeEvent *event) override;
 
 private:
-    void updateGameState();
+    void updateGameState(double deltaTime);
     void renderGame();
     void renderUi();
     void tick();
@@ -112,6 +114,8 @@ private:
     EntitySystem::Entity* nbRenderedGameFrameText;
     EntitySystem::Entity* currentSeedText;
     EntitySystem::Entity* userText;
+
+    std::string randomText;
 
     Map::MapConstraint mapConstraint;
 

@@ -31,16 +31,14 @@ struct MouseInputComponent
 
 struct KeyboardInputComponent
 {
-	int *x, *y, *z, *width, *height; // Input Area
-	bool focus = false;
+    bool focus = false;
 
-	void (*onPressed)(double) = nullptr;
-	Qt::MouseButton triggerButton = Qt::LeftButton;
+	void (*onKey)(Input*, double) = [](Input* inputHandler, double deltaTime) {};
 
     KeyboardInputComponent() {}
-    KeyboardInputComponent(int* x, int* y, int* z, int* width, int* height) : x(x), y(y), z(z), width(width), height(height) {} 
-    KeyboardInputComponent(UiComponent *component) : x(&component->x), y(&component->y), z(&component->z), width(&component->width), height(&component->height) {}
-    KeyboardInputComponent(const KeyboardInputComponent& component) : x(component.x), y(component.y), z(component.z), width(component.width), height(component.height), focus(component.focus), onPressed(component.onPressed), triggerButton(component.triggerButton) {}
+    KeyboardInputComponent(const KeyboardInputComponent& component) : focus(component.focus), onKey(component.onKey) {}
+
+    //void call(Input* inputHandler, double deltaTime) { (*object.*onKey)(inputHandler, deltaTime); }
 
     ~KeyboardInputComponent() {}
 };
