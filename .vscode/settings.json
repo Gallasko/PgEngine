@@ -72,6 +72,26 @@
         "variant": "cpp",
         "bit": "cpp",
         "stop_token": "cpp",
-        "qcoreapplication": "cpp"
+        "qcoreapplication": "cpp",
+        "bitset": "cpp",
+        "cfenv": "cpp",
+        "charconv": "cpp",
+        "codecvt": "cpp",
+        "complex": "cpp",
+        "condition_variable": "cpp",
+        "csetjmp": "cpp",
+        "csignal": "cpp",
+        "cuchar": "cpp",
+        "forward_list": "cpp",
+        "unordered_set": "cpp",
+        "regex": "cpp",
+        "set": "cpp",
+        "future": "cpp",
+        "iomanip": "cpp",
+        "mutex": "cpp",
+        "scoped_allocator": "cpp",
+        "shared_mutex": "cpp",
+        "typeindex": "cpp",
+        "valarray": "cpp"
     }
 }

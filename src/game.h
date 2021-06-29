@@ -38,7 +38,7 @@
 #include "Engine/fontloader.h"
 #include "UI/sentencesystem.h"
 
-class GameWindow : public QWindow, protected QOpenGLFunctions
+class GameWindow : public QWindow, protected QOpenGLFunctions, public Obj
 {
 	Q_OBJECT
 

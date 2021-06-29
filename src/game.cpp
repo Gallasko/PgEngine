@@ -291,12 +291,16 @@ void GameWindow::initialize()
     currentSeedTextC->setTopAnchor(nbRenderedGameFrameTextC);
     currentSeedTextC->setTopMargin(10);
 
-    userText = ecs.createEntity();
-    auto userTextC = ecs.attach<Sentence>(userText, {{"Random Text"}, 4.0f, fontLoader});
-    auto userTextMouseC = ecs.attach<MouseInputComponent>(userText, {userTextC});
-    //auto userTextKeyC = ecs.attach<KeyboardInputComponent<GameWindow>>(userText, {this});
+    randomText = "Random Text";
 
-    //userTextKeyC->onKey = &changeRandomText;
+    userText = ecs.createEntity();
+    auto userTextC = ecs.attach<Sentence>(userText, {{randomText}, 4.0f, fontLoader});
+    auto userTextMouseC = ecs.attach<MouseInputComponent>(userText, {userTextC});
+    auto userTextKeyC = ecs.attach<KeyboardInputComponent* >(userText, {});
+
+    *userTextKeyC = new KeyboardInputBase<GameWindow>();
+    //static_cast<KeyboardInputComponent<GameWindow>* >(*userTextKeyC)->registerFunc(&changeRandomText, this);
+    (*userTextKeyC)->registerFunc(&changeRandomText, this);
 
     userTextC->setX(10);
     userTextC->setZ(1);
@@ -328,16 +332,6 @@ void GameWindow::initialize()
 
 void GameWindow::render()
 {
-    //auto start = std::chrono::high_resolution_clock::now();
-    //auto finish = std::chrono::high_resolution_clock::now();
-
-    //start = std::chrono::high_resolution_clock::now();
-
-    //auto elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(finish - start).count();
-    //std::cout << elapsedTime << "us" << std::endl;
-
-    //finish = start;
-
     currentTime = QDateTime::currentMSecsSinceEpoch();
     static auto lastTime = QDateTime::currentMSecsSinceEpoch();
 
@@ -487,6 +481,47 @@ void GameWindow::wheelEvent(QWheelEvent *event)
     gameScale += (event->angleDelta().y() / 120) * 5.0f;
 }
 
+void GameWindow::changeRandomText(Input* inputHandler, double deltaTime) 
+{
+    static std::vector<int> keyPressed;
+
+    int shiftKey = inputHandler->isKeyPressed(Qt::Key_Shift) ? 0 : 32; // Number to shift from upper to lower case 
+    bool ctrlKey = inputHandler->isKeyPressed(Qt::Key_Control);
+
+    for(int i = 0x41; i <= 0x5a; i++) // QtKey range from A = 0x41 to Z = 0x5a
+    {
+        if(inputHandler->isKeyPressed(static_cast<Qt::Key>(i)) && std::find(keyPressed.begin(), keyPressed.end(), i) == keyPressed.end())
+        {
+            randomText += static_cast<char>(i + shiftKey);
+            keyPressed.push_back(i);
+        } 
+    }
+
+    if(inputHandler->isKeyPressed(Qt::Key_Space) && std::find(keyPressed.begin(), keyPressed.end(), static_cast<int>(Qt::Key_Space)) == keyPressed.end()) 
+    {
+        randomText += " ";
+        keyPressed.push_back(static_cast<int>(Qt::Key_Space));
+    }
+
+    if(inputHandler->isKeyPressed(Qt::Key_Backspace) && randomText.size() > 0 && std::find(keyPressed.begin(), keyPressed.end(), static_cast<int>(Qt::Key_Backspace)) == keyPressed.end()) 
+    {
+        if(ctrlKey)
+            randomText = "";
+        else
+            randomText.pop_back();
+
+        keyPressed.push_back(static_cast<int>(Qt::Key_Backspace));
+    }
+
+    for(auto key : keyPressed)
+        if(!inputHandler->isKeyPressed(static_cast<Qt::Key>(key)))
+            keyPressed.erase(std::find(keyPressed.begin(), keyPressed.end(), key));
+
+    auto text = userText->get<Sentence>();
+    if(text != nullptr)
+        text->setText(randomText, fontLoader); 
+}
+
 void GameWindow::renderLater()
 {
     requestUpdate();
@@ -533,7 +568,6 @@ bool GameWindow::event(QEvent *event)
         renderNow();
         return true;
     default:
-        std::cout << event->type() << std::endl;
         return QWindow::event(event);
     }
 }
@@ -563,6 +597,11 @@ void GameWindow::updateGameState(double deltaTime)
             //std::cout << "Mouse Hovering: " << *mouseArea.x << ", " << *mouseArea.y << ", " << *mouseArea.width << ", " << *mouseArea.height << std::endl;
             mouseArea.onPressed(inputHandler, deltaTime);
         }
+    }
+
+    for(auto keyArea : ecs.view<KeyboardInputComponent*>())
+    {
+        keyArea->call(inputHandler, deltaTime);
     }
 }
 
