@@ -1,9 +1,17 @@
 #pragma once
 
+#include <QOpenGLFunctions>
+#include <QOpenGLTexture>
+#include <QOpenGLVertexArrayObject>
+#include <QOpenGLBuffer>
+
 #include <algorithm>
 #include <vector>
 
-struct UiComponent
+#include "../Engine/basesystem.h"
+#include "../constant.h"
+
+struct UiComponent : public Base
 {
     bool visible = true;
 
@@ -45,4 +53,23 @@ struct UiComponent
     bool updated = false;
     
     void update();
+};
+
+struct TextureComponent : public UiComponent, private QOpenGLFunctions
+{
+    TextureComponent(unsigned int width, unsigned int height, const char* path);
+    TextureComponent(const TextureComponent &rhs);
+    ~TextureComponent();
+
+    void generateMesh();
+
+    unsigned int texture;
+
+    constant::SquareInfo modelInfo;
+
+    QOpenGLVertexArrayObject *VAO = nullptr;
+	QOpenGLBuffer *VBO = nullptr;
+	QOpenGLBuffer *EBO = nullptr;
+
+    bool initialised = false;
 };

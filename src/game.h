@@ -38,7 +38,7 @@
 #include "Engine/fontloader.h"
 #include "UI/sentencesystem.h"
 
-class GameWindow : public QWindow, protected QOpenGLFunctions, public Obj
+class GameWindow : public QWindow, protected QOpenGLFunctions, public Base
 {
 	Q_OBJECT
 
@@ -60,7 +60,9 @@ public:
     void mouseReleaseEvent(QMouseEvent *event);
     void wheelEvent(QWheelEvent *event);
 
+    //UI callback function
     void changeRandomText(Input* inputHandler, double deltaTime);
+    void payTeclaFlooz(Input* inputHandler, double deltaTime);
 
 public slots:
     void renderLater();

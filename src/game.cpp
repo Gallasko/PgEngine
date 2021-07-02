@@ -240,9 +240,6 @@ void GameWindow::initialize()
 
     mousePosText = ecs.createEntity();
     auto mousePosTextC = ecs.attach<Sentence>(mousePosText, {{"(0, 0)"}, 9.5f, fontLoader});
-    auto mouseAreaTest = ecs.attach<MouseInputComponent>(mousePosText, {mousePosTextC});
-
-    mouseAreaTest->onPressed = [](Input* inputHandler, double deltaTime) { if(inputHandler->isButtonPressed(Qt::LeftButton)) std::cout << "Clicked" << std::endl; };
     
     mousePosTextC->setX(10);
     mousePosTextC->setZ(2);
@@ -272,8 +269,14 @@ void GameWindow::initialize()
 
     goldText = ecs.createEntity();
     auto goldTextC = ecs.attach<Sentence>(goldText, {{"0 TeclaFlooz"}, 4.0f, fontLoader});
+    auto goldTextMouseArea = ecs.attach<MouseInputComponent* >(goldText, {});
+
+    *goldTextMouseArea = new MouseInputBase<Base>(goldTextC);
+
+    (*goldTextMouseArea)->registerFunc(&payTeclaFlooz, this);
 
     goldTextC->setX(10);
+    goldTextC->setZ(2);
     goldTextC->setTopAnchor(tileTypeC);
     goldTextC->setTopMargin(10);
 
@@ -295,25 +298,50 @@ void GameWindow::initialize()
 
     userText = ecs.createEntity();
     auto userTextC = ecs.attach<Sentence>(userText, {{randomText}, 4.0f, fontLoader});
-    auto userTextMouseC = ecs.attach<MouseInputComponent>(userText, {userTextC});
     auto userTextKeyC = ecs.attach<KeyboardInputComponent* >(userText, {});
 
     *userTextKeyC = new KeyboardInputBase<GameWindow>();
     //static_cast<KeyboardInputComponent<GameWindow>* >(*userTextKeyC)->registerFunc(&changeRandomText, this);
     (*userTextKeyC)->registerFunc(&changeRandomText, this);
 
+    //(*userTextKeyC)->registerFunc([](Input* inputHandler, double deltaTime) {std::cout << "Key Pressed" << std::endl;});
+
     userTextC->setX(10);
     userTextC->setZ(1);
     userTextC->setTopAnchor(currentSeedTextC);
     userTextC->setTopMargin(10);
 
+    auto menu = ecs.createEntity();
+    auto menuTexC = ecs.attach<TextureComponent>(menu, {160, 90, "res/menu/Menu.png"});
+    auto menuMouseArea = ecs.attach<MouseInputComponent* >(menu, {});
+
+    *menuMouseArea = new MouseInputBase<Base>(menuTexC);
+
+    (*menuMouseArea)->registerFunc([](Input* inputHandler, double deltaTime) { if(inputHandler->isButtonPressed(Qt::LeftButton)) std::cout << "Menu 1 Clicked" << std::endl; });
+
+    //menuTexC->setX(width() - 170);
+    menuTexC->setX(300);
+    menuTexC->setY(30);
+    menuTexC->setZ(2);
+
+    auto menu2 = ecs.createEntity();
+    auto menu2TexC = ecs.attach<TextureComponent>(menu2, {320, 180, "res/menu/Menu2.png"});
+
+    menu2TexC->setTopAnchor(menuTexC);
+    menu2TexC->setTopMargin(10);
+
+    menu2TexC->setX(300);
+
     auto screenEntity = ecs.createEntity();
     auto screenUi = ecs.attach<UiComponent>(screenEntity, {});
     screenUi->width = width();
     screenUi->height = height();
-    auto screenInput = ecs.attach<MouseInputComponent>(screenEntity, {screenUi});
-    screenInput->scale = AreaScale::FULLSCALE;
-    screenInput->onPressed = [](Input* inputHandler, double deltaTime) { 
+
+    auto screenInput = ecs.attach<MouseInputComponent*>(screenEntity, {});
+    *screenInput = new MouseInputBase<Camera>(screenUi);
+    (*screenInput)->scale = AreaScale::FULLSCALE;
+    /*
+    (*screenInput)->registerFunc([](Input* inputHandler, double deltaTime) { 
         static double msHeld = 0;
         if(inputHandler->isButtonPressed(Qt::LeftButton)) 
         {   
@@ -322,7 +350,15 @@ void GameWindow::initialize()
         }
         else
             msHeld = 0;
-    };
+    });
+    */
+   (*screenInput)->registerFunc(&(camera->updateMouse), camera);
+
+    auto screenKeyInput = ecs.attach<KeyboardInputComponent* >(screenEntity, {});
+    *screenKeyInput = new KeyboardInputBase<Camera>();
+
+   (*screenKeyInput)->registerFunc(&(camera->updateKeyboard), camera);
+
 
     ticking = true;
     std::thread t (&GameWindow::tick, this);
@@ -522,6 +558,20 @@ void GameWindow::changeRandomText(Input* inputHandler, double deltaTime)
         text->setText(randomText, fontLoader); 
 }
 
+void GameWindow::payTeclaFlooz(Input *inputHandler, double deltaTime)
+{
+    static bool pressed = false;
+
+    if(inputHandler->isButtonPressed(Qt::LeftButton) && !pressed)
+    {
+        gold -= 10;
+        pressed = true;
+    }
+
+    if(!inputHandler->isButtonPressed(Qt::LeftButton))
+        pressed = false;
+}
+
 void GameWindow::renderLater()
 {
     requestUpdate();
@@ -585,17 +635,17 @@ void GameWindow::updateGameState(double deltaTime)
     int highestZ = -1;
 
     // Take the Highest Z under the mouse and make only those element clickable  
-    for(auto mouseArea : ecs.view<MouseInputComponent>())
-        if(mousePos.x() > *mouseArea.x / static_cast<int>(mouseArea.scale) && mousePos.x() < (*mouseArea.x + *mouseArea.width) / static_cast<int>(mouseArea.scale) && mousePos.y() < (*mouseArea.y + *mouseArea.height) / static_cast<int>(mouseArea.scale) && mousePos.y() > *mouseArea.y / static_cast<int>(mouseArea.scale) && *mouseArea.enable)
-            if (*mouseArea.z > highestZ)
-                highestZ = *mouseArea.z;
+    for(auto mouseArea : ecs.view<MouseInputComponent*>())
+        if(mousePos.x() > *(mouseArea->x) / static_cast<int>(mouseArea->scale) && mousePos.x() < (*mouseArea->x + *mouseArea->width) / static_cast<int>(mouseArea->scale) && mousePos.y() < (*mouseArea->y + *mouseArea->height) / static_cast<int>(mouseArea->scale) && mousePos.y() > *mouseArea->y / static_cast<int>(mouseArea->scale) && *mouseArea->enable)
+            if (*mouseArea->z > highestZ)
+                highestZ = *mouseArea->z;
 
-    for(auto mouseArea : ecs.view<MouseInputComponent>())
+    for(auto mouseArea : ecs.view<MouseInputComponent*>())
     {
-        if(mousePos.x() > *mouseArea.x / static_cast<int>(mouseArea.scale) && mousePos.x() < (*mouseArea.x + *mouseArea.width) / static_cast<int>(mouseArea.scale) && mousePos.y() < (*mouseArea.y + *mouseArea.height) / static_cast<int>(mouseArea.scale) && mousePos.y() > *mouseArea.y / static_cast<int>(mouseArea.scale) && *mouseArea.enable && *mouseArea.z == highestZ)
+        if(mousePos.x() > *mouseArea->x / static_cast<int>(mouseArea->scale) && mousePos.x() < (*mouseArea->x + *mouseArea->width) / static_cast<int>(mouseArea->scale) && mousePos.y() < (*mouseArea->y + *mouseArea->height) / static_cast<int>(mouseArea->scale) && mousePos.y() > *mouseArea->y / static_cast<int>(mouseArea->scale) && *mouseArea->enable && *mouseArea->z == highestZ)
         {
             //std::cout << "Mouse Hovering: " << *mouseArea.x << ", " << *mouseArea.y << ", " << *mouseArea.width << ", " << *mouseArea.height << std::endl;
-            mouseArea.onPressed(inputHandler, deltaTime);
+            mouseArea->call(inputHandler, deltaTime);
         }
     }
 
@@ -746,15 +796,50 @@ void GameWindow::renderUi()
 
     projection.setToIdentity();
     model.setToIdentity();
+    scale.setToIdentity();
+    scale.scale(QVector3D(2.0f / width(), 2.0f / height(), 0.0f));
 
     // Text rendering
 
+    defaultShaderProgram->bind();
+
+    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("projection"), projection);
+    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("model"), model);
+
+    for(auto texture : ecs.view<TextureComponent>())
+    {
+        if(texture.visible)
+        {
+            if(texture.initialised == false)
+                texture.generateMesh();
+
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, texture.texture);
+
+            view.setToIdentity();
+            view.translate(QVector3D(-1.0f + 2.0f * (float)(texture.x) / width(), 1.0f + 2.0f * (float)( -texture.y) / height(), 0.0f));
+
+            defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
+            defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("scale"), scale);
+
+            texture.VAO->bind();
+            glDrawElements(GL_TRIANGLES, texture.modelInfo.nbIndices * 6, GL_UNSIGNED_INT, 0);
+        }
+    }
+
+    defaultShaderProgram->release();
+
     textShaderProgram->bind();
 
+    scale.setToIdentity();
+    scale.scale(QVector3D(1.0f / width(), 1.0f / height(), 0.0f));
+
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, fontTexture);
 
     textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("projection"), projection);
     textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("model"), model);
+    textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("scale"), scale);
 
     textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("time"), static_cast<int>(currentTime % 314159));
 
@@ -765,14 +850,9 @@ void GameWindow::renderUi()
             if(sentence.initialised == false)
                 sentence.generateMesh();
 
-            scale.setToIdentity();
-            scale.scale(QVector3D(1.0f / width(), 1.0f / height(), 0.0f));
-
             view.setToIdentity();
             view.translate(QVector3D(-1.0f + (float)(sentence.x) / width(), 1.0f + (float)( -sentence.y) / height(), 0.0f));
-
             textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("view"), view);
-            textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("scale"), scale);
 
             sentence.VAO->bind();
             glDrawElements(GL_TRIANGLES, sentence.modelInfo.nbIndices * 6, GL_UNSIGNED_INT, 0);

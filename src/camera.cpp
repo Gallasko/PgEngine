@@ -97,8 +97,15 @@ void Camera::updateKeyboard(Input *inputHandler, double deltaTime)
         ProcessKeyboard(constant::Camera_Movement::RIGHT, deltaTime);
 }
 
+#include <iostream>
 void Camera::updateMouse(Input *inputHandler, double deltaTime)
 {
+    std::cout << inputHandler->getMouseDelta().x() << ", " << inputHandler->getMouseDelta().y() << std::endl;
+    std::cout << inputHandler->getMousePos().x() << ", " << inputHandler->getMousePos().y() << std::endl;
+    
+    if(inputHandler->isButtonPressed(Qt::LeftButton))
+        std::cout << "Clicked" << std::endl;
+
     auto mouseDelta = inputHandler->getMouseDelta();
     float xOffset = mouseDelta.x();
     float yOffset = mouseDelta.y();

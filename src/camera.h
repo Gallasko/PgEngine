@@ -11,8 +11,9 @@
 
 #include "constant.h"
 #include "Input/input.h"
+#include "Engine/basesystem.h"
 
-class Camera : public QObject, protected QOpenGLFunctions
+class Camera : public QObject, protected QOpenGLFunctions, public Base
 {
     Q_OBJECT
 public:
