@@ -149,7 +149,9 @@ FontLoader::FontLoader(std::string fontFile) : nbCharaId(0)
 
 FontLoader::~FontLoader()
 {
-	std::vector<FontLoader::Font* >().swap(charaList); //delete block list
+    charaList.clear();
+    charaList.shrink_to_fit();
+	//std::vector<FontLoader::Font* >().swap(charaList); //delete block list
 }
 
 FontLoader::Font* FontLoader::getChara(int id) const

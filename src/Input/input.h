@@ -64,10 +64,6 @@ public:
 
 	void reset();
 
-signals:
-	void updatedKeyInput(Input *inputHandler, double deltaTime);
-	void updatedMouseInput(Input *inputHandler, double deltaTime);
-
 private:
 	std::vector<Input::KeyInstance> keyContainer;
 	std::vector<Input::ButtonInstance> buttonContainer;

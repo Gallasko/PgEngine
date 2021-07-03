@@ -381,7 +381,6 @@ void GameWindow::render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     currentTime = QDateTime::currentMSecsSinceEpoch();
-    inputHandler->updateInput(float(currentTime - lastTime) / 1000);
 
     //fps counter
     nbFrames++;
@@ -434,6 +433,8 @@ void GameWindow::render()
     else
         std::cout << "Nb Rendered Game Frame Text Error" << std::endl;
 
+    inputHandler->updateInput(float(currentTime - lastTime) / 1000);
+
     lastTime = currentTime;
 
 }
@@ -451,28 +452,7 @@ void GameWindow::keyPressEvent(QKeyEvent *event)
     if (event->isAutoRepeat())
         event->ignore();
     else
-    {
         inputHandler->registerKeyInput((Qt::Key)event->key(), Input::InputState::KEYPRESSED);
-        if(event->key() == Qt::Key_Plus)
-        {
-            mapConstraint.width += 5;
-            mapConstraint.height += 5;
-        }
-        else if(event->key() == Qt::Key_S)
-        {
-            if(mapConstraint.width > 5)
-            {
-                mapConstraint.width -= 5;
-                mapConstraint.height -= 5;
-            }
-        }
-    }
-
-    if(inputHandler->isKeyPressed(Qt::Key_Control) && inputHandler->isKeyPressed(Qt::Key_3) && !debugSwitched)
-    {
-        debug = !debug;
-        debugSwitched = true;
-    }
 }
 
 void GameWindow::keyReleaseEvent(QKeyEvent *event)
@@ -806,6 +786,10 @@ void GameWindow::renderUi()
     defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("projection"), projection);
     defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("model"), model);
 
+    //gl scissor for list views 
+    //glEnable(GL_SCISSOR_TEST);
+    //glScissor(300, 200, 200, 500);
+
     for(auto texture : ecs.view<TextureComponent>())
     {
         if(texture.visible)
@@ -826,6 +810,8 @@ void GameWindow::renderUi()
             glDrawElements(GL_TRIANGLES, texture.modelInfo.nbIndices * 6, GL_UNSIGNED_INT, 0);
         }
     }
+
+    //glDisable(GL_SCISSOR_TEST);
 
     defaultShaderProgram->release();
 

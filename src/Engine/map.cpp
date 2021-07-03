@@ -423,7 +423,14 @@ Map::Map(EntitySystem *ecs, TilesLoader *tilesLoader, Map::MapConstraint constra
 Map::~Map()
 {
     for(int i = constraint.width - 1; i >= 0; i--)
+    {
+        for(int j = constraint.height - 1; j >= 0; j--)
+        {
+            delete tileMap[i][j];
+        }
+
         delete[] tileMap[i];
+    }
 
     delete[] tileMap;
 

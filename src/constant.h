@@ -145,6 +145,12 @@ namespace constant
 		inline void operator=(const ModelInfo &rhs)
 		{
 			int i = 0;
+
+			if(this->vertices != nullptr)
+            	delete[] this->vertices;
+        	if(this->indices != nullptr)
+            	delete[] this->indices;
+
 			this->vertices = new float[rhs.nbVertices];
 			for(i = 0; i < rhs.nbVertices; i++)
 				this->vertices[i] = rhs.vertices[i];
@@ -157,7 +163,7 @@ namespace constant
 			this->nbIndices = rhs.nbIndices;		
 		}
 
-		~ModelInfo() { if(vertices != nullptr) delete vertices; if(indices!= nullptr) delete indices; }
+		~ModelInfo() { if(vertices != nullptr) delete[] vertices; if(indices!= nullptr) delete[] indices; }
 	};
 
 	struct SquareInfo : public ModelInfo
@@ -197,6 +203,12 @@ namespace constant
 		inline void operator=(const SquareInfo &rhs)
 		{
 			int i = 0;
+
+			if(this->vertices != nullptr)
+            	delete[] this->vertices;
+        	if(this->indices != nullptr)
+            	delete[] this->indices;
+
 			this->vertices = new float[rhs.nbVertices];
 			for(i = 0; i < rhs.nbVertices; i++)
 				this->vertices[i] = rhs.vertices[i];

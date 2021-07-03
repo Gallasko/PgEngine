@@ -72,9 +72,9 @@ void Sentence::setText(const SentenceText& sentence, FontLoader *font)
         modelInfo.nbIndices = 6 * nbChara;
 
         if(modelInfo.vertices != nullptr)
-            delete modelInfo.vertices;
+            delete[] modelInfo.vertices;
         if(modelInfo.indices != nullptr)
-            delete modelInfo.indices;
+            delete[] modelInfo.indices;
 
         modelInfo.vertices = new float [modelInfo.nbVertices];
         modelInfo.indices = new unsigned int [modelInfo.nbIndices];

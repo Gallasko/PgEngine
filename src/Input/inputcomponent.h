@@ -38,7 +38,7 @@ struct MouseInputComponent
 
     void call(Input* inputHandler, double deltaTime) { if(onPressed != nullptr) (*object.*onPressed)(inputHandler, deltaTime); if(onPressedLambda != nullptr) (*onPressedLambda)(inputHandler, deltaTime); }
 
-    ~MouseInputComponent() {}
+    virtual ~MouseInputComponent() {}
 };
 
 template<typename ObjectType>
@@ -91,7 +91,7 @@ struct KeyboardInputComponent
 
     void call(Input* inputHandler, double deltaTime) { if(onKey != nullptr) (*object.*onKey)(inputHandler, deltaTime); if(onKeyLambda != nullptr) (*onKeyLambda)(inputHandler, deltaTime); }
 
-    ~KeyboardInputComponent() {}
+    virtual ~KeyboardInputComponent() {}
 };
 
 template<typename ObjectType>

@@ -136,9 +136,6 @@ QPoint Input::getMouseDelta()
 
 void Input::updateInput(double deltaTime)
 {
-	emit updatedKeyInput(this, deltaTime);
-	emit updatedMouseInput(this, deltaTime);
-
 	this->mouseDelta.setX(0);
 	this->mouseDelta.setY(0);
 

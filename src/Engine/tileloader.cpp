@@ -116,7 +116,9 @@ TilesLoader::TilesLoader(std::string tilesFolder) : nbTilesId(0)
 
 TilesLoader::~TilesLoader()
 {
-	std::vector<TilesLoader::TilesId* >().swap(tilesList); //delete block list
+	tilesList.clear();
+    tilesList.shrink_to_fit();
+	//std::vector<TilesLoader::TilesId* >().swap(tilesList); //delete block list
 }
 
 TilesLoader::TilesId* TilesLoader::getTile(int id) const
