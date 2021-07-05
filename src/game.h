@@ -38,6 +38,8 @@
 #include "Engine/fontloader.h"
 #include "UI/sentencesystem.h"
 
+#include "GameElements/Gui/tileselector.h"
+
 class GameWindow : public QWindow, protected QOpenGLFunctions, public Base
 {
 	Q_OBJECT
@@ -116,6 +118,10 @@ private:
     EntitySystem::Entity* nbRenderedGameFrameText;
     EntitySystem::Entity* currentSeedText;
     EntitySystem::Entity* userText;
+
+    MouseInputComponent* mapClickComponent;
+
+    TileSelector *tileSelector;
 
     std::string randomText;
 

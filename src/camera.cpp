@@ -82,7 +82,7 @@ void Camera::ProcessMouseScroll(float yoffset)
         Zoom = 45.0f; 
 }
 
-void Camera::updateKeyboard(Input *inputHandler, double deltaTime)
+void Camera::updateKeyboard(Input *inputHandler, double deltaTime...)
 {
     if(inputHandler->isKeyPressed(Qt::Key_A))
         ProcessKeyboard(constant::Camera_Movement::LEFT, deltaTime);
@@ -97,7 +97,7 @@ void Camera::updateKeyboard(Input *inputHandler, double deltaTime)
         ProcessKeyboard(constant::Camera_Movement::RIGHT, deltaTime);
 }
 
-void Camera::updateMouse(Input *inputHandler, double deltaTime)
+void Camera::updateMouse(Input *inputHandler, double deltaTime...)
 {
     auto mouseDelta = inputHandler->getMouseDelta();
     float xOffset = mouseDelta.x();

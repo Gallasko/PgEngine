@@ -14,8 +14,13 @@
 #include "tileloader.h"
 #include "noise.h"
 #include "../constant.h"
+#include "basesystem.h"
+#include "../Input/input.h"
+#include "../camera.h"
 
-class Map : private QOpenGLFunctions
+#include <iostream>
+
+class Map : private QOpenGLFunctions, public Base
 {
 public:
     enum class ZoneType
@@ -79,8 +84,15 @@ public:
     inline unsigned int getHeight() const { return constraint.height; }
     inline QOpenGLVertexArrayObject* getMesh() { if(!meshUpdate) generateMesh(); return VAO; }
 
+    void changeTile(Input* inputHandler, double deltaTime...) { va_list args; va_start(args, deltaTime); tileToBePlaced = va_arg(args, TilesLoader::TilesId*); std::cout << tileToBePlaced->getName() << std::endl; }
+    
+    void clicked(Input* inputHandler, double deltaTime...);
+
+    //void changeTile(Input* inputHandler, double deltaTime, unsigned int tile) {std::cout << tile << std::endl; }
+
 private:
     void updateModelInfo();
+    void roadTiling();
 
     EntitySystem *ecs;
     TilesLoader *tilesLoader; 
@@ -94,6 +106,8 @@ private:
     QOpenGLVertexArrayObject *VAO;
     QOpenGLBuffer *VBO;
     QOpenGLBuffer *EBO;
+
+    TilesLoader::TilesId *tileToBePlaced = nullptr; 
 
     bool meshUpdate = false;
 };

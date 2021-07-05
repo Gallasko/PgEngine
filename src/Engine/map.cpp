@@ -418,6 +418,8 @@ Map::Map(EntitySystem *ecs, TilesLoader *tilesLoader, Map::MapConstraint constra
     }
 
     meshUpdate = false;
+
+    tileToBePlaced = tilesLoader->getTile("Dirt");
 }
 
 Map::~Map()
@@ -468,6 +470,35 @@ void Map::generateMesh()
     meshUpdate = true;
 }
 
+void Map::clicked(Input* inputHandler, double deltaTime...)
+{
+    if(inputHandler->isButtonPressed(Qt::LeftButton))
+    {
+        auto mousePos = inputHandler->getMousePos();
+
+        va_list args; 
+        va_start(args, deltaTime); 
+        
+        auto screenWidth = va_arg(args, int);
+        auto screenHeight = va_arg(args, int);
+        auto gameScale = va_arg(args, double);
+        auto camera = va_arg(args, Camera*);
+
+        float selectedTileX = ((float)(mousePos.x() - screenWidth / 2.0f )) / (gameScale / 2.0f) + camera->Position.x() * screenWidth / gameScale;
+        float selectedTileY = ((float)(screenHeight / 2.0f - mousePos.y())) / (gameScale / 4.0f) + camera->Position.y() * screenHeight / gameScale * 2;
+
+        if(std::floor(selectedTileX + selectedTileY + 1) >= 0 && 
+           std::floor(selectedTileX + selectedTileY + 1) < this->getWidth() && 
+           std::floor(selectedTileY - selectedTileX + 1) >= 0 &&
+           std::floor(selectedTileY - selectedTileX + 1) < this->getHeight())
+        {
+            tileMap[static_cast<int>(std::floor(selectedTileX + selectedTileY + 1))][static_cast<int>(std::floor(selectedTileY - selectedTileX + 1))]->tileId = tileToBePlaced;
+            roadTiling();
+            meshUpdate = false;
+        }
+    }
+}
+
 void Map::updateModelInfo()
 {
     modelInfo.nbVertices = 20 * constraint.width * constraint.height;
@@ -509,4 +540,99 @@ void Map::updateModelInfo()
             i++;
         }
     }
+}
+
+void Map::roadTiling()
+{
+    // [Road Tiling]
+
+    std::vector<Map::Tiles* > availableSpace;
+
+    bool top;
+    bool right;
+    bool bottom;
+    bool left;
+
+    Map::Tiles *tile;
+
+    for(int i = 0; i < this->getWidth(); i++)
+    {
+        for(int j = 0; j < this->getHeight(); j++)
+        {
+            tile = tileMap[i][j];
+            //if(*tile->tileId == TileType::HOUSE)
+            //    tile->tileId = tilesLoader->getTile("Dirt");
+
+            if(*tile->tileId == TileType::ROAD)
+            {
+                top = false;
+                right = false;
+                bottom = false;
+                left = false;
+
+                if(i - 1 >= 0)
+                {
+                    if(*tileMap[i - 1][j]->tileId == TileType::ROAD)
+                        left = true;
+                    else
+                        availableSpace.push_back(tileMap[i - 1][j]);
+                }
+                    
+                if(i + 1 < this->getWidth())
+                {
+                    if(*tileMap[i + 1][j]->tileId == TileType::ROAD)
+                        right = true;
+                    else
+                        availableSpace.push_back(tileMap[i + 1][j]);
+                }
+                    
+                if(j - 1 >= 0)
+                {
+                    if(*tileMap[i][j - 1]->tileId == TileType::ROAD)
+                        top = true;
+                    else
+                        availableSpace.push_back(tileMap[i][j - 1]);
+                }
+                    
+                if(j + 1 < this->getHeight())
+                {
+                    if(*tileMap[i][j + 1]->tileId == TileType::ROAD)
+                        bottom = true;
+                    else
+                        availableSpace.push_back(tileMap[i][j + 1]);
+                }
+                    
+                if((top && bottom) && (!left && !right))
+                {
+                    tile->tileId = tilesLoader->getTile("Base Road Right");
+                }
+                else if((!top && !bottom) && (left && right))
+                {
+                    tile->tileId = tilesLoader->getTile("Base Road Top");
+                }
+                else if((top && !bottom) && (!left && !right))
+                {
+                    tile->tileId = tilesLoader->getTile("Base Road Left End");
+                }
+                else if((!top && !bottom) && (left && !right))
+                {
+                    tile->tileId = tilesLoader->getTile("Base Road Top End");
+                }
+                else if((!top && bottom) && (!left && !right))
+                {
+                    tile->tileId = tilesLoader->getTile("Base Road Right End");
+                }
+                else if((!top && !bottom) && (!left && right))
+                {
+                    tile->tileId = tilesLoader->getTile("Base Road Bot End");
+                }
+                else
+                {
+                    tile->tileId = tilesLoader->getTile("Base Road RoundAbout");
+                }
+            }
+        }
+    }
+
+    // [Road Tiling]
 }

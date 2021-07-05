@@ -4,8 +4,7 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
-                "Z:/Qt/5.11.2-x64/include/**",
-                "Z:/VisualLeakDetector/include/**"
+                "Z:/Qt/5.11.2-x64/include/**"
             ],
             "defines": [
                 "_DEBUG",

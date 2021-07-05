@@ -59,8 +59,8 @@ public:
     void ProcessMouseScroll(float yoffset);
 
 public slots:
-    void updateKeyboard(Input *inputHandler, double deltaTime);
-    void updateMouse(Input *inputHandler, double deltaTime);
+    void updateKeyboard(Input *inputHandler, double deltaTime...);
+    void updateMouse(Input *inputHandler, double deltaTime...);
 
 private:
     // calculates the front vector from the Camera's (updated) Euler Angles

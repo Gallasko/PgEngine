@@ -11,6 +11,8 @@
 #include "../Engine/basesystem.h"
 #include "../constant.h"
 
+//Todo parenting, better anchoring
+
 struct UiComponent : public Base
 {
     bool visible = true;
@@ -73,3 +75,39 @@ struct TextureComponent : public UiComponent, private QOpenGLFunctions
 
     bool initialised = false;
 };
+
+//TODO Copy Constructor
+template <typename LoaderId> 
+struct LoaderRenderComponent : public UiComponent
+{
+    LoaderRenderComponent(LoaderId *id) : id(id) {}
+    LoaderRenderComponent(const LoaderRenderComponent& rhs);
+
+    LoaderId *id;
+};
+
+template <typename LoaderId> 
+LoaderRenderComponent<LoaderId>::LoaderRenderComponent(const LoaderRenderComponent &rhs)
+{
+    this->visible = rhs.visible;
+    this->x = rhs.x;
+    this->y = rhs.y;
+    this->z = rhs.z;
+    this->width = rhs.width;
+    this->height = rhs.height;
+    this->scale = rhs.scale;
+    this->topAnchor = rhs.topAnchor;
+    this->rightAnchor = rhs.rightAnchor;
+    this->bottomAnchor = rhs.bottomAnchor;
+    this->leftAnchor = rhs.leftAnchor;
+    this->topMargin = rhs.topMargin;
+    this->rightMargin = rhs.rightMargin;
+    this->bottomMargin = rhs.bottomMargin;
+    this->leftMargin = rhs.leftMargin;
+    this->children = rhs.children;
+    this->scale = scale;
+
+    this->id = rhs.id;
+
+    update();
+}
