@@ -1,14 +1,14 @@
 #include "tileselector.h"
 
-TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLoader) : map(map), tileLoader(tileLoader), fontLoader(fontLoader)
+TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLoader, UiComponent* screenUi) : map(map), tileLoader(tileLoader), fontLoader(fontLoader)
 {
     initializeOpenGLFunctions();
 
     this->width = 240;
     this->height = 135;
 
-    this->setX(300);
-    this->setY(250);
+    this->setX(400);
+    this->setY(345);
 
     texture = new TextureComponent(this->width, this->height, "res/menu/Menu2.png");
     texture->setX(this->x);
@@ -26,19 +26,19 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
     tileRenderer.setX(this->x + 11);
     tileRenderer.setY(this->y + 41 + 30);
     tileRenderer.setWidth(50.0f);
-    tileRenderer.setHeight(25.0f);
+    tileRenderer.setHeight(50.0f);
 
     auto tileRenderer2 = LoaderRenderComponent<TilesLoader::TilesId>(tileLoader->getTile("Base Shop"));
     tileRenderer2.setX(this->x + 11 + 60);
     tileRenderer2.setY(this->y + 41 + 30);
     tileRenderer2.setWidth(50.0f);
-    tileRenderer2.setHeight(25.0f);
+    tileRenderer2.setHeight(50.0f);
 
     auto tileRenderer3 = LoaderRenderComponent<TilesLoader::TilesId>(tileLoader->getTile("Base Road RoundAbout"));
     tileRenderer3.setX(this->x + 11 + 60 + 60);
     tileRenderer3.setY(this->y + 41 + 30);
     tileRenderer3.setWidth(50.0f);
-    tileRenderer3.setHeight(25.0f);
+    tileRenderer3.setHeight(50.0f);
     
     tileRendererVector.push_back(tileRenderer);
     tileRendererVector.push_back(tileRenderer2);
@@ -49,13 +49,8 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
     mouseAreaVector.push_back(new MouseInputBase<Map>(&tileRendererVector[2]));
 
     mouseAreaVector[0]->registerFunc(&map->changeTile, map);
-    mouseAreaVector[0]->scale = AreaScale::FULLSCALE;
-
     mouseAreaVector[1]->registerFunc(&map->changeTile, map);
-    mouseAreaVector[1]->scale = AreaScale::FULLSCALE;
-
     mouseAreaVector[2]->registerFunc(&map->changeTile, map);
-    mouseAreaVector[2]->scale = AreaScale::FULLSCALE;
 
     this->visible = true;
 }
@@ -66,7 +61,7 @@ void TileSelector::mouseInput(Input* inputHandler, double deltaTime)
 
     if(inputHandler->isButtonPressed(Qt::LeftButton))
     {
-        for(int i = 0; i < mouseAreaVector.size(); i++)
+        for(unsigned int i = 0; i < mouseAreaVector.size(); i++)
         {
             auto mouseArea = mouseAreaVector[i];
             //std::cout << "Mouse Hovering: " << *mouseArea->x << ", " << *mouseArea->y << ", " << *mouseArea->width << ", " << *mouseArea->height << std::endl;
@@ -112,8 +107,7 @@ void TileSelector::render(unsigned int screenWidth, unsigned int screenHeight, Q
     //glEnable(GL_SCISSOR_TEST);
     //glScissor(300, 200, 200, 500);
 
-    if(texture->initialised == false)
-        texture->generateMesh();
+    texture->generateMesh();
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture->texture);

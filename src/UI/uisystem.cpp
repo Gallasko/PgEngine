@@ -1,5 +1,17 @@
 #include "uisystem.h"
 
+template<typename Type>
+Type operator+(const Type& lhs, const UiSize& rhs)
+{
+    return lhs + UiSize::returnCurrentSize(&rhs);
+}
+
+template<typename Type>
+Type operator-(const Type& lhs, const UiSize& rhs)
+{
+    return lhs - UiSize::returnCurrentSize(&rhs);
+}
+
 void UiComponent::update()
 {
     if(topAnchor != nullptr && bottomAnchor != nullptr)
@@ -36,7 +48,7 @@ void UiComponent::update()
         child->update();
 }
 
-TextureComponent::TextureComponent(unsigned int width, unsigned int height, const char* path)
+TextureComponent::TextureComponent(UiSize width, UiSize height, const char* path)
 {
     initializeOpenGLFunctions(); 
 
@@ -91,6 +103,10 @@ TextureComponent::TextureComponent(const TextureComponent &rhs)
     this->rightAnchor = rhs.rightAnchor;
     this->bottomAnchor = rhs.bottomAnchor;
     this->leftAnchor = rhs.leftAnchor;
+    this->top = rhs.top;
+    this->right = rhs.right;
+    this->bottom = rhs.bottom;
+    this->left = rhs.left;
     this->topMargin = rhs.topMargin;
     this->rightMargin = rhs.rightMargin;
     this->bottomMargin = rhs.bottomMargin;
@@ -114,30 +130,41 @@ TextureComponent::~TextureComponent()
 
 void TextureComponent::generateMesh()
 {
-    modelInfo.vertices[0] =  0.0f;  modelInfo.vertices[1] =    0.0f; modelInfo.vertices[2] =  0.0f;
-    modelInfo.vertices[5] =  width; modelInfo.vertices[6] =    0.0f; modelInfo.vertices[7] =  0.0f;
-    modelInfo.vertices[10] = 0.0f;  modelInfo.vertices[11] =  -height; modelInfo.vertices[12] = 0.0f;
-    modelInfo.vertices[15] = width; modelInfo.vertices[16] =  -height; modelInfo.vertices[17] = 0.0f;
+    static float oldWidth = 0.0f, oldheight = 0.0f;
 
-    VAO->bind();
+    if(oldWidth != width || oldheight != height)
+        initialised = false;
 
-    // position attribute
-    VBO->bind();
-    VBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
-    VBO->allocate(modelInfo.vertices, modelInfo.nbVertices * sizeof(float));
+    if(!initialised)
+    {
+        modelInfo.vertices[0] =  0.0f;  modelInfo.vertices[1] =    0.0f; modelInfo.vertices[2] =  0.0f;
+        modelInfo.vertices[5] =  width; modelInfo.vertices[6] =    0.0f; modelInfo.vertices[7] =  0.0f;
+        modelInfo.vertices[10] = 0.0f;  modelInfo.vertices[11] =  -height; modelInfo.vertices[12] = 0.0f;
+        modelInfo.vertices[15] = width; modelInfo.vertices[16] =  -height; modelInfo.vertices[17] = 0.0f;
 
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+        oldWidth = width;
+        oldheight = height;
 
-    // texture coord attribute
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+        VAO->bind();
 
-    EBO->bind();
-    EBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
-    EBO->allocate(modelInfo.indices, modelInfo.nbIndices * sizeof(unsigned int));
+        // position attribute
+        VBO->bind();
+        VBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
+        VBO->allocate(modelInfo.vertices, modelInfo.nbVertices * sizeof(float));
 
-    VAO->release();
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 
-    initialised = true;
+        // texture coord attribute
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+
+        EBO->bind();
+        EBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
+        EBO->allocate(modelInfo.indices, modelInfo.nbIndices * sizeof(unsigned int));
+
+        VAO->release();
+
+        initialised = true;
+    }
 }

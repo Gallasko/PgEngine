@@ -18,7 +18,7 @@
 class TileSelector : public UiComponent, protected QOpenGLFunctions
 {
 public:
-    TileSelector(Map *map, TilesLoader *TilesLoader, FontLoader *fontLoader);
+    TileSelector(Map *map, TilesLoader *TilesLoader, FontLoader *fontLoader, UiComponent *screenUi);
 
     void mouseInput(Input* inputHandler, double deltaTime);
 

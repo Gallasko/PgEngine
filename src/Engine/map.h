@@ -84,7 +84,7 @@ public:
     inline unsigned int getHeight() const { return constraint.height; }
     inline QOpenGLVertexArrayObject* getMesh() { if(!meshUpdate) generateMesh(); return VAO; }
 
-    void changeTile(Input* inputHandler, double deltaTime...) { va_list args; va_start(args, deltaTime); tileToBePlaced = va_arg(args, TilesLoader::TilesId*); std::cout << tileToBePlaced->getName() << std::endl; }
+    void changeTile(Input* inputHandler, double deltaTime...) { va_list args; va_start(args, deltaTime); tileToBePlaced = va_arg(args, TilesLoader::TilesId*); }
     
     void clicked(Input* inputHandler, double deltaTime...);
 

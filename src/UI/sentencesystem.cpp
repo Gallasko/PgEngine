@@ -39,6 +39,10 @@ Sentence::Sentence(const Sentence &rhs)
     this->rightAnchor = rhs.rightAnchor;
     this->bottomAnchor = rhs.bottomAnchor;
     this->leftAnchor = rhs.leftAnchor;
+    this->top = rhs.top;
+    this->right = rhs.right;
+    this->bottom = rhs.bottom;
+    this->left = rhs.left;
     this->topMargin = rhs.topMargin;
     this->rightMargin = rhs.rightMargin;
     this->bottomMargin = rhs.bottomMargin;

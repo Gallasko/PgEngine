@@ -196,8 +196,6 @@ void GameWindow::initialize()
 
     gameMap = new Map(&ecs, tileLoader, mapConstraint);
 
-    tileSelector = new TileSelector(gameMap, tileLoader, fontLoader);
-
     auto debugText = ecs.createEntity();
     auto debugTextC = ecs.attach<Sentence>(debugText, {{"Debug: ", constant::Vector4D(255.0f, 0.0f, 0.0f, 255.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 255.0f)}, 8.0f, fontLoader});
 
@@ -208,9 +206,9 @@ void GameWindow::initialize()
     auto fpsCounterC = ecs.attach<Sentence>(fpsCounter, {{"00"}, 8.0f, fontLoader});
     
     fpsCounterC->setX(10);
-    fpsCounterC->setTopAnchor(debugTextC);
-    fpsCounterC->setTopMargin(10);
+    fpsCounterC->setY(55);
 
+/*
     auto fpsText = ecs.createEntity();
     //auto fpsTextC = ecs.attach<Sentence>(fpsText, {{"Fps", constant::Vector4D(75.0f, 0.0f, 130.0f, 255.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 255.0f)}, 8.0f, fontLoader});
     //
@@ -249,22 +247,22 @@ void GameWindow::initialize()
     //text4C->setX(10);
     //text4C->setTopAnchor(text3C);
     //text4C->setTopMargin(10);
-
+*/
+    
     auto mousePosLabel = ecs.createEntity();
     auto mousePosLabelC = ecs.attach<Sentence>(mousePosLabel, {{"Mouse Pos: "}, 4.0f, fontLoader});
     
     mousePosLabelC->setX(10);
-    mousePosLabelC->setTopAnchor(fpsCounterC);
-    mousePosLabelC->setTopMargin(10);
+    mousePosLabelC->setY(100);
 
     mousePosText = ecs.createEntity();
     auto mousePosTextC = ecs.attach<Sentence>(mousePosText, {{"(0, 0)"}, 4.0f, fontLoader});
     
     mousePosTextC->setX(10);
     mousePosTextC->setZ(2);
-    mousePosTextC->setTopAnchor(mousePosLabelC);
-    mousePosTextC->setTopMargin(10);
+    mousePosTextC->setY(125);
 
+/*
     auto tilePosLabel = ecs.createEntity();
     //auto tilePosLabelC = ecs.attach<Sentence>(tilePosLabel, {{"Tile Pos: "}, 4.0f, fontLoader});
     //
@@ -290,7 +288,7 @@ void GameWindow::initialize()
     //auto goldTextC = ecs.attach<Sentence>(goldText, {{"0 TeclaFlooz"}, 4.0f, fontLoader});
     //auto goldTextMouseArea = ecs.attach<MouseInputComponent* >(goldText, {});
     //
-    //*goldTextMouseArea = new MouseInputBase<Base>(goldTextC);
+    // *goldTextMouseArea = new MouseInputBase<Base>(goldTextC);
     //
     //(*goldTextMouseArea)->registerFunc(&payTeclaFlooz, this);
     //
@@ -319,7 +317,7 @@ void GameWindow::initialize()
     //auto userTextC = ecs.attach<Sentence>(userText, {{randomText}, 4.0f, fontLoader});
     //auto userTextKeyC = ecs.attach<KeyboardInputComponent* >(userText, {});
     //
-    //*userTextKeyC = new KeyboardInputBase<GameWindow>();
+    // *userTextKeyC = new KeyboardInputBase<GameWindow>();
     ////static_cast<KeyboardInputComponent<GameWindow>* >(*userTextKeyC)->registerFunc(&changeRandomText, this);
     //(*userTextKeyC)->registerFunc(&changeRandomText, this);
     //
@@ -334,7 +332,7 @@ void GameWindow::initialize()
     //auto menuTexC = ecs.attach<TextureComponent>(menu, {160, 90, "res/menu/Menu.png"});
     //auto menuMouseArea = ecs.attach<MouseInputComponent* >(menu, {});
     //
-    //*menuMouseArea = new MouseInputBase<Base>(menuTexC);
+    // *menuMouseArea = new MouseInputBase<Base>(menuTexC);
     //
     //(*menuMouseArea)->registerFunc([](Input* inputHandler, double deltaTime) { if(inputHandler->isButtonPressed(Qt::LeftButton)) std::cout << "Menu 1 Clicked" << std::endl; });
     //
@@ -350,15 +348,16 @@ void GameWindow::initialize()
     //menu2TexC->setTopMargin(10);
     //
     //menu2TexC->setX(300);
+*/
 
-    auto screenEntity = ecs.createEntity();
-    auto screenUi = ecs.attach<UiComponent>(screenEntity, {});
+    screenEntity = ecs.createEntity();
+    screenUi = ecs.attach<UiComponent>(screenEntity, {});
     screenUi->width = width();
     screenUi->height = height();
 
     auto screenInput = ecs.attach<MouseInputComponent*>(screenEntity, {});
     *screenInput = new MouseInputBase<Camera>(screenUi);
-    (*screenInput)->scale = AreaScale::FULLSCALE;
+
     /*
     (*screenInput)->registerFunc([](Input* inputHandler, double deltaTime) { 
         static double msHeld = 0;
@@ -380,8 +379,9 @@ void GameWindow::initialize()
     (*screenKeyInput)->registerFunc(&(camera->updateKeyboard), camera);
 
     mapClickComponent = new MouseInputBase<Map>(screenUi);
-    mapClickComponent->scale = AreaScale::FULLSCALE;
     mapClickComponent->registerFunc(&gameMap->clicked, gameMap);
+
+    tileSelector = new TileSelector(gameMap, tileLoader, fontLoader, screenUi);
 
     ticking = true;
     std::thread t (&GameWindow::tick, this);
@@ -404,6 +404,12 @@ void GameWindow::render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     currentTime = QDateTime::currentMSecsSinceEpoch();
+
+    if(screenUi->width != width())
+        screenUi->setWidth(width());
+
+    if(screenUi->height != height())
+        screenUi->setHeight(height());
 
     //fps counter
     nbFrames++;
@@ -452,9 +458,9 @@ void GameWindow::render()
 
     tileSelector->render(width(), height(), defaultShaderProgram, baseTileTexture1, textShaderProgram, fontTexture, currentTime);
 
-    auto nbRenderedGameFrameTextC = nbRenderedGameFrameText->get<Sentence>();
-    if(nbRenderedGameFrameTextC != nullptr)
-        nbRenderedGameFrameTextC->setText("Render Time: " + std::to_string(currentTime - lastTime) + "ms", fontLoader);
+    //auto nbRenderedGameFrameTextC = nbRenderedGameFrameText->get<Sentence>();
+    //if(nbRenderedGameFrameTextC != nullptr)
+    //    nbRenderedGameFrameTextC->setText("Render Time: " + std::to_string(currentTime - lastTime) + "ms", fontLoader);
     //else
     //    std::cout << "Nb Rendered Game Frame Text Error" << std::endl;
 
@@ -637,6 +643,7 @@ void GameWindow::exposeEvent(QExposeEvent *event)
 
 void GameWindow::updateGameState(double deltaTime)
 {
+    //TODO make the map responsive to Z index 
     mapClickComponent->call(inputHandler, deltaTime, width(), height(), gameScale, camera);
 
     int highestZ = -1;
@@ -725,15 +732,15 @@ void GameWindow::renderGame()
 
                 if(x == std::floor(selectedTileX + selectedTileY + 1) &&  y == std::floor(selectedTileY - selectedTileX + 1))
                 {
-                    auto tilePosTextC = tilePosText->get<Sentence>();
-                    if(tilePosTextC != nullptr)
-                        tilePosTextC->setText("(" + std::to_string(x) + ", " + std::to_string(y) + ") NValue: " + std::to_string(tile->nValue), fontLoader);
+                    //auto tilePosTextC = tilePosText->get<Sentence>();
+                    //if(tilePosTextC != nullptr)
+                    //    tilePosTextC->setText("(" + std::to_string(x) + ", " + std::to_string(y) + ") NValue: " + std::to_string(tile->nValue), fontLoader);
                     //else
                     //    std::cout << " Tile Pos error " << std::endl;
 
-                    auto tileTypeC = tileType->get<Sentence>();
-                    if(tileTypeC != nullptr)
-                        tileTypeC->setText(tile->tileId->getName(), fontLoader);
+                    //auto tileTypeC = tileType->get<Sentence>();
+                    //if(tileTypeC != nullptr)
+                    //    tileTypeC->setText(tile->tileId->getName(), fontLoader);
                     //else
                     //    std::cout << " Tile Type error " << std::endl;
 
@@ -777,7 +784,7 @@ void GameWindow::renderGame()
             std::cout << " Current Seed Text error" << std::endl;
     }
 */
-
+/*
     if(!tileSelected)
     {
         auto tilePosTextC = tilePosText->get<Sentence>();
@@ -792,6 +799,7 @@ void GameWindow::renderGame()
         //else
         //    std::cout << " Tile Type error " << std::endl;
     }
+*/
 
     nbRenderGameFrame++;
 }
@@ -891,9 +899,9 @@ void GameWindow::tick()
         lastTickTime = QDateTime::currentMSecsSinceEpoch();
 
         gold += 1;
-        auto goldTextC = goldText->get<Sentence>();
-        if(goldTextC != nullptr)
-            goldTextC->setText(std::to_string(gold) + " TeclaFlooz", fontLoader);
+        //auto goldTextC = goldText->get<Sentence>();
+        //if(goldTextC != nullptr)
+        //    goldTextC->setText(std::to_string(gold) + " TeclaFlooz", fontLoader);
         //else
         //    std::cout << " Gold Text error " << std::endl;
 

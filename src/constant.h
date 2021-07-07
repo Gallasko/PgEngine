@@ -129,7 +129,7 @@ namespace constant
 
 		ModelInfo(const ModelInfo &rhs)
 		{
-			int i = 0;
+			unsigned int i = 0;
 			this->vertices = new float[rhs.nbVertices];
 			for(i = 0; i < rhs.nbVertices; i++)
 				this->vertices[i] = rhs.vertices[i];
@@ -144,7 +144,7 @@ namespace constant
 
 		inline void operator=(const ModelInfo &rhs)
 		{
-			int i = 0;
+			unsigned int i = 0;
 
 			if(this->vertices != nullptr)
             	delete[] this->vertices;
@@ -187,7 +187,7 @@ namespace constant
 
 		SquareInfo(const SquareInfo &rhs) : ModelInfo()
 		{
-			int i = 0;
+			unsigned int i = 0;
 			this->vertices = new float[rhs.nbVertices];
 			for(i = 0; i < rhs.nbVertices; i++)
 				this->vertices[i] = rhs.vertices[i];
@@ -202,7 +202,7 @@ namespace constant
 
 		inline void operator=(const SquareInfo &rhs)
 		{
-			int i = 0;
+			unsigned int i = 0;
 
 			if(this->vertices != nullptr)
             	delete[] this->vertices;

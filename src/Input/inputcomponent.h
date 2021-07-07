@@ -15,9 +15,9 @@ enum class AreaScale : int
 
 struct MouseInputComponent
 {
-	int *x, *y, *z, *width, *height; // Input Area
+	int *x, *y, *z;
+    UiSize *width, *height; // Input Area
 	bool *enable;
-    bool focus = false;
 
     AreaScale scale;
 
@@ -33,10 +33,10 @@ struct MouseInputComponent
     void registerFunc(void (*f)(Input*, double)) { onPressedLambda = f; }
 
     MouseInputComponent() {}
-    MouseInputComponent(int* x, int* y, int* z, int* width, int* height, bool *enable, AreaScale scale = AreaScale::FULLSCALE) : x(x), y(y), z(z), width(width), height(height), enable(enable), scale(scale) {} 
-    MouseInputComponent(UiComponent *component) : x(&component->x), y(&component->y), z(&component->z), width(&component->width), height(&component->height), enable(&component->visible), scale(AreaScale::HALFSCALE) {}
+    MouseInputComponent(int* x, int* y, int* z, UiSize* width, UiSize* height, bool *enable, AreaScale scale = AreaScale::FULLSCALE) : x(x), y(y), z(z), width(width), height(height), enable(enable), scale(scale) {} 
+    MouseInputComponent(UiComponent *component) : x(&component->x), y(&component->y), z(&component->z), width(&component->width), height(&component->height), enable(&component->visible), scale(AreaScale::FULLSCALE) {}
     MouseInputComponent(TextureComponent *component) : x(&component->x), y(&component->y), z(&component->z), width(&component->width), height(&component->height), enable(&component->visible), scale(AreaScale::FULLSCALE) {}
-    MouseInputComponent(const MouseInputComponent& component) : x(component.x), y(component.y), z(component.z), width(component.width), height(component.height), enable(component.enable), focus(component.focus), scale(component.scale), onPressed(component.onPressed), onPressedLambda(component.onPressedLambda), object(component.object) {}
+    MouseInputComponent(const MouseInputComponent& component) : x(component.x), y(component.y), z(component.z), width(component.width), height(component.height), enable(component.enable), scale(component.scale), object(component.object), onPressed(component.onPressed), onPressedLambda(component.onPressedLambda) {}
 
     template<typename... Args>
     void call(Input* inputHandler, double deltaTime, Args... args) { if(onPressed != nullptr) (*object.*onPressed)(inputHandler, deltaTime, args...); if(onPressedLambda != nullptr) (*onPressedLambda)(inputHandler, deltaTime); }
@@ -47,20 +47,16 @@ struct MouseInputComponent
 template<typename ObjectType>
 struct MouseInputBase : public MouseInputComponent
 {
-    bool focus = false;
-
-    AreaScale scale;
-
     ObjectType *object;
 
 	void (ObjectType::*onPressed)(Input*, double, ...) = nullptr;
 
     MouseInputBase() {}
 
-    MouseInputBase(int* x, int* y, int* z, int* width, int* height, bool *enable, AreaScale scale = AreaScale::FULLSCALE) : MouseInputComponent(x, y, z, width, height, enable, scale) {} 
-    MouseInputBase(UiComponent *component) : MouseInputComponent(&component->x, &component->y, &component->z, &component->width, &component->height, &component->visible, AreaScale::HALFSCALE) {}
+    MouseInputBase(int* x, int* y, int* z, UiSize* width, UiSize* height, bool *enable, AreaScale scale = AreaScale::FULLSCALE) : MouseInputComponent(x, y, z, width, height, enable, scale) {} 
+    MouseInputBase(UiComponent *component) : MouseInputComponent(&component->x, &component->y, &component->z, &component->width, &component->height, &component->visible, AreaScale::FULLSCALE) {}
     MouseInputBase(TextureComponent *component) : MouseInputComponent(&component->x, &component->y, &component->z, &component->width, &component->height, &component->visible, AreaScale::FULLSCALE) {}
-    MouseInputBase(const MouseInputBase& component) : MouseInputComponent(component->x, component->y, component->z, component->width, component->height, component->enable, component->scale), focus(component.focus), onPressed(component.onPressed), object(component.object) { onPressedLambda = component.onPressedLambda; }
+    MouseInputBase(const MouseInputBase& component) : MouseInputComponent(component->x, component->y, component->z, component->width, component->height, component->enable, component->scale), onPressed(component.onPressed), object(component.object) { onPressedLambda = component.onPressedLambda; }
 
     template<typename... Args>
     void call(Input* inputHandler, double deltaTime, Args... args) { if(onPressed != nullptr) {auto obj = static_cast<ObjectType*>(object); auto f = static_cast<void (ObjectType::*)(Input*, double, ...)>(*onPressed); (obj->f)(inputHandler, deltaTime, args...);} if(onPressedLambda != nullptr) (*onPressedLambda)(inputHandler, deltaTime); }
@@ -70,8 +66,6 @@ struct MouseInputBase : public MouseInputComponent
 
 struct KeyboardInputComponent
 {
-    bool focus = false;
-
     Base *object;
 
 	void (Base::*onKey)(Input*, double, ...) = nullptr;
@@ -79,7 +73,7 @@ struct KeyboardInputComponent
 	void (*onKeyLambda)(Input*, double) = nullptr;
 
     KeyboardInputComponent() {}
-    KeyboardInputComponent(const KeyboardInputComponent& component) : focus(component.focus), onKey(component.onKey), onKeyLambda(component.onKeyLambda), object(component.object) {}
+    KeyboardInputComponent(const KeyboardInputComponent& component) :  object(component.object), onKey(component.onKey), onKeyLambda(component.onKeyLambda) {}
 
     template<typename Func>
     void registerFunc(void (Func::*f)(Input*, double, ...), Func *obj) { onKey = static_cast<void (Base::*)(Input*, double, ...)>(f); object = static_cast<Base* >(obj); }
@@ -95,14 +89,12 @@ struct KeyboardInputComponent
 template<typename ObjectType>
 struct KeyboardInputBase : public KeyboardInputComponent
 {
-    bool focus = false;
-
     ObjectType *object;
 
 	void (ObjectType::*onKey)(Input*, double) = nullptr;
 
     KeyboardInputBase() {}
-    KeyboardInputBase(const KeyboardInputBase& component) : focus(component.focus), onKey(component.onKey), object(component.object) { onKeyLambda = component.onKeyLambda; }
+    KeyboardInputBase(const KeyboardInputBase& component) : object(component.object), onKey(component.onKey) { onKeyLambda = component.onKeyLambda; }
 
     template<typename... Args>
     void call(Input* inputHandler, double deltaTime, Args... args) { if(onKey != nullptr) {auto obj = static_cast<ObjectType*>(object); auto f = static_cast<void (ObjectType::*)(Input*, double, ...)>(*onKey); (obj->f)(inputHandler, deltaTime, args...);} if(onKeyLambda != nullptr) (*onKeyLambda)(inputHandler, deltaTime);  }

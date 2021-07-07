@@ -119,6 +119,9 @@ private:
     EntitySystem::Entity* currentSeedText;
     EntitySystem::Entity* userText;
 
+    EntitySystem::Entity *screenEntity;
+    UiComponent *screenUi; 
+
     MouseInputComponent* mapClickComponent;
 
     TileSelector *tileSelector;

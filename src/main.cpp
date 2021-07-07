@@ -15,7 +15,9 @@ int main(int argc, char *argv[])
 
 	GameWindow game;
     game.resize(640, 480);
+    //game.setWindowState(Qt::WindowFullScreen);
     game.setAnimating(true);
+    //game.showFullScreen();
     game.show();
 
     QTimer* timer = new QTimer();
