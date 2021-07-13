@@ -53,11 +53,14 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
     mouseAreaVector[2]->registerFunc(&map->changeTile, map);
 
     this->visible = true;
+    this->scale = 1.0;
 }
 
 void TileSelector::mouseInput(Input* inputHandler, double deltaTime)
 {
     auto mousePos = inputHandler->getMousePos();
+
+    //std::cout << mousePos.x() << ", " << mousePos.y() << std::endl;
 
     if(inputHandler->isButtonPressed(Qt::LeftButton))
     {
@@ -68,7 +71,7 @@ void TileSelector::mouseInput(Input* inputHandler, double deltaTime)
             
             if(mousePos.x() > *mouseArea->x / static_cast<int>(mouseArea->scale) && mousePos.x() < (*mouseArea->x + *mouseArea->width) / static_cast<int>(mouseArea->scale) && mousePos.y() < (*mouseArea->y + *mouseArea->height) / static_cast<int>(mouseArea->scale) && mousePos.y() > *mouseArea->y / static_cast<int>(mouseArea->scale) && *mouseArea->enable)
             {
-                //std::cout << "Mouse Hovering: " << *mouseArea.x << ", " << *mouseArea.y << ", " << *mouseArea.width << ", " << *mouseArea.height << std::endl;
+                //std::cout << "Mouse Hovering: " << *mouseArea->x << ", " << *mouseArea->y << ", " << *mouseArea->width << ", " << *mouseArea->height << std::endl;
                 mouseArea->call(inputHandler, deltaTime, tileRendererVector[i].id);
             }
         }

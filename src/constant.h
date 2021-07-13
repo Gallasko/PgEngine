@@ -23,6 +23,47 @@ namespace constant
 	    RIGHT
 	};
 
+	//Vector struct
+	struct Vector2D
+	{
+		float x = 0.0f;
+		float y = 0.0f;
+
+		Vector2D() {}
+
+		Vector2D(float x, float y) : x(x), y(y) {}
+
+		Vector2D(const Vector2D& vec) : x(vec.x), y(vec.y) {}
+
+		inline void operator=(const Vector2D &rhs)
+		{
+			this->x = rhs.x;
+			this->y = rhs.y;
+		}
+
+		inline Vector2D operator+(const Vector2D &rhs) const
+		{
+			Vector2D vec;
+			vec.x = this->x + rhs.x;
+			vec.y = this->y + rhs.y;
+
+			return vec;
+		}
+
+		inline Vector2D& operator+=(const Vector2D &rhs)
+		{
+			this->x += rhs.x;
+			this->y += rhs.y;
+
+			return *this;
+		}
+
+		inline bool operator==(const Vector2D &rhs)
+		{
+			return (this->x == rhs.x) && (this->y == rhs.y);
+		}
+	};
+
     //Vector struct
 	struct Vector3D
 	{
@@ -33,6 +74,12 @@ namespace constant
 		Vector3D() {}
 
 		Vector3D(float x, float y, float z) : x(x), y(y), z(z) {}
+
+		Vector3D(Vector2D vec2, float z) : x(vec2.x), y(vec2.y), z(z) {}
+
+		Vector3D(float x, Vector2D vec2) : x(x), y(vec2.x), z(vec2.y) {}
+
+		Vector3D(const Vector3D& vec) : x(vec.x), y(vec.y), z(vec.z) {}
 
 		inline void operator=(const Vector3D &rhs)
 		{
@@ -81,6 +128,8 @@ namespace constant
 		Vector4D(Vector3D vec, float w) : x(vec.x), y(vec.y), z(vec.z), w(w)  {}
 
 		Vector4D(float x, Vector3D vec) : x(x), y(vec.x), z(vec.y), w(vec.z)  {}
+
+		Vector4D(const Vector4D& vec) : x(vec.x), y(vec.y), z(vec.z), w(vec.w)  {}
 
 		inline void operator=(const Vector4D &rhs)
 		{
@@ -221,6 +270,7 @@ namespace constant
 			this->nbIndices = rhs.nbIndices;		
 		}
 	};
+
 }
 
 #endif

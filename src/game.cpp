@@ -197,7 +197,7 @@ void GameWindow::initialize()
     gameMap = new Map(&ecs, tileLoader, mapConstraint);
 
     auto debugText = ecs.createEntity();
-    auto debugTextC = ecs.attach<Sentence>(debugText, {{"Debug: ", constant::Vector4D(255.0f, 0.0f, 0.0f, 255.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 255.0f)}, 8.0f, fontLoader});
+    auto debugTextC = ecs.attach<Sentence>(debugText, {{"Debug: ", constant::Vector4D(255.0f, 0.0f, 0.0f, 255.0f)}, 8.0f, fontLoader});
 
     debugTextC->setX(10);
     debugTextC->setY(10);
@@ -354,6 +354,7 @@ void GameWindow::initialize()
     screenUi = ecs.attach<UiComponent>(screenEntity, {});
     screenUi->width = width();
     screenUi->height = height();
+    screenUi->setZ(0);
 
     auto screenInput = ecs.attach<MouseInputComponent*>(screenEntity, {});
     *screenInput = new MouseInputBase<Camera>(screenUi);
@@ -378,10 +379,27 @@ void GameWindow::initialize()
 
     (*screenKeyInput)->registerFunc(&(camera->updateKeyboard), camera);
 
+    auto mapTemp = ecs.createEntity();
+    auto mapKeyInput = ecs.attach<KeyboardInputComponent* >(screenEntity, {});
+    *mapKeyInput = new KeyboardInputBase<Map>();
+
+    (*mapKeyInput)->registerFunc(&gameMap->switchToPathFind, gameMap);
+
     mapClickComponent = new MouseInputBase<Map>(screenUi);
     mapClickComponent->registerFunc(&gameMap->clicked, gameMap);
 
     tileSelector = new TileSelector(gameMap, tileLoader, fontLoader, screenUi);
+    tileSelector->z = 2;
+
+    auto pathFindingButton = ecs.createEntity();
+    auto pathFindingButtonTexC = ecs.attach<TextureComponent>(pathFindingButton, {64, 32, "res/menu/frame.png"});
+    pathFindingButtonTexC->setX(0);
+    pathFindingButtonTexC->setY(height() - 32);
+    pathFindingButtonTexC->setZ(1);
+    auto pathFindingButtonMouseArea = ecs.attach<MouseInputComponent* >(pathFindingButton, {});
+    *pathFindingButtonMouseArea = new MouseInputBase<Map>(pathFindingButtonTexC);
+    (*pathFindingButtonMouseArea)->registerFunc(&gameMap->runPathFinding, gameMap);
+
 
     ticking = true;
     std::thread t (&GameWindow::tick, this);
@@ -643,18 +661,17 @@ void GameWindow::exposeEvent(QExposeEvent *event)
 
 void GameWindow::updateGameState(double deltaTime)
 {
-    //TODO make the map responsive to Z index 
-    mapClickComponent->call(inputHandler, deltaTime, width(), height(), gameScale, camera);
-
     int highestZ = -1;
-
-    tileSelector->mouseInput(inputHandler, deltaTime);
 
     // Take the Highest Z under the mouse and make only those element clickable  
     for(auto mouseArea : ecs.view<MouseInputComponent*>())
         if(mousePos.x() > *(mouseArea->x) / static_cast<int>(mouseArea->scale) && mousePos.x() < (*mouseArea->x + *mouseArea->width) / static_cast<int>(mouseArea->scale) && mousePos.y() < (*mouseArea->y + *mouseArea->height) / static_cast<int>(mouseArea->scale) && mousePos.y() > *mouseArea->y / static_cast<int>(mouseArea->scale) && *mouseArea->enable)
             if (*mouseArea->z > highestZ)
                 highestZ = *mouseArea->z;
+
+    if(mousePos.x() > tileSelector->x / static_cast<int>(tileSelector->scale) && mousePos.x() < (tileSelector->x + tileSelector->width) / static_cast<int>(tileSelector->scale) && mousePos.y() < (tileSelector->y + tileSelector->height) / static_cast<int>(tileSelector->scale) && mousePos.y() > tileSelector->y / static_cast<int>(tileSelector->scale) && tileSelector->isVisible())
+        if (tileSelector->z > highestZ)
+            highestZ = tileSelector->z;
 
     for(auto mouseArea : ecs.view<MouseInputComponent*>())
     {
@@ -664,6 +681,13 @@ void GameWindow::updateGameState(double deltaTime)
             mouseArea->call(inputHandler, deltaTime);
         }
     }
+
+    if(tileSelector->z == highestZ)
+        tileSelector->mouseInput(inputHandler, deltaTime);
+
+    //TODO make the map responsive to Z index 
+    if(highestZ <= 0)
+        mapClickComponent->call(inputHandler, deltaTime, width(), height(), gameScale, camera);
 
     for(auto keyArea : ecs.view<KeyboardInputComponent*>())
     {

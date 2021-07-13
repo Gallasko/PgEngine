@@ -19,6 +19,7 @@ enum class TileType
     SHOP,
     ROAD,
 	TERRAIN,
+	PATHFINDING,
 	MISC
 };
 

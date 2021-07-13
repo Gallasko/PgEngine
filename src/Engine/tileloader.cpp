@@ -73,6 +73,8 @@ void TilesLoader::TilesId::setType(std::string type)
 		tileType = TileType::ROAD;
 	else if(type == "Misc")
 		tileType = TileType::MISC;
+	else if(type == "Pathfinding")
+		tileType = TileType::PATHFINDING;
 	else
 		tileType = TileType::BLANK;
 }

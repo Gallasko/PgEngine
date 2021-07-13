@@ -23,6 +23,7 @@ public:
     void mouseInput(Input* inputHandler, double deltaTime);
 
     void setVisibility(bool visibility);
+    inline bool isVisible() const { return visible; }
 
     void render(unsigned int screenWidth, unsigned int screenHeight, QOpenGLShaderProgram* defaultShaderProgram, unsigned int tileTexture, QOpenGLShaderProgram* textShaderProgram, unsigned int fontTexture, qint64 currentTime);
 
