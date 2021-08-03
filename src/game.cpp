@@ -134,6 +134,12 @@ void GameWindow::initialize()
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureAtlas.width(), textureAtlas.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, textureAtlas.bits());
     glGenerateMipmap(GL_TEXTURE_2D);
 
+    MasterRenderer masterRenderer;
+
+    masterRenderer.registerRederer<TextureRenderer>();
+    TextureComponent cmp(50, 50, "res/menu/Menu2.png");
+    masterRenderer.render<TextureRenderer>(cmp);
+
     // Square VAO Creation
 
     SquareVAO = new QOpenGLVertexArrayObject();
@@ -453,7 +459,7 @@ void GameWindow::render()
 
     updateGameState(float(currentTime - lastTime) / 1000);
 
-    renderGame();
+    //renderGame();
 
     if(!debug)
     {
@@ -769,7 +775,7 @@ void GameWindow::renderGame()
                     //    std::cout << " Tile Type error " << std::endl;
 
                     tileLoader->getTile("Selected Tile")->getMesh()->bind();
-                    glDrawElements(GL_TRIANGLES, 6*6, GL_UNSIGNED_INT, 0);
+                    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
                     tileSelected = true;
                 }
@@ -848,6 +854,7 @@ void GameWindow::renderUi()
 
     defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("projection"), projection);
     defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("model"), model);
+    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("scale"), scale);
 
     //gl scissor for list views 
     //glEnable(GL_SCISSOR_TEST);
@@ -867,17 +874,16 @@ void GameWindow::renderUi()
             view.translate(QVector3D(-1.0f + 2.0f * (float)(texture.x) / width(), 1.0f + 2.0f * (float)( -texture.y) / height(), 0.0f));
 
             defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
-            defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("scale"), scale);
 
             texture.VAO->bind();
-            glDrawElements(GL_TRIANGLES, texture.modelInfo.nbIndices * 6, GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, texture.modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
         }
     }
 
     //glDisable(GL_SCISSOR_TEST);
 
     defaultShaderProgram->release();
-
+    
     textShaderProgram->bind();
 
     scale.setToIdentity();
@@ -904,7 +910,7 @@ void GameWindow::renderUi()
             textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("view"), view);
 
             sentence.VAO->bind();
-            glDrawElements(GL_TRIANGLES, sentence.modelInfo.nbIndices * 6, GL_UNSIGNED_INT, 0);
+            glDrawElements(GL_TRIANGLES, sentence.modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
         }
     }
 

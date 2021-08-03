@@ -36,6 +36,7 @@
 #include "constant.h"
 #include "Engine/map.h"
 #include "Engine/fontloader.h"
+#include "Engine/renderer.h"
 #include "UI/sentencesystem.h"
 
 #include "GameElements/Gui/tileselector.h"

@@ -11,6 +11,8 @@
 #include "../Engine/basesystem.h"
 #include "../constant.h"
 
+#include "../Engine/renderer.h"
+
 //Todo parenting, better anchoring
 
 struct UiSize
@@ -155,6 +157,13 @@ struct TextureComponent : public UiComponent, private QOpenGLFunctions
 	QOpenGLBuffer *EBO = nullptr;
 
     bool initialised = false;
+};
+
+struct TextureRenderer : public Renderer
+{
+    ~TextureRenderer() {}
+
+    void render(std::string rendererName...);
 };
 
 //TODO Copy Constructor
