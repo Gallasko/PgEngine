@@ -50,3 +50,28 @@ const qreal retinaScale = devicePixelRatio();
     defaultShaderProgram->release();
 
 */
+
+#pragma once
+
+#include <unordered_map>
+
+struct Renderer
+{
+    virtual ~Renderer() {}
+
+    virtual void render(std::string...) = 0; 
+};
+
+class MasterRenderer
+{
+public:
+    template<typename Renderer, typename... Args>
+    void registerRederer(Args... args) { auto rendererName = typeid(Renderer).name(); rendererList[rendererName] = new Renderer(args...); }
+
+    template<typename Renderer, typename... Args>
+    void render(Args... args) { auto rendererName = typeid(Renderer).name(); if(rendererList.find(rendererName) != rendererList.end()) rendererList[rendererName]->render(rendererName, args...); }
+
+private:
+    std::unordered_map<std::string, Renderer*> rendererList;
+
+};

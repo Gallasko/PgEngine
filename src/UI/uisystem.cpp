@@ -168,3 +168,48 @@ void TextureComponent::generateMesh()
         initialised = true;
     }
 }
+
+TextureRenderer::render(std::string rendererName...)
+{ 
+    va_list args; 
+    va_start(args, rendererName); 
+    auto texture = va_arg(args, TextureComponent); 
+    va_end(args);
+
+    QMatrix4x4 projection;
+    QMatrix4x4 view;
+    QMatrix4x4 model;
+    QMatrix4x4 scale;
+
+    projection.setToIdentity();
+    model.setToIdentity();
+    scale.setToIdentity();
+    scale.scale(QVector3D(2.0f / screenWidth, 2.0f / screenHeight, 0.0f));
+
+    // Text rendering
+
+    shaderProgram->bind();
+
+    shaderProgram->setUniformValue(shaderProgram->uniformLocation("projection"), projection);
+    shaderProgram->setUniformValue(shaderProgram->uniformLocation("model"), model);
+    shaderProgram->setUniformValue(shaderProgram->uniformLocation("scale"), scale);
+
+    //gl scissor for list views 
+    //glEnable(GL_SCISSOR_TEST);
+    //glScissor(300, 200, 200, 500);
+
+    texture->generateMesh();
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture->texture);
+
+    view.setToIdentity();
+    view.translate(QVector3D(-1.0f + 2.0f * (float)(texture->x) / screenWidth, 1.0f + 2.0f * (float)( -texture->y) / screenHeight, 0.0f));
+
+    shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
+
+    texture->VAO->bind();
+    glDrawElements(GL_TRIANGLES, texture->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
+
+    shaderProgram->release();
+}

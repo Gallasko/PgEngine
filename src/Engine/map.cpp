@@ -912,6 +912,8 @@ void Map::clicked(Input* inputHandler, double deltaTime...)
         auto gameScale = va_arg(args, double);
         auto camera = va_arg(args, Camera*);
 
+        va_end(args);
+
         float selectedTileX = ((float)(mousePos.x() - screenWidth / 2.0f )) / (gameScale / 2.0f) + camera->Position.x() * screenWidth / gameScale;
         float selectedTileY = ((float)(screenHeight / 2.0f - mousePos.y())) / (gameScale / 4.0f) + camera->Position.y() * screenHeight / gameScale * 2;
 

@@ -121,7 +121,7 @@ void TileSelector::render(unsigned int screenWidth, unsigned int screenHeight, Q
     defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
 
     texture->VAO->bind();
-    glDrawElements(GL_TRIANGLES, texture->modelInfo.nbIndices * 6, GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, texture->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, tileTexture);
@@ -137,11 +137,10 @@ void TileSelector::render(unsigned int screenWidth, unsigned int screenHeight, Q
         view.setToIdentity();
         view.translate(QVector3D(-1.0f + 2.0f * (float)(tile.x + (tileHeight / 4.0f)) / screenWidth, 1.0f + 2.0f * (float)( -tile.y - (tileHeight / 8.0f)) / screenHeight, 0.0f));
 
-        defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("model"), model);
         defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
 
         tile.id->getMesh()->bind();
-        glDrawElements(GL_TRIANGLES, tile.id->getModelInfo().nbIndices * 6, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, tile.id->getModelInfo().nbIndices, GL_UNSIGNED_INT, 0);
     }
 
     //glDisable(GL_SCISSOR_TEST);
@@ -172,7 +171,7 @@ void TileSelector::render(unsigned int screenWidth, unsigned int screenHeight, Q
         textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("view"), view);
 
         text.VAO->bind();
-        glDrawElements(GL_TRIANGLES, text.modelInfo.nbIndices * 6, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, text.modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
 
         textShaderProgram->release();   
     }
