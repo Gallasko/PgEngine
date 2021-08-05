@@ -75,6 +75,11 @@ void GameWindow::initialize()
     textShaderProgram->addShaderFromSourceFile(QOpenGLShader::Fragment, "shader/textrendering.fs");
     textShaderProgram->link();
 
+    screenShaderProgram = new QOpenGLShaderProgram(this);
+    screenShaderProgram->addShaderFromSourceFile(QOpenGLShader::Vertex, "shader/screen.vs");
+    screenShaderProgram->addShaderFromSourceFile(QOpenGLShader::Fragment, "shader/screen.fs");
+    screenShaderProgram->link();
+
     // texture Atlas
     // ---------
 
@@ -134,12 +139,6 @@ void GameWindow::initialize()
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureAtlas.width(), textureAtlas.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, textureAtlas.bits());
     glGenerateMipmap(GL_TEXTURE_2D);
 
-    MasterRenderer masterRenderer;
-
-    masterRenderer.registerRederer<TextureRenderer>();
-    TextureComponent cmp(50, 50, "res/menu/Menu2.png");
-    masterRenderer.render<TextureRenderer>(cmp);
-
     // Square VAO Creation
 
     SquareVAO = new QOpenGLVertexArrayObject();
@@ -153,10 +152,10 @@ void GameWindow::initialize()
     auto tileVertices = new float[20];
 
     //                 x                         y                         z                      texpos x                 texpos y
-	tileVertices[0] =  -0.5f; tileVertices[1] =   0.5f; tileVertices[2] =  0.0f; tileVertices[3] =  0.0f; tileVertices[4] =  1.0f;   
-	tileVertices[5] =   0.5f; tileVertices[6] =   0.5f; tileVertices[7] =  0.0f; tileVertices[8] =  1.0f; tileVertices[9] =  1.0f;
-	tileVertices[10] = -0.5f; tileVertices[11] = -0.5f; tileVertices[12] = 0.0f; tileVertices[13] = 0.0f; tileVertices[14] = 0.0f;
-	tileVertices[15] =  0.5f; tileVertices[16] = -0.5f; tileVertices[17] = 0.0f; tileVertices[18] = 1.0f; tileVertices[19] = 0.0f;
+	tileVertices[0] =  -1.0f; tileVertices[1] =   1.0f; tileVertices[2] =  0.0f; tileVertices[3] =  0.0f; tileVertices[4] =  1.0f;   
+	tileVertices[5] =   1.0f; tileVertices[6] =   1.0f; tileVertices[7] =  0.0f; tileVertices[8] =  1.0f; tileVertices[9] =  1.0f;
+	tileVertices[10] = -1.0f; tileVertices[11] = -1.0f; tileVertices[12] = 0.0f; tileVertices[13] = 0.0f; tileVertices[14] = 0.0f;
+	tileVertices[15] =  1.0f; tileVertices[16] = -1.0f; tileVertices[17] = 0.0f; tileVertices[18] = 1.0f; tileVertices[19] = 0.0f;
 
 	unsigned int nbTileVertices = 20;
 
@@ -411,6 +410,31 @@ void GameWindow::initialize()
     std::thread t (&GameWindow::tick, this);
 
     t.detach();
+
+    // framebuffer configuration
+    // -------------------------
+    glGenFramebuffers(1, &framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    // create a color attachment texture
+    glGenTextures(1, &textureColorbuffer);
+    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width(), height(), 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
+    // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
+    //unsigned int rbo;
+    //glGenRenderbuffers(1, &rbo);
+    //glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+    //glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width(), height()); // use a single renderbuffer object for both a depth AND stencil buffer.
+    //glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
+    // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
 }
 
 void GameWindow::render()
@@ -423,6 +447,9 @@ void GameWindow::render()
 
     const qreal retinaScale = devicePixelRatio();
     glViewport(0, 0, width() * retinaScale, height() * retinaScale);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    //glEnable(GL_DEPTH_TEST);
 
     glClearColor(0.1f, 0.3f, 0.7f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -487,6 +514,17 @@ void GameWindow::render()
     //    nbRenderedGameFrameTextC->setText("Render Time: " + std::to_string(currentTime - lastTime) + "ms", fontLoader);
     //else
     //    std::cout << "Nb Rendered Game Frame Text Error" << std::endl;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    //glDisable(GL_DEPTH_TEST); // disable depth test so screen-space quad isn't discarded due to depth test.
+    // clear all relevant buffers
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    screenShaderProgram->bind();
+    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);	// use the color attachment texture as the texture of the quad plane
+    SquareVAO->bind();
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
     inputHandler->updateInput(float(currentTime - lastTime) / 1000);
 

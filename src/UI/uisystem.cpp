@@ -169,13 +169,14 @@ void TextureComponent::generateMesh()
     }
 }
 
-TextureRenderer::render(std::string rendererName...)
+void TextureRenderer::render(std::string rendererName...)
 { 
     va_list args; 
     va_start(args, rendererName); 
     auto texture = va_arg(args, TextureComponent); 
     va_end(args);
 
+    /*
     QMatrix4x4 projection;
     QMatrix4x4 view;
     QMatrix4x4 model;
@@ -212,4 +213,6 @@ TextureRenderer::render(std::string rendererName...)
     glDrawElements(GL_TRIANGLES, texture->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
 
     shaderProgram->release();
+
+    */
 }

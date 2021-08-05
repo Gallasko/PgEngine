@@ -94,9 +94,13 @@ private:
     QOpenGLShaderProgram *defaultShaderProgram = nullptr;
     QOpenGLShaderProgram *guiShaderProgram = nullptr;
     QOpenGLShaderProgram *textShaderProgram = nullptr;
+    QOpenGLShaderProgram *screenShaderProgram = nullptr;
     QOpenGLVertexArrayObject *SquareVAO;
 	QOpenGLBuffer *SquareVBO;
 	QOpenGLBuffer *SquareEBO;
+
+    unsigned int framebuffer;
+    unsigned int textureColorbuffer;
 
     unsigned int baseTileTexture1;
     unsigned int baseMenu1;

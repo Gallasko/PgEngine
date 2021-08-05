@@ -25,7 +25,7 @@ CXXFLAGS	:= -std=c++11 -Wall -Wextra -g # -O3 -DNDEBUG
 LFLAGS =
 
 # define output directory
-OUTPUT	:= output
+OUTPUT	:= output2
 
 # define source directory
 SRC		:= src
