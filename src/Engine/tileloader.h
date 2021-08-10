@@ -40,6 +40,9 @@ public:
 		inline bool operator==(const std::string& rhs) const { return name == rhs; } 
 		inline bool operator==(const TileType& rhs) const { return tileType == rhs; }
 
+		inline bool operator!=(const std::string& rhs) const { return !(name == rhs); } 
+		inline bool operator!=(const TileType& rhs) const { return !(tileType == rhs); }
+
 		inline constant::SquareInfo getModelInfo() const { return modelInfo; }
 
 	protected:

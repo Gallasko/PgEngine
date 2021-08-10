@@ -496,7 +496,7 @@ void GameWindow::render()
         //else
         //    std::cout << " Mouse Pos Text error" << std::endl;
 
-        renderUi();
+        //renderUi();
     }
     else
     {
@@ -507,7 +507,7 @@ void GameWindow::render()
         //    std::cout << " Mouse Pos Text error" << std::endl;
     }
 
-    tileSelector->render(width(), height(), defaultShaderProgram, baseTileTexture1, textShaderProgram, fontTexture, currentTime);
+    //tileSelector->render(width(), height(), defaultShaderProgram, baseTileTexture1, textShaderProgram, fontTexture, currentTime);
 
     //auto nbRenderedGameFrameTextC = nbRenderedGameFrameText->get<Sentence>();
     //if(nbRenderedGameFrameTextC != nullptr)

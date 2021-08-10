@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <vector>
+#include <queue>
 
 #include <QOpenGLFunctions>
 #include <QOpenGLTexture>
@@ -415,6 +416,72 @@ private:
     void updateModelInfo();
     void roadTiling();
     void drawPath();
+
+    enum class ByteDirName : int 
+    {
+        TOP = 0b1000,
+        RIGHT = 0b0100,
+        BOTTOM = 0b0010,
+        LEFT = 0b0001
+    };
+
+    struct ByteDir // byte representation 0btrbl
+    {
+        unsigned top    : 1;
+        unsigned right  : 1;
+        unsigned bottom : 1;
+        unsigned left   : 1;
+
+        ByteDir() : top(0), right(0), bottom(0), left(0) {}
+        ByteDir(const int& rhs) { *this = rhs; }
+        ByteDir(const ByteDir& rhs) { *this = rhs; }
+
+        void operator=(const int& rhs)
+        {
+            top = (rhs & (int)Map::ByteDirName::TOP) >> 3;
+            right = (rhs & (int)Map::ByteDirName::RIGHT) >> 2;
+            bottom = (rhs & (int)Map::ByteDirName::BOTTOM) >> 1;
+            left = (rhs & (int)Map::ByteDirName::LEFT);
+        }
+
+        void operator=(const ByteDir& rhs)
+        {
+            top = rhs.top; 
+            right = rhs.right; 
+            bottom = rhs.bottom; 
+            left = rhs.left;
+        }
+
+        operator int() const
+        {
+            int data = 0;
+            data |= top << 3; 
+            data |= right << 2;
+            data |= bottom << 1;
+            data |= left;
+
+            return data;
+        }
+
+        //const unsigned int count() const { return top + right + bottom + left; } 
+
+        //unsigned int operator&(const int& rhs)
+        //{
+        //    unsigned int data = 0;
+        //    data |= top << 3; 
+        //    data |= right << 2;
+        //    data |= bottom << 1;
+        //    data |= left;
+//
+        //    return data & rhs;
+        //}
+    };
+
+    struct RoadConstruct
+    {
+        constant::Vector2D pos;
+        Map::ByteDir availableDir;  
+    };
 
     EntitySystem *ecs;
     TilesLoader *tilesLoader; 

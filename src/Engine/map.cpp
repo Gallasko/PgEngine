@@ -800,8 +800,6 @@ Map::Map(EntitySystem *ecs, TilesLoader *tilesLoader, Map::MapConstraint constra
     noiseGenerator = new NoiseGenerator(constraint.seed);
     noiseGenerator->setParameters(constraint.noiseParam);
 
-    srand(constraint.seed);
-
     for(int i = 0; i < constraint.width; i++)
     {
         for(int j = 0; j < constraint.height; j++)
@@ -823,6 +821,270 @@ Map::Map(EntitySystem *ecs, TilesLoader *tilesLoader, Map::MapConstraint constra
     meshUpdate = false;
 
     tileToBePlaced = tilesLoader->getTile("Dirt");
+
+    std::queue<RoadConstruct> roadQueue;
+
+    srand(constraint.seed);
+
+    int xStart = rand() % constraint.width;
+    int yStart = rand() % constraint.height;
+    //int xStart = 0;
+    //int yStart = 0;
+
+    RoadConstruct startRoad = { constant::Vector2D(xStart, yStart), 0b0000 };
+
+    startRoad.availableDir.left = (xStart - 1 >= 0);
+    startRoad.availableDir.right = (xStart + 1 < constraint.width);
+    startRoad.availableDir.top = (yStart - 1 >= 0); 
+    startRoad.availableDir.bottom = (yStart + 1 < constraint.height);
+
+    roadQueue.push(startRoad); // TODO use emplace and create a ctor and a copy ctor for RoadConstruct
+
+    int openSpace = 1;
+
+    const float fillRatio = 0.5; // TODO need to be added in constraint
+    const int spaceToBeFilled = constraint.width * constraint.height * fillRatio; // TODO take in consideration unhabitable space such as water or mountain by scaning the map first for contiguous available space
+
+    tileMap[xStart][yStart]->tileId = tilesLoader->getTile("Base Road RoundAbout");
+
+    //While loop variables
+
+    Map::RoadConstruct road;    
+
+    int nbAvailableDir = 0;
+    Map::ByteDirName possibleDir[4];
+
+    Map::ByteDirName currentDir;
+    int length;
+
+    ByteDir availableDir = 0b0000;
+
+    int x;
+    int y;
+
+    while(openSpace < spaceToBeFilled)
+    {
+        road = roadQueue.front();
+        roadQueue.pop();
+
+        std::cout << "Road : " << road.pos.x << ", " << road.pos.y << std::endl;
+
+        //auto nbDir = road.availableDir.count();
+
+        // Find the direction to install road
+
+        nbAvailableDir = 0;
+
+        //if(road.availableDir.top)
+        //{
+        //    possibleDir[nbAvailableDir] = Map::ByteDirName::TOP;
+        //    nbAvailableDir += 1;
+        //}
+        //if(road.availableDir.right)
+        //{
+        //    possibleDir[nbAvailableDir] = Map::ByteDirName::RIGHT;
+        //    nbAvailableDir += 1;
+        //}
+        //if(road.availableDir.bottom)
+        //{
+        //    possibleDir[nbAvailableDir] = Map::ByteDirName::BOTTOM;
+        //    nbAvailableDir += 1;
+        //}
+        //if(road.availableDir.left)
+        //{
+        //    possibleDir[nbAvailableDir] = Map::ByteDirName::LEFT;
+        //    nbAvailableDir += 1;
+        //}
+
+        // Branchless version of possible dir finding
+        availableDir = road.availableDir;
+        for(int i = 0; i < 4; i++)
+        {
+            possibleDir[nbAvailableDir] = Map::ByteDirName(((availableDir >> i) & 0b0001) * (1 << i));
+            nbAvailableDir += (availableDir >> i) & 0b0001; 
+        }
+
+        //std::cout << nbAvailableDir << std::endl;
+//
+        //for(int i = 0; i < nbAvailableDir; i++)
+        //    std::cout << (int)possibleDir[i] << std::endl;
+
+        currentDir = possibleDir[rand() % nbAvailableDir];
+        length = rand() % 4 + 1; // TODO insert max length in constraint
+
+        // End road direction finding
+
+        // Install road
+
+        road.availableDir = road.availableDir & ~(int)currentDir;
+
+        if(road.availableDir > 0)
+            roadQueue.push(road);
+
+        for(int i = 1; i <= length; i++)
+        {
+            x = road.pos.x;
+            y = road.pos.y;
+
+            switch (currentDir)
+            {
+            case Map::ByteDirName::TOP:
+                y -= 1;
+                break;
+            
+            case Map::ByteDirName::RIGHT:
+                x += 1;
+                break;
+
+            case Map::ByteDirName::BOTTOM:
+                y += 1;
+                break;
+
+            case Map::ByteDirName::LEFT:
+                x -= 1;
+                break;
+            }
+
+            // if out of bound -> break
+            if(x < 0 || x >= constraint.width)
+                break;
+
+            if(y < 0 || y >= constraint.height)
+                break;
+
+            // if destination tile can t be modified -> break  [TODO] make a function to check if a tile is modifiable
+            if(*tileMap[x][y]->tileId == TileType::ROAD)
+                break;
+
+            // out of bound test
+            availableDir.left = (x - 1 >= 0);
+            availableDir.right = (x + 1 < constraint.width);
+            availableDir.top = (y - 1 >= 0); 
+            availableDir.bottom = (y + 1 < constraint.height);
+
+            switch (currentDir)
+            {
+            case Map::ByteDirName::TOP:
+                availableDir.bottom = 0;
+                if(availableDir.left) // if left column exist
+                {
+                    // if destination tile can t be modified -> dir is not available
+                    availableDir.left = *tileMap[x - 1][y]->tileId != TileType::ROAD;
+                    if(!availableDir.left && *tileMap[x - 1][y + 1]->tileId == TileType::ROAD)
+                        goto endRoad;
+                }
+
+                if(availableDir.right) // if right column exist
+                {
+                    // if destination tile can t be modified -> dir is not available
+                    availableDir.right = *tileMap[x + 1][y]->tileId != TileType::ROAD;
+                    if(!availableDir.right && *tileMap[x + 1][y + 1]->tileId == TileType::ROAD)
+                        goto endRoad;
+                }
+
+                if(availableDir.top) // if top row exist
+                {
+                    // if destination tile can t be modified -> dir is not available
+                    availableDir.top = *tileMap[x][y - 1]->tileId != TileType::ROAD;
+                }                   
+                break;
+            
+            case Map::ByteDirName::RIGHT:
+                availableDir.left = 0;
+                if(availableDir.top) // if top row exist
+                {
+                    // if destination tile can t be modified -> dir is not available
+                    availableDir.top = *tileMap[x][y - 1]->tileId != TileType::ROAD;
+                    if(!availableDir.top && *tileMap[x - 1][y - 1]->tileId == TileType::ROAD)
+                        goto endRoad;
+                }
+
+                if(availableDir.bottom) // if bottom row exist
+                {
+                    // if destination tile can t be modified -> dir is not available
+                    availableDir.bottom = *tileMap[x][y + 1]->tileId != TileType::ROAD;
+                    if(!availableDir.bottom && *tileMap[x - 1][y + 1]->tileId == TileType::ROAD)
+                        goto endRoad;
+                }
+
+                if(availableDir.right) // if right column exist
+                {
+                    // if destination tile can t be modified -> dir is not available
+                    availableDir.right = *tileMap[x + 1][y]->tileId != TileType::ROAD;
+                }                   
+                break;
+
+            case Map::ByteDirName::BOTTOM:
+                availableDir.top = 0;
+                if(availableDir.left) // if left column exist
+                {
+                    // if destination tile can t be modified -> dir is not available
+                    availableDir.left = *tileMap[x - 1][y]->tileId != TileType::ROAD;
+                    if(!availableDir.left && *tileMap[x - 1][y - 1]->tileId == TileType::ROAD)
+                        goto endRoad;
+                }
+
+                if(availableDir.right) // if right column exist
+                {
+                    // if destination tile can t be modified -> dir is not available
+                    availableDir.right = *tileMap[x + 1][y]->tileId != TileType::ROAD;
+                    if(!availableDir.right && *tileMap[x + 1][y - 1]->tileId == TileType::ROAD)
+                        goto endRoad;
+                }
+
+                if(availableDir.bottom) // if bottom row exist
+                {
+                    // if destination tile can t be modified -> dir is not available
+                    availableDir.bottom = *tileMap[x][y + 1]->tileId != TileType::ROAD;
+                }                   
+                break;
+
+            case Map::ByteDirName::LEFT:
+                availableDir.right = 0;
+                if(availableDir.top) // if top row exist
+                {
+                    // if destination tile can t be modified -> dir is not available
+                    availableDir.top = *tileMap[x][y - 1]->tileId != TileType::ROAD;
+                    if(!availableDir.top && *tileMap[x + 1][y - 1]->tileId == TileType::ROAD)
+                        goto endRoad;
+                }
+
+                if(availableDir.bottom) // if bottom row exist
+                {
+                    // if destination tile can t be modified -> dir is not available
+                    availableDir.bottom = *tileMap[x][y + 1]->tileId != TileType::ROAD;
+                    if(!availableDir.bottom && *tileMap[x + 1][y + 1]->tileId == TileType::ROAD)
+                        goto endRoad;
+                }
+
+                if(availableDir.left) // if left column exist
+                {
+                    // if destination tile can t be modified -> dir is not available
+                    availableDir.left = *tileMap[x - 1][y]->tileId != TileType::ROAD;
+                }                   
+                break;
+            }
+            
+            openSpace++;
+
+            tileMap[x][y]->tileId = tilesLoader->getTile("Base Road RoundAbout");
+
+            road = RoadConstruct( {constant::Vector2D(x, y), availableDir} );
+            roadQueue.push(road);
+        }
+
+    endRoad:;
+    }
+
+    for(int i = 0; i < constraint.width; i++)
+    {
+        for(int j = 0; j < constraint.height; j++)
+        {
+            std::cout << tileMap[i][j]->tileId->getId() << ", ";
+        } 
+
+        std::cout << std::endl;
+    }
 }
 
 Map::~Map()
