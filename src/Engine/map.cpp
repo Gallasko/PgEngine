@@ -797,6 +797,8 @@ Map::Map(EntitySystem *ecs, TilesLoader *tilesLoader, Map::MapConstraint constra
             tileMap[i][j] = new Tiles(i, j, tilesLoader->getTile("Dirt"));
     }
 
+    std::cout << constraint.seed << std::endl;
+
     noiseGenerator = new NoiseGenerator(constraint.seed);
     noiseGenerator->setParameters(constraint.noiseParam);
 
@@ -842,7 +844,7 @@ Map::Map(EntitySystem *ecs, TilesLoader *tilesLoader, Map::MapConstraint constra
 
     int openSpace = 1;
 
-    const float fillRatio = 0.5; // TODO need to be added in constraint
+    const float fillRatio = 0.6; // TODO need to be added in constraint
     const int spaceToBeFilled = constraint.width * constraint.height * fillRatio; // TODO take in consideration unhabitable space such as water or mountain by scaning the map first for contiguous available space
 
     tileMap[xStart][yStart]->tileId = tilesLoader->getTile("Base Road RoundAbout");
@@ -862,12 +864,12 @@ Map::Map(EntitySystem *ecs, TilesLoader *tilesLoader, Map::MapConstraint constra
     int x;
     int y;
 
-    while(openSpace < spaceToBeFilled)
+    while(openSpace < spaceToBeFilled) //TODO check if space to be filled can actually be filled or not
     {
         road = roadQueue.front();
         roadQueue.pop();
 
-        std::cout << "Road : " << road.pos.x << ", " << road.pos.y << std::endl;
+        //std::cout << "Road : " << road.pos.x << ", " << road.pos.y << std::endl;
 
         //auto nbDir = road.availableDir.count();
 
@@ -909,6 +911,7 @@ Map::Map(EntitySystem *ecs, TilesLoader *tilesLoader, Map::MapConstraint constra
         //for(int i = 0; i < nbAvailableDir; i++)
         //    std::cout << (int)possibleDir[i] << std::endl;
 
+        // TODO till the edge case is not fix nbAvailableDir can be 0
         currentDir = possibleDir[rand() % nbAvailableDir];
         length = rand() % 4 + 1; // TODO insert max length in constraint
 
@@ -982,6 +985,7 @@ Map::Map(EntitySystem *ecs, TilesLoader *tilesLoader, Map::MapConstraint constra
                         goto endRoad;
                 }
 
+                // TODO Edge case afterwards
                 if(availableDir.top) // if top row exist
                 {
                     // if destination tile can t be modified -> dir is not available
@@ -1065,12 +1069,15 @@ Map::Map(EntitySystem *ecs, TilesLoader *tilesLoader, Map::MapConstraint constra
                 break;
             }
             
-            openSpace++;
+            if(availableDir > 0) // TODO remove this check once the edge case are resolved
+            {
+                openSpace++;
 
-            tileMap[x][y]->tileId = tilesLoader->getTile("Base Road RoundAbout");
+                tileMap[x][y]->tileId = tilesLoader->getTile("Base Road RoundAbout");
 
-            road = RoadConstruct( {constant::Vector2D(x, y), availableDir} );
-            roadQueue.push(road);
+                road = RoadConstruct( {constant::Vector2D(x, y), availableDir} );
+                roadQueue.push(road);
+            }
         }
 
     endRoad:;
@@ -1085,6 +1092,7 @@ Map::Map(EntitySystem *ecs, TilesLoader *tilesLoader, Map::MapConstraint constra
 
         std::cout << std::endl;
     }
+
 }
 
 Map::~Map()

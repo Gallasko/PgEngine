@@ -199,7 +199,17 @@ void GameWindow::initialize()
  
     mapConstraint.noiseParam = {4, 5, 50, -1, 0.4};
 
-    gameMap = new Map(&ecs, tileLoader, mapConstraint);
+    //benchmark map creation
+    auto s = QDateTime::currentMSecsSinceEpoch();
+    //for(int i = 1; i < 100000; i++)
+    //{
+    //    mapConstraint.seed = i;
+        gameMap = new Map(&ecs, tileLoader, mapConstraint);
+    //    delete gameMap;
+    //}
+    auto e = QDateTime::currentMSecsSinceEpoch();
+
+    std::cout << e - s << " ms" << std::endl;
 
     auto debugText = ecs.createEntity();
     auto debugTextC = ecs.attach<Sentence>(debugText, {{"Debug: ", constant::Vector4D(255.0f, 0.0f, 0.0f, 255.0f)}, 8.0f, fontLoader});
