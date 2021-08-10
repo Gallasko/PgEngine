@@ -161,7 +161,8 @@ struct TextureComponent : public UiComponent, private QOpenGLFunctions
 
 struct TextureRenderer : public Renderer
 {
-    ~TextureRenderer() {}
+    using Renderer::Renderer;
+    virtual ~TextureRenderer() {}
 
     void render(std::string rendererName...);
 };
@@ -201,3 +202,11 @@ LoaderRenderComponent<LoaderId>::LoaderRenderComponent(const LoaderRenderCompone
 
     update();
 }
+
+struct LoaderRenderer : public Renderer
+{
+    using Renderer::Renderer;
+    virtual ~LoaderRenderer() {}
+
+    void render(std::string rendererName...);
+};

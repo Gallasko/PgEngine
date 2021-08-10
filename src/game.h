@@ -105,6 +105,7 @@ private:
     Map *gameMap = nullptr;
 
     EntitySystem ecs;
+    MasterRenderer *masterRenderer;
     TilesLoader *tileLoader;
     FontLoader *fontLoader;
     Input *inputHandler;
@@ -119,6 +120,8 @@ private:
     EntitySystem::Entity* nbRenderedGameFrameText;
     EntitySystem::Entity* currentSeedText;
     EntitySystem::Entity* userText;
+
+    TextureComponent *cmpTexTest;
 
     EntitySystem::Entity *screenEntity;
     UiComponent *screenUi; 

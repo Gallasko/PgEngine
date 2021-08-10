@@ -5,6 +5,9 @@
 
 #include <QTimer>
 
+
+//[TODO] Variant using operator* dereferencing to recast to the original type
+
 int main(int argc, char *argv[])
 {
     QSurfaceFormat format;

@@ -44,6 +44,9 @@ void GameWindow::initialize()
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+    masterRenderer = new MasterRenderer;
+    masterRenderer->setWindowSize(640, 480);
+
 	defaultShaderProgram = new QOpenGLShaderProgram(this);
     defaultShaderProgram->addShaderFromSourceFile(QOpenGLShader::Vertex, "shader/default.vs");
     /*
@@ -64,6 +67,8 @@ void GameWindow::initialize()
 
     defaultShaderProgram->addShaderFromSourceFile(QOpenGLShader::Fragment, "shader/default.fs");
     defaultShaderProgram->link();
+
+    masterRenderer->registerRederer<TextureRenderer>(defaultShaderProgram);
 
     guiShaderProgram = new QOpenGLShaderProgram(this);
     guiShaderProgram->addShaderFromSourceFile(QOpenGLShader::Vertex, "shader/default.vs");
@@ -133,12 +138,6 @@ void GameWindow::initialize()
     
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureAtlas.width(), textureAtlas.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, textureAtlas.bits());
     glGenerateMipmap(GL_TEXTURE_2D);
-
-    MasterRenderer masterRenderer;
-
-    masterRenderer.registerRederer<TextureRenderer>();
-    TextureComponent cmp(50, 50, "res/menu/Menu2.png");
-    masterRenderer.render<TextureRenderer>(cmp);
 
     // Square VAO Creation
 
@@ -411,6 +410,8 @@ void GameWindow::initialize()
     std::thread t (&GameWindow::tick, this);
 
     t.detach();
+
+    cmpTexTest = new TextureComponent(300, 300, "res/menu/Menu2.png");
 }
 
 void GameWindow::render()
@@ -430,10 +431,16 @@ void GameWindow::render()
     currentTime = QDateTime::currentMSecsSinceEpoch();
 
     if(screenUi->width != width())
+    {
         screenUi->setWidth(width());
-
+        masterRenderer->setWindowSize(width(), height());
+    }
+        
     if(screenUi->height != height())
+    {
         screenUi->setHeight(height());
+        masterRenderer->setWindowSize(width(), height());
+    }
 
     //fps counter
     nbFrames++;
@@ -458,6 +465,8 @@ void GameWindow::render()
     //    std::cout << " Mouse Pos Text error" << std::endl;
 
     updateGameState(float(currentTime - lastTime) / 1000);
+
+    masterRenderer->render<TextureRenderer>(cmpTexTest);
 
     //renderGame();
 
@@ -491,7 +500,6 @@ void GameWindow::render()
     inputHandler->updateInput(float(currentTime - lastTime) / 1000);
 
     lastTime = currentTime;
-
 }
 
 void GameWindow::setAnimating(bool animating)
@@ -781,55 +789,9 @@ void GameWindow::renderGame()
                 }
             }
         }
-        
-       /*
-        model.setToIdentity();
-        model.translate(QVector3D((0) / 2.0f, (0) / 4.0f, 0.0f));
-
-        defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("projection"), projection);
-        defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
-        defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("model"), model);
-        defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("scale"), scale);
-        
-        gameMap->getMesh()->bind();
-        glDrawElements(GL_TRIANGLES, 6*6, GL_UNSIGNED_INT, 0);
-        */
     }
 
     defaultShaderProgram->release();
-
-/*
-    if(nbRenderGameFrame % 250 == 0)
-    {
-        delete gameMap;
-
-        mapConstraint.seed = nbRenderGameFrame / 250;
-
-        gameMap = new Map(&ecs, tileLoader, mapConstraint);
-
-        auto currentSeedTextC = currentSeedText->get<Sentence>();
-        if(currentSeedTextC != nullptr)
-            currentSeedTextC->setText("Current Seed: " + std::to_string(mapConstraint.seed), fontLoader);
-        else
-            std::cout << " Current Seed Text error" << std::endl;
-    }
-*/
-/*
-    if(!tileSelected)
-    {
-        auto tilePosTextC = tilePosText->get<Sentence>();
-        if(tilePosTextC != nullptr)
-            tilePosTextC->setText(std::string("None Pos"), fontLoader);
-        //else
-        //    std::cout << " Tile Pos error " << std::endl;
-
-        auto tileTypeC = tileType->get<Sentence>();
-        if(tileTypeC != nullptr)
-            tileTypeC->setText(std::string("None"), fontLoader);
-        //else
-        //    std::cout << " Tile Type error " << std::endl;
-    }
-*/
 
     nbRenderGameFrame++;
 }

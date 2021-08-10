@@ -1,5 +1,11 @@
 #pragma once
 
+// [TODO] Add a sorting function to the ecs for certain view
+// Sorting function should be passable as a lambda
+
+// Optimize memory allocation 
+// 
+
 #include <unordered_map>
 #include <string>
 #include <vector>
