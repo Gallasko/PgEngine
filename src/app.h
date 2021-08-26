@@ -13,28 +13,43 @@
 #include <QVector3D>
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLBuffer>
-
-// timer includes
-#include <chrono>
-#include <thread>
+#include <QOpenGLFramebufferObject>
+#include <QOpenGLExtraFunctions>
 
 #include <QKeyEvent>
 #include <QMouseEvent>
 
 #include <iostream>
 #include <map>
-
-#include "ECS/entitysystem.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+// timer includes
+#include <chrono>
+#include <thread>
 
 #include "camera.h"
 #include "Input/input.h"
 #include "constant.h"
-#include "Engine/map.h"
-#include "Engine/fontloader.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
+//pragma pack data so it doesnt get padded
+#pragma pack(push, 0)
+
+struct Particle
+{
+    constant::Vector3D pos;
+
+    float lifetime;
+};
+
+#pragma pack(pop)
+
+struct ParticleInfo
+{
+    float timeElapsed = 0.0f;
+
+    std::vector<constant::Vector3D> dir;
+};
 
 class GameWindow : public QWindow, protected QOpenGLFunctions
 {
@@ -70,6 +85,7 @@ protected:
     void exposeEvent(QExposeEvent *event) override;
 
 private:
+    void renderUi();
     void tick();
     bool m_animating = false;
     bool ticking = false;
@@ -78,17 +94,25 @@ private:
     QOpenGLContext *m_context = nullptr;
     QOpenGLPaintDevice *m_device = nullptr;
 
+    QOpenGLExtraFunctions *extraFunctions = nullptr; 
+
     QOpenGLShaderProgram *defaultShaderProgram = nullptr;
     QOpenGLShaderProgram *guiShaderProgram = nullptr;
+    QOpenGLShaderProgram *textShaderProgram = nullptr;
+    QOpenGLVertexArrayObject *SquareVAO;
+	QOpenGLBuffer *SquareVBO;
+	QOpenGLBuffer *SquareEBO;
+	
+    QOpenGLBuffer *instanceVBO;
+
+    const unsigned int nbMaxParticle = 200;
+    Particle particleList[200];
+    ParticleInfo particleInfoList[200];
+
     unsigned int baseTileTexture1;
     unsigned int baseMenu1;
     unsigned int fontTexture;
 
-    EntitySystem::Entity*** tileMap;
-
-    EntitySystem ecs;
-    TilesLoader *tileLoader;
-    FontLoader *fontLoader;
     Input *inputHandler;
 
     //camera var

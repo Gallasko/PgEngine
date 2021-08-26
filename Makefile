@@ -7,7 +7,7 @@
 rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
 # Qt path
-Qt_PATH := Z:/Qt/5.11.2-x64
+Qt_PATH := C:/Qt/5.11.2-x64
 
 # define the Cpp compiler to use
 CXX = g++
@@ -21,7 +21,11 @@ CXXFLAGS	:= -std=c++11 -Wall -Wextra -g
 # define library paths in addition to /usr/lib
 #   if I wanted to include libraries not in /usr/lib I'd specify
 #   their path using -Lpath, something like:
-LFLAGS =
+LFLAGS = #-LC:\Users\gallas.gaye\AppData\Local\Programs\Python\Python37\libs -lpython37
+
+IFLAGS = #-IC:\Users\gallas.gaye\AppData\Local\Programs\Python\Python37\include
+
+LIBS = 
 
 # define output directory
 OUTPUT	:= output
@@ -67,7 +71,8 @@ INCLUDES	:= $(patsubst %,-I%, $(INCLUDEDIRS:%/=%))
 # define the C libs
 LIBS		:= $(patsubst %,-L%, $(LIBDIRS:%/=%)) \
 			   -lQt5Gui \
-			   -lQt5Core
+			   -lQt5Core \
+			   -lopengl32
 
 # define the C source files
 SOURCES		:= $(call rwildcard,$(SOURCEDIRS), *.cpp)
@@ -92,7 +97,7 @@ $(OUTPUT):
 
 $(MAIN): $(OBJECTS)
 	@echo Building Main ...
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(OUTPUTMAIN) $(OBJECTS) $(LFLAGS) $(LIBS)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(IFLAGS) -o $(OUTPUTMAIN) $(OBJECTS) $(LFLAGS) $(LIBS)
 
 	@echo Copy the ddl dependencies
 	xcopy $(DEPENDENCIESDIRS) $(OUTPUT) /v /f /s /y /d
@@ -103,11 +108,11 @@ $(MAIN): $(OBJECTS)
 # (see the gnu make manual section about automatic variables)
 %.o: %.cpp
 	@echo Converting $< to $@
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $<  -o $@
+	$(CXX) $(CXXFLAGS) $(INCLUDES) $(IFLAGS) -c $<  -o $@
 
 %.moc.cpp: %.h
 	@echo Creating $@
-	$(MOC) $(INCLUDES) $< -o $@
+	$(MOC) $(INCLUDES) $(IFLAGS) $< -o $@
 
 .PHONY: clean
 
