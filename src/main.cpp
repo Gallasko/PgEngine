@@ -548,14 +548,20 @@ struct Numerical
     {
         Op() {}
 
-        virtual void operator()(int val) = 0;
-        virtual void operator()(float val) = 0;
+        virtual void operator()(const int&) = 0;
+        virtual void operator()(const float&) = 0;
         //virtual void operator()(BigNum val) = 0;
-        virtual void operator()(std::string val) = 0;
+        virtual void operator()(const std::string&) = 0;
 
-        virtual Numerical* add() = 0;
+        virtual Numerical* add() const = 0;
+        virtual Numerical* sub() const = 0;
+        virtual Numerical* mul() const = 0;
+        virtual Numerical* div() const = 0;
 
         std::function<Numerical*()> addFunc;
+        std::function<Numerical*()> subFunc;
+        std::function<Numerical*()> mulFunc;
+        std::function<Numerical*()> divFunc;
 
         virtual ~Op() {}
     };
@@ -564,18 +570,28 @@ struct Numerical
     bool empty;
 
     bool isEmpty() const { return empty; }
-    
-    template<typename T>
-    Numerical* operator+(T value) { (*op)(value) ; return op->add(); }
 
     virtual Numerical* operator+(Numerical *rhs) = 0;
+    virtual Numerical* operator-(Numerical *rhs) = 0;
+    virtual Numerical* operator*(Numerical *rhs) = 0;
+    virtual Numerical* operator/(Numerical *rhs) = 0;
 
-    //template <typename Other>
-    //int operator+(Numerical *rhs) { return value + rhs.value; }
+    //TODO make it so (*op)(value) return directly the func pointer constantly so the whole class / operator can be made const
+    //Something like std::function<Numerical*()> addFunc; (*op)(value, &addFunc, OPERATORENUM::ADD); return addFunc();
+    //In (*op)() -> switch (Operator) return [=](){return new Numerical(Operation);}
+    
+    template<typename T>
+    Numerical* operator+(const T& value) { (*op)(value) ; return op->add(); }
+    template<typename T>
+    Numerical* operator-(const T& value) { (*op)(value) ; return op->sub(); }
+    template<typename T>
+    Numerical* operator*(const T& value) { (*op)(value) ; return op->mul(); }
+    template<typename T>
+    Numerical* operator/(const T& value) { (*op)(value) ; return op->div(); }
 
-    //std::function<Numerical*(Numerical*)> add() { return [&](Numerical *rhs) { return rhs + value; }; }
+    virtual Numerical* clone() const = 0;
 
-    virtual void print() = 0;
+    virtual void print() const = 0;
 
     virtual ~Numerical() { delete op; }
 };
@@ -592,24 +608,47 @@ struct Numerics : public Numerical
         Op() {}
         Op(Type *value) : value(value) {}
 
+        virtual ~Op() {}
+
         template<typename T>
         Op(T val) { (*this)(val); }
 
-        virtual void operator()(int) { addFunc = [=]() { return new Numerics<Type> (); }; }
-        virtual void operator()(float) { addFunc = [=]() { return new Numerics<Type> (); }; }
+        virtual void operator()(const int&) { createEmpty(); }
+        virtual void operator()(const float&) { createEmpty(); }
         //virtual void operator()(BigNum) { addFunc = [=]() { return new Numerics<Type> (); }; }
-        virtual void operator()(std::string) { addFunc = [=]() { return new Numerics<Type> (); }; }
+        virtual void operator()(const std::string&) { createEmpty(); }
 
-        virtual Numerical* add() { return addFunc(); } 
+        void createEmpty() {
+            addFunc = [=]() { return new Numerics<Type> (); }; 
+            subFunc = [=]() { return new Numerics<Type> (); }; 
+            mulFunc = [=]() { return new Numerics<Type> (); }; 
+            divFunc = [=]() { return new Numerics<Type> (); }; }
+
+        template<typename NumericalType, typename ValueType>
+        void createFunc(const ValueType& val) { 
+            addFunc = [=]() { return new NumericalType (*value + val); };
+            subFunc = [=]() { return new NumericalType (*value - val); }; 
+            mulFunc = [=]() { return new NumericalType (*value * val); }; 
+            divFunc = [=]() { return new NumericalType (*value / val); }; }
+
+        Numerical* add() const { return addFunc(); } 
+        Numerical* sub() const { return subFunc(); }
+        Numerical* mul() const { return mulFunc(); }
+        Numerical* div() const { return divFunc(); }
     };
 
     Numerics() { empty = true; }
-    Numerics(Type i) : value(i) { empty = false; }
+    Numerics(const Type& i) : value(i) { empty = false; }
+
+    virtual Numerical* clone() const { return new Numerics<Type>(); }
 
     //Numerical* operator+(Numerical *rhs) { return *rhs + this->value; }
     Numerical* operator+(Numerical *rhs) { return *rhs + this->value; }
+    Numerical* operator-(Numerical *rhs) { return *rhs - this->value; }
+    Numerical* operator*(Numerical *rhs) { return *rhs * this->value; }
+    Numerical* operator/(Numerical *rhs) { return *rhs / this->value; }
 
-    void print() { std::cout << value << std::endl; }
+    void print() const { std::cout << value << std::endl; }
 };
 
 struct NumericalFloat : public Numerics<float>
@@ -617,15 +656,14 @@ struct NumericalFloat : public Numerics<float>
     struct Op : public Numerics<float>::Op
     {
         Op(float *value) : Numerics<float>::Op(value) {}
+        ~Op() {}
 
-        void operator()(int val) { addFunc = [=]() { return new NumericalFloat (*value + val); }; }
-        void operator()(float val) { addFunc = [=]() { return new NumericalFloat (*value + val); }; }
-
-        Numerical* add() { std::cout << "Float add: " << std::endl; return addFunc(); } 
-
+        void operator()(const int& val) { createFunc<NumericalFloat>(val); }
+        void operator()(const float& val) { createFunc<NumericalFloat>(val); }
     };
 
-    NumericalFloat(float i) : Numerics<float>(i) { std::cout << "Float" << std::endl; op = new Op(&value); }
+    NumericalFloat(const float& i) : Numerics<float>(i) { std::cout << "Float" << std::endl; op = new Op(&value); }
+    Numerical* clone() const { return new NumericalFloat(value); }
 };
 
 struct NumericalInt : public Numerics<int>
@@ -633,20 +671,14 @@ struct NumericalInt : public Numerics<int>
     struct Op : public Numerics<int>::Op
     {
         Op(int *value) : Numerics<int>::Op(value) {}
+        ~Op() {}
 
-        //template<typename T>
-        //void setValue(T val) { addFunc = [=]() { return new Numerics<Type> (value + val); }; }
-        void operator()(int val) { addFunc = [=]() { return new NumericalInt (*value + val); }; }
-        void operator()(float val) { addFunc = [=]() { return new NumericalFloat (*value + val); }; }
-
-        Numerical* add() { std::cout << "Int add: " << std::endl; return addFunc(); } 
-
-        //std::function<Numerical*()> addFunc;
+        void operator()(const int& val) { createFunc<NumericalInt>(val); }
+        void operator()(const float& val) { createFunc<NumericalFloat>(val); }
     };
 
-    //friend void Op::operator()(Op &op, float val) { op.addFunc = [=]() { return new NumericalInt (*op.value + val); }; }
-
-    NumericalInt(int i) : Numerics<int>(i) { std::cout << "Int" << std::endl;  op = new Op(&value); }
+    NumericalInt(const int& i) : Numerics<int>(i) { std::cout << "Int" << std::endl; op = new Op(&value); }
+    Numerical* clone() const { return new NumericalInt(value); }
 };
 
 class RefracTable
@@ -662,10 +694,22 @@ public:
         Ref(const Ref& ref) { value = ref.value; scoped = ref.scoped; } // TODO see if it scoped needs to be true or false
         ~Ref() { if(scoped) delete value; }
 
-        void operator=(const Ref& ref) { value = ref.value; }
+        void operator=(const Ref& ref) { if(!scoped && ref.scoped) value = ref.value->clone(); else value = ref.value; } // TODO see if we need to deep copy when the value is not scoped
         void operator=(Numerical *value) { this->value = value; }
 
-        Ref operator+(const Ref &r) const { return Ref(*r.value + this->value, true); }
+        Ref operator+(const Ref &r) { return Ref(*r.value + this->value, true); }
+        Ref operator-(const Ref &r) { return Ref(*r.value - this->value, true); }
+        Ref operator*(const Ref &r) { return Ref(*r.value * this->value, true); }
+        Ref operator/(const Ref &r) { return Ref(*r.value / this->value, true); }
+
+        template <typename T>
+        Ref operator+(const T& rhs) { return Ref(*this->value + rhs, true); }
+        template <typename T>
+        Ref operator-(const T& rhs) { return Ref(*this->value - rhs, true); }
+        template <typename T>
+        Ref operator*(const T& rhs) { return Ref(*this->value * rhs, true); }
+        template <typename T>
+        Ref operator/(const T& rhs) { return Ref(*this->value / rhs, true); }
     };
 
     Ref& operator[](const std::string &name) { if(table.find(name) != table.end()) return table[name]; else { table[name] = Ref(nullptr); table[name].scoped = false; return table[name]; } }
@@ -838,11 +882,6 @@ struct Node
 template<typename DataType, typename NextType>
 Node<DataType, NextType>* createNode(DataType data, NextType next) { return new Node<DataType, NextType>(data, next); }
 
-//struct RefracTable
-//{
-//    
-//}
-
 std::function<void(int)> lCreate()
 {
     int i = 5;
@@ -880,9 +919,9 @@ int main(int argc, char *argv[])
     //a.resize(640, 480);
     //a.setAnimating(true);
     //a.show();
-    
+    //
     //QObject::connect(&a, SIGNAL(quitApp()), &app, SLOT(quit()));
-
+//
 	//return app.exec();
 
     std::vector< std::function<void()> > tickFunction; 
@@ -907,16 +946,25 @@ int main(int argc, char *argv[])
 
     table["Width"] = new NumericalInt(800);
     table["Height"] = new NumericalInt(600);
-    table["WidthDelta"] = new NumericalFloat(0.8f);
+    table["WidthDelta"] = new NumericalFloat(0.8f); 
 
     auto ref2 = table["Width"];
     ref2.value->print();
 
-    auto ref3 = table["Width"] + table["Height"];
+    {
+        auto ratio = table["Width"] / ((NumericalFloat*)table["Height"].value)->value;
+        ratio.value->print();
+        table["Ratio"] = ratio;
+    }
+    
+    auto ref3 = table["Ratio"];
     ref3.value->print();
 
-    auto ref4 = table["Width"] + table["WidthDelta"];
+    auto ref4 = table["Width"] * table["WidthDelta"];
     ref4.value->print();
+
+    auto ref5 = table["Width"] - table["Height"];
+    ref5.value->print();
 
 /*
     Numerical *numerical1 = new NumericalInt(19);
