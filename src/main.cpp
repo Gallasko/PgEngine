@@ -546,22 +546,20 @@ struct Numerical
 {
     struct Op
     {
+        enum class Operation
+        {
+            ADD,
+            SUB,
+            MUL,
+            DIV
+        };
+
         Op() {}
 
-        virtual void operator()(const int&) = 0;
-        virtual void operator()(const float&) = 0;
+        virtual Numerical* operator()(const int&, const Operation&) const = 0;
+        virtual Numerical* operator()(const float&, const Operation&) const = 0;
         //virtual void operator()(BigNum val) = 0;
-        virtual void operator()(const std::string&) = 0;
-
-        virtual Numerical* add() const = 0;
-        virtual Numerical* sub() const = 0;
-        virtual Numerical* mul() const = 0;
-        virtual Numerical* div() const = 0;
-
-        std::function<Numerical*()> addFunc;
-        std::function<Numerical*()> subFunc;
-        std::function<Numerical*()> mulFunc;
-        std::function<Numerical*()> divFunc;
+        virtual Numerical* operator()(const std::string&, const Operation&) const = 0;
 
         virtual ~Op() {}
     };
@@ -571,23 +569,23 @@ struct Numerical
 
     bool isEmpty() const { return empty; }
 
-    virtual Numerical* operator+(Numerical *rhs) = 0;
-    virtual Numerical* operator-(Numerical *rhs) = 0;
-    virtual Numerical* operator*(Numerical *rhs) = 0;
-    virtual Numerical* operator/(Numerical *rhs) = 0;
+    virtual Numerical* operator+(Numerical *rhs) const = 0;
+    virtual Numerical* operator-(Numerical *rhs) const = 0;
+    virtual Numerical* operator*(Numerical *rhs) const = 0;
+    virtual Numerical* operator/(Numerical *rhs) const = 0;
 
     //TODO make it so (*op)(value) return directly the func pointer constantly so the whole class / operator can be made const
     //Something like std::function<Numerical*()> addFunc; (*op)(value, &addFunc, OPERATORENUM::ADD); return addFunc();
     //In (*op)() -> switch (Operator) return [=](){return new Numerical(Operation);}
     
     template<typename T>
-    Numerical* operator+(const T& value) { (*op)(value) ; return op->add(); }
+    Numerical* operator+(const T& value) const { return (*op)(value, Op::Operation::ADD); }
     template<typename T>
-    Numerical* operator-(const T& value) { (*op)(value) ; return op->sub(); }
+    Numerical* operator-(const T& value) const { return (*op)(value, Op::Operation::SUB); }
     template<typename T>
-    Numerical* operator*(const T& value) { (*op)(value) ; return op->mul(); }
+    Numerical* operator*(const T& value) const { return (*op)(value, Op::Operation::MUL); }
     template<typename T>
-    Numerical* operator/(const T& value) { (*op)(value) ; return op->div(); }
+    Numerical* operator/(const T& value) const { return (*op)(value, Op::Operation::DIV); }
 
     virtual Numerical* clone() const = 0;
 
@@ -613,28 +611,32 @@ struct Numerics : public Numerical
         template<typename T>
         Op(T val) { (*this)(val); }
 
-        virtual void operator()(const int&) { createEmpty(); }
-        virtual void operator()(const float&) { createEmpty(); }
+        virtual Numerical* operator()(const int&, const Operation&) const { return createEmpty(); }
+        virtual Numerical* operator()(const float&, const Operation&) const { return createEmpty(); }
         //virtual void operator()(BigNum) { addFunc = [=]() { return new Numerics<Type> (); }; }
-        virtual void operator()(const std::string&) { createEmpty(); }
+        virtual Numerical* operator()(const std::string& , const Operation&) const { return createEmpty(); }
 
-        void createEmpty() {
-            addFunc = [=]() { return new Numerics<Type> (); }; 
-            subFunc = [=]() { return new Numerics<Type> (); }; 
-            mulFunc = [=]() { return new Numerics<Type> (); }; 
-            divFunc = [=]() { return new Numerics<Type> (); }; }
+        Numerical* createEmpty() const { return new Numerics<Type> (); }
 
         template<typename NumericalType, typename ValueType>
-        void createFunc(const ValueType& val) { 
-            addFunc = [=]() { return new NumericalType (*value + val); };
-            subFunc = [=]() { return new NumericalType (*value - val); }; 
-            mulFunc = [=]() { return new NumericalType (*value * val); }; 
-            divFunc = [=]() { return new NumericalType (*value / val); }; }
-
-        Numerical* add() const { return addFunc(); } 
-        Numerical* sub() const { return subFunc(); }
-        Numerical* mul() const { return mulFunc(); }
-        Numerical* div() const { return divFunc(); }
+        Numerical* createFunc(const ValueType& val, const Operation& operation) const {
+            switch (operation)
+            {
+            case Operation::ADD:
+                return new NumericalType(*value + val);
+                break;
+            case Operation::SUB:
+                return new NumericalType(*value - val);
+                break;
+            case Operation::MUL: 
+                return new NumericalType(*value * val); 
+                break;
+            case Operation::DIV:
+                return new NumericalType(*value / val);
+                break;
+            default:
+                return new NumericalType(*value);
+            } }
     };
 
     Numerics() { empty = true; }
@@ -643,10 +645,10 @@ struct Numerics : public Numerical
     virtual Numerical* clone() const { return new Numerics<Type>(); }
 
     //Numerical* operator+(Numerical *rhs) { return *rhs + this->value; }
-    Numerical* operator+(Numerical *rhs) { return *rhs + this->value; }
-    Numerical* operator-(Numerical *rhs) { return *rhs - this->value; }
-    Numerical* operator*(Numerical *rhs) { return *rhs * this->value; }
-    Numerical* operator/(Numerical *rhs) { return *rhs / this->value; }
+    Numerical* operator+(Numerical *rhs) const { return *rhs + this->value; }
+    Numerical* operator-(Numerical *rhs) const { return *rhs - this->value; }
+    Numerical* operator*(Numerical *rhs) const { return *rhs * this->value; }
+    Numerical* operator/(Numerical *rhs) const { return *rhs / this->value; }
 
     void print() const { std::cout << value << std::endl; }
 };
@@ -658,8 +660,8 @@ struct NumericalFloat : public Numerics<float>
         Op(float *value) : Numerics<float>::Op(value) {}
         ~Op() {}
 
-        void operator()(const int& val) { createFunc<NumericalFloat>(val); }
-        void operator()(const float& val) { createFunc<NumericalFloat>(val); }
+        Numerical* operator()(const int& val, const Operation& operation) const { return createFunc<NumericalFloat>(val, operation); }
+        Numerical* operator()(const float& val, const Operation& operation) const { return createFunc<NumericalFloat>(val, operation); }
     };
 
     NumericalFloat(const float& i) : Numerics<float>(i) { std::cout << "Float" << std::endl; op = new Op(&value); }
@@ -673,8 +675,8 @@ struct NumericalInt : public Numerics<int>
         Op(int *value) : Numerics<int>::Op(value) {}
         ~Op() {}
 
-        void operator()(const int& val) { createFunc<NumericalInt>(val); }
-        void operator()(const float& val) { createFunc<NumericalFloat>(val); }
+        Numerical* operator()(const int& val, const Operation& operation) const { return createFunc<NumericalInt>(val, operation); }
+        Numerical* operator()(const float& val, const Operation& operation) const { return createFunc<NumericalFloat>(val, operation); }
     };
 
     NumericalInt(const int& i) : Numerics<int>(i) { std::cout << "Int" << std::endl; op = new Op(&value); }
@@ -697,19 +699,19 @@ public:
         void operator=(const Ref& ref) { if(!scoped && ref.scoped) value = ref.value->clone(); else value = ref.value; } // TODO see if we need to deep copy when the value is not scoped
         void operator=(Numerical *value) { this->value = value; }
 
-        Ref operator+(const Ref &r) { return Ref(*r.value + this->value, true); }
-        Ref operator-(const Ref &r) { return Ref(*r.value - this->value, true); }
-        Ref operator*(const Ref &r) { return Ref(*r.value * this->value, true); }
-        Ref operator/(const Ref &r) { return Ref(*r.value / this->value, true); }
+        Ref operator+(const Ref &r) const { return Ref(*r.value + this->value, true); }
+        Ref operator-(const Ref &r) const { return Ref(*r.value - this->value, true); }
+        Ref operator*(const Ref &r) const { return Ref(*r.value * this->value, true); }
+        Ref operator/(const Ref &r) const { return Ref(*r.value / this->value, true); }
 
         template <typename T>
-        Ref operator+(const T& rhs) { return Ref(*this->value + rhs, true); }
+        Ref operator+(const T& rhs) const { return Ref(*this->value + rhs, true); }
         template <typename T>
-        Ref operator-(const T& rhs) { return Ref(*this->value - rhs, true); }
+        Ref operator-(const T& rhs) const { return Ref(*this->value - rhs, true); }
         template <typename T>
-        Ref operator*(const T& rhs) { return Ref(*this->value * rhs, true); }
+        Ref operator*(const T& rhs) const { return Ref(*this->value * rhs, true); }
         template <typename T>
-        Ref operator/(const T& rhs) { return Ref(*this->value / rhs, true); }
+        Ref operator/(const T& rhs) const { return Ref(*this->value / rhs, true); }
     };
 
     Ref& operator[](const std::string &name) { if(table.find(name) != table.end()) return table[name]; else { table[name] = Ref(nullptr); table[name].scoped = false; return table[name]; } }
@@ -948,11 +950,14 @@ int main(int argc, char *argv[])
     table["Height"] = new NumericalInt(600);
     table["WidthDelta"] = new NumericalFloat(0.8f); 
 
+    std::cout << sizeof(NumericalInt) << std::endl;
+    std::cout << sizeof(table["Width"]) << std::endl;
+
     auto ref2 = table["Width"];
     ref2.value->print();
 
     {
-        auto ratio = table["Width"] / ((NumericalFloat*)table["Height"].value)->value;
+        auto ratio = table["Width"] / table["Height"];
         ratio.value->print();
         table["Ratio"] = ratio;
     }
@@ -1007,15 +1012,19 @@ int main(int argc, char *argv[])
     //std::cout << obj2.x << std::endl;
 
     BigNum aaaa(3);
+    BigNum bbb(23);
 
     auto op = &aaaa.operator+=;
 
-    
     std::cout << op << std::endl;
 
     (aaaa.*op)(5);
 
     std::cout << aaaa << std::endl;
+
+    (aaaa.*op)(bbb);
+
+    std::cout << bbb << std::endl;
 
     float f = 15.5f;
     int i = 2;
