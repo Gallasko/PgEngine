@@ -171,15 +171,16 @@ void TextureComponent::generateMesh()
 
 #include <QMatrix4x4>
 #include <cstdarg>
-void TextureRenderer::render(RefracRef rTable, ShaderRef sTable, TextureRef tTable...)
+void TextureRenderer::render(MasterRenderer* masterRenderer...)
 { 
-    /*
     va_list args; 
-    va_start(args, rendererName); 
-    auto screenWidth = va_arg(args, int);
-    auto screenHeight = va_arg(args, int);
+    va_start(args, masterRenderer); 
     auto texture = va_arg(args, TextureComponent*);
     va_end(args);
+
+    auto rTable = masterRenderer->getParameter();
+    const int screenWidth = rTable["ScreenWidth"];
+    const int screenHeight = rTable["ScreenHeight"];
 
     QMatrix4x4 projection;
     QMatrix4x4 view;
@@ -191,8 +192,7 @@ void TextureRenderer::render(RefracRef rTable, ShaderRef sTable, TextureRef tTab
     scale.setToIdentity();
     scale.scale(QVector3D(2.0f / screenWidth, 2.0f / screenHeight, 0.0f));
 
-    if(shaderProgram == nullptr)
-        return;
+    auto shaderProgram = masterRenderer->getShader("default");
 
     // Tex rendering
     
@@ -220,10 +220,9 @@ void TextureRenderer::render(RefracRef rTable, ShaderRef sTable, TextureRef tTab
     glDrawElements(GL_TRIANGLES, texture->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
 
     shaderProgram->release();
-    */
 }
 
-void LoaderRenderer::render(RefracRef rTable, ShaderRef sTable, TextureRef tTable...)
+void LoaderRenderer::render(MasterRenderer* masterRenderer...)
 {
     /*
     va_list args; 

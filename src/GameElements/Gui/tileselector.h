@@ -27,7 +27,7 @@ public:
     void setVisibility(bool visibility);
     inline bool isVisible() const { return visible; }
 
-    void render(RefracRef rTable, ShaderRef sTable, TextureRef tTable);
+    void render(MasterRenderer* masterRenderer);
 
     ~TileSelector();
 

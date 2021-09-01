@@ -29,9 +29,9 @@ struct SentenceText
 
     SentenceText(const std::string& text) : text(text) {}
 
-    SentenceText(const std::string& text, constant::Vector4D color1, SentenceEffect effect = SentenceEffect::NOEFFCT) : text(text), mainColor(color1), effect(effect) {}
+    SentenceText(const std::string& text, const constant::Vector4D& color1, const SentenceEffect& effect = SentenceEffect::NOEFFCT) : text(text), mainColor(color1), effect(effect) {}
 
-    SentenceText(const std::string& text, constant::Vector4D color1, constant::Vector4D color2, constant::Vector4D color3 = constant::Vector4D(255.0f, 255.0f, 255.0f, 180.0f), SentenceEffect effect = SentenceEffect::NOEFFCT) : text(text), mainColor(color1), outline1(color2), outline2(color3), effect(effect) {}
+    SentenceText(const std::string& text, const constant::Vector4D& color1, const constant::Vector4D& color2, const constant::Vector4D& color3 = constant::Vector4D(255.0f, 255.0f, 255.0f, 180.0f), const SentenceEffect& effect = SentenceEffect::NOEFFCT) : text(text), mainColor(color1), outline1(color2), outline2(color3), effect(effect) {}
 
     inline void operator=(const SentenceText &rhs)
     {
@@ -42,20 +42,21 @@ struct SentenceText
         this->effect    = rhs.effect;
     }
 
-    inline bool operator==(const SentenceText &rhs)
+    inline bool operator==(const SentenceText &rhs) const
     {
         return this->text == rhs.text && this->mainColor == rhs.mainColor && this->outline1 == rhs.outline1 && this->outline2 == rhs.outline2 && this->effect == rhs.effect;
     }
 
-    inline bool operator!=(const SentenceText &rhs)
+    inline bool operator!=(const SentenceText &rhs) const
     {
         return !(*this == rhs);
     }
 };
 
+//TODO check if in need to be static
 struct Sentence : public UiComponent, private QOpenGLFunctions
 {
-    Sentence(const SentenceText& sentence, float scale, FontLoader *font);
+    Sentence(const SentenceText& sentence, const float& scale, FontLoader *font);
     Sentence(const Sentence &rhs);
     ~Sentence();
     void setText(const SentenceText& sentence, FontLoader *font);

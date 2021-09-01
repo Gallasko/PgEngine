@@ -1,6 +1,6 @@
 #include "sentencesystem.h"
 
-Sentence::Sentence(const SentenceText& sentence, float scale, FontLoader *font)
+Sentence::Sentence(const SentenceText& sentence, const float& scale, FontLoader *font)
 {
     initializeOpenGLFunctions(); 
 

@@ -12,13 +12,15 @@ typedef constant::RefracTable RefracRef;
 typedef std::unordered_map<std::string, QOpenGLShaderProgram*> ShaderRef;
 typedef std::unordered_map<std::string, unsigned int> TextureRef;
 
+class MasterRenderer;
+
 struct Renderer : protected QOpenGLFunctions
 {
     Renderer() { initializeOpenGLFunctions(); }
     Renderer(const Renderer& renderer) : QOpenGLFunctions() { initializeOpenGLFunctions(); }
     virtual ~Renderer() {}
 
-    virtual void render(RefracRef, ShaderRef, TextureRef...) = 0; 
+    virtual void render(MasterRenderer*...) = 0; 
 };
 
 //[TODO] Multiple FBO -> 1 for a whole screen capture and other for batch rendering on a texture 
@@ -72,13 +74,15 @@ public:
     unsigned int getTexture(std::string name) { return textureList[name]; }
 
     template<typename Renderer, typename... Args>
-    void render(Args... args) { auto rendererName = typeid(Renderer).name(); if(rendererList.find(rendererName) != rendererList.end()) rendererList[rendererName]->render(systemParameters, shaderList, textureList, args...); }
+    void render(Args... args) { auto rendererName = typeid(Renderer).name(); if(rendererList.find(rendererName) != rendererList.end()) rendererList[rendererName]->render(this, args...); }
 
     template<typename Renderable>
-    MasterRenderer& operator<<(Renderable* toRender) { toRender->render(systemParameters, shaderList, textureList); return *this; }
+    MasterRenderer& operator<<(Renderable* toRender) { toRender->render(this); return *this; }
 
     inline void setWindowSize(const int& width, const int& height) { systemParameters["ScreenWidth"] = new constant::NumericalInt(width); systemParameters["ScreenHeight"] = new constant::NumericalInt(height); }
     inline void setCurrentTime(const unsigned int& time) { systemParameters["CurrentTime"] = new constant::NumericalInt(time); }
+
+    RefracRef getParameter() const { return systemParameters; }
 private:
     std::unordered_map<std::string, Renderer*> rendererList;
     

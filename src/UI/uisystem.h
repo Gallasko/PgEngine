@@ -167,7 +167,7 @@ struct TextureRenderer : public Renderer
     using Renderer::Renderer;
     virtual ~TextureRenderer() {}
 
-    void render(RefracRef rTable, ShaderRef sTable, TextureRef tTable...);
+    void render(MasterRenderer* masterRenderer...);
 };
 
 //TODO Copy Constructor
@@ -211,5 +211,5 @@ struct LoaderRenderer : public Renderer
     using Renderer::Renderer;
     virtual ~LoaderRenderer() {}
 
-    void render(RefracRef rTable, ShaderRef sTable, TextureRef tTable...);
+    void render(MasterRenderer* masterRenderer...);
 };

@@ -84,27 +84,32 @@ void TileSelector::setVisibility(bool visibility)
 }
 
 //void TileSelector::render(unsigned int screenWidth, unsigned int screenHeight, QOpenGLShaderProgram* defaultShaderProgram, unsigned int tileTexture, QOpenGLShaderProgram* textShaderProgram, unsigned int fontTexture, qint64 currentTime)
-void TileSelector::render(RefracRef rTable, ShaderRef sTable, TextureRef tTable)
+void TileSelector::render(MasterRenderer* masterRenderer)
 {
+    if(this->visible == false)
+        return;
+    
+    auto rTable = masterRenderer->getParameter();
+
     const int screenWidth = rTable["ScreenWidth"];
     const int screenHeight = rTable["ScreenHeight"];
     const int currentTime = rTable["CurrentTime"];
-
-    if(this->visible == false)
-        return;
 
     QMatrix4x4 projection;
     QMatrix4x4 view;
     QMatrix4x4 model;
     QMatrix4x4 scale;
 
+    masterRenderer->render<TextureRenderer>(texture);
+
+    /*
     projection.setToIdentity();
     model.setToIdentity();
     scale.setToIdentity();
     scale.scale(QVector3D(2.0f / screenWidth, 2.0f / screenHeight, 0.0f));
 
     // Text rendering
-    auto defaultShaderProgram = sTable["default"];
+    auto defaultShaderProgram = masterRenderer->getShader("default");
 
     defaultShaderProgram->bind();
 
@@ -128,9 +133,12 @@ void TileSelector::render(RefracRef rTable, ShaderRef sTable, TextureRef tTable)
 
     texture->VAO->bind();
     glDrawElements(GL_TRIANGLES, texture->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
+    */
 
+    auto defaultShaderProgram = masterRenderer->getShader("default");
+    
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, tTable["atlas"]);
+    glBindTexture(GL_TEXTURE_2D, masterRenderer->getTexture("atlas"));
 
     auto tileWidth = 100.0f, tileHeight = 100.0f;
 
@@ -153,7 +161,7 @@ void TileSelector::render(RefracRef rTable, ShaderRef sTable, TextureRef tTable)
 
     defaultShaderProgram->release();
 
-    auto textShaderProgram = sTable["text"];
+    auto textShaderProgram = masterRenderer->getShader("text");
 
     textShaderProgram->bind();
 
@@ -161,7 +169,7 @@ void TileSelector::render(RefracRef rTable, ShaderRef sTable, TextureRef tTable)
     scale.scale(QVector3D(1.0f / screenWidth, 1.0f / screenHeight, 0.0f));
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, tTable["font"]);
+    glBindTexture(GL_TEXTURE_2D, masterRenderer->getTexture("font"));
 
     textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("projection"), projection);
     textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("model"), model);
