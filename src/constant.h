@@ -1,6 +1,10 @@
 #ifndef CONSTANT_H
 #define CONSTANT_H
 
+//TODO have no include in constant
+
+#include <unordered_map> // Included for RefractTable
+
 namespace constant
 {
 	//Screen Const
@@ -208,8 +212,6 @@ namespace constant
 
 		virtual Numerical* clone() const = 0;
 
-		virtual void print() const = 0;
-
 		virtual ~Numerical() { delete op; }
 	};
 
@@ -263,8 +265,6 @@ namespace constant
 		Numerical* operator-(Numerical *rhs) const { return *rhs - this->value; }
 		Numerical* operator*(Numerical *rhs) const { return *rhs * this->value; }
 		Numerical* operator/(Numerical *rhs) const { return *rhs / this->value; }
-
-		void print() const { std::cout << value << std::endl; }
 	};
 
 	struct NumericalFloat : public Numerics<float>
@@ -313,7 +313,7 @@ namespace constant
 			~Ref() { if(scoped) delete value; }
 
 			void operator=(const Ref& ref) { if(!scoped && ref.scoped) value = ref.value->clone(); else value = ref.value; } // TODO see if we need to deep copy when the value is not scoped
-			void operator=(Numerical *value) { this->value = value; }
+			void operator=(Numerical *value) { this->value = value; } // TODO check if we need to delete value when given a new one
 
 			Ref operator+(const Ref &r) const { return Ref(*r.value + this->value, true); }
 			Ref operator-(const Ref &r) const { return Ref(*r.value - this->value, true); }
@@ -328,11 +328,17 @@ namespace constant
 			Ref operator*(const T& rhs) const { return Ref(*this->value * rhs, true); }
 			template <typename T>
 			Ref operator/(const T& rhs) const { return Ref(*this->value / rhs, true); }
+
+			//TODO make cast type safe
+			operator int() const { return static_cast<NumericalInt*>(this->value)->value; }
+			operator float() const { return static_cast<NumericalFloat*>(this->value)->value; }
 		};
 
 		Ref& operator[](const std::string &name) { if(table.find(name) != table.end()) return table[name]; else { table[name] = Ref(nullptr); table[name].scoped = false; return table[name]; } }
 
-		~RefracTable() { for(auto ref : table) delete ref.second.value; }
+		void clean() { for(auto ref : table) delete ref.second.value; }
+
+		//~RefracTable() { for(auto ref : table) delete ref.second.value; }
 
 	private:
 		std::unordered_map<std::string, Ref> table;

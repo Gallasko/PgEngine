@@ -171,8 +171,9 @@ void TextureComponent::generateMesh()
 
 #include <QMatrix4x4>
 #include <cstdarg>
-void TextureRenderer::render(std::string rendererName...)
+void TextureRenderer::render(RefracRef rTable, ShaderRef sTable, TextureRef tTable...)
 { 
+    /*
     va_list args; 
     va_start(args, rendererName); 
     auto screenWidth = va_arg(args, int);
@@ -219,9 +220,10 @@ void TextureRenderer::render(std::string rendererName...)
     glDrawElements(GL_TRIANGLES, texture->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
 
     shaderProgram->release();
+    */
 }
 
-void LoaderRenderer::render(std::string rendererName...)
+void LoaderRenderer::render(RefracRef rTable, ShaderRef sTable, TextureRef tTable...)
 {
     /*
     va_list args; 

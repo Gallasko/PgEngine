@@ -40,104 +40,23 @@ void GameWindow::initialize()
 {
 	initializeOpenGLFunctions();
 
+    masterRenderer.initialize();
+
     //glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    masterRenderer = new MasterRenderer;
-    masterRenderer->setWindowSize(640, 480);
+    masterRenderer.setWindowSize(640, 480);
 
-	defaultShaderProgram = new QOpenGLShaderProgram(this);
-    defaultShaderProgram->addShaderFromSourceFile(QOpenGLShader::Vertex, "shader/default.vs");
-    /*
-    defaultShaderProgram->addCacheableShaderFromSourceCode(QOpenGLShader::Vertex,
-                                                            "attribute mediump vec3 aPos;"
-                                                            "attribute mediump vec2 aTexCoord;"
-                                                            "varying mediump vec2 TexCoord;"
-                                                            "uniform mediump mat4 model;"
-                                                            "uniform mediump mat4 scale;"
-                                                            "uniform mediump mat4 view;"
-                                                            "uniform mediump mat4 projection;"
-                                                            "void main()"
-                                                            "{"
-                                                            "    gl_Position =  projection * view * scale * model * vec4(aPos, 1.0f);"
-                                                            "    TexCoord = vec2(aTexCoord.x, aTexCoord.y);"
-                                                            "}");
-    */
+    masterRenderer.registerShader("default", "shader/default.vs", "shader/default.fs");
+    masterRenderer.registerRederer<TextureRenderer>();
 
-    defaultShaderProgram->addShaderFromSourceFile(QOpenGLShader::Fragment, "shader/default.fs");
-    defaultShaderProgram->link();
+    masterRenderer.registerShader("gui", "shader/default.vs", "shader/default.fs");
+    masterRenderer.registerShader("text", "shader/textrendering.vs", "shader/textrendering.fs");
 
-    masterRenderer->registerRederer<TextureRenderer>(defaultShaderProgram);
-
-    guiShaderProgram = new QOpenGLShaderProgram(this);
-    guiShaderProgram->addShaderFromSourceFile(QOpenGLShader::Vertex, "shader/default.vs");
-    guiShaderProgram->addShaderFromSourceFile(QOpenGLShader::Fragment, "shader/default.fs");
-    guiShaderProgram->link();
-
-    textShaderProgram = new QOpenGLShaderProgram(this);
-    textShaderProgram->addShaderFromSourceFile(QOpenGLShader::Vertex, "shader/textrendering.vs");
-    textShaderProgram->addShaderFromSourceFile(QOpenGLShader::Fragment, "shader/textrendering.fs");
-    textShaderProgram->link();
-
-    // texture Atlas
-    // ---------
-
-    QImage textureAtlas = QImage(QString("res/tiles/TeclaEatsAtlas.png"));
-    textureAtlas = textureAtlas.convertToFormat(QImage::Format_RGBA8888);
-
-    glGenTextures(1, &baseTileTexture1);
-    glBindTexture(GL_TEXTURE_2D, baseTileTexture1);
-    // set the texture wrapping parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // set texture filtering parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    // load image, create texture and generate mipmaps
-    
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureAtlas.width(), textureAtlas.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, textureAtlas.bits());
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    defaultShaderProgram->setUniformValue("texture1", baseTileTexture1);
-
-    // texture Menu
-    // ---------
-
-    textureAtlas = QImage(QString("res/menu/Menu.png"));
-    textureAtlas = textureAtlas.convertToFormat(QImage::Format_RGBA8888);
-
-    glGenTextures(1, &baseMenu1);
-    glBindTexture(GL_TEXTURE_2D, baseMenu1);
-    // set the texture wrapping parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // set texture filtering parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    // load image, create texture and generate mipmaps
-    
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureAtlas.width(), textureAtlas.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, textureAtlas.bits());
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    // texture Font
-    // ---------
-
-    textureAtlas = QImage(QString("res/font/font.png"));
-    textureAtlas = textureAtlas.convertToFormat(QImage::Format_RGBA8888);
-
-    glGenTextures(1, &fontTexture);
-    glBindTexture(GL_TEXTURE_2D, fontTexture);
-    // set the texture wrapping parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // set texture filtering parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    // load image, create texture and generate mipmaps
-    
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureAtlas.width(), textureAtlas.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, textureAtlas.bits());
-    glGenerateMipmap(GL_TEXTURE_2D);
+    masterRenderer.registerTexture("atlas", "res/tiles/TeclaEatsAtlas.png");
+    masterRenderer.registerTexture("menu", "res/menu/Menu.png");
+    masterRenderer.registerTexture("font", "res/font/font.png");
 
     // Square VAO Creation
 
@@ -405,7 +324,6 @@ void GameWindow::initialize()
     *pathFindingButtonMouseArea = new MouseInputBase<Map>(pathFindingButtonTexC);
     (*pathFindingButtonMouseArea)->registerFunc(&gameMap->runPathFinding, gameMap);
 
-
     ticking = true;
     std::thread t (&GameWindow::tick, this);
 
@@ -433,14 +351,16 @@ void GameWindow::render()
     if(screenUi->width != width())
     {
         screenUi->setWidth(width());
-        masterRenderer->setWindowSize(width(), height());
+        masterRenderer.setWindowSize(width(), height());
     }
         
     if(screenUi->height != height())
     {
         screenUi->setHeight(height());
-        masterRenderer->setWindowSize(width(), height());
+        masterRenderer.setWindowSize(width(), height());
     }
+
+    masterRenderer.setCurrentTime(currentTime);
 
     //fps counter
     nbFrames++;
@@ -466,7 +386,8 @@ void GameWindow::render()
 
     updateGameState(float(currentTime - lastTime) / 1000);
 
-    masterRenderer->render<TextureRenderer>(cmpTexTest);
+    masterRenderer.render<TextureRenderer>(cmpTexTest);
+    //masterRenderer << cmpTexTest;
 
     //renderGame();
 
@@ -478,7 +399,7 @@ void GameWindow::render()
         //else
         //    std::cout << " Mouse Pos Text error" << std::endl;
 
-        renderUi();
+        //renderUi();
     }
     else
     {
@@ -489,7 +410,8 @@ void GameWindow::render()
         //    std::cout << " Mouse Pos Text error" << std::endl;
     }
 
-    tileSelector->render(width(), height(), defaultShaderProgram, baseTileTexture1, textShaderProgram, fontTexture, currentTime);
+    masterRenderer << tileSelector;
+    //tileSelector->render(width(), height(), defaultShaderProgram, baseTileTexture1, textShaderProgram, fontTexture, currentTime);
 
     //auto nbRenderedGameFrameTextC = nbRenderedGameFrameText->get<Sentence>();
     //if(nbRenderedGameFrameTextC != nullptr)

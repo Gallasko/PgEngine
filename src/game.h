@@ -105,7 +105,7 @@ private:
     Map *gameMap = nullptr;
 
     EntitySystem ecs;
-    MasterRenderer *masterRenderer;
+    MasterRenderer masterRenderer;
     TilesLoader *tileLoader;
     FontLoader *fontLoader;
     Input *inputHandler;

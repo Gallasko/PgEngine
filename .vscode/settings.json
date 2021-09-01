@@ -93,6 +93,7 @@
         "shared_mutex": "cpp",
         "typeindex": "cpp",
         "valarray": "cpp",
-        "qopenglfunctions": "cpp"
+        "qopenglfunctions": "cpp",
+        "queue": "cpp"
     }
 }

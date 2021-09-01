@@ -83,8 +83,13 @@ void TileSelector::setVisibility(bool visibility)
     visible = visibility;
 }
 
-void TileSelector::render(unsigned int screenWidth, unsigned int screenHeight, QOpenGLShaderProgram* defaultShaderProgram, unsigned int tileTexture, QOpenGLShaderProgram* textShaderProgram, unsigned int fontTexture, qint64 currentTime)
+//void TileSelector::render(unsigned int screenWidth, unsigned int screenHeight, QOpenGLShaderProgram* defaultShaderProgram, unsigned int tileTexture, QOpenGLShaderProgram* textShaderProgram, unsigned int fontTexture, qint64 currentTime)
+void TileSelector::render(RefracRef rTable, ShaderRef sTable, TextureRef tTable)
 {
+    const int screenWidth = rTable["ScreenWidth"];
+    const int screenHeight = rTable["ScreenHeight"];
+    const int currentTime = rTable["CurrentTime"];
+
     if(this->visible == false)
         return;
 
@@ -99,6 +104,7 @@ void TileSelector::render(unsigned int screenWidth, unsigned int screenHeight, Q
     scale.scale(QVector3D(2.0f / screenWidth, 2.0f / screenHeight, 0.0f));
 
     // Text rendering
+    auto defaultShaderProgram = sTable["default"];
 
     defaultShaderProgram->bind();
 
@@ -124,7 +130,7 @@ void TileSelector::render(unsigned int screenWidth, unsigned int screenHeight, Q
     glDrawElements(GL_TRIANGLES, texture->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, tileTexture);
+    glBindTexture(GL_TEXTURE_2D, tTable["atlas"]);
 
     auto tileWidth = 100.0f, tileHeight = 100.0f;
 
@@ -147,13 +153,15 @@ void TileSelector::render(unsigned int screenWidth, unsigned int screenHeight, Q
 
     defaultShaderProgram->release();
 
+    auto textShaderProgram = sTable["text"];
+
     textShaderProgram->bind();
 
     scale.setToIdentity();
     scale.scale(QVector3D(1.0f / screenWidth, 1.0f / screenHeight, 0.0f));
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, fontTexture);
+    glBindTexture(GL_TEXTURE_2D, tTable["font"]);
 
     textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("projection"), projection);
     textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("model"), model);
