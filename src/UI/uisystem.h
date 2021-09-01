@@ -136,6 +136,9 @@ struct UiComponent : public Base
     void inline setLeftAnchor(UiComponent* component, UiAnchor side = UiAnchor::LEFT) { left = side; leftAnchor = component; auto it = std::find(component->children.begin(), component->children.end(), this); if(it == component->children.end()) component->children.push_back(this); update(); }
     
     bool updated = false;
+
+    bool inBound(int x, int y) const { return x > this->x / this->scale && x < (this->x + this->width) / this->scale && y < (this->y + this->height) / this->scale && y > this->y / this->scale; }
+    bool inBound(constant::Vector2D vec2) const { return inBound(vec2.x, vec2.y); }
     
     void update();
 };

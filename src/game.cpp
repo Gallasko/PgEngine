@@ -679,7 +679,7 @@ void GameWindow::updateGameState(double deltaTime)
 
     // Take the Highest Z under the mouse and make only those element clickable  
     for(auto mouseArea : ecs.view<MouseInputComponent*>())
-        if(mousePos.x() > *(mouseArea->x) / static_cast<int>(mouseArea->scale) && mousePos.x() < (*mouseArea->x + *mouseArea->width) / static_cast<int>(mouseArea->scale) && mousePos.y() < (*mouseArea->y + *mouseArea->height) / static_cast<int>(mouseArea->scale) && mousePos.y() > *mouseArea->y / static_cast<int>(mouseArea->scale) && *mouseArea->enable)
+        if(mouseArea->inBound(mousePos.x(), mousePos.y()) && *mouseArea->enable)
             if (*mouseArea->z > highestZ)
                 highestZ = *mouseArea->z;
 
@@ -689,7 +689,7 @@ void GameWindow::updateGameState(double deltaTime)
 
     for(auto mouseArea : ecs.view<MouseInputComponent*>())
     {
-        if(mousePos.x() > *mouseArea->x / static_cast<int>(mouseArea->scale) && mousePos.x() < (*mouseArea->x + *mouseArea->width) / static_cast<int>(mouseArea->scale) && mousePos.y() < (*mouseArea->y + *mouseArea->height) / static_cast<int>(mouseArea->scale) && mousePos.y() > *mouseArea->y / static_cast<int>(mouseArea->scale) && *mouseArea->enable && *mouseArea->z == highestZ)
+        if(mouseArea->inBound(mousePos.x(), mousePos.y()) && *mouseArea->enable && *mouseArea->z == highestZ)
         {
             //std::cout << "Mouse Hovering: " << *mouseArea.x << ", " << *mouseArea.y << ", " << *mouseArea.width << ", " << *mouseArea.height << std::endl;
             mouseArea->call(inputHandler, deltaTime);

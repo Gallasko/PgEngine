@@ -201,7 +201,7 @@ void TextureRenderer::render(std::string rendererName...)
     shaderProgram->setUniformValue(shaderProgram->uniformLocation("model"), model);
     shaderProgram->setUniformValue(shaderProgram->uniformLocation("scale"), scale);
 
-    //gl scissor for list views 
+    //TODO gl scissor for list views 
     //glEnable(GL_SCISSOR_TEST);
     //glScissor(300, 200, 200, 500);
 
