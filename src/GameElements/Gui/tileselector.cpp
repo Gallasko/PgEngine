@@ -136,6 +136,7 @@ void TileSelector::render(MasterRenderer* masterRenderer)
     */
 
     auto defaultShaderProgram = masterRenderer->getShader("default");
+    defaultShaderProgram->bind();
     
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, masterRenderer->getTexture("atlas"));

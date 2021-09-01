@@ -91,16 +91,9 @@ private:
     QOpenGLContext *m_context = nullptr;
     QOpenGLPaintDevice *m_device = nullptr;
 
-    QOpenGLShaderProgram *defaultShaderProgram = nullptr;
-    QOpenGLShaderProgram *guiShaderProgram = nullptr;
-    QOpenGLShaderProgram *textShaderProgram = nullptr;
     QOpenGLVertexArrayObject *SquareVAO;
 	QOpenGLBuffer *SquareVBO;
 	QOpenGLBuffer *SquareEBO;
-
-    unsigned int baseTileTexture1;
-    unsigned int baseMenu1;
-    unsigned int fontTexture;
 
     Map *gameMap = nullptr;
 
@@ -150,8 +143,6 @@ private:
 
     bool debug = false;
     bool debugSwitched = false;
-
-    //std::map accessibleParam;
 };
 
 #endif // Game_h

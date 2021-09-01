@@ -131,47 +131,6 @@ void GameWindow::initialize()
     
     fpsCounterC->setX(10);
     fpsCounterC->setY(55);
-
-/*
-    auto fpsText = ecs.createEntity();
-    //auto fpsTextC = ecs.attach<Sentence>(fpsText, {{"Fps", constant::Vector4D(75.0f, 0.0f, 130.0f, 255.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 255.0f)}, 8.0f, fontLoader});
-    //
-    //fpsTextC->setX(10);
-    //fpsTextC->setTopAnchor(debugTextC);
-    //fpsTextC->setTopMargin(10);
-    //fpsTextC->setLeftAnchor(fpsCounterC);
-    //fpsTextC->setLeftMargin(10);
-
-    auto text = ecs.createEntity();
-    //auto textC = ecs.attach<Sentence>(text, {{"ABCDEFGHIJKLMN", constant::Vector4D(0.0f, 0.0f, 128.0f, 255.0f), constant::Vector4D(255.0f, 255.0f, 255.0f, 190.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 0.0f)}, 2.2f, fontLoader});
-    ////auto textC = ecs.attach<Sentence>(text, {{"ABCDEFGHIJKLMN", constant::Vector4D(75.0f, 0.0f, 130.0f, 255.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 255.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 0.0f)}, 4.0f, fontLoader});
-    //
-    //textC->setX(10);
-    //textC->setTopAnchor(fpsTextC);
-    //textC->setTopMargin(10);
-
-    auto text2 = ecs.createEntity();
-    //auto text2C = ecs.attach<Sentence>(text2, {{"OPQRSTUVWXYZ"}, 4.0f, fontLoader});    
-    //auto text2C = ecs.attach<Sentence>(text2, {{"OPQRSTUVWXYZ", constant::Vector4D(255.0f, 255.0f, 255.0f, 255.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 0.0f), constant::Vector4D(0.0f, 0.0f, 0.0f, 0.0f)}, 4.0f, fontLoader});
-    //
-    //text2C->setX(10);
-    //text2C->setTopAnchor(textC);
-    //text2C->setTopMargin(10);
-
-    auto text3 = ecs.createEntity();
-    //auto text3C = ecs.attach<Sentence>(text3, {{"abcdefghijklmn"}, 4.0f, fontLoader});
-    //
-    //text3C->setX(10);
-    //text3C->setTopAnchor(text2C);
-    //text3C->setTopMargin(10);
-
-    auto text4 = ecs.createEntity();
-    //auto text4C = ecs.attach<Sentence>(text4, {{"opqrstuvwxyz"}, 4.0f, fontLoader});
-    //
-    //text4C->setX(10);
-    //text4C->setTopAnchor(text3C);
-    //text4C->setTopMargin(10);
-*/
     
     auto mousePosLabel = ecs.createEntity();
     auto mousePosLabelC = ecs.attach<Sentence>(mousePosLabel, {{"Mouse Pos: "}, 4.0f, fontLoader});
@@ -186,94 +145,6 @@ void GameWindow::initialize()
     mousePosTextC->setZ(2);
     mousePosTextC->setY(125);
 
-/*
-    auto tilePosLabel = ecs.createEntity();
-    //auto tilePosLabelC = ecs.attach<Sentence>(tilePosLabel, {{"Tile Pos: "}, 4.0f, fontLoader});
-    //
-    //tilePosLabelC->setX(10);
-    //tilePosLabelC->setTopAnchor(mousePosTextC);
-    //tilePosLabelC->setTopMargin(10);
-
-    tilePosText = ecs.createEntity();
-    //auto tilePosTextC = ecs.attach<Sentence>(tilePosText, {{"(0, 0)"}, 4.0f, fontLoader});
-    //
-    //tilePosTextC->setX(10);
-    //tilePosTextC->setTopAnchor(tilePosLabelC);
-    //tilePosTextC->setTopMargin(10);
-
-    tileType = ecs.createEntity();
-    //auto tileTypeC = ecs.attach<Sentence>(tileType, {{"None"}, 4.0f, fontLoader});
-    //
-    //tileTypeC->setX(10);
-    //tileTypeC->setTopAnchor(tilePosTextC);
-    //tileTypeC->setTopMargin(10);
-
-    goldText = ecs.createEntity();
-    //auto goldTextC = ecs.attach<Sentence>(goldText, {{"0 TeclaFlooz"}, 4.0f, fontLoader});
-    //auto goldTextMouseArea = ecs.attach<MouseInputComponent* >(goldText, {});
-    //
-    // *goldTextMouseArea = new MouseInputBase<Base>(goldTextC);
-    //
-    //(*goldTextMouseArea)->registerFunc(&payTeclaFlooz, this);
-    //
-    //goldTextC->setX(10);
-    //goldTextC->setZ(2);
-    //goldTextC->setTopAnchor(tileTypeC);
-    //goldTextC->setTopMargin(10);
-
-    nbRenderedGameFrameText = ecs.createEntity();
-    //auto nbRenderedGameFrameTextC = ecs.attach<Sentence>(nbRenderedGameFrameText, {{"Nb Rendered Game Frame: 0"}, 4.0f, fontLoader});
-    //
-    //nbRenderedGameFrameTextC->setX(10);
-    //nbRenderedGameFrameTextC->setTopAnchor(goldTextC);
-    //nbRenderedGameFrameTextC->setTopMargin(10);
-
-    currentSeedText = ecs.createEntity();
-    //auto currentSeedTextC = ecs.attach<Sentence>(currentSeedText, {{"Current Seed: 0"}, 4.0f, fontLoader});
-    //
-    //currentSeedTextC->setX(10);
-    //currentSeedTextC->setTopAnchor(nbRenderedGameFrameTextC);
-    //currentSeedTextC->setTopMargin(10);
-    //
-    //randomText = "Random Text";
-
-    userText = ecs.createEntity();
-    //auto userTextC = ecs.attach<Sentence>(userText, {{randomText}, 4.0f, fontLoader});
-    //auto userTextKeyC = ecs.attach<KeyboardInputComponent* >(userText, {});
-    //
-    // *userTextKeyC = new KeyboardInputBase<GameWindow>();
-    ////static_cast<KeyboardInputComponent<GameWindow>* >(*userTextKeyC)->registerFunc(&changeRandomText, this);
-    //(*userTextKeyC)->registerFunc(&changeRandomText, this);
-    //
-    ////(*userTextKeyC)->registerFunc([](Input* inputHandler, double deltaTime) {std::cout << "Key Pressed" << std::endl;});
-    //
-    //userTextC->setX(10);
-    //userTextC->setZ(1);
-    //userTextC->setTopAnchor(currentSeedTextC);
-    //userTextC->setTopMargin(10);
-
-    auto menu = ecs.createEntity();
-    //auto menuTexC = ecs.attach<TextureComponent>(menu, {160, 90, "res/menu/Menu.png"});
-    //auto menuMouseArea = ecs.attach<MouseInputComponent* >(menu, {});
-    //
-    // *menuMouseArea = new MouseInputBase<Base>(menuTexC);
-    //
-    //(*menuMouseArea)->registerFunc([](Input* inputHandler, double deltaTime) { if(inputHandler->isButtonPressed(Qt::LeftButton)) std::cout << "Menu 1 Clicked" << std::endl; });
-    //
-    ////menuTexC->setX(width() - 170);
-    //menuTexC->setX(300);
-    //menuTexC->setY(30);
-    //menuTexC->setZ(2);
-
-    auto menu2 = ecs.createEntity();
-    //auto menu2TexC = ecs.attach<TextureComponent>(menu2, {320, 180, "res/menu/Menu2.png"});
-    //
-    //menu2TexC->setTopAnchor(menuTexC);
-    //menu2TexC->setTopMargin(10);
-    //
-    //menu2TexC->setX(300);
-*/
-
     screenEntity = ecs.createEntity();
     screenUi = ecs.attach<UiComponent>(screenEntity, {});
     screenUi->width = width();
@@ -282,19 +153,6 @@ void GameWindow::initialize()
 
     auto screenInput = ecs.attach<MouseInputComponent*>(screenEntity, {});
     *screenInput = new MouseInputBase<Camera>(screenUi);
-
-    /*
-    (*screenInput)->registerFunc([](Input* inputHandler, double deltaTime) { 
-        static double msHeld = 0;
-        if(inputHandler->isButtonPressed(Qt::LeftButton)) 
-        {   
-            msHeld += deltaTime;
-            std::cout << "Button Held for " << msHeld << "ms" << std::endl;
-        }
-        else
-            msHeld = 0;
-    });
-    */
 
     (*screenInput)->registerFunc(&(camera->updateMouse), camera);
 
@@ -369,8 +227,6 @@ void GameWindow::render()
         auto fpsText = fpsCounter->get<Sentence>();
         if(fpsText != nullptr)
             fpsText->setText(std::to_string(nbFrames), fontLoader);
-        //else
-        //    std::cout << "Fps Text Error" << std::endl;
         nbFrames = 0;
         lastFPSCount += 1000;
 
@@ -381,43 +237,29 @@ void GameWindow::render()
     auto mousePosTextC = mousePosText->get<Sentence>();
     if(mousePosTextC != nullptr)
         mousePosTextC->setText("(" + std::to_string(mousePos.x()) + ", " + std::to_string(mousePos.y()) + ")", fontLoader);
-    //else
-    //    std::cout << " Mouse Pos Text error" << std::endl;
 
     updateGameState(float(currentTime - lastTime) / 1000);
 
-    masterRenderer.render<TextureRenderer>(cmpTexTest);
-    //masterRenderer << cmpTexTest;
+    //masterRenderer.render<TextureRenderer>(cmpTexTest);
 
-    //renderGame();
+    renderGame();
 
     if(!debug)
     {
         auto mousePosTextC = mousePosText->get<Sentence>();
         if(mousePosTextC != nullptr)
             mousePosTextC->visible = true;
-        //else
-        //    std::cout << " Mouse Pos Text error" << std::endl;
 
-        //renderUi();
+        renderUi();
     }
     else
     {
         auto mousePosTextC = mousePosText->get<Sentence>();
         if(mousePosTextC != nullptr)
             mousePosTextC->visible = false;
-        //else
-        //    std::cout << " Mouse Pos Text error" << std::endl;
     }
 
     masterRenderer << tileSelector;
-    //tileSelector->render(width(), height(), defaultShaderProgram, baseTileTexture1, textShaderProgram, fontTexture, currentTime);
-
-    //auto nbRenderedGameFrameTextC = nbRenderedGameFrameText->get<Sentence>();
-    //if(nbRenderedGameFrameTextC != nullptr)
-    //    nbRenderedGameFrameTextC->setText("Render Time: " + std::to_string(currentTime - lastTime) + "ms", fontLoader);
-    //else
-    //    std::cout << "Nb Rendered Game Frame Text Error" << std::endl;
 
     inputHandler->updateInput(float(currentTime - lastTime) / 1000);
 
@@ -567,13 +409,6 @@ void GameWindow::renderNow()
     render();
 
     m_context->swapBuffers(this);
-/*
-    if (m_animating)
-    {
-        //renderNow();
-        renderLater();
-    }
-*/
 }
 
 bool GameWindow::event(QEvent *event)
@@ -634,19 +469,15 @@ void GameWindow::updateGameState(double deltaTime)
 void GameWindow::renderGame()
 {
     static unsigned long long nbRenderGameFrame = 0;
-/*
-    auto nbRenderedGameFrameTextC = nbRenderedGameFrameText->get<Sentence>();
-    if(nbRenderedGameFrameTextC != nullptr)
-        nbRenderedGameFrameTextC->setText("Nb Rendered Game Frame: " + std::to_string(nbRenderGameFrame), fontLoader);
-    else
-        std::cout << "Nb Rendered Game Frame Text Error" << std::endl;
-*/
+
     const qreal retinaScale = devicePixelRatio();
 
     QMatrix4x4 projection;
     QMatrix4x4 view;
     QMatrix4x4 model;
     QMatrix4x4 scale;
+
+    auto defaultShaderProgram = masterRenderer.getShader("default");
 
     defaultShaderProgram->bind();
 
@@ -656,6 +487,8 @@ void GameWindow::renderGame()
     view = camera->GetViewMatrix();
     scale.setToIdentity();
     scale.scale(QVector3D(gameScale / width(), gameScale / height(), 0.0f));
+
+    auto baseTileTexture1 = masterRenderer.getTexture("atlas");
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, baseTileTexture1);
@@ -692,18 +525,6 @@ void GameWindow::renderGame()
 
                 if(x == std::floor(selectedTileX + selectedTileY + 1) &&  y == std::floor(selectedTileY - selectedTileX + 1))
                 {
-                    //auto tilePosTextC = tilePosText->get<Sentence>();
-                    //if(tilePosTextC != nullptr)
-                    //    tilePosTextC->setText("(" + std::to_string(x) + ", " + std::to_string(y) + ") NValue: " + std::to_string(tile->nValue), fontLoader);
-                    //else
-                    //    std::cout << " Tile Pos error " << std::endl;
-
-                    //auto tileTypeC = tileType->get<Sentence>();
-                    //if(tileTypeC != nullptr)
-                    //    tileTypeC->setText(tile->tileId->getName(), fontLoader);
-                    //else
-                    //    std::cout << " Tile Type error " << std::endl;
-
                     tileLoader->getTile("Selected Tile")->getMesh()->bind();
                     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
@@ -733,6 +554,8 @@ void GameWindow::renderUi()
     scale.scale(QVector3D(2.0f / width(), 2.0f / height(), 0.0f));
 
     // Text rendering
+
+    auto defaultShaderProgram = masterRenderer.getShader("default");
 
     defaultShaderProgram->bind();
 
@@ -767,6 +590,8 @@ void GameWindow::renderUi()
     //glDisable(GL_SCISSOR_TEST);
 
     defaultShaderProgram->release();
+
+    auto textShaderProgram = masterRenderer.getShader("text");
     
     textShaderProgram->bind();
 
@@ -774,6 +599,7 @@ void GameWindow::renderUi()
     scale.scale(QVector3D(1.0f / width(), 1.0f / height(), 0.0f));
 
     glActiveTexture(GL_TEXTURE0);
+    auto fontTexture = masterRenderer.getTexture("font");
     glBindTexture(GL_TEXTURE_2D, fontTexture);
 
     textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("projection"), projection);
