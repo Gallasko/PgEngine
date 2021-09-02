@@ -40,7 +40,7 @@ void GameWindow::initialize()
 {
 	initializeOpenGLFunctions();
 
-    masterRenderer.initialize();
+    masterRenderer.initialize(m_context);
 
     //glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
@@ -53,10 +53,12 @@ void GameWindow::initialize()
 
     masterRenderer.registerShader("gui", "shader/default.vs", "shader/default.fs");
     masterRenderer.registerShader("text", "shader/textrendering.vs", "shader/textrendering.fs");
+    masterRenderer.registerShader("particle", "shader/particle.vs", "shader/particle.fs");
 
     masterRenderer.registerTexture("atlas", "res/tiles/TeclaEatsAtlas.png");
     masterRenderer.registerTexture("menu", "res/menu/Menu.png");
     masterRenderer.registerTexture("font", "res/font/font.png");
+    masterRenderer.registerTexture("pigeon", "res/object/PigeonMockUp.png");
 
     // Square VAO Creation
 
