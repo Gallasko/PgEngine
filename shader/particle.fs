@@ -3,14 +3,16 @@ out vec4 FragColor;
 
 in vec2 TexCoord;
 in float visible;
+in vec3 color;
 
 // texture samplers
 uniform sampler2D texture1;
 
 void main()
 {
-    if(!visible)
+    if(visible <= 0.0f)
         discard;
     
-	FragColor = texture(texture1, TexCoord);
+	FragColor = vec4(color, 1.0f);
+    //FragColor = texture(texture1, TexCoord);
 }

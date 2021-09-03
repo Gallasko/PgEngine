@@ -50,6 +50,8 @@ struct Renderer : protected QOpenGLFunctions
 //[TODO] Multiple FBO -> 1 for a whole screen capture and other for batch rendering on a texture 
 // Add Particle systeme with instancing already done / create an alternative if needed
 
+//TODO remove all the iostream for std::cout on release
+#include <iostream>
 class MasterRenderer : protected QOpenGLFunctions
 {
 public:
@@ -68,13 +70,15 @@ public:
         shaderProgram->addShaderFromSourceFile(QOpenGLShader::Fragment, fsPath);
         shaderProgram->link();
 
+        std::cout << name << ": "<< glGetError() << std::endl; 
+
         registerShader(name, shaderProgram);
     }
 
     void registerTexture(std::string name, unsigned int textureId) { textureList[name] = textureId; }
     void registerTexture(std::string name, const char* texturePath) { 
         QImage textureAtlas = QImage(QString(texturePath));
-        textureAtlas = textureAtlas.convertToFormat(QImage::Format_RGBA8888);
+        textureAtlas = textureAtlas.convertToFormat(QImage::Format_RGBA8888).mirrored(); // TODO check mirrored
 
         unsigned int texture;
 
@@ -122,6 +126,7 @@ private:
         instanceVBO->create();
 
         squareObject = new OpenGLObject();
+        squareObject->initialize();
 
         auto tileVertices = new float[20];
 

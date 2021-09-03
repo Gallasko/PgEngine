@@ -6,12 +6,14 @@
 #include "../constant.h"
 #include "renderer.h"
 
+//#pragma pack(1)
 struct Particle
 {
     float lifetime;
     constant::Vector3D pos;
-    constant::Vector2D texPos;
+    float texOffset;
 };
+//#pragma pop
 
 struct ParticleSubData {};
 
@@ -23,16 +25,19 @@ struct ParticleComponent
 
     Particle *particleList;
     ParticleSubData **particleSubDataList;
+
+    OpenGLObject openglObject;
+    QOpenGLBuffer instanceVBO;
 };
 
 struct ParticleMoveSubData : public ParticleSubData 
 {
-    ParticleMoveSubData(unsigned int timeAlive, unsigned int timeToLive, constant::Vector3D velocity, std::vector<constant::Vector2D> textureSeq, unsigned int textureChangeRate) : timeAlive(timeAlive), timeToLive(timeToLive), velocity(velocity), textureSeq(textureSeq), textureChangeRate(textureChangeRate) {}
+    ParticleMoveSubData(const unsigned int& timeAlive, const unsigned int& timeToLive, const constant::Vector3D& velocity, const std::vector<float>& textureSeq, const unsigned int& textureChangeRate) : timeAlive(timeAlive), timeToLive(timeToLive), velocity(velocity), textureSeq(textureSeq), textureChangeRate(textureChangeRate) {}
     
-    unsigned int timeAlive;
-    unsigned int timeToLive;
+    int timeAlive;
+    int timeToLive;
     constant::Vector3D velocity;
-    std::vector<constant::Vector2D> textureSeq;
+    std::vector<float> textureSeq;
     unsigned int textureChangeRate;
 };
 
@@ -44,4 +49,4 @@ struct ParticleRenderer : public Renderer
     void render(MasterRenderer* masterRenderer...);
 };
 
-
+//TODO create a particle system that create and manage all the particle component

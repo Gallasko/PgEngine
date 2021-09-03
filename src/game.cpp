@@ -54,59 +54,12 @@ void GameWindow::initialize()
     masterRenderer.registerShader("gui", "shader/default.vs", "shader/default.fs");
     masterRenderer.registerShader("text", "shader/textrendering.vs", "shader/textrendering.fs");
     masterRenderer.registerShader("particle", "shader/particle.vs", "shader/particle.fs");
+    masterRenderer.registerRederer<ParticleRenderer>();
 
     masterRenderer.registerTexture("atlas", "res/tiles/TeclaEatsAtlas.png");
     masterRenderer.registerTexture("menu", "res/menu/Menu.png");
     masterRenderer.registerTexture("font", "res/font/font.png");
     masterRenderer.registerTexture("pigeon", "res/object/PigeonMockUp.png");
-
-    // Square VAO Creation
-
-    SquareVAO = new QOpenGLVertexArrayObject();
-	SquareVBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-	SquareEBO = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
-
-    SquareVAO->create();
-    SquareVBO->create();
-    SquareEBO->create();
-
-    auto tileVertices = new float[20];
-
-    //                 x                         y                         z                      texpos x                 texpos y
-	tileVertices[0] =  -0.5f; tileVertices[1] =   0.5f; tileVertices[2] =  0.0f; tileVertices[3] =  0.0f; tileVertices[4] =  1.0f;   
-	tileVertices[5] =   0.5f; tileVertices[6] =   0.5f; tileVertices[7] =  0.0f; tileVertices[8] =  1.0f; tileVertices[9] =  1.0f;
-	tileVertices[10] = -0.5f; tileVertices[11] = -0.5f; tileVertices[12] = 0.0f; tileVertices[13] = 0.0f; tileVertices[14] = 0.0f;
-	tileVertices[15] =  0.5f; tileVertices[16] = -0.5f; tileVertices[17] = 0.0f; tileVertices[18] = 1.0f; tileVertices[19] = 0.0f;
-
-	unsigned int nbTileVertices = 20;
-
-	auto tileVerticesIndice = new unsigned int[6];
-
-	tileVerticesIndice[0] = 0; tileVerticesIndice[1] = 1; tileVerticesIndice[2] = 2;
-	tileVerticesIndice[3] = 1; tileVerticesIndice[4] = 2; tileVerticesIndice[5] = 3;
-
-	unsigned int nbOfElements = 6;
-
-    SquareVAO->bind();
-
-    // position attribute
-    
-    SquareVBO->bind();
-    SquareVBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
-    SquareVBO->allocate(tileVertices, nbTileVertices * sizeof(float));
-
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-
-    // texture coord attribute
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-
-    SquareEBO->bind();
-    SquareEBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
-    SquareEBO->allocate(tileVerticesIndice, nbOfElements * sizeof(unsigned int));
-
-    SquareVAO->release();
 
     camera = new Camera(QVector3D(0.0f, 0.0f, 3.0f));
 
@@ -190,6 +143,106 @@ void GameWindow::initialize()
     t.detach();
 
     cmpTexTest = new TextureComponent(300, 300, "res/menu/Menu2.png");
+
+    //Particle Gen
+    pComponent = new ParticleComponent();
+    pComponent->count = 20;
+
+    auto extraFunctions = masterRenderer.getExtraFunctions();
+
+    auto tileVertices = new float[20];
+
+    //                 x                         y                         z                      texpos x                 texpos y
+    tileVertices[0]  = 0.0f; tileVertices[1]  =  0.0f; tileVertices[2]  = 0.0f; tileVertices[3]  = 0.0f;  tileVertices[4]  = 1.0f;   
+    tileVertices[5]  = 45.0f; tileVertices[6]  =  0.0f; tileVertices[7]  = 0.0f; tileVertices[8]  = 0.25f; tileVertices[9]  = 1.0f;
+    tileVertices[10] = 0.0f; tileVertices[11] = -45.0f; tileVertices[12] = 0.0f; tileVertices[13] = 0.0f;  tileVertices[14] = 0.0f;
+    tileVertices[15] = 45.0f; tileVertices[16] = -45.0f; tileVertices[17] = 0.0f; tileVertices[18] = 0.25f; tileVertices[19] = 0.0f;
+    //texPos x is set at 0.25f because the sprite for the pigeon is 4 frames wide
+
+    unsigned int nbTileVertices = 20;
+
+    auto tileVerticesIndice = new unsigned int[6];
+
+    tileVerticesIndice[0] = 0; tileVerticesIndice[1] = 1; tileVerticesIndice[2] = 2;
+    tileVerticesIndice[3] = 1; tileVerticesIndice[4] = 2; tileVerticesIndice[5] = 3;
+
+    unsigned int nbOfElements = 6;
+
+    pComponent->openglObject.initialize();
+    pComponent->openglObject.VAO->bind();
+
+    // position attribute
+    
+    pComponent->openglObject.VBO->bind();
+    pComponent->openglObject.VBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
+    pComponent->openglObject.VBO->allocate(tileVertices, nbTileVertices * sizeof(float));
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+
+    // texture coord attribute
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+
+    std::cout << "set instance vbo" << std::endl;
+
+    //glBindBuffer(GL_ARRAY_BUFFER, pComponent->instanceVBO);
+    //glBufferData(GL_ARRAY_BUFFER, pComponent->count * sizeof(Particle), NULL, GL_STREAM_DRAW);
+
+    pComponent->instanceVBO.bind();
+
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)0);
+
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)offsetof(Particle, pos));
+
+    //TODO check if we can send the tex vertex only once and not twice : once here and the second time in the squareVAO implementation 
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)offsetof(Particle, texOffset));
+    
+    extraFunctions->glVertexAttribDivisor(2, 1);
+    extraFunctions->glVertexAttribDivisor(3, 1);
+    extraFunctions->glVertexAttribDivisor(4, 1);
+
+    pComponent->openglObject.EBO->bind();
+    pComponent->openglObject.EBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
+    pComponent->openglObject.EBO->allocate(tileVerticesIndice, nbOfElements * sizeof(unsigned int));
+
+    pComponent->openglObject.VAO->release();
+    
+    pComponent->texture = masterRenderer.getTexture("pigeon");
+
+    pComponent->particleList = new Particle[pComponent->count];
+    pComponent->particleSubDataList = new ParticleSubData*[pComponent->count];
+
+    std::vector<float> textureSeq = { 0.00f, 0.25f, 0.50f, 0.75f } ;
+
+    for(int i = 0; i < pComponent->count; i++)
+    {
+        pComponent->particleList[i].lifetime = 10000.0f;
+//        pComponent->particleList[i].pos = constant::Vector3D(46.0f * i, 5.0f, 0.0f);
+//        pComponent->particleList[i].pos = constant::Vector3D(150.0f, 5.0f, 0.0f);
+        pComponent->particleList[i].pos = constant::Vector3D(0.0f, 255.0f, 0.0f);
+        pComponent->particleList[i].texOffset = 0.0f;
+
+        pComponent->particleSubDataList[i] = new ParticleMoveSubData(0, 10000, constant::Vector3D(0.0f, 0.0f, 0.0f), textureSeq, 1000);
+    }
+
+    pComponent->onTick = [=]() { 
+        for(int i = 0; i < pComponent->count; i++) 
+        {
+            ParticleMoveSubData *pMoveData = static_cast<ParticleMoveSubData*>(pComponent->particleSubDataList[i]);
+            pMoveData->timeToLive -= 40;
+            pMoveData->timeAlive += 40;
+            //if(pMoveData->timeToLive < 0)
+            //    std::cout << "dead" << std::endl;
+            //std::cout << "tick, time remaining to live: " << pMoveData->timeToLive << std::endl;
+            pComponent->particleList[i].lifetime = pMoveData->timeToLive;
+            pComponent->particleList[i].pos += pMoveData->velocity;
+            pComponent->particleList[i].texOffset = pMoveData->textureSeq[(pMoveData->timeAlive / pMoveData->textureChangeRate) % pMoveData->textureSeq.size()];
+        }};
+
 }
 
 void GameWindow::render()
@@ -244,7 +297,7 @@ void GameWindow::render()
 
     //masterRenderer.render<TextureRenderer>(cmpTexTest);
 
-    renderGame();
+    //renderGame();
 
     if(!debug)
     {
@@ -252,7 +305,7 @@ void GameWindow::render()
         if(mousePosTextC != nullptr)
             mousePosTextC->visible = true;
 
-        renderUi();
+        //renderUi();
     }
     else
     {
@@ -261,7 +314,9 @@ void GameWindow::render()
             mousePosTextC->visible = false;
     }
 
-    masterRenderer << tileSelector;
+    //masterRenderer << tileSelector;
+
+    masterRenderer.render<ParticleRenderer>(pComponent);
 
     inputHandler->updateInput(float(currentTime - lastTime) / 1000);
 
@@ -639,6 +694,8 @@ void GameWindow::tick()
     while(ticking)
     {
         lastTickTime = QDateTime::currentMSecsSinceEpoch();
+
+        pComponent->onTick();
 
         gold += 1;
         //auto goldTextC = goldText->get<Sentence>();

@@ -1,12 +1,14 @@
 #version 330 core
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec2 aTexCoord;
+
 layout (location = 2) in float aVisible;
 layout (location = 3) in vec3 aTransform;
 layout (location = 4) in float aTexOffset;
 
 out vec2 TexCoord;
 out float visible;
+out vec3 color;
 
 uniform mat4 model;
 uniform mat4 scale;
@@ -15,6 +17,7 @@ uniform mat4 projection;
 
 void main()
 {
+	color = aTransform;
 	gl_Position =  projection * view * scale * model * vec4(aPos + aTransform, 1.0f);
 	TexCoord = vec2(aTexCoord.x + aTexOffset, aTexCoord.y);
     visible = aVisible;

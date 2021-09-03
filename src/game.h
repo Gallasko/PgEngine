@@ -39,6 +39,8 @@
 #include "Engine/renderer.h"
 #include "UI/sentencesystem.h"
 
+#include "Engine/particle.h"
+
 #include "GameElements/Gui/tileselector.h"
 
 class GameWindow : public QWindow, protected QOpenGLFunctions, public Base
@@ -118,6 +120,8 @@ private:
 
     EntitySystem::Entity *screenEntity;
     UiComponent *screenUi; 
+
+    ParticleComponent *pComponent;
 
     MouseInputComponent* mapClickComponent;
 
