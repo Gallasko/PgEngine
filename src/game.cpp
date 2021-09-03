@@ -137,15 +137,14 @@ void GameWindow::initialize()
     *pathFindingButtonMouseArea = new MouseInputBase<Map>(pathFindingButtonTexC);
     (*pathFindingButtonMouseArea)->registerFunc(&gameMap->runPathFinding, gameMap);
 
-    ticking = true;
-    std::thread t (&GameWindow::tick, this);
-
-    t.detach();
-
-    cmpTexTest = new TextureComponent(300, 300, "res/menu/Menu2.png");
+    //cmpTexTest = new TextureComponent(300, 300, "res/menu/Menu2.png");
 
     //Particle Gen
     pComponent = new ParticleComponent();
+    pComponent->instanceVBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+    bool fefwe = pComponent->instanceVBO->create();
+    if(fefwe)
+        std::cout << "Created" << std::endl;
     pComponent->count = 20;
 
     auto extraFunctions = masterRenderer.getExtraFunctions();
@@ -172,16 +171,21 @@ void GameWindow::initialize()
     pComponent->openglObject.VAO->bind();
 
     // position attribute
+
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(3);
+    glEnableVertexAttribArray(4);
     
     pComponent->openglObject.VBO->bind();
     pComponent->openglObject.VBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
     pComponent->openglObject.VBO->allocate(tileVertices, nbTileVertices * sizeof(float));
 
-    glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 
     // texture coord attribute
-    glEnableVertexAttribArray(1);
+    
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
     std::cout << "set instance vbo" << std::endl;
@@ -189,16 +193,17 @@ void GameWindow::initialize()
     //glBindBuffer(GL_ARRAY_BUFFER, pComponent->instanceVBO);
     //glBufferData(GL_ARRAY_BUFFER, pComponent->count * sizeof(Particle), NULL, GL_STREAM_DRAW);
 
-    pComponent->instanceVBO.bind();
+    pComponent->instanceVBO->bind();
+    pComponent->instanceVBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
+    pComponent->instanceVBO->allocate(pComponent->count * sizeof(Particle));
+    //masterRenderer.getInstanceVBO()->bind();
 
-    glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)0);
 
-    glEnableVertexAttribArray(3);
     glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)offsetof(Particle, pos));
 
     //TODO check if we can send the tex vertex only once and not twice : once here and the second time in the squareVAO implementation 
-    glEnableVertexAttribArray(4);
+    
     glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)offsetof(Particle, texOffset));
     
     extraFunctions->glVertexAttribDivisor(2, 1);
@@ -221,13 +226,14 @@ void GameWindow::initialize()
     for(int i = 0; i < pComponent->count; i++)
     {
         pComponent->particleList[i].lifetime = 10000.0f;
-//        pComponent->particleList[i].pos = constant::Vector3D(46.0f * i, 5.0f, 0.0f);
+        pComponent->particleList[i].pos = constant::Vector3D(46.0f * i, 5.0f, 0.0f);
 //        pComponent->particleList[i].pos = constant::Vector3D(150.0f, 5.0f, 0.0f);
-        pComponent->particleList[i].pos = constant::Vector3D(0.0f, 255.0f, 0.0f);
+        //pComponent->particleList[i].pos = constant::Vector3D(0.0f, 255.0f, 0.0f);
         pComponent->particleList[i].texOffset = 0.0f;
 
-        pComponent->particleSubDataList[i] = new ParticleMoveSubData(0, 10000, constant::Vector3D(0.0f, 0.0f, 0.0f), textureSeq, 1000);
+        pComponent->particleSubDataList[i] = new ParticleMoveSubData(0, 10000, constant::Vector3D(0.0f, 0.0f, 0.0f), textureSeq, 100);
     }
+
 
     pComponent->onTick = [=]() { 
         for(int i = 0; i < pComponent->count; i++) 
@@ -243,6 +249,10 @@ void GameWindow::initialize()
             pComponent->particleList[i].texOffset = pMoveData->textureSeq[(pMoveData->timeAlive / pMoveData->textureChangeRate) % pMoveData->textureSeq.size()];
         }};
 
+    ticking = true;
+    std::thread t (&GameWindow::tick, this);
+
+    t.detach();
 }
 
 void GameWindow::render()

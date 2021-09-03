@@ -18,6 +18,7 @@ void ParticleRenderer::render(MasterRenderer* masterRenderer...)
     auto extraFunctions = masterRenderer->getExtraFunctions();
     //auto instanceVBO = masterRenderer->getInstanceVBO(); // TODO: implement this directly in the particle component Class
     auto instanceVBO = particle->instanceVBO; // TODO: implement this directly in the particle component Class
+    //auto instanceVBO = masterRenderer->getInstanceVBO();
 
     QMatrix4x4 projection;
     QMatrix4x4 view;
@@ -61,23 +62,24 @@ void ParticleRenderer::render(MasterRenderer* masterRenderer...)
     //for(int i = 0; i < particle->count; i++)
     //    std::cout << particle->particleList[i].pos.x << ", " << particle->particleList[i].pos.y << ", " << particle->particleList[i].pos.z << std::endl;
     
-    instanceVBO.bind();
-    instanceVBO.setUsagePattern(QOpenGLBuffer::StreamDraw);
-    instanceVBO.allocate(&particle->particleList[0], particle->count * sizeof(Particle));
+    instanceVBO->bind();
+    instanceVBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
+    instanceVBO->allocate(&particle->particleList[0], particle->count * sizeof(Particle));
 
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)0);
+    //glEnableVertexAttribArray(2);
+    //glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)0);
+//
+    //glEnableVertexAttribArray(3);
+    //glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)offsetof(Particle, pos));
+//
+    ////TODO check if we can send the tex vertex only once and not twice : once here and the second time in the squareVAO implementation 
+    //glEnableVertexAttribArray(4);
+    //glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)offsetof(Particle, texOffset));
+    //
+    //extraFunctions->glVertexAttribDivisor(2, 1);
+    //extraFunctions->glVertexAttribDivisor(3, 1);
+    //extraFunctions->glVertexAttribDivisor(4, 1);
 
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)offsetof(Particle, pos));
-
-    //TODO check if we can send the tex vertex only once and not twice : once here and the second time in the squareVAO implementation 
-    glEnableVertexAttribArray(4);
-    glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)offsetof(Particle, texOffset));
-    
-    extraFunctions->glVertexAttribDivisor(2, 1);
-    extraFunctions->glVertexAttribDivisor(3, 1);
-    extraFunctions->glVertexAttribDivisor(4, 1);
     //instanceVBO->allocate(particle->count * sizeof(Particle));
     //instanceVBO->write()
 

@@ -22,7 +22,7 @@ struct OpenGLObject : protected QOpenGLFunctions
 	QOpenGLBuffer *VBO = nullptr;
 	QOpenGLBuffer *EBO = nullptr;
 
-    OpenGLObject() {}
+    OpenGLObject() { initializeOpenGLFunctions(); }
     ~OpenGLObject() { delete VAO; delete VBO; delete EBO; }
 
     void initialize() {

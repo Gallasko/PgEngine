@@ -17,17 +17,19 @@ struct Particle
 
 struct ParticleSubData {};
 
-struct ParticleComponent
+struct ParticleComponent : protected QOpenGLFunctions
 {
+    ParticleComponent() { initializeOpenGLFunctions(); }
+    
     unsigned int count;
     unsigned int texture;
     std::function<void()> onTick;
 
-    Particle *particleList;
-    ParticleSubData **particleSubDataList;
+    Particle *particleList = nullptr;
+    ParticleSubData **particleSubDataList = nullptr;
 
     OpenGLObject openglObject;
-    QOpenGLBuffer instanceVBO;
+    QOpenGLBuffer *instanceVBO = nullptr;
 };
 
 struct ParticleMoveSubData : public ParticleSubData 

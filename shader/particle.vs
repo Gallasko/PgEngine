@@ -8,7 +8,6 @@ layout (location = 4) in float aTexOffset;
 
 out vec2 TexCoord;
 out float visible;
-out vec3 color;
 
 uniform mat4 model;
 uniform mat4 scale;
@@ -17,7 +16,6 @@ uniform mat4 projection;
 
 void main()
 {
-	color = aTransform;
 	gl_Position =  projection * view * scale * model * vec4(aPos + aTransform, 1.0f);
 	TexCoord = vec2(aTexCoord.x + aTexOffset, aTexCoord.y);
     visible = aVisible;
