@@ -27,6 +27,47 @@ namespace constant
 	#pragma pack(push, 0)
 
     //Vector struct
+	struct Vector2D
+	{
+		float x = 0.0f;
+		float y = 0.0f;
+
+		Vector2D() {}
+
+		Vector2D(const float& x, const float& y) : x(x), y(y) {}
+
+		Vector2D(const Vector2D& vec) : x(vec.x), y(vec.y) {}
+
+		inline void operator=(const Vector2D &rhs)
+		{
+			this->x = rhs.x;
+			this->y = rhs.y;
+		}
+
+		inline Vector2D operator+(const Vector2D &rhs) const
+		{
+			Vector2D vec;
+			vec.x = this->x + rhs.x;
+			vec.y = this->y + rhs.y;
+
+			return vec;
+		}
+
+		inline Vector2D& operator+=(const Vector2D &rhs)
+		{
+			this->x += rhs.x;
+			this->y += rhs.y;
+
+			return *this;
+		}
+
+		inline bool operator==(const Vector2D &rhs) const
+		{
+			return (this->x == rhs.x) && (this->y == rhs.y);
+		}
+	};
+
+    //Vector struct
 	struct Vector3D
 	{
 		float x = 0.0f;
@@ -35,7 +76,13 @@ namespace constant
 
 		Vector3D() {}
 
-		Vector3D(float x, float y, float z) : x(x), y(y), z(z) {}
+		Vector3D(const float& x, const float& y, const float& z) : x(x), y(y), z(z) {}
+
+		Vector3D(const Vector2D& vec2, const float& z) : x(vec2.x), y(vec2.y), z(z) {}
+
+		Vector3D(const float& x, const Vector2D& vec2) : x(x), y(vec2.x), z(vec2.y) {}
+
+		Vector3D(const Vector3D& vec) : x(vec.x), y(vec.y), z(vec.z) {}
 
 		inline void operator=(const Vector3D &rhs)
 		{
@@ -54,16 +101,6 @@ namespace constant
 			return vec;
 		}
 
-		inline Vector3D operator-(const Vector3D &rhs) const
-		{
-			Vector3D vec;
-			vec.x = this->x - rhs.x;
-			vec.y = this->y - rhs.y;
-			vec.z = this->z - rhs.z;
-
-			return vec;
-		}
-
 		inline Vector3D& operator+=(const Vector3D &rhs)
 		{
 			this->x += rhs.x;
@@ -73,7 +110,7 @@ namespace constant
 			return *this;
 		}
 
-		inline bool operator==(const Vector3D &rhs)
+		inline bool operator==(const Vector3D &rhs) const
 		{
 			return (this->x == rhs.x) && (this->y == rhs.y) && (this->z == rhs.z);
 		}

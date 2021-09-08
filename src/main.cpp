@@ -459,16 +459,75 @@ struct ParticleComponent
     ParticleSubData **particleSubDataList;
 };
 
+#include "constant.h"
+
+struct TriangleIndices
+{
+    int indice1, indice2, indice3;
+
+    TriangleIndices(int i1, int i2, int i3) : indice1(i1), indice2(i2), indice3(i3) { }
+    TriangleIndices(const TriangleIndices& rhs) : indice1(rhs.indice1), indice2(rhs.indice2), indice3(rhs.indice3) { }
+};
+
+struct Geometry2D
+{
+    std::vector<constant::Vector2D> points;
+    std::vector<TriangleIndices> trianglesIndices;
+};
+
+struct Collidable2D
+{
+    Geometry2D geometry;
+
+    virtual bool collision(Collidable2D*) = 0;
+    //std::function<bool(Collidable2D)> collide;
+};
+
+struct Rectangle2D : public Collidable2D
+{
+    constant::Vector2D pos;
+    constant::Vector2D scale;
+
+    Rectangle2D(float x, float y, float w, float h) {
+        pos = constant::Vector2D(x, y);
+        scale = constant::Vector2D(w, h);
+
+        geometry.points.push_back(constant::Vector2D(x, y));
+        geometry.points.push_back(constant::Vector2D(x + w, y));
+        geometry.points.push_back(constant::Vector2D(x, y + h));
+        geometry.points.push_back(constant::Vector2D(x + w, y + h));
+
+        geometry.trianglesIndices.push_back(TriangleIndices(0, 1, 2));
+        geometry.trianglesIndices.push_back(TriangleIndices(1, 2, 3));        
+    }
+
+    bool collision(Collidable2D *obj) { 
+        bool collided = false;
+
+        for(auto point : obj->geometry.points)
+        {
+            std::cout << "Collision Check" << std::endl;
+            if(point.x >= pos.x && point.x <= pos.x + scale.x && point.y >= pos.y && point.y <= pos.y + scale.y)
+            {
+                collided = true;
+                break;
+            }
+        }
+
+        return collided;
+    }
+};
+
 int main(int argc, char *argv[])
 {
-    QSurfaceFormat format;
-    format.setSwapInterval(0);
-    format.setRenderableType(QSurfaceFormat::OpenGL);
-    //format.setProfile(QSurfaceFormat::CoreProfile);
-    format.setVersion(3, 3);
-
-    QSurfaceFormat::setDefaultFormat(format);
-	QGuiApplication app(argc, argv);
+    //QSurfaceFormat format;
+    //format.setSwapInterval(0);
+    //format.setRenderableType(QSurfaceFormat::OpenGL);
+    ////format.setProfile(QSurfaceFormat::CoreProfile);
+    //format.setVersion(3, 3);
+//
+    //QSurfaceFormat::setDefaultFormat(format);
+	//QGuiApplication app(argc, argv);
 
 	//GameWindow a;
     //a.resize(640, 480);
@@ -479,11 +538,23 @@ int main(int argc, char *argv[])
 //
 	//return app.exec();
 
-    std::vector< std::function<void()> > tickFunction; 
+
+    auto rect = Rectangle2D(0, 0, 10, 15);
+    auto rect2 = Rectangle2D(0, -1, 2, 3);
+
+    if(rect.collision(&rect2))
+        std::cout << "Collision" << std::endl;
+
+    return 0;
+
+
+    //std::vector< std::function<void()> > tickFunction; 
 
     //auto l = lCreate();
     //l(10);
 
+
+/*
     Object obj1(10,10,1,1);
     Object obj2(20,10,5,1);
 
@@ -557,6 +628,7 @@ int main(int argc, char *argv[])
 
     auto ref5 = table["Width"] - table["Height"];
     ref5.value->print();
+*/
 
 /*
     Numerical *numerical1 = new NumericalInt(19);
@@ -587,17 +659,18 @@ int main(int argc, char *argv[])
     //x1->print();
     //x2->print();
 
-    tickFunction.emplace_back(obj1.onTick);
-    tickFunction.emplace_back(obj2.onTick);
-    
-    for(int i = 0; i < 10; i++)
-        for(auto f : tickFunction)
-            f();
+    //tickFunction.emplace_back(obj1.onTick);
+    //tickFunction.emplace_back(obj2.onTick);
+    //
+    //for(int i = 0; i < 10; i++)
+    //    for(auto f : tickFunction)
+    //        f();
 
     //obj1.onTick();
     //std::cout << obj1.x << std::endl;
     //std::cout << obj2.x << std::endl;
 
+/*
     BigInt aaaa(3);
     BigInt bbb(23);
 
@@ -623,6 +696,7 @@ int main(int argc, char *argv[])
     std::cout << node2->data * node2->next->data << std::endl; 
 
     return 0;
+*/
 
 /*
     int i = 5;
