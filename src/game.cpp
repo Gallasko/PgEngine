@@ -150,10 +150,9 @@ void GameWindow::initialize()
     //Particle Gen
     pComponent = new ParticleComponent();
     pComponent->instanceVBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-    bool fefwe = pComponent->instanceVBO->create();
-    if(fefwe)
+    if(pComponent->instanceVBO->create())
         std::cout << "Created" << std::endl;
-    pComponent->count = 10000;
+    pComponent->count = 4000;
 
     auto extraFunctions = masterRenderer.getExtraFunctions();
 
@@ -162,9 +161,9 @@ void GameWindow::initialize()
     //make it so i set x and y at 1 and the scaling is done in the shader
     //                 x                         y                         z                      texpos x                 texpos y
     tileVertices[0]  = 0.0f; tileVertices[1]  =  0.0f; tileVertices[2]  = 0.0f; tileVertices[3]  = 0.0f;  tileVertices[4]  = 0.0f;   
-    tileVertices[5]  = 48.0f; tileVertices[6]  =  0.0f; tileVertices[7]  = 0.0f; tileVertices[8]  = 0.25f; tileVertices[9]  = 0.0f;
-    tileVertices[10] = 0.0f; tileVertices[11] = -48.0f; tileVertices[12] = 0.0f; tileVertices[13] = 0.0f;  tileVertices[14] = 1.0f;
-    tileVertices[15] = 48.0f; tileVertices[16] = -48.0f; tileVertices[17] = 0.0f; tileVertices[18] = 0.25f; tileVertices[19] = 1.0f;
+    tileVertices[5]  = 1.0f; tileVertices[6]  =  0.0f; tileVertices[7]  = 0.0f; tileVertices[8]  = 0.25f; tileVertices[9]  = 0.0f;
+    tileVertices[10] = 0.0f; tileVertices[11] = -1.0f; tileVertices[12] = 0.0f; tileVertices[13] = 0.0f;  tileVertices[14] = 1.0f;
+    tileVertices[15] = 1.0f; tileVertices[16] = -1.0f; tileVertices[17] = 0.0f; tileVertices[18] = 0.25f; tileVertices[19] = 1.0f;
     //texPos x is set at 0.25f because the sprite for the pigeon is 4 frames wide
 
     unsigned int nbTileVertices = 20;
@@ -186,6 +185,7 @@ void GameWindow::initialize()
     glEnableVertexAttribArray(2);
     glEnableVertexAttribArray(3);
     glEnableVertexAttribArray(4);
+    glEnableVertexAttribArray(5);
     
     pComponent->openglObject.VBO->bind();
     pComponent->openglObject.VBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
@@ -214,10 +214,12 @@ void GameWindow::initialize()
     //TODO check if we can send the tex vertex only once and not twice : once here and the second time in the squareVAO implementation 
     
     glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)offsetof(Particle, texOffset));
+    glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)offsetof(Particle, scale));
     
     extraFunctions->glVertexAttribDivisor(2, 1);
     extraFunctions->glVertexAttribDivisor(3, 1);
     extraFunctions->glVertexAttribDivisor(4, 1);
+    extraFunctions->glVertexAttribDivisor(5, 1);
 
     pComponent->openglObject.EBO->bind();
     pComponent->openglObject.EBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
@@ -235,11 +237,12 @@ void GameWindow::initialize()
     for(int i = 0; i < pComponent->count; i++)
     {
         pComponent->particleList[i].lifetime = 10000.0f;
-        pComponent->particleList[i].pos = constant::Vector3D((48 * i) % (width() * 2), -48.0f * ((48 * (i + 100)) / (width() * 2)), 0.0f);
+        pComponent->particleList[i].pos = constant::Vector3D((48 * i) % (width() * 2), -48.0f * ((48 * (i + 200)) / (width() * 2)), 0.0f);
         pComponent->particleList[i].texOffset = 0.25f;
+        pComponent->particleList[i].scale = ((rand() % 6) + 1) * 8;
 
         //TODO create a texture sequence struct that store the different transition, calculate there position and hold the timing
-        pComponent->particleSubDataList[i] = new ParticleMoveSubData(constant::Vector3D(0.0f, 0.0f, 0.0f), textureSeq, 40);
+        pComponent->particleSubDataList[i] = new ParticleMoveSubData(constant::Vector3D(0.0f, 0.0f, 0.0f), textureSeq, ((rand() % 8) + 1) * 40);
     }
 
     // TODO correclty define tick rate as 40ms (25 ticks each second)
@@ -250,6 +253,7 @@ void GameWindow::initialize()
             pMoveData->timeAlive += 40;
             pComponent->particleList[i].lifetime -= 40;
             pComponent->particleList[i].pos += pMoveData->velocity;
+            //TODO check if change rate is 0 so that we don t divide by 0 !!
             pComponent->particleList[i].texOffset = pMoveData->textureSeq[(pMoveData->timeAlive / pMoveData->textureChangeRate) % pMoveData->textureSeq.size()];
         }};
 

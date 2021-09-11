@@ -12,6 +12,7 @@ struct Particle
     float lifetime;
     constant::Vector3D pos;
     float texOffset;
+    float scale;
 };
 //#pragma pop
 
