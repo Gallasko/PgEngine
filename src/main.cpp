@@ -479,8 +479,54 @@ struct Collidable2D
 {
     Geometry2D geometry;
 
-    virtual bool collision(Collidable2D*) = 0;
-    //std::function<bool(Collidable2D)> collide;
+    bool collideWith(const Collidable2D* obj) const { if(collideFunc(obj)) return true; if(obj->collideFunc(this)) return true; return false; }
+    std::function<bool(const Collidable2D*)> collideFunc;
+};
+
+//struct AbstractShape2D : public Collidable2D
+//{
+//
+//};
+
+double getTriangleArea(const constant::Vector2D& point1, const constant::Vector2D& point2, const constant::Vector2D& point3)
+{
+    return std::abs(point1.x * point2.y + point2.x * point3.y + point3.x * point1.y
+                   -point1.x * point3.y - point3.x * point2.y - point2.x * point1.y) / 2.0f;
+}
+
+struct Triangle2D : public Collidable2D
+{
+    Triangle2D(const constant::Vector2D& p1, const constant::Vector2D& p2, const constant::Vector2D& p3){
+        geometry.points.push_back(p1);
+        geometry.points.push_back(p2);
+        geometry.points.push_back(p3);
+
+        geometry.trianglesIndices.push_back(TriangleIndices(0, 1, 2));
+
+        collideFunc = [=](const Collidable2D* obj){ 
+            const auto point1 = geometry.points[0];
+            const auto point2 = geometry.points[1];
+            const auto point3 = geometry.points[2];
+            //abs(x1*y2+x2*y3+x3*y1-x1*y3-x3*y2-x2*y1)/2
+
+            const double triangleArea = getTriangleArea(point1, point2, point3);
+
+            for(auto point : obj->geometry.points)
+            {
+                //std::cout << "Collision Check" << std::endl;
+                const double Area1 = getTriangleArea(point, point1, point2);
+                const double Area2 = getTriangleArea(point, point2, point3);
+                const double Area3 = getTriangleArea(point, point3, point1);
+
+                if(triangleArea == Area1 + Area2 + Area3)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        };
+    }
 };
 
 struct Rectangle2D : public Collidable2D
@@ -488,7 +534,7 @@ struct Rectangle2D : public Collidable2D
     constant::Vector2D pos;
     constant::Vector2D scale;
 
-    Rectangle2D(float x, float y, float w, float h) {
+    Rectangle2D(const float& x, const float& y, const float& w, const float& h) {
         pos = constant::Vector2D(x, y);
         scale = constant::Vector2D(w, h);
 
@@ -498,23 +544,48 @@ struct Rectangle2D : public Collidable2D
         geometry.points.push_back(constant::Vector2D(x + w, y + h));
 
         geometry.trianglesIndices.push_back(TriangleIndices(0, 1, 2));
-        geometry.trianglesIndices.push_back(TriangleIndices(1, 2, 3));        
-    }
+        geometry.trianglesIndices.push_back(TriangleIndices(1, 2, 3));
 
-    bool collision(Collidable2D *obj) { 
-        bool collided = false;
-
-        for(auto point : obj->geometry.points)
-        {
-            std::cout << "Collision Check" << std::endl;
-            if(point.x >= pos.x && point.x <= pos.x + scale.x && point.y >= pos.y && point.y <= pos.y + scale.y)
+        collideFunc = [=](const Collidable2D *obj){
+            for(auto point : obj->geometry.points)
             {
-                collided = true;
-                break;
+                //std::cout << "Collision Check" << std::endl;
+                if(point.x >= pos.x && point.x <= pos.x + scale.x && point.y >= pos.y && point.y <= pos.y + scale.y)
+                {
+                    return true;
+                }
             }
-        }
 
-        return collided;
+            return false;
+        };
+    }
+};
+
+struct AbstractShape2D : public Collidable2D
+{
+    std::vector<Triangle2D> triangleList;
+
+    AbstractShape2D(const Geometry2D& geometry) {
+        this->geometry = geometry;
+
+        for(auto triangle : geometry.trianglesIndices)
+            triangleList.push_back(Triangle2D(geometry.points[triangle.indice1], geometry.points[triangle.indice2], geometry.points[triangle.indice3]));
+
+        collideFunc = [=](const Collidable2D* obj){
+            for(auto triangle : triangleList)
+            {
+                bool collision = triangle.collideWith(obj);
+                
+                if(collision)
+                    std::cout << "C" << std::endl;
+                else
+                    std::cout << "NC" << std::endl;
+                if(collision)
+                    return true;
+            }
+
+            return false;
+        };
     }
 };
 
@@ -538,12 +609,53 @@ int main(int argc, char *argv[])
 //
 	//return app.exec();
 
+    Geometry2D abstractGeometry;
+    abstractGeometry.points.push_back(constant::Vector2D(9 ,  3));
+    abstractGeometry.points.push_back(constant::Vector2D(11,  1));
+    abstractGeometry.points.push_back(constant::Vector2D(10, -2));
+    abstractGeometry.points.push_back(constant::Vector2D(9 , -1));
+    abstractGeometry.points.push_back(constant::Vector2D(8 ,  1));
 
-    auto rect = Rectangle2D(0, 0, 10, 15);
-    auto rect2 = Rectangle2D(0, -1, 2, 3);
+    abstractGeometry.trianglesIndices.push_back(TriangleIndices(0, 1, 4));
+    abstractGeometry.trianglesIndices.push_back(TriangleIndices(1, 3, 4));
+    abstractGeometry.trianglesIndices.push_back(TriangleIndices(1, 2, 3));
 
-    if(rect.collision(&rect2))
-        std::cout << "Collision" << std::endl;
+    Collidable2D* collideList[5];
+    collideList[0] = new Rectangle2D(0, 0, 10, 5);
+    collideList[1] = new Rectangle2D(4, 5, 5, 5);
+    collideList[2] = new Triangle2D(constant::Vector2D(0, 0), constant::Vector2D(5, 5), constant::Vector2D(10, 0));
+    collideList[3] = new Triangle2D(constant::Vector2D(7, 2), constant::Vector2D(7, 6), constant::Vector2D(11, 2));
+    collideList[4] = new AbstractShape2D(abstractGeometry);
+
+    if(collideList[0]->collideWith(collideList[1]))
+        std::cout << "Collision 0 and 1" << std::endl;
+
+    if(collideList[0]->collideWith(collideList[2]))
+        std::cout << "Collision 0 and 2" << std::endl;
+    
+    if(collideList[0]->collideWith(collideList[3]))
+        std::cout << "Collision 0 and 3" << std::endl;
+    
+    if(collideList[0]->collideWith(collideList[4]))
+        std::cout << "Collision 0 and 4" << std::endl;
+
+    if(collideList[1]->collideWith(collideList[2]))
+        std::cout << "Collision 1 and 2" << std::endl;
+
+    if(collideList[1]->collideWith(collideList[3]))
+        std::cout << "Collision 1 and 3" << std::endl;
+
+    if(collideList[1]->collideWith(collideList[4]))
+        std::cout << "Collision 1 and 4" << std::endl;
+
+    if(collideList[2]->collideWith(collideList[3]))
+        std::cout << "Collision 2 and 3" << std::endl;
+
+    if(collideList[2]->collideWith(collideList[4]))
+        std::cout << "Collision 2 and 4" << std::endl;
+
+    if(collideList[3]->collideWith(collideList[4]))
+        std::cout << "Collision 3 and 4" << std::endl;
 
     return 0;
 
