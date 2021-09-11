@@ -1,6 +1,10 @@
 #ifndef CONSTANT_H
 #define CONSTANT_H
 
+//TODO have no include in constant
+
+#include <unordered_map> // Included for RefractTable
+
 namespace constant
 {
 	//Screen Const
@@ -31,7 +35,7 @@ namespace constant
 
 		Vector2D() {}
 
-		Vector2D(float x, float y) : x(x), y(y) {}
+		Vector2D(const float& x, const float& y) : x(x), y(y) {}
 
 		Vector2D(const Vector2D& vec) : x(vec.x), y(vec.y) {}
 
@@ -58,7 +62,7 @@ namespace constant
 			return *this;
 		}
 
-		inline bool operator==(const Vector2D &rhs)
+		inline bool operator==(const Vector2D &rhs) const
 		{
 			return (this->x == rhs.x) && (this->y == rhs.y);
 		}
@@ -73,11 +77,11 @@ namespace constant
 
 		Vector3D() {}
 
-		Vector3D(float x, float y, float z) : x(x), y(y), z(z) {}
+		Vector3D(const float& x, const float& y, const float& z) : x(x), y(y), z(z) {}
 
-		Vector3D(Vector2D vec2, float z) : x(vec2.x), y(vec2.y), z(z) {}
+		Vector3D(const Vector2D& vec2, const float& z) : x(vec2.x), y(vec2.y), z(z) {}
 
-		Vector3D(float x, Vector2D vec2) : x(x), y(vec2.x), z(vec2.y) {}
+		Vector3D(const float& x, const Vector2D& vec2) : x(x), y(vec2.x), z(vec2.y) {}
 
 		Vector3D(const Vector3D& vec) : x(vec.x), y(vec.y), z(vec.z) {}
 
@@ -107,7 +111,7 @@ namespace constant
 			return *this;
 		}
 
-		inline bool operator==(const Vector3D &rhs)
+		inline bool operator==(const Vector3D &rhs) const
 		{
 			return (this->x == rhs.x) && (this->y == rhs.y) && (this->z == rhs.z);
 		}
@@ -123,11 +127,11 @@ namespace constant
 
 		Vector4D() {}
 
-		Vector4D(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
+		Vector4D(const float& x, const float& y, const float& z, const float& w) : x(x), y(y), z(z), w(w) {}
 
-		Vector4D(Vector3D vec, float w) : x(vec.x), y(vec.y), z(vec.z), w(w)  {}
+		Vector4D(const Vector3D& vec, const float& w) : x(vec.x), y(vec.y), z(vec.z), w(w)  {}
 
-		Vector4D(float x, Vector3D vec) : x(x), y(vec.x), z(vec.y), w(vec.z)  {}
+		Vector4D(const float& x, const Vector3D& vec) : x(x), y(vec.x), z(vec.y), w(vec.z)  {}
 
 		Vector4D(const Vector4D& vec) : x(vec.x), y(vec.y), z(vec.z), w(vec.w)  {}
 
@@ -160,10 +164,184 @@ namespace constant
 			return *this;
 		}
 
-		inline bool operator==(const Vector4D &rhs)
+		inline bool operator==(const Vector4D &rhs) const
 		{
 			return (this->x == rhs.x) && (this->y == rhs.y) && (this->z == rhs.z) && (this->w == rhs.w);
 		}
+	};
+
+	// TODO make a check on whether the numerical is empty or not
+	struct Numerical
+	{
+		struct Op
+		{
+			enum class Operation
+			{
+				ADD,
+				SUB,
+				MUL,
+				DIV
+			};
+
+			Op() {}
+
+			virtual Numerical* operator()(const int&, const Operation&) const = 0;
+			virtual Numerical* operator()(const float&, const Operation&) const = 0;
+
+			virtual ~Op() {}
+		};
+
+		Op *op;
+		bool empty;
+
+		bool isEmpty() const { return empty; }
+
+		virtual Numerical* operator+(Numerical *rhs) const = 0;
+		virtual Numerical* operator-(Numerical *rhs) const = 0;
+		virtual Numerical* operator*(Numerical *rhs) const = 0;
+		virtual Numerical* operator/(Numerical *rhs) const = 0;
+		
+		template<typename T>
+		Numerical* operator+(const T& value) const { return (*op)(value, Op::Operation::ADD); }
+		template<typename T>
+		Numerical* operator-(const T& value) const { return (*op)(value, Op::Operation::SUB); }
+		template<typename T>
+		Numerical* operator*(const T& value) const { return (*op)(value, Op::Operation::MUL); }
+		template<typename T>
+		Numerical* operator/(const T& value) const { return (*op)(value, Op::Operation::DIV); }
+
+		virtual Numerical* clone() const = 0;
+
+		virtual ~Numerical() { delete op; }
+	};
+
+	template<typename Type>
+	struct Numerics : public Numerical
+	{
+		Type value;
+
+		struct Op : public Numerical::Op
+		{
+			Type *value;
+
+			Op() {}
+			Op(Type *value) : value(value) {}
+
+			virtual ~Op() {}
+
+			virtual Numerical* operator()(const int&, const Operation&) const { return createEmpty(); }
+			virtual Numerical* operator()(const float&, const Operation&) const { return createEmpty(); }
+
+			Numerical* createEmpty() const { return new Numerics<Type> (); }
+
+			template<typename NumericalType, typename ValueType>
+			Numerical* createFunc(const ValueType& val, const Operation& operation) const {
+				switch (operation)
+				{
+				case Operation::ADD:
+					return new NumericalType(*value + val);
+					break;
+				case Operation::SUB:
+					return new NumericalType(*value - val);
+					break;
+				case Operation::MUL: 
+					return new NumericalType(*value * val); 
+					break;
+				case Operation::DIV:
+					return new NumericalType(*value / val);
+					break;
+				default:
+					return new NumericalType(*value);
+				} }
+		};
+
+		Numerics() { empty = true; }
+		Numerics(const Type& i) : value(i) { empty = false; }
+
+		virtual Numerical* clone() const { return new Numerics<Type>(); }
+
+		//Numerical* operator+(Numerical *rhs) { return *rhs + this->value; }
+		Numerical* operator+(Numerical *rhs) const { return *rhs + this->value; }
+		Numerical* operator-(Numerical *rhs) const { return *rhs - this->value; }
+		Numerical* operator*(Numerical *rhs) const { return *rhs * this->value; }
+		Numerical* operator/(Numerical *rhs) const { return *rhs / this->value; }
+	};
+
+	struct NumericalFloat : public Numerics<float>
+	{
+		struct Op : public Numerics<float>::Op
+		{
+			Op(float *value) : Numerics<float>::Op(value) {}
+			~Op() {}
+
+			Numerical* operator()(const int& val, const Operation& operation) const { return createFunc<NumericalFloat>(val, operation); }
+			Numerical* operator()(const float& val, const Operation& operation) const { return createFunc<NumericalFloat>(val, operation); }
+		};
+
+		NumericalFloat(const float& i) : Numerics<float>(i) { op = new Op(&value); }
+		Numerical* clone() const { return new NumericalFloat(value); }
+	};
+
+	struct NumericalInt : public Numerics<int>
+	{
+		struct Op : public Numerics<int>::Op
+		{
+			Op(int *value) : Numerics<int>::Op(value) {}
+			~Op() {}
+
+			Numerical* operator()(const int& val, const Operation& operation) const { return createFunc<NumericalInt>(val, operation); }
+			Numerical* operator()(const float& val, const Operation& operation) const { return createFunc<NumericalFloat>(val, operation); }
+		};
+
+		NumericalInt(const int& i) : Numerics<int>(i) { op = new Op(&value); }
+		Numerical* clone() const { return new NumericalInt(value); }
+
+		//Numerical* operator()(Numerical* numerical, const BigInt &rhs, const Op::Operation& operation) const { return createFunc<NumericalInt>(rhs, numerical->op, operation); }
+	};
+
+	class RefracTable
+	{
+	public:
+		struct Ref
+		{
+			Numerical *value;
+			bool scoped;
+
+			Ref() : value(nullptr), scoped(true) {}
+			Ref(Numerical *value, bool scoped = false) : value(value), scoped(scoped) {}
+			Ref(const Ref& ref) { value = ref.value; scoped = ref.scoped; } // TODO see if it scoped needs to be true or false
+			~Ref() { if(scoped) delete value; }
+
+			void operator=(const Ref& ref) { if(!scoped && ref.scoped) value = ref.value->clone(); else value = ref.value; } // TODO see if we need to deep copy when the value is not scoped
+			void operator=(Numerical *value) { this->value = value; } // TODO check if we need to delete value when given a new one
+
+			Ref operator+(const Ref &r) const { return Ref(*r.value + this->value, true); }
+			Ref operator-(const Ref &r) const { return Ref(*r.value - this->value, true); }
+			Ref operator*(const Ref &r) const { return Ref(*r.value * this->value, true); }
+			Ref operator/(const Ref &r) const { return Ref(*r.value / this->value, true); }
+
+			template <typename T>
+			Ref operator+(const T& rhs) const { return Ref(*this->value + rhs, true); }
+			template <typename T>
+			Ref operator-(const T& rhs) const { return Ref(*this->value - rhs, true); }
+			template <typename T>
+			Ref operator*(const T& rhs) const { return Ref(*this->value * rhs, true); }
+			template <typename T>
+			Ref operator/(const T& rhs) const { return Ref(*this->value / rhs, true); }
+
+			//TODO make cast type safe
+			operator int() const { return static_cast<NumericalInt*>(this->value)->value; }
+			operator float() const { return static_cast<NumericalFloat*>(this->value)->value; }
+		};
+
+		Ref& operator[](const std::string &name) { if(table.find(name) != table.end()) return table[name]; else { table[name] = Ref(nullptr); table[name].scoped = false; return table[name]; } }
+
+		void clean() { for(auto ref : table) delete ref.second.value; }
+
+		//~RefracTable() { for(auto ref : table) delete ref.second.value; }
+
+	private:
+		std::unordered_map<std::string, Ref> table;
 	};
 
 	struct ModelInfo

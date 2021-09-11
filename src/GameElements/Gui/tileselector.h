@@ -6,6 +6,8 @@
 #include <QOpenGLShaderProgram>
 #include <QMatrix4x4>
 
+#include "../../constant.h"
+
 #include "../../Engine/basesystem.h"
 #include "../../Engine/tileloader.h"
 #include "../../Engine/fontloader.h"
@@ -25,7 +27,7 @@ public:
     void setVisibility(bool visibility);
     inline bool isVisible() const { return visible; }
 
-    void render(unsigned int screenWidth, unsigned int screenHeight, QOpenGLShaderProgram* defaultShaderProgram, unsigned int tileTexture, QOpenGLShaderProgram* textShaderProgram, unsigned int fontTexture, qint64 currentTime);
+    void render(MasterRenderer* masterRenderer);
 
     ~TileSelector();
 

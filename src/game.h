@@ -39,6 +39,8 @@
 #include "Engine/renderer.h"
 #include "UI/sentencesystem.h"
 
+#include "Engine/particle.h"
+
 #include "GameElements/Gui/tileselector.h"
 
 class GameWindow : public QWindow, protected QOpenGLFunctions, public Base
@@ -91,20 +93,14 @@ private:
     QOpenGLContext *m_context = nullptr;
     QOpenGLPaintDevice *m_device = nullptr;
 
-    QOpenGLShaderProgram *defaultShaderProgram = nullptr;
-    QOpenGLShaderProgram *guiShaderProgram = nullptr;
-    QOpenGLShaderProgram *textShaderProgram = nullptr;
     QOpenGLVertexArrayObject *SquareVAO;
 	QOpenGLBuffer *SquareVBO;
 	QOpenGLBuffer *SquareEBO;
 
-    unsigned int baseTileTexture1;
-    unsigned int baseMenu1;
-    unsigned int fontTexture;
-
     Map *gameMap = nullptr;
 
     EntitySystem ecs;
+    MasterRenderer masterRenderer;
     TilesLoader *tileLoader;
     FontLoader *fontLoader;
     Input *inputHandler;
@@ -113,6 +109,7 @@ private:
     // May need to put them in a table
     EntitySystem::Entity* fpsCounter;
     EntitySystem::Entity* mousePosText;
+    EntitySystem::Entity* gameScaleText;
     EntitySystem::Entity* tilePosText;
     EntitySystem::Entity* tileType;
     EntitySystem::Entity* goldText;
@@ -120,8 +117,12 @@ private:
     EntitySystem::Entity* currentSeedText;
     EntitySystem::Entity* userText;
 
+    TextureComponent *cmpTexTest;
+
     EntitySystem::Entity *screenEntity;
     UiComponent *screenUi; 
+
+    ParticleComponent *pComponent;
 
     MouseInputComponent* mapClickComponent;
 
@@ -139,7 +140,8 @@ private:
     float xSensitivity = 1.0f;
     float ySensitivity = 1.0f;
 
-    float gameScale = 100.0f;
+    //TODO adapt this value
+    float gameScale = 215.0f;
 
     qint64 currentTime = 0;
 
@@ -147,8 +149,6 @@ private:
 
     bool debug = false;
     bool debugSwitched = false;
-
-    //std::map accessibleParam;
 };
 
 #endif // Game_h
