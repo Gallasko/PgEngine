@@ -67,8 +67,8 @@ void GameWindow::initialize()
 
     fontLoader = new FontLoader("res/font/fontmap.ft");
 
-    mapConstraint.width = 15;
-    mapConstraint.height = 15;
+    mapConstraint.width = 5;
+    mapConstraint.height = 5;
     mapConstraint.seed = 1;
  
     mapConstraint.noiseParam = {4, 5, 50, -1, 0.4};
@@ -100,6 +100,13 @@ void GameWindow::initialize()
     mousePosTextC->setZ(2);
     mousePosTextC->setY(125);
 
+    gameScaleText = ecs.createEntity();
+    auto gameScaleTextC = ecs.attach<Sentence>(gameScaleText, {{"Game Scale: 0"}, 4.0f, fontLoader});
+    
+    gameScaleTextC->setX(10);
+    gameScaleTextC->setZ(2);
+    gameScaleTextC->setY(150);
+
     screenEntity = ecs.createEntity();
     screenUi = ecs.attach<UiComponent>(screenEntity, {});
     screenUi->width = width();
@@ -109,21 +116,22 @@ void GameWindow::initialize()
     auto screenInput = ecs.attach<MouseInputComponent*>(screenEntity, {});
     *screenInput = new MouseInputBase<Camera>(screenUi);
 
-    (*screenInput)->registerFunc(&(camera->updateMouse), camera);
+    (*screenInput)->registerFunc(Camera::updateMouse, camera);
 
     auto screenKeyInput = ecs.attach<KeyboardInputComponent* >(screenEntity, {});
     *screenKeyInput = new KeyboardInputBase<Camera>();
 
-    (*screenKeyInput)->registerFunc(&(camera->updateKeyboard), camera);
+    (*screenKeyInput)->registerFunc(Camera::updateKeyboard, camera);
 
     auto mapTemp = ecs.createEntity();
     auto mapKeyInput = ecs.attach<KeyboardInputComponent* >(screenEntity, {});
     *mapKeyInput = new KeyboardInputBase<Map>();
 
-    (*mapKeyInput)->registerFunc(&gameMap->switchToPathFind, gameMap);
+    //(*mapKeyInput)->registerFunc(&gameMap->switchToPathFind, gameMap);
+    (*mapKeyInput)->registerFunc(Map::switchToPathFind, gameMap);
 
     mapClickComponent = new MouseInputBase<Map>(screenUi);
-    mapClickComponent->registerFunc(&gameMap->clicked, gameMap);
+    mapClickComponent->registerFunc(Map::clicked, gameMap);
 
     tileSelector = new TileSelector(gameMap, tileLoader, fontLoader, screenUi);
     tileSelector->z = 2;
@@ -135,7 +143,7 @@ void GameWindow::initialize()
     pathFindingButtonTexC->setZ(1);
     auto pathFindingButtonMouseArea = ecs.attach<MouseInputComponent* >(pathFindingButton, {});
     *pathFindingButtonMouseArea = new MouseInputBase<Map>(pathFindingButtonTexC);
-    (*pathFindingButtonMouseArea)->registerFunc(&gameMap->runPathFinding, gameMap);
+    (*pathFindingButtonMouseArea)->registerFunc(Map::runPathFinding, gameMap);
 
     //cmpTexTest = new TextureComponent(300, 300, "res/menu/Menu2.png");
 
@@ -145,17 +153,18 @@ void GameWindow::initialize()
     bool fefwe = pComponent->instanceVBO->create();
     if(fefwe)
         std::cout << "Created" << std::endl;
-    pComponent->count = 20;
+    pComponent->count = 10000;
 
     auto extraFunctions = masterRenderer.getExtraFunctions();
 
     auto tileVertices = new float[20];
 
+    //make it so i set x and y at 1 and the scaling is done in the shader
     //                 x                         y                         z                      texpos x                 texpos y
-    tileVertices[0]  = 0.0f; tileVertices[1]  =  0.0f; tileVertices[2]  = 0.0f; tileVertices[3]  = 0.0f;  tileVertices[4]  = 1.0f;   
-    tileVertices[5]  = 45.0f; tileVertices[6]  =  0.0f; tileVertices[7]  = 0.0f; tileVertices[8]  = 0.25f; tileVertices[9]  = 1.0f;
-    tileVertices[10] = 0.0f; tileVertices[11] = -45.0f; tileVertices[12] = 0.0f; tileVertices[13] = 0.0f;  tileVertices[14] = 0.0f;
-    tileVertices[15] = 45.0f; tileVertices[16] = -45.0f; tileVertices[17] = 0.0f; tileVertices[18] = 0.25f; tileVertices[19] = 0.0f;
+    tileVertices[0]  = 0.0f; tileVertices[1]  =  0.0f; tileVertices[2]  = 0.0f; tileVertices[3]  = 0.0f;  tileVertices[4]  = 0.0f;   
+    tileVertices[5]  = 48.0f; tileVertices[6]  =  0.0f; tileVertices[7]  = 0.0f; tileVertices[8]  = 0.25f; tileVertices[9]  = 0.0f;
+    tileVertices[10] = 0.0f; tileVertices[11] = -48.0f; tileVertices[12] = 0.0f; tileVertices[13] = 0.0f;  tileVertices[14] = 1.0f;
+    tileVertices[15] = 48.0f; tileVertices[16] = -48.0f; tileVertices[17] = 0.0f; tileVertices[18] = 0.25f; tileVertices[19] = 1.0f;
     //texPos x is set at 0.25f because the sprite for the pigeon is 4 frames wide
 
     unsigned int nbTileVertices = 20;
@@ -226,25 +235,20 @@ void GameWindow::initialize()
     for(int i = 0; i < pComponent->count; i++)
     {
         pComponent->particleList[i].lifetime = 10000.0f;
-        pComponent->particleList[i].pos = constant::Vector3D(46.0f * i, 5.0f, 0.0f);
-//        pComponent->particleList[i].pos = constant::Vector3D(150.0f, 5.0f, 0.0f);
-        //pComponent->particleList[i].pos = constant::Vector3D(0.0f, 255.0f, 0.0f);
-        pComponent->particleList[i].texOffset = 0.0f;
+        pComponent->particleList[i].pos = constant::Vector3D((48 * i) % (width() * 2), -48.0f * ((48 * (i + 100)) / (width() * 2)), 0.0f);
+        pComponent->particleList[i].texOffset = 0.25f;
 
-        pComponent->particleSubDataList[i] = new ParticleMoveSubData(0, 10000, constant::Vector3D(0.0f, 0.0f, 0.0f), textureSeq, 100);
+        //TODO create a texture sequence struct that store the different transition, calculate there position and hold the timing
+        pComponent->particleSubDataList[i] = new ParticleMoveSubData(constant::Vector3D(0.0f, 0.0f, 0.0f), textureSeq, 40);
     }
 
-
+    // TODO correclty define tick rate as 40ms (25 ticks each second)
     pComponent->onTick = [=]() { 
         for(int i = 0; i < pComponent->count; i++) 
         {
             ParticleMoveSubData *pMoveData = static_cast<ParticleMoveSubData*>(pComponent->particleSubDataList[i]);
-            pMoveData->timeToLive -= 40;
             pMoveData->timeAlive += 40;
-            //if(pMoveData->timeToLive < 0)
-            //    std::cout << "dead" << std::endl;
-            //std::cout << "tick, time remaining to live: " << pMoveData->timeToLive << std::endl;
-            pComponent->particleList[i].lifetime = pMoveData->timeToLive;
+            pComponent->particleList[i].lifetime -= 40;
             pComponent->particleList[i].pos += pMoveData->velocity;
             pComponent->particleList[i].texOffset = pMoveData->textureSeq[(pMoveData->timeAlive / pMoveData->textureChangeRate) % pMoveData->textureSeq.size()];
         }};
@@ -303,11 +307,13 @@ void GameWindow::render()
     if(mousePosTextC != nullptr)
         mousePosTextC->setText("(" + std::to_string(mousePos.x()) + ", " + std::to_string(mousePos.y()) + ")", fontLoader);
 
+    auto gameScaleTextC = gameScaleText->get<Sentence>();
+    if(gameScaleTextC != nullptr)
+        gameScaleTextC->setText("Game Scale: " + std::to_string(static_cast<int>(gameScale)), fontLoader);
+
     updateGameState(float(currentTime - lastTime) / 1000);
 
-    //masterRenderer.render<TextureRenderer>(cmpTexTest);
-
-    //renderGame();
+    renderGame();
 
     if(!debug)
     {
@@ -315,7 +321,7 @@ void GameWindow::render()
         if(mousePosTextC != nullptr)
             mousePosTextC->visible = true;
 
-        //renderUi();
+        renderUi();
     }
     else
     {
@@ -324,7 +330,7 @@ void GameWindow::render()
             mousePosTextC->visible = false;
     }
 
-    //masterRenderer << tileSelector;
+    masterRenderer << tileSelector;
 
     masterRenderer.render<ParticleRenderer>(pComponent);
 

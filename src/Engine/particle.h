@@ -34,10 +34,9 @@ struct ParticleComponent : protected QOpenGLFunctions
 
 struct ParticleMoveSubData : public ParticleSubData 
 {
-    ParticleMoveSubData(const unsigned int& timeAlive, const unsigned int& timeToLive, const constant::Vector3D& velocity, const std::vector<float>& textureSeq, const unsigned int& textureChangeRate) : timeAlive(timeAlive), timeToLive(timeToLive), velocity(velocity), textureSeq(textureSeq), textureChangeRate(textureChangeRate) {}
+    ParticleMoveSubData(const constant::Vector3D& velocity, const std::vector<float>& textureSeq, const unsigned int& textureChangeRate) : timeAlive(0), velocity(velocity), textureSeq(textureSeq), textureChangeRate(textureChangeRate) {}
     
     int timeAlive;
-    int timeToLive;
     constant::Vector3D velocity;
     std::vector<float> textureSeq;
     unsigned int textureChangeRate;

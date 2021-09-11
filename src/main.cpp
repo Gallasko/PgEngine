@@ -21,7 +21,8 @@ int main(int argc, char *argv[])
 	QGuiApplication app(argc, argv);
 
 	GameWindow game;
-    game.resize(640, 480);
+    //game.resize(640, 480);
+    game.resize(624, 480);
     //game.setWindowState(Qt::WindowFullScreen);
     game.setAnimating(true);
     //game.showFullScreen();

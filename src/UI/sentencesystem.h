@@ -59,11 +59,13 @@ struct Sentence : public UiComponent, private QOpenGLFunctions
     Sentence(const SentenceText& sentence, const float& scale, FontLoader *font);
     Sentence(const Sentence &rhs);
     ~Sentence();
+
     void setText(const SentenceText& sentence, FontLoader *font);
 
     void generateMesh();
 
     SentenceText text;
+    FontLoader *font;
     int nbChara = 0;
 
     constant::ModelInfo modelInfo;

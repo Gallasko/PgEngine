@@ -109,6 +109,7 @@ private:
     // May need to put them in a table
     EntitySystem::Entity* fpsCounter;
     EntitySystem::Entity* mousePosText;
+    EntitySystem::Entity* gameScaleText;
     EntitySystem::Entity* tilePosText;
     EntitySystem::Entity* tileType;
     EntitySystem::Entity* goldText;
@@ -139,7 +140,8 @@ private:
     float xSensitivity = 1.0f;
     float ySensitivity = 1.0f;
 
-    float gameScale = 100.0f;
+    //TODO adapt this value
+    float gameScale = 215.0f;
 
     qint64 currentTime = 0;
 

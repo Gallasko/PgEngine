@@ -14,6 +14,8 @@ out vec4 outline1;
 out vec4 outline2;
 out float effect;
 
+out vec4 glPosition;
+
 uniform mat4 model;
 uniform mat4 scale;
 uniform mat4 view;
@@ -22,6 +24,7 @@ uniform mat4 projection;
 void main()
 {
 	gl_Position = projection * view * scale * model * vec4(aPos, 1.0f);
+	//glPosition = projection * view * scale * model * vec4(aPos, 1.0f);
 	TexCoord = vec2(aTexCoord.x, aTexCoord.y);
 	
 	mainColor = aMainColor;

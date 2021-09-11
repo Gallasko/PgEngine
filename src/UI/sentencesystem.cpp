@@ -1,6 +1,6 @@
 #include "sentencesystem.h"
 
-Sentence::Sentence(const SentenceText& sentence, const float& scale, FontLoader *font)
+Sentence::Sentence(const SentenceText& sentence, const float& scale, FontLoader *font) : QOpenGLFunctions(), font(font)
 {
     initializeOpenGLFunctions(); 
 
@@ -16,7 +16,7 @@ Sentence::Sentence(const SentenceText& sentence, const float& scale, FontLoader 
     setText(sentence, font);
 }
 
-Sentence::Sentence(const Sentence &rhs)
+Sentence::Sentence(const Sentence &rhs) : QOpenGLFunctions()
 {
     initializeOpenGLFunctions(); 
 
@@ -54,6 +54,9 @@ Sentence::Sentence(const Sentence &rhs)
     this->nbChara = rhs.nbChara;
 
     this->modelInfo = rhs.modelInfo;
+
+    this->font = rhs.font;
+    setText(text, font);
 
     update();
 }
@@ -161,13 +164,14 @@ void Sentence::setText(const SentenceText& sentence, FontLoader *font)
     
 }
 
+//TODO add a parameters to set the usage patern and make it static by default
 void Sentence::generateMesh()
 {
     VAO->bind();
 
     // position attribute
     VBO->bind();
-    VBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
+    VBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
     VBO->allocate(modelInfo.vertices, modelInfo.nbVertices * sizeof(float));
 
     glEnableVertexAttribArray(0);
@@ -194,7 +198,7 @@ void Sentence::generateMesh()
     glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, 18 * sizeof(float), (void*)(17 * sizeof(float)));
 
     EBO->bind();
-    EBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
+    EBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
     EBO->allocate(modelInfo.indices, modelInfo.nbIndices * sizeof(unsigned int));
 
     VAO->release();

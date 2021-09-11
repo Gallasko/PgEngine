@@ -102,39 +102,6 @@ void TileSelector::render(MasterRenderer* masterRenderer)
 
     masterRenderer->render<TextureRenderer>(texture);
 
-    /*
-    projection.setToIdentity();
-    model.setToIdentity();
-    scale.setToIdentity();
-    scale.scale(QVector3D(2.0f / screenWidth, 2.0f / screenHeight, 0.0f));
-
-    // Text rendering
-    auto defaultShaderProgram = masterRenderer->getShader("default");
-
-    defaultShaderProgram->bind();
-
-    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("projection"), projection);
-    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("model"), model);
-    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("scale"), scale);
-
-    //gl scissor for list views 
-    //glEnable(GL_SCISSOR_TEST);
-    //glScissor(300, 200, 200, 500);
-
-    texture->generateMesh();
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture->texture);
-
-    view.setToIdentity();
-    view.translate(QVector3D(-1.0f + 2.0f * (float)(texture->x) / screenWidth, 1.0f + 2.0f * (float)( -texture->y) / screenHeight, 0.0f));
-
-    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
-
-    texture->VAO->bind();
-    glDrawElements(GL_TRIANGLES, texture->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
-    */
-
     auto defaultShaderProgram = masterRenderer->getShader("default");
     defaultShaderProgram->bind();
     
@@ -189,9 +156,9 @@ void TileSelector::render(MasterRenderer* masterRenderer)
 
         text.VAO->bind();
         glDrawElements(GL_TRIANGLES, text.modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
-
-        textShaderProgram->release();   
+        
     }
+    textShaderProgram->release();   
 }
 
 TileSelector::~TileSelector()
