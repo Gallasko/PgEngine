@@ -461,6 +461,8 @@ struct ParticleComponent
 
 #include "constant.h"
 
+typedef constant::Vector2D Centroid;
+
 struct TriangleIndices
 {
     int indice1, indice2, indice3;
@@ -494,6 +496,11 @@ double getTriangleArea(const constant::Vector2D& point1, const constant::Vector2
                    -point1.x * point3.y - point3.x * point2.y - point2.x * point1.y) / 2.0f;
 }
 
+Centroid getCentroid(const constant::Vector2D& point1, const constant::Vector2D& point2, const constant::Vector2D& point3)
+{
+    return Centroid((point1.x + point2.x + point3.x) / 3.0f, (point1.y + point2.y + point3.y) / 3.0f);
+}
+
 struct Triangle2D : public Collidable2D
 {
     Triangle2D(const constant::Vector2D& p1, const constant::Vector2D& p2, const constant::Vector2D& p3){
@@ -510,6 +517,8 @@ struct Triangle2D : public Collidable2D
             //abs(x1*y2+x2*y3+x3*y1-x1*y3-x3*y2-x2*y1)/2
 
             const double triangleArea = getTriangleArea(point1, point2, point3);
+            std::cout << "TrianglePoint : " << point1.x << "," << point1.y << " " << point2.x << "," << point2.y << " " << point3.x << "," << point3.y << std::endl;
+            std::cout << triangleArea << std::endl;
 
             for(auto point : obj->geometry.points)
             {
@@ -527,6 +536,8 @@ struct Triangle2D : public Collidable2D
             return false;
         };
     }
+
+    Triangle2D(const Triangle2D& obj) : Triangle2D(obj.geometry.points[0], obj.geometry.points[1], obj.geometry.points[2]) { }
 };
 
 struct Rectangle2D : public Collidable2D
@@ -575,11 +586,7 @@ struct AbstractShape2D : public Collidable2D
             for(auto triangle : triangleList)
             {
                 bool collision = triangle.collideWith(obj);
-                
-                if(collision)
-                    std::cout << "C" << std::endl;
-                else
-                    std::cout << "NC" << std::endl;
+
                 if(collision)
                     return true;
             }
@@ -587,6 +594,8 @@ struct AbstractShape2D : public Collidable2D
             return false;
         };
     }
+
+    //~AbstractShape2D() { for(auto triangle : triangleList) delete triangle; }
 };
 
 int main(int argc, char *argv[])
@@ -608,54 +617,67 @@ int main(int argc, char *argv[])
     //QObject::connect(&a, SIGNAL(quitApp()), &app, SLOT(quit()));
 //
 	//return app.exec();
+    {
+        Geometry2D abstractGeometry;
+        abstractGeometry.points.push_back(constant::Vector2D(9 ,  3));
+        abstractGeometry.points.push_back(constant::Vector2D(11,  1));
+        abstractGeometry.points.push_back(constant::Vector2D(10, -2));
+        abstractGeometry.points.push_back(constant::Vector2D(9 , -1));
+        abstractGeometry.points.push_back(constant::Vector2D(8 ,  1));
 
-    Geometry2D abstractGeometry;
-    abstractGeometry.points.push_back(constant::Vector2D(9 ,  3));
-    abstractGeometry.points.push_back(constant::Vector2D(11,  1));
-    abstractGeometry.points.push_back(constant::Vector2D(10, -2));
-    abstractGeometry.points.push_back(constant::Vector2D(9 , -1));
-    abstractGeometry.points.push_back(constant::Vector2D(8 ,  1));
+        abstractGeometry.trianglesIndices.push_back(TriangleIndices(0, 1, 4));
+        abstractGeometry.trianglesIndices.push_back(TriangleIndices(1, 3, 4));
+        abstractGeometry.trianglesIndices.push_back(TriangleIndices(1, 2, 3));
 
-    abstractGeometry.trianglesIndices.push_back(TriangleIndices(0, 1, 4));
-    abstractGeometry.trianglesIndices.push_back(TriangleIndices(1, 3, 4));
-    abstractGeometry.trianglesIndices.push_back(TriangleIndices(1, 2, 3));
+        Collidable2D* collideList[5];
+        collideList[0] = new Rectangle2D(0, 0, 10, 5);
+        collideList[1] = new Rectangle2D(4, 5, 5, 5);
+        {
+            collideList[2] = new Triangle2D(constant::Vector2D(0, 0), constant::Vector2D(5, 5), constant::Vector2D(10, 0));
+            collideList[3] = new Triangle2D(constant::Vector2D(7, 2), constant::Vector2D(7, 6), constant::Vector2D(11, 2));
+            collideList[4] = new AbstractShape2D(abstractGeometry);
+        }
 
-    Collidable2D* collideList[5];
-    collideList[0] = new Rectangle2D(0, 0, 10, 5);
-    collideList[1] = new Rectangle2D(4, 5, 5, 5);
-    collideList[2] = new Triangle2D(constant::Vector2D(0, 0), constant::Vector2D(5, 5), constant::Vector2D(10, 0));
-    collideList[3] = new Triangle2D(constant::Vector2D(7, 2), constant::Vector2D(7, 6), constant::Vector2D(11, 2));
-    collideList[4] = new AbstractShape2D(abstractGeometry);
+        if(collideList[0]->collideWith(collideList[1]))
+            std::cout << "Collision 0 and 1" << std::endl;
 
-    if(collideList[0]->collideWith(collideList[1]))
-        std::cout << "Collision 0 and 1" << std::endl;
+        if(collideList[0]->collideWith(collideList[2]))
+            std::cout << "Collision 0 and 2" << std::endl;
+        
+        if(collideList[0]->collideWith(collideList[3]))
+            std::cout << "Collision 0 and 3" << std::endl;
+        
+        if(collideList[0]->collideWith(collideList[4]))
+            std::cout << "Collision 0 and 4" << std::endl;
 
-    if(collideList[0]->collideWith(collideList[2]))
-        std::cout << "Collision 0 and 2" << std::endl;
-    
-    if(collideList[0]->collideWith(collideList[3]))
-        std::cout << "Collision 0 and 3" << std::endl;
-    
-    if(collideList[0]->collideWith(collideList[4]))
-        std::cout << "Collision 0 and 4" << std::endl;
+        if(collideList[1]->collideWith(collideList[2]))
+            std::cout << "Collision 1 and 2" << std::endl;
 
-    if(collideList[1]->collideWith(collideList[2]))
-        std::cout << "Collision 1 and 2" << std::endl;
+        if(collideList[1]->collideWith(collideList[3]))
+            std::cout << "Collision 1 and 3" << std::endl;
 
-    if(collideList[1]->collideWith(collideList[3]))
-        std::cout << "Collision 1 and 3" << std::endl;
+        if(collideList[1]->collideWith(collideList[4]))
+            std::cout << "Collision 1 and 4" << std::endl;
 
-    if(collideList[1]->collideWith(collideList[4]))
-        std::cout << "Collision 1 and 4" << std::endl;
+        if(collideList[2]->collideWith(collideList[3]))
+            std::cout << "Collision 2 and 3" << std::endl;
 
-    if(collideList[2]->collideWith(collideList[3]))
-        std::cout << "Collision 2 and 3" << std::endl;
+        if(collideList[2]->collideWith(collideList[4]))
+            std::cout << "Collision 2 and 4" << std::endl;
 
-    if(collideList[2]->collideWith(collideList[4]))
-        std::cout << "Collision 2 and 4" << std::endl;
+        if(collideList[3]->collideWith(collideList[4]))
+            std::cout << "Collision 3 and 4" << std::endl;
 
-    if(collideList[3]->collideWith(collideList[4]))
-        std::cout << "Collision 3 and 4" << std::endl;
+        for(int i = 0; i < 5; i++)
+            delete collideList[i];
+
+        auto centroid = getCentroid(constant::Vector2D(0, 0), constant::Vector2D(5, 5), constant::Vector2D(10, 0));
+        std::cout << centroid.x << " " << centroid.y << std::endl;
+        auto centroid2 = getCentroid(constant::Vector2D(7, 2), constant::Vector2D(7, 6), constant::Vector2D(11, 2));
+        std::cout << centroid2.x << " " << centroid2.y << std::endl;
+    }
+
+    std::cout << "Succefully destroyed" << std::endl;
 
     return 0;
 
