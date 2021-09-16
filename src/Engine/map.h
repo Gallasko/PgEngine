@@ -20,7 +20,12 @@
 
 #include <iostream>
 
-class PathFinder // TODO Fix pathfinding sometimes a node is traversed multiple times
+// TODO Fix pathfinding sometimes a node is traversed multiple times
+// Sometimes the shortest route is not found because a longer route was not registered
+// Expend the pathfinding algorithm for open rooms by extending the research kernel
+// Add Weight bias to the road
+ 
+class PathFinder 
 {
 public:
     enum class Dir
@@ -401,7 +406,7 @@ public:
     inline unsigned int getHeight() const { return constraint.height; }
     inline QOpenGLVertexArrayObject* getMesh() { if(!meshUpdate) generateMesh(); return VAO; }
 
-    void changeTile(Input* inputHandler, double deltaTime...) { va_list args; va_start(args, deltaTime); tileToBePlaced = va_arg(args, TilesLoader::TilesId*); }
+    void changeTile(Input*, double deltaTime...) { va_list args; va_start(args, deltaTime); tileToBePlaced = va_arg(args, TilesLoader::TilesId*); }
     
     void runPathFinding(Input* inputHandler, double deltaTime...);
     

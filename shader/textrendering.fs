@@ -1,5 +1,7 @@
 #version 330 core
 
+out vec4 FragColor;
+
 in vec2 TexCoord;
 
 in vec4 mainColor;
@@ -29,6 +31,6 @@ void main()
 		pixelColor = outline2;
 	}
 
-	gl_FragColor = pixelColor;
+	FragColor = pixelColor;
 
 }

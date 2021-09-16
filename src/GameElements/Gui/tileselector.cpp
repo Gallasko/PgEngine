@@ -83,48 +83,30 @@ void TileSelector::setVisibility(bool visibility)
     visible = visibility;
 }
 
-void TileSelector::render(unsigned int screenWidth, unsigned int screenHeight, QOpenGLShaderProgram* defaultShaderProgram, unsigned int tileTexture, QOpenGLShaderProgram* textShaderProgram, unsigned int fontTexture, qint64 currentTime)
+//void TileSelector::render(unsigned int screenWidth, unsigned int screenHeight, QOpenGLShaderProgram* defaultShaderProgram, unsigned int tileTexture, QOpenGLShaderProgram* textShaderProgram, unsigned int fontTexture, qint64 currentTime)
+void TileSelector::render(MasterRenderer* masterRenderer)
 {
     if(this->visible == false)
         return;
+    
+    auto rTable = masterRenderer->getParameter();
+
+    const int screenWidth = rTable["ScreenWidth"];
+    const int screenHeight = rTable["ScreenHeight"];
+    const int currentTime = rTable["CurrentTime"];
 
     QMatrix4x4 projection;
     QMatrix4x4 view;
     QMatrix4x4 model;
     QMatrix4x4 scale;
 
-    projection.setToIdentity();
-    model.setToIdentity();
-    scale.setToIdentity();
-    scale.scale(QVector3D(2.0f / screenWidth, 2.0f / screenHeight, 0.0f));
+    masterRenderer->render<TextureRenderer>(texture);
 
-    // Text rendering
-
+    auto defaultShaderProgram = masterRenderer->getShader("default");
     defaultShaderProgram->bind();
-
-    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("projection"), projection);
-    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("model"), model);
-    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("scale"), scale);
-
-    //gl scissor for list views 
-    //glEnable(GL_SCISSOR_TEST);
-    //glScissor(300, 200, 200, 500);
-
-    texture->generateMesh();
-
+    
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture->texture);
-
-    view.setToIdentity();
-    view.translate(QVector3D(-1.0f + 2.0f * (float)(texture->x) / screenWidth, 1.0f + 2.0f * (float)( -texture->y) / screenHeight, 0.0f));
-
-    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
-
-    texture->VAO->bind();
-    glDrawElements(GL_TRIANGLES, texture->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, tileTexture);
+    glBindTexture(GL_TEXTURE_2D, masterRenderer->getTexture("atlas"));
 
     auto tileWidth = 100.0f, tileHeight = 100.0f;
 
@@ -147,13 +129,15 @@ void TileSelector::render(unsigned int screenWidth, unsigned int screenHeight, Q
 
     defaultShaderProgram->release();
 
+    auto textShaderProgram = masterRenderer->getShader("text");
+
     textShaderProgram->bind();
 
     scale.setToIdentity();
     scale.scale(QVector3D(1.0f / screenWidth, 1.0f / screenHeight, 0.0f));
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, fontTexture);
+    glBindTexture(GL_TEXTURE_2D, masterRenderer->getTexture("font"));
 
     textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("projection"), projection);
     textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("model"), model);
@@ -172,9 +156,9 @@ void TileSelector::render(unsigned int screenWidth, unsigned int screenHeight, Q
 
         text.VAO->bind();
         glDrawElements(GL_TRIANGLES, text.modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
-
-        textShaderProgram->release();   
+        
     }
+    textShaderProgram->release();   
 }
 
 TileSelector::~TileSelector()

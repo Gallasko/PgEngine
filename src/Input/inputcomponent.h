@@ -41,6 +41,9 @@ struct MouseInputComponent
     template<typename... Args>
     void call(Input* inputHandler, double deltaTime, Args... args) { if(onPressed != nullptr) (*object.*onPressed)(inputHandler, deltaTime, args...); if(onPressedLambda != nullptr) (*onPressedLambda)(inputHandler, deltaTime); }
 
+    bool inBound(int x, int y) const { return x > *(this->x) / static_cast<int>(this->scale) && x < (*this->x + *this->width) / static_cast<int>(this->scale) && y < (*this->y + *this->height) / static_cast<int>(this->scale) && y > *this->y / static_cast<int>(this->scale); }
+    bool inBound(constant::Vector2D vec2) const { return inBound(vec2.x, vec2.y); }
+
     virtual ~MouseInputComponent() {}
 };
 
