@@ -41,6 +41,7 @@ void GameWindow::initialize()
 	initializeOpenGLFunctions();
 
     masterRenderer.initialize(m_context);
+    masterRenderer.setWindowSize(width(), height());
 
     //glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
@@ -53,6 +54,8 @@ void GameWindow::initialize()
 
     masterRenderer.registerShader("gui", "shader/default.vs", "shader/default.fs");
     masterRenderer.registerShader("text", "shader/textrendering.vs", "shader/textrendering.fs");
+    masterRenderer.registerRederer<SentenceRenderer>();
+
     masterRenderer.registerShader("particle", "shader/particle.vs", "shader/particle.fs");
     masterRenderer.registerRederer<ParticleRenderer>();
 
@@ -109,9 +112,12 @@ void GameWindow::initialize()
 
     screenEntity = ecs.createEntity();
     screenUi = ecs.attach<UiComponent>(screenEntity, {});
-    screenUi->width = width();
-    screenUi->height = height();
+    screenUi->setWidth(width());
+    screenUi->setHeight(height());
     screenUi->setZ(0);
+
+    std::cout << width() << std::endl;
+    std::cout << screenUi->right << std::endl;
 
     auto screenInput = ecs.attach<MouseInputComponent*>(screenEntity, {});
     *screenInput = new MouseInputBase<Camera>(screenUi);
@@ -279,16 +285,26 @@ void GameWindow::render()
 
     currentTime = QDateTime::currentMSecsSinceEpoch();
 
-    if(screenUi->width != width())
+    try
     {
-        screenUi->setWidth(width());
-        masterRenderer.setWindowSize(width(), height());
+        if(screenUi->width != width())
+        {
+            std::cout << "Width Update" << std::endl;
+            screenUi->setWidth(width());
+            masterRenderer.setWindowSize(width(), height());
+        }
+            
+        if(screenUi->height != height())
+        {
+            std::cout << "Height Update" << std::endl;
+            screenUi->setHeight(height());
+            masterRenderer.setWindowSize(width(), height());
+        }
     }
-        
-    if(screenUi->height != height())
+    catch(const std::exception& e)
     {
-        screenUi->setHeight(height());
-        masterRenderer.setWindowSize(width(), height());
+        std::cout << "Resize error" << std::endl;
+        std::cerr << e.what() << '\n';
     }
 
     masterRenderer.setCurrentTime(currentTime);
@@ -483,8 +499,16 @@ void GameWindow::renderNow()
         initialize();
     }
     
-    render();
-
+    try
+    {
+        render();
+    }
+    catch(const std::exception& e)
+    {
+        std::cout << "Render error" << std::endl;
+        std::cerr << e.what() << '\n';
+    }
+    
     m_context->swapBuffers(this);
 }
 
@@ -628,7 +652,7 @@ void GameWindow::renderUi()
     projection.setToIdentity();
     model.setToIdentity();
     scale.setToIdentity();
-    scale.scale(QVector3D(2.0f / width(), 2.0f / height(), 0.0f));
+    scale.scale(QVector3D(1.0f / width(), 1.0f / height(), 0.0f));
 
     // Text rendering
 

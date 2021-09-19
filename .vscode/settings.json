@@ -95,5 +95,11 @@
         "valarray": "cpp",
         "qopenglfunctions": "cpp",
         "queue": "cpp"
+    },
+    "files.exclude": {
+        "**/*.o": true,
+        "**/Archive": true,
+        "**/dependencies": true,
+        "**/output": true
     }
 }

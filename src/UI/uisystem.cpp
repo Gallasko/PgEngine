@@ -1,45 +1,60 @@
 #include "uisystem.h"
 
-template<typename Type>
-Type operator+(const Type& lhs, const UiSize& rhs)
+UiComponent::UiComponent(const UiComponent& rhs)
 {
-    return lhs + UiSize::returnCurrentSize(&rhs);
-}
-
-template<typename Type>
-Type operator-(const Type& lhs, const UiSize& rhs)
-{
-    return lhs - UiSize::returnCurrentSize(&rhs);
+    //TODO remove the previous reference of rhs inside the parent and push this pointer inside the parent child list to avoid resize error when this is being copied
+    //also don t forget to call this constructor when creating the copy constructor of the child class
+    this->visible = rhs.visible;
+    this->x = rhs.x;
+    this->y = rhs.y;
+    this->z = rhs.z;
+    this->width = rhs.width;
+    this->height = rhs.height;
+    this->scale = rhs.scale;
+    this->topAnchor = rhs.topAnchor;
+    this->rightAnchor = rhs.rightAnchor;
+    this->bottomAnchor = rhs.bottomAnchor;
+    this->leftAnchor = rhs.leftAnchor;
+    this->top = UiAnchor(this, &this->y);
+    this->right = UiAnchor(this, &this->x, &this->width);
+    this->bottom = UiAnchor(this, &this->y, &this->height);
+    this->left = UiAnchor(this, &this->x);
+    this->topMargin = rhs.topMargin;
+    this->rightMargin = rhs.rightMargin;
+    this->bottomMargin = rhs.bottomMargin;
+    this->leftMargin = rhs.leftMargin;
+    this->children = rhs.children;
+    this->scale = scale;
 }
 
 void UiComponent::update()
 {
     if(topAnchor != nullptr && bottomAnchor != nullptr)
     {
-        this->height = bottomAnchor->y - bottomMargin - topAnchor->y - topAnchor->height - topMargin;
-        this->y = topAnchor->y + topAnchor->height + topMargin;
+        this->height = static_cast<int>(*bottomAnchor) - bottomMargin - static_cast<int>(*topAnchor) - topMargin;
+        this->y = static_cast<int>(*topAnchor) + topMargin;
     }
     else if(topAnchor != nullptr && bottomAnchor == nullptr)
     {
-        this->y = topAnchor->y + topAnchor->height + topMargin;
+        this->y = static_cast<int>(*topAnchor) + topMargin;
     }
     else if(topAnchor == nullptr && bottomAnchor != nullptr)
     {
-        this->y = bottomAnchor->y - height - bottomMargin;
+        this->y = static_cast<int>(*bottomAnchor) - bottomMargin - this->height;// / 2; //TODO need to find out from where this /2 come from
     }
 
     if(rightAnchor != nullptr && leftAnchor != nullptr)
     {
-        this->width = rightAnchor->x - rightMargin - leftAnchor->x - leftAnchor->width - leftMargin;
-        this->x = leftAnchor->x + leftAnchor->width + leftMargin;
+        this->width = static_cast<int>(*rightAnchor) - rightMargin - static_cast<int>(*leftAnchor) - leftMargin;
+        this->x = static_cast<int>(*leftAnchor) + leftMargin;
     }
     else if(rightAnchor != nullptr && leftAnchor == nullptr)
     {
-        this->x = rightAnchor->x - width - rightMargin;
+        this->x = static_cast<int>(*rightAnchor) - rightMargin - this->width;// / 2;
     }
     else if(rightAnchor == nullptr && leftAnchor != nullptr)
     {
-        this->x = leftAnchor->x + leftAnchor->width + leftMargin;
+        this->x = static_cast<int>(*leftAnchor) + leftMargin;
     }
 
     updated = true;
@@ -63,8 +78,9 @@ TextureComponent::TextureComponent(UiSize width, UiSize height, const char* path
     this->width = width;
     this->height = height;
 
+    //TODO dont create the texture inside the component but pull it from the masterRenderer 
     QImage textureAtlas = QImage(QString(path));
-    textureAtlas = textureAtlas.convertToFormat(QImage::Format_RGBA8888).mirrored();
+    textureAtlas = textureAtlas.convertToFormat(QImage::Format_RGBA8888);// mirrored();
 
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -80,7 +96,7 @@ TextureComponent::TextureComponent(UiSize width, UiSize height, const char* path
     glGenerateMipmap(GL_TEXTURE_2D);
 }
 
-TextureComponent::TextureComponent(const TextureComponent &rhs)
+TextureComponent::TextureComponent(const TextureComponent &rhs) : UiComponent(rhs)
 {
     initializeOpenGLFunctions(); 
 
@@ -92,27 +108,27 @@ TextureComponent::TextureComponent(const TextureComponent &rhs)
 	VBO->create();
 	EBO->create();
 
-    this->visible = rhs.visible;
-    this->x = rhs.x;
-    this->y = rhs.y;
-    this->z = rhs.z;
-    this->width = rhs.width;
-    this->height = rhs.height;
-    this->scale = rhs.scale;
-    this->topAnchor = rhs.topAnchor;
-    this->rightAnchor = rhs.rightAnchor;
-    this->bottomAnchor = rhs.bottomAnchor;
-    this->leftAnchor = rhs.leftAnchor;
-    this->top = rhs.top;
-    this->right = rhs.right;
-    this->bottom = rhs.bottom;
-    this->left = rhs.left;
-    this->topMargin = rhs.topMargin;
-    this->rightMargin = rhs.rightMargin;
-    this->bottomMargin = rhs.bottomMargin;
-    this->leftMargin = rhs.leftMargin;
-    this->children = rhs.children;
-    this->scale = scale;
+    //this->visible = rhs.visible;
+    //this->x = rhs.x;
+    //this->y = rhs.y;
+    //this->z = rhs.z;
+    //this->width = rhs.width;
+    //this->height = rhs.height;
+    //this->scale = rhs.scale;
+    //this->topAnchor = rhs.topAnchor;
+    //this->rightAnchor = rhs.rightAnchor;
+    //this->bottomAnchor = rhs.bottomAnchor;
+    //this->leftAnchor = rhs.leftAnchor;
+    //this->top = rhs.top;
+    //this->right = rhs.right;
+    //this->bottom = rhs.bottom;
+    //this->left = rhs.left;
+    //this->topMargin = rhs.topMargin;
+    //this->rightMargin = rhs.rightMargin;
+    //this->bottomMargin = rhs.bottomMargin;
+    //this->leftMargin = rhs.leftMargin;
+    //this->children = rhs.children;
+    //this->scale = scale;
 
     this->modelInfo = rhs.modelInfo;
 
@@ -169,8 +185,6 @@ void TextureComponent::generateMesh()
     }
 }
 
-#include <QMatrix4x4>
-#include <cstdarg>
 void TextureRenderer::render(MasterRenderer* masterRenderer...)
 { 
     va_list args; 

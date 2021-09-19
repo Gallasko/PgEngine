@@ -43,6 +43,10 @@
 
 #include "GameElements/Gui/tileselector.h"
 
+//TODO create unary test for all the basic component of the framework
+
+//TODO manage resize event so it doesnt crash the app 
+
 class GameWindow : public QWindow, protected QOpenGLFunctions, public Base
 {
 	Q_OBJECT

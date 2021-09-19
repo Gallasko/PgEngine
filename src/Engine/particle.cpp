@@ -45,5 +45,6 @@ void ParticleRenderer::render(MasterRenderer* masterRenderer...)
     instanceVBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
     instanceVBO->allocate(particle->particleList, particle->count * sizeof(Particle));
 
+    // TODO the renderer can only draw 2D square particles !!
     extraFunctions->glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, particle->count);
 }

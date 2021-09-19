@@ -6,6 +6,8 @@
 #include "../constant.h"
 #include "renderer.h"
 
+//TODO create a 3D particles system -> this one can only draw 2D particles
+
 //#pragma pack(1)
 struct Particle
 {

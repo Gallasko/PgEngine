@@ -4,45 +4,91 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
 {
     initializeOpenGLFunctions();
 
-    this->width = 240;
-    this->height = 135;
+    //this->width = 240;
+    //this->height = 135;
 
-    this->setX(400);
-    this->setY(345);
+    //this->setX(400);
+    //this->setY(345);
+//
+    //this->setX(100);
+    //this->setY(45);
+
+    std::cout << static_cast<int>(screenUi->right) << std::endl;
+
+    this->setRightAnchor(&screenUi->right);
+    this->setBottomAnchor(&screenUi->bottom);
+
+    //this->setLeftAnchor(&screenUi->left);
+    //this->setTopAnchor(&screenUi->top);
+
+
+    this->setWidth(240);
+    this->setHeight(135);
+
+    //std::cout << static_cast<int>(this->bottom) << std::endl;
+
+    
+    //this->setX(static_cast<int>(screenUi->width - 240));
+    //this->setY(static_cast<int>(screenUi->height - 135));
+    
+    //this->setLeftMargin(-240);
+    
+    //this->setTopMargin(-135);
 
     texture = new TextureComponent(this->width, this->height, "res/menu/Menu2.png");
-    texture->setX(this->x);
-    texture->setY(this->y);
+    //texture->setX(this->x);
+    //texture->setY(this->y);
+
+    texture->setTopAnchor(&this->top);
+    //this->setTopMargin(-135);
+    texture->setLeftAnchor(&this->left);
+    //this->setLeftMargin(-240);
 
     auto text1 = Sentence({"Base House"}, 4.0f, fontLoader);
     //text1.setX(this->x + 10);
     //text1.setY(this->y + 10);
-    text1.setX(this->x + 11);
-    text1.setY(this->y + 41);
+    
+    //text1.setX(this->x + 11);
+    //text1.setY(this->y + 41);
 
-    textVector.push_back(text1);
+    textVector.push_back(text1); // TODO take care of the pb of object referencing because dumb std::vector create copies and doesn t not move the object in it 
+    //textVector[0].setBottomAnchor(&this->bottom); //TODO Fix issue when text is rendered in bottom right it need to be divided by 2
+    //textVector[0].setBottomAnchor(&this->bottom);
+
+    textVector[0].setTopAnchor(&this->top); // TODO need to create a check of fix this issue: parenting must be done AFTER pushing the object in the vector
+                                            // cause the vector create a copy thus invaliding parent to child call !
+    textVector[0].setTopMargin(41);
+    textVector[0].setLeftAnchor(&this->left);
+    textVector[0].setLeftMargin(10);
 
     auto tileRenderer = LoaderRenderComponent<TilesLoader::TilesId>(tileLoader->getTile("Base House"));
-    tileRenderer.setX(this->x + 11);
-    tileRenderer.setY(this->y + 41 + 30);
-    tileRenderer.setWidth(50.0f);
-    tileRenderer.setHeight(50.0f);
-
     auto tileRenderer2 = LoaderRenderComponent<TilesLoader::TilesId>(tileLoader->getTile("Base Shop"));
-    tileRenderer2.setX(this->x + 11 + 60);
-    tileRenderer2.setY(this->y + 41 + 30);
-    tileRenderer2.setWidth(50.0f);
-    tileRenderer2.setHeight(50.0f);
-
     auto tileRenderer3 = LoaderRenderComponent<TilesLoader::TilesId>(tileLoader->getTile("Base Road RoundAbout"));
-    tileRenderer3.setX(this->x + 11 + 60 + 60);
-    tileRenderer3.setY(this->y + 41 + 30);
-    tileRenderer3.setWidth(50.0f);
-    tileRenderer3.setHeight(50.0f);
     
     tileRendererVector.push_back(tileRenderer);
     tileRendererVector.push_back(tileRenderer2);
     tileRendererVector.push_back(tileRenderer3);
+
+    tileRendererVector[0].setTopAnchor(&textVector[0].bottom);
+    tileRendererVector[0].setLeftAnchor(&textVector[0].left);
+    tileRendererVector[0].setTopMargin(5);
+
+    tileRendererVector[0].setWidth(50.0f);
+    tileRendererVector[0].setHeight(50.0f);
+
+    tileRendererVector[1].setTopAnchor(&tileRendererVector[0].top);
+    tileRendererVector[1].setLeftAnchor(&tileRendererVector[0].right);
+    tileRendererVector[1].setLeftMargin(5);
+
+    tileRendererVector[1].setWidth(50.0f);
+    tileRendererVector[1].setHeight(50.0f);
+
+    tileRendererVector[2].setTopAnchor(&tileRendererVector[1].top);
+    tileRendererVector[2].setLeftAnchor(&tileRendererVector[1].right);
+    tileRendererVector[2].setLeftMargin(5);
+
+    tileRendererVector[2].setWidth(50.0f);
+    tileRendererVector[2].setHeight(50.0f);
 
     mouseAreaVector.push_back(new MouseInputBase<Map>(&tileRendererVector[0]));
     mouseAreaVector.push_back(new MouseInputBase<Map>(&tileRendererVector[1]));
@@ -88,6 +134,9 @@ void TileSelector::render(MasterRenderer* masterRenderer)
 {
     if(this->visible == false)
         return;
+
+    //texture->setX(this->x);
+    //texture->setY(this->y);
     
     auto rTable = masterRenderer->getParameter();
 
@@ -129,36 +178,9 @@ void TileSelector::render(MasterRenderer* masterRenderer)
 
     defaultShaderProgram->release();
 
-    auto textShaderProgram = masterRenderer->getShader("text");
-
-    textShaderProgram->bind();
-
-    scale.setToIdentity();
-    scale.scale(QVector3D(1.0f / screenWidth, 1.0f / screenHeight, 0.0f));
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, masterRenderer->getTexture("font"));
-
-    textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("projection"), projection);
-    textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("model"), model);
-    textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("scale"), scale);
-
-    textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("time"), static_cast<int>(currentTime % 314159));
-
+    // TODO create a list rendering
     for(auto text : textVector)
-    {
-        if(text.initialised == false)
-            text.generateMesh();
-
-        view.setToIdentity();
-        view.translate(QVector3D(-1.0f + 2.0 * (float)(text.x) / screenWidth, 1.0f + 2.0 * (float)( -text.y) / screenHeight, 0.0f));
-        textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("view"), view);
-
-        text.VAO->bind();
-        glDrawElements(GL_TRIANGLES, text.modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
-        
-    }
-    textShaderProgram->release();   
+        masterRenderer->render<SentenceRenderer>(&text);
 }
 
 TileSelector::~TileSelector()
