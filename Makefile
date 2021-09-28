@@ -28,7 +28,7 @@ IFLAGS = #-IC:\Users\gallas.gaye\AppData\Local\Programs\Python\Python37\include
 LIBS = 
 
 # define output directory
-OUTPUT	:= output2
+OUTPUT	:= output
 
 # define source directory
 SRC		:= src

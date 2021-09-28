@@ -37,15 +37,21 @@ void GameWindow::initialize()
     defaultShaderProgram->addShaderFromSourceFile(QOpenGLShader::Fragment, "shader/default.fs");
     defaultShaderProgram->link();
 
+    std::cout << glGetError() << std::endl;
+
     guiShaderProgram = new QOpenGLShaderProgram(this);
     guiShaderProgram->addShaderFromSourceFile(QOpenGLShader::Vertex, "shader/default.vs");
     guiShaderProgram->addShaderFromSourceFile(QOpenGLShader::Fragment, "shader/default.fs");
     guiShaderProgram->link();
 
+    std::cout << glGetError() << std::endl;
+
     textShaderProgram = new QOpenGLShaderProgram(this);
     textShaderProgram->addShaderFromSourceFile(QOpenGLShader::Vertex, "shader/textrendering.vs");
     textShaderProgram->addShaderFromSourceFile(QOpenGLShader::Fragment, "shader/textrendering.fs");
     textShaderProgram->link();
+
+    std::cout << glGetError() << std::endl;
 
     // texture Atlas
     // ---------
@@ -135,30 +141,52 @@ void GameWindow::initialize()
 
     instanceVBO->create();
 
-    auto tileVertices = new float[20];
-
+    //auto tileVertices = new float[20];
+//
+    //////                 x                         y                         z                      texpos x                 texpos y
+	////tileVertices[0] =  -0.5f; tileVertices[1] =   0.5f; tileVertices[2] =  0.0f; tileVertices[3] =  0.0f; tileVertices[4] =  1.0f;   
+	////tileVertices[5] =   0.5f; tileVertices[6] =   0.5f; tileVertices[7] =  0.0f; tileVertices[8] =  1.0f; tileVertices[9] =  1.0f;
+	////tileVertices[10] = -0.5f; tileVertices[11] = -0.5f; tileVertices[12] = 0.0f; tileVertices[13] = 0.0f; tileVertices[14] = 0.0f;
+	////tileVertices[15] =  0.5f; tileVertices[16] = -0.5f; tileVertices[17] = 0.0f; tileVertices[18] = 1.0f; tileVertices[19] = 0.0f;
+//
+    //float width = 50.0f, height = 50.0f;
+//
     ////                 x                         y                         z                      texpos x                 texpos y
-	//tileVertices[0] =  -0.5f; tileVertices[1] =   0.5f; tileVertices[2] =  0.0f; tileVertices[3] =  0.0f; tileVertices[4] =  1.0f;   
-	//tileVertices[5] =   0.5f; tileVertices[6] =   0.5f; tileVertices[7] =  0.0f; tileVertices[8] =  1.0f; tileVertices[9] =  1.0f;
-	//tileVertices[10] = -0.5f; tileVertices[11] = -0.5f; tileVertices[12] = 0.0f; tileVertices[13] = 0.0f; tileVertices[14] = 0.0f;
-	//tileVertices[15] =  0.5f; tileVertices[16] = -0.5f; tileVertices[17] = 0.0f; tileVertices[18] = 1.0f; tileVertices[19] = 0.0f;
+	//tileVertices[0] =  0.0f ; tileVertices[1] =   0.0f  ; tileVertices[2] =  0.0f; tileVertices[3] =  0.0f; tileVertices[4] =  1.0f;   
+	//tileVertices[5] =  width; tileVertices[6] =   0.0f  ; tileVertices[7] =  0.0f; tileVertices[8] =  1.0f; tileVertices[9] =  1.0f;
+	//tileVertices[10] = 0.0f ; tileVertices[11] = -height; tileVertices[12] = 0.0f; tileVertices[13] = 0.0f; tileVertices[14] = 0.0f;
+	//tileVertices[15] = width; tileVertices[16] = -height; tileVertices[17] = 0.0f; tileVertices[18] = 1.0f; tileVertices[19] = 0.0f;
+//
+	//unsigned int nbTileVertices = 20;
+//
+	//auto tileVerticesIndice = new unsigned int[6];
+//
+	//tileVerticesIndice[0] = 0; tileVerticesIndice[1] = 1; tileVerticesIndice[2] = 2;
+	//tileVerticesIndice[3] = 1; tileVerticesIndice[4] = 2; tileVerticesIndice[5] = 3;
+//
+	//unsigned int nbOfElements = 6;
 
-    float width = 50.0f, height = 50.0f;
+    constant::Geometry2D abstractGeometry;
+    abstractGeometry.points.push_back(constant::Vector2D(2.0f, 0.0f));
+    abstractGeometry.points.push_back(constant::Vector2D(4.0f, 0.0f));
+    abstractGeometry.points.push_back(constant::Vector2D(6.0f, 2.0f));
+    abstractGeometry.points.push_back(constant::Vector2D(6.0f, 4.0f));
+    abstractGeometry.points.push_back(constant::Vector2D(4.0f, 6.0f));
+    abstractGeometry.points.push_back(constant::Vector2D(2.0f, 6.0f));
+    abstractGeometry.points.push_back(constant::Vector2D(0.0f, 4.0f));
+    abstractGeometry.points.push_back(constant::Vector2D(0.0f, 2.0f));
 
-    //                 x                         y                         z                      texpos x                 texpos y
-	tileVertices[0] =  0.0f ; tileVertices[1] =   0.0f  ; tileVertices[2] =  0.0f; tileVertices[3] =  0.0f; tileVertices[4] =  1.0f;   
-	tileVertices[5] =  width; tileVertices[6] =   0.0f  ; tileVertices[7] =  0.0f; tileVertices[8] =  1.0f; tileVertices[9] =  1.0f;
-	tileVertices[10] = 0.0f ; tileVertices[11] = -height; tileVertices[12] = 0.0f; tileVertices[13] = 0.0f; tileVertices[14] = 0.0f;
-	tileVertices[15] = width; tileVertices[16] = -height; tileVertices[17] = 0.0f; tileVertices[18] = 1.0f; tileVertices[19] = 0.0f;
+    abstractGeometry.trianglesIndices.push_back(constant::TriangleIndices(0, 1, 7));
+    abstractGeometry.trianglesIndices.push_back(constant::TriangleIndices(1, 2, 7));
+    abstractGeometry.trianglesIndices.push_back(constant::TriangleIndices(7, 2, 6));
+    abstractGeometry.trianglesIndices.push_back(constant::TriangleIndices(2, 3, 6));
+    abstractGeometry.trianglesIndices.push_back(constant::TriangleIndices(6, 3, 5));
+    abstractGeometry.trianglesIndices.push_back(constant::TriangleIndices(3, 4, 5));
 
-	unsigned int nbTileVertices = 20;
+    constant::Rectangle2D rect(width() / 2, height() / 2, width() / 2, height() / 2);
 
-	auto tileVerticesIndice = new unsigned int[6];
-
-	tileVerticesIndice[0] = 0; tileVerticesIndice[1] = 1; tileVerticesIndice[2] = 2;
-	tileVerticesIndice[3] = 1; tileVerticesIndice[4] = 2; tileVerticesIndice[5] = 3;
-
-	unsigned int nbOfElements = 6;
+    //info = new constant::GeometryVertices(rect);
+    info = new constant::GeometryVertices(rect);
 
     SquareVAO->bind();
 
@@ -166,7 +194,7 @@ void GameWindow::initialize()
     
     SquareVBO->bind();
     SquareVBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
-    SquareVBO->allocate(tileVertices, nbTileVertices * sizeof(float));
+    SquareVBO->allocate(info->vertices, info->nbVertices * sizeof(float));
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
@@ -175,17 +203,17 @@ void GameWindow::initialize()
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
-    instanceVBO->bind();
-    instanceVBO->setUsagePattern(QOpenGLBuffer::DynamicDraw);
-    instanceVBO->allocate(particleList, nbMaxParticle * sizeof(Particle));
-
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    extraFunctions->glVertexAttribDivisor(2, 1);
+    //instanceVBO->bind();
+    //instanceVBO->setUsagePattern(QOpenGLBuffer::DynamicDraw);
+    //instanceVBO->allocate(particleList, nbMaxParticle * sizeof(Particle));
+//
+    //glEnableVertexAttribArray(2);
+    //glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    //extraFunctions->glVertexAttribDivisor(2, 1);
 
     SquareEBO->bind();
     SquareEBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
-    SquareEBO->allocate(tileVerticesIndice, nbOfElements * sizeof(unsigned int));
+    SquareEBO->allocate(info->indices, info->nbIndices * sizeof(unsigned int));
 
     SquareVAO->release();
 
@@ -362,34 +390,39 @@ void GameWindow::renderUi()
     projection.setToIdentity();
     view.setToIdentity();
 
-    guiShaderProgram->bind();
+    defaultShaderProgram->bind();
 
     //glBindTexture(GL_TEXTURE_2D, baseMenu1);
 
     projection.setToIdentity();
     view.setToIdentity();
     scale.setToIdentity();
-    //scale.scale(QVector3D(2.0f, 2.0f, 0.0f));
-    scale.scale(QVector3D(1.0f / width(), 1.0f / height(), 0.0f));
+    //scale.scale(QVector3D(50.0f, 50.0f, 0.0f));
+    scale.scale(QVector3D(2.0f / width(), 2.0f / height(), 0.0f));
     model.setToIdentity();
     view.translate(QVector3D(-1.0f, 1.0f, 0.0f));
 
-    guiShaderProgram->setUniformValue(guiShaderProgram->uniformLocation("projection"), projection);
-    guiShaderProgram->setUniformValue(guiShaderProgram->uniformLocation("view"), view);
-    guiShaderProgram->setUniformValue(guiShaderProgram->uniformLocation("model"), model);
-    guiShaderProgram->setUniformValue(guiShaderProgram->uniformLocation("scale"), scale);
+    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("projection"), projection);
+    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
+    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("model"), model);
+    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("scale"), scale);
+
+    //for(int i = 0; i < info->nbVertices; i++)
+    //    std::cout << info->vertices[i] << std::endl;
 
     SquareVAO->bind();
 
-    instanceVBO->bind();
-    instanceVBO->setUsagePattern(QOpenGLBuffer::DynamicDraw);
-    instanceVBO->allocate(particleList, nbMaxParticle * sizeof(Particle));
+    glDrawElements(GL_TRIANGLES, info->nbIndices, GL_UNSIGNED_INT, 0);
+
+    //instanceVBO->bind();
+    //instanceVBO->setUsagePattern(QOpenGLBuffer::DynamicDraw);
+    //instanceVBO->allocate(particleList, nbMaxParticle * sizeof(Particle));
 
     //glEnableVertexAttribArray(2);
     //glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     //extraFunctions->glVertexAttribDivisor(2, 1);
 
-    extraFunctions->glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, nbMaxParticle);
+    //extraFunctions->glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0, nbMaxParticle);
 }
 
 void GameWindow::tick()

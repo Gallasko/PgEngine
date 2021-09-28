@@ -459,164 +459,30 @@ struct ParticleComponent
     ParticleSubData **particleSubDataList;
 };
 
-#include "constant.h"
+//#include "constant.h"
 
-typedef constant::Vector2D Centroid;
-
-struct TriangleIndices
-{
-    int indice1, indice2, indice3;
-
-    TriangleIndices(int i1, int i2, int i3) : indice1(i1), indice2(i2), indice3(i3) { }
-    TriangleIndices(const TriangleIndices& rhs) : indice1(rhs.indice1), indice2(rhs.indice2), indice3(rhs.indice3) { }
-};
-
-struct Geometry2D
-{
-    std::vector<constant::Vector2D> points;
-    std::vector<TriangleIndices> trianglesIndices;
-};
-
-struct Collidable2D
-{
-    Geometry2D geometry;
-
-    bool collideWith(const Collidable2D* obj) const { if(collideFunc(obj)) return true; if(obj->collideFunc(this)) return true; return false; }
-    std::function<bool(const Collidable2D*)> collideFunc;
-};
-
-//struct AbstractShape2D : public Collidable2D
-//{
-//
-//};
-
-double getTriangleArea(const constant::Vector2D& point1, const constant::Vector2D& point2, const constant::Vector2D& point3)
-{
-    return std::abs(point1.x * point2.y + point2.x * point3.y + point3.x * point1.y
-                   -point1.x * point3.y - point3.x * point2.y - point2.x * point1.y) / 2.0f;
-}
-
-Centroid getCentroid(const constant::Vector2D& point1, const constant::Vector2D& point2, const constant::Vector2D& point3)
-{
-    return Centroid((point1.x + point2.x + point3.x) / 3.0f, (point1.y + point2.y + point3.y) / 3.0f);
-}
-
-struct Triangle2D : public Collidable2D
-{
-    Triangle2D(const constant::Vector2D& p1, const constant::Vector2D& p2, const constant::Vector2D& p3){
-        geometry.points.push_back(p1);
-        geometry.points.push_back(p2);
-        geometry.points.push_back(p3);
-
-        geometry.trianglesIndices.push_back(TriangleIndices(0, 1, 2));
-
-        collideFunc = [=](const Collidable2D* obj){ 
-            const auto point1 = geometry.points[0];
-            const auto point2 = geometry.points[1];
-            const auto point3 = geometry.points[2];
-            //abs(x1*y2+x2*y3+x3*y1-x1*y3-x3*y2-x2*y1)/2
-
-            const double triangleArea = getTriangleArea(point1, point2, point3);
-            std::cout << "TrianglePoint : " << point1.x << "," << point1.y << " " << point2.x << "," << point2.y << " " << point3.x << "," << point3.y << std::endl;
-            std::cout << triangleArea << std::endl;
-
-            for(auto point : obj->geometry.points)
-            {
-                //std::cout << "Collision Check" << std::endl;
-                const double Area1 = getTriangleArea(point, point1, point2);
-                const double Area2 = getTriangleArea(point, point2, point3);
-                const double Area3 = getTriangleArea(point, point3, point1);
-
-                if(triangleArea == Area1 + Area2 + Area3)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        };
-    }
-
-    Triangle2D(const Triangle2D& obj) : Triangle2D(obj.geometry.points[0], obj.geometry.points[1], obj.geometry.points[2]) { }
-};
-
-struct Rectangle2D : public Collidable2D
-{
-    constant::Vector2D pos;
-    constant::Vector2D scale;
-
-    Rectangle2D(const float& x, const float& y, const float& w, const float& h) {
-        pos = constant::Vector2D(x, y);
-        scale = constant::Vector2D(w, h);
-
-        geometry.points.push_back(constant::Vector2D(x, y));
-        geometry.points.push_back(constant::Vector2D(x + w, y));
-        geometry.points.push_back(constant::Vector2D(x, y + h));
-        geometry.points.push_back(constant::Vector2D(x + w, y + h));
-
-        geometry.trianglesIndices.push_back(TriangleIndices(0, 1, 2));
-        geometry.trianglesIndices.push_back(TriangleIndices(1, 2, 3));
-
-        collideFunc = [=](const Collidable2D *obj){
-            for(auto point : obj->geometry.points)
-            {
-                //std::cout << "Collision Check" << std::endl;
-                if(point.x >= pos.x && point.x <= pos.x + scale.x && point.y >= pos.y && point.y <= pos.y + scale.y)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        };
-    }
-};
-
-struct AbstractShape2D : public Collidable2D
-{
-    std::vector<Triangle2D> triangleList;
-
-    AbstractShape2D(const Geometry2D& geometry) {
-        this->geometry = geometry;
-
-        for(auto triangle : geometry.trianglesIndices)
-            triangleList.push_back(Triangle2D(geometry.points[triangle.indice1], geometry.points[triangle.indice2], geometry.points[triangle.indice3]));
-
-        collideFunc = [=](const Collidable2D* obj){
-            for(auto triangle : triangleList)
-            {
-                bool collision = triangle.collideWith(obj);
-
-                if(collision)
-                    return true;
-            }
-
-            return false;
-        };
-    }
-
-    //~AbstractShape2D() { for(auto triangle : triangleList) delete triangle; }
-};
+//using namespace constant;
 
 int main(int argc, char *argv[])
 {
-    //QSurfaceFormat format;
-    //format.setSwapInterval(0);
-    //format.setRenderableType(QSurfaceFormat::OpenGL);
-    ////format.setProfile(QSurfaceFormat::CoreProfile);
-    //format.setVersion(3, 3);
-//
-    //QSurfaceFormat::setDefaultFormat(format);
-	//QGuiApplication app(argc, argv);
+    QSurfaceFormat format;
+    format.setSwapInterval(0);
+    format.setRenderableType(QSurfaceFormat::OpenGL);
+    //format.setProfile(QSurfaceFormat::CoreProfile);
+    format.setVersion(3, 3);
 
-	//GameWindow a;
-    //a.resize(640, 480);
-    //a.setAnimating(true);
-    //a.show();
-    //
-    //QObject::connect(&a, SIGNAL(quitApp()), &app, SLOT(quit()));
-//
-	//return app.exec();
+    QSurfaceFormat::setDefaultFormat(format);
+	QGuiApplication app(argc, argv);
+	GameWindow a;
+    a.resize(640, 480);
+    a.setAnimating(true);
+    a.show();
+    
+    QObject::connect(&a, SIGNAL(quitApp()), &app, SLOT(quit()));
+
+	return app.exec();
+
+    /*
     {
         Geometry2D abstractGeometry;
         abstractGeometry.points.push_back(constant::Vector2D(9 ,  3));
@@ -671,16 +537,17 @@ int main(int argc, char *argv[])
         for(int i = 0; i < 5; i++)
             delete collideList[i];
 
-        auto centroid = getCentroid(constant::Vector2D(0, 0), constant::Vector2D(5, 5), constant::Vector2D(10, 0));
+        auto centroid = Triangle2D::getCentroid(constant::Vector2D(0, 0), constant::Vector2D(5, 5), constant::Vector2D(10, 0));
         std::cout << centroid.x << " " << centroid.y << std::endl;
-        auto centroid2 = getCentroid(constant::Vector2D(7, 2), constant::Vector2D(7, 6), constant::Vector2D(11, 2));
+        auto centroid2 = Triangle2D::getCentroid(constant::Vector2D(7, 2), constant::Vector2D(7, 6), constant::Vector2D(11, 2));
         std::cout << centroid2.x << " " << centroid2.y << std::endl;
     }
+
 
     std::cout << "Succefully destroyed" << std::endl;
 
     return 0;
-
+    */
 
     //std::vector< std::function<void()> > tickFunction; 
 

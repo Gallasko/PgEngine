@@ -102,6 +102,8 @@ private:
     QOpenGLVertexArrayObject *SquareVAO;
 	QOpenGLBuffer *SquareVBO;
 	QOpenGLBuffer *SquareEBO;
+
+    constant::GeometryVertices *info;
 	
     QOpenGLBuffer *instanceVBO;
 
