@@ -197,6 +197,8 @@ struct TextureComponent : public UiComponent, private QOpenGLFunctions
 	QOpenGLBuffer *VBO = nullptr;
 	QOpenGLBuffer *EBO = nullptr;
 
+    float oldWidth = width, oldHeight = height;
+
     bool initialised = false;
 };
 

@@ -40,7 +40,7 @@ void UiComponent::update()
     }
     else if(topAnchor == nullptr && bottomAnchor != nullptr)
     {
-        this->y = static_cast<int>(*bottomAnchor) - bottomMargin - this->height;// / 2; //TODO need to find out from where this /2 come from
+        this->y = static_cast<int>(*bottomAnchor) - bottomMargin - this->height;
     }
 
     if(rightAnchor != nullptr && leftAnchor != nullptr)
@@ -50,7 +50,7 @@ void UiComponent::update()
     }
     else if(rightAnchor != nullptr && leftAnchor == nullptr)
     {
-        this->x = static_cast<int>(*rightAnchor) - rightMargin - this->width;// / 2;
+        this->x = static_cast<int>(*rightAnchor) - rightMargin - this->width;
     }
     else if(rightAnchor == nullptr && leftAnchor != nullptr)
     {
@@ -108,27 +108,8 @@ TextureComponent::TextureComponent(const TextureComponent &rhs) : UiComponent(rh
 	VBO->create();
 	EBO->create();
 
-    //this->visible = rhs.visible;
-    //this->x = rhs.x;
-    //this->y = rhs.y;
-    //this->z = rhs.z;
-    //this->width = rhs.width;
-    //this->height = rhs.height;
-    //this->scale = rhs.scale;
-    //this->topAnchor = rhs.topAnchor;
-    //this->rightAnchor = rhs.rightAnchor;
-    //this->bottomAnchor = rhs.bottomAnchor;
-    //this->leftAnchor = rhs.leftAnchor;
-    //this->top = rhs.top;
-    //this->right = rhs.right;
-    //this->bottom = rhs.bottom;
-    //this->left = rhs.left;
-    //this->topMargin = rhs.topMargin;
-    //this->rightMargin = rhs.rightMargin;
-    //this->bottomMargin = rhs.bottomMargin;
-    //this->leftMargin = rhs.leftMargin;
-    //this->children = rhs.children;
-    //this->scale = scale;
+    this->oldWidth = rhs.oldWidth;
+    this->oldHeight = rhs.oldHeight;
 
     this->modelInfo = rhs.modelInfo;
 
@@ -144,22 +125,25 @@ TextureComponent::~TextureComponent()
 	delete EBO;
 }
 
+#include <iostream>
 void TextureComponent::generateMesh()
 {
-    static float oldWidth = 0.0f, oldheight = 0.0f;
-
-    if(oldWidth != width || oldheight != height)
+    if(oldWidth != width || oldHeight != height)
         initialised = false;
 
     if(!initialised)
     {
-        modelInfo.vertices[0] =  0.0f;  modelInfo.vertices[1] =    0.0f; modelInfo.vertices[2] =  0.0f;
-        modelInfo.vertices[5] =  width; modelInfo.vertices[6] =    0.0f; modelInfo.vertices[7] =  0.0f;
+//        std::cout << width << " " << height << std::endl;
+
+        // TODO fix this generateMesh() why we need a *2 to get correct size and why does it update itself each frame ?
+
+        modelInfo.vertices[0] =  0.0f;  modelInfo.vertices[1] =    0.0f;   modelInfo.vertices[2] =  0.0f;
+        modelInfo.vertices[5] =  width; modelInfo.vertices[6] =    0.0f;   modelInfo.vertices[7] =  0.0f;
         modelInfo.vertices[10] = 0.0f;  modelInfo.vertices[11] =  -height; modelInfo.vertices[12] = 0.0f;
         modelInfo.vertices[15] = width; modelInfo.vertices[16] =  -height; modelInfo.vertices[17] = 0.0f;
 
         oldWidth = width;
-        oldheight = height;
+        oldHeight = height;
 
         VAO->bind();
 
@@ -204,7 +188,9 @@ void TextureRenderer::render(MasterRenderer* masterRenderer...)
     projection.setToIdentity();
     model.setToIdentity();
     scale.setToIdentity();
-    scale.scale(QVector3D(2.0f / screenWidth, 2.0f / screenHeight, 0.0f));
+    scale.scale(QVector3D(2.0f / screenWidth, 2.0f / screenHeight, 0.0f)); 
+    // TODO why does it need to be scale * 2 ( the scaling now happen in the shader ) <- Done the * 2 is needed to map the -1 <-> 1 space to a 0 <-> 1 space 
+    // Need to make a note about that
 
     auto shaderProgram = masterRenderer->getShader("default");
 

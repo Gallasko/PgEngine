@@ -64,8 +64,9 @@ void Camera::ProcessMouseMovement(float xoffset, float yoffset, Input *inputHand
 
     if(inputHandler->isButtonPressed(Qt::RightButton))
     {
-        Position += Up * yoffset;
-        Position += Right * xoffset;
+        //TODO check this value and correct them 
+        Position += Up * yoffset / 2.0f;
+        Position += Right * xoffset / 2.0f;
     }
 
     // update Front, Right and Up Vectors using the updated Euler angles

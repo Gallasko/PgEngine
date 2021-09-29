@@ -226,7 +226,7 @@ void SentenceRenderer::render(MasterRenderer* masterRenderer...)
     projection.setToIdentity();
     model.setToIdentity();
     scale.setToIdentity();
-    scale.scale(QVector3D(1.0f / screenWidth, 1.0f / screenHeight, 0.0f));
+    scale.scale(QVector3D(2.0f / screenWidth, 2.0f / screenHeight, 0.0f));
 
     auto shaderProgram = masterRenderer->getShader("text");
 

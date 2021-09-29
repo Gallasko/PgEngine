@@ -18,6 +18,9 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
     this->setRightAnchor(&screenUi->right);
     this->setBottomAnchor(&screenUi->bottom);
 
+    //this->setRightMargin(200);
+    //this->setBottomMargin(200);
+
     //this->setLeftAnchor(&screenUi->left);
     //this->setTopAnchor(&screenUi->top);
 
@@ -44,8 +47,8 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
     texture->setLeftAnchor(&this->left);
     //this->setLeftMargin(-240);
 
-    auto text1 = Sentence({"Base House"}, 4.0f, fontLoader);
-    //text1.setX(this->x + 10);
+    auto text1 = Sentence({"Base House"}, 2.0f, fontLoader);
+    //text1.setX(this->x + 10)
     //text1.setY(this->y + 10);
     
     //text1.setX(this->x + 11);
@@ -60,6 +63,12 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
     textVector[0].setTopMargin(41);
     textVector[0].setLeftAnchor(&this->left);
     textVector[0].setLeftMargin(10);
+
+    //textVector[0].setBottomAnchor(&this->bottom); // TODO need to create a check of fix this issue: parenting must be done AFTER pushing the object in the vector
+    //                                        // cause the vector create a copy thus invaliding parent to child call !
+    //textVector[0].setBottomMargin(5);
+    //textVector[0].setRightAnchor(&this->right);
+    //textVector[0].setRightMargin(5);
 
     auto tileRenderer = LoaderRenderComponent<TilesLoader::TilesId>(tileLoader->getTile("Base House"));
     auto tileRenderer2 = LoaderRenderComponent<TilesLoader::TilesId>(tileLoader->getTile("Base Shop"));
@@ -179,7 +188,7 @@ void TileSelector::render(MasterRenderer* masterRenderer)
     defaultShaderProgram->release();
 
     // TODO create a list rendering
-    for(auto text : textVector)
+    for(auto& text : textVector)
         masterRenderer->render<SentenceRenderer>(&text);
 }
 

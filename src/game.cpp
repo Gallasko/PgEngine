@@ -112,8 +112,10 @@ void GameWindow::initialize()
 
     screenEntity = ecs.createEntity();
     screenUi = ecs.attach<UiComponent>(screenEntity, {});
-    screenUi->setWidth(width());
-    screenUi->setHeight(height());
+    //screenUi->setWidth(width());
+    //screenUi->setHeight(height());
+    screenUi->setWidth(1);
+    screenUi->setHeight(1);
     screenUi->setZ(0);
 
     std::cout << width() << std::endl;
@@ -153,6 +155,7 @@ void GameWindow::initialize()
 
     //cmpTexTest = new TextureComponent(300, 300, "res/menu/Menu2.png");
 
+    /*
     //Particle Gen
     pComponent = new ParticleComponent();
     pComponent->instanceVBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
@@ -263,6 +266,8 @@ void GameWindow::initialize()
             pComponent->particleList[i].texOffset = pMoveData->textureSeq[(pMoveData->timeAlive / pMoveData->textureChangeRate) % pMoveData->textureSeq.size()];
         }};
 
+    */
+
     ticking = true;
     std::thread t (&GameWindow::tick, this);
 
@@ -352,7 +357,7 @@ void GameWindow::render()
 
     masterRenderer << tileSelector;
 
-    masterRenderer.render<ParticleRenderer>(pComponent);
+    //masterRenderer.render<ParticleRenderer>(pComponent);
 
     inputHandler->updateInput(float(currentTime - lastTime) / 1000);
 
@@ -381,9 +386,6 @@ void GameWindow::keyReleaseEvent(QKeyEvent *event)
         event->ignore();
     else
         inputHandler->registerKeyInput((Qt::Key)event->key(), Input::InputState::KEYRELEASED);
-
-    if(inputHandler->isKeyReleased(Qt::Key_Control) || inputHandler->isKeyReleased(Qt::Key_3))
-        debugSwitched = false;
 }
 
 void GameWindow::mouseMoveEvent(QMouseEvent *event)
@@ -668,7 +670,7 @@ void GameWindow::renderUi()
     //glEnable(GL_SCISSOR_TEST);
     //glScissor(300, 200, 200, 500);
 
-    for(auto texture : ecs.view<TextureComponent>())
+    for(auto& texture : ecs.view<TextureComponent>())
     {
         if(texture.visible)
         {
@@ -709,7 +711,7 @@ void GameWindow::renderUi()
 
     textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("time"), static_cast<int>(currentTime % 314159));
 
-    for(auto sentence : ecs.view<Sentence>())
+    for(auto& sentence : ecs.view<Sentence>()) //TODO set a note about how auto& is important to pass by ref and not create a copy which is costy 
     {
         if(sentence.visible)
         {
@@ -739,7 +741,7 @@ void GameWindow::tick()
     {
         lastTickTime = QDateTime::currentMSecsSinceEpoch();
 
-        pComponent->onTick();
+        //pComponent->onTick();
 
         gold += 1;
         //auto goldTextC = goldText->get<Sentence>();
