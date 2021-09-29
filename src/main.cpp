@@ -463,8 +463,271 @@ struct ParticleComponent
 
 //using namespace constant;
 
+//Todo change name
+struct UiSize
+{
+    float pixelSize = 0;
+    float scaleValue = 0.0f;
+    UiSize *refSize = nullptr;
+
+    UiSize() {}
+    UiSize(float pixelSize = 0, float scaleValue = 0, UiSize* ref = nullptr) : pixelSize(pixelSize), scaleValue(scaleValue), refSize(ref) {}
+    UiSize(const UiSize& size) : pixelSize(size.pixelSize), scaleValue(size.scaleValue), refSize(size.refSize) {}
+
+    static float returnCurrentSize(const UiSize* size)
+    {
+        if(size == nullptr)
+            return 0;
+        else
+            return size->pixelSize + returnCurrentSize(size->refSize) * size->scaleValue;
+    }
+
+    void operator=(const UiSize& rhs)
+    {
+        this->pixelSize = rhs.pixelSize;
+        this->scaleValue = rhs.scaleValue;
+        this->refSize = rhs.refSize;
+    }
+
+    void operator=(UiSize *rhs) // Todo add this operator in the official release
+    {
+        this->pixelSize = 0;
+        this->scaleValue = 1.0f;
+        this->refSize = rhs;
+    }
+
+    void operator=(const int& rhs)
+    {
+        this->pixelSize = rhs;
+        this->scaleValue = 0.0;
+        this->refSize = nullptr;
+    }
+
+    UiSize operator*(const float& rhs)
+    {
+        return UiSize(0, rhs, this);
+    }
+
+    UiSize operator+(const int& rhs)
+    {
+        return UiSize(rhs, 1.0f, this); //TODO modify this in the official release
+    }
+
+    UiSize operator+(const float& rhs)
+    {
+        return UiSize(rhs, 1.0f, this); //TODO modify this in the official release
+    }
+
+    UiSize operator-(const int& rhs)
+    {
+        return UiSize(-rhs, 1.0f, this); //TODO modify this in the official release
+    }
+
+    float operator-()
+    {
+        return -UiSize::returnCurrentSize(this);
+    }
+
+    template<typename Type>
+    friend Type operator+(const Type& lhs, const UiSize& rhs);
+
+    template<typename Type>
+    friend Type operator-(const Type& lhs, const UiSize& rhs);
+
+    operator float()
+    {
+        return UiSize::returnCurrentSize(this);
+    }
+};
+
+struct PositionalStruct 
+{
+    struct PositionElement
+    {
+        PositionElement(void (**updateFunc)(void), UiSize value = UiSize(0, 0, nullptr)) : value(value), updateFunc(updateFunc) {}
+
+        UiSize value = UiSize(0, 0, nullptr);
+        
+        void (**updateFunc)(void);
+
+        void operator=(const UiSize& rhs)
+        {
+            this->value.pixelSize = rhs.pixelSize;
+            this->value.scaleValue = rhs.scaleValue;
+            this->value.refSize = rhs.refSize;
+
+            if(*updateFunc != nullptr)
+                (*updateFunc)();
+        }
+
+        void operator=(const int& rhs)
+        {
+            this->value.pixelSize = rhs;
+            this->value.scaleValue = 0.0;
+            this->value.refSize = nullptr;
+            
+            if(*updateFunc != nullptr)
+                (*updateFunc)();
+        }
+
+        operator float()
+        {
+            return UiSize::returnCurrentSize(&value);
+        }
+    };
+
+    //TODO create ctor dtor copy and swap
+
+    PositionalStruct() {}
+    PositionalStruct(const PositionalStruct& other) : updateFunc(other.updateFunc) {
+        x = PositionElement(&updateFunc);
+        y = PositionElement(&updateFunc);
+        z = PositionElement(&updateFunc);
+
+        //TODO clean this copy of UiSize value by copying the assignement operator from UiSize
+        x.value = other.x.value;
+        y.value = other.y.value;
+        z.value = other.z.value;
+    }
+
+    PositionElement x = PositionElement(&updateFunc);
+    PositionElement y = PositionElement(&updateFunc);
+    PositionElement z = PositionElement(&updateFunc);
+
+    void (*updateFunc)(void) = nullptr;
+};
+
+struct KeyPoint // TODO create copy and swap, and test it on edge case and test for memory leaks
+{
+    KeyPoint() { }
+    KeyPoint(const PositionalStruct& pos, const unsigned int& time) : pos(pos), time(time) {}
+    KeyPoint(const UiSize& x, const UiSize& y, const UiSize& z, const unsigned int& time) : time(time) { pos.x = x; pos.y = y; pos.z = z; }
+
+    PositionalStruct pos; 
+    unsigned int time;
+};
+
+struct Sequence // TODO add interpolation support and default interpolation type
+{
+    template<typename... Args>
+    Sequence(Args... args) { add(args...); }
+
+    //TODO check that the keypoint time is greater than the last when adding in to the Sequence
+    // or sort the whole list accordingly so that the last element is the duration of the sequence 
+    template<typename... Args>
+    void add(const KeyPoint& point, Args... args) { keyPoints.emplace_back(point), duration = keyPoints.back().time; add(args...); }
+
+    void add(const KeyPoint& point) { keyPoints.emplace_back(point); duration = keyPoints.back().time; }
+
+    void add() { }
+
+    PositionalStruct getPos(const unsigned int& elapsedTime) {
+        auto keyPointsVecSize = keyPoints.size();
+
+        if(keyPointsVecSize <= 0) // the sequence is empty
+            return PositionalStruct();
+
+        // TODO Make sure that current index is always in bound 
+        if(keyPoints[currentIndex].time == elapsedTime)
+        {
+            return keyPoints[currentIndex].pos;
+        }
+
+        if(keyPoints[currentIndex].time < elapsedTime)
+        {
+            auto nextIndex = currentIndex + 1;
+
+            if(nextIndex >= keyPointsVecSize) // this means that currentIndex is the pointing to the last element of the sequence
+                return keyPoints[currentIndex].pos;
+
+            if(keyPoints[nextIndex].time > elapsedTime) // TODO here we should interpolate the value between cIndex and nIndex
+            {
+                //This is the linear interpolation
+                float delta = (elapsedTime - keyPoints[currentIndex].time) / static_cast<float>(keyPoints[nextIndex].time - keyPoints[currentIndex].time);
+                float dx = keyPoints[nextIndex].pos.x - keyPoints[currentIndex].pos.x;
+                float dy = keyPoints[nextIndex].pos.y - keyPoints[currentIndex].pos.y;
+                float dz = keyPoints[nextIndex].pos.z - keyPoints[currentIndex].pos.z;
+
+                PositionalStruct pos;
+
+                pos.x = keyPoints[currentIndex].pos.x.value + (dx * delta);
+                pos.y = keyPoints[currentIndex].pos.y.value + (dy * delta);
+                pos.z = keyPoints[currentIndex].pos.z.value + (dz * delta);
+
+                return pos;
+            }
+
+            if(keyPoints[nextIndex].time == elapsedTime)
+            {
+                currentIndex = nextIndex;
+                return keyPoints[nextIndex].pos;
+            }
+
+            currentIndex = nextIndex;
+            return getPos(elapsedTime);
+        }
+        else if(keyPoints[currentIndex].time > elapsedTime)
+        {
+            //TODO check if this is really necessary
+            if(currentIndex == 0)
+                return PositionalStruct();
+
+            currentIndex -= 1;
+            return getPos(elapsedTime);
+        }
+    }
+
+    std::vector<KeyPoint> keyPoints;
+    unsigned int currentIndex = 0;
+    unsigned int duration = 0;
+    
+};
+
+void changed()
+{
+    std::cout << "changed" << std::endl;
+}
+
+class AnimationComponent
+{
+public:
+    template <typename Object>
+    AnimationComponent(Object* obj, Sequence aSeq) : pos(&(obj->pos)), animationSequence(aSeq) {}
+
+    inline bool isRunning() const { return running; }
+
+    void start() { if(pos != nullptr) *pos = animationSequence.getPos(0); elapsedTime = 0; running = true; } 
+
+    //todo if running is false then cancel the animation and put it in the stopped list
+    void tick(const unsigned int& tickRate) { 
+        elapsedTime += tickRate;
+
+        if(elapsedTime > animationSequence.duration && !looping) 
+            running = false;
+        else if (elapsedTime > animationSequence.duration && looping)
+            elapsedTime = animationSequence.duration - elapsedTime;
+
+        if(pos != nullptr) 
+            *pos = animationSequence.getPos(elapsedTime);
+        }
+
+private:
+    PositionalStruct *pos;
+    Sequence animationSequence;
+
+    unsigned int elapsedTime = 0;
+    bool running = false;
+    bool looping = false;
+};
+
+struct UiPosition // Test Object
+{
+    PositionalStruct pos;
+};
+
 int main(int argc, char *argv[])
 {
+    /*
     QSurfaceFormat format;
     format.setSwapInterval(0);
     format.setRenderableType(QSurfaceFormat::OpenGL);
@@ -481,6 +744,94 @@ int main(int argc, char *argv[])
     QObject::connect(&a, SIGNAL(quitApp()), &app, SLOT(quit()));
 
 	return app.exec();
+    */
+
+    UiPosition obj;
+
+    {
+        PositionalStruct position;
+
+        position.updateFunc = &changed;
+        
+        UiSize ref = UiSize(10, 0, nullptr); 
+
+        position.x.value = &ref; // <- make position.x.value dependent on ref
+        position.y.value = position.x.value * 3.0f;
+        position.z.value = position.y.value * 2.0f;
+
+        std::cout << position.x << " " << position.y << " " << position.z << std::endl;
+        
+        ref = 5.0f;
+        //position.x = 5.0f;
+
+        std::cout << position.x << " " << position.y << " " << position.z << std::endl;
+
+        ref = 2.0f;
+        //position.x = 2.2f;
+
+        std::cout << position.x << " " << position.y << " " << position.z << std::endl;
+        
+        obj.pos = position;
+        obj.pos.updateFunc = &changed;
+    }
+
+    std::cout << obj.pos.x << " " << obj.pos.y << " " << obj.pos.z << std::endl;
+
+    Sequence seq = Sequence( KeyPoint(obj.pos.x + 1.0f, obj.pos.y + 5.0f, 0.0f, 0 ),
+                             KeyPoint(obj.pos.x + 5.0f, obj.pos.y + 3.0f, 0.0f, 40),
+                             KeyPoint(obj.pos.x + 3.0f, obj.pos.y - 1.0f, 0.0f, 80) );
+
+    for(auto point : seq.keyPoints)
+    {
+        std::cout << point.pos.x << " " << point.pos.y << " " << point.pos.z << std::endl;
+    }
+
+    //Sequence test
+    auto point = seq.getPos(150);
+
+    std::cout << "150: " << point.x << " " << point.y << " " << point.z << std::endl;
+
+    point = seq.getPos(0);
+
+    std::cout << "0: "<< point.x << " " << point.y << " " << point.z << std::endl;
+
+    point = seq.getPos(80);
+
+    std::cout << "80: "<< point.x << " " << point.y << " " << point.z << std::endl;
+
+    point = seq.getPos(40);
+
+    std::cout << "40: "<< point.x << " " << point.y << " " << point.z << std::endl;
+
+    point = seq.getPos(20);
+
+    std::cout << "20: "<< point.x << " " << point.y << " " << point.z << std::endl;
+
+    point = seq.getPos(45);
+
+    std::cout << "45: "<< point.x << " " << point.y << " " << point.z << std::endl;
+
+    point = seq.getPos(4);
+
+    std::cout << "4: "<< point.x << " " << point.y << " " << point.z << std::endl;
+
+    point = seq.getPos(70);
+
+    std::cout << "70: "<< point.x << " " << point.y << " " << point.z << std::endl;
+
+    AnimationComponent aComp(&obj, seq); 
+
+    aComp.start();
+    std::cout << "[0]: " << obj.pos.x << " " << obj.pos.y << " " << obj.pos.z << std::endl;
+
+    //TODO do this in a event loop
+    for(int i = 0; i < 20; i++)
+    {
+        aComp.tick(4);
+        std::cout << "[" << (i + 1) * 4 << "]: Running = " << aComp.isRunning() << " Pos = " << obj.pos.x << " " << obj.pos.y << " " << obj.pos.z << std::endl;
+    }
+
+    return 0;
 
     /*
     {
@@ -553,7 +904,6 @@ int main(int argc, char *argv[])
 
     //auto l = lCreate();
     //l(10);
-
 
 /*
     Object obj1(10,10,1,1);
