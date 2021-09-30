@@ -466,7 +466,7 @@ struct ParticleComponent
 //Todo change name
 struct UiSize
 {
-    float pixelSize = 0;
+    float pixelSize = 0.0f;
     float scaleValue = 0.0f;
     UiSize *refSize = nullptr;
 
@@ -548,7 +548,7 @@ struct PositionalStruct
 
         UiSize value = UiSize(0, 0, nullptr);
         
-        void (**updateFunc)(void);
+        void (**updateFunc)(void); // TODO is the update function really relevent cause it takes so much space
 
         void operator=(const UiSize& rhs)
         {
@@ -594,7 +594,8 @@ struct PositionalStruct
     PositionElement y = PositionElement(&updateFunc);
     PositionElement z = PositionElement(&updateFunc);
 
-    void (*updateFunc)(void) = nullptr;
+    void (*updateFunc)(void) = nullptr; // TODO is this necessary? take up 32 out of 80 bytes of data in total across the struct
+                                        // if I remove this i can even remove PositionElement alltogether and just use UiSize
 };
 
 struct KeyPoint // TODO create copy and swap, and test it on edge case and test for memory leaks
@@ -614,17 +615,18 @@ struct Sequence // TODO add interpolation support and default interpolation type
 
     //TODO check that the keypoint time is greater than the last when adding in to the Sequence
     // or sort the whole list accordingly so that the last element is the duration of the sequence 
+    // maybe replace the vector by a sorted map ? 
     template<typename... Args>
-    void add(const KeyPoint& point, Args... args) { keyPoints.emplace_back(point), duration = keyPoints.back().time; add(args...); }
+    void add(const KeyPoint& point, Args... args) { keyPoints.emplace_back(point), duration = point.time; add(args...); }
 
-    void add(const KeyPoint& point) { keyPoints.emplace_back(point); duration = keyPoints.back().time; }
+    void add(const KeyPoint& point) { keyPoints.emplace_back(point); duration = point.time; }
 
-    void add() { }
+    //void add() { } Add this if i want to allow empty sequences
 
     PositionalStruct getPos(const unsigned int& elapsedTime) {
         auto keyPointsVecSize = keyPoints.size();
 
-        if(keyPointsVecSize <= 0) // the sequence is empty
+        if(keyPointsVecSize <= 0) // the sequence is empty <- currently it should be impossible
             return PositionalStruct();
 
         // TODO Make sure that current index is always in bound 
@@ -654,6 +656,8 @@ struct Sequence // TODO add interpolation support and default interpolation type
                 pos.y = keyPoints[currentIndex].pos.y.value + (dy * delta);
                 pos.z = keyPoints[currentIndex].pos.z.value + (dz * delta);
 
+                //TODO add support for other type of interpolation and interpolation registering
+
                 return pos;
             }
 
@@ -680,7 +684,6 @@ struct Sequence // TODO add interpolation support and default interpolation type
     std::vector<KeyPoint> keyPoints;
     unsigned int currentIndex = 0;
     unsigned int duration = 0;
-    
 };
 
 void changed()
@@ -691,12 +694,17 @@ void changed()
 class AnimationComponent
 {
 public:
+    static std::vector<AnimationComponent*> runningQueue; 
+
     template <typename Object>
     AnimationComponent(Object* obj, Sequence aSeq) : pos(&(obj->pos)), animationSequence(aSeq) {}
 
     inline bool isRunning() const { return running; }
 
-    void start() { if(pos != nullptr) *pos = animationSequence.getPos(0); elapsedTime = 0; running = true; } 
+    void start()  { if(pos != nullptr) *pos = animationSequence.getPos(0); elapsedTime = 0; resume(); } 
+    void pause()  { running = false; }
+    void resume() { if(!running) runningQueue.push_back(this); running = true; }
+    void stop()   { running = false; }
 
     //todo if running is false then cancel the animation and put it in the stopped list
     void tick(const unsigned int& tickRate) { 
@@ -719,6 +727,8 @@ private:
     bool running = false;
     bool looping = false;
 };
+
+std::vector<AnimationComponent*> AnimationComponent::runningQueue;
 
 struct UiPosition // Test Object
 {
@@ -777,7 +787,8 @@ int main(int argc, char *argv[])
 
     std::cout << obj.pos.x << " " << obj.pos.y << " " << obj.pos.z << std::endl;
 
-    Sequence seq = Sequence( KeyPoint(obj.pos.x + 1.0f, obj.pos.y + 5.0f, 0.0f, 0 ),
+    Sequence seq = Sequence( //TODO first param being the origin point of the sequence
+                             KeyPoint(obj.pos.x + 1.0f, obj.pos.y + 5.0f, 0.0f, 0 ),
                              KeyPoint(obj.pos.x + 5.0f, obj.pos.y + 3.0f, 0.0f, 40),
                              KeyPoint(obj.pos.x + 3.0f, obj.pos.y - 1.0f, 0.0f, 80) );
 
@@ -786,50 +797,84 @@ int main(int argc, char *argv[])
         std::cout << point.pos.x << " " << point.pos.y << " " << point.pos.z << std::endl;
     }
 
-    //Sequence test
-    auto point = seq.getPos(150);
+    UiPosition obj2;
+    UiPosition obj3;
+    UiPosition obj4;
+    UiPosition obj5;
 
-    std::cout << "150: " << point.x << " " << point.y << " " << point.z << std::endl;
+    Sequence seq2 = Sequence(KeyPoint(1.0f,   5.0f, 0.0f, 0 ),
+                             KeyPoint(5.0f,   3.0f, 0.0f, 120),
+                             KeyPoint(3.0f, - 1.0f, 0.0f, 460) );
 
-    point = seq.getPos(0);
+    Sequence seq3 = Sequence(KeyPoint( 1.0f,   3.0f, 0.0f, 0 ),
+                             KeyPoint(40.0f,   2.0f, 0.0f, 20),
+                             KeyPoint(-1.0f, - 1.0f, 0.0f, 40) );
 
-    std::cout << "0: "<< point.x << " " << point.y << " " << point.z << std::endl;
-
-    point = seq.getPos(80);
-
-    std::cout << "80: "<< point.x << " " << point.y << " " << point.z << std::endl;
-
-    point = seq.getPos(40);
-
-    std::cout << "40: "<< point.x << " " << point.y << " " << point.z << std::endl;
-
-    point = seq.getPos(20);
-
-    std::cout << "20: "<< point.x << " " << point.y << " " << point.z << std::endl;
-
-    point = seq.getPos(45);
-
-    std::cout << "45: "<< point.x << " " << point.y << " " << point.z << std::endl;
-
-    point = seq.getPos(4);
-
-    std::cout << "4: "<< point.x << " " << point.y << " " << point.z << std::endl;
-
-    point = seq.getPos(70);
-
-    std::cout << "70: "<< point.x << " " << point.y << " " << point.z << std::endl;
+    Sequence seq4 = Sequence(KeyPoint(10.0f,  53.0f, 0.0f, 0 ),
+                             KeyPoint(-5.0f, -10.0f, 0.0f, 120),
+                             KeyPoint(99.0f, -99.0f, 0.0f, 460) );
 
     AnimationComponent aComp(&obj, seq); 
+    AnimationComponent aComp2(&obj2, seq2); 
+    AnimationComponent aComp3(&obj3, seq2); 
+    AnimationComponent aComp4(&obj4, seq3); 
+    AnimationComponent aComp5(&obj5, seq4); 
 
     aComp.start();
+    aComp2.start();
+    aComp3.start();
+    aComp4.start();
+    aComp5.start();
     std::cout << "[0]: " << obj.pos.x << " " << obj.pos.y << " " << obj.pos.z << std::endl;
 
-    //TODO do this in a event loop
-    for(int i = 0; i < 20; i++)
+    std::vector<UiPosition> objects;
+    std::vector<AnimationComponent> animations;
+    
+    for (int i = 0; i < 10000000; i++)
     {
-        aComp.tick(4);
-        std::cout << "[" << (i + 1) * 4 << "]: Running = " << aComp.isRunning() << " Pos = " << obj.pos.x << " " << obj.pos.y << " " << obj.pos.z << std::endl;
+        auto object = UiPosition();
+        objects.emplace_back(object);
+        auto comp = AnimationComponent(&object, seq);
+        animations.emplace_back(comp);
+        comp.start();
     }
+
+    //TODO do this in a event loop
+    //for(int i = 0; i < 20; i++)
+    //{
+    //    aComp.tick(4);
+    //    std::cout << "[" << (i + 1) * 4 << "]: Running = " << aComp.isRunning() << " Pos = " << obj.pos.x << " " << obj.pos.y << " " << obj.pos.z << std::endl;
+    //}
+
+    std::cout << AnimationComponent::runningQueue.size() << std::endl;
+
+    #include <QDateTime>
+    auto startTime = QDateTime::currentMSecsSinceEpoch();
+
+    do // TODO in production remove this to do and just put this 
+    {
+        for(int i = AnimationComponent::runningQueue.size() - 1; i >= 0; i--) 
+        {
+            AnimationComponent::runningQueue[i]->tick(10); // tickRate
+            
+            if(!AnimationComponent::runningQueue[i]->isRunning())
+                AnimationComponent::runningQueue.erase(AnimationComponent::runningQueue.begin() + i);
+        }
+
+    } while (AnimationComponent::runningQueue.size() > 0);
+
+    auto endTime = QDateTime::currentMSecsSinceEpoch();
+
+    std::cout << endTime - startTime << std::endl;
+
+    //TODO implement a vector of void(*)(unsigned int) to store all the function that need to get called in the tick thread
+
+    std::cout << "[Obj 1]: Running = " << aComp.isRunning() << " Pos = " << obj.pos.x << " " << obj.pos.y << " " << obj.pos.z << std::endl;
+    std::cout << "[Obj 2]: Running = " << aComp2.isRunning() << " Pos = " << obj2.pos.x << " " << obj2.pos.y << " " << obj2.pos.z << std::endl;
+    std::cout << "[Obj 3]: Running = " << aComp3.isRunning() << " Pos = " << obj3.pos.x << " " << obj3.pos.y << " " << obj3.pos.z << std::endl;
+    std::cout << "[Obj 4]: Running = " << aComp4.isRunning() << " Pos = " << obj4.pos.x << " " << obj4.pos.y << " " << obj4.pos.z << std::endl;
+    std::cout << "[Obj 5]: Running = " << aComp5.isRunning() << " Pos = " << obj5.pos.x << " " << obj5.pos.y << " " << obj5.pos.z << std::endl;
+
 
     return 0;
 
