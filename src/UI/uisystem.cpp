@@ -5,9 +5,7 @@ UiComponent::UiComponent(const UiComponent& rhs)
     //TODO remove the previous reference of rhs inside the parent and push this pointer inside the parent child list to avoid resize error when this is being copied
     //also don t forget to call this constructor when creating the copy constructor of the child class
     this->visible = rhs.visible;
-    this->x = rhs.x;
-    this->y = rhs.y;
-    this->z = rhs.z;
+    this->pos = rhs.pos;
     this->width = rhs.width;
     this->height = rhs.height;
     this->scale = rhs.scale;
@@ -15,10 +13,10 @@ UiComponent::UiComponent(const UiComponent& rhs)
     this->rightAnchor = rhs.rightAnchor;
     this->bottomAnchor = rhs.bottomAnchor;
     this->leftAnchor = rhs.leftAnchor;
-    this->top = UiAnchor(this, &this->y);
-    this->right = UiAnchor(this, &this->x, &this->width);
-    this->bottom = UiAnchor(this, &this->y, &this->height);
-    this->left = UiAnchor(this, &this->x);
+    this->top = UiAnchor(this, &this->pos.y);
+    this->right = UiAnchor(this, &this->pos.x, &this->width);
+    this->bottom = UiAnchor(this, &this->pos.y, &this->height);
+    this->left = UiAnchor(this, &this->pos.x);
     this->topMargin = rhs.topMargin;
     this->rightMargin = rhs.rightMargin;
     this->bottomMargin = rhs.bottomMargin;
@@ -31,30 +29,30 @@ void UiComponent::update()
 {
     if(topAnchor != nullptr && bottomAnchor != nullptr)
     {
-        this->height = static_cast<int>(*bottomAnchor) - bottomMargin - static_cast<int>(*topAnchor) - topMargin;
-        this->y = static_cast<int>(*topAnchor) + topMargin;
+        this->height = static_cast<float>(*bottomAnchor) - bottomMargin - static_cast<int>(*topAnchor) - topMargin;
+        this->pos.y = static_cast<float>(*topAnchor) + topMargin;
     }
     else if(topAnchor != nullptr && bottomAnchor == nullptr)
     {
-        this->y = static_cast<int>(*topAnchor) + topMargin;
+        this->pos.y = static_cast<float>(*topAnchor) + topMargin;
     }
     else if(topAnchor == nullptr && bottomAnchor != nullptr)
     {
-        this->y = static_cast<int>(*bottomAnchor) - bottomMargin - this->height;
+        this->pos.y = static_cast<float>(*bottomAnchor) - bottomMargin - this->height;
     }
 
     if(rightAnchor != nullptr && leftAnchor != nullptr)
     {
-        this->width = static_cast<int>(*rightAnchor) - rightMargin - static_cast<int>(*leftAnchor) - leftMargin;
-        this->x = static_cast<int>(*leftAnchor) + leftMargin;
+        this->width = static_cast<float>(*rightAnchor) - rightMargin - static_cast<int>(*leftAnchor) - leftMargin;
+        this->pos.x = static_cast<float>(*leftAnchor) + leftMargin;
     }
     else if(rightAnchor != nullptr && leftAnchor == nullptr)
     {
-        this->x = static_cast<int>(*rightAnchor) - rightMargin - this->width;
+        this->pos.x = static_cast<float>(*rightAnchor) - rightMargin - this->width;
     }
     else if(rightAnchor == nullptr && leftAnchor != nullptr)
     {
-        this->x = static_cast<int>(*leftAnchor) + leftMargin;
+        this->pos.x = static_cast<float>(*leftAnchor) + leftMargin;
     }
 
     updated = true;
@@ -212,7 +210,7 @@ void TextureRenderer::render(MasterRenderer* masterRenderer...)
     glBindTexture(GL_TEXTURE_2D, texture->texture);
 
     view.setToIdentity();
-    view.translate(QVector3D(-1.0f + 2.0f * (float)(texture->x) / screenWidth, 1.0f + 2.0f * (float)( -texture->y) / screenHeight, 0.0f));
+    view.translate(QVector3D(-1.0f + 2.0f * (float)(texture->pos.x) / screenWidth, 1.0f + 2.0f * (float)( -texture->pos.y) / screenHeight, 0.0f));
 
     shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
 

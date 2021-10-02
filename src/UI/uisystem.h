@@ -1,5 +1,7 @@
 #pragma once
 
+#include "uiconstant.h"
+
 #include <QOpenGLFunctions>
 #include <QOpenGLTexture>
 #include <QOpenGLVertexArrayObject>
@@ -16,84 +18,6 @@
 //Todo parenting, better anchoring
 //TODO refactor all the struct that need to be a class and make the element private
 
-//TODO make UISize a class
-struct UiSize
-{
-    int pixelSize = 0;
-    float scaleValue = 0.0f;
-    UiSize *refSize;
-
-    UiSize() {}
-    UiSize(int pixelSize = 0, float scaleValue = 0, UiSize* ref = nullptr) : pixelSize(pixelSize), scaleValue(scaleValue), refSize(ref) {}
-    UiSize(const UiSize& size) : pixelSize(size.pixelSize), scaleValue(size.scaleValue), refSize(size.refSize) {}
-
-    static float returnCurrentSize(const UiSize* size)
-    {
-        if(size == nullptr)
-            return 0;
-        else
-            return size->pixelSize + returnCurrentSize(size->refSize) * size->scaleValue;
-    }
-
-    void operator=(const UiSize& rhs)
-    {
-        this->pixelSize = rhs.pixelSize;
-        this->scaleValue = rhs.scaleValue;
-        this->refSize = rhs.refSize;
-    }
-
-    void operator=(const int& rhs)
-    {
-        this->pixelSize = rhs;
-        this->scaleValue = 0.0;
-        this->refSize = nullptr;
-    }
-
-    UiSize operator*(const float& rhs)
-    {
-        return UiSize(0, rhs, this);
-    }
-
-    UiSize operator+(const int& rhs)
-    {
-        return UiSize(rhs, this->scaleValue, this);
-    }
-
-    UiSize operator-(const int& rhs)
-    {
-        return UiSize(-rhs, this->scaleValue, this);
-    }
-
-    float operator-()
-    {
-        return -UiSize::returnCurrentSize(this);
-    }
-
-    template<typename Type>
-    friend Type operator+(const Type& lhs, const UiSize& rhs);
-
-    template<typename Type>
-    friend Type operator-(const Type& lhs, const UiSize& rhs);
-
-    //TODO check if it is okey that UiSize can t be negative and if so make it a clear condition
-    operator float()
-    {
-        return UiSize::returnCurrentSize(this) < 0 ? 0 : UiSize::returnCurrentSize(this);
-    }
-};
-
-template<typename Type>
-Type operator+(const Type& lhs, const UiSize& rhs)
-{
-    return lhs + UiSize::returnCurrentSize(&rhs);
-}
-
-template<typename Type>
-Type operator-(const Type& lhs, const UiSize& rhs)
-{
-    return lhs - UiSize::returnCurrentSize(&rhs);
-}
-
 //TODO make the UiComponent a class
 //TODO create a destructor that go through the children and remove this ? or remove the child recursively ?
 struct UiComponent : public Base
@@ -102,23 +26,23 @@ struct UiComponent : public Base
     {
     friend class UiComponent;
     public:
-        UiAnchor(UiComponent* component, int* refPos, UiSize *refSize = nullptr) : component(component), refPos(refPos), refSize(refSize) {}
+        UiAnchor(UiComponent* component, UiSize* refPos, UiSize *refSize = nullptr) : component(component), refPos(refPos), refSize(refSize) {}
 
-        operator int()
+        operator float()
         {
             if(refSize != nullptr)
             {
-                return *refPos + static_cast<int>(*refSize);
+                return static_cast<float>(*refPos + *refSize);
             }
                 
-            return *refPos;
+            return static_cast<float>(*refPos);
         }
 
     protected:
         UiComponent *component;
 
     private:
-        int* refPos = nullptr;
+        UiSize* refPos = nullptr;
         UiSize *refSize = nullptr;
     };
 
@@ -126,9 +50,7 @@ struct UiComponent : public Base
 
     //TODO create a int wrapper that call update on change (overload operator=) and have a pointer to the component like the anchor class so i can write UiComponent.x = 10 for exemple and it update children
     //TODO change x y z to be UISize so i can position it using other component
-    int x = 0; 
-    int y = 0;
-    int z = 0; // stack indice
+    UiPosition pos;
 
     UiSize width = UiSize(0, 0, nullptr);
     UiSize height = UiSize(0, 0, nullptr);
@@ -139,10 +61,10 @@ struct UiComponent : public Base
     UiAnchor *bottomAnchor = nullptr;
     UiAnchor *leftAnchor = nullptr;
 
-    UiAnchor top = UiAnchor(this, &y);
-    UiAnchor right = UiAnchor(this, &x, &width);
-    UiAnchor bottom = UiAnchor(this, &y, &height);
-    UiAnchor left = UiAnchor(this, &x);
+    UiAnchor top = UiAnchor(this, &pos.y);
+    UiAnchor right = UiAnchor(this, &pos.x, &width);
+    UiAnchor bottom = UiAnchor(this, &pos.y, &height);
+    UiAnchor left = UiAnchor(this, &pos.x);
 
     int topMargin = 0;
     int rightMargin = 0;
@@ -154,9 +76,9 @@ struct UiComponent : public Base
     UiComponent() { }
     UiComponent(const UiComponent& rhs);
 
-    void inline setX(const int& value) { x = value; update(); }
-    void inline setY(const int& value) { y = value; update(); }
-    void inline setZ(const int& value) { z = value; update(); }
+    void inline setX(const int& value) { pos.x = value; update(); }
+    void inline setY(const int& value) { pos.y = value; update(); }
+    void inline setZ(const int& value) { pos.z = value; update(); }
 
     void inline setWidth(const int &value) { width = value; update(); }
     void inline setWidth(const UiSize &value) { width = value; update(); }
@@ -175,8 +97,8 @@ struct UiComponent : public Base
     
     bool updated = false;
 
-    bool inBound(int x, int y) const { return x > this->x / this->scale && x < (this->x + this->width) / this->scale && y < (this->y + this->height) / this->scale && y > this->y / this->scale; }
-    bool inBound(constant::Vector2D vec2) const { return inBound(vec2.x, vec2.y); }
+    bool inBound(int x, int y) { return x > this->pos.x / this->scale && x < (this->pos.x + this->width) / this->scale && y < (this->pos.y + this->height) / this->scale && y > this->pos.y / this->scale; }
+    bool inBound(constant::Vector2D vec2) { return inBound(vec2.x, vec2.y); }
     
     void update();
 };

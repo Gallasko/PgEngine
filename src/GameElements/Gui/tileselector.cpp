@@ -15,8 +15,8 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
 
     std::cout << static_cast<int>(screenUi->right) << std::endl;
 
-    this->setRightAnchor(&screenUi->right);
-    this->setBottomAnchor(&screenUi->bottom);
+    //this->setRightAnchor(&screenUi->right);
+    //this->setBottomAnchor(&screenUi->bottom);
 
     //this->setRightMargin(200);
     //this->setBottomMargin(200);
@@ -39,12 +39,15 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
     //this->setTopMargin(-135);
 
     texture = new TextureComponent(this->width, this->height, "res/menu/Menu2.png");
+    texture->pos.x = &this->pos.x;
+    texture->pos.y = &this->pos.y;
+    
     //texture->setX(this->x);
     //texture->setY(this->y);
 
-    texture->setTopAnchor(&this->top);
+    //texture->setTopAnchor(&this->top);
     //this->setTopMargin(-135);
-    texture->setLeftAnchor(&this->left);
+    //texture->setLeftAnchor(&this->left);
     //this->setLeftMargin(-240);
 
     auto text1 = Sentence({"Base House"}, 2.0f, fontLoader);
@@ -58,10 +61,10 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
     //textVector[0].setBottomAnchor(&this->bottom); //TODO Fix issue when text is rendered in bottom right it need to be divided by 2
     //textVector[0].setBottomAnchor(&this->bottom);
 
-    textVector[0].setTopAnchor(&this->top); // TODO need to create a check of fix this issue: parenting must be done AFTER pushing the object in the vector
+    textVector[0].setTopAnchor(&texture->top); // TODO need to create a check of fix this issue: parenting must be done AFTER pushing the object in the vector
                                             // cause the vector create a copy thus invaliding parent to child call !
     textVector[0].setTopMargin(41);
-    textVector[0].setLeftAnchor(&this->left);
+    textVector[0].setLeftAnchor(&texture->left);
     textVector[0].setLeftMargin(10);
 
     //textVector[0].setBottomAnchor(&this->bottom); // TODO need to create a check of fix this issue: parenting must be done AFTER pushing the object in the vector
@@ -124,7 +127,9 @@ void TileSelector::mouseInput(Input* inputHandler, double deltaTime)
             auto mouseArea = mouseAreaVector[i];
             //std::cout << "Mouse Hovering: " << *mouseArea->x << ", " << *mouseArea->y << ", " << *mouseArea->width << ", " << *mouseArea->height << std::endl;
             
-            if(mousePos.x() > *mouseArea->x / static_cast<int>(mouseArea->scale) && mousePos.x() < (*mouseArea->x + *mouseArea->width) / static_cast<int>(mouseArea->scale) && mousePos.y() < (*mouseArea->y + *mouseArea->height) / static_cast<int>(mouseArea->scale) && mousePos.y() > *mouseArea->y / static_cast<int>(mouseArea->scale) && *mouseArea->enable)
+            //if(mousePos.x() > *mouseArea->x / static_cast<int>(mouseArea->scale) && mousePos.x() < (*mouseArea->x + *mouseArea->width) / static_cast<int>(mouseArea->scale) && mousePos.y() < (*mouseArea->y + *mouseArea->height) / static_cast<int>(mouseArea->scale) && mousePos.y() > *mouseArea->y / static_cast<int>(mouseArea->scale) && *mouseArea->enable)
+            //{
+            if(mouseArea->inBound(mousePos.x(), mousePos.y()) && *mouseArea->enable)
             {
                 //std::cout << "Mouse Hovering: " << *mouseArea->x << ", " << *mouseArea->y << ", " << *mouseArea->width << ", " << *mouseArea->height << std::endl;
                 mouseArea->call(inputHandler, deltaTime, tileRendererVector[i].id);
@@ -175,7 +180,7 @@ void TileSelector::render(MasterRenderer* masterRenderer)
     for(auto tile : tileRendererVector)
     {
         view.setToIdentity();
-        view.translate(QVector3D(-1.0f + 2.0f * (float)(tile.x + (tileHeight / 4.0f)) / screenWidth, 1.0f + 2.0f * (float)( -tile.y - (tileHeight / 8.0f)) / screenHeight, 0.0f));
+        view.translate(QVector3D(-1.0f + 2.0f * (float)(tile.pos.x + (tileHeight / 4.0f)) / screenWidth, 1.0f + 2.0f * (float)( -tile.pos.y - (tileHeight / 8.0f)) / screenHeight, 0.0f));
 
         defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
 

@@ -79,32 +79,32 @@ void GameWindow::initialize()
     gameMap = new Map(&ecs, tileLoader, mapConstraint);
 
     auto debugText = ecs.createEntity();
-    auto debugTextC = ecs.attach<Sentence>(debugText, {{"Debug: ", constant::Vector4D(255.0f, 0.0f, 0.0f, 255.0f)}, 8.0f, fontLoader});
+    auto debugTextC = ecs.attach<Sentence>(debugText, {{"Debug: ", constant::Vector4D(255.0f, 0.0f, 0.0f, 255.0f)}, 4.0f, fontLoader});
 
     debugTextC->setX(10);
     debugTextC->setY(10);
 
     fpsCounter = ecs.createEntity();
-    auto fpsCounterC = ecs.attach<Sentence>(fpsCounter, {{"00"}, 8.0f, fontLoader});
+    auto fpsCounterC = ecs.attach<Sentence>(fpsCounter, {{"00"}, 4.0f, fontLoader});
     
     fpsCounterC->setX(10);
     fpsCounterC->setY(55);
     
     auto mousePosLabel = ecs.createEntity();
-    auto mousePosLabelC = ecs.attach<Sentence>(mousePosLabel, {{"Mouse Pos: "}, 4.0f, fontLoader});
+    auto mousePosLabelC = ecs.attach<Sentence>(mousePosLabel, {{"Mouse Pos: "}, 2.0f, fontLoader});
     
     mousePosLabelC->setX(10);
     mousePosLabelC->setY(100);
 
     mousePosText = ecs.createEntity();
-    auto mousePosTextC = ecs.attach<Sentence>(mousePosText, {{"(0, 0)"}, 4.0f, fontLoader});
+    auto mousePosTextC = ecs.attach<Sentence>(mousePosText, {{"(0, 0)"}, 2.0f, fontLoader});
     
     mousePosTextC->setX(10);
     mousePosTextC->setZ(2);
     mousePosTextC->setY(125);
 
     gameScaleText = ecs.createEntity();
-    auto gameScaleTextC = ecs.attach<Sentence>(gameScaleText, {{"Game Scale: 0"}, 4.0f, fontLoader});
+    auto gameScaleTextC = ecs.attach<Sentence>(gameScaleText, {{"Game Scale: 0"}, 2.0f, fontLoader});
     
     gameScaleTextC->setX(10);
     gameScaleTextC->setZ(2);
@@ -142,16 +142,48 @@ void GameWindow::initialize()
     mapClickComponent->registerFunc(Map::clicked, gameMap);
 
     tileSelector = new TileSelector(gameMap, tileLoader, fontLoader, screenUi);
-    tileSelector->z = 2;
+    tileSelector->pos.z = 2;
+
+    //Sequence tileSelectorSeq = Sequence(
+    //    //Sequence::OriginPoint(pathFindingButtonTexC->pos.x, pathFindingButtonTexC->pos.y, pathFindingButtonTexC->pos.z),
+    //    UiKeyPoint(screenUi->width - tileSelector->width, screenUi->height - tileSelector->height, 0.0f, 0),
+    //    UiKeyPoint(screenUi->width - tileSelector->width, screenUi->height - tileSelector->height - 100.0f, 0.0f, 0),
+    //    UiKeyPoint(screenUi->width - tileSelector->width - 100.0f, screenUi->height - tileSelector->height - 100.0f, 0.0f, 0),
+    //    UiKeyPoint(screenUi->width - tileSelector->width - 100.0f, screenUi->height - tileSelector->height, 0.0f, 0)
+    //);
+
+    Sequence tileSelectorSeq = Sequence(
+       //Sequence::OriginPoint(pathFindingButtonTexC->pos.x, pathFindingButtonTexC->pos.y, pathFindingButtonTexC->pos.z),
+       UiKeyPoint(400.0f, 400.0f, 2.0f, 0),
+       UiKeyPoint(500.0f, 400.0f, 2.0f, 1000),
+       UiKeyPoint(500.0f, 500.0f, 2.0f, 2000),
+       UiKeyPoint(400.0f, 500.0f, 2.0f, 3000)
+    );
+
+    AnimationComponent *tileSelectorAnimation = new AnimationComponent(tileSelector, tileSelectorSeq, true);
+    tileSelectorAnimation->start();
 
     auto pathFindingButton = ecs.createEntity();
     auto pathFindingButtonTexC = ecs.attach<TextureComponent>(pathFindingButton, {64, 32, "res/menu/frame.png"});
     pathFindingButtonTexC->setX(0);
     pathFindingButtonTexC->setY(height() - 32);
     pathFindingButtonTexC->setZ(1);
+
     auto pathFindingButtonMouseArea = ecs.attach<MouseInputComponent* >(pathFindingButton, {});
     *pathFindingButtonMouseArea = new MouseInputBase<Map>(pathFindingButtonTexC);
     (*pathFindingButtonMouseArea)->registerFunc(Map::runPathFinding, gameMap);
+
+    Sequence seq = Sequence(
+        //Sequence::OriginPoint(pathFindingButtonTexC->pos.x, pathFindingButtonTexC->pos.y, pathFindingButtonTexC->pos.z),
+        UiKeyPoint(100.0f, 100.0f, 0.0f, 0),
+        UiKeyPoint(200.0f, 100.0f, 0.0f, 1000),
+        UiKeyPoint(200.0f, 200.0f, 0.0f, 2000),
+        UiKeyPoint(100.0f, 200.0f, 0.0f, 3000),
+        UiKeyPoint(100.0f, 100.0f, 0.0f, 4000)
+    );
+
+    AnimationComponent *animation = new AnimationComponent(pathFindingButtonTexC, seq, true);
+    animation->start();
 
     //cmpTexTest = new TextureComponent(300, 300, "res/menu/Menu2.png");
 
@@ -540,23 +572,23 @@ void GameWindow::updateGameState(double deltaTime)
     // Take the Highest Z under the mouse and make only those element clickable  
     for(auto mouseArea : ecs.view<MouseInputComponent*>())
         if(mouseArea->inBound(mousePos.x(), mousePos.y()) && *mouseArea->enable)
-            if (*mouseArea->z > highestZ)
-                highestZ = *mouseArea->z;
+            if (mouseArea->pos->z > highestZ)
+                highestZ = mouseArea->pos->z;
 
-    if(mousePos.x() > tileSelector->x / static_cast<int>(tileSelector->scale) && mousePos.x() < (tileSelector->x + tileSelector->width) / static_cast<int>(tileSelector->scale) && mousePos.y() < (tileSelector->y + tileSelector->height) / static_cast<int>(tileSelector->scale) && mousePos.y() > tileSelector->y / static_cast<int>(tileSelector->scale) && tileSelector->isVisible())
-        if (tileSelector->z > highestZ)
-            highestZ = tileSelector->z;
+    if(mousePos.x() > tileSelector->pos.x / static_cast<int>(tileSelector->scale) && mousePos.x() < (tileSelector->pos.x + tileSelector->width) / static_cast<int>(tileSelector->scale) && mousePos.y() < (tileSelector->pos.y + tileSelector->height) / static_cast<int>(tileSelector->scale) && mousePos.y() > tileSelector->pos.y / static_cast<int>(tileSelector->scale) && tileSelector->isVisible())
+        if (tileSelector->pos.z > highestZ)
+            highestZ = tileSelector->pos.z;
 
     for(auto mouseArea : ecs.view<MouseInputComponent*>())
     {
-        if(mouseArea->inBound(mousePos.x(), mousePos.y()) && *mouseArea->enable && *mouseArea->z == highestZ)
+        if(mouseArea->inBound(mousePos.x(), mousePos.y()) && *mouseArea->enable && mouseArea->pos->z == highestZ)
         {
             //std::cout << "Mouse Hovering: " << *mouseArea.x << ", " << *mouseArea.y << ", " << *mouseArea.width << ", " << *mouseArea.height << std::endl;
             mouseArea->call(inputHandler, deltaTime);
         }
     }
 
-    if(tileSelector->z == highestZ)
+    if(tileSelector->pos.z == highestZ)
         tileSelector->mouseInput(inputHandler, deltaTime);
 
     //TODO make the map responsive to Z index 
@@ -654,7 +686,7 @@ void GameWindow::renderUi()
     projection.setToIdentity();
     model.setToIdentity();
     scale.setToIdentity();
-    scale.scale(QVector3D(1.0f / width(), 1.0f / height(), 0.0f));
+    scale.scale(QVector3D(2.0f / width(), 2.0f / height(), 0.0f));
 
     // Text rendering
 
@@ -681,7 +713,7 @@ void GameWindow::renderUi()
             glBindTexture(GL_TEXTURE_2D, texture.texture);
 
             view.setToIdentity();
-            view.translate(QVector3D(-1.0f + 2.0f * (float)(texture.x) / width(), 1.0f + 2.0f * (float)( -texture.y) / height(), 0.0f));
+            view.translate(QVector3D(-1.0f + 2.0f * (float)(texture.pos.x) / width(), 1.0f + 2.0f * (float)( -texture.pos.y) / height(), 0.0f));
 
             defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
 
@@ -699,7 +731,7 @@ void GameWindow::renderUi()
     textShaderProgram->bind();
 
     scale.setToIdentity();
-    scale.scale(QVector3D(1.0f / width(), 1.0f / height(), 0.0f));
+    scale.scale(QVector3D(2.0f / width(), 2.0f / height(), 0.0f));
 
     glActiveTexture(GL_TEXTURE0);
     auto fontTexture = masterRenderer.getTexture("font");
@@ -719,7 +751,7 @@ void GameWindow::renderUi()
                 sentence.generateMesh();
 
             view.setToIdentity();
-            view.translate(QVector3D(-1.0f + 2.0 * (float)(sentence.x) / width(), 1.0f + 2.0 * (float)( -sentence.y) / height(), 0.0f));
+            view.translate(QVector3D(-1.0f + 2.0 * (float)(sentence.pos.x) / width(), 1.0f + 2.0 * (float)( -sentence.pos.y) / height(), 0.0f));
             textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("view"), view);
 
             sentence.VAO->bind();
@@ -730,6 +762,7 @@ void GameWindow::renderUi()
     textShaderProgram->release();
 }
 
+//TODO make a tick object that take tick function and run in background when you start up the engine
 void GameWindow::tick()
 {
     unsigned int tickTime = 0;
@@ -751,6 +784,16 @@ void GameWindow::tick()
         //    std::cout << " Gold Text error " << std::endl;
 
         tickTime++;
+
+        //std::cout << "animation running: "  << AnimationComponent::runningQueue.size() - 1 << std::endl;
+
+        for(int i = AnimationComponent::runningQueue.size() - 1; i >= 0; i--) 
+        {
+            AnimationComponent::runningQueue[i]->tick(40); // tickRate
+            
+            if(!AnimationComponent::runningQueue[i]->isRunning())
+                AnimationComponent::runningQueue.erase(AnimationComponent::runningQueue.begin() + i);
+        }
 
         currentTickTime = QDateTime::currentMSecsSinceEpoch();
         std::this_thread::sleep_for(std::chrono::milliseconds(40 - (currentTickTime - lastTickTime)));

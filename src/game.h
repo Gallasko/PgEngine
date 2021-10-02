@@ -38,6 +38,7 @@
 #include "Engine/fontloader.h"
 #include "Engine/renderer.h"
 #include "UI/sentencesystem.h"
+#include "UI/uianimation.h"
 
 #include "Engine/particle.h"
 

@@ -15,7 +15,7 @@ enum class AreaScale : int
 
 struct MouseInputComponent
 {
-	int *x, *y, *z;
+	UiPosition *pos;
     UiSize *width, *height; // Input Area
 	bool *enable;
 
@@ -33,15 +33,14 @@ struct MouseInputComponent
     void registerFunc(void (*f)(Input*, double)) { onPressedLambda = f; }
 
     MouseInputComponent() {}
-    MouseInputComponent(int* x, int* y, int* z, UiSize* width, UiSize* height, bool *enable, AreaScale scale = AreaScale::FULLSCALE) : x(x), y(y), z(z), width(width), height(height), enable(enable), scale(scale) {} 
-    MouseInputComponent(UiComponent *component) : x(&component->x), y(&component->y), z(&component->z), width(&component->width), height(&component->height), enable(&component->visible), scale(AreaScale::FULLSCALE) {}
-    MouseInputComponent(TextureComponent *component) : x(&component->x), y(&component->y), z(&component->z), width(&component->width), height(&component->height), enable(&component->visible), scale(AreaScale::FULLSCALE) {}
-    MouseInputComponent(const MouseInputComponent& component) : x(component.x), y(component.y), z(component.z), width(component.width), height(component.height), enable(component.enable), scale(component.scale), object(component.object), onPressed(component.onPressed), onPressedLambda(component.onPressedLambda) {}
+    //MouseInputComponent(float* x, float* y, float* z, UiSize* width, UiSize* height, bool *enable, AreaScale scale = AreaScale::FULLSCALE) : pos.x(x), pos.y(y), pos.z(z), width(width), height(height), enable(enable), scale(scale) {} 
+    MouseInputComponent(UiComponent *component) : pos(&component->pos), width(&component->width), height(&component->height), enable(&component->visible), scale(AreaScale::FULLSCALE) {}
+    MouseInputComponent(const MouseInputComponent& component) : pos(component.pos), width(component.width), height(component.height), enable(component.enable), scale(component.scale), object(component.object), onPressed(component.onPressed), onPressedLambda(component.onPressedLambda) {}
 
     template<typename... Args>
     void call(Input* inputHandler, double deltaTime, Args... args) { if(onPressed != nullptr) (*object.*onPressed)(inputHandler, deltaTime, args...); if(onPressedLambda != nullptr) (*onPressedLambda)(inputHandler, deltaTime); }
 
-    bool inBound(int x, int y) const { return x > *(this->x) / static_cast<int>(this->scale) && x < (*this->x + *this->width) / static_cast<int>(this->scale) && y < (*this->y + *this->height) / static_cast<int>(this->scale) && y > *this->y / static_cast<int>(this->scale); }
+    bool inBound(int x, int y) const { return x > this->pos->x / static_cast<int>(this->scale) && x < (this->pos->x + *this->width) / static_cast<int>(this->scale) && y < (this->pos->y + *this->height) / static_cast<int>(this->scale) && y > this->pos->y / static_cast<int>(this->scale); }
     bool inBound(constant::Vector2D vec2) const { return inBound(vec2.x, vec2.y); }
 
     virtual ~MouseInputComponent() {}
@@ -54,12 +53,13 @@ struct MouseInputBase : public MouseInputComponent
 
 	void (ObjectType::*onPressed)(Input*, double, ...) = nullptr;
 
-    MouseInputBase() {}
+    using MouseInputComponent::MouseInputComponent;
 
-    MouseInputBase(int* x, int* y, int* z, UiSize* width, UiSize* height, bool *enable, AreaScale scale = AreaScale::FULLSCALE) : MouseInputComponent(x, y, z, width, height, enable, scale) {} 
-    MouseInputBase(UiComponent *component) : MouseInputComponent(&component->x, &component->y, &component->z, &component->width, &component->height, &component->visible, AreaScale::FULLSCALE) {}
-    MouseInputBase(TextureComponent *component) : MouseInputComponent(&component->x, &component->y, &component->z, &component->width, &component->height, &component->visible, AreaScale::FULLSCALE) {}
-    MouseInputBase(const MouseInputBase& component) : MouseInputComponent(component->x, component->y, component->z, component->width, component->height, component->enable, component->scale), onPressed(component.onPressed), object(component.object) { onPressedLambda = component.onPressedLambda; }
+    //MouseInputBase() {}
+//
+    //MouseInputBase(int* x, int* y, int* z, UiSize* width, UiSize* height, bool *enable, AreaScale scale = AreaScale::FULLSCALE) : MouseInputComponent(x, y, z, width, height, enable, scale) {} 
+    //MouseInputBase(UiComponent *component) : MouseInputComponent(&component->x, &component->y, &component->z, &component->width, &component->height, &component->visible, AreaScale::FULLSCALE) {}
+    //MouseInputBase(const MouseInputBase& component) : MouseInputComponent(component->x, component->y, component->z, component->width, component->height, component->enable, component->scale), onPressed(component.onPressed), object(component.object) { onPressedLambda = component.onPressedLambda; }
 
     template<typename... Args>
     void call(Input* inputHandler, double deltaTime, Args... args) { if(onPressed != nullptr) {auto obj = static_cast<ObjectType*>(object); auto f = static_cast<void (ObjectType::*)(Input*, double, ...)>(*onPressed); (obj->f)(inputHandler, deltaTime, args...);} if(onPressedLambda != nullptr) (*onPressedLambda)(inputHandler, deltaTime); }
@@ -96,8 +96,10 @@ struct KeyboardInputBase : public KeyboardInputComponent
 
 	void (ObjectType::*onKey)(Input*, double) = nullptr;
 
-    KeyboardInputBase() {}
-    KeyboardInputBase(const KeyboardInputBase& component) : object(component.object), onKey(component.onKey) { onKeyLambda = component.onKeyLambda; }
+    using KeyboardInputComponent::KeyboardInputComponent;
+
+    //KeyboardInputBase() {}
+    //KeyboardInputBase(const KeyboardInputBase& component) : object(component.object), onKey(component.onKey) { onKeyLambda = component.onKeyLambda; }
 
     template<typename... Args>
     void call(Input* inputHandler, double deltaTime, Args... args) { if(onKey != nullptr) {auto obj = static_cast<ObjectType*>(object); auto f = static_cast<void (ObjectType::*)(Input*, double, ...)>(*onKey); (obj->f)(inputHandler, deltaTime, args...);} if(onKeyLambda != nullptr) (*onKeyLambda)(inputHandler, deltaTime);  }
