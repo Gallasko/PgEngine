@@ -22,34 +22,8 @@
 //TODO create a destructor that go through the children and remove this ? or remove the child recursively ?
 struct UiComponent : public Base
 {
-    class UiAnchor
-    {
-    friend class UiComponent;
-    public:
-        UiAnchor(UiComponent* component, UiSize* refPos, UiSize *refSize = nullptr) : component(component), refPos(refPos), refSize(refSize) {}
-
-        operator float()
-        {
-            if(refSize != nullptr)
-            {
-                return static_cast<float>(*refPos + *refSize);
-            }
-                
-            return static_cast<float>(*refPos);
-        }
-
-    protected:
-        UiComponent *component;
-
-    private:
-        UiSize* refPos = nullptr;
-        UiSize *refSize = nullptr;
-    };
-
     bool visible = true;
 
-    //TODO create a int wrapper that call update on change (overload operator=) and have a pointer to the component like the anchor class so i can write UiComponent.x = 10 for exemple and it update children
-    //TODO change x y z to be UISize so i can position it using other component
     UiPosition pos;
 
     UiSize width = UiSize(0, 0, nullptr);
@@ -60,11 +34,6 @@ struct UiComponent : public Base
     UiSize *rightAnchor = nullptr;
     UiSize *bottomAnchor = nullptr;
     UiSize *leftAnchor = nullptr;
-
-    //UiAnchor top = UiAnchor(this, &pos.y);
-    //UiAnchor right = UiAnchor(this, &pos.x, &width);
-    //UiAnchor bottom = UiAnchor(this, &pos.y, &height);
-    //UiAnchor left = UiAnchor(this, &pos.x);
 
     UiSize top = &pos.y;
     UiSize right = pos.x + width;
@@ -150,24 +119,6 @@ struct LoaderRenderComponent : public UiComponent
 template <typename LoaderId> 
 LoaderRenderComponent<LoaderId>::LoaderRenderComponent(const LoaderRenderComponent &rhs) : UiComponent(rhs)
 {
-    //this->visible = rhs.visible;
-    //this->x = rhs.x;
-    //this->y = rhs.y;
-    //this->z = rhs.z;
-    //this->width = rhs.width;
-    //this->height = rhs.height;
-    //this->scale = rhs.scale;
-    //this->topAnchor = rhs.topAnchor;
-    //this->rightAnchor = rhs.rightAnchor;
-    //this->bottomAnchor = rhs.bottomAnchor;
-    //this->leftAnchor = rhs.leftAnchor;
-    //this->topMargin = rhs.topMargin;
-    //this->rightMargin = rhs.rightMargin;
-    //this->bottomMargin = rhs.bottomMargin;
-    //this->leftMargin = rhs.leftMargin;
-    //this->children = rhs.children;
-    //this->scale = scale;
-
     this->id = rhs.id;
 
     update();

@@ -14,7 +14,7 @@ class UiSize
 public:
     UiSize(const float& pixelSize = 0, const float& scaleValue = 0, const UiSize* ref1 = nullptr, const UiSize* ref2 = nullptr,  const UiSizeOpType& op = UiSizeOpType::NONE) : pixelSize(pixelSize), scaleValue(scaleValue), refSize1(ref1), refSize2(ref2), opType(op) {}
     UiSize(const UiSize& size) : UiSize(size.pixelSize, size.scaleValue, size.refSize1, size.refSize2, size.opType) {}
-    UiSize(UiSize* size) : UiSize(0.0f, 1.0f, size, nullptr, UiSizeOpType::NONE) {}
+    UiSize(const UiSize* size) : UiSize(0.0f, 1.0f, size, nullptr, UiSizeOpType::NONE) {}
 
     void operator=(const UiSize& rhs) // use to copy a ui size
     {
@@ -98,11 +98,9 @@ public:
     template<typename Type>
     friend Type operator-(const Type& lhs, const UiSize& rhs);
 
-
-    //TODO check if it is okey that UiSize can t be negative and if so make it a clear condition
     operator float() const
     {
-        return returnCurrentSize(); // < 0 ? 0 : UiSize::returnCurrentSize(this);
+        return returnCurrentSize();
     }
 
 private:
@@ -150,7 +148,7 @@ Type operator-(const Type& lhs, const UiSize& rhs)
 struct UiPosition 
 {
     UiPosition() {}
-    UiPosition(UiSize& x, UiSize& y, UiSize& z) { this->x = &x; this->y = &y; this->z = &z; } // todo create a const copy operator for uisize
+    UiPosition(const UiSize& x, const UiSize& y, const UiSize& z) { this->x = &x; this->y = &y; this->z = &z; } // todo create a const copy operator for uisize
     UiPosition(const UiPosition& pos) : x(pos.x), y(pos.y), z(pos.z) { } // todo create a const copy operator for uisize
 
     UiPosition operator+(const UiPosition& rhs) const {
