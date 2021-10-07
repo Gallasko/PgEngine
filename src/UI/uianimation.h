@@ -4,7 +4,7 @@
 
 #include <vector>
 
-struct UiKeyPoint // TODO create copy and swap, and test it on edge case and test for memory leaks
+struct UiKeyPoint
 {
     UiKeyPoint() { }
     UiKeyPoint(const UiPosition& pos, const unsigned int& time) : pos(pos), time(time) {}
@@ -16,6 +16,8 @@ struct UiKeyPoint // TODO create copy and swap, and test it on edge case and tes
 
 struct Sequence // TODO add interpolation support and default interpolation type
 {
+    //TODO assert that the origin point is not related to the object the sequence is invoked to
+    //because it create an endless loop that crash the app !
     typedef UiPosition OriginPoint; 
 
     template<typename... Args>

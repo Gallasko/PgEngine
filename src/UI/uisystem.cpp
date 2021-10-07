@@ -13,10 +13,16 @@ UiComponent::UiComponent(const UiComponent& rhs)
     this->rightAnchor = rhs.rightAnchor;
     this->bottomAnchor = rhs.bottomAnchor;
     this->leftAnchor = rhs.leftAnchor;
-    this->top = UiAnchor(this, &this->pos.y);
-    this->right = UiAnchor(this, &this->pos.x, &this->width);
-    this->bottom = UiAnchor(this, &this->pos.y, &this->height);
-    this->left = UiAnchor(this, &this->pos.x);
+
+    this->top = &this->pos.y;
+    this->right = this->pos.x + this->width;
+    this->bottom = this->pos.y + this->height;
+    this->left = &this->pos.x;
+
+    //this->top = UiAnchor(this, &this->pos.y);
+    //this->right = UiAnchor(this, &this->pos.x, &this->width);
+    //this->bottom = UiAnchor(this, &this->pos.y, &this->height);
+    //this->left = UiAnchor(this, &this->pos.x);
     this->topMargin = rhs.topMargin;
     this->rightMargin = rhs.rightMargin;
     this->bottomMargin = rhs.bottomMargin;
@@ -29,30 +35,30 @@ void UiComponent::update()
 {
     if(topAnchor != nullptr && bottomAnchor != nullptr)
     {
-        this->height = static_cast<float>(*bottomAnchor) - bottomMargin - static_cast<int>(*topAnchor) - topMargin;
-        this->pos.y = static_cast<float>(*topAnchor) + topMargin;
+        this->height = (*bottomAnchor - bottomMargin) - (*topAnchor - topMargin);
+        this->pos.y = *topAnchor + topMargin;
     }
     else if(topAnchor != nullptr && bottomAnchor == nullptr)
     {
-        this->pos.y = static_cast<float>(*topAnchor) + topMargin;
+        this->pos.y = *topAnchor + topMargin;
     }
     else if(topAnchor == nullptr && bottomAnchor != nullptr)
     {
-        this->pos.y = static_cast<float>(*bottomAnchor) - bottomMargin - this->height;
+        this->pos.y = (*bottomAnchor - bottomMargin) - this->height;
     }
 
     if(rightAnchor != nullptr && leftAnchor != nullptr)
     {
-        this->width = static_cast<float>(*rightAnchor) - rightMargin - static_cast<int>(*leftAnchor) - leftMargin;
-        this->pos.x = static_cast<float>(*leftAnchor) + leftMargin;
+        this->width = (*rightAnchor - rightMargin) - (*leftAnchor - leftMargin);
+        this->pos.x = *leftAnchor + leftMargin;
     }
     else if(rightAnchor != nullptr && leftAnchor == nullptr)
     {
-        this->pos.x = static_cast<float>(*rightAnchor) - rightMargin - this->width;
+        this->pos.x = (*rightAnchor - rightMargin) - this->width;
     }
     else if(rightAnchor == nullptr && leftAnchor != nullptr)
     {
-        this->pos.x = static_cast<float>(*leftAnchor) + leftMargin;
+        this->pos.x = *leftAnchor + leftMargin;
     }
 
     updated = true;

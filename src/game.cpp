@@ -157,7 +157,8 @@ void GameWindow::initialize()
        UiKeyPoint(400.0f, 400.0f, 2.0f, 0),
        UiKeyPoint(500.0f, 400.0f, 2.0f, 1000),
        UiKeyPoint(500.0f, 500.0f, 2.0f, 2000),
-       UiKeyPoint(400.0f, 500.0f, 2.0f, 3000)
+       UiKeyPoint(400.0f, 500.0f, 2.0f, 3000),
+       UiKeyPoint(400.0f, 400.0f, 2.0f, 4000)
     );
 
     AnimationComponent *tileSelectorAnimation = new AnimationComponent(tileSelector, tileSelectorSeq, true);
@@ -165,24 +166,24 @@ void GameWindow::initialize()
 
     auto pathFindingButton = ecs.createEntity();
     auto pathFindingButtonTexC = ecs.attach<TextureComponent>(pathFindingButton, {64, 32, "res/menu/frame.png"});
-    pathFindingButtonTexC->setX(0);
-    pathFindingButtonTexC->setY(height() - 32);
-    pathFindingButtonTexC->setZ(1);
+    //pathFindingButtonTexC->setX(0);
+    //pathFindingButtonTexC->setY(height() - 32);
+    //pathFindingButtonTexC->setZ(1);
 
     auto pathFindingButtonMouseArea = ecs.attach<MouseInputComponent* >(pathFindingButton, {});
     *pathFindingButtonMouseArea = new MouseInputBase<Map>(pathFindingButtonTexC);
     (*pathFindingButtonMouseArea)->registerFunc(Map::runPathFinding, gameMap);
 
     Sequence seq = Sequence(
-        //Sequence::OriginPoint(pathFindingButtonTexC->pos.x, pathFindingButtonTexC->pos.y, pathFindingButtonTexC->pos.z),
-        UiKeyPoint(100.0f, 100.0f, 0.0f, 0),
-        UiKeyPoint(200.0f, 100.0f, 0.0f, 1000),
-        UiKeyPoint(200.0f, 200.0f, 0.0f, 2000),
-        UiKeyPoint(100.0f, 200.0f, 0.0f, 3000),
-        UiKeyPoint(100.0f, 100.0f, 0.0f, 4000)
+        Sequence::OriginPoint(screenUi->pos.x, screenUi->bottom, screenUi->pos.z),
+        UiKeyPoint(100.0f, -100.0f, 1.0f, 0),
+        UiKeyPoint(200.0f, -100.0f, 1.0f, 1000),
+        UiKeyPoint(200.0f, -200.0f, 1.0f, 2000),
+        UiKeyPoint(100.0f, -200.0f, 1.0f, 3000),
+        UiKeyPoint(100.0f, -100.0f, 1.0f, 4000)
     );
 
-    AnimationComponent *animation = new AnimationComponent(pathFindingButtonTexC, seq, true);
+    AnimationComponent *animation = new AnimationComponent(pathFindingButtonTexC, seq, false);
     animation->start();
 
     //cmpTexTest = new TextureComponent(300, 300, "res/menu/Menu2.png");

@@ -56,15 +56,20 @@ struct UiComponent : public Base
     UiSize height = UiSize(0, 0, nullptr);
     float scale = 1.0f;
 
-    UiAnchor *topAnchor = nullptr;
-    UiAnchor *rightAnchor = nullptr;
-    UiAnchor *bottomAnchor = nullptr;
-    UiAnchor *leftAnchor = nullptr;
+    UiSize *topAnchor = nullptr;
+    UiSize *rightAnchor = nullptr;
+    UiSize *bottomAnchor = nullptr;
+    UiSize *leftAnchor = nullptr;
 
-    UiAnchor top = UiAnchor(this, &pos.y);
-    UiAnchor right = UiAnchor(this, &pos.x, &width);
-    UiAnchor bottom = UiAnchor(this, &pos.y, &height);
-    UiAnchor left = UiAnchor(this, &pos.x);
+    //UiAnchor top = UiAnchor(this, &pos.y);
+    //UiAnchor right = UiAnchor(this, &pos.x, &width);
+    //UiAnchor bottom = UiAnchor(this, &pos.y, &height);
+    //UiAnchor left = UiAnchor(this, &pos.x);
+
+    UiSize top = &pos.y;
+    UiSize right = pos.x + width;
+    UiSize bottom = pos.y + height;
+    UiSize left = &pos.x;
 
     int topMargin = 0;
     int rightMargin = 0;
@@ -90,10 +95,10 @@ struct UiComponent : public Base
     void inline setBottomMargin(const int& value) { bottomMargin = value; update(); }
     void inline setLeftMargin(const int& value) { leftMargin = value; update(); }
 
-    void inline setTopAnchor(UiAnchor *anchor) { topAnchor = anchor; auto it = std::find(anchor->component->children.begin(), anchor->component->children.end(), this); if(it == anchor->component->children.end()) anchor->component->children.push_back(this); update(); }
-    void inline setRightAnchor(UiAnchor *anchor) { rightAnchor = anchor; auto it = std::find(anchor->component->children.begin(), anchor->component->children.end(), this); if(it == anchor->component->children.end()) anchor->component->children.push_back(this); update(); }
-    void inline setBottomAnchor(UiAnchor *anchor) { bottomAnchor = anchor; auto it = std::find(anchor->component->children.begin(), anchor->component->children.end(), this); if(it == anchor->component->children.end()) anchor->component->children.push_back(this); update(); }
-    void inline setLeftAnchor(UiAnchor *anchor) { leftAnchor = anchor; auto it = std::find(anchor->component->children.begin(), anchor->component->children.end(), this); if(it == anchor->component->children.end()) anchor->component->children.push_back(this); update(); }
+    void inline setTopAnchor(UiSize *anchor) { topAnchor = anchor; update(); }
+    void inline setRightAnchor(UiSize *anchor) { rightAnchor = anchor; update(); }
+    void inline setBottomAnchor(UiSize *anchor) { bottomAnchor = anchor; update(); }
+    void inline setLeftAnchor(UiSize *anchor) { leftAnchor = anchor; update(); }
     
     bool updated = false;
 

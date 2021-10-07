@@ -3,88 +3,93 @@
 //TODO make the operation here constant and then change uisystem and ui animation accordingly to make everything constant
 class UiSize
 {
-public:
-    UiSize() {}
-    UiSize(const float& pixelSize = 0, const float& scaleValue = 0, UiSize* ref = nullptr) : pixelSize(pixelSize), scaleValue(scaleValue), refSize(ref) {}
-    UiSize(const UiSize& size) : pixelSize(size.pixelSize), scaleValue(size.scaleValue), refSize(size.refSize) {}
-
-    static float returnCurrentSize(const UiSize* size)
+    enum class UiSizeOpType
     {
-        if(size == nullptr)
-            return 0;
-        else
-            return size->pixelSize + returnCurrentSize(size->refSize) * size->scaleValue;
-    }
+        ADD,
+        SUB,
+
+        NONE
+    };
+
+public:
+    UiSize(const float& pixelSize = 0, const float& scaleValue = 0, const UiSize* ref1 = nullptr, const UiSize* ref2 = nullptr,  const UiSizeOpType& op = UiSizeOpType::NONE) : pixelSize(pixelSize), scaleValue(scaleValue), refSize1(ref1), refSize2(ref2), opType(op) {}
+    UiSize(const UiSize& size) : UiSize(size.pixelSize, size.scaleValue, size.refSize1, size.refSize2, size.opType) {}
+    UiSize(UiSize* size) : UiSize(0.0f, 1.0f, size, nullptr, UiSizeOpType::NONE) {}
 
     void operator=(const UiSize& rhs) // use to copy a ui size
     {
         this->pixelSize = rhs.pixelSize;
         this->scaleValue = rhs.scaleValue;
-        this->refSize = rhs.refSize;
+        this->refSize1 = rhs.refSize1;
+        this->refSize2 = rhs.refSize2;
+        this->opType = rhs.opType;
     }
 
-    void operator=(UiSize *rhs) // use to make this ui size refer to another
+    void operator=(const UiSize *rhs) // use to make this ui size refer to another
     {
         this->pixelSize = 0;
         this->scaleValue = 1.0f;
-        this->refSize = rhs;
+        this->refSize1 = rhs;
+        this->refSize2 = nullptr;
+        this->opType = UiSizeOpType::NONE;
     }
 
     void operator=(const int& rhs)
     {
         this->pixelSize = rhs;
         this->scaleValue = 1.0f;
-        this->refSize = nullptr;
+        this->refSize1 = nullptr;
+        this->refSize2 = nullptr;
+        this->opType = UiSizeOpType::NONE;
     }
 
     void operator=(const float& rhs)
     {
         this->pixelSize = rhs;
         this->scaleValue = 1.0f;
-        this->refSize = nullptr;
+        this->refSize1 = nullptr;
+        this->refSize2 = nullptr;
+        this->opType = UiSizeOpType::NONE;
     }
 
-    UiSize operator*(const float& rhs)
+    UiSize operator*(const float& rhs) const
     {
         return UiSize(0.0f, rhs, this);
     }
 
-    UiSize operator+(const int& rhs)
+    UiSize operator+(const int& rhs) const
     {
         return UiSize(rhs, 1.0f, this);
     }
 
-    UiSize operator+(const float& rhs)
+    UiSize operator+(const float& rhs) const
     {
         return UiSize(rhs, 1.0f, this);
     }
 
-    //TODO find a way to combine both uisize
-    UiSize operator+(UiSize& rhs)
+    UiSize operator+(UiSize& rhs) const
     {
-        return UiSize(static_cast<float>(rhs), 1.0f, this);
-        //return UiSize(rhs, 1.0f, this);
+        return UiSize(0.0f, 1.0f, this, &rhs, UiSizeOpType::ADD);
     }
 
-    UiSize operator-(const int& rhs)
+    UiSize operator-(const int& rhs) const
     {
         return UiSize(-rhs, 1.0f, this);
     }
 
-    UiSize operator-(const float& rhs)
+    UiSize operator-(const float& rhs) const
     {
         return UiSize(-rhs, 1.0f, this);
     }
 
-    //TODO find a way to combine both uisize
-    UiSize operator-(UiSize& rhs)
+    UiSize operator-(UiSize& rhs) const
     {
-        return UiSize(-rhs, 1.0f, this);
+        return UiSize(0.0f, 1.0f, this, &rhs, UiSizeOpType::SUB);
     }
 
-    float operator-()
+    UiSize operator-() const
     {
-        return -UiSize::returnCurrentSize(this);
+        return UiSize(0.0f, -1.0f, this);
     }
 
     template<typename Type>
@@ -93,27 +98,52 @@ public:
     template<typename Type>
     friend Type operator-(const Type& lhs, const UiSize& rhs);
 
+
     //TODO check if it is okey that UiSize can t be negative and if so make it a clear condition
-    operator float()
+    operator float() const
     {
-        return UiSize::returnCurrentSize(this); // < 0 ? 0 : UiSize::returnCurrentSize(this);
+        return returnCurrentSize(); // < 0 ? 0 : UiSize::returnCurrentSize(this);
     }
+
 private:
-    float pixelSize = 0;
+    float returnCurrentSize() const
+    {
+        float refSizeValue1 = refSize1 == nullptr ? 0.0f : refSize1->returnCurrentSize();
+        float refSizeValue2 = refSize2 == nullptr ? 0.0f : refSize2->returnCurrentSize();
+
+        refSizeValue1 = pixelSize + refSizeValue1 * scaleValue;
+
+        switch(opType)
+        {
+            case UiSizeOpType::ADD:
+                return refSizeValue1 + refSizeValue2;
+                break;
+            case UiSizeOpType::SUB:
+                return refSizeValue1 - refSizeValue2;
+                break;
+            case UiSizeOpType::NONE:
+            default:
+                return refSizeValue1;
+        }
+    }
+
+    float pixelSize = 0.0f;
     float scaleValue = 0.0f;
-    UiSize *refSize;
+    const UiSize *refSize1 = nullptr;
+    const UiSize* refSize2 = nullptr;
+    UiSizeOpType opType = UiSizeOpType::NONE;
 };
 
 template<typename Type>
 Type operator+(const Type& lhs, const UiSize& rhs)
 {
-    return lhs + UiSize::returnCurrentSize(&rhs);
+    return lhs + static_cast<float>(rhs);
 }
 
 template<typename Type>
 Type operator-(const Type& lhs, const UiSize& rhs)
 {
-    return lhs - UiSize::returnCurrentSize(&rhs);
+    return lhs - static_cast<float>(rhs);
 }
 
 //TODO create ctor dtor copy

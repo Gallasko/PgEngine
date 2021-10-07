@@ -10,8 +10,8 @@ UiPosition Sequence::getPos(const unsigned int& elapsedTime)
     // TODO Make sure that current index is always in bound 
     if(keyPoints[currentIndex].time == elapsedTime)
     {
-        //return origin + keyPoints[currentIndex].pos;
-        return keyPoints[currentIndex].pos;
+        return origin + keyPoints[currentIndex].pos;
+        //return keyPoints[currentIndex].pos;
     }
 
     if(keyPoints[currentIndex].time < elapsedTime)
@@ -19,8 +19,8 @@ UiPosition Sequence::getPos(const unsigned int& elapsedTime)
         auto nextIndex = currentIndex + 1;
 
         if(nextIndex >= keyPointsVecSize) // this means that currentIndex is the pointing to the last element of the sequence
-            return keyPoints[currentIndex].pos;
-            //return origin + keyPoints[currentIndex].pos;
+            //return keyPoints[currentIndex].pos;
+            return origin + keyPoints[currentIndex].pos;
 
         if(keyPoints[nextIndex].time > elapsedTime) // TODO here we should interpolate the value between cIndex and nIndex
         {
@@ -38,11 +38,10 @@ UiPosition Sequence::getPos(const unsigned int& elapsedTime)
 
             //TODO add support for other type of interpolation and interpolation registering
 
-            //return origin + pos;
-            return pos;
+            return origin + pos;
+            //return pos;
         }
-
-        if(keyPoints[nextIndex].time <= elapsedTime)
+        else if(keyPoints[nextIndex].time <= elapsedTime)
         {
             currentIndex = nextIndex;
             return getPos(elapsedTime);
