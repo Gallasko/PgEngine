@@ -4,6 +4,9 @@
 #include <stdlib.h>
 #include <time.h>
 #include <vector>
+#include <unordered_map>
+#include <functional>
+#include <queue>
 
 #include <QOpenGLFunctions>
 #include <QOpenGLTexture>
@@ -24,184 +27,142 @@
 // Sometimes the shortest route is not found because a longer route was not registered
 // Expend the pathfinding algorithm for open rooms by extending the research kernel
 // Add Weight bias to the road
- 
-class PathFinder 
+
+struct MapFloat
+{
+    const float **map;
+    const unsigned int width, height;
+};
+
+namespace std {
+    template<>
+    struct hash<constant::Vector2D> {
+        size_t operator()(const constant::Vector2D& k) const {
+            return ((hash<int>()(k.x) ^ (hash<int>()(k.y) << 1)) >> 1);
+        }
+    };
+}
+
+class Path2D
 {
 public:
-    enum class Dir
+    Path2D(const MapFloat& map) : map(map) {}
+
+    std::vector<constant::Vector2D> operator()(const constant::Vector2D& from, const constant::Vector2D& to) const
     {
-        NORTH,
-        SOUTH,
-        WEST,
-        EAST,
-        NONE
-    };
+        std::unordered_map<constant::Vector2D, float> dist;
+        std::unordered_map<constant::Vector2D, constant::Vector2D> prev;
 
-    struct Road
-    {
-        unsigned short startNodeId = 0; 
-        unsigned short endNodeId = 0;
-        unsigned int length = 0;
-        PathFinder::Dir dir = PathFinder::Dir::NONE;
-    };
+        prev[from] = constant::Vector2D{-1, -1};
+        prev[to] = constant::Vector2D{-1, -1};
 
-    struct Node
-    {
-        unsigned short id = 0;
-        int x, y;
-        unsigned short nbAdjNodes;
-        PathFinder::Road *path;
-
-        Node(unsigned int id, int x, int y, int nbAdjNodes) : id(id), x(x), y(y), nbAdjNodes(nbAdjNodes) { path = new PathFinder::Road[nbAdjNodes]; }
-        Node(const Node& node) : id(node.id), x(node.x), y(node.y), nbAdjNodes(node.nbAdjNodes) { path = new PathFinder::Road[nbAdjNodes]; for(int i = 0; i < nbAdjNodes; i++) path[i] = node.path[i]; }
-        ~Node() { delete path; }
-    };
-
-    struct Path
-    {
-        unsigned short startNodeId = 0; 
-        unsigned short endNodeId = 0;
-        unsigned int length = 0;
-
-        std::vector<PathFinder::Dir> dirList = {};
-
-        //Path() {}
-        //Path(const Path& path) : startNodeId(path.startNodeId), endNodeId(path.endNodeId), length(path.length) { dirList.insert(dirList.end(), path.dirList.begin(), path.dirList.end()); }
-
-        Path operator+(const Path& rhs) const
+        struct queue_node
         {
-            Path newPath;
-            newPath.startNodeId = startNodeId;
-            newPath.endNodeId = rhs.endNodeId;
-            newPath.length = this->length + rhs.length;
-            newPath.dirList.insert(newPath.dirList.end(), dirList.begin(), dirList.end());
-            newPath.dirList.insert(newPath.dirList.end(), rhs.dirList.begin(), rhs.dirList.end());
+            constant::Vector2D value;
+            float dist;
+        };
 
-            return newPath;
-        }
+        auto cmp = [&](const queue_node& a, const queue_node& b){
+            return a.dist > b.dist;
+        };
 
-        Path operator-(const Path& rhs) const
+        std::priority_queue<queue_node, std::vector<queue_node>, decltype(cmp)> Q(cmp);
+
+        for (int x = 0; x < map.width; x++) 
         {
-            Path newPath;
-            newPath.startNodeId = startNodeId;
-            newPath.endNodeId = rhs.endNodeId;
-            newPath.length = this->length + rhs.length;
-
-            std::vector<PathFinder::Dir> inverseDirList;
-
-            for(auto dir : dirList)
+            for (int y = 0; y < map.height; y++) 
             {
-                //Inverse dir helper func
-                switch (dir)
+                const constant::Vector2D coord = {x, y};
+
+                if(getMapDistance(coord) > 0.0f) // if map value = 0 it means that the cell is not reachable 
                 {
-                case PathFinder::Dir::NORTH:
-                    inverseDirList.push_back(PathFinder::Dir::SOUTH);
-                    break;
-                case PathFinder::Dir::SOUTH:
-                    inverseDirList.push_back(PathFinder::Dir::NORTH);
-                    break;
-                case PathFinder::Dir::EAST:
-                    inverseDirList.push_back(PathFinder::Dir::WEST);
-                    break;
-                case PathFinder::Dir::WEST:
-                    inverseDirList.push_back(PathFinder::Dir::EAST);
-                    break;
-                case PathFinder::Dir::NONE:
-                    inverseDirList.push_back(PathFinder::Dir::NONE);
-                    break;
+                    dist[coord] = std::numeric_limits<float>::max();
+                    Q.push({coord, std::numeric_limits<float>::max()});
+
+                    prev[coord] = constant::Vector2D{-1, -1};
                 }
             }
-
-            newPath.dirList.insert(newPath.dirList.end(), inverseDirList.rbegin(), inverseDirList.rend());
-            newPath.dirList.insert(newPath.dirList.end(), rhs.dirList.begin(), rhs.dirList.end());
-
-            return newPath;
         }
 
-        Path& operator+=(const Path& rhs)
+        dist[from] = 0;
+        dist[to] = std::numeric_limits<float>::max();
+        Q.push({from, 0});
+
+        // Search loop
+        while (!Q.empty()) 
         {
-            this->length += rhs.length;
-            dirList.insert(dirList.end(), rhs.dirList.begin(), rhs.dirList.end());
+            auto u = Q.top();
+            Q.pop();
 
-            return *this;
-        }
+            // Old priority queue value
+            if (u.dist != dist[u.value])
+                continue;
 
-        //void operator=(const Path& rhs)
-        //{
-        //    this->startNodeId = rhs.startNodeId;
-        //    this->endNodeId = rhs.endNodeId;
-        //    this->length = rhs.length;
-        //
-        //    dirList.insert(dirList.end(), rhs.dirList.begin(), rhs.dirList.end());
-        //}
+            if (u.value == to)
+                break;
 
-        void operator=(const PathFinder::Road& rhs)
-        {
-            dirList.clear();
-
-            this->startNodeId = rhs.startNodeId;
-            this->endNodeId = rhs.endNodeId;
-            this->length = rhs.length;
-            
-            dirList.insert(dirList.end(), this->length, rhs.dir);
-        }
-
-        Path operator-()
-        {
-            Path newPath;
-            newPath.startNodeId = this->startNodeId;
-            newPath.endNodeId = this->endNodeId;
-            newPath.length = this->length;
-
-            for(auto dir : dirList)
+            for (const constant::Vector2D& v : getNeighbours(u.value)) 
             {
-                //Inverse dir helper func
-                switch (dir)
+                const float alt = dist[u.value] + getMapDistance(v);
+                if (alt < dist[v]) 
                 {
-                case PathFinder::Dir::NORTH:
-                    newPath.dirList.push_back(PathFinder::Dir::SOUTH);
-                    break;
-                case PathFinder::Dir::SOUTH:
-                    newPath.dirList.push_back(PathFinder::Dir::NORTH);
-                    break;
-                case PathFinder::Dir::EAST:
-                    newPath.dirList.push_back(PathFinder::Dir::WEST);
-                    break;
-                case PathFinder::Dir::WEST:
-                    newPath.dirList.push_back(PathFinder::Dir::EAST);
-                    break;
-                case PathFinder::Dir::NONE:
-                    newPath.dirList.push_back(PathFinder::Dir::NONE);
-                    break;
+                    dist[v] = alt;
+                    Q.push({v, alt});
+
+                    prev[v] = u.value;
                 }
             }
-
-            return newPath;
         }
-    };
 
-    PathFinder() {}
-    ~PathFinder();
+        // Trace path - if there is one
+        std::vector<constant::Vector2D> path;
 
-    void processMap(float **map, const int& width, const int& height);
-    PathFinder::Path getPath(const constant::Vector2D& from, const constant::Vector2D& to);
+        if (prev[to].x != -1) // Todo: right now the condition is on -1 but the map could go to the negativ so i need to keep that in mind and change the end condition
+        {
+            constant::Vector2D current = to;
+
+            while (current.x != -1) 
+            {
+                path.push_back(current);
+                current = prev[current];
+            }
+
+            std::reverse(path.begin(), path.end());
+        }
+
+        return path;
+    }
 
 private:
-    std::vector<PathFinder::Node* > findCoreNodes(float **array, const int& width, const int& height);
-    void generateAllPath(std::vector<PathFinder::Node* > *nodes);
-    PathFinder::Path makePath(const unsigned int& startingNode, const unsigned int& endNode);
+    std::vector<constant::Vector2D> getNeighbours(const constant::Vector2D& place) const
+    {
+        std::vector<constant::Vector2D> neighbours;
 
-    float **map;
-    int width = 0;
-    int height = 0;
+        for (int dx = -1; dx <= 1; dx++) 
+        {
+            for (int dy = -1; dy <= 1; dy++) 
+            {
+                const auto coord = place + constant::Vector2D{dx, dy};
 
-    unsigned int nbNodes = 0;
-    std::vector<PathFinder::Node* > nodeList;
-    PathFinder::Node ***nodeArray;
-    PathFinder::Road ***roadArray;
-    PathFinder::Path *currentPath;
+                const bool notSelf = !(dx == 0 && dy == 0);
+                const bool connectivity = abs(dx) + abs(dy) <= 1; // with one we don t take diagonal points, otherwise with two we take diagonal points
+                const bool withinGrid = coord.x >= 0 && coord.y >= 0 && coord.x < map.width && coord.y < map.height;
 
-    bool initialized = false;
+                if (notSelf && connectivity && withinGrid) {
+                    neighbours.push_back(coord);
+                }
+            }
+        }
+
+        return neighbours;
+    }
+
+    float getMapDistance(const constant::Vector2D& pos) const
+    {
+        return pos.x >= 0 && pos.y >= 0 && pos.x < map.width && pos.y < map.height ? map.map[static_cast<int>(pos.x)][static_cast<int>(pos.y)] : std::numeric_limits<float>::max();
+    }
+
+    const MapFloat map;
 };
 
 class Map : private QOpenGLFunctions, public Base
@@ -231,7 +192,8 @@ public:
 
         Tiles(int x, int y, TilesLoader::TilesId *tileId = nullptr) : x(x), y(y), tileId(tileId) {}
     
-        operator float() { return tileId == nullptr ? 0.0f : *tileId == TileType::ROAD ? 1.0f : 0.0f; } 
+        //operator float() { return tileId == nullptr ? 0.0f : *tileId == TileType::ROAD ? 1.0f : *tileId == TileType::HOUSE ? 5.0f : 0.0f; } 
+        operator float() const { return tileId == nullptr ? 0.0f : *tileId == TileType::ROAD ? 1.0f : 0.0f; } 
     };
 
     struct MapConstraint
@@ -298,7 +260,9 @@ private:
     QOpenGLBuffer *VBO;
     QOpenGLBuffer *EBO;
 
-    PathFinder pathFinder;
+    //PathFinder pathFinder;
+    bool floatMapInitialised = false;
+    const float **floatMap;
 
     TilesLoader::TilesId *tileToBePlaced = nullptr;
     bool pathFindingInitialised = false;
@@ -310,5 +274,5 @@ private:
     constant::Vector2D startPath;
     bool pathRoad = false;
 
-    PathFinder::Path pathToRender;
+    //PathFinder::Path pathToRender;
 };

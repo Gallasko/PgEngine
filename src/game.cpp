@@ -70,8 +70,8 @@ void GameWindow::initialize()
 
     fontLoader = new FontLoader("res/font/fontmap.ft");
 
-    mapConstraint.width = 5;
-    mapConstraint.height = 5;
+    mapConstraint.width = 15;
+    mapConstraint.height = 15;
     mapConstraint.seed = 1;
  
     mapConstraint.noiseParam = {4, 5, 50, -1, 0.4};
@@ -161,7 +161,7 @@ void GameWindow::initialize()
        UiKeyPoint(400.0f, 400.0f, 2.0f, 4000)
     );
 
-    AnimationComponent *tileSelectorAnimation = new AnimationComponent(tileSelector, tileSelectorSeq, true);
+    AnimationComponent *tileSelectorAnimation = new AnimationComponent(tileSelector, tileSelectorSeq, false);
     tileSelectorAnimation->start();
 
     auto pathFindingButton = ecs.createEntity();
@@ -176,14 +176,14 @@ void GameWindow::initialize()
 
     Sequence seq = Sequence(
         Sequence::OriginPoint(screenUi->pos.x, screenUi->bottom, screenUi->pos.z),
-        UiKeyPoint(100.0f, -100.0f, 1.0f, 0),
-        UiKeyPoint(200.0f, -100.0f, 1.0f, 1000),
-        UiKeyPoint(200.0f, -200.0f, 1.0f, 2000),
-        UiKeyPoint(100.0f, -200.0f, 1.0f, 3000),
-        UiKeyPoint(100.0f, -100.0f, 1.0f, 4000)
+        UiKeyPoint(000.0f, -000.0f, 1.0f, 0),
+        UiKeyPoint(100.0f, -000.0f, 1.0f, 1000),
+        UiKeyPoint(100.0f, -100.0f, 1.0f, 2000),
+        UiKeyPoint(000.0f, -100.0f, 1.0f, 3000),
+        UiKeyPoint(000.0f, -pathFindingButtonTexC->height, 1.0f, 4000)
     );
 
-    AnimationComponent *animation = new AnimationComponent(pathFindingButtonTexC, seq, false);
+    AnimationComponent *animation = new AnimationComponent(pathFindingButtonTexC, seq, true);
     animation->start();
 
     //cmpTexTest = new TextureComponent(300, 300, "res/menu/Menu2.png");

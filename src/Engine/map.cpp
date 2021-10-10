@@ -372,6 +372,7 @@ Map::Map(EntitySystem *ecs, TilesLoader *tilesLoader, unsigned int width, unsign
 }
 */
 
+/*
 PathFinder::~PathFinder()
 {
     if(initialized)
@@ -742,38 +743,39 @@ PathFinder::Path PathFinder::makePath(const unsigned int& startingNode, const un
 
     return currentRoad;
 
-    /*
-    do
-    {
-        currentNode = nodeArray[currentX][currentY];
-        
-
-        switch (currentRoad.dir)
-        {
-        case PathFinder::Dir::NORTH:
-            currentX -= currentRoad.length;
-            break;
-        case PathFinder::Dir::SOUTH:
-            currentX += currentRoad.length;
-            break;
-        case PathFinder::Dir::EAST:
-            currentY += currentRoad.length;
-            break;
-        case PathFinder::Dir::WEST:
-            currentY -= currentRoad.length;
-            break;
-        case PathFinder::Dir::NONE:
-            return PathFinder::Path();
-            break;
-        }
-
-        path.length += currentRoad.length;
-        path.dirList.insert(path.dirList.end(), currentRoad.length, currentRoad.dir);
-
-    } while (currentX != eNode->x && currentY != eNode->y);
-    */
+    
+    //do
+    //{
+    //    currentNode = nodeArray[currentX][currentY];
+    //    
+//
+    //    switch (currentRoad.dir)
+    //    {
+    //    case PathFinder::Dir::NORTH:
+    //        currentX -= currentRoad.length;
+    //        break;
+    //    case PathFinder::Dir::SOUTH:
+    //        currentX += currentRoad.length;
+    //        break;
+    //    case PathFinder::Dir::EAST:
+    //        currentY += currentRoad.length;
+    //        break;
+    //    case PathFinder::Dir::WEST:
+    //        currentY -= currentRoad.length;
+    //        break;
+    //    case PathFinder::Dir::NONE:
+    //        return PathFinder::Path();
+    //        break;
+    //    }
+//
+    //    path.length += currentRoad.length;
+    //    path.dirList.insert(path.dirList.end(), currentRoad.length, currentRoad.dir);
+//
+    //} while (currentX != eNode->x && currentY != eNode->y);
+    
     return path;
 }
+*/
 
 Map::Map(EntitySystem *ecs, TilesLoader *tilesLoader, Map::MapConstraint constraint) : ecs(ecs), tilesLoader(tilesLoader), constraint(constraint)
 {
@@ -879,17 +881,34 @@ void Map::runPathFinding(Input* inputHandler, double deltaTime...)
     {
         if(!pathFindingInitialised)
         {
-            float **floatMap = new float*[this->getWidth()];
-            for(unsigned int i = 0; i < this->getWidth(); i++)
+            if(floatMapInitialised)
             {
-                floatMap[i] = new float[this->getHeight()];
-                for(unsigned int j = 0; j < this->getHeight(); j++)
+                //TODO delete must be using the old height and width and note the current one
+                //maybe make it impossible to change width and heigth and just reconstruct a new map
+                for(unsigned int i = 0; i < this->getWidth(); i++)
                 {
-                    floatMap[i][j] = *tileMap[i][j];
+                    delete[] floatMap[i];
                 }
+                delete[] floatMap;
             }
 
-            pathFinder.processMap(floatMap, this->getWidth(), this->getHeight());
+            //todo delete float map when the map is destroyed
+
+            floatMap = new const float*[this->getWidth()];
+            for(unsigned int i = 0; i < this->getWidth(); i++)
+            {
+                const auto temp = new float[this->getHeight()];
+                for(unsigned int j = 0; j < this->getHeight(); j++)
+                {
+                    temp[j] = *tileMap[i][j];
+                }
+
+                floatMap[i] = temp;
+            }
+            floatMapInitialised = true;
+
+            // TODO
+            //pathFinder.processMap(floatMap, this->getWidth(), this->getHeight());
 
             pathFindingInitialised = true;
         }
@@ -933,7 +952,7 @@ void Map::clicked(Input* inputHandler, double deltaTime...)
         {
             if(!clickedOnce)
             {
-                static constant::Vector2D end;
+                static constant::Vector2D end; // TODO: why this is here
                 static bool lockup = false;
 
                 if(tileX >= 0 && tileX < this->getWidth() && tileY >= 0 && tileY < this->getHeight())
@@ -960,6 +979,21 @@ void Map::clicked(Input* inputHandler, double deltaTime...)
                     {
                         end.x = tileX;
                         end.y = tileY;
+
+                        if(floatMapInitialised)
+                        {
+                            auto pathFinder = Path2D(MapFloat{floatMap, this->getWidth(), this->getHeight()});
+                            auto path = pathFinder(startPath, end);
+
+                            std::cout << path.size() << std::endl;
+
+                            //for(const auto& pos : path)
+                            //{
+                            //    std::cout << pos.x << ", " << pos.y << std::endl;
+                            //}
+                        }
+                        /*
+                        
 
                         auto path = pathFinder.getPath(startPath, end);
 
@@ -1018,8 +1052,9 @@ void Map::clicked(Input* inputHandler, double deltaTime...)
                         }
 
                         meshUpdate = false;
+                        */
 
-                        lockup = false;
+                       lockup = false;
                     }
                 }
             }
@@ -1179,6 +1214,8 @@ void Map::drawPath()
         unsigned int x = startPath.x;
         unsigned int y = startPath.y;
 
+        /*
+
         for(auto dir : pathToRender.dirList)
         {
             
@@ -1204,6 +1241,8 @@ void Map::drawPath()
                 break;
             }
         }
+
+        */
 
         meshUpdate = false;
     }
