@@ -104,6 +104,7 @@ private:
 	QOpenGLBuffer *SquareEBO;
 
     constant::GeometryVertices *info;
+    constant::GeometryVertices *info2;
 	
     QOpenGLBuffer *instanceVBO;
 

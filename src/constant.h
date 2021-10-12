@@ -132,6 +132,7 @@ namespace constant
 	{
 		std::vector<constant::Vector2D> points;
 		std::vector<TriangleIndices> trianglesIndices;
+		constant::Vector2D offset = {0.0f, 0.0f}; 
 	};
 
 	struct Collidable2D
@@ -144,7 +145,8 @@ namespace constant
 
 	struct Triangle2D : public Collidable2D
 	{
-		Triangle2D(const constant::Vector2D& p1, const constant::Vector2D& p2, const constant::Vector2D& p3){
+		Triangle2D(const constant::Vector2D& p1, const constant::Vector2D& p2, const constant::Vector2D& p3, const constant::Vector2D& offset = {0.0f, 0.0f}){
+			geometry.offset = offset;
 			geometry.points.push_back(p1);
 			geometry.points.push_back(p2);
 			geometry.points.push_back(p3);
@@ -161,7 +163,7 @@ namespace constant
 				//std::cout << "TrianglePoint : " << point1.x << "," << point1.y << " " << point2.x << "," << point2.y << " " << point3.x << "," << point3.y << std::endl;
 				//std::cout << triangleArea << std::endl;
 
-				for(auto point : obj->geometry.points)
+				for(const auto& point : obj->geometry.points)
 				{
 					//std::cout << "Collision Check" << std::endl;
 					const double Area1 = getTriangleArea(point, point1, point2);
@@ -197,7 +199,8 @@ namespace constant
 		constant::Vector2D pos;
 		constant::Vector2D scale;
 
-		Rectangle2D(const float& x, const float& y, const float& w, const float& h) {
+		Rectangle2D(const float& x, const float& y, const float& w, const float& h, const constant::Vector2D& offset = {0.0f, 0.0f}) {
+			geometry.offset = offset;
 			pos = constant::Vector2D(x, y);
 			scale = constant::Vector2D(w, h);
 
@@ -235,13 +238,9 @@ namespace constant
 				triangleList.push_back(Triangle2D(geometry.points[triangle.indice1], geometry.points[triangle.indice2], geometry.points[triangle.indice3]));
 
 			collideFunc = [=](const Collidable2D* obj){
-				for(auto triangle : triangleList)
-				{
-					bool collision = triangle.collideWith(obj);
-
-					if(collision)
+				for(const auto& triangle : triangleList)
+					if(triangle.collideWith(obj))
 						return true;
-				}
 
 				return false;
 			};
@@ -264,8 +263,9 @@ namespace constant
 
 	struct GeometryVertices : public ModelInfo
 	{
-		GeometryVertices(const Geometry2D& geometry)
+		GeometryVertices(Geometry2D geometry, const constant::Vector2D& offset = {0,0})
 		{
+			geometry.offset = offset;
 			nbVertices = geometry.points.size() * 5;
 			nbIndices = geometry.trianglesIndices.size() * 3;
 
@@ -278,7 +278,7 @@ namespace constant
 			//have there origin in the top left corner with x pointing to the right and y pointing to the bottom.
 			for(auto point : geometry.points)
 			{
-				vertices[i + 0] = point.x; vertices[i + 1] = -point.y; vertices[i + 2] =  0.0f; vertices[i + 3] = point.x; vertices[i + 4] = -point.y;   
+				vertices[i + 0] = point.x + geometry.offset.x; vertices[i + 1] = -point.y - geometry.offset.y; vertices[i + 2] =  0.0f; vertices[i + 3] = point.x; vertices[i + 4] = -point.y;   
 				i += 5;
 			}
 
@@ -293,7 +293,7 @@ namespace constant
 		}
 
 		template <typename Shape2D>
-		GeometryVertices(const Shape2D& shape) : GeometryVertices(shape.geometry) { }
+		GeometryVertices(const Shape2D& shape, constant::Vector2D offset = {0.0f, 0.0f}) : GeometryVertices(shape.geometry, offset) { }
 	};
 
 	struct SquareInfo : public ModelInfo

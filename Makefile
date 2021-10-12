@@ -8,10 +8,7 @@ rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(su
 
 # Qt path
 Qt_PATH := C:/Qt/5.11.2-x64
-<<<<<<< Updated upstream
-=======
 #Qt_PATH := Z:\Qt\5.15.2\mingw81_64
->>>>>>> Stashed changes
 
 # define the Cpp compiler to use
 CXX = g++

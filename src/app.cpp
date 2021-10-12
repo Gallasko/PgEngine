@@ -167,14 +167,14 @@ void GameWindow::initialize()
 	//unsigned int nbOfElements = 6;
 
     constant::Geometry2D abstractGeometry;
-    abstractGeometry.points.push_back(constant::Vector2D(2.0f, 0.0f));
-    abstractGeometry.points.push_back(constant::Vector2D(4.0f, 0.0f));
-    abstractGeometry.points.push_back(constant::Vector2D(6.0f, 2.0f));
-    abstractGeometry.points.push_back(constant::Vector2D(6.0f, 4.0f));
-    abstractGeometry.points.push_back(constant::Vector2D(4.0f, 6.0f));
-    abstractGeometry.points.push_back(constant::Vector2D(2.0f, 6.0f));
-    abstractGeometry.points.push_back(constant::Vector2D(0.0f, 4.0f));
-    abstractGeometry.points.push_back(constant::Vector2D(0.0f, 2.0f));
+    abstractGeometry.points.push_back(constant::Vector2D(20.0f, 00.0f));
+    abstractGeometry.points.push_back(constant::Vector2D(40.0f, 00.0f));
+    abstractGeometry.points.push_back(constant::Vector2D(60.0f, 20.0f));
+    abstractGeometry.points.push_back(constant::Vector2D(60.0f, 40.0f));
+    abstractGeometry.points.push_back(constant::Vector2D(40.0f, 60.0f));
+    abstractGeometry.points.push_back(constant::Vector2D(20.0f, 60.0f));
+    abstractGeometry.points.push_back(constant::Vector2D(00.0f, 40.0f));
+    abstractGeometry.points.push_back(constant::Vector2D(00.0f, 20.0f));
 
     abstractGeometry.trianglesIndices.push_back(constant::TriangleIndices(0, 1, 7));
     abstractGeometry.trianglesIndices.push_back(constant::TriangleIndices(1, 2, 7));
@@ -183,10 +183,20 @@ void GameWindow::initialize()
     abstractGeometry.trianglesIndices.push_back(constant::TriangleIndices(6, 3, 5));
     abstractGeometry.trianglesIndices.push_back(constant::TriangleIndices(3, 4, 5));
 
-    constant::Rectangle2D rect(width() / 2, height() / 2, width() / 2, height() / 2);
+    constant::AbstractShape2D shape(abstractGeometry);
 
+    constant::Rectangle2D rect(0, 0, width() / 2, height() / 2);
+
+    info = new constant::GeometryVertices(abstractGeometry);
+    info2 = new constant::GeometryVertices(abstractGeometry, {100, 100});
+
+    auto collide = shape.collideWith(&rect);
+    
+    if(collide)
+        std::cout << "Collide" << std::endl;
+    else
+        std::cout << "Not collide" << std::endl;
     //info = new constant::GeometryVertices(rect);
-    info = new constant::GeometryVertices(rect);
 
     SquareVAO->bind();
 
@@ -413,6 +423,14 @@ void GameWindow::renderUi()
     SquareVAO->bind();
 
     glDrawElements(GL_TRIANGLES, info->nbIndices, GL_UNSIGNED_INT, 0);
+
+    //model.setToIdentity();
+    //model.translate(QVector3D(info2->geometry.offset.x / width(), -info2->geometry.offset.y / height(), 0.0f));
+    //defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("model"), model);
+
+    SquareVAO->bind();
+
+    glDrawElements(GL_TRIANGLES, info2->nbIndices, GL_UNSIGNED_INT, 0);
 
     //instanceVBO->bind();
     //instanceVBO->setUsagePattern(QOpenGLBuffer::DynamicDraw);
