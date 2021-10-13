@@ -7,8 +7,8 @@
 rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
 # Qt path
-#Qt_PATH := C:/Qt/5.11.2-x64
-Qt_PATH := Z:\Qt\5.15.2\mingw81_64
+Qt_PATH := C:/Qt/5.11.2-x64
+#Qt_PATH := Z:\Qt\5.15.2\mingw81_64
 
 # define the Cpp compiler to use
 CXX = g++
@@ -25,7 +25,7 @@ CXXFLAGS	:= -std=c++11 -Wall -Wextra -g # -O3 -DNDEBUG
 LFLAGS =
 
 # define output directory
-OUTPUT	:= output
+OUTPUT	:= output1
 
 # define source directory
 SRC		:= src
