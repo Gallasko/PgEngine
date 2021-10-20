@@ -30,10 +30,10 @@ struct UiComponent : public Base
     UiSize height = UiSize(0, 0, nullptr);
     float scale = 1.0f;
 
-    UiSize *topAnchor = nullptr;
-    UiSize *rightAnchor = nullptr;
-    UiSize *bottomAnchor = nullptr;
-    UiSize *leftAnchor = nullptr;
+    const UiSize *topAnchor = nullptr;
+    const UiSize *rightAnchor = nullptr;
+    const UiSize *bottomAnchor = nullptr;
+    const UiSize *leftAnchor = nullptr;
 
     UiSize top = &pos.y;
     UiSize right = pos.x + width;
@@ -45,7 +45,7 @@ struct UiComponent : public Base
     int bottomMargin = 0;
     int leftMargin = 0;
 
-    std::vector<UiComponent*> children;
+    std::vector<UiComponent*> children; // todo remove this
 
     UiComponent() { }
     UiComponent(const UiComponent& rhs);
@@ -68,8 +68,13 @@ struct UiComponent : public Base
     void inline setRightAnchor(UiSize *anchor) { rightAnchor = anchor; update(); }
     void inline setBottomAnchor(UiSize *anchor) { bottomAnchor = anchor; update(); }
     void inline setLeftAnchor(UiSize *anchor) { leftAnchor = anchor; update(); }
+
+    void inline setTopAnchor(const UiSize& anchor) { topAnchor = &anchor; update(); }
+    void inline setRightAnchor(const UiSize& anchor) { rightAnchor = &anchor; update(); }
+    void inline setBottomAnchor(const UiSize& anchor) { bottomAnchor = &anchor; update(); }
+    void inline setLeftAnchor(const UiSize& anchor) { leftAnchor = &anchor; update(); }
     
-    bool updated = false;
+    bool updated = true; // todo remove this 
 
     bool inBound(int x, int y) { return x > this->pos.x / this->scale && x < (this->pos.x + this->width) / this->scale && y < (this->pos.y + this->height) / this->scale && y > this->pos.y / this->scale; }
     bool inBound(constant::Vector2D vec2) { return inBound(vec2.x, vec2.y); }

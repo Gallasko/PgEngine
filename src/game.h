@@ -71,8 +71,9 @@ public:
     void wheelEvent(QWheelEvent *event);
 
     //UI callback function
-    void changeRandomText(Input* inputHandler, double deltaTime);
+    void changeRandomText(Input* inputHandler, double deltaTime...);
     void payTeclaFlooz(Input* inputHandler, double deltaTime);
+    void showPigeonWidget(Input* inputHandler, double deltaTime...);
 
 public slots:
     void renderLater();
@@ -136,6 +137,13 @@ private:
     std::string randomText;
 
     Map::MapConstraint mapConstraint;
+
+    KeyboardInputComponent** screenKeyInput;
+    KeyboardInputComponent** pigeonShowingKeyboard;
+
+    //TODO pigeon spawner stuff
+    AnimationComponent *pigeonReveal;
+    AnimationComponent *pigeonHide;
 
     long long gold = 0;
 

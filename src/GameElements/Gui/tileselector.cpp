@@ -13,10 +13,10 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
     //this->setX(100);
     //this->setY(45);
 
-    std::cout << static_cast<int>(screenUi->right) << std::endl;
+    //std::cout << static_cast<int>(screenUi->right) << std::endl;
 
-    //this->setRightAnchor(&screenUi->right);
-    //this->setBottomAnchor(&screenUi->bottom);
+    //this->setTopAnchor(screenUi->top);
+    //this->setRightAnchor(screenUi->right);
 
     //this->setRightMargin(200);
     //this->setBottomMargin(200);
@@ -25,8 +25,8 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
     //this->setTopAnchor(&screenUi->top);
 
 
-    this->setWidth(240);
-    this->setHeight(135);
+    this->width = 240;
+    this->height = 135;
 
     //std::cout << static_cast<int>(this->bottom) << std::endl;
 

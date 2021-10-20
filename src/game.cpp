@@ -114,8 +114,10 @@ void GameWindow::initialize()
     screenUi = ecs.attach<UiComponent>(screenEntity, {});
     //screenUi->setWidth(width());
     //screenUi->setHeight(height());
-    screenUi->setWidth(1);
-    screenUi->setHeight(1);
+    //screenUi->setWidth(1);
+    //screenUi->setHeight(1);
+    screenUi->width = 1;
+    screenUi->height = 1;
     screenUi->setZ(0);
 
     std::cout << width() << std::endl;
@@ -126,7 +128,7 @@ void GameWindow::initialize()
 
     (*screenInput)->registerFunc(Camera::updateMouse, camera);
 
-    auto screenKeyInput = ecs.attach<KeyboardInputComponent* >(screenEntity, {});
+    screenKeyInput = ecs.attach<KeyboardInputComponent* >(screenEntity, {});
     *screenKeyInput = new KeyboardInputBase<Camera>();
 
     (*screenKeyInput)->registerFunc(Camera::updateKeyboard, camera);
@@ -143,26 +145,28 @@ void GameWindow::initialize()
 
     tileSelector = new TileSelector(gameMap, tileLoader, fontLoader, screenUi);
     tileSelector->pos.z = 2;
+    tileSelector->setTopAnchor(&screenUi->top);
+    //tileSelector->setRightAnchor(&screenUi->right); // TODO fix all of this
+    tileSelector->pos.x = screenUi->width - tileSelector->width;
+    //tileSelector->setLeftAnchor(&screenUi->left);//(&screenUi->right);
 
     //Sequence tileSelectorSeq = Sequence(
-    //    //Sequence::OriginPoint(pathFindingButtonTexC->pos.x, pathFindingButtonTexC->pos.y, pathFindingButtonTexC->pos.z),
-    //    UiKeyPoint(screenUi->width - tileSelector->width, screenUi->height - tileSelector->height, 0.0f, 0),
-    //    UiKeyPoint(screenUi->width - tileSelector->width, screenUi->height - tileSelector->height - 100.0f, 0.0f, 0),
-    //    UiKeyPoint(screenUi->width - tileSelector->width - 100.0f, screenUi->height - tileSelector->height - 100.0f, 0.0f, 0),
-    //    UiKeyPoint(screenUi->width - tileSelector->width - 100.0f, screenUi->height - tileSelector->height, 0.0f, 0)
+    //    Sequence::OriginPoint(screenUi->top, screenUi->right, 0.0f),
+    //    UiKeyPoint(0.0f, -tileSelector->width, 2.0f, 0),
+    //    UiKeyPoint(0.0f, -tileSelector->width, 2.0f, 1000)
     //);
 
-    Sequence tileSelectorSeq = Sequence(
-       //Sequence::OriginPoint(pathFindingButtonTexC->pos.x, pathFindingButtonTexC->pos.y, pathFindingButtonTexC->pos.z),
-       UiKeyPoint(400.0f, 400.0f, 2.0f, 0),
-       UiKeyPoint(500.0f, 400.0f, 2.0f, 1000),
-       UiKeyPoint(500.0f, 500.0f, 2.0f, 2000),
-       UiKeyPoint(400.0f, 500.0f, 2.0f, 3000),
-       UiKeyPoint(400.0f, 400.0f, 2.0f, 4000)
-    );
-
-    AnimationComponent *tileSelectorAnimation = new AnimationComponent(tileSelector, tileSelectorSeq, false);
-    tileSelectorAnimation->start();
+    //Sequence tileSelectorSeq = Sequence(
+    //   //Sequence::OriginPoint(pathFindingButtonTexC->pos.x, pathFindingButtonTexC->pos.y, pathFindingButtonTexC->pos.z),
+    //   UiKeyPoint(400.0f, 400.0f, 2.0f, 0),
+    //   UiKeyPoint(500.0f, 400.0f, 2.0f, 1000),
+    //   UiKeyPoint(500.0f, 500.0f, 2.0f, 2000),
+    //   UiKeyPoint(400.0f, 500.0f, 2.0f, 3000),
+    //   UiKeyPoint(400.0f, 400.0f, 2.0f, 4000)
+    //);
+//
+    //AnimationComponent *tileSelectorAnimation = new AnimationComponent(tileSelector, tileSelectorSeq, false);
+    //tileSelectorAnimation->start();
 
     auto pathFindingButton = ecs.createEntity();
     auto pathFindingButtonTexC = ecs.attach<TextureComponent>(pathFindingButton, {64, 32, "res/menu/frame.png"});
@@ -183,8 +187,53 @@ void GameWindow::initialize()
         UiKeyPoint(000.0f, -pathFindingButtonTexC->height, 1.0f, 4000)
     );
 
-    AnimationComponent *animation = new AnimationComponent(pathFindingButtonTexC, seq, true);
+    AnimationComponent *animation = new AnimationComponent(pathFindingButtonTexC, seq, false);
     animation->start();
+
+    auto pigeonSpawnerTexture = ecs.createEntity();
+    auto pigeonSpawnerTextureC = ecs.attach<TextureComponent>(pigeonSpawnerTexture, {297, 196, "res/menu/menutest.png"});
+    pigeonSpawnerTextureC->pos.x = screenUi->right;
+    pigeonSpawnerTextureC->pos.y = screenUi->bottom;
+
+    auto pigeonSpawnButton = ecs.createEntity();
+    auto pigeonSpawnButtonC = ecs.attach<TextureComponent>(pigeonSpawnButton, {64, 32, "res/menu/frame.png"});
+
+    pigeonSpawnButtonC->setTopAnchor(pigeonSpawnerTextureC->top);
+    pigeonSpawnButtonC->setLeftAnchor(pigeonSpawnerTextureC->left);
+    pigeonSpawnButtonC->setTopMargin(50);
+    pigeonSpawnButtonC->setLeftMargin(50);
+
+    auto pigeonSpawnButtonMouseArea = ecs.attach<MouseInputComponent* >(pigeonSpawnButton, {});
+    *pigeonSpawnButtonMouseArea = new MouseInputBase<Base>(pigeonSpawnButtonC);
+    (*pigeonSpawnButtonMouseArea)->registerFunc([](Input* inputHandler, double deltaTime) {
+        std::cout << "Creation" << std::endl;
+    });
+
+    Sequence seq2 = Sequence(
+        Sequence::OriginPoint(screenUi->right, screenUi->bottom, screenUi->pos.z),
+        UiKeyPoint( 000.0f, -200.0f, 1.0f, 0),
+        UiKeyPoint(-100.0f, -200.0f, 1.0f, 300),
+        UiKeyPoint(-200.0f, -200.0f, 1.0f, 600),
+        UiKeyPoint(-300.0f, -200.0f, 1.0f, 900)
+    );
+
+    pigeonReveal = new AnimationComponent(pigeonSpawnerTextureC, seq2, false);
+
+    Sequence seq3 = Sequence(
+        Sequence::OriginPoint(screenUi->right, screenUi->bottom, screenUi->pos.z),
+        UiKeyPoint(-300.0f, -200.0f, 1.0f, 0),
+        UiKeyPoint(-200.0f, -200.0f, 1.0f, 300),
+        UiKeyPoint(-100.0f, -200.0f, 1.0f, 600),
+        UiKeyPoint( 000.0f, -200.0f, 1.0f, 900)
+    );
+
+    pigeonHide = new AnimationComponent(pigeonSpawnerTextureC, seq3, false);
+
+    pigeonShowingKeyboard = ecs.attach<KeyboardInputComponent* >(pigeonSpawnerTexture, {});
+    *pigeonShowingKeyboard = new KeyboardInputBase<GameWindow>();
+    (*pigeonShowingKeyboard)->registerFunc(GameWindow::showPigeonWidget, this);
+    //(*pathFindingButtonMouseArea)->registerFunc(GameWindow::changeRandomText, this);
+
 
     //cmpTexTest = new TextureComponent(300, 300, "res/menu/Menu2.png");
 
@@ -328,14 +377,16 @@ void GameWindow::render()
         if(screenUi->width != width())
         {
             std::cout << "Width Update" << std::endl;
-            screenUi->setWidth(width());
+            //screenUi->setWidth(width());
+            screenUi->width = width();
             masterRenderer.setWindowSize(width(), height());
         }
             
         if(screenUi->height != height())
         {
             std::cout << "Height Update" << std::endl;
-            screenUi->setHeight(height());
+            //screenUi->setHeight(height());
+            screenUi->height = height();
             masterRenderer.setWindowSize(width(), height());
         }
     }
@@ -410,7 +461,10 @@ void GameWindow::keyPressEvent(QKeyEvent *event)
     if (event->isAutoRepeat())
         event->ignore();
     else
+    {
+        std::cout << "KeyPressed" << std::endl;
         inputHandler->registerKeyInput((Qt::Key)event->key(), Input::InputState::KEYPRESSED);
+    }
 }
 
 void GameWindow::keyReleaseEvent(QKeyEvent *event)
@@ -437,8 +491,11 @@ void GameWindow::mousePressEvent(QMouseEvent *event)
 {
     mousePos = event->pos();
 
-    if(event->button() != Qt::NoButton)
+    if(event->button() != Qt::NoButton) //TODO: check why i can t grab a button even
+    {
+        std::cout << "Button Pressed" << std::endl;
         inputHandler->registerMouseInput((Qt::MouseButton)event->button(), Input::InputState::MOUSEPRESS);
+    }
 }
 
 void GameWindow::mouseReleaseEvent(QMouseEvent *event)
@@ -452,7 +509,7 @@ void GameWindow::wheelEvent(QWheelEvent *event)
     gameScale += (event->angleDelta().y() / 120) * 5.0f;
 }
 
-void GameWindow::changeRandomText(Input* inputHandler, double deltaTime) 
+void GameWindow::changeRandomText(Input* inputHandler, double deltaTime...) 
 {
     static std::vector<int> keyPressed;
 
@@ -488,9 +545,11 @@ void GameWindow::changeRandomText(Input* inputHandler, double deltaTime)
         if(!inputHandler->isKeyPressed(static_cast<Qt::Key>(key)))
             keyPressed.erase(std::find(keyPressed.begin(), keyPressed.end(), key));
 
-    auto text = userText->get<Sentence>();
-    if(text != nullptr)
-        text->setText(randomText, fontLoader); 
+    // text = userText->get<Sentence>();
+    //if(text != nullptr)
+    //    text->setText(randomText, fontLoader); 
+
+    std::cout << randomText << std::endl;
 }
 
 void GameWindow::payTeclaFlooz(Input *inputHandler, double deltaTime)
@@ -505,6 +564,32 @@ void GameWindow::payTeclaFlooz(Input *inputHandler, double deltaTime)
 
     if(!inputHandler->isButtonPressed(Qt::LeftButton))
         pressed = false;
+}
+
+void GameWindow::showPigeonWidget(Input* inputHandler, double deltaTime...)
+{ 
+    static bool statusShowed = false;
+    
+    if(inputHandler->isKeyPressed(Qt::Key_Q))
+    {
+        if(statusShowed)
+        {
+            if(!pigeonHide->isRunning() && !pigeonReveal->isRunning())
+            {
+                pigeonHide->start();
+                statusShowed = false;
+            }
+        }
+        else
+        {
+            if(!pigeonHide->isRunning() && !pigeonReveal->isRunning())
+            {
+                pigeonReveal->start();
+                statusShowed = true;
+            }
+        }
+                
+    }
 }
 
 void GameWindow::renderLater()
@@ -533,7 +618,7 @@ void GameWindow::renderNow()
         initializeOpenGLFunctions();
         initialize();
     }
-    
+
     try
     {
         render();
@@ -571,20 +656,20 @@ void GameWindow::updateGameState(double deltaTime)
     int highestZ = -1;
 
     // Take the Highest Z under the mouse and make only those element clickable  
-    for(auto mouseArea : ecs.view<MouseInputComponent*>())
+    for(auto& mouseArea : ecs.view<MouseInputComponent*>())
         if(mouseArea->inBound(mousePos.x(), mousePos.y()) && *mouseArea->enable)
             if (mouseArea->pos->z > highestZ)
                 highestZ = mouseArea->pos->z;
 
-    if(mousePos.x() > tileSelector->pos.x / static_cast<int>(tileSelector->scale) && mousePos.x() < (tileSelector->pos.x + tileSelector->width) / static_cast<int>(tileSelector->scale) && mousePos.y() < (tileSelector->pos.y + tileSelector->height) / static_cast<int>(tileSelector->scale) && mousePos.y() > tileSelector->pos.y / static_cast<int>(tileSelector->scale) && tileSelector->isVisible())
+    if(tileSelector->inBound(mousePos.x(), mousePos.y()) && tileSelector->isVisible())
         if (tileSelector->pos.z > highestZ)
             highestZ = tileSelector->pos.z;
 
-    for(auto mouseArea : ecs.view<MouseInputComponent*>())
+    for(auto& mouseArea : ecs.view<MouseInputComponent*>())
     {
         if(mouseArea->inBound(mousePos.x(), mousePos.y()) && *mouseArea->enable && mouseArea->pos->z == highestZ)
         {
-            //std::cout << "Mouse Hovering: " << *mouseArea.x << ", " << *mouseArea.y << ", " << *mouseArea.width << ", " << *mouseArea.height << std::endl;
+            //std::cout << "Mouse Hovering: " << mouseArea->pos->x << ", " << mouseArea->pos->y << ", " << mouseArea->width << ", " << mouseArea->height << std::endl;
             mouseArea->call(inputHandler, deltaTime);
         }
     }
@@ -596,10 +681,12 @@ void GameWindow::updateGameState(double deltaTime)
     if(highestZ <= 0)
         mapClickComponent->call(inputHandler, deltaTime, width(), height(), gameScale, camera);
 
-    for(auto keyArea : ecs.view<KeyboardInputComponent*>())
-    {
-        keyArea->call(inputHandler, deltaTime);
-    }
+    //for(auto& keyArea : ecs.view<KeyboardInputComponent*>())
+    //    keyArea->call(inputHandler, deltaTime);
+    
+    (*pigeonShowingKeyboard)->call(inputHandler, deltaTime);
+    //(*screenKeyInput)->call(inputHandler, deltaTime);
+
 }
 
 void GameWindow::renderGame()

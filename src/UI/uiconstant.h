@@ -3,6 +3,7 @@
 //TODO make the operation here constant and then change uisystem and ui animation accordingly to make everything constant
 class UiSize
 {
+public:
     enum class UiSizeOpType
     {
         ADD,
@@ -10,8 +11,7 @@ class UiSize
 
         NONE
     };
-
-public:
+    
     UiSize(const float& pixelSize = 0, const float& scaleValue = 0, const UiSize* ref1 = nullptr, const UiSize* ref2 = nullptr,  const UiSizeOpType& op = UiSizeOpType::NONE) : pixelSize(pixelSize), scaleValue(scaleValue), refSize1(ref1), refSize2(ref2), opType(op) {}
     UiSize(const UiSize& size) : UiSize(size.pixelSize, size.scaleValue, size.refSize1, size.refSize2, size.opType) {}
     UiSize(const UiSize* size) : UiSize(0.0f, 1.0f, size, nullptr, UiSizeOpType::NONE) {}
@@ -106,22 +106,22 @@ public:
 private:
     float returnCurrentSize() const
     {
-        float refSizeValue1 = refSize1 == nullptr ? 0.0f : refSize1->returnCurrentSize();
-        float refSizeValue2 = refSize2 == nullptr ? 0.0f : refSize2->returnCurrentSize();
+        const float refSizeValue1 = refSize1 == nullptr ? 0.0f : refSize1->returnCurrentSize();
+        const float refSizeValue2 = refSize2 == nullptr ? 0.0f : refSize2->returnCurrentSize();
 
-        refSizeValue1 = pixelSize + refSizeValue1 * scaleValue;
+        const float refSize1Result = pixelSize + refSizeValue1 * scaleValue;
 
         switch(opType)
         {
             case UiSizeOpType::ADD:
-                return refSizeValue1 + refSizeValue2;
+                return refSize1Result + refSizeValue2;
                 break;
             case UiSizeOpType::SUB:
-                return refSizeValue1 - refSizeValue2;
+                return refSize1Result - refSizeValue2;
                 break;
             case UiSizeOpType::NONE:
             default:
-                return refSizeValue1;
+                return refSize1Result;
         }
     }
 
