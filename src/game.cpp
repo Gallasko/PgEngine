@@ -123,6 +123,13 @@ void GameWindow::initialize()
     std::cout << width() << std::endl;
     std::cout << screenUi->right << std::endl;
 
+    auto configPanel = ecs.createEntity();
+    auto configPanelC = ecs.attach<TextureComponent>(configPanel, {300, 1, "res/menu/NavyBlueTexture.png"});
+
+    configPanelC->setTopAnchor(screenUi->top);
+    configPanelC->setLeftAnchor(screenUi->left);
+    configPanelC->setBottomAnchor(screenUi->bottom);
+
     auto screenInput = ecs.attach<MouseInputComponent*>(screenEntity, {});
     *screenInput = new MouseInputBase<Camera>(screenUi);
 
@@ -233,7 +240,6 @@ void GameWindow::initialize()
     *pigeonShowingKeyboard = new KeyboardInputBase<GameWindow>();
     (*pigeonShowingKeyboard)->registerFunc(GameWindow::showPigeonWidget, this);
     //(*pathFindingButtonMouseArea)->registerFunc(GameWindow::changeRandomText, this);
-
 
     //cmpTexTest = new TextureComponent(300, 300, "res/menu/Menu2.png");
 
@@ -388,6 +394,8 @@ void GameWindow::render()
             //screenUi->setHeight(height());
             screenUi->height = height();
             masterRenderer.setWindowSize(width(), height());
+            
+            std::cout << screenUi->bottom << std::endl;
         }
     }
     catch(const std::exception& e)
@@ -422,7 +430,7 @@ void GameWindow::render()
 
     updateGameState(float(currentTime - lastTime) / 1000);
 
-    renderGame();
+    //renderGame();
 
     if(!debug)
     {
@@ -439,7 +447,7 @@ void GameWindow::render()
             mousePosTextC->visible = false;
     }
 
-    masterRenderer << tileSelector;
+    //masterRenderer << tileSelector; // TODO fix things in tile selector the object cost 500FPS to render
 
     //masterRenderer.render<ParticleRenderer>(pComponent);
 
@@ -794,8 +802,9 @@ void GameWindow::renderUi()
     {
         if(texture.visible)
         {
-            if(texture.initialised == false)
-                texture.generateMesh();
+            //TODO texture.generateMesh already check if in need to initialize itself
+            //if(texture.initialised == false) // TODO need to set initialised to false when an anchor is modified and width and height are changed
+            texture.generateMesh();
 
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, texture.texture);

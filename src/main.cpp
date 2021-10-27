@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
 
 	GameWindow game;
     //game.resize(640, 480);
-    game.resize(800, 480);
+    game.resize(1280, 720);
     //game.setWindowState(Qt::WindowFullScreen);
     game.setAnimating(true);
     //game.showFullScreen();
