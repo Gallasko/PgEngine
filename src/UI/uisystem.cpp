@@ -68,7 +68,7 @@ void UiComponent::update()
     //    child->update();
 }
 
-TextureComponent::TextureComponent(UiSize width, UiSize height, const char* path)
+TextureComponent::TextureComponent(UiSize width, UiSize height, const char* path) // TODO texture path should be fetch from the master renderer to avoid duplicate texture 
 {
     initializeOpenGLFunctions(); 
 

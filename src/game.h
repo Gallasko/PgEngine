@@ -72,8 +72,6 @@ public:
 
     //UI callback function
     void changeRandomText(Input* inputHandler, double deltaTime...);
-    void payTeclaFlooz(Input* inputHandler, double deltaTime);
-    void showPigeonWidget(Input* inputHandler, double deltaTime...);
 
 public slots:
     void renderLater();
@@ -89,7 +87,6 @@ protected:
 
 private:
     void updateGameState(double deltaTime);
-    void renderGame();
     void renderUi();
     void tick();
     bool m_animating = false;
@@ -103,8 +100,6 @@ private:
 	QOpenGLBuffer *SquareVBO;
 	QOpenGLBuffer *SquareEBO;
 
-    Map *gameMap = nullptr;
-
     EntitySystem ecs;
     MasterRenderer masterRenderer;
     TilesLoader *tileLoader;
@@ -115,46 +110,18 @@ private:
     // May need to put them in a table
     EntitySystem::Entity* fpsCounter;
     EntitySystem::Entity* mousePosText;
-    EntitySystem::Entity* gameScaleText;
-    EntitySystem::Entity* tilePosText;
-    EntitySystem::Entity* tileType;
-    EntitySystem::Entity* goldText;
-    EntitySystem::Entity* nbRenderedGameFrameText;
-    EntitySystem::Entity* currentSeedText;
     EntitySystem::Entity* userText;
-
-    TextureComponent *cmpTexTest;
 
     EntitySystem::Entity *screenEntity;
     UiComponent *screenUi; 
-
-    ParticleComponent *pComponent;
-
-    MouseInputComponent* mapClickComponent;
-
-    TileSelector *tileSelector;
-
+ 
     std::string randomText;
-
-    Map::MapConstraint mapConstraint;
-
-    KeyboardInputComponent** screenKeyInput;
-    KeyboardInputComponent** pigeonShowingKeyboard;
-
-    //TODO pigeon spawner stuff
-    AnimationComponent *pigeonReveal;
-    AnimationComponent *pigeonHide;
-
-    long long gold = 0;
 
     //camera var
     Camera *camera = nullptr;
 	bool firstMouse = true;
     float xSensitivity = 1.0f;
     float ySensitivity = 1.0f;
-
-    //TODO adapt this value
-    float gameScale = 215.0f;
 
     qint64 currentTime = 0;
 

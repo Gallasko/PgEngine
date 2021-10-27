@@ -13,9 +13,6 @@ GameWindow::~GameWindow()
 {
     ticking = false;
 
-    if(gameMap != nullptr)
-        delete gameMap;
-
     if(camera != nullptr)
         delete camera;
 
@@ -70,14 +67,6 @@ void GameWindow::initialize()
 
     fontLoader = new FontLoader("res/font/fontmap.ft");
 
-    mapConstraint.width = 15;
-    mapConstraint.height = 15;
-    mapConstraint.seed = 1;
- 
-    mapConstraint.noiseParam = {4, 5, 50, -1, 0.4};
-
-    gameMap = new Map(&ecs, tileLoader, mapConstraint);
-
     auto debugText = ecs.createEntity();
     auto debugTextC = ecs.attach<Sentence>(debugText, {{"Debug: ", constant::Vector4D(255.0f, 0.0f, 0.0f, 255.0f)}, 4.0f, fontLoader});
 
@@ -103,25 +92,11 @@ void GameWindow::initialize()
     mousePosTextC->setZ(2);
     mousePosTextC->setY(125);
 
-    gameScaleText = ecs.createEntity();
-    auto gameScaleTextC = ecs.attach<Sentence>(gameScaleText, {{"Game Scale: 0"}, 2.0f, fontLoader});
-    
-    gameScaleTextC->setX(10);
-    gameScaleTextC->setZ(2);
-    gameScaleTextC->setY(150);
-
     screenEntity = ecs.createEntity();
     screenUi = ecs.attach<UiComponent>(screenEntity, {});
-    //screenUi->setWidth(width());
-    //screenUi->setHeight(height());
-    //screenUi->setWidth(1);
-    //screenUi->setHeight(1);
     screenUi->width = 1;
     screenUi->height = 1;
     screenUi->setZ(0);
-
-    std::cout << width() << std::endl;
-    std::cout << screenUi->right << std::endl;
 
     auto configPanel = ecs.createEntity();
     auto configPanelC = ecs.attach<TextureComponent>(configPanel, {300, 1, "res/menu/NavyBlueTexture.png"});
@@ -129,232 +104,6 @@ void GameWindow::initialize()
     configPanelC->setTopAnchor(screenUi->top);
     configPanelC->setLeftAnchor(screenUi->left);
     configPanelC->setBottomAnchor(screenUi->bottom);
-
-    auto screenInput = ecs.attach<MouseInputComponent*>(screenEntity, {});
-    *screenInput = new MouseInputBase<Camera>(screenUi);
-
-    (*screenInput)->registerFunc(Camera::updateMouse, camera);
-
-    screenKeyInput = ecs.attach<KeyboardInputComponent* >(screenEntity, {});
-    *screenKeyInput = new KeyboardInputBase<Camera>();
-
-    (*screenKeyInput)->registerFunc(Camera::updateKeyboard, camera);
-
-    auto mapTemp = ecs.createEntity();
-    auto mapKeyInput = ecs.attach<KeyboardInputComponent* >(screenEntity, {});
-    *mapKeyInput = new KeyboardInputBase<Map>();
-
-    //(*mapKeyInput)->registerFunc(&gameMap->switchToPathFind, gameMap);
-    (*mapKeyInput)->registerFunc(Map::switchToPathFind, gameMap);
-
-    mapClickComponent = new MouseInputBase<Map>(screenUi);
-    mapClickComponent->registerFunc(Map::clicked, gameMap);
-
-    tileSelector = new TileSelector(gameMap, tileLoader, fontLoader, screenUi);
-    tileSelector->pos.z = 2;
-    tileSelector->setTopAnchor(&screenUi->top);
-    //tileSelector->setRightAnchor(&screenUi->right); // TODO fix all of this
-    tileSelector->pos.x = screenUi->width - tileSelector->width;
-    //tileSelector->setLeftAnchor(&screenUi->left);//(&screenUi->right);
-
-    //Sequence tileSelectorSeq = Sequence(
-    //    Sequence::OriginPoint(screenUi->top, screenUi->right, 0.0f),
-    //    UiKeyPoint(0.0f, -tileSelector->width, 2.0f, 0),
-    //    UiKeyPoint(0.0f, -tileSelector->width, 2.0f, 1000)
-    //);
-
-    //Sequence tileSelectorSeq = Sequence(
-    //   //Sequence::OriginPoint(pathFindingButtonTexC->pos.x, pathFindingButtonTexC->pos.y, pathFindingButtonTexC->pos.z),
-    //   UiKeyPoint(400.0f, 400.0f, 2.0f, 0),
-    //   UiKeyPoint(500.0f, 400.0f, 2.0f, 1000),
-    //   UiKeyPoint(500.0f, 500.0f, 2.0f, 2000),
-    //   UiKeyPoint(400.0f, 500.0f, 2.0f, 3000),
-    //   UiKeyPoint(400.0f, 400.0f, 2.0f, 4000)
-    //);
-//
-    //AnimationComponent *tileSelectorAnimation = new AnimationComponent(tileSelector, tileSelectorSeq, false);
-    //tileSelectorAnimation->start();
-
-    auto pathFindingButton = ecs.createEntity();
-    auto pathFindingButtonTexC = ecs.attach<TextureComponent>(pathFindingButton, {64, 32, "res/menu/frame.png"});
-    //pathFindingButtonTexC->setX(0);
-    //pathFindingButtonTexC->setY(height() - 32);
-    //pathFindingButtonTexC->setZ(1);
-
-    auto pathFindingButtonMouseArea = ecs.attach<MouseInputComponent* >(pathFindingButton, {});
-    *pathFindingButtonMouseArea = new MouseInputBase<Map>(pathFindingButtonTexC);
-    (*pathFindingButtonMouseArea)->registerFunc(Map::runPathFinding, gameMap);
-
-    Sequence seq = Sequence(
-        Sequence::OriginPoint(screenUi->pos.x, screenUi->bottom, screenUi->pos.z),
-        UiKeyPoint(000.0f, -000.0f, 1.0f, 0),
-        UiKeyPoint(100.0f, -000.0f, 1.0f, 1000),
-        UiKeyPoint(100.0f, -100.0f, 1.0f, 2000),
-        UiKeyPoint(000.0f, -100.0f, 1.0f, 3000),
-        UiKeyPoint(000.0f, -pathFindingButtonTexC->height, 1.0f, 4000)
-    );
-
-    AnimationComponent *animation = new AnimationComponent(pathFindingButtonTexC, seq, false);
-    animation->start();
-
-    auto pigeonSpawnerTexture = ecs.createEntity();
-    auto pigeonSpawnerTextureC = ecs.attach<TextureComponent>(pigeonSpawnerTexture, {297, 196, "res/menu/menutest.png"});
-    pigeonSpawnerTextureC->pos.x = screenUi->right;
-    pigeonSpawnerTextureC->pos.y = screenUi->bottom;
-
-    auto pigeonSpawnButton = ecs.createEntity();
-    auto pigeonSpawnButtonC = ecs.attach<TextureComponent>(pigeonSpawnButton, {64, 32, "res/menu/frame.png"});
-
-    pigeonSpawnButtonC->setTopAnchor(pigeonSpawnerTextureC->top);
-    pigeonSpawnButtonC->setLeftAnchor(pigeonSpawnerTextureC->left);
-    pigeonSpawnButtonC->setTopMargin(50);
-    pigeonSpawnButtonC->setLeftMargin(50);
-
-    auto pigeonSpawnButtonMouseArea = ecs.attach<MouseInputComponent* >(pigeonSpawnButton, {});
-    *pigeonSpawnButtonMouseArea = new MouseInputBase<Base>(pigeonSpawnButtonC);
-    (*pigeonSpawnButtonMouseArea)->registerFunc([](Input* inputHandler, double deltaTime) {
-        std::cout << "Creation" << std::endl;
-    });
-
-    Sequence seq2 = Sequence(
-        Sequence::OriginPoint(screenUi->right, screenUi->bottom, screenUi->pos.z),
-        UiKeyPoint( 000.0f, -200.0f, 1.0f, 0),
-        UiKeyPoint(-100.0f, -200.0f, 1.0f, 300),
-        UiKeyPoint(-200.0f, -200.0f, 1.0f, 600),
-        UiKeyPoint(-300.0f, -200.0f, 1.0f, 900)
-    );
-
-    pigeonReveal = new AnimationComponent(pigeonSpawnerTextureC, seq2, false);
-
-    Sequence seq3 = Sequence(
-        Sequence::OriginPoint(screenUi->right, screenUi->bottom, screenUi->pos.z),
-        UiKeyPoint(-300.0f, -200.0f, 1.0f, 0),
-        UiKeyPoint(-200.0f, -200.0f, 1.0f, 300),
-        UiKeyPoint(-100.0f, -200.0f, 1.0f, 600),
-        UiKeyPoint( 000.0f, -200.0f, 1.0f, 900)
-    );
-
-    pigeonHide = new AnimationComponent(pigeonSpawnerTextureC, seq3, false);
-
-    pigeonShowingKeyboard = ecs.attach<KeyboardInputComponent* >(pigeonSpawnerTexture, {});
-    *pigeonShowingKeyboard = new KeyboardInputBase<GameWindow>();
-    (*pigeonShowingKeyboard)->registerFunc(GameWindow::showPigeonWidget, this);
-    //(*pathFindingButtonMouseArea)->registerFunc(GameWindow::changeRandomText, this);
-
-    //cmpTexTest = new TextureComponent(300, 300, "res/menu/Menu2.png");
-
-    /*
-    //Particle Gen
-    pComponent = new ParticleComponent();
-    pComponent->instanceVBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-    if(pComponent->instanceVBO->create())
-        std::cout << "Created" << std::endl;
-    pComponent->count = 4000;
-
-    auto extraFunctions = masterRenderer.getExtraFunctions();
-
-    auto tileVertices = new float[20];
-
-    //make it so i set x and y at 1 and the scaling is done in the shader
-    //                 x                         y                         z                      texpos x                 texpos y
-    tileVertices[0]  = 0.0f; tileVertices[1]  =  0.0f; tileVertices[2]  = 0.0f; tileVertices[3]  = 0.0f;  tileVertices[4]  = 0.0f;   
-    tileVertices[5]  = 1.0f; tileVertices[6]  =  0.0f; tileVertices[7]  = 0.0f; tileVertices[8]  = 0.25f; tileVertices[9]  = 0.0f;
-    tileVertices[10] = 0.0f; tileVertices[11] = -1.0f; tileVertices[12] = 0.0f; tileVertices[13] = 0.0f;  tileVertices[14] = 1.0f;
-    tileVertices[15] = 1.0f; tileVertices[16] = -1.0f; tileVertices[17] = 0.0f; tileVertices[18] = 0.25f; tileVertices[19] = 1.0f;
-    //texPos x is set at 0.25f because the sprite for the pigeon is 4 frames wide
-
-    unsigned int nbTileVertices = 20;
-
-    auto tileVerticesIndice = new unsigned int[6];
-
-    tileVerticesIndice[0] = 0; tileVerticesIndice[1] = 1; tileVerticesIndice[2] = 2;
-    tileVerticesIndice[3] = 1; tileVerticesIndice[4] = 2; tileVerticesIndice[5] = 3;
-
-    unsigned int nbOfElements = 6;
-
-    pComponent->openglObject.initialize();
-    pComponent->openglObject.VAO->bind();
-
-    // position attribute
-
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glEnableVertexAttribArray(2);
-    glEnableVertexAttribArray(3);
-    glEnableVertexAttribArray(4);
-    glEnableVertexAttribArray(5);
-    
-    pComponent->openglObject.VBO->bind();
-    pComponent->openglObject.VBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
-    pComponent->openglObject.VBO->allocate(tileVertices, nbTileVertices * sizeof(float));
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-
-    // texture coord attribute
-    
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-
-    std::cout << "set instance vbo" << std::endl;
-
-    //glBindBuffer(GL_ARRAY_BUFFER, pComponent->instanceVBO);
-    //glBufferData(GL_ARRAY_BUFFER, pComponent->count * sizeof(Particle), NULL, GL_STREAM_DRAW);
-
-    pComponent->instanceVBO->bind();
-    pComponent->instanceVBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
-    pComponent->instanceVBO->allocate(pComponent->count * sizeof(Particle));
-    //masterRenderer.getInstanceVBO()->bind();
-
-    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)0);
-
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)offsetof(Particle, pos));
-
-    //TODO check if we can send the tex vertex only once and not twice : once here and the second time in the squareVAO implementation 
-    
-    glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)offsetof(Particle, texOffset));
-    glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)offsetof(Particle, scale));
-    
-    extraFunctions->glVertexAttribDivisor(2, 1);
-    extraFunctions->glVertexAttribDivisor(3, 1);
-    extraFunctions->glVertexAttribDivisor(4, 1);
-    extraFunctions->glVertexAttribDivisor(5, 1);
-
-    pComponent->openglObject.EBO->bind();
-    pComponent->openglObject.EBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
-    pComponent->openglObject.EBO->allocate(tileVerticesIndice, nbOfElements * sizeof(unsigned int));
-
-    pComponent->openglObject.VAO->release();
-    
-    pComponent->texture = masterRenderer.getTexture("pigeon");
-
-    pComponent->particleList = new Particle[pComponent->count];
-    pComponent->particleSubDataList = new ParticleSubData*[pComponent->count];
-
-    std::vector<float> textureSeq = { 0.00f, 0.25f, 0.50f, 0.75f } ;
-
-    for(int i = 0; i < pComponent->count; i++)
-    {
-        pComponent->particleList[i].lifetime = 10000.0f;
-        pComponent->particleList[i].pos = constant::Vector3D((48 * i) % (width() * 2), -48.0f * ((48 * (i + 200)) / (width() * 2)), 0.0f);
-        pComponent->particleList[i].texOffset = 0.25f;
-        pComponent->particleList[i].scale = ((rand() % 6) + 1) * 8;
-
-        //TODO create a texture sequence struct that store the different transition, calculate there position and hold the timing
-        pComponent->particleSubDataList[i] = new ParticleMoveSubData(constant::Vector3D(0.0f, 0.0f, 0.0f), textureSeq, ((rand() % 8) + 1) * 40);
-    }
-
-    // TODO correclty define tick rate as 40ms (25 ticks each second)
-    pComponent->onTick = [=]() { 
-        for(int i = 0; i < pComponent->count; i++) 
-        {
-            ParticleMoveSubData *pMoveData = static_cast<ParticleMoveSubData*>(pComponent->particleSubDataList[i]);
-            pMoveData->timeAlive += 40;
-            pComponent->particleList[i].lifetime -= 40;
-            pComponent->particleList[i].pos += pMoveData->velocity;
-            //TODO check if change rate is 0 so that we don t divide by 0 !!
-            pComponent->particleList[i].texOffset = pMoveData->textureSeq[(pMoveData->timeAlive / pMoveData->textureChangeRate) % pMoveData->textureSeq.size()];
-        }};
-
-    */
 
     ticking = true;
     std::thread t (&GameWindow::tick, this);
@@ -378,30 +127,16 @@ void GameWindow::render()
 
     currentTime = QDateTime::currentMSecsSinceEpoch();
 
-    try
+    if(screenUi->width != width())
     {
-        if(screenUi->width != width())
-        {
-            std::cout << "Width Update" << std::endl;
-            //screenUi->setWidth(width());
-            screenUi->width = width();
-            masterRenderer.setWindowSize(width(), height());
-        }
-            
-        if(screenUi->height != height())
-        {
-            std::cout << "Height Update" << std::endl;
-            //screenUi->setHeight(height());
-            screenUi->height = height();
-            masterRenderer.setWindowSize(width(), height());
-            
-            std::cout << screenUi->bottom << std::endl;
-        }
+        screenUi->width = width();
+        masterRenderer.setWindowSize(width(), height());
     }
-    catch(const std::exception& e)
+        
+    if(screenUi->height != height())
     {
-        std::cout << "Resize error" << std::endl;
-        std::cerr << e.what() << '\n';
+        screenUi->height = height();
+        masterRenderer.setWindowSize(width(), height());
     }
 
     masterRenderer.setCurrentTime(currentTime);
@@ -424,32 +159,9 @@ void GameWindow::render()
     if(mousePosTextC != nullptr)
         mousePosTextC->setText("(" + std::to_string(mousePos.x()) + ", " + std::to_string(mousePos.y()) + ")", fontLoader);
 
-    auto gameScaleTextC = gameScaleText->get<Sentence>();
-    if(gameScaleTextC != nullptr)
-        gameScaleTextC->setText("Game Scale: " + std::to_string(static_cast<int>(gameScale)), fontLoader);
-
     updateGameState(float(currentTime - lastTime) / 1000);
 
-    //renderGame();
-
-    if(!debug)
-    {
-        auto mousePosTextC = mousePosText->get<Sentence>();
-        if(mousePosTextC != nullptr)
-            mousePosTextC->visible = true;
-
-        renderUi();
-    }
-    else
-    {
-        auto mousePosTextC = mousePosText->get<Sentence>();
-        if(mousePosTextC != nullptr)
-            mousePosTextC->visible = false;
-    }
-
-    //masterRenderer << tileSelector; // TODO fix things in tile selector the object cost 500FPS to render
-
-    //masterRenderer.render<ParticleRenderer>(pComponent);
+    renderUi();
 
     inputHandler->updateInput(float(currentTime - lastTime) / 1000);
 
@@ -514,7 +226,6 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
 
 void GameWindow::wheelEvent(QWheelEvent *event)
 {
-    gameScale += (event->angleDelta().y() / 120) * 5.0f;
 }
 
 void GameWindow::changeRandomText(Input* inputHandler, double deltaTime...) 
@@ -558,46 +269,6 @@ void GameWindow::changeRandomText(Input* inputHandler, double deltaTime...)
     //    text->setText(randomText, fontLoader); 
 
     std::cout << randomText << std::endl;
-}
-
-void GameWindow::payTeclaFlooz(Input *inputHandler, double deltaTime)
-{
-    static bool pressed = false;
-
-    if(inputHandler->isButtonPressed(Qt::LeftButton) && !pressed)
-    {
-        gold -= 10;
-        pressed = true;
-    }
-
-    if(!inputHandler->isButtonPressed(Qt::LeftButton))
-        pressed = false;
-}
-
-void GameWindow::showPigeonWidget(Input* inputHandler, double deltaTime...)
-{ 
-    static bool statusShowed = false;
-    
-    if(inputHandler->isKeyPressed(Qt::Key_Q))
-    {
-        if(statusShowed)
-        {
-            if(!pigeonHide->isRunning() && !pigeonReveal->isRunning())
-            {
-                pigeonHide->start();
-                statusShowed = false;
-            }
-        }
-        else
-        {
-            if(!pigeonHide->isRunning() && !pigeonReveal->isRunning())
-            {
-                pigeonReveal->start();
-                statusShowed = true;
-            }
-        }
-                
-    }
 }
 
 void GameWindow::renderLater()
@@ -664,110 +335,17 @@ void GameWindow::updateGameState(double deltaTime)
     int highestZ = -1;
 
     // Take the Highest Z under the mouse and make only those element clickable  
-    for(auto& mouseArea : ecs.view<MouseInputComponent*>())
+    for(const auto& mouseArea : ecs.view<MouseInputComponent*>())
         if(mouseArea->inBound(mousePos.x(), mousePos.y()) && *mouseArea->enable)
             if (mouseArea->pos->z > highestZ)
                 highestZ = mouseArea->pos->z;
 
-    if(tileSelector->inBound(mousePos.x(), mousePos.y()) && tileSelector->isVisible())
-        if (tileSelector->pos.z > highestZ)
-            highestZ = tileSelector->pos.z;
-
-    for(auto& mouseArea : ecs.view<MouseInputComponent*>())
-    {
+    for(const auto& mouseArea : ecs.view<MouseInputComponent*>())
         if(mouseArea->inBound(mousePos.x(), mousePos.y()) && *mouseArea->enable && mouseArea->pos->z == highestZ)
-        {
-            //std::cout << "Mouse Hovering: " << mouseArea->pos->x << ", " << mouseArea->pos->y << ", " << mouseArea->width << ", " << mouseArea->height << std::endl;
             mouseArea->call(inputHandler, deltaTime);
-        }
-    }
 
-    if(tileSelector->pos.z == highestZ)
-        tileSelector->mouseInput(inputHandler, deltaTime);
-
-    //TODO make the map responsive to Z index 
-    if(highestZ <= 0)
-        mapClickComponent->call(inputHandler, deltaTime, width(), height(), gameScale, camera);
-
-    //for(auto& keyArea : ecs.view<KeyboardInputComponent*>())
-    //    keyArea->call(inputHandler, deltaTime);
-    
-    (*pigeonShowingKeyboard)->call(inputHandler, deltaTime);
-    //(*screenKeyInput)->call(inputHandler, deltaTime);
-
-}
-
-void GameWindow::renderGame()
-{
-    static unsigned long long nbRenderGameFrame = 0;
-
-    const qreal retinaScale = devicePixelRatio();
-
-    QMatrix4x4 projection;
-    QMatrix4x4 view;
-    QMatrix4x4 model;
-    QMatrix4x4 scale;
-
-    auto defaultShaderProgram = masterRenderer.getShader("default");
-
-    defaultShaderProgram->bind();
-
-    projection.setToIdentity();
-    projection.ortho(-1.0f, 1.0f, -1.0f, 1.0f, -100.0f, 100.0f); // Fix the zoom
-
-    view = camera->GetViewMatrix();
-    scale.setToIdentity();
-    scale.scale(QVector3D(gameScale / width(), gameScale / height(), 0.0f));
-
-    auto baseTileTexture1 = masterRenderer.getTexture("atlas");
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, baseTileTexture1);
-
-    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("texture1"), 0);
-
-    // [ TODO ] Fix the camera deplacement
-
-    float selectedTileX = ((float)(mousePos.x() - width() / 2.0f )) / (gameScale / 2.0f) + camera->Position.x() * width() / gameScale;
-    float selectedTileY = ((float)(height() / 2.0f - mousePos.y())) / (gameScale / 4.0f) + camera->Position.y() * height() / gameScale * 2;
-
-    bool tileSelected = false;
-
-    if(gameMap != nullptr)
-    {
-        auto tileMap = gameMap->getTileMap();
-
-        for(int x = gameMap->getWidth() - 1; x >= 0; x--)
-        {
-            for(int y = gameMap->getHeight() - 1; y >= 0; y--)
-            {
-                auto tile = tileMap[x][y];
-
-                model.setToIdentity();
-                model.translate(QVector3D((tile->x - tile->y) / 2.0f, (tile->x + tile->y) / 4.0f, 0.0f));
-
-                defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("projection"), projection);
-                defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
-                defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("model"), model);
-                defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("scale"), scale);
-                
-                tile->tileId->getMesh()->bind();
-                glDrawElements(GL_TRIANGLES, 6*6, GL_UNSIGNED_INT, 0);
-
-                if(x == std::floor(selectedTileX + selectedTileY + 1) &&  y == std::floor(selectedTileY - selectedTileX + 1))
-                {
-                    tileLoader->getTile("Selected Tile")->getMesh()->bind();
-                    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-                    tileSelected = true;
-                }
-            }
-        }
-    }
-
-    defaultShaderProgram->release();
-
-    nbRenderGameFrame++;
+    for(const auto& keyArea : ecs.view<KeyboardInputComponent*>())
+        keyArea->call(inputHandler, deltaTime);
 }
 
 void GameWindow::renderUi()
@@ -871,18 +449,7 @@ void GameWindow::tick()
     {
         lastTickTime = QDateTime::currentMSecsSinceEpoch();
 
-        //pComponent->onTick();
-
-        gold += 1;
-        //auto goldTextC = goldText->get<Sentence>();
-        //if(goldTextC != nullptr)
-        //    goldTextC->setText(std::to_string(gold) + " TeclaFlooz", fontLoader);
-        //else
-        //    std::cout << " Gold Text error " << std::endl;
-
         tickTime++;
-
-        //std::cout << "animation running: "  << AnimationComponent::runningQueue.size() - 1 << std::endl;
 
         for(int i = AnimationComponent::runningQueue.size() - 1; i >= 0; i--) 
         {
