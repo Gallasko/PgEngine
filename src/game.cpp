@@ -92,7 +92,7 @@ void GameWindow::initialize()
     mousePosTextC->setZ(2);
     mousePosTextC->setY(125);
 
-    screenEntity = ecs.createEntity();
+    auto screenEntity = ecs.createEntity();
     screenUi = ecs.attach<UiComponent>(screenEntity, {});
     screenUi->width = 1;
     screenUi->height = 1;
@@ -104,6 +104,29 @@ void GameWindow::initialize()
     configPanelC->setTopAnchor(screenUi->top);
     configPanelC->setLeftAnchor(screenUi->left);
     configPanelC->setBottomAnchor(screenUi->bottom);
+
+    auto optionTab = ecs.createEntity();
+    auto optionTabC = ecs.attach<TextureComponent>(optionTab, {300, 1, "res/menu/NavyBlueTexture.png"});
+
+    optionTabC->setTopAnchor(screenUi->top);
+    optionTabC->setRightAnchor(screenUi->right);
+    optionTabC->setBottomAnchor(screenUi->bottom);
+
+    std::cout << optionTabC->right << " " <<  optionTabC->left << std::endl;
+
+    auto scene = ecs.createEntity();
+    sceneUi = ecs.attach<UiComponent>(scene, {});
+    sceneUi->setZ(1);
+
+    sceneUi->setTopAnchor(screenUi->top);
+    sceneUi->setLeftAnchor(configPanelC->right);
+    sceneUi->setBottomAnchor(screenUi->bottom);
+    sceneUi->setRightAnchor(optionTabC->left); // TODO this should be the anchored to optionTab.left
+
+    auto sceneMouseArea = ecs.attach<MouseInputComponent* >(scene, {});
+    *sceneMouseArea = new MouseInputBase<GameWindow>(sceneUi);
+    (*sceneMouseArea)->registerFunc(GameWindow::sceneModification, this);
+    //(*sceneMouseArea)->registerFunc( [](Input*, double) { std::cout << "In here" << std::endl; } );
 
     ticking = true;
     std::thread t (&GameWindow::tick, this);
@@ -131,12 +154,18 @@ void GameWindow::render()
     {
         screenUi->width = width();
         masterRenderer.setWindowSize(width(), height());
+
+        std::cout << sceneUi->left << " " << sceneUi->right << std::endl;
+
+        std::cout << sceneUi->width << " " << sceneUi->height << std::endl;
     }
         
     if(screenUi->height != height())
     {
         screenUi->height = height();
         masterRenderer.setWindowSize(width(), height());
+
+        std::cout << sceneUi->width << " " << sceneUi->height << std::endl;
     }
 
     masterRenderer.setCurrentTime(currentTime);
@@ -226,6 +255,38 @@ void GameWindow::mouseReleaseEvent(QMouseEvent *event)
 
 void GameWindow::wheelEvent(QWheelEvent *event)
 {
+}
+
+void GameWindow::sceneModification(Input* inputHandler, double deltaTime...)
+{
+    static bool pressed = false;
+    static TextureComponent* component = nullptr;
+
+    if(inputHandler->isButtonPressed(Qt::LeftButton))
+    {
+        static auto startingMousePos = inputHandler->getMousePos(); 
+        const auto mousePos = inputHandler->getMousePos();
+
+        if(!pressed)
+        {
+            startingMousePos = mousePos;
+            auto entity = ecs.createEntity();
+            component = ecs.attach<TextureComponent>(entity, {1, 1, "res/menu/NavyBlueTexture.png"});
+
+            component->pos.y = mousePos.y();
+            component->pos.x = mousePos.x();
+
+            entityTable.push_back(entity);
+            pressed = true;
+        }
+
+        component->width = mousePos.x() - startingMousePos.x();
+        component->height = mousePos.y() - startingMousePos.y();
+    }
+    else
+    {
+        pressed = false;
+    }
 }
 
 void GameWindow::changeRandomText(Input* inputHandler, double deltaTime...) 

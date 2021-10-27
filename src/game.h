@@ -73,6 +73,8 @@ public:
     //UI callback function
     void changeRandomText(Input* inputHandler, double deltaTime...);
 
+    void sceneModification(Input* inputHandler, double deltaTime...);
+
 public slots:
     void renderLater();
     void renderNow();
@@ -89,6 +91,7 @@ private:
     void updateGameState(double deltaTime);
     void renderUi();
     void tick();
+    
     bool m_animating = false;
     bool ticking = false;
 
@@ -112,8 +115,10 @@ private:
     EntitySystem::Entity* mousePosText;
     EntitySystem::Entity* userText;
 
-    EntitySystem::Entity *screenEntity;
+    std::vector<EntitySystem::Entity*> entityTable;
+
     UiComponent *screenUi; 
+    UiComponent *sceneUi;
  
     std::string randomText;
 

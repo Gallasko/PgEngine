@@ -31,6 +31,9 @@ UiComponent::UiComponent(const UiComponent& rhs)
     this->scale = scale;
 }
 
+//TODO push those change in the master release
+
+//TODO make it so the margins are also UiSize so it can be easely propagated
 void UiComponent::update()
 {
     if(topAnchor != nullptr && bottomAnchor != nullptr)
@@ -42,20 +45,21 @@ void UiComponent::update()
     {
         this->pos.y = *topAnchor + topMargin;
     }
-    else if(topAnchor == nullptr && bottomAnchor != nullptr)
+    else if(topAnchor == nullptr && bottomAnchor != nullptr) // Bottom Anchoring Fixed
     {
         //this->pos.y = (*bottomAnchor - bottomMargin) - this->height;
-        this->pos.y = UiSize(-this->height, 1.0f, new UiSize(-bottomMargin, 1.0f, bottomAnchor));
+        this->pos.y = UiSize(0.0f, 1.0f, new UiSize(-bottomMargin, 1.0f, bottomAnchor), &this->height, UiSize::UiSizeOpType::SUB);
     }
 
-    if(rightAnchor != nullptr && leftAnchor != nullptr)
+    if(rightAnchor != nullptr && leftAnchor != nullptr) // TODO change this in master release
     {
-        this->width = UiSize(0.0f, 1.0f, new UiSize(-rightMargin, -1.0f, rightAnchor), new UiSize(-leftMargin, 1.0f, leftAnchor), UiSize::UiSizeOpType::SUB);
+        //TODO the thing to remove is the - that was             V here
+        this->width = UiSize(0.0f, 1.0f, new UiSize(-rightMargin, 1.0f, rightAnchor), new UiSize(-leftMargin, 1.0f, leftAnchor), UiSize::UiSizeOpType::SUB);
         this->pos.x = *leftAnchor + leftMargin;
     }
-    else if(rightAnchor != nullptr && leftAnchor == nullptr)
+    else if(rightAnchor != nullptr && leftAnchor == nullptr) // Right Anchoring Fixed
     {
-        this->pos.x = UiSize(this->width, 1.0f, new UiSize(-rightMargin, 1.0f, rightAnchor));
+        this->pos.x = UiSize(0.0f, 1.0f, new UiSize(-rightMargin, 1.0f, rightAnchor), &this->width, UiSize::UiSizeOpType::SUB);
     }
     else if(rightAnchor == nullptr && leftAnchor != nullptr)
     {
@@ -63,9 +67,6 @@ void UiComponent::update()
     }
 
     updated = true;
-
-    //for(const auto& child : children)
-    //    child->update();
 }
 
 TextureComponent::TextureComponent(UiSize width, UiSize height, const char* path) // TODO texture path should be fetch from the master renderer to avoid duplicate texture 

@@ -98,7 +98,8 @@ struct TextureComponent : public UiComponent, private QOpenGLFunctions
 	QOpenGLBuffer *VBO = nullptr;
 	QOpenGLBuffer *EBO = nullptr;
 
-    float oldWidth = width, oldHeight = height;
+    //Todo add this in the documentation oldX and oldY are unecessary cause they don t matter in the Mesh Creation
+    float oldWidth = width, oldHeight = height;//, oldX = pos.x, oldY = pos.y;
 
     bool initialised = false;
 };
