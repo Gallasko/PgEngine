@@ -240,9 +240,12 @@ public:
 
     void switchToPathFind(Input* inputHandler, double deltaTime...) { static bool switched = false; if(inputHandler->isKeyPressed(Qt::Key_E) && !switched) { pathFindLookUp = !pathFindLookUp; switched = true; } if(inputHandler->isKeyPressed(Qt::Key_R) && !switched) { pathRoad = !pathRoad; switched = true; drawPath(); } if(!inputHandler->isKeyPressed(Qt::Key_E) && !inputHandler->isKeyPressed(Qt::Key_R)) switched = false; }
 
+    void createPathBetweenHouseAndShop();
+
     //void changeTile(Input* inputHandler, double deltaTime, unsigned int tile) {std::cout << tile << std::endl; }
 
 private:
+    void initPathFinding();
     void updateModelInfo();
     void roadTiling();
     void drawPath();

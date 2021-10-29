@@ -74,6 +74,8 @@ public:
     void changeRandomText(Input* inputHandler, double deltaTime...);
     void payTeclaFlooz(Input* inputHandler, double deltaTime);
     void showPigeonWidget(Input* inputHandler, double deltaTime...);
+    
+    void gameplayTest(Input* inputHandler, double...) { static bool pressed = false; if(inputHandler->isButtonPressed(Qt::LeftButton) && !pressed) gameMap->createPathBetweenHouseAndShop(); if(!inputHandler->isButtonPressed(Qt::LeftButton)) pressed = false;}
 
 public slots:
     void renderLater();

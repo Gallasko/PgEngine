@@ -204,10 +204,13 @@ void GameWindow::initialize()
     pigeonSpawnButtonC->setLeftMargin(50);
 
     auto pigeonSpawnButtonMouseArea = ecs.attach<MouseInputComponent* >(pigeonSpawnButton, {});
-    *pigeonSpawnButtonMouseArea = new MouseInputBase<Base>(pigeonSpawnButtonC);
-    (*pigeonSpawnButtonMouseArea)->registerFunc([](Input* inputHandler, double deltaTime) {
-        std::cout << "Creation" << std::endl;
-    });
+    *pigeonSpawnButtonMouseArea = new MouseInputBase<GameWindow>(pigeonSpawnButtonC); // TODO create a ctor taking a lambda or a function and template on it so i don t have to call register function manually and it could template on capturing lambdas
+    (*pigeonSpawnButtonMouseArea)->registerFunc(GameWindow::gameplayTest, this);
+    
+    //(*pigeonSpawnButtonMouseArea)->registerFunc([=](Input* inputHandler, double deltaTime) {
+    //    gameMap->createPathBetweenHouseAndShop();
+        //std::cout << "Creation" << std::endl;
+    //});
 
     Sequence seq2 = Sequence(
         Sequence::OriginPoint(screenUi->right, screenUi->bottom, screenUi->pos.z),

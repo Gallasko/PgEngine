@@ -878,41 +878,7 @@ void Map::generateMesh()
 void Map::runPathFinding(Input* inputHandler, double deltaTime...)
 {
     if(inputHandler->isButtonPressed(Qt::LeftButton))
-    {
-        if(!pathFindingInitialised)
-        {
-            if(floatMapInitialised)
-            {
-                //TODO delete must be using the old height and width and note the current one
-                //maybe make it impossible to change width and heigth and just reconstruct a new map
-                for(unsigned int i = 0; i < this->getWidth(); i++)
-                {
-                    delete[] floatMap[i];
-                }
-                delete[] floatMap;
-            }
-
-            //todo delete float map when the map is destroyed
-
-            floatMap = new const float*[this->getWidth()];
-            for(unsigned int i = 0; i < this->getWidth(); i++)
-            {
-                const auto temp = new float[this->getHeight()];
-                for(unsigned int j = 0; j < this->getHeight(); j++)
-                {
-                    temp[j] = *tileMap[i][j];
-                }
-
-                floatMap[i] = temp;
-            }
-            floatMapInitialised = true;
-
-            // TODO
-            //pathFinder.processMap(floatMap, this->getWidth(), this->getHeight());
-
-            pathFindingInitialised = true;
-        }
-    }
+        initPathFinding();
 }
 
 void Map::clicked(Input* inputHandler, double deltaTime...)
@@ -1065,6 +1031,81 @@ void Map::clicked(Input* inputHandler, double deltaTime...)
 
     if(!inputHandler->isButtonPressed(Qt::LeftButton))
         clickedOnce = false;
+}
+
+void Map::createPathBetweenHouseAndShop()
+{
+    initPathFinding();
+
+    auto pathFinder = Path2D(MapFloat{floatMap, this->getWidth(), this->getHeight()});
+
+    std::vector<constant::Vector2D> housePos;
+    std::vector<constant::Vector2D> shopPos;
+
+    for(int i = 0; i < constraint.width; i++)
+    {
+        for(int j = 0; j < constraint.height; j++)
+        {
+            if(*tileMap[i][j]->tileId == TileType::HOUSE)
+                housePos.push_back({i, j});
+
+            if(*tileMap[i][j]->tileId == TileType::SHOP)
+                shopPos.push_back({i, j});
+        } 
+    }
+
+    if(housePos.size() > 0 && shopPos.size() > 0)
+    {
+        srand(time(NULL));
+
+        int s = rand() % housePos.size();
+        int e = rand() % shopPos.size();
+        
+        //Create a path from a house position to a shop position
+        auto path = pathFinder(housePos[s], shopPos[e]);
+
+        for(auto p : path)
+            std::cout << p.x << " " << p.y << std::endl;
+    }
+    
+    //std::cout << path.size() << std::endl;
+}
+
+void Map::initPathFinding()
+{
+    if(!pathFindingInitialised)
+    {
+        if(floatMapInitialised)
+        {
+            //TODO delete must be using the old height and width and not the current one
+            //maybe make it impossible to change width and heigth and just reconstruct a new map
+            for(unsigned int i = 0; i < this->getWidth(); i++)
+            {
+                delete[] floatMap[i];
+            }
+            delete[] floatMap;
+        }
+
+        //todo delete float map when the map is destroyed
+
+        floatMap = new const float*[this->getWidth()];
+        for(unsigned int i = 0; i < this->getWidth(); i++)
+        {
+            const auto temp = new float[this->getHeight()];
+            for(unsigned int j = 0; j < this->getHeight(); j++)
+            {
+                temp[j] = *tileMap[i][j];
+            }
+
+            floatMap[i] = temp;
+        }
+        floatMapInitialised = true;
+
+        // TODO
+        //pathFinder.processMap(floatMap, this->getWidth(), this->getHeight());
+
+        pathFindingInitialised = true;
+    }
 }
 
 void Map::updateModelInfo()
