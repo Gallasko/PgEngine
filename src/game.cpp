@@ -112,7 +112,11 @@ void GameWindow::initialize()
     optionTabC->setRightAnchor(screenUi->right);
     optionTabC->setBottomAnchor(screenUi->bottom);
 
-    std::cout << optionTabC->right << " " <<  optionTabC->left << std::endl;
+    auto optionTabName = ecs.createEntity();
+    auto optionTabNameC = ecs.attach<Sentence>(optionTabName, {{"Option Tab"}, 2.0f, fontLoader});
+
+    optionTabNameC->setTopAnchor(optionTabC->top);
+    optionTabNameC->setLeftAnchor(optionTabC->left);
 
     auto scene = ecs.createEntity();
     sceneUi = ecs.attach<UiComponent>(scene, {});
@@ -125,6 +129,7 @@ void GameWindow::initialize()
 
     auto sceneMouseArea = ecs.attach<MouseInputComponent* >(scene, {});
     *sceneMouseArea = new MouseInputBase<GameWindow>(sceneUi);
+    //(*sceneMouseArea)->registerFunc(GameWindow::sceneModification, this);
     (*sceneMouseArea)->registerFunc(GameWindow::sceneModification, this);
     //(*sceneMouseArea)->registerFunc( [](Input*, double) { std::cout << "In here" << std::endl; } );
 
@@ -154,18 +159,12 @@ void GameWindow::render()
     {
         screenUi->width = width();
         masterRenderer.setWindowSize(width(), height());
-
-        std::cout << sceneUi->left << " " << sceneUi->right << std::endl;
-
-        std::cout << sceneUi->width << " " << sceneUi->height << std::endl;
     }
         
     if(screenUi->height != height())
     {
         screenUi->height = height();
         masterRenderer.setWindowSize(width(), height());
-
-        std::cout << sceneUi->width << " " << sceneUi->height << std::endl;
     }
 
     masterRenderer.setCurrentTime(currentTime);
@@ -278,6 +277,36 @@ void GameWindow::sceneModification(Input* inputHandler, double deltaTime...)
 
             entityTable.push_back(entity);
             pressed = true;
+
+            auto entityName = ecs.createEntity();
+            auto entityNameC = ecs.attach<Sentence>(entityName, {{"Entity " + std::to_string(entityNameList.size())}, 2.0f, fontLoader}); 
+
+            if(entityNameList.size() == 0)
+            {
+                auto mousePosTextC = mousePosText->get<Sentence>();
+                if(mousePosTextC != nullptr)
+                {
+                    entityNameC->setTopAnchor(mousePosTextC->bottom);
+                    entityNameC->setLeftAnchor(mousePosTextC->left);
+                }
+            }
+            else
+            {
+                auto lastEntity = entityNameList.back();
+                auto lastEntityNameC = lastEntity->get<Sentence>();
+                if(lastEntityNameC != nullptr)
+                {
+                    entityNameC->setTopAnchor(lastEntityNameC->bottom);
+                    entityNameC->setLeftAnchor(lastEntityNameC->left);
+                }
+            }
+
+            entityNameList.emplace_back(entityName);
+
+            auto entityNameMouseArea = new MouseInputBase<GameWindow>(entityNameC);
+            entityNameMouseArea->registerFunc(GameWindow::openConfiguration, this);
+
+            entityNameMouseAreaList.emplace_back(entityNameMouseArea);
         }
 
         component->width = mousePos.x() - startingMousePos.x();
@@ -288,6 +317,17 @@ void GameWindow::sceneModification(Input* inputHandler, double deltaTime...)
         pressed = false;
     }
 }
+
+void GameWindow::openConfiguration(Input* inputHandler, double deltaTime...)
+{
+    va_list args;
+    va_start(args, deltaTime); 
+    auto entityId = va_arg(args, int);
+    va_end(args);
+
+    std::cout << entityId << std::endl;
+}
+
 
 void GameWindow::changeRandomText(Input* inputHandler, double deltaTime...) 
 {
@@ -393,6 +433,11 @@ void GameWindow::exposeEvent(QExposeEvent *event)
 
 void GameWindow::updateGameState(double deltaTime)
 {
+    //static auto lastMousePos = mousePos; // TODO benchmark this and maybe push this into the official release
+
+    //if(lastMousePos == mousePos)
+    //    return;
+
     int highestZ = -1;
 
     // Take the Highest Z under the mouse and make only those element clickable  
@@ -407,6 +452,13 @@ void GameWindow::updateGameState(double deltaTime)
 
     for(const auto& keyArea : ecs.view<KeyboardInputComponent*>())
         keyArea->call(inputHandler, deltaTime);
+
+    //for(const auto& mouseArea : entityNameMouseAreaList)
+    for(int i = 0; i < entityNameMouseAreaList.size(); i++)
+        if(entityNameMouseAreaList[i]->inBound(mousePos.x(), mousePos.y()) && *entityNameMouseAreaList[i]->enable)
+            entityNameMouseAreaList[i]->call(inputHandler, deltaTime, i);
+
+    //lastMousePos = mousePos;
 }
 
 void GameWindow::renderUi()

@@ -74,6 +74,7 @@ public:
     void changeRandomText(Input* inputHandler, double deltaTime...);
 
     void sceneModification(Input* inputHandler, double deltaTime...);
+    void openConfiguration(Input* inputHandler, double deltaTime...);
 
 public slots:
     void renderLater();
@@ -116,6 +117,8 @@ private:
     EntitySystem::Entity* userText;
 
     std::vector<EntitySystem::Entity*> entityTable;
+    std::vector<EntitySystem::Entity*> entityNameList;
+    std::vector<MouseInputComponent*> entityNameMouseAreaList;
 
     UiComponent *screenUi; 
     UiComponent *sceneUi;

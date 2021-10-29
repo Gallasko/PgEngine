@@ -73,6 +73,8 @@ struct UiComponent : public Base
     void inline setRightAnchor(const UiSize& anchor) { rightAnchor = &anchor; update(); }
     void inline setBottomAnchor(const UiSize& anchor) { bottomAnchor = &anchor; update(); }
     void inline setLeftAnchor(const UiSize& anchor) { leftAnchor = &anchor; update(); }
+
+    //TODO add setCenterAnchor for horizontal and vertical alignment
     
     bool updated = true; // todo remove this 
 

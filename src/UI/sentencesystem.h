@@ -55,6 +55,8 @@ struct SentenceText
 };
 
 //TODO check if in need to be static
+
+//TODO Support for multiple line in a single sentence
 struct Sentence : public UiComponent, private QOpenGLFunctions
 {
     Sentence(const SentenceText& sentence, const float& scale, FontLoader *font);
