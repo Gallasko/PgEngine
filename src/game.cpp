@@ -653,6 +653,7 @@ void GameWindow::exposeEvent(QExposeEvent *event)
 
 void GameWindow::updateGameState(double deltaTime)
 {
+
     int highestZ = -1;
 
     // Take the Highest Z under the mouse and make only those element clickable  
@@ -681,10 +682,10 @@ void GameWindow::updateGameState(double deltaTime)
     if(highestZ <= 0)
         mapClickComponent->call(inputHandler, deltaTime, width(), height(), gameScale, camera);
 
-    //for(auto& keyArea : ecs.view<KeyboardInputComponent*>())
-    //    keyArea->call(inputHandler, deltaTime);
+    for(auto& keyArea : ecs.view<KeyboardInputComponent*>())
+        keyArea->call(inputHandler, deltaTime);
     
-    (*pigeonShowingKeyboard)->call(inputHandler, deltaTime);
+    //(*pigeonShowingKeyboard)->call(inputHandler, deltaTime);
     //(*screenKeyInput)->call(inputHandler, deltaTime);
 
 }
