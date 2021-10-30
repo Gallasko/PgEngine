@@ -852,7 +852,8 @@ void GameWindow::renderGame()
         {
             const auto nextPos = entity.path[currentIndex + 1];
 
-            
+            currentPos.x += ((nextPos.x - currentPos.x) * ((entity.currentTime % 1000) / 1000.0f));
+            currentPos.y += ((nextPos.y - currentPos.y) * ((entity.currentTime % 1000) / 1000.0f));
         }
 
         model.setToIdentity();
