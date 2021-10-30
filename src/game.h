@@ -28,6 +28,8 @@
 #include <chrono>
 #include <thread>
 
+#include <mutex>
+
 #include "ECS/entitysystem.h"
 
 #include "camera.h"
@@ -46,7 +48,15 @@
 
 //TODO create unary test for all the basic component of the framework
 
-//TODO manage resize event so it doesnt crash the app 
+//TODO manage resize event so it doesnt crash the app
+
+//TODO move this struct and all code relative to the pigeon movement on the map in its class
+struct PigeonEntity
+{
+    std::vector<constant::Vector2D> path;
+
+    unsigned int currentTime = 0;
+};
 
 class GameWindow : public QWindow, protected QOpenGLFunctions, public Base
 {
@@ -75,7 +85,7 @@ public:
     void payTeclaFlooz(Input* inputHandler, double deltaTime);
     void showPigeonWidget(Input* inputHandler, double deltaTime...);
     
-    void gameplayTest(Input* inputHandler, double...) { static bool pressed = false; if(inputHandler->isButtonPressed(Qt::LeftButton) && !pressed) { gameMap->createPathBetweenHouseAndShop(); pressed = true; } if(!inputHandler->isButtonPressed(Qt::LeftButton)) pressed = false;}
+    void gameplayTest(Input* inputHandler, double...);
 
 public slots:
     void renderLater();
@@ -146,6 +156,11 @@ private:
     //TODO pigeon spawner stuff
     AnimationComponent *pigeonReveal;
     AnimationComponent *pigeonHide;
+
+    //TODO on map pigeon stuff
+    QOpenGLVertexArrayObject *pigeonVAO;
+    std::vector<PigeonEntity> pigeonEntities;
+    std::mutex pigeonMutex;
 
     long long gold = 0;
 

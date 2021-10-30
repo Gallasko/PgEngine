@@ -206,8 +206,8 @@ public:
         unsigned int lengthLowRoad = 3;
 
         unsigned int nbOutskirt = 2;
-        unsigned int townCenterSize = 5*5;
-        unsigned int shopCenterSize = 3*3;
+        unsigned int townCenterSize = 5 * 5;
+        unsigned int shopCenterSize = 3 * 3;
 
         unsigned int nbOffCity = 0;
         unsigned int offCitySize = 0;
@@ -216,8 +216,8 @@ public:
         unsigned int nbMountain = 1;
         unsigned int nbForest = 1;
 
-        unsigned int obstacleMaxSize = 3*3;
-        unsigned int obstacleMinSize = 2*2;
+        unsigned int obstacleMaxSize = 3 * 3;
+        unsigned int obstacleMinSize = 2 * 2;
 
         NoiseParameters noiseParam = {3, 5, 50, -1, 0.70};
     };
@@ -240,7 +240,7 @@ public:
 
     void switchToPathFind(Input* inputHandler, double deltaTime...) { static bool switched = false; if(inputHandler->isKeyPressed(Qt::Key_E) && !switched) { pathFindLookUp = !pathFindLookUp; switched = true; } if(inputHandler->isKeyPressed(Qt::Key_R) && !switched) { pathRoad = !pathRoad; switched = true; drawPath(); } if(!inputHandler->isKeyPressed(Qt::Key_E) && !inputHandler->isKeyPressed(Qt::Key_R)) switched = false; }
 
-    void createPathBetweenHouseAndShop();
+    std::vector<constant::Vector2D> createPathBetweenHouseAndShop();
 
     //void changeTile(Input* inputHandler, double deltaTime, unsigned int tile) {std::cout << tile << std::endl; }
 

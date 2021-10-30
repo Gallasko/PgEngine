@@ -202,6 +202,7 @@ void GameWindow::initialize()
     pigeonSpawnButtonC->setLeftAnchor(pigeonSpawnerTextureC->left);
     pigeonSpawnButtonC->setTopMargin(50);
     pigeonSpawnButtonC->setLeftMargin(50);
+    pigeonSpawnButtonC->pos.z = 5;
 
     auto pigeonSpawnButtonMouseArea = ecs.attach<MouseInputComponent* >(pigeonSpawnButton, {});
     *pigeonSpawnButtonMouseArea = new MouseInputBase<GameWindow>(pigeonSpawnButtonC); // TODO create a ctor taking a lambda or a function and template on it so i don t have to call register function manually and it could template on capturing lambdas
@@ -239,6 +240,53 @@ void GameWindow::initialize()
 
 
     //cmpTexTest = new TextureComponent(300, 300, "res/menu/Menu2.png");
+
+    pigeonVAO = new QOpenGLVertexArrayObject();
+	auto VBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+	auto EBO = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
+
+	pigeonVAO->create();
+	VBO->create();
+	EBO->create();
+
+    auto pigeonVertices = new float[20];
+
+    //make it so i set x and y at 1 and the scaling is done in the shader
+    //                 x                         y                         z                      texpos x                 texpos y
+    pigeonVertices[0]  = 0.0f; pigeonVertices[1]  =  0.0f; pigeonVertices[2]  = 0.0f; pigeonVertices[3]  = 0.0f;  pigeonVertices[4]  = 0.0f;   
+    pigeonVertices[5]  = 1.0f; pigeonVertices[6]  =  0.0f; pigeonVertices[7]  = 0.0f; pigeonVertices[8]  = 0.25f; pigeonVertices[9]  = 0.0f;
+    pigeonVertices[10] = 0.0f; pigeonVertices[11] = -1.0f; pigeonVertices[12] = 0.0f; pigeonVertices[13] = 0.0f;  pigeonVertices[14] = 1.0f;
+    pigeonVertices[15] = 1.0f; pigeonVertices[16] = -1.0f; pigeonVertices[17] = 0.0f; pigeonVertices[18] = 0.25f; pigeonVertices[19] = 1.0f;
+    //texPos x is set at 0.25f because the sprite for the pigeon is 4 frames wide
+
+    unsigned int nbPigeonVertices = 20;
+
+    auto pigeonVerticesIndices = new unsigned int[6];
+
+    pigeonVerticesIndices[0] = 0; pigeonVerticesIndices[1] = 1; pigeonVerticesIndices[2] = 2;
+    pigeonVerticesIndices[3] = 1; pigeonVerticesIndices[4] = 2; pigeonVerticesIndices[5] = 3;
+
+    unsigned int nbPigeonVerticesIndices = 6;
+
+    pigeonVAO->bind();
+
+    // position attribute
+    VBO->bind();
+    VBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
+    VBO->allocate(pigeonVertices, nbPigeonVertices * sizeof(float));
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+
+    // texture coord attribute
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+
+    EBO->bind();
+    EBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
+    EBO->allocate(pigeonVerticesIndices, nbPigeonVerticesIndices * sizeof(unsigned int));
+
+    pigeonVAO->release();
 
     /*
     //Particle Gen
@@ -595,6 +643,25 @@ void GameWindow::showPigeonWidget(Input* inputHandler, double deltaTime...)
     }
 }
 
+void GameWindow::gameplayTest(Input* inputHandler, double...) 
+{ 
+    static bool pressed = false; 
+    if(inputHandler->isButtonPressed(Qt::LeftButton) && !pressed) 
+    { 
+        auto path = gameMap->createPathBetweenHouseAndShop(); 
+
+        PigeonEntity entity;
+        entity.path = path;
+
+        pigeonEntities.emplace_back(entity);
+        pressed = true; 
+    } 
+
+    if(!inputHandler->isButtonPressed(Qt::LeftButton)) 
+        pressed = false;
+}
+
+
 void GameWindow::renderLater()
 {
     requestUpdate();
@@ -684,10 +751,10 @@ void GameWindow::updateGameState(double deltaTime)
     if(highestZ <= 0)
         mapClickComponent->call(inputHandler, deltaTime, width(), height(), gameScale, camera);
 
-    //for(auto& keyArea : ecs.view<KeyboardInputComponent*>())
-    //    keyArea->call(inputHandler, deltaTime);
+    for(auto& keyArea : ecs.view<KeyboardInputComponent*>())
+        keyArea->call(inputHandler, deltaTime);
     
-    (*pigeonShowingKeyboard)->call(inputHandler, deltaTime);
+    //(*pigeonShowingKeyboard)->call(inputHandler, deltaTime);
     //(*screenKeyInput)->call(inputHandler, deltaTime);
 
 }
@@ -728,6 +795,10 @@ void GameWindow::renderGame()
 
     bool tileSelected = false;
 
+    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("projection"), projection);
+    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
+    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("scale"), scale);
+
     if(gameMap != nullptr)
     {
         auto tileMap = gameMap->getTileMap();
@@ -740,14 +811,11 @@ void GameWindow::renderGame()
 
                 model.setToIdentity();
                 model.translate(QVector3D((tile->x - tile->y) / 2.0f, (tile->x + tile->y) / 4.0f, 0.0f));
-
-                defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("projection"), projection);
-                defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
+                
                 defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("model"), model);
-                defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("scale"), scale);
                 
                 tile->tileId->getMesh()->bind();
-                glDrawElements(GL_TRIANGLES, 6*6, GL_UNSIGNED_INT, 0);
+                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
                 if(x == std::floor(selectedTileX + selectedTileY + 1) &&  y == std::floor(selectedTileY - selectedTileX + 1))
                 {
@@ -759,6 +827,45 @@ void GameWindow::renderGame()
             }
         }
     }
+
+    auto pigeonTexture = masterRenderer.getTexture("pigeon");
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, pigeonTexture);
+
+    scale.setToIdentity();
+    scale.scale(QVector3D((gameScale / 5.0f) / width(), (gameScale / 5.0f) / height(), 0.0f));
+    defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("scale"), scale);
+
+    pigeonMutex.lock();
+
+    for(auto entity : pigeonEntities)
+    {
+        if(entity.path.size() == 0)
+            continue;
+
+        int currentIndex = std::floor(entity.currentTime / 1000.0f);
+
+        auto currentPos = entity.path[currentIndex];
+
+        if(currentIndex + 1 < entity.path.size())
+        {
+            const auto nextPos = entity.path[currentIndex + 1];
+
+            
+        }
+
+        model.setToIdentity();
+        model.translate(QVector3D(((currentPos.x - currentPos.y) / 2.0f) * 5.0f, ((currentPos.x + currentPos.y) / 4.0f) * 5.0f, 0.0f));
+        
+        defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("model"), model);
+
+        pigeonVAO->bind();
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        
+    }
+
+    pigeonMutex.unlock();
 
     defaultShaderProgram->release();
 
@@ -878,6 +985,20 @@ void GameWindow::tick()
 
         //std::cout << "animation running: "  << AnimationComponent::runningQueue.size() - 1 << std::endl;
 
+        //Pigeon movement tick loop
+        for(int i = pigeonEntities.size() - 1; i >= 0; i--) 
+        {
+            pigeonEntities[i].currentTime += 40; // tickRate
+
+            if(pigeonEntities[i].currentTime > pigeonEntities[i].path.size() * 1000)
+            {
+                pigeonMutex.lock();
+                pigeonEntities.erase(pigeonEntities.begin() + i);
+                pigeonMutex.unlock();
+            }
+        }
+        
+        //Animation tick loop
         for(int i = AnimationComponent::runningQueue.size() - 1; i >= 0; i--) 
         {
             AnimationComponent::runningQueue[i]->tick(40); // tickRate

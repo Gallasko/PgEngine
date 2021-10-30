@@ -1033,8 +1033,10 @@ void Map::clicked(Input* inputHandler, double deltaTime...)
         clickedOnce = false;
 }
 
-void Map::createPathBetweenHouseAndShop()
+std::vector<constant::Vector2D> Map::createPathBetweenHouseAndShop()
 {
+    static unsigned int rng = time(NULL);
+
     initPathFinding();
 
     auto pathFinder = Path2D(MapFloat{floatMap, this->getWidth(), this->getHeight()});
@@ -1056,7 +1058,8 @@ void Map::createPathBetweenHouseAndShop()
 
     if(housePos.size() > 0 && shopPos.size() > 0)
     {
-        srand(time(NULL));
+        srand(rng);
+        rng = rand();
 
         int s = rand() % housePos.size();
         int e = rand() % shopPos.size();
@@ -1066,9 +1069,11 @@ void Map::createPathBetweenHouseAndShop()
 
         for(auto p : path)
             std::cout << p.x << " " << p.y << std::endl;
+
+        return path;
     }
-    
-    //std::cout << path.size() << std::endl;
+
+    return std::vector<constant::Vector2D>();
 }
 
 void Map::initPathFinding()
