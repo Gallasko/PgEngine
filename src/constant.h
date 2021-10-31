@@ -35,6 +35,10 @@ namespace constant
 
 		Vector2D() {}
 
+		Vector2D(const unsigned int& x, const unsigned int& y) : x(static_cast<float>(x)), y(static_cast<float>(y)) {}
+
+		Vector2D(const int& x, const int& y) : x(static_cast<float>(x)), y(static_cast<float>(y)) {}
+
 		Vector2D(const float& x, const float& y) : x(x), y(y) {}
 
 		Vector2D(const Vector2D& vec) : x(vec.x), y(vec.y) {}
@@ -336,7 +340,7 @@ namespace constant
 
 		Ref& operator[](const std::string &name) { if(table.find(name) != table.end()) return table[name]; else { table[name] = Ref(nullptr); table[name].scoped = false; return table[name]; } }
 
-		void clean() { for(auto ref : table) delete ref.second.value; }
+		void clean() { for(auto& ref : table) delete ref.second.value; }
 
 		//~RefracTable() { for(auto ref : table) delete ref.second.value; }
 

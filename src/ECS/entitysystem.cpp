@@ -118,11 +118,11 @@ void EntitySystem::removeEntity(EntitySystem::Entity* entity)
         if(lastEntity->previousEntity != nullptr)
             lastEntity->previousEntity->nextEntity = lastEntity;
 
-        for(auto it : lastEntity->componentList)
+        for(auto& it : lastEntity->componentList)
             if(it.second->entityId != lastEntity->id)
                 moveBack(lastEntity, it.first, it.second);
 
-        for(auto it : groupList)
+        for(auto& it : groupList)
         {
             if(isEntityInGroup(lastEntity, it.first))
             {
@@ -132,7 +132,7 @@ void EntitySystem::removeEntity(EntitySystem::Entity* entity)
                     {
                         auto item = new EntitySystem::GroupList::GroupItem(entity->id);
 
-                        for(auto it2 : groupNameSpliceList[it.first])
+                        for(auto& it2 : groupNameSpliceList[it.first])
                             item->componentList[it2] = lastEntity->getComponent(it2);
 
                         it.second->append(item);
@@ -201,7 +201,7 @@ std::unordered_map<std::string, EntitySystem::GenericComponent* >::iterator Enti
                 componentMap.erase(id);
             }
 
-            for(auto it : groupList)
+            for(auto& it : groupList)
                 if(isEntityInGroup(entity, it.first))
                     it.second->erase(entity->id);
 
@@ -262,13 +262,13 @@ void EntitySystem::moveBack(EntitySystem::Entity *entity, std::string id, Entity
     }
 }
 
-bool EntitySystem::isEntityInGroup(EntitySystem::Entity *entity, std::string groupName)
+bool EntitySystem::isEntityInGroup(EntitySystem::Entity *entity, std::string groupName) const
 {
     int nbComponent = 0;
 
-    for(auto component : groupNameSpliceList[groupName])
+    for(const auto& component : groupNameSpliceList.at(groupName))
         if(entity->has(component))
             nbComponent++;
 
-    return nbComponent == static_cast<int>(groupNameSpliceList[groupName].size());
+    return nbComponent == static_cast<int>(groupNameSpliceList.at(groupName).size());
 }

@@ -134,7 +134,7 @@ void GameWindow::initialize()
     (*screenKeyInput)->registerFunc(Camera::updateKeyboard, camera);
 
     auto mapTemp = ecs.createEntity();
-    auto mapKeyInput = ecs.attach<KeyboardInputComponent* >(screenEntity, {});
+    auto mapKeyInput = ecs.attach<KeyboardInputComponent* >(mapTemp, {});
     *mapKeyInput = new KeyboardInputBase<Map>();
 
     //(*mapKeyInput)->registerFunc(&gameMap->switchToPathFind, gameMap);
@@ -560,7 +560,8 @@ void GameWindow::wheelEvent(QWheelEvent *event)
     gameScale += (event->angleDelta().y() / 120) * 5.0f;
 }
 
-void GameWindow::changeRandomText(Input* inputHandler, double deltaTime...) 
+//TODO move this into a text input component
+void GameWindow::changeRandomText(Input* inputHandler, double...) 
 {
     static std::vector<int> keyPressed;
 
@@ -592,7 +593,7 @@ void GameWindow::changeRandomText(Input* inputHandler, double deltaTime...)
         keyPressed.push_back(static_cast<int>(Qt::Key_Backspace));
     }
 
-    for(auto key : keyPressed)
+    for(const auto& key : keyPressed)
         if(!inputHandler->isKeyPressed(static_cast<Qt::Key>(key)))
             keyPressed.erase(std::find(keyPressed.begin(), keyPressed.end(), key));
 
@@ -603,7 +604,7 @@ void GameWindow::changeRandomText(Input* inputHandler, double deltaTime...)
     std::cout << randomText << std::endl;
 }
 
-void GameWindow::payTeclaFlooz(Input *inputHandler, double deltaTime)
+void GameWindow::payTeclaFlooz(Input *inputHandler, double)
 {
     static bool pressed = false;
 
@@ -617,7 +618,7 @@ void GameWindow::payTeclaFlooz(Input *inputHandler, double deltaTime)
         pressed = false;
 }
 
-void GameWindow::showPigeonWidget(Input* inputHandler, double deltaTime...)
+void GameWindow::showPigeonWidget(Input* inputHandler, double...)
 { 
     static bool statusShowed = false;
     
@@ -763,7 +764,7 @@ void GameWindow::renderGame()
 {
     static unsigned long long nbRenderGameFrame = 0;
 
-    const qreal retinaScale = devicePixelRatio();
+    // const qreal retinaScale = devicePixelRatio(); //TODO need to take this in account
 
     QMatrix4x4 projection;
     QMatrix4x4 view;
@@ -793,8 +794,6 @@ void GameWindow::renderGame()
     float selectedTileX = ((float)(mousePos.x() - width() / 2.0f )) / (gameScale / 2.0f) + camera->Position.x() * width() / gameScale;
     float selectedTileY = ((float)(height() / 2.0f - mousePos.y())) / (gameScale / 4.0f) + camera->Position.y() * height() / gameScale * 2;
 
-    bool tileSelected = false;
-
     defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("projection"), projection);
     defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
     defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("scale"), scale);
@@ -821,8 +820,6 @@ void GameWindow::renderGame()
                 {
                     tileLoader->getTile("Selected Tile")->getMesh()->bind();
                     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-                    tileSelected = true;
                 }
             }
         }
@@ -839,7 +836,7 @@ void GameWindow::renderGame()
 
     pigeonMutex.lock();
 
-    for(auto entity : pigeonEntities)
+    for(const auto& entity : pigeonEntities)
     {
         if(entity.path.size() == 0)
             continue;
@@ -848,7 +845,7 @@ void GameWindow::renderGame()
 
         auto currentPos = entity.path[currentIndex];
 
-        if(currentIndex + 1 < entity.path.size())
+        if(currentIndex + 1 < static_cast<int>(entity.path.size()))
         {
             const auto nextPos = entity.path[currentIndex + 1];
 
@@ -860,7 +857,7 @@ void GameWindow::renderGame()
         model.translate(QVector3D(((currentPos.x - currentPos.y) / 2.0f) * 5.0f, ((currentPos.x + currentPos.y) / 4.0f) * 5.0f, 0.0f));
         
         defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("model"), model);
-
+  
         pigeonVAO->bind();
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         
@@ -875,7 +872,7 @@ void GameWindow::renderGame()
 
 void GameWindow::renderUi()
 {
-    const qreal retinaScale = devicePixelRatio();
+    // const qreal retinaScale = devicePixelRatio(); TODO take this into account
 
     QMatrix4x4 projection;
     QMatrix4x4 view;

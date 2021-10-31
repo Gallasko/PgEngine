@@ -230,13 +230,13 @@ private:
         return addViewToVector<First>(vec) && addViewToVector<Next...>(vec);
     }
 
-    bool inline isGroupRegistered(std::string id) { return groupList.find(id) == groupList.end() ? false : true; }
+    bool inline isGroupRegistered(std::string id) const { return groupList.find(id) != groupList.end(); }
 
     std::unordered_map<std::string, EntitySystem::GenericComponent* >::iterator dettach(EntitySystem::Entity *entity, std::string id, std::unordered_map<std::string, EntitySystem::GenericComponent* >::iterator it);
 
     void moveBack(EntitySystem::Entity *entity, std::string id, EntitySystem::GenericComponent *component);
     
-    bool isEntityInGroup(EntitySystem::Entity *entity, std::string groupName);
+    bool isEntityInGroup(EntitySystem::Entity *entity, std::string groupName) const;
 
     unsigned int nbEntity = 0;
     Entity *lastEntity = nullptr;
@@ -288,7 +288,7 @@ Component* EntitySystem::attach(EntitySystem::Entity *entity, const Component& c
             }
         }
 
-        for(auto it : groupList)
+        for(auto& it : groupList)
         {
             if(isEntityInGroup(entity, it.first))
             {
@@ -296,7 +296,7 @@ Component* EntitySystem::attach(EntitySystem::Entity *entity, const Component& c
                 {
                     auto item = new EntitySystem::GroupList::GroupItem(entity->id);
 
-                    for(auto it2 : groupNameSpliceList[it.first])
+                    for(const auto& it2 : groupNameSpliceList[it.first])
                         item->componentList[it2] = entity->getComponent(it2);
 
                     it.second->append(item);
@@ -365,7 +365,7 @@ void EntitySystem::dettach(EntitySystem::Entity *entity)
             entity->componentList.erase(id);
             delete component;
 
-            for(auto it : groupList)
+            for(auto& it : groupList)
             {
                 if(it.first.find(id) != std::string::npos)
                     it.second->erase(entity->id);

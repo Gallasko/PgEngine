@@ -36,7 +36,7 @@ class MasterRenderer;
 struct Renderer : protected QOpenGLFunctions
 {
     Renderer() { initializeOpenGLFunctions(); }
-    Renderer(const Renderer& renderer) : QOpenGLFunctions() { initializeOpenGLFunctions(); }
+    Renderer(const Renderer&) : QOpenGLFunctions() { initializeOpenGLFunctions(); }
     virtual ~Renderer() {}
 
     virtual void render(MasterRenderer*...) = 0; 

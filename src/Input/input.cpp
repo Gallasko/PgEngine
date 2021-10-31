@@ -134,7 +134,7 @@ QPoint Input::getMouseDelta()
 	return this->mouseDelta;
 }
 
-void Input::updateInput(double deltaTime)
+void Input::updateInput(double)
 {
 	this->mouseDelta.setX(0);
 	this->mouseDelta.setY(0);

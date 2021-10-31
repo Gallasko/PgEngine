@@ -1,61 +1,17 @@
 #include "tileselector.h"
 
-TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLoader, UiComponent* screenUi) : map(map), tileLoader(tileLoader), fontLoader(fontLoader)
+TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLoader, UiComponent*) : map(map), tileLoader(tileLoader), fontLoader(fontLoader)
 {
     initializeOpenGLFunctions();
-
-    //this->width = 240;
-    //this->height = 135;
-
-    //this->setX(400);
-    //this->setY(345);
-//
-    //this->setX(100);
-    //this->setY(45);
-
-    //std::cout << static_cast<int>(screenUi->right) << std::endl;
-
-    //this->setTopAnchor(screenUi->top);
-    //this->setRightAnchor(screenUi->right);
-
-    //this->setRightMargin(200);
-    //this->setBottomMargin(200);
-
-    //this->setLeftAnchor(&screenUi->left);
-    //this->setTopAnchor(&screenUi->top);
-
 
     this->width = 240;
     this->height = 135;
 
-    //std::cout << static_cast<int>(this->bottom) << std::endl;
-
-    
-    //this->setX(static_cast<int>(screenUi->width - 240));
-    //this->setY(static_cast<int>(screenUi->height - 135));
-    
-    //this->setLeftMargin(-240);
-    
-    //this->setTopMargin(-135);
-
     texture = new TextureComponent(this->width, this->height, "res/menu/Menu2.png");
     texture->pos.x = &this->pos.x;
     texture->pos.y = &this->pos.y;
-    
-    //texture->setX(this->x);
-    //texture->setY(this->y);
-
-    //texture->setTopAnchor(&this->top);
-    //this->setTopMargin(-135);
-    //texture->setLeftAnchor(&this->left);
-    //this->setLeftMargin(-240);
 
     auto text1 = Sentence({"Base House"}, 2.0f, fontLoader);
-    //text1.setX(this->x + 10)
-    //text1.setY(this->y + 10);
-    
-    //text1.setX(this->x + 11);
-    //text1.setY(this->y + 41);
 
     textVector.push_back(text1); // TODO take care of the pb of object referencing because dumb std::vector create copies and doesn t not move the object in it 
     //textVector[0].setBottomAnchor(&this->bottom); //TODO Fix issue when text is rendered in bottom right it need to be divided by 2
@@ -156,7 +112,6 @@ void TileSelector::render(MasterRenderer* masterRenderer)
 
     const int screenWidth = rTable["ScreenWidth"];
     const int screenHeight = rTable["ScreenHeight"];
-    const int currentTime = rTable["CurrentTime"];
 
     QMatrix4x4 projection;
     QMatrix4x4 view;

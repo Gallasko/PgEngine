@@ -101,7 +101,7 @@ TextureComponent::TextureComponent(UiSize width, UiSize height, const char* path
     glGenerateMipmap(GL_TEXTURE_2D);
 }
 
-TextureComponent::TextureComponent(const TextureComponent &rhs) : UiComponent(rhs)
+TextureComponent::TextureComponent(const TextureComponent &rhs) : UiComponent(rhs), QOpenGLFunctions()
 {
     initializeOpenGLFunctions(); 
 
@@ -227,7 +227,7 @@ void TextureRenderer::render(MasterRenderer* masterRenderer...)
     shaderProgram->release();
 }
 
-void LoaderRenderer::render(MasterRenderer* masterRenderer...)
+void LoaderRenderer::render(MasterRenderer* ...)
 {
     /*
     va_list args; 

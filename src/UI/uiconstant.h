@@ -144,12 +144,18 @@ Type operator-(const Type& lhs, const UiSize& rhs)
     return lhs - static_cast<float>(rhs);
 }
 
-//TODO create ctor dtor copy
 struct UiPosition 
 {
     UiPosition() {}
-    UiPosition(const UiSize& x, const UiSize& y, const UiSize& z) { this->x = &x; this->y = &y; this->z = &z; } // todo create a const copy operator for uisize
-    UiPosition(const UiPosition& pos) : x(pos.x), y(pos.y), z(pos.z) { } // todo create a const copy operator for uisize
+    UiPosition(const UiSize& x, const UiSize& y, const UiSize& z) { this->x = &x; this->y = &y; this->z = &z; }
+    UiPosition(const UiPosition& pos) : x(pos.x), y(pos.y), z(pos.z) { }
+
+    void operator=(const UiPosition& rhs)
+    {
+        x = rhs.x;
+        y = rhs.y; 
+        z = rhs.z; 
+    }
 
     UiPosition operator+(const UiPosition& rhs) const {
         UiPosition pos;

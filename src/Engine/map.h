@@ -68,9 +68,9 @@ public:
 
         std::priority_queue<queue_node, std::vector<queue_node>, decltype(cmp)> Q(cmp);
 
-        for (int x = 0; x < map.width; x++) 
+        for (unsigned int x = 0; x < map.width; x++) 
         {
-            for (int y = 0; y < map.height; y++) 
+            for (unsigned int y = 0; y < map.height; y++) 
             {
                 const constant::Vector2D coord = {x, y};
 
@@ -238,7 +238,7 @@ public:
     
     void clicked(Input* inputHandler, double deltaTime...); // expect as argument : Input*, double, int, int, double, Camera*;
 
-    void switchToPathFind(Input* inputHandler, double deltaTime...) { static bool switched = false; if(inputHandler->isKeyPressed(Qt::Key_E) && !switched) { pathFindLookUp = !pathFindLookUp; switched = true; } if(inputHandler->isKeyPressed(Qt::Key_R) && !switched) { pathRoad = !pathRoad; switched = true; drawPath(); } if(!inputHandler->isKeyPressed(Qt::Key_E) && !inputHandler->isKeyPressed(Qt::Key_R)) switched = false; }
+    void switchToPathFind(Input* inputHandler, double...) { static bool switched = false; if(inputHandler->isKeyPressed(Qt::Key_E) && !switched) { pathFindLookUp = !pathFindLookUp; switched = true; } if(inputHandler->isKeyPressed(Qt::Key_R) && !switched) { pathRoad = !pathRoad; switched = true; drawPath(); } if(!inputHandler->isKeyPressed(Qt::Key_E) && !inputHandler->isKeyPressed(Qt::Key_R)) switched = false; }
 
     std::vector<constant::Vector2D> createPathBetweenHouseAndShop();
 
