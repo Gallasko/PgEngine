@@ -16,8 +16,8 @@ CXX = g++
 # define the moc
 MOC = $(Qt_PATH)/bin/moc.exe
 
-# define any compile-time flags
-CXXFLAGS	:= -std=c++11 -Wall -Wextra -g # -O3 -DNDEBUG
+# define any compile-time flags -mwindows to make the app launch without a command prompt
+CXXFLAGS	:= -std=c++11 -Wall -Wextra -g -mwindows # -O3 -DNDEBUG
 
 # define library paths in addition to /usr/lib
 #   if I wanted to include libraries not in /usr/lib I'd specify
