@@ -110,6 +110,13 @@ void GameWindow::initialize()
     gameScaleTextC->setZ(2);
     gameScaleTextC->setY(150);
 
+    goldText = ecs.createEntity();
+    auto goldTextC = ecs.attach<Sentence>(goldText, {{"Gold: 0"}, 2.0f, fontLoader});
+    
+    goldTextC->setX(10);
+    goldTextC->setZ(2);
+    goldTextC->setY(180);
+
     screenEntity = ecs.createEntity();
     screenUi = ecs.attach<UiComponent>(screenEntity, {});
     //screenUi->setWidth(width());
@@ -470,6 +477,10 @@ void GameWindow::render()
     auto gameScaleTextC = gameScaleText->get<Sentence>();
     if(gameScaleTextC != nullptr)
         gameScaleTextC->setText("Game Scale: " + std::to_string(static_cast<int>(gameScale)), fontLoader);
+
+    auto goldTextC = goldText->get<Sentence>();
+    if(goldTextC != nullptr)
+        goldTextC->setText("Gold: " + std::to_string(gold), fontLoader);
 
     updateGameState(float(currentTime - lastTime) / 1000);
 
@@ -972,7 +983,6 @@ void GameWindow::tick()
 
         //pComponent->onTick();
 
-        gold += 1;
         //auto goldTextC = goldText->get<Sentence>();
         //if(goldTextC != nullptr)
         //    goldTextC->setText(std::to_string(gold) + " TeclaFlooz", fontLoader);
@@ -992,6 +1002,7 @@ void GameWindow::tick()
             {
                 pigeonMutex.lock();
                 pigeonEntities.erase(pigeonEntities.begin() + i);
+                gold += 1;
                 pigeonMutex.unlock();
             }
         }
