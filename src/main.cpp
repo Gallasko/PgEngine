@@ -463,6 +463,54 @@ struct ParticleComponent
 
 //using namespace constant;
 
+/**
+ * @class Character
+ * @brief A class that create character entities
+ * 
+ * Need to create a system of promotion when a character does well enough -> he can evolve into another class
+ */
+class Character
+{
+    /**
+     * @struct CharacterInfo
+     * @brief A structure holding all of the character information
+     */
+    struct CharacterInfo
+    {
+        std::string name;                 ///< Name of the character
+        double speed;                     ///< Speed of the character
+        unsigned int nbHoldableObjects;   ///< Number of maximum holdable objects
+    }
+public:
+    Character(const CharacterInfo& info);
+
+    void setManager(int managerId);
+
+    void setPath();
+
+    void move(double elapsedTime); //Elapsed Time -> how much time pass to calculate how much does the character need to move
+
+private:
+    int managerId; // -1 => no manager, any positive integer is a manager id;
+
+    // Path pathToFollow;
+    double elapsedTimeOnPath; //Value to know how much the character moved on the path
+
+
+};
+
+class Manager
+{
+    struct ManagerInfo
+    {
+        unsigned int nbManageableCharacters;
+    };
+public:
+
+private:
+    std::vector<Character*> managedCharacters;
+};
+
 int main(int argc, char *argv[])
 {
     QSurfaceFormat format;

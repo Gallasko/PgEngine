@@ -145,7 +145,8 @@ namespace constant
 
 	struct Triangle2D : public Collidable2D
 	{
-		Triangle2D(const constant::Vector2D& p1, const constant::Vector2D& p2, const constant::Vector2D& p3, const constant::Vector2D& offset = {0.0f, 0.0f}){
+		Triangle2D(const constant::Vector2D& p1, const constant::Vector2D& p2, const constant::Vector2D& p3, const constant::Vector2D& offset = {0.0f, 0.0f})
+		{
 			geometry.offset = offset;
 			geometry.points.push_back(p1);
 			geometry.points.push_back(p2);
@@ -153,7 +154,8 @@ namespace constant
 
 			geometry.trianglesIndices.push_back(TriangleIndices(0, 1, 2));
 
-			collideFunc = [=](const Collidable2D* obj){ 
+			collideFunc = [=](const Collidable2D* obj)
+			{ 
 				const auto point1 = geometry.points[0];
 				const auto point2 = geometry.points[1];
 				const auto point3 = geometry.points[2];
@@ -199,7 +201,8 @@ namespace constant
 		constant::Vector2D pos;
 		constant::Vector2D scale;
 
-		Rectangle2D(const float& x, const float& y, const float& w, const float& h, const constant::Vector2D& offset = {0.0f, 0.0f}) {
+		Rectangle2D(const float& x, const float& y, const float& w, const float& h, const constant::Vector2D& offset = {0.0f, 0.0f})
+		{
 			geometry.offset = offset;
 			pos = constant::Vector2D(x, y);
 			scale = constant::Vector2D(w, h);
@@ -212,7 +215,8 @@ namespace constant
 			geometry.trianglesIndices.push_back(TriangleIndices(0, 1, 2));
 			geometry.trianglesIndices.push_back(TriangleIndices(1, 2, 3));
 
-			collideFunc = [=](const Collidable2D *obj){
+			collideFunc = [=](const Collidable2D *obj)
+			{
 				for(auto point : obj->geometry.points)
 				{
 					//std::cout << "Collision Check" << std::endl;
@@ -231,7 +235,8 @@ namespace constant
 	{
 		std::vector<Triangle2D> triangleList;
 
-		AbstractShape2D(const Geometry2D& geometry) {
+		AbstractShape2D(const Geometry2D& geometry)
+		{
 			this->geometry = geometry;
 
 			for(auto triangle : geometry.trianglesIndices)
