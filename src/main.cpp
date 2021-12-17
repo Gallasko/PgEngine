@@ -463,6 +463,25 @@ struct ParticleComponent
 
 //using namespace constant;
 
+class Item
+{
+    enum class Type
+    {
+        FOOD = 0,
+        DRINK,
+        GROCERY,
+        MATERIAL
+    };
+
+public:
+    Item(unsigned int id) : id(id) {}
+
+    inline bool operator==(const Item& rhs) const { return rhs.id == id; }
+
+private:
+    unsigned int id; ///< Put it in a ItemInfo object with the type / lifetime / etc...
+};
+
 /**
  * @class Character
  * @brief A class that create character entities
@@ -477,39 +496,105 @@ class Character
      */
     struct CharacterInfo
     {
+        unsigned int id;
         std::string name;                 ///< Name of the character
         double speed;                     ///< Speed of the character
         unsigned int nbHoldableObjects;   ///< Number of maximum holdable objects
-    }
+    };
 public:
-    Character(const CharacterInfo& info);
+    Character(const CharacterInfo& info) : info(info), managerId(-1), elapsedTimeOnPath(0.0f) {}
 
-    void setManager(int managerId);
+    void setManager(int managerId) { managerId = managerId; }
 
-    void setPath();
+    // void setPath();
 
-    void move(double elapsedTime); //Elapsed Time -> how much time pass to calculate how much does the character need to move
+    // void move(double elapsedTime); //Elapsed Time -> how much time pass to calculate how much does the character need to move
+
+    bool grabItem(const Item& item) {
+        if(heldItems.size() < info.nbHoldableObjects)
+        {
+            heldItems.push_back(item);
+            return true;
+        }
+        return false; }
+
+    bool depositItem(const Item& item) {
+        auto it = std::find(heldItems.begin(), heldItems.end(), item);
+        if(it != heldItems.end())
+        {
+            heldItems.erase(it);
+            return true;
+        }
+
+        return false; }
 
 private:
+    CharacterInfo info; ///< Character information
+
     int managerId; // -1 => no manager, any positive integer is a manager id;
 
     // Path pathToFollow;
     double elapsedTimeOnPath; //Value to know how much the character moved on the path
 
-
+    std::vector<Item> heldItems; //
 };
 
 class Manager
 {
     struct ManagerInfo
     {
+        unsigned int id;
         unsigned int nbManageableCharacters;
     };
 public:
+    Manager(const ManagerInfo& info) : info(info) {}
+
+    bool manage(Character* character) {
+        if(managedCharacters.size() < info.nbManageableCharacters)
+        {
+            character->setManager(info.id);
+            managedCharacters.push_back(character);
+            return true;
+        }
+        return false;}
 
 private:
+    ManagerInfo info;
     std::vector<Character*> managedCharacters;
 };
+
+
+uint16_t compute_crc16(const std::string &message)
+{
+    const uint16_t CRC_POLYNOM = 0x90D9;
+
+    uint16_t crc = 0;
+    uint16_t i, j;
+
+    /*
+    * Loop through the entire message except the last 2 bytes which are
+    * the CRC send by the device for validation.
+    */
+    for (i = 0; i < message.size() - 2; i++)
+    {
+        crc ^= static_cast<uint16_t>(static_cast<uint8_t>(message[i]) << 8);
+
+        for (j = 0; j < 8; j++)
+        {
+        if ((crc & 0x8000) != 0)
+        {
+            crc = static_cast<uint16_t>((crc << 1) ^ CRC_POLYNOM);
+        }
+        else
+        {
+            crc <<= 1;
+        }
+        }
+    }
+
+    return crc;
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -519,16 +604,26 @@ int main(int argc, char *argv[])
     //format.setProfile(QSurfaceFormat::CoreProfile);
     format.setVersion(3, 3);
 
-    QSurfaceFormat::setDefaultFormat(format);
-	QGuiApplication app(argc, argv);
-	GameWindow a;
-    a.resize(640, 480);
-    a.setAnimating(true);
-    a.show();
-    
-    QObject::connect(&a, SIGNAL(quitApp()), &app, SLOT(quit()));
+    Item burger(0);
+    Item fries(1);
+    Item icetea(2);
 
-	return app.exec();
+    Character chara1({0, "Pierre", 5.0f, 2});
+
+    Manager manager({0, 2});
+
+    return 0;
+
+    //QSurfaceFormat::setDefaultFormat(format);
+	//QGuiApplication app(argc, argv);
+	//GameWindow a;
+    //a.resize(640, 480);
+    //a.setAnimating(true);
+    //a.show();
+    
+    //QObject::connect(&a, SIGNAL(quitApp()), &app, SLOT(quit()));
+
+	//return app.exec();
 
     /*
     {
