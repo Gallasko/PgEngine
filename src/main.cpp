@@ -463,6 +463,94 @@ struct ParticleComponent
 
 //using namespace constant;
 
+// TODO: manage the case where  3h(first day) < 23h < 23h30 < 1h < 3h(second day)
+
+#include <mutex>
+
+#define LOG_THIS(scope, msg) Logger::_log(__LINE__, __FILE__, __FUNCTION__, 0, 0, scope, msg)
+#define LOG_THIS_MEMBER(scope, msg) Logger::_log(__LINE__, __FILE__, __FUNCTION__, this, typeid(*this).name(), scope, msg)
+
+class Logger
+{
+    struct Info
+    {
+        const int line;
+        const char* filename;
+        const char* function;
+        const void* object;
+        const char* objectName;
+
+        const char* scope;
+        const char* message;
+    };
+
+public:
+    static void _log(const int line, const char* file, const char* function, const void* object, const char* objectName, const char* scope, const char* msg)
+    {
+        // Fonctor to use C++ scope initialisation to easely lock log pushback
+        std::lock_guard<std::mutex> lock(_lock);
+    
+        std::cout << line << ", " << file << ", " << function << ", " << objectName << "," << scope << ", " << msg << std::endl;
+
+        log.push_back(Logger::Info{line, file, function, object, objectName, scope, msg});    
+    }
+
+    
+
+private:
+    static std::vector<Logger::Info> log;
+
+    static std::mutex _lock;
+};
+
+std::vector<Logger::Info> Logger::log;
+
+std::mutex Logger::_lock;
+
+
+
+
+
+
+
+
+
+class GameHour
+{
+public:
+    GameHour() : day(0), hour(0), minute(0) { }
+    GameHour(unsigned int hour, unsigned int minute) : day(0), hour(hour), minute(minute) { }
+    GameHour(unsigned int day, unsigned int hour, unsigned int minute) : day(day), hour(hour), minute(minute) { }
+
+    inline bool operator==(const GameHour& rhs) const { LOG_THIS_MEMBER("math", "Equal operation of a hour"); return day == rhs.day && hour == rhs.hour && minute == rhs.minute; }
+    inline bool operator!=(const GameHour& rhs) const { return !(*this == rhs); }
+
+    inline bool operator<(const GameHour& rhs) const { return day < rhs.day ? true : day > rhs.day ? false : hour < rhs.hour ? true : hour > rhs.hour ? false : minute < rhs.minute; }
+    
+    inline bool operator<=(const GameHour& rhs) const { return *this < rhs || *this == rhs; }
+    inline bool operator>=(const GameHour& rhs) const { return !(*this < rhs); }
+    inline bool operator>(const GameHour& rhs) const { return !(*this <= rhs); }
+
+private:
+    unsigned int day;
+    unsigned int hour;
+    unsigned int minute;
+};
+
+class WorkingTime
+{
+public:
+    struct WorkingPeriod
+    {
+        GameHour startTime;
+        GameHour endTime;
+    };
+
+private:
+    std::vector<WorkingPeriod> workingPeriods;
+};
+
+
 class Item
 {
     enum class Type
@@ -500,6 +588,7 @@ class Character
         std::string name;                 ///< Name of the character
         double speed;                     ///< Speed of the character
         unsigned int nbHoldableObjects;   ///< Number of maximum holdable objects
+        WorkingTime workingHours;
     };
 public:
     Character(const CharacterInfo& info) : info(info), managerId(-1), elapsedTimeOnPath(0.0f) {}
@@ -545,6 +634,7 @@ class Manager
     {
         unsigned int id;
         unsigned int nbManageableCharacters;
+        WorkingTime workingHours;
     };
 public:
     Manager(const ManagerInfo& info) : info(info) {}
@@ -581,20 +671,19 @@ uint16_t compute_crc16(const std::string &message)
 
         for (j = 0; j < 8; j++)
         {
-        if ((crc & 0x8000) != 0)
-        {
-            crc = static_cast<uint16_t>((crc << 1) ^ CRC_POLYNOM);
-        }
-        else
-        {
-            crc <<= 1;
-        }
+            if ((crc & 0x8000) != 0)
+            {
+                crc = static_cast<uint16_t>((crc << 1) ^ CRC_POLYNOM);
+            }
+            else
+            {
+                crc <<= 1;
+            }
         }
     }
 
     return crc;
 }
-
 
 int main(int argc, char *argv[])
 {
@@ -604,19 +693,13 @@ int main(int argc, char *argv[])
     //format.setProfile(QSurfaceFormat::CoreProfile);
     format.setVersion(3, 3);
 
-    Item burger(0);
-    Item fries(1);
-    Item icetea(2);
-
-    Character chara1({0, "Pierre", 5.0f, 2});
-
-    Manager manager({0, 2});
+    LOG_THIS("App", "Starting app");
 
     return 0;
 
     //QSurfaceFormat::setDefaultFormat(format);
 	//QGuiApplication app(argc, argv);
-	//GameWindow a;
+                                                                                                                                      //GameWindow a;
     //a.resize(640, 480);
     //a.setAnimating(true);
     //a.show();
