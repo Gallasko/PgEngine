@@ -1,8 +1,6 @@
 #ifndef NOISEGENERATOR_H_INCLUDED
 #define NOISEGENERATOR_H_INCLUDED
 
-#pragma once
-
 #include <cstddef>  // size_t
 #include <cstdint>  // int32_t/uint8_t
 #include <cmath>
