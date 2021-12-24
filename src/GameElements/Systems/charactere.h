@@ -1,5 +1,11 @@
+#pragma once
+
 #include <string>
 #include <vector>
+#include <algorithm>
+
+#include "gametime.h"
+#include "inventory.h"
 
 class WorkingTime
 {
