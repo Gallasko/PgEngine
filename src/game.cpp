@@ -735,6 +735,7 @@ void GameWindow::exposeEvent(QExposeEvent *event)
 
 void GameWindow::updateGameState(double deltaTime)
 {
+
     int highestZ = -1;
 
     // Take the Highest Z under the mouse and make only those element clickable  

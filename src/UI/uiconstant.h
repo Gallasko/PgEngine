@@ -13,7 +13,7 @@ public:
     };
     
     UiSize(const float& pixelSize = 0, const float& scaleValue = 0, const UiSize* ref1 = nullptr, const UiSize* ref2 = nullptr,  const UiSizeOpType& op = UiSizeOpType::NONE) : pixelSize(pixelSize), scaleValue(scaleValue), refSize1(ref1), refSize2(ref2), opType(op) {}
-    UiSize(const UiSize& size) : UiSize(size.pixelSize, size.scaleValue, size.refSize1, size.refSize2, size.opType) {}
+    UiSize(const UiSize& size) : UiSize(size.pixelSize, size.scaleValue, size.refSize1, size.refSize2, size.opType) {} // TODO create a copy contruct with a bool to delete pointer
     UiSize(const UiSize* size) : UiSize(0.0f, 1.0f, size, nullptr, UiSizeOpType::NONE) {}
 
     void operator=(const UiSize& rhs) // use to copy a ui size
