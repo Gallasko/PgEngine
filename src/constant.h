@@ -345,8 +345,6 @@ namespace constant
 
 		void clean() { for(auto& ref : table) delete ref.second.value; }
 
-		//~RefracTable() { for(auto ref : table) delete ref.second.value; }
-
 	private:
 		std::unordered_map<std::string, Ref> table;
 	};
