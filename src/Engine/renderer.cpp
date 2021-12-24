@@ -99,7 +99,7 @@ void MasterRenderer::initializeGlObject(QOpenGLContext *context)
 
 void MasterRenderer::initializeParameters()
 {
-    systemParameters["ScreenWidth"] = new constant::NumericalInt(1);
-    systemParameters["ScreenHeight"] = new constant::NumericalInt(1);
-    systemParameters["CurrentTime"] = new constant::NumericalInt(1);
+    systemParameters["ScreenWidth"] = 1;
+    systemParameters["ScreenHeight"] = 1;
+    systemParameters["CurrentTime"] = 1;
 }

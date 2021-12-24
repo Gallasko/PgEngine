@@ -319,6 +319,9 @@ namespace constant
 			void operator=(const Ref& ref) { if(!scoped && ref.scoped) value = ref.value->clone(); else value = ref.value; } // TODO see if we need to deep copy when the value is not scoped
 			void operator=(Numerical *value) { this->value = value; } // TODO check if we need to delete value when given a new one
 
+			void operator=(int value) { if(this->value) delete this->value; this->value = new NumericalInt(value); }
+			void operator=(float value) { if(this->value) delete this->value; this->value = new NumericalFloat(value); }
+
 			Ref operator+(const Ref &r) const { return Ref(*r.value + this->value, true); }
 			Ref operator-(const Ref &r) const { return Ref(*r.value - this->value, true); }
 			Ref operator*(const Ref &r) const { return Ref(*r.value * this->value, true); }

@@ -55,7 +55,7 @@ void FontLoader::Font::setMesh(unsigned int xPos, unsigned int yPos, unsigned in
     VAO->release();
 }
 
-FontLoader::FontLoader(std::string fontFile) : nbCharaId(0)
+FontLoader::FontLoader(const std::string& fontFile) : nbCharaId(0)
 {
 	std::ifstream f;
 	FontLoader::Font *newChara = nullptr;
@@ -162,7 +162,7 @@ FontLoader::Font* FontLoader::getChara(int id) const
 		return charaList[0];
 }
 
-FontLoader::Font* FontLoader::getChara(std::string charaName) const
+FontLoader::Font* FontLoader::getChara(const std::string& charaName) const
 {
 	auto it = charaDict.find(charaName);
 

@@ -55,11 +55,11 @@ public:
 		QOpenGLBuffer *EBO;
 	};
 
-	FontLoader(std::string fontFile);
+	FontLoader(const std::string& fontFile);
 	~FontLoader();
 
 	FontLoader::Font* getChara(int id) const;
-	FontLoader::Font* getChara(std::string charaName) const;
+	FontLoader::Font* getChara(const std::string& charaName) const;
 
 	inline unsigned int getAtlasWidth() const { return atlasWidth; }
 	inline unsigned int getAtlasHeight() const { return atlasHeight; }

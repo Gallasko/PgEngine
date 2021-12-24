@@ -73,8 +73,8 @@ public:
     MasterRenderer& operator<<(Renderable* toRender) { toRender->render(this); return *this; }
 
     //TODO make the setting of a numerical free of memory leak currently the new here is making a memory leak each time it is called
-    inline void setWindowSize(const int& width, const int& height) { systemParameters["ScreenWidth"] = new constant::NumericalInt(width); systemParameters["ScreenHeight"] = new constant::NumericalInt(height); }
-    inline void setCurrentTime(const unsigned int& time) { systemParameters["CurrentTime"] = new constant::NumericalInt(time); }
+    inline void setWindowSize(const int& width, const int& height) { systemParameters["ScreenWidth"] = width; systemParameters["ScreenHeight"] = height; }
+    inline void setCurrentTime(const unsigned int& time) { systemParameters["CurrentTime"] = static_cast<int>(time); }
 
     RefracRef getParameter() const { return systemParameters; }
 
