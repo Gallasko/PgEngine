@@ -16,8 +16,15 @@ CXX = g++
 # define the moc
 MOC = $(Qt_PATH)/bin/moc.exe
 
+DebugActive ?= $(DEBUG)
+
 # define any compile-time flags -mwindows to make the app launch without a command prompt
-CXXFLAGS	:= -std=c++11 -Wall -Wextra -g -mwindows # -O3 -DNDEBUG
+
+ifeq ($(DebugActive),True)
+CXXFLAGS	:= -std=c++11 -Wall -Wextra -g -DDEBUG # -mwindows -O3 -DNDEBUG
+else
+CXXFLAGS	:= -std=c++11 -Wall -Wextra -g # -mwindows -O3 -DNDEBUG
+endif
 
 # define library paths in addition to /usr/lib
 #   if I wanted to include libraries not in /usr/lib I'd specify
@@ -25,7 +32,11 @@ CXXFLAGS	:= -std=c++11 -Wall -Wextra -g -mwindows # -O3 -DNDEBUG
 LFLAGS =
 
 # define output directory
-OUTPUT	:= output
+ifeq ($(DebugActive),True)
+OUTPUT	:= debug_build
+else
+OUTPUT	:= release_build
+endif
 
 # define source directory
 SRC		:= src
@@ -96,11 +107,6 @@ OUTPUTMAIN	:= $(call FIXPATH,$(OUTPUT)/$(MAIN))
 all: $(OUTPUT) $(MAIN)
 	@echo Executing 'all' complete!
 
-$(OUTPUT):
-	$(MD) $(OUTPUT)
-	$(MD) $(OUTPUT)/shader
-	$(MD) $(OUTPUT)/res
-
 $(MAIN): $(OBJECTS)
 	@echo Building Main ...
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(OUTPUTMAIN) $(OBJECTS) $(LFLAGS) $(LIBS)
@@ -113,6 +119,11 @@ $(MAIN): $(OBJECTS)
 	
 	@echo Copy the shader dir
 	xcopy $(RESSOURCESDIR) $(OUTPUT)\res /v /f /s /y /d
+
+$(OUTPUT):
+	$(MD) $(OUTPUT)
+	$(MD) $(OUTPUT)/shader
+	$(MD) $(OUTPUT)/res
 
 # this is a suffix replacement rule for building .o's from .c's
 # it uses automatic variables $<: the name of the prerequisite of

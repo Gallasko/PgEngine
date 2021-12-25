@@ -12,21 +12,51 @@
                 "command": "powershell",
                 "args": [
                     "-c",
-                    "mingw32-make"
+                    "mingw32-make DEBUG=True"
                 ]
             },
             "linux": {
                 "command": "bash",
                 "args": [
                     "-c",
-                    "make"
+                    "make DEBUG=True"
                 ]
             },
             "osx": {
                 "command": "bash",
                 "args": [
                     "-c",
-                    "make"
+                    "make DEBUG=True"
+                ]
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "release",
+            "type": "shell",
+            "group": {
+                "kind": "release",
+                "isDefault": false
+            },
+            "windows": {
+                "command": "powershell",
+                "args": [
+                    "-c",
+                    "mingw32-make DEBUG=False"
+                ]
+            },
+            "linux": {
+                "command": "bash",
+                "args": [
+                    "-c",
+                    "make DEBUG=False"
+                ]
+            },
+            "osx": {
+                "command": "bash",
+                "args": [
+                    "-c",
+                    "make DEBUG=False"
                 ]
             },
             "problemMatcher": []

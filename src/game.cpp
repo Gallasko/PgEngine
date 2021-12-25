@@ -414,6 +414,8 @@ void GameWindow::initialize()
     t.detach();
 }
 
+#include "logger.h"
+
 void GameWindow::render()
 {
     currentTime = QDateTime::currentMSecsSinceEpoch();
@@ -460,6 +462,8 @@ void GameWindow::render()
     nbFrames++;
     if(currentTime - lastFPSCount >= 1000 || currentTime < lastFPSCount)
     {
+        LOG_THIS_MEMBER("Main loop", "fps counter updated");
+
         auto fpsText = fpsCounter->get<Sentence>();
         if(fpsText != nullptr)
             fpsText->setText(std::to_string(nbFrames), fontLoader);
