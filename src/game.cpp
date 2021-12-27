@@ -1,5 +1,7 @@
 #include "game.h"
 
+#include "logger.h"
+
 GameWindow::GameWindow(QWindow *parent) : QWindow(parent)
 {
     setSurfaceType(QWindow::OpenGLSurface);
@@ -46,6 +48,9 @@ void GameWindow::initialize()
     //glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // Enable log in console
+    Logger::registerSink<TerminalSink>(true);
 
     masterRenderer.setWindowSize(640, 480);
 
@@ -414,8 +419,6 @@ void GameWindow::initialize()
     t.detach();
 }
 
-#include "logger.h"
-
 void GameWindow::render()
 {
     currentTime = QDateTime::currentMSecsSinceEpoch();
@@ -462,7 +465,7 @@ void GameWindow::render()
     nbFrames++;
     if(currentTime - lastFPSCount >= 1000 || currentTime < lastFPSCount)
     {
-        LOG_THIS_MEMBER("Main loop", "fps counter updated");
+        LOG_THIS_MEMBER("Main loop", "Fps counter updated");
 
         auto fpsText = fpsCounter->get<Sentence>();
         if(fpsText != nullptr)

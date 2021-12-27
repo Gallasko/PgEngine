@@ -13,41 +13,87 @@
 #define LOG_THIS_MEMBER(scope, msg) 
 #endif
 
-// For testing purposes / make it a console listener
-#include <iostream>
-
+/**
+ * @class Logger
+ * 
+ * Main logging class responsible of managing logging sinks and print various info of the code
+ * 
+ */
 class Logger
 {
 public:
+    /**
+     * @enum LogLevel
+     * 
+     * A enum class holding the emergency level of the log
+     * 
+     */
     enum class InfoLevel
     {
-        log = 0,
-        info = 1,
-        alert = 2,
-        warning = 3,
-        error = 4,
-        critical = 5
+        log = 0,                    ///< Log level used anywhere for basic logging
+        info = 1,                   ///< Info level used to print some important and informative message about the execution of the code
+        alert = 2,                  ///< Alert level used to alert the dev of weird branchings that can affect the output 
+        warning = 3,                ///< Warning level used to warn the developer of an error that is non blocking 
+        error = 4,                  ///< Error level used to tell the developer of an error that is blocking and may need a restart of a component
+        critical = 5                ///< Critical level used to tell the developer of an error that is critical to the integrity of the application and need a full reboot of it
     };
 
-private:
+    /**
+     * @struct Info
+     * 
+     * A structure holding all the information about a log message
+     * 
+     */
     struct Info
     {
-        const int line;
-        const char* filename;
-        const char* function;
-        const void* object;
-        const char* objectName;
+        const int line;             ///< The line number of the message
+        const char* filename;       ///< The name of the file where the log message happened
+        const char* function;       ///< The name of the function where the log message happened
+        const void* object;         ///< A pointer to the object where the log message happened
+        const char* objectName;     ///< The name of the object class where the log message happened
 
-        const char* scope;
-        const char* message;
+        const char* scope;          ///< The scope of the log
+        const char* message;        ///< The message string
 
-        const InfoLevel level;
+        const InfoLevel level;      ///< The emergency level of the log
     };
 
-    typedef std::unique_ptr<Logger> LoggerPtr;
+    /**
+     * @class LogSink
+     * 
+     * Pure virtual class to create derive classes used to be end points of the logs system
+     * 
+     */
+    class LogSink
+    {
+    friend class Logger;
+    public:
+        /** Virtual destructor for LogSink's children */
+        virtual ~LogSink() {}
 
+        /** Stream operator used to push the log into the sink */
+        virtual void operator<<(const Logger::Info& log) = 0;
+    };
+
+    // Typedefs
+
+    /** Logger unique pointer type definition */
+    typedef std::unique_ptr<Logger> LoggerPtr;
+    /** LogSink unique pointer type definition */
+    typedef std::unique_ptr<LogSink> LogSinkPtr;
 
 public:
+    /**
+     * @brief Register a sink to dumb log into
+     * 
+     * @tparam Sink Which type of sink to be initialised
+     * @tparam Args Variadic list of arguments to initialize the sink
+     * @param args Arguments of the sink to be initialised
+     * @return an integer which is the pos of the sink in the sink vector
+     */
+    template <typename Sink, typename... Args>
+    inline static int registerSink(Args... args);
+
     /**
      * @brief Main function used to register a log message
      * 
@@ -65,24 +111,56 @@ public:
         // Fonctor to use C++ scope initialisation to easely lock log pushback
         std::lock_guard<std::mutex> lock(_lock);
 
-        std::cout << line << ", " << file << ", " << function << ", " << objectName << "," << scope << ", " << msg << ", " << static_cast<int>(level) << std::endl;
-
-        log.push_back(Logger::Info{line, file, function, object, objectName, scope, msg, level});    
+        // Call all the sink registered and push the received message to them
+        for(const auto& sink : sinks)
+            *sink << Logger::Info{line, file, function, object, objectName, scope, msg, level};    
     }
 
     /**
      * @brief Get the reference of the unique Logger instance
      * 
-     * @return a pointer to the logger instance
+     * @return a pointer to the logger instance.
      * 
-     * This function create an Logger object the first time it is called and then return an unique reference to this object 
+     * This function create an Logger object the first time it is called and then return an unique reference to this object
+     *
      */
     inline static const LoggerPtr& getLogger() { static LoggerPtr logger = LoggerPtr(new Logger()); return logger; } 
 
-    void printLog() const;
+// TODO commit log to file when a certain threashold of message is passed
+// Define in #define max log length
+private:
+    /** Current batch of log */
+    static std::vector<LogSinkPtr> sinks;
+    
+    /** Mutex for pushing and accessing logs */ 
+    static std::mutex _lock;
+};
+
+template <typename Sink, typename... Args>
+int Logger::registerSink(Args... args)
+{
+    // Fonctor to use C++ scope initialisation to easely lock log pushback
+    std::lock_guard<std::mutex> lock(_lock);
+
+    // Push back the sink in the vector
+    sinks.push_back(LogSinkPtr(new Sink(args...)));
+
+    return sinks.size() - 1;
+}
+
+// TODO create a filter function for the sinks to escape message depending on the scope
+class TerminalSink : public Logger::LogSink
+{
+friend class Logger;
+public:
+    TerminalSink() : ignoreNonErrors(false) {}
+    TerminalSink(bool ignoreNonErrors) : ignoreNonErrors(ignoreNonErrors) {}
+    
+    virtual ~TerminalSink() {}
+
+    /** Stream operator used to get the log and print the message to the console */
+    virtual void operator<<(const Logger::Info& log);
 
 private:
-    static std::vector<Logger::Info> log;
-
-    static std::mutex _lock;
+    bool ignoreNonErrors;
 };
