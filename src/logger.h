@@ -98,6 +98,40 @@ public:
             bool blacklisted;
         };
 
+        class FilterFunction : public Filter
+        {
+        public:
+            FilterFunction(const char* function, bool blacklisted = true) : function(function), blacklisted(blacklisted) {}
+            
+            inline virtual bool isFiltered(const Logger::Info& log) const
+            {
+                return blacklisted ? log.function == function : log.function != function; 
+            }
+
+        private:
+            const char* function;
+            bool blacklisted;
+        };
+
+        // TODO check if this function is relevant and if it doesn t crash if ptr a non existant
+        class FilterObject : public Filter
+        {
+        public:
+            FilterObject(void* object, bool blacklisted = true) : object(object), blacklisted(blacklisted) {}
+            
+            inline virtual bool isFiltered(const Logger::Info& log) const
+            {
+                if (object == nullptr or log.object == nullptr)
+                    return true;
+ 
+                return blacklisted ? log.object == object : log.object != object; 
+            }
+
+        private:
+            void* object;
+            bool blacklisted;
+        };
+
         class FilterObjectName : public Filter
         {
         public:
@@ -143,10 +177,14 @@ public:
             bool blacklisted;
         };
 
+        // Todo delete all filters registered
         /** Virtual destructor for LogSink's children */
         virtual ~LogSink() {}
 
-        inline void addFilter(const std::string& filterName, Filter* filter) { }
+        // Todo: check if a filter is not already set with this filtername
+        // Todo: do a function that remove the filter
+        // Todo: when adding a filter with whitelist activated (blacklisted set to false) => make all call to operator<< only accept log if it is in the whitelist
+        inline void addFilter(const std::string& filterName, Filter* filter) { filters[filterName] = filter; }
 
         /** Stream operator used to push the log into the sink */
         void operator<<(const Logger::Info& log);
@@ -242,7 +280,7 @@ public:
     virtual ~TerminalSink() {}
 
     /** Stream operator used to get the log and print the message to the console */
-    virtual void operator<<(const Logger::Info& log);
+    virtual void processLog(const Logger::Info& log);
 
 private:
     bool ignoreNonErrors;

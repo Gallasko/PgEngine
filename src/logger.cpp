@@ -59,7 +59,21 @@ namespace
     }
 }
 
-void TerminalSink::operator<<(const Logger::Info& log)
+void Logger::LogSink::operator<<(const Logger::Info& log)
+{
+    bool accepted = true;
+
+    // Structure binding can t be done because filter is pointer
+    //for (auto [filterName, filter] : filters)
+    for (const auto& filter : filters)
+        if (filter.second->isFiltered(log))
+            accepted = false;
+
+    if(accepted)
+        processLog(log);
+}
+
+void TerminalSink::processLog(const Logger::Info& log)
 {
     std::cout << logLevelString(log.level) << log.scope << ", " << log.message  << logPositionString(log.filename, log.objectName, log.function, log.line) << "\n";
     //if(not ignoreNonErrors and log.level == Logger::InfoLevel::log)
