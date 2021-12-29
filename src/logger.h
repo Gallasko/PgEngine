@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include <vector>
 
 #include <memory>
@@ -67,12 +68,94 @@ public:
     class LogSink
     {
     friend class Logger;
+        class Filter
+        {
+        public:
+            virtual ~Filter() {}
+
+            /**
+             * @brief Check if the log need to be filtered
+             * 
+             * @param log The log to be checked
+             * @return true if the log need to be filtered out and false if the filter doesn t apply to the log
+             */
+            virtual bool isFiltered(const Logger::Info& log) const = 0;
+        private:
+        };
     public:
+        class FilterFile : public Filter
+        {
+        public:
+            FilterFile(const char* filename, bool blacklisted = true) : filename(filename), blacklisted(blacklisted) {}
+            
+            inline virtual bool isFiltered(const Logger::Info& log) const
+            {
+                return blacklisted ? log.filename == filename : log.filename != filename; 
+            }
+
+        private:
+            const char* filename;
+            bool blacklisted;
+        };
+
+        class FilterObjectName : public Filter
+        {
+        public:
+            FilterObjectName(const char* objectName, bool blacklisted = true) : objectName(objectName), blacklisted(blacklisted) {}
+            
+            inline virtual bool isFiltered(const Logger::Info& log) const
+            {
+                return blacklisted ? log.objectName == objectName : log.objectName != objectName; 
+            }
+
+        private:
+            const char* objectName;
+            bool blacklisted;
+        };
+
+        class FilterScope : public Filter
+        {
+        public:
+            FilterScope(const char* scope, bool blacklisted = true) : scope(scope), blacklisted(blacklisted) {}
+            
+            inline virtual bool isFiltered(const Logger::Info& log) const
+            {
+                return blacklisted ? log.scope == scope : log.scope != scope; 
+            }
+
+        private:
+            const char* scope;
+            bool blacklisted;
+        };
+
+        class FilterLogLevel : public Filter
+        {
+        public:
+            FilterLogLevel(const Logger::InfoLevel& level, bool blacklisted = true) : level(level), blacklisted(blacklisted) {}
+            
+            inline virtual bool isFiltered(const Logger::Info& log) const
+            {
+                return blacklisted ? log.level == level : log.level != level; 
+            }
+
+        private:
+            Logger::InfoLevel level;
+            bool blacklisted;
+        };
+
         /** Virtual destructor for LogSink's children */
         virtual ~LogSink() {}
 
+        inline void addFilter(const std::string& filterName, Filter* filter) { }
+
         /** Stream operator used to push the log into the sink */
-        virtual void operator<<(const Logger::Info& log) = 0;
+        void operator<<(const Logger::Info& log);
+
+    private:
+        virtual void processLog(const Logger::Info& log) = 0;
+
+        // Todo delete all the element in it
+        std::unordered_map<std::string, Filter*> filters;
     };
 
     // Typedefs

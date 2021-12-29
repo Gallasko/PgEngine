@@ -13,17 +13,17 @@
             "linux": {
                 "MIMode": "gdb",
                 "miDebuggerPath": "gdb",
-                "program": "${workspaceFolder}/output/main"
+                "program": "${workspaceFolder}/debug_build/main"
             },
             "osx": {
                 "MIMode": "lldb",
                 "miDebuggerPath": "lldb-mi",
-                "program": "${workspaceFolder}/output/main"
+                "program": "${workspaceFolder}/debug_build/main"
             },
             "windows": {
                 "MIMode": "gdb",
                 "miDebuggerPath": "gdb.exe",
-                "program": "${workspaceFolder}/output4/main.exe"
+                "program": "${workspaceFolder}/debug_build/main.exe"
             },
             "preLaunchTask": "build"
         }
