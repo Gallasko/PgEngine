@@ -1,81 +1,85 @@
 #include "logger.h"
 
-std::vector<Logger::LogSinkPtr> Logger::sinks;
-
-std::mutex Logger::_lock;
-
 // Only used for the console sink
 #include <iostream>
 
-namespace
+namespace pg
 {
-    std::string logLevelString(const Logger::InfoLevel& level)
+    std::vector<Logger::LogSinkPtr> Logger::sinks;
+
+    std::mutex Logger::_lock;
+
+    namespace
     {
-        std::string logLevelStringBuffer = "";
-
-        switch (level)
+        std::string logLevelString(const Logger::InfoLevel& level)
         {
-            case Logger::InfoLevel::log:
-                logLevelStringBuffer = "[Log]: ";
-                break;
+            std::string logLevelStringBuffer = "";
 
-            case Logger::InfoLevel::info:
-                logLevelStringBuffer = "[Info]: ";
-                break;
+            switch (level)
+            {
+                case Logger::InfoLevel::log:
+                    logLevelStringBuffer = "[Log]: ";
+                    break;
 
-            case Logger::InfoLevel::alert:
-                logLevelStringBuffer = "[Alert]: ";
-                break;
+                case Logger::InfoLevel::info:
+                    logLevelStringBuffer = "[Info]: ";
+                    break;
 
-            case Logger::InfoLevel::warning:
-                logLevelStringBuffer = "[Warning]: ";
-                break;
+                case Logger::InfoLevel::alert:
+                    logLevelStringBuffer = "[Alert]: ";
+                    break;
 
-            case Logger::InfoLevel::error:
-                logLevelStringBuffer = "[Error]: ";
-                break;
+                case Logger::InfoLevel::warning:
+                    logLevelStringBuffer = "[Warning]: ";
+                    break;
 
-            case Logger::InfoLevel::critical:
-                logLevelStringBuffer = "[Critical]: ";
-                break;
+                case Logger::InfoLevel::error:
+                    logLevelStringBuffer = "[Error]: ";
+                    break;
+
+                case Logger::InfoLevel::critical:
+                    logLevelStringBuffer = "[Critical]: ";
+                    break;
+            }
+
+            return logLevelStringBuffer; 
         }
 
-        return logLevelStringBuffer; 
+        std::string logPositionString(const char* filename, const char* objectName, const char* function, const int line)
+        {
+            std::string logPositionStringBuffer = " in " + std::string(filename);
+
+            if(objectName)
+            logPositionStringBuffer += " for object: " + std::string(objectName);
+
+            if(function)
+                logPositionStringBuffer += " in function: " + std::string(function);
+
+            logPositionStringBuffer += ", line " + std::to_string(line);
+
+            return logPositionStringBuffer;
+        }
     }
 
-    std::string logPositionString(const std::string& filename, const std::string& objectName, const std::string& function, const int line)
+    void Logger::LogSink::operator<<(const Logger::Info& log)
     {
-        std::string logPositionStringBuffer = "in " + filename;
+        bool accepted = true;
 
-        if(!objectName.empty())
-           logPositionStringBuffer += " for object: " + objectName;
+        // Structure binding can t be done because filter is pointer
+        //for (auto [filterName, filter] : filters)
+        for (const auto& filter : filters)
+            if (filter.second->isFiltered(log))
+                accepted = false;
 
-        if(!function.empty())
-            logPositionStringBuffer += " in function: " + function;
-
-        logPositionStringBuffer += ", line " + std::to_string(line);
-
-        return logPositionStringBuffer;
+        if(accepted)
+            processLog(log);
     }
-}
 
-void Logger::LogSink::operator<<(const Logger::Info& log)
-{
-    bool accepted = true;
+    void TerminalSink::processLog(const Logger::Info& log)
+    {
+        std::cout << logLevelString(log.level) << log.scope << ", " << log.message  << logPositionString(log.filename, log.objectName, log.function, log.line) << "\n";
+        //if(not ignoreNonErrors and log.level == Logger::InfoLevel::log)
+        //    std::cout << log.line << ", " << log.filename << ", " << log.function << ", " << log.objectName << "," << log.scope << ", " << log.message << ", " << static_cast<int>(log.level) << std::endl;
+    }
 
-    // Structure binding can t be done because filter is pointer
-    //for (auto [filterName, filter] : filters)
-    for (const auto& filter : filters)
-        if (filter.second->isFiltered(log))
-            accepted = false;
-
-    if(accepted)
-        processLog(log);
-}
-
-void TerminalSink::processLog(const Logger::Info& log)
-{
-    std::cout << logLevelString(log.level) << log.scope << ", " << log.message  << logPositionString(log.filename, log.objectName, log.function, log.line) << "\n";
-    //if(not ignoreNonErrors and log.level == Logger::InfoLevel::log)
-    //    std::cout << log.line << ", " << log.filename << ", " << log.function << ", " << log.objectName << "," << log.scope << ", " << log.message << ", " << static_cast<int>(log.level) << std::endl;
 }

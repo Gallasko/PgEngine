@@ -7,281 +7,289 @@
 #include <mutex>
 
 #ifdef DEBUG
-#define LOG_THIS(scope, msg) Logger::_log(__LINE__, __FILE__, __FUNCTION__, 0, 0, scope, msg, Logger::InfoLevel::log)
-#define LOG_THIS_MEMBER(scope, msg) Logger::_log(__LINE__, __FILE__, __FUNCTION__, this, typeid(*this).name(), scope, msg, Logger::InfoLevel::log)
+#define LOG_THIS(scope, msg) pg::Logger::_log(__LINE__, __FILE__, __FUNCTION__, 0, 0, scope, msg, pg::Logger::InfoLevel::log)
+#define LOG_THIS_MEMBER(scope, msg) pg::Logger::_log(__LINE__, __FILE__, __FUNCTION__, this, typeid(*this).name(), scope, msg, pg::Logger::InfoLevel::log)
+#define LOG_INFO(scope, msg) pg::Logger::_log(__LINE__, __FILE__, __FUNCTION__, 0, 0, scope, msg, pg::Logger::InfoLevel::info)
 #else
 #define LOG_THIS(scope, msg) 
-#define LOG_THIS_MEMBER(scope, msg) 
+#define LOG_THIS_MEMBER(scope, msg)
+#define LOG_INFO(scope, msg)
 #endif
 
-/**
- * @class Logger
- * 
- * Main logging class responsible of managing logging sinks and print various info of the code
- * 
- */
-class Logger
+namespace pg
 {
-public:
     /**
-     * @enum LogLevel
+     * @class Logger
      * 
-     * A enum class holding the emergency level of the log
+     * Main logging class responsible of managing logging sinks and print various info of the code
      * 
      */
-    enum class InfoLevel
+    class Logger
     {
-        log = 0,                    ///< Log level used anywhere for basic logging
-        info = 1,                   ///< Info level used to print some important and informative message about the execution of the code
-        alert = 2,                  ///< Alert level used to alert the dev of weird branchings that can affect the output 
-        warning = 3,                ///< Warning level used to warn the developer of an error that is non blocking 
-        error = 4,                  ///< Error level used to tell the developer of an error that is blocking and may need a restart of a component
-        critical = 5                ///< Critical level used to tell the developer of an error that is critical to the integrity of the application and need a full reboot of it
-    };
-
-    /**
-     * @struct Info
-     * 
-     * A structure holding all the information about a log message
-     * 
-     */
-    struct Info
-    {
-        const int line;             ///< The line number of the message
-        const char* filename;       ///< The name of the file where the log message happened
-        const char* function;       ///< The name of the function where the log message happened
-        const void* object;         ///< A pointer to the object where the log message happened
-        const char* objectName;     ///< The name of the object class where the log message happened
-
-        const char* scope;          ///< The scope of the log
-        const char* message;        ///< The message string
-
-        const InfoLevel level;      ///< The emergency level of the log
-    };
-
-    /**
-     * @class LogSink
-     * 
-     * Pure virtual class to create derive classes used to be end points of the logs system
-     * 
-     */
-    class LogSink
-    {
-    friend class Logger;
-        class Filter
-        {
-        public:
-            virtual ~Filter() {}
-
-            /**
-             * @brief Check if the log need to be filtered
-             * 
-             * @param log The log to be checked
-             * @return true if the log need to be filtered out and false if the filter doesn t apply to the log
-             */
-            virtual bool isFiltered(const Logger::Info& log) const = 0;
-        private:
-        };
     public:
-        class FilterFile : public Filter
+        /**
+         * @enum LogLevel
+         * 
+         * A enum class holding the emergency level of the log
+         * 
+         */
+        enum class InfoLevel
         {
-        public:
-            FilterFile(const char* filename, bool blacklisted = true) : filename(filename), blacklisted(blacklisted) {}
-            
-            inline virtual bool isFiltered(const Logger::Info& log) const
-            {
-                return blacklisted ? log.filename == filename : log.filename != filename; 
-            }
-
-        private:
-            const char* filename;
-            bool blacklisted;
+            log = 0,                    ///< Log level used anywhere for basic logging
+            info = 1,                   ///< Info level used to print some important and informative message about the execution of the code
+            alert = 2,                  ///< Alert level used to alert the dev of weird branchings that can affect the output 
+            warning = 3,                ///< Warning level used to warn the developer of an error that is non blocking 
+            error = 4,                  ///< Error level used to tell the developer of an error that is blocking and may need a restart of a component
+            critical = 5                ///< Critical level used to tell the developer of an error that is critical to the integrity of the application and need a full reboot of it
         };
 
-        class FilterFunction : public Filter
+        /**
+         * @struct Info
+         * 
+         * A structure holding all the information about a log message
+         * 
+         */
+        struct Info
         {
-        public:
-            FilterFunction(const char* function, bool blacklisted = true) : function(function), blacklisted(blacklisted) {}
-            
-            inline virtual bool isFiltered(const Logger::Info& log) const
-            {
-                return blacklisted ? log.function == function : log.function != function; 
-            }
+            const int line;             ///< The line number of the message
+            const char* filename;       ///< The name of the file where the log message happened
+            const char* function;       ///< The name of the function where the log message happened
+            const void* object;         ///< A pointer to the object where the log message happened
+            const char* objectName;     ///< The name of the object class where the log message happened
 
-        private:
-            const char* function;
-            bool blacklisted;
+            const char* scope;          ///< The scope of the log
+            const char* message;        ///< The message string
+
+            const InfoLevel level;      ///< The emergency level of the log
         };
 
-        // TODO check if this function is relevant and if it doesn t crash if ptr a non existant
-        class FilterObject : public Filter
+        /**
+         * @class LogSink
+         * 
+         * Pure virtual class to create derive classes used to be end points of the logs system
+         * 
+         */
+        class LogSink
         {
-        public:
-            FilterObject(void* object, bool blacklisted = true) : object(object), blacklisted(blacklisted) {}
-            
-            inline virtual bool isFiltered(const Logger::Info& log) const
+        friend class Logger;
+            class Filter
             {
-                if (object == nullptr or log.object == nullptr)
-                    return true;
- 
-                return blacklisted ? log.object == object : log.object != object; 
-            }
+            public:
+                virtual ~Filter() {}
+
+                /**
+                 * @brief Check if the log need to be filtered
+                 * 
+                 * @param log The log to be checked
+                 * @return true if the log need to be filtered out and false if the filter doesn t apply to the log
+                 */
+                virtual bool isFiltered(const Logger::Info& log) const = 0;
+            private:
+            };
+        public:
+            class FilterFile : public Filter
+            {
+            public:
+                FilterFile(const char* filename, bool blacklisted = true) : filename(filename), blacklisted(blacklisted) {}
+                
+                inline virtual bool isFiltered(const Logger::Info& log) const
+                {
+                    return blacklisted ? log.filename == filename : log.filename != filename; 
+                }
+
+            private:
+                const char* filename;
+                bool blacklisted;
+            };
+
+            class FilterFunction : public Filter
+            {
+            public:
+                FilterFunction(const char* function, bool blacklisted = true) : function(function), blacklisted(blacklisted) {}
+                
+                inline virtual bool isFiltered(const Logger::Info& log) const
+                {
+                    return blacklisted ? log.function == function : log.function != function; 
+                }
+
+            private:
+                const char* function;
+                bool blacklisted;
+            };
+
+            // TODO check if this function is relevant and if it doesn t crash if ptr a non existant
+            class FilterObject : public Filter
+            {
+            public:
+                FilterObject(void* object, bool blacklisted = true) : object(object), blacklisted(blacklisted) {}
+                
+                inline virtual bool isFiltered(const Logger::Info& log) const
+                {
+                    if (object == nullptr or log.object == nullptr)
+                        return true;
+    
+                    return blacklisted ? log.object == object : log.object != object; 
+                }
+
+            private:
+                void* object;
+                bool blacklisted;
+            };
+
+            class FilterObjectName : public Filter
+            {
+            public:
+                FilterObjectName(const char* objectName, bool blacklisted = true) : objectName(objectName), blacklisted(blacklisted) {}
+                
+                inline virtual bool isFiltered(const Logger::Info& log) const
+                {
+                    return blacklisted ? log.objectName == objectName : log.objectName != objectName; 
+                }
+
+            private:
+                const char* objectName;
+                bool blacklisted;
+            };
+
+            class FilterScope : public Filter
+            {
+            public:
+                FilterScope(const char* scope, bool blacklisted = true) : scope(scope), blacklisted(blacklisted) {}
+                
+                inline virtual bool isFiltered(const Logger::Info& log) const
+                {
+                    return blacklisted ? log.scope == scope : log.scope != scope; 
+                }
+
+            private:
+                const char* scope;
+                bool blacklisted;
+            };
+
+            class FilterLogLevel : public Filter
+            {
+            public:
+                FilterLogLevel(const Logger::InfoLevel& level, bool blacklisted = true) : level(level), blacklisted(blacklisted) {}
+                
+                inline virtual bool isFiltered(const Logger::Info& log) const
+                {
+                    return blacklisted ? log.level == level : log.level != level; 
+                }
+
+            private:
+                Logger::InfoLevel level;
+                bool blacklisted;
+            };
+
+            // Todo delete all filters registered
+            /** Virtual destructor for LogSink's children */
+            virtual ~LogSink() {}
+
+            // Todo: check if a filter is not already set with this filtername
+            // Todo: do a function that remove the filter
+            // Todo: when adding a filter with whitelist activated (blacklisted set to false) => make all call to operator<< only accept log if it is in the whitelist
+            inline void addFilter(const std::string& filterName, Filter* filter) { filters[filterName] = filter; }
+
+            /** Stream operator used to push the log into the sink */
+            virtual void operator<<(const Logger::Info& log);
 
         private:
-            void* object;
-            bool blacklisted;
+            virtual void processLog(const Logger::Info& log) = 0;
+
+            // Todo delete all the element in it
+            std::unordered_map<std::string, Filter*> filters;
         };
 
-        class FilterObjectName : public Filter
+        // Typedefs
+
+        /** Logger unique pointer type definition */
+        typedef std::unique_ptr<Logger> LoggerPtr;
+        /** LogSink unique pointer type definition */
+        typedef std::shared_ptr<LogSink> LogSinkPtr;
+
+    public:
+        /**
+         * @brief Register a sink to dumb log into
+         * 
+         * @tparam Sink Which type of sink to be initialised
+         * @tparam Args Variadic list of arguments to initialize the sink
+         * @param args Arguments of the sink to be initialised
+         * @return a pointer to the sink instance registered 
+         */
+        template <typename Sink, typename... Args>
+        inline static std::shared_ptr<Logger::LogSink> registerSink(Args... args);
+
+        /**
+         * @brief Main function used to register a log message
+         * 
+         * @param line          Line where the log message happened
+         * @param file          File where the log message happened
+         * @param function      Function where the log message happened
+         * @param object        A reference to the object where the log message happened
+         * @param objectName    Name of the object where the log message happened
+         * @param scope         Scope of the message for filtering and priority
+         * @param msg           Message to be logged
+         * @param level         Level of emergency of the message
+         */
+        inline static void _log(const int line, const char* file, const char* function, const void* object, const char* objectName, const char* scope, const char* msg, const Logger::InfoLevel& level)
         {
-        public:
-            FilterObjectName(const char* objectName, bool blacklisted = true) : objectName(objectName), blacklisted(blacklisted) {}
-            
-            inline virtual bool isFiltered(const Logger::Info& log) const
-            {
-                return blacklisted ? log.objectName == objectName : log.objectName != objectName; 
-            }
+            // Fonctor to use C++ scope initialisation to easely lock log pushback
+            std::lock_guard<std::mutex> lock(_lock);
 
-        private:
-            const char* objectName;
-            bool blacklisted;
-        };
+            // Call all the sink registered and push the received message to them
+            for(const auto& sink : sinks)
+                *sink << Logger::Info{line, file, function, object, objectName, scope, msg, level};    
+        }
 
-        class FilterScope : public Filter
-        {
-        public:
-            FilterScope(const char* scope, bool blacklisted = true) : scope(scope), blacklisted(blacklisted) {}
-            
-            inline virtual bool isFiltered(const Logger::Info& log) const
-            {
-                return blacklisted ? log.scope == scope : log.scope != scope; 
-            }
+        /**
+         * @brief Get the reference of the unique Logger instance
+         * 
+         * @return a pointer to the logger instance.
+         * 
+         * This function create an Logger object the first time it is called and then return an unique reference to this object
+         *
+         */
+        inline static const LoggerPtr& getLogger() { static LoggerPtr logger = LoggerPtr(new Logger()); return logger; } 
 
-        private:
-            const char* scope;
-            bool blacklisted;
-        };
-
-        class FilterLogLevel : public Filter
-        {
-        public:
-            FilterLogLevel(const Logger::InfoLevel& level, bool blacklisted = true) : level(level), blacklisted(blacklisted) {}
-            
-            inline virtual bool isFiltered(const Logger::Info& log) const
-            {
-                return blacklisted ? log.level == level : log.level != level; 
-            }
-
-        private:
-            Logger::InfoLevel level;
-            bool blacklisted;
-        };
-
-        // Todo delete all filters registered
-        /** Virtual destructor for LogSink's children */
-        virtual ~LogSink() {}
-
-        // Todo: check if a filter is not already set with this filtername
-        // Todo: do a function that remove the filter
-        // Todo: when adding a filter with whitelist activated (blacklisted set to false) => make all call to operator<< only accept log if it is in the whitelist
-        inline void addFilter(const std::string& filterName, Filter* filter) { filters[filterName] = filter; }
-
-        /** Stream operator used to push the log into the sink */
-        void operator<<(const Logger::Info& log);
-
+    // TODO commit log to file when a certain threashold of message is passed
+    // Define in #define max log length
     private:
-        virtual void processLog(const Logger::Info& log) = 0;
-
-        // Todo delete all the element in it
-        std::unordered_map<std::string, Filter*> filters;
+        /** Current batch of log */
+        static std::vector<LogSinkPtr> sinks;
+        
+        /** Mutex for pushing and accessing logs */ 
+        static std::mutex _lock;
     };
 
-    // Typedefs
-
-    /** Logger unique pointer type definition */
-    typedef std::unique_ptr<Logger> LoggerPtr;
-    /** LogSink unique pointer type definition */
-    typedef std::unique_ptr<LogSink> LogSinkPtr;
-
-public:
-    /**
-     * @brief Register a sink to dumb log into
-     * 
-     * @tparam Sink Which type of sink to be initialised
-     * @tparam Args Variadic list of arguments to initialize the sink
-     * @param args Arguments of the sink to be initialised
-     * @return an integer which is the pos of the sink in the sink vector
-     */
     template <typename Sink, typename... Args>
-    inline static int registerSink(Args... args);
-
-    /**
-     * @brief Main function used to register a log message
-     * 
-     * @param line          Line where the log message happened
-     * @param file          File where the log message happened
-     * @param function      Function where the log message happened
-     * @param object        A reference to the object where the log message happened
-     * @param objectName    Name of the object where the log message happened
-     * @param scope         Scope of the message for filtering and priority
-     * @param msg           Message to be logged
-     * @param level         Level of emergency of the message
-     */
-    inline static void _log(const int line, const char* file, const char* function, const void* object, const char* objectName, const char* scope, const char* msg, const Logger::InfoLevel& level)
+    std::shared_ptr<Logger::LogSink> Logger::registerSink(Args... args)
     {
         // Fonctor to use C++ scope initialisation to easely lock log pushback
         std::lock_guard<std::mutex> lock(_lock);
 
-        // Call all the sink registered and push the received message to them
-        for(const auto& sink : sinks)
-            *sink << Logger::Info{line, file, function, object, objectName, scope, msg, level};    
+        // Create an unique reference to the sink created
+        std::shared_ptr<Logger::LogSink> sink = std::make_shared<Sink>(args...);
+
+        // Push back the sink in the vector
+        sinks.push_back(sink);
+
+        return sink;
     }
 
-    /**
-     * @brief Get the reference of the unique Logger instance
-     * 
-     * @return a pointer to the logger instance.
-     * 
-     * This function create an Logger object the first time it is called and then return an unique reference to this object
-     *
-     */
-    inline static const LoggerPtr& getLogger() { static LoggerPtr logger = LoggerPtr(new Logger()); return logger; } 
+    // TODO create a filter function for the sinks to escape message depending on the scope
+    class TerminalSink : public Logger::LogSink
+    {
+    friend class Logger;
+    public:
+        TerminalSink() : ignoreNonErrors(false) {}
+        TerminalSink(bool ignoreNonErrors) : ignoreNonErrors(ignoreNonErrors) {}
+        
+        virtual ~TerminalSink() {}
 
-// TODO commit log to file when a certain threashold of message is passed
-// Define in #define max log length
-private:
-    /** Current batch of log */
-    static std::vector<LogSinkPtr> sinks;
-    
-    /** Mutex for pushing and accessing logs */ 
-    static std::mutex _lock;
-};
+        /** Stream operator used to get the log and print the message to the console */
+        virtual void processLog(const Logger::Info& log) override;
 
-template <typename Sink, typename... Args>
-int Logger::registerSink(Args... args)
-{
-    // Fonctor to use C++ scope initialisation to easely lock log pushback
-    std::lock_guard<std::mutex> lock(_lock);
-
-    // Push back the sink in the vector
-    sinks.push_back(LogSinkPtr(new Sink(args...)));
-
-    return sinks.size() - 1;
+    private:
+        bool ignoreNonErrors;
+    };
 }
-
-// TODO create a filter function for the sinks to escape message depending on the scope
-class TerminalSink : public Logger::LogSink
-{
-friend class Logger;
-public:
-    TerminalSink() : ignoreNonErrors(false) {}
-    TerminalSink(bool ignoreNonErrors) : ignoreNonErrors(ignoreNonErrors) {}
-    
-    virtual ~TerminalSink() {}
-
-    /** Stream operator used to get the log and print the message to the console */
-    virtual void processLog(const Logger::Info& log);
-
-private:
-    bool ignoreNonErrors;
-};

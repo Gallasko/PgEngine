@@ -50,7 +50,8 @@ void GameWindow::initialize()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Enable log in console
-    Logger::registerSink<TerminalSink>(true);
+    auto terminalSink = pg::Logger::registerSink<pg::TerminalSink>(true);
+    terminalSink->addFilter("Log Level Filter", new pg::Logger::LogSink::FilterLogLevel(pg::Logger::InfoLevel::log));
 
     masterRenderer.setWindowSize(640, 480);
 
@@ -666,7 +667,8 @@ void GameWindow::gameplayTest(Input* inputHandler, double...)
 { 
     static bool pressed = false; 
     if(inputHandler->isButtonPressed(Qt::LeftButton) && !pressed) 
-    { 
+    {
+        LOG_INFO("Main Loop", "Created pigeon");
         auto path = gameMap->createPathBetweenHouseAndShop(); 
 
         PigeonEntity entity;
@@ -742,7 +744,6 @@ void GameWindow::exposeEvent(QExposeEvent *event)
 
 void GameWindow::updateGameState(double deltaTime)
 {
-
     int highestZ = -1;
 
     // Take the Highest Z under the mouse and make only those element clickable  
@@ -1008,6 +1009,8 @@ void GameWindow::tick()
 
             if(pigeonEntities[i].currentTime > pigeonEntities[i].path.size() * 1000)
             {
+                LOG_THIS_MEMBER("Main loop", "Pigeon deleted");
+
                 pigeonMutex.lock();
                 pigeonEntities.erase(pigeonEntities.begin() + i);
                 gold += 1;
