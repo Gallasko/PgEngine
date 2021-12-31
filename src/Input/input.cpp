@@ -46,7 +46,7 @@ namespace pg
 		}
 	}
 
-	Input::InputState Input::registerMouseInput(Qt::MouseButton button, Input::InputState state)
+	Input::InputState Input::registerMouseInput(const Qt::MouseButton& button, const Input::InputState& state)
 	{
 		auto it = findInputPos(button, buttonContainer);
 		switch(state)
@@ -83,7 +83,7 @@ namespace pg
 		}
 	}
 
-	Input::InputState Input::registerMouseMove(QPoint mousePos, QPoint mouseDelta)
+	Input::InputState Input::registerMouseMove(const QPoint& mousePos, const QPoint& mouseDelta)
 	{
 		this->mousePos = mousePos;
 		this->mouseDelta += mouseDelta;
@@ -91,34 +91,34 @@ namespace pg
 		return Input::InputState::INPUTREGISTERED;
 	}
 
-	Input::InputState Input::keyState(Qt::Key key)
+	Input::InputState Input::keyState(const Qt::Key& key)
 	{
 		auto it = findInputPos(key, keyContainer);
 		return (it != -1) ? keyContainer.at(it).state : Input::InputState::INPUTERROR;
 	}
 
-	bool Input::isKeyPressed(Qt::Key key)
+	bool Input::isKeyPressed(const Qt::Key& key)
 	{
 		return keyState(key) == Input::InputState::KEYPRESSED;
 	}
 
-	bool Input::isKeyReleased(Qt::Key key)
+	bool Input::isKeyReleased(const Qt::Key& key)
 	{
 		return keyState(key) == Input::InputState::KEYRELEASED;
 	}
 
-	Input::InputState Input::buttonState(Qt::MouseButton button)
+	Input::InputState Input::buttonState(const Qt::MouseButton& button)
 	{
 		auto it = findInputPos(button, buttonContainer);
 		return (it != -1) ? buttonContainer.at(it).state : Input::InputState::INPUTERROR;
 	}
 
-	bool Input::isButtonPressed(Qt::MouseButton button)
+	bool Input::isButtonPressed(const Qt::MouseButton& button)
 	{
 		return buttonState(button) == Input::InputState::MOUSEPRESS;
 	}
 
-	bool Input::isButtonReleased(Qt::MouseButton button)
+	bool Input::isButtonReleased(const Qt::MouseButton& button)
 	{
 		return buttonState(button) == Input::InputState::MOUSERELEASE;
 	}

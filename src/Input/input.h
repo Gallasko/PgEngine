@@ -13,6 +13,7 @@ namespace pg
 	class Input : public QObject
 	{
 		Q_OBJECT
+
 	public:
 		enum class InputState
 		{
@@ -24,6 +25,7 @@ namespace pg
 			MOUSERELEASE
 		};
 
+	private:
 		template <typename T>
 		struct InputInstance
 		{
@@ -45,19 +47,20 @@ namespace pg
 		typedef InputInstance<Qt::Key> KeyInstance;
 		typedef InputInstance<Qt::MouseButton> ButtonInstance;
 
+	public:
 		Input() : QObject() {}
 
 		Input::InputState registerKeyInput(const Qt::Key& key, const Input::InputState& state);
-		Input::InputState registerMouseInput(Qt::MouseButton button, Input::InputState state);
-		Input::InputState registerMouseMove(QPoint mousePos, QPoint mouseDelta);
+		Input::InputState registerMouseInput(const Qt::MouseButton& button, const Input::InputState& state);
+		Input::InputState registerMouseMove(const QPoint& mousePos, const QPoint& mouseDelta);
 
-		Input::InputState keyState(Qt::Key key);
-		bool isKeyPressed(Qt::Key key);
-		bool isKeyReleased(Qt::Key key);
+		Input::InputState keyState(const Qt::Key& key);
+		bool isKeyPressed(const Qt::Key& key);
+		bool isKeyReleased(const Qt::Key& key);
 
-		Input::InputState buttonState(Qt::MouseButton button);
-		bool isButtonPressed(Qt::MouseButton button);
-		bool isButtonReleased(Qt::MouseButton button);
+		Input::InputState buttonState(const Qt::MouseButton& button);
+		bool isButtonPressed(const Qt::MouseButton& button);
+		bool isButtonReleased(const Qt::MouseButton& button);
 
 		QPoint getMousePos();
 		QPoint getMouseDelta();
