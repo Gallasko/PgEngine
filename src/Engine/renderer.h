@@ -15,83 +15,86 @@
 
 #include "..\constant.h"
 
-typedef constant::RefracTable RefracRef;
-typedef std::unordered_map<std::string, QOpenGLShaderProgram*> ShaderRef;
-typedef std::unordered_map<std::string, unsigned int> TextureRef;
-
-struct OpenGLObject : protected QOpenGLFunctions
+namespace pg
 {
-    QOpenGLVertexArrayObject *VAO = nullptr;
-	QOpenGLBuffer *VBO = nullptr;
-	QOpenGLBuffer *EBO = nullptr;
+    typedef constant::RefracTable RefracRef;
+    typedef std::unordered_map<std::string, QOpenGLShaderProgram*> ShaderRef;
+    typedef std::unordered_map<std::string, unsigned int> TextureRef;
 
-    OpenGLObject() { initializeOpenGLFunctions(); }
-    ~OpenGLObject() { delete VAO; delete VBO; delete EBO; }
+    struct OpenGLObject : protected QOpenGLFunctions
+    {
+        QOpenGLVertexArrayObject *VAO = nullptr;
+        QOpenGLBuffer *VBO = nullptr;
+        QOpenGLBuffer *EBO = nullptr;
 
-    void initialize();
-};
+        OpenGLObject() { initializeOpenGLFunctions(); }
+        ~OpenGLObject() { delete VAO; delete VBO; delete EBO; }
 
-class MasterRenderer;
+        void initialize();
+    };
 
-struct Renderer : protected QOpenGLFunctions
-{
-    Renderer() { initializeOpenGLFunctions(); }
-    Renderer(const Renderer&) : QOpenGLFunctions() { initializeOpenGLFunctions(); }
-    virtual ~Renderer() {}
+    class MasterRenderer;
 
-    virtual void render(MasterRenderer*...) = 0; 
-};
+    struct Renderer : protected QOpenGLFunctions
+    {
+        Renderer() { initializeOpenGLFunctions(); }
+        Renderer(const Renderer&) : QOpenGLFunctions() { initializeOpenGLFunctions(); }
+        virtual ~Renderer() {}
 
-//[TODO] Multiple FBO -> 1 for a whole screen capture and other for batch rendering on a texture 
-// Add Particle systeme with instancing already done / create an alternative if needed
+        virtual void render(MasterRenderer*...) = 0; 
+    };
 
-class MasterRenderer : protected QOpenGLFunctions
-{
-public:
-    MasterRenderer() {}
-    ~MasterRenderer() { delete extraFunctions; delete squareObject; delete instanceVBO; }
+    //[TODO] Multiple FBO -> 1 for a whole screen capture and other for batch rendering on a texture 
+    // Add Particle systeme with instancing already done / create an alternative if needed
 
-    void initialize(QOpenGLContext *m_context) { initializeGlObject(m_context); initializeParameters(); }
+    class MasterRenderer : protected QOpenGLFunctions
+    {
+    public:
+        MasterRenderer() {}
+        ~MasterRenderer() { delete extraFunctions; delete squareObject; delete instanceVBO; }
 
-    template<typename Renderer, typename... Args>
-    void registerRederer(Args... args) { auto rendererName = typeid(Renderer).name(); rendererList[rendererName] = new Renderer(args...); }
+        void initialize(QOpenGLContext *m_context) { initializeGlObject(m_context); initializeParameters(); }
 
-    void registerShader(const std::string& name, QOpenGLShaderProgram *shaderProgram) { shaderList[name] = shaderProgram; }
-    void registerShader(const std::string& name, const char* vsPath, const char* fsPath);
+        template<typename Renderer, typename... Args>
+        void registerRederer(Args... args) { auto rendererName = typeid(Renderer).name(); rendererList[rendererName] = new Renderer(args...); }
 
-    void registerTexture(const std::string& name, unsigned int textureId) { textureList[name] = textureId; }
-    void registerTexture(const std::string& name, const char* texturePath);
+        void registerShader(const std::string& name, QOpenGLShaderProgram *shaderProgram) { shaderList[name] = shaderProgram; }
+        void registerShader(const std::string& name, const char* vsPath, const char* fsPath);
 
-    //TODO raise exception on none presence of attribute
-    QOpenGLShaderProgram* getShader(std::string name) { return shaderList[name]; }
-    unsigned int getTexture(std::string name) { return textureList[name]; }
+        void registerTexture(const std::string& name, unsigned int textureId) { textureList[name] = textureId; }
+        void registerTexture(const std::string& name, const char* texturePath);
 
-    template<typename Renderer, typename... Args>
-    void render(Args... args) { auto rendererName = typeid(Renderer).name(); if(rendererList.find(rendererName) != rendererList.end()) rendererList[rendererName]->render(this, args...); }
+        //TODO raise exception on none presence of attribute
+        QOpenGLShaderProgram* getShader(std::string name) { return shaderList[name]; }
+        unsigned int getTexture(std::string name) { return textureList[name]; }
 
-    template<typename Renderable>
-    MasterRenderer& operator<<(Renderable* toRender) { toRender->render(this); return *this; }
+        template<typename Renderer, typename... Args>
+        void render(Args... args) { auto rendererName = typeid(Renderer).name(); if(rendererList.find(rendererName) != rendererList.end()) rendererList[rendererName]->render(this, args...); }
 
-    //TODO make the setting of a numerical free of memory leak currently the new here is making a memory leak each time it is called
-    inline void setWindowSize(const int& width, const int& height) { systemParameters["ScreenWidth"] = width; systemParameters["ScreenHeight"] = height; }
-    inline void setCurrentTime(const unsigned int& time) { systemParameters["CurrentTime"] = static_cast<int>(time); }
+        template<typename Renderable>
+        MasterRenderer& operator<<(Renderable* toRender) { toRender->render(this); return *this; }
 
-    RefracRef getParameter() const { return systemParameters; }
+        //TODO make the setting of a numerical free of memory leak currently the new here is making a memory leak each time it is called
+        inline void setWindowSize(const int& width, const int& height) { systemParameters["ScreenWidth"] = width; systemParameters["ScreenHeight"] = height; }
+        inline void setCurrentTime(const unsigned int& time) { systemParameters["CurrentTime"] = static_cast<int>(time); }
 
-    QOpenGLExtraFunctions* getExtraFunctions() const { return extraFunctions; }
-    QOpenGLVertexArrayObject* getSquareVAO() const { return squareObject->VAO; }
-    QOpenGLBuffer* getInstanceVBO() const { return instanceVBO; }
-private:
-    void initializeGlObject(QOpenGLContext *context);
+        RefracRef getParameter() const { return systemParameters; }
 
-    void initializeParameters();
+        QOpenGLExtraFunctions* getExtraFunctions() const { return extraFunctions; }
+        QOpenGLVertexArrayObject* getSquareVAO() const { return squareObject->VAO; }
+        QOpenGLBuffer* getInstanceVBO() const { return instanceVBO; }
+    private:
+        void initializeGlObject(QOpenGLContext *context);
 
-    QOpenGLExtraFunctions *extraFunctions;
-    OpenGLObject *squareObject;
-    QOpenGLBuffer *instanceVBO;
-    std::unordered_map<std::string, Renderer*> rendererList;
-    
-    RefracRef systemParameters;
-    ShaderRef shaderList;
-    TextureRef textureList;
-};
+        void initializeParameters();
+
+        QOpenGLExtraFunctions *extraFunctions;
+        OpenGLObject *squareObject;
+        QOpenGLBuffer *instanceVBO;
+        std::unordered_map<std::string, Renderer*> rendererList;
+        
+        RefracRef systemParameters;
+        ShaderRef shaderList;
+        TextureRef textureList;
+    };
+}

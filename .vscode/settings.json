@@ -94,7 +94,8 @@
         "typeindex": "cpp",
         "valarray": "cpp",
         "qopenglfunctions": "cpp",
-        "queue": "cpp"
+        "queue": "cpp",
+        "qobject": "cpp"
     },
     "files.exclude": {
         "**/*.o": true,

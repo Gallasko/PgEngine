@@ -8,94 +8,97 @@
 #include "../Engine/renderer.h"
 #include "../constant.h"
 
-enum class SentenceEffect : uint8_t
+namespace pg
 {
-    NOEFFCT     = 0x00,
-    TEXTWIGGLE  = 0x01,
-    COLORSCROLL = 0x10,
-
-    NUM_TYPES
-};
-
-struct SentenceText
-{
-    std::string text = "";
-    constant::Vector4D mainColor = constant::Vector4D(255.0f, 255.0f, 255.0f, 255.0f);
-    constant::Vector4D outline1  = constant::Vector4D(  0.0f,   0.0f,   0.0f, 205.0f);
-    constant::Vector4D outline2  = constant::Vector4D(255.0f, 255.0f, 255.0f, 180.0f);
-
-    SentenceEffect effect = SentenceEffect::NOEFFCT;
-
-    SentenceText() {}
-
-    SentenceText(const std::string& text) : text(text) {}
-
-    SentenceText(const std::string& text, const constant::Vector4D& color1, const SentenceEffect& effect = SentenceEffect::NOEFFCT) : text(text), mainColor(color1), effect(effect) {}
-
-    SentenceText(const std::string& text, const constant::Vector4D& color1, const constant::Vector4D& color2, const constant::Vector4D& color3 = constant::Vector4D(255.0f, 255.0f, 255.0f, 180.0f), const SentenceEffect& effect = SentenceEffect::NOEFFCT) : text(text), mainColor(color1), outline1(color2), outline2(color3), effect(effect) {}
-
-    inline void operator=(const SentenceText &rhs)
+    enum class SentenceEffect : uint8_t
     {
-        this->text      = rhs.text;
-        this->mainColor = rhs.mainColor;
-        this->outline1  = rhs.outline1;
-        this->outline2  = rhs.outline2;
-        this->effect    = rhs.effect;
-    }
+        NOEFFCT     = 0x00,
+        TEXTWIGGLE  = 0x01,
+        COLORSCROLL = 0x10,
 
-    inline bool operator==(const SentenceText &rhs) const
+        NUM_TYPES
+    };
+
+    struct SentenceText
     {
-        return this->text == rhs.text && this->mainColor == rhs.mainColor && this->outline1 == rhs.outline1 && this->outline2 == rhs.outline2 && this->effect == rhs.effect;
-    }
+        std::string text = "";
+        constant::Vector4D mainColor = constant::Vector4D(255.0f, 255.0f, 255.0f, 255.0f);
+        constant::Vector4D outline1  = constant::Vector4D(  0.0f,   0.0f,   0.0f, 205.0f);
+        constant::Vector4D outline2  = constant::Vector4D(255.0f, 255.0f, 255.0f, 180.0f);
 
-    inline bool operator!=(const SentenceText &rhs) const
+        SentenceEffect effect = SentenceEffect::NOEFFCT;
+
+        SentenceText() {}
+
+        SentenceText(const std::string& text) : text(text) {}
+
+        SentenceText(const std::string& text, const constant::Vector4D& color1, const SentenceEffect& effect = SentenceEffect::NOEFFCT) : text(text), mainColor(color1), effect(effect) {}
+
+        SentenceText(const std::string& text, const constant::Vector4D& color1, const constant::Vector4D& color2, const constant::Vector4D& color3 = constant::Vector4D(255.0f, 255.0f, 255.0f, 180.0f), const SentenceEffect& effect = SentenceEffect::NOEFFCT) : text(text), mainColor(color1), outline1(color2), outline2(color3), effect(effect) {}
+
+        inline void operator=(const SentenceText &rhs)
+        {
+            this->text      = rhs.text;
+            this->mainColor = rhs.mainColor;
+            this->outline1  = rhs.outline1;
+            this->outline2  = rhs.outline2;
+            this->effect    = rhs.effect;
+        }
+
+        inline bool operator==(const SentenceText &rhs) const
+        {
+            return this->text == rhs.text && this->mainColor == rhs.mainColor && this->outline1 == rhs.outline1 && this->outline2 == rhs.outline2 && this->effect == rhs.effect;
+        }
+
+        inline bool operator!=(const SentenceText &rhs) const
+        {
+            return !(*this == rhs);
+        }
+    };
+
+    //TODO check if in need to be static
+    struct Sentence : public UiComponent, private QOpenGLFunctions
     {
-        return !(*this == rhs);
-    }
-};
+        Sentence(const SentenceText& sentence, const float& scale, FontLoader *font);
+        Sentence(const Sentence &rhs);
+        ~Sentence();
 
-//TODO check if in need to be static
-struct Sentence : public UiComponent, private QOpenGLFunctions
-{
-    Sentence(const SentenceText& sentence, const float& scale, FontLoader *font);
-    Sentence(const Sentence &rhs);
-    ~Sentence();
+        void setText(const SentenceText& sentence, FontLoader *font);
 
-    void setText(const SentenceText& sentence, FontLoader *font);
+        void generateMesh();
 
-    void generateMesh();
+        SentenceText text;
+        FontLoader *font;
+        int nbChara = 0;
 
-    SentenceText text;
-    FontLoader *font;
-    int nbChara = 0;
+        constant::ModelInfo modelInfo;
 
-    constant::ModelInfo modelInfo;
+        QOpenGLVertexArrayObject *VAO = nullptr;
+        QOpenGLBuffer *VBO = nullptr;
+        QOpenGLBuffer *EBO = nullptr;
 
-    QOpenGLVertexArrayObject *VAO = nullptr;
-	QOpenGLBuffer *VBO = nullptr;
-	QOpenGLBuffer *EBO = nullptr;
+        bool initialised = false;
+    };
 
-    bool initialised = false;
-};
+    //TODO see if a render all virtual methode is revelent and could be implemented in the base renderer for rendering multiple instance at once
+    //instead of create 2 separates renderer one for the single instance rendering and the other for the multiple rendering
+    //the renderList could take a vector of element and if the methode is not reimplemented could by default call render multiple time !
+    struct SentenceRenderer : public Renderer
+    {
+        using Renderer::Renderer;
+        virtual ~SentenceRenderer() {}
 
-//TODO see if a render all virtual methode is revelent and could be implemented in the base renderer for rendering multiple instance at once
-//instead of create 2 separates renderer one for the single instance rendering and the other for the multiple rendering
-//the renderList could take a vector of element and if the methode is not reimplemented could by default call render multiple time !
-struct SentenceRenderer : public Renderer
-{
-    using Renderer::Renderer;
-    virtual ~SentenceRenderer() {}
+        void render(MasterRenderer* masterRenderer...);
+    };
 
-    void render(MasterRenderer* masterRenderer...);
-};
+    // va_args can t take std::vector need to find a workaround
+    /*
+    struct SentenceVectorRenderer : public Renderer
+    {
+        using Renderer::Renderer;
+        virtual ~SentenceVectorRenderer() {}
 
-// va_args can t take std::vector need to find a workaround
-/*
-struct SentenceVectorRenderer : public Renderer
-{
-    using Renderer::Renderer;
-    virtual ~SentenceVectorRenderer() {}
-
-    void render(MasterRenderer* masterRenderer...);
-};
-*/
+        void render(MasterRenderer* masterRenderer...);
+    };
+    */
+}

@@ -10,8 +10,6 @@
 #include <unordered_map>
 #include <chrono>
 
-#include "../constant.h"
-
 struct vec3 {
     int x, y, z;
 

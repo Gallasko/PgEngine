@@ -51,6 +51,9 @@
 //TODO manage resize event so it doesnt crash the app
 
 //TODO move this struct and all code relative to the pigeon movement on the map in its class
+
+using namespace pg;
+
 struct PigeonEntity
 {
     std::vector<constant::Vector2D> path;

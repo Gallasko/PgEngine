@@ -17,6 +17,8 @@
 #include "../../Input/input.h"
 #include "../../Input/inputcomponent.h"
 
+using namespace pg;
+
 class TileSelector : public UiComponent, protected QOpenGLFunctions
 {
 public:

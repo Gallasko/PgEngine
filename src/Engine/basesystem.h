@@ -1,3 +1,6 @@
 #pragma once 
 
-struct Base {};
+namespace pg
+{
+    struct Base {};
+}
