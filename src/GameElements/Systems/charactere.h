@@ -16,6 +16,16 @@ public:
         GameHour endTime;
     };
 
+    WorkingTime() {}
+    WorkingTime(const GameHour& startTime, const GameHour& endTime) { workingPeriods.emplace_back(WorkingPeriod{startTime, endTime}); }
+    WorkingTime(const WorkingPeriod& period) { workingPeriods.emplace_back(period); }
+
+    WorkingTime& operator()(const GameHour& startTime, const GameHour& endTime) { workingPeriods.emplace_back(WorkingPeriod{startTime, endTime}); return *this; }
+    WorkingTime& operator()(const WorkingPeriod& period) { workingPeriods.emplace_back(period); return *this; }
+
+    // Working time
+    // bool inWorkingPeriods() const { return workingPeriods.}
+
 private:
     std::vector<WorkingPeriod> workingPeriods;
 };
