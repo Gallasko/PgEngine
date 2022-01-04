@@ -1,3 +1,5 @@
 /output*
 *.o
 /Archive
+/debug_build*
+/release_build*
