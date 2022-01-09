@@ -2,6 +2,11 @@
 
 #include "logger.h"
 
+namespace
+{
+    const char* DOM = "Main window";
+}
+
 GameWindow::GameWindow(QWindow *parent) : QWindow(parent)
 {
     setSurfaceType(QWindow::OpenGLSurface);
@@ -51,7 +56,9 @@ void GameWindow::initialize()
 
     // Enable log in console
     auto terminalSink = pg::Logger::registerSink<pg::TerminalSink>(true);
-    terminalSink->addFilter("Log Level Filter", new pg::Logger::LogSink::FilterLogLevel(pg::Logger::InfoLevel::log));
+    //TODO fix FilterFile
+    //terminalSink->addFilter("Input Filter", new Logger::LogSink::FilterFile("src/Input/input.cpp"));
+    terminalSink->addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
 
     masterRenderer.setWindowSize(640, 480);
 
@@ -466,7 +473,7 @@ void GameWindow::render()
     nbFrames++;
     if(currentTime - lastFPSCount >= 1000 || currentTime < lastFPSCount)
     {
-        LOG_THIS_MEMBER("Main loop", "Fps counter updated");
+        LOG_THIS_MEMBER(DOM);
 
         auto fpsText = fpsCounter->get<Sentence>();
         if(fpsText != nullptr)
@@ -981,6 +988,8 @@ void GameWindow::renderUi()
 //TODO make a tick object that take tick function and run in background when you start up the engine
 void GameWindow::tick()
 {
+    LOG_THIS_MEMBER(DOM);
+
     unsigned int tickTime = 0;
 
     auto currentTickTime = QDateTime::currentMSecsSinceEpoch();
@@ -1009,8 +1018,6 @@ void GameWindow::tick()
 
             if(pigeonEntities[i].currentTime > pigeonEntities[i].path.size() * 1000)
             {
-                LOG_THIS_MEMBER("Main loop", "Pigeon deleted");
-
                 pigeonMutex.lock();
                 pigeonEntities.erase(pigeonEntities.begin() + i);
                 gold += 1;
