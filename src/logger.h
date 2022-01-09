@@ -7,12 +7,12 @@
 #include <mutex>
 
 #ifdef DEBUG
-#define LOG_THIS(scope, msg) pg::Logger::_log(__LINE__, __FILE__, __FUNCTION__, 0, 0, scope, msg, pg::Logger::InfoLevel::log)
-#define LOG_THIS_MEMBER(scope, msg) pg::Logger::_log(__LINE__, __FILE__, __FUNCTION__, this, typeid(*this).name(), scope, msg, pg::Logger::InfoLevel::log)
+#define LOG_THIS(scope) pg::Logger::_log(__LINE__, __FILE__, __FUNCTION__, 0, 0, scope, "", pg::Logger::InfoLevel::log)
+#define LOG_THIS_MEMBER(scope) pg::Logger::_log(__LINE__, __FILE__, __FUNCTION__, this, typeid(*this).name(), scope, "", pg::Logger::InfoLevel::log)
 #define LOG_INFO(scope, msg) pg::Logger::_log(__LINE__, __FILE__, __FUNCTION__, 0, 0, scope, msg, pg::Logger::InfoLevel::info)
 #else
-#define LOG_THIS(scope, msg) 
-#define LOG_THIS_MEMBER(scope, msg)
+#define LOG_THIS(scope) 
+#define LOG_THIS_MEMBER(scope)
 #define LOG_INFO(scope, msg)
 #endif
 
@@ -236,9 +236,11 @@ namespace pg
             // Fonctor to use C++ scope initialisation to easely lock log pushback
             std::lock_guard<std::mutex> lock(_lock);
 
+            const auto log = Logger::Info{line, file, function, object, objectName, scope, msg, level};
+
             // Call all the sink registered and push the received message to them
             for(const auto& sink : sinks)
-                *sink << Logger::Info{line, file, function, object, objectName, scope, msg, level};    
+                *sink << log;   
         }
 
         /**
