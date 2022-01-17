@@ -1,6 +1,7 @@
 #include "game.h"
 
 #include "logger.h"
+#include "serialization.h"
 
 GameWindow::GameWindow(QWindow *parent) : QWindow(parent)
 {
@@ -116,8 +117,12 @@ void GameWindow::initialize()
     gameScaleTextC->setZ(2);
     gameScaleTextC->setY(150);
 
+    Sentence goldSentence{{"Gold: 0"}, 2.0f, fontLoader};
+    auto& serializer = Serializer::getSerializer();
+    serializer->serializeObject(goldSentence);
+
     goldText = ecs.createEntity();
-    auto goldTextC = ecs.attach<Sentence>(goldText, {{"Gold: 0"}, 2.0f, fontLoader});
+    auto goldTextC = ecs.attach<Sentence>(goldText, goldSentence);
     
     goldTextC->setX(10);
     goldTextC->setZ(2);
@@ -492,7 +497,7 @@ void GameWindow::render()
 
     updateGameState(float(currentTime - lastTime) / 1000);
 
-    renderGame();
+    //renderGame();
 
     if(!debug)
     {
@@ -500,7 +505,7 @@ void GameWindow::render()
         if(mousePosTextC != nullptr)
             mousePosTextC->visible = true;
 
-        renderUi();
+        //renderUi();
     }
     else
     {

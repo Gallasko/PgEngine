@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SERIALIZATION_H
+#define SERIALIZATION_H
 
 #include <string>
 #include <memory>
@@ -9,11 +10,57 @@
 
 namespace pg
 {
-    template <typename Type>
-    std::stringstream& serialize(const std::string& name, const Type& value, const std::stringstream& stream)
+    class Archive
     {
-        stream << name << ": " << value << ",\n";
-        return stream;
+    public:
+        void indent()
+        {
+            //TODO optimize this
+
+            for(unsigned int i = 0; i < indentLevel; i++)
+                container << "\t";
+        }
+
+        void startSerialization(const std::string& className)
+        {
+            indent();
+            container << className << " {\n";
+            
+            indentLevel++;
+        }
+
+        void endSerialization()
+        {
+            indentLevel--;
+            indent();
+
+            container << "}\n";
+        }
+
+        template <typename Type>
+        Archive& operator<<(const Type& rhs)
+        {
+            container << rhs;
+            return *this;
+        }
+
+        std::stringstream container;
+
+        unsigned int indentLevel = 0;
+    };
+
+    template<typename Type>
+    void serialize(Archive& archive, const Type& value);
+
+    template<typename Type>
+    void serialize(Archive& archive, const std::string& name, const Type& value)
+    {
+        //TODO make this automatically after a new line;
+        archive.indent();
+        
+        archive << name << ": ";
+
+        serialize(archive, value);
     }
 
     class Serializer
@@ -21,23 +68,23 @@ namespace pg
         class ClassSerializer
         {
         friend class Serializer;
-            ClassSerializer(const std::string& className) { serializedString << className << " {\n"; }
-            ~ClassSerializer() { serializedString << "}\n"; auto& serializer = Serializer::getSerializer(); serializer->registerToFile(serializedString, mutex); }
+            //ClassSerializer(const std::string& className) { archive << className << " {\n"; }
+            //~ClassSerializer() { archive << "}\n"; auto& serializer = Serializer::getSerializer(); serializer->registerToFile(archive.container, mutex); }
+            ~ClassSerializer() { auto& serializer = Serializer::getSerializer(); serializer->registerToFile(archive.container, mutex); }
         
         public:
-            template <typename Type>
-            ClassSerializer& operator()(const std::string& name, const Type& value) { serialize(name, value); return *this; }
+            Archive archive;
 
         private:
-            std::stringstream serializedString;
             std::recursive_mutex mutex;
         };
 
     public:
         static std::unique_ptr<Serializer>& getSerializer()
-        {static std::unique_ptr<Serializer> serializer = std::make_unique<Serializer>(); return serializer; }
+        {static std::unique_ptr<Serializer> serializer = std::unique_ptr<Serializer>(new Serializer); return serializer; }
 
-        ClassSerializer serializeClass(const std::string& className) const { return ClassSerializer(className); }
+        template <typename Type>
+        void serializeObject(const Type& type) { ClassSerializer ar; serialize(ar.archive, type); }
 
     private:
         void registerToFile(const std::stringstream& serializedString, std::recursive_mutex& mutex)
@@ -50,3 +97,5 @@ namespace pg
         static std::string filename;
     };
 }
+
+#endif // SERIALIZATION_H

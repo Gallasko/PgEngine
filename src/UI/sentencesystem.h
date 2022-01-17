@@ -8,6 +8,8 @@
 #include "../Engine/renderer.h"
 #include "../constant.h"
 
+#include "../serialization.h"
+
 namespace pg
 {
     enum class SentenceEffect : uint8_t

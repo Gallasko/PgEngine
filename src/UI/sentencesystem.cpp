@@ -2,6 +2,33 @@
 
 namespace pg
 {
+    template<>
+    void serialize(Archive& archive, const SentenceText& value)
+    {
+        archive.startSerialization("Sentence Text");
+
+        //TODO put all the variable to be serialized
+        serialize(archive, "text", value.text);
+        serialize(archive, "main color", value.mainColor);
+        serialize(archive, "outline1", value.outline1);
+        serialize(archive, "outline2", value.outline2);
+
+        archive.endSerialization();
+    }
+
+    template<>
+    void serialize(Archive& archive, const Sentence& value)
+    {
+        archive.startSerialization("Sentence");
+
+        serialize(archive, value.modelInfo);
+        serialize(archive, "Nb chara", value.nbChara);
+
+        serialize(archive, value.text);
+
+        archive.endSerialization();
+    }
+
     Sentence::Sentence(const SentenceText& sentence, const float& scale, FontLoader *font) : QOpenGLFunctions(), font(font)
     {
         initializeOpenGLFunctions(); 
