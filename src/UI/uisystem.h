@@ -105,14 +105,6 @@ namespace pg
         bool initialised = false;
     };
 
-    struct TextureRenderer : public Renderer
-    {
-        using Renderer::Renderer;
-        virtual ~TextureRenderer() {}
-
-        void render(MasterRenderer* masterRenderer...);
-    };
-
     //TODO Copy Constructor
     template <typename LoaderId> 
     struct LoaderRenderComponent : public UiComponent
@@ -131,11 +123,4 @@ namespace pg
         update();
     }
 
-    struct LoaderRenderer : public Renderer
-    {
-        using Renderer::Renderer;
-        virtual ~LoaderRenderer() {}
-
-        void render(MasterRenderer* masterRenderer...);
-    };
 }

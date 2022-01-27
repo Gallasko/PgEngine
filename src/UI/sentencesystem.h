@@ -83,13 +83,6 @@ namespace pg
     //TODO see if a render all virtual methode is revelent and could be implemented in the base renderer for rendering multiple instance at once
     //instead of create 2 separates renderer one for the single instance rendering and the other for the multiple rendering
     //the renderList could take a vector of element and if the methode is not reimplemented could by default call render multiple time !
-    struct SentenceRenderer : public Renderer
-    {
-        using Renderer::Renderer;
-        virtual ~SentenceRenderer() {}
-
-        void render(MasterRenderer* masterRenderer...);
-    };
 
     // va_args can t take std::vector need to find a workaround
     /*

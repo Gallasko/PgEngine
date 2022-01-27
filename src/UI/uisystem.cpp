@@ -171,13 +171,9 @@ namespace pg
         }
     }
 
-    void TextureRenderer::render(MasterRenderer* masterRenderer...)
+    template<>
+    void renderer(MasterRenderer* masterRenderer, TextureComponent* texture)
     { 
-        va_list args; 
-        va_start(args, masterRenderer); 
-        auto texture = va_arg(args, TextureComponent*);
-        va_end(args);
-
         auto rTable = masterRenderer->getParameter();
         const int screenWidth = rTable["ScreenWidth"];
         const int screenHeight = rTable["ScreenHeight"];
@@ -210,7 +206,7 @@ namespace pg
 
         texture->generateMesh();
 
-        glActiveTexture(GL_TEXTURE0);
+        //glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture->texture);
 
         view.setToIdentity();
@@ -224,69 +220,4 @@ namespace pg
         shaderProgram->release();
     }
 
-    void LoaderRenderer::render(MasterRenderer* ...)
-    {
-        /*
-        va_list args; 
-        va_start(args, rendererName); 
-        auto screenWidth = va_arg(args, int);
-        auto screenHeight = va_arg(args, int);
-        auto tileWidth = va_arg(args, int);
-        auto tileHeight = va_arg(args, int);
-        auto texture = va_arg(args, LoaderRenderer*);
-        va_end(args);
-
-        QMatrix4x4 projection;
-        QMatrix4x4 view;
-        QMatrix4x4 model;
-        QMatrix4x4 scale;
-
-        projection.setToIdentity();
-        model.setToIdentity();
-        scale.setToIdentity();
-        scale.scale(QVector3D(2.0f / screenWidth, 2.0f / screenHeight, 0.0f));
-
-        // Text rendering
-
-        shaderProgram->bind();
-
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("projection"), projection);
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("model"), model);
-
-        texture->generateMesh();
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture->texture);
-
-        view.setToIdentity();
-        view.translate(QVector3D(-1.0f + 2.0f * (float)(texture->x) / screenWidth, 1.0f + 2.0f * (float)( -texture->y) / screenHeight, 0.0f));
-
-        defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
-
-        texture->VAO->bind();
-        glDrawElements(GL_TRIANGLES, texture->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, tileTexture);
-
-        scale.setToIdentity();
-        scale.scale(QVector3D(tileWidth / screenWidth, tileHeight / screenHeight, 0.0f));
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("scale"), scale);
-
-        for(auto tile : tileRendererVector)
-        {
-            view.setToIdentity();
-            view.translate(QVector3D(-1.0f + 2.0f * (float)(tile.x + (tileHeight / 4.0f)) / screenWidth, 1.0f + 2.0f * (float)( -tile.y - (tileHeight / 8.0f)) / screenHeight, 0.0f));
-
-            shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
-
-            tile.id->getMesh()->bind();
-            glDrawElements(GL_TRIANGLES, tile.id->getModelInfo().nbIndices, GL_UNSIGNED_INT, 0);
-        }
-
-        //glDisable(GL_SCISSOR_TEST);
-
-        shaderProgram->release();
-        */
-    }
 }
