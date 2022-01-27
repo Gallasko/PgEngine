@@ -35,6 +35,9 @@ namespace pg
 
     class MasterRenderer;
 
+    //template <typename... Args>
+    //void render(MasterRenderer* masterRender, Args... args);
+
     struct Renderer : protected QOpenGLFunctions
     {
         Renderer() { initializeOpenGLFunctions(); }
@@ -69,7 +72,7 @@ namespace pg
         unsigned int getTexture(std::string name) { return textureList[name]; }
 
         template<typename Renderer, typename... Args>
-        void render(Args... args) { auto rendererName = typeid(Renderer).name(); if(rendererList.find(rendererName) != rendererList.end()) rendererList[rendererName]->render(this, args...); }
+        void render(const Args&... args) { auto rendererName = typeid(Renderer).name(); if(rendererList.find(rendererName) != rendererList.end()) rendererList[rendererName]->render(this, args...); }
 
         template<typename Renderable>
         MasterRenderer& operator<<(Renderable* toRender) { toRender->render(this); return *this; }
