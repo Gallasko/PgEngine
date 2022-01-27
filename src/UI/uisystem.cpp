@@ -171,6 +171,7 @@ namespace pg
         }
     }
 
+    // Todo: check if the shader is not already bind to not rebind it twice
     void TextureRenderer::render(MasterRenderer* masterRenderer...)
     { 
         va_list args; 

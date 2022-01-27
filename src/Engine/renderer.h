@@ -35,6 +35,7 @@ namespace pg
 
     class MasterRenderer;
 
+    // Todo: change this to a specialized template struct
     struct Renderer : protected QOpenGLFunctions
     {
         Renderer() { initializeOpenGLFunctions(); }

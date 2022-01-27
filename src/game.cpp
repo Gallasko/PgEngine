@@ -497,7 +497,7 @@ void GameWindow::render()
 
     updateGameState(float(currentTime - lastTime) / 1000);
 
-    //renderGame();
+    renderGame();
 
     if(!debug)
     {
@@ -505,7 +505,7 @@ void GameWindow::render()
         if(mousePosTextC != nullptr)
             mousePosTextC->visible = true;
 
-        //renderUi();
+        renderUi();
     }
     else
     {
@@ -923,6 +923,9 @@ void GameWindow::renderUi()
     //glEnable(GL_SCISSOR_TEST);
     //glScissor(300, 200, 200, 500);
 
+    glActiveTexture(GL_TEXTURE0);
+
+    // Todo use the master renderer to render all the texture component but using only one shader binding 
     for(auto& texture : ecs.view<TextureComponent>())
     {
         if(texture.visible)
@@ -930,7 +933,6 @@ void GameWindow::renderUi()
             if(texture.initialised == false)
                 texture.generateMesh();
 
-            glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, texture.texture);
 
             view.setToIdentity();

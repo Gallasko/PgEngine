@@ -172,4 +172,24 @@ namespace pg
         UiSize y = UiSize(0, 0, nullptr);
         UiSize z = UiSize(0, 0, nullptr);    
     };
+
+    struct UiFrame
+    {
+        UiFrame() {}
+        UiFrame(const UiSize& x, const UiSize& y, const UiSize& w, const UiSize& h) { this->x = &x; this->y = &y; this->w = &w; this->h = &h; }
+        UiFrame(const UiFrame& frame) : x(frame.x), y(frame.y), w(frame.w), h(frame.h) { }
+
+        void operator=(const UiFrame& rhs)
+        {
+            x = rhs.x;
+            y = rhs.y; 
+            w = rhs.w;
+            h = rhs.h; 
+        }
+
+        UiSize x = UiSize(0, 0, nullptr);
+        UiSize y = UiSize(0, 0, nullptr);
+        UiSize w = UiSize(0, 0, nullptr);
+        UiSize h = UiSize(0, 0, nullptr);
+    };
 }
