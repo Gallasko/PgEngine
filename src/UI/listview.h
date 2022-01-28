@@ -15,6 +15,8 @@ namespace pg
         SlideBar(const UiFrame& frame, UiSize* posToUpdate);
 
         void changeSliderTexture(const char* texture);
+
+        //TODO: make the cursor more customizable -> texture / size
         void changeCursorTexture(const char* texture);
 
         void onPosChanged();
@@ -22,6 +24,10 @@ namespace pg
         void render(MasterRenderer *renderer);
 
     private:
+        friend void renderer<>(MasterRenderer* renderer, SlideBar* slidebar);
+
+        void mouseInput(Input* inputhandler, double deltaTime...);
+
         void updateCursorPos();
 
         TextureComponent* slider;
@@ -40,6 +46,7 @@ namespace pg
     public:
 
     private:
+        friend void renderer<>(MasterRenderer* renderer, SlideBar* slidebar);
         SlideBar* slide;
     };
 }
