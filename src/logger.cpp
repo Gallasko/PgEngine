@@ -77,7 +77,7 @@ namespace pg
 
     void TerminalSink::processLog(const Logger::Info& log)
     {
-        std::cout << logLevelString(log.level) << log.scope << ", " << log.message  << logPositionString(log.filename, log.objectName, log.function, log.line) << "\n";
+        std::cout << logLevelString(log.level) << log.scope << " " << log.message  << logPositionString(log.filename, log.objectName, log.function, log.line) << "\n";
         //if(not ignoreNonErrors and log.level == Logger::InfoLevel::log)
         //    std::cout << log.line << ", " << log.filename << ", " << log.function << ", " << log.objectName << "," << log.scope << ", " << log.message << ", " << static_cast<int>(log.level) << std::endl;
     }

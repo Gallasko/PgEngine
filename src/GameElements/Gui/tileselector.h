@@ -34,6 +34,7 @@ public:
     ~TileSelector();
 
 private:
+    friend void renderer<>(MasterRenderer* masterRenderer, TileSelector* tileSelector);
     bool visible = false;
 
     TextureComponent *texture;
@@ -41,7 +42,7 @@ private:
     std::vector<LoaderRenderComponent<TilesLoader::TilesId>> tileRendererVector;
     std::vector<MouseInputComponent* > mouseAreaVector;
 
-    std::vector<Sentence> textVector;
+    std::vector<Sentence*> textVector;
 
     Map *map;
     TilesLoader *tileLoader;

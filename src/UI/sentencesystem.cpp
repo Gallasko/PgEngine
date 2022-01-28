@@ -213,13 +213,9 @@ namespace pg
         initialised = true;
     }
 
-    void SentenceRenderer::render(MasterRenderer* masterRenderer...)
+    template<>
+    void renderer(MasterRenderer* masterRenderer, Sentence* sentence)
     { 
-        va_list args; 
-        va_start(args, masterRenderer); 
-        auto sentence = va_arg(args, Sentence*);
-        va_end(args);
-
         auto rTable = masterRenderer->getParameter();
         const int screenWidth = rTable["ScreenWidth"];
         const int screenHeight = rTable["ScreenHeight"];
@@ -251,7 +247,7 @@ namespace pg
             sentence->generateMesh();
 
         //TODO store texture of the font in the font loader to get it back in the renderer
-        glActiveTexture(GL_TEXTURE0);
+        //glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, masterRenderer->getTexture("font"));
 
         view.setToIdentity();
@@ -265,14 +261,9 @@ namespace pg
         shaderProgram->release();
     }
 
-    /*
-    void SentenceVectorRenderer::render(MasterRenderer* masterRenderer...)
+    template<>
+    void renderer(MasterRenderer* masterRenderer, std::vector<Sentence*> sentenceList)
     { 
-        va_list args; 
-        va_start(args, masterRenderer); 
-        auto sentence = va_arg(args, std::vector<Sentence*>);
-        va_end(args);
-
         auto rTable = masterRenderer->getParameter();
         const int screenWidth = rTable["ScreenWidth"];
         const int screenHeight = rTable["ScreenHeight"];
@@ -299,23 +290,23 @@ namespace pg
         shaderProgram->setUniformValue(shaderProgram->uniformLocation("scale"), scale);
 
         shaderProgram->setUniformValue(shaderProgram->uniformLocation("time"), static_cast<int>(currentTime % 314159));
-
-        if(sentence->initialised == false)
-            sentence->generateMesh();
-
         //TODO store texture of the font in the font loader to get it back in the renderer
-        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, masterRenderer->getTexture("font"));
 
-        view.setToIdentity();
-        view.translate(QVector3D(-1.0f + 2.0f * (float)(sentence->x) / screenWidth, 1.0f + 2.0f * (float)( -sentence->y) / screenHeight, 0.0f));
+        for(auto& sentence : sentenceList)
+        {
+            if(sentence->initialised == false)
+            sentence->generateMesh();
 
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
+            view.setToIdentity();
+            view.translate(QVector3D(-1.0f + 2.0f * (float)(sentence->pos.x) / screenWidth, 1.0f + 2.0f * (float)( -sentence->pos.y) / screenHeight, 0.0f));
 
-        sentence->VAO->bind();
-        glDrawElements(GL_TRIANGLES, sentence->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
+            shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
+
+            sentence->VAO->bind();
+            glDrawElements(GL_TRIANGLES, sentence->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
+        }
 
         shaderProgram->release();
     }
-    */
 }
