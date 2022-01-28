@@ -6,7 +6,6 @@
 #include <QPoint>
 
 #include <vector>
-#include <algorithm>
 
 namespace pg
 {
@@ -78,7 +77,7 @@ namespace pg
 		double updateTime;
 
 		template <typename Container, typename Value>
-		int findInputPos(Value value, Container container) const;
+		int findInputPos(const Value& value, const Container& container) const;
 
 	};
 }

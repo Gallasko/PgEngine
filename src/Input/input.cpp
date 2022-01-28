@@ -1,5 +1,7 @@
 #include "input.h"
 
+#include <algorithm>
+
 #include "../logger.h"
 
 namespace pg
@@ -10,7 +12,7 @@ namespace pg
 
 		//Helper function 
 		template <typename Instance>
-		static inline bool CheckReleased(const Instance &instance)
+		static inline bool CheckReleased(const Instance& instance)
 		{
 			return instance.state == Input::InputState::KEYRELEASED || instance.state == Input::InputState::MOUSERELEASE;
 		}
@@ -179,7 +181,7 @@ namespace pg
 	}
 
 	template <typename Container, typename Value>
-	int Input::findInputPos(Value value, Container container) const
+	int Input::findInputPos(const Value& value, const Container& container) const
 	{
 		for (long long unsigned int i = 0; i < container.size(); i++)
 			if(value == container.at(i).value)
