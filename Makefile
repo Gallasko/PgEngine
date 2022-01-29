@@ -23,7 +23,7 @@ DebugActive ?= $(DEBUG)
 ifeq ($(DebugActive),True)
 CXXFLAGS	:= -std=c++11 -Wall -Wextra -g -DDEBUG # -mwindows -O3 -DNDEBUG
 else
-CXXFLAGS	:= -std=c++11 -Wall -Wextra -g # -mwindows -O3 -DNDEBUG
+CXXFLAGS	:= -std=c++11 -Wall -Wextra -g -mwindows -O2 -DNDEBUG
 endif
 
 # define library paths in addition to /usr/lib

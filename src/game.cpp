@@ -870,7 +870,11 @@ void GameWindow::renderGame()
 
         int currentIndex = std::floor(entity.currentTime / 1000.0f);
 
-        auto currentPos = entity.path[currentIndex];
+        constant::Vector2D currentPos = {0, 0};
+        if(currentIndex < static_cast<int>(entity.path.size()))
+            currentPos = entity.path[currentIndex];
+        else
+            currentPos = entity.path[static_cast<int>(entity.path.size()) - 1];
 
         if(currentIndex + 1 < static_cast<int>(entity.path.size()))
         {
