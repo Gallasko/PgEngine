@@ -13,8 +13,9 @@ namespace pg
 
     SlideBar::SlideBar(const UiFrame& frame, UiSize* posToUpdate) : yMin(0.0f, 0.0f, nullptr), yMax(0.0f, 1.0f, &this->pos.y)
     {
-        this->pos.x = &frame.x;
-        this->pos.y = &frame.y;
+        this->pos.x = &frame.pos.x;
+        this->pos.y = &frame.pos.y;
+        this->pos.z = &frame.pos.z;
 
         this->width = &frame.w;
         this->height = &frame.h;
@@ -22,13 +23,12 @@ namespace pg
         posUpdate = posToUpdate;
 
         // Default slider
-        slider = new TextureComponent(this->width, this->height, "/res/object/slider.png");
-        slider->setTopAnchor(this->topAnchor);
-        slider->setLeftAnchor(this->leftAnchor);
+        slider = new TextureComponent(this->width, this->height, "res/object/slider.png");
+        slider->setTopAnchor(&this->top);
+        slider->setLeftAnchor(&this->left);
 
-        cursor = new TextureComponent(16, 24, "/res/object/cursor.png");
-        cursor->setTopAnchor(this->topAnchor);
-        cursor->setLeftAnchor(this->leftAnchor);
+        cursor = new TextureComponent(16, 24, "res/object/cursor.png");
+        cursor->setLeftAnchor(&this->left);
         cursor->setLeftMargin(2);
     }
 

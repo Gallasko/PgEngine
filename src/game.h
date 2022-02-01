@@ -168,6 +168,7 @@ private:
     std::mutex pigeonMutex;
 
     //TODO slidebar stuff
+    UiFrame frame;
     SlideBar *slideBar;
 
     long long gold = 0;

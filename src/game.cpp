@@ -175,7 +175,13 @@ void GameWindow::initialize()
     tileSelector->pos.x = screenUi->width - tileSelector->width;
     //tileSelector->setLeftAnchor(&screenUi->left);//(&screenUi->right);
 
-    slideBar = new SlideBar(UiFrame{0.0f, 0.0f, 0.0f, 20.0f, 100.0f}, nullptr);    
+    frame.pos.x = 0;
+    frame.pos.y = 0;
+    frame.pos.z = 0;
+    frame.w = 20;
+    frame.h = 100;
+    
+    slideBar = new SlideBar(frame, nullptr);    
 
     //Sequence tileSelectorSeq = Sequence(
     //    Sequence::OriginPoint(screenUi->top, screenUi->right, 0.0f),
