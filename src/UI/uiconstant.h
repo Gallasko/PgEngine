@@ -151,12 +151,20 @@ namespace pg
         UiPosition() {}
         UiPosition(const UiSize& x, const UiSize& y, const UiSize& z) { this->x = &x; this->y = &y; this->z = &z; }
         UiPosition(const UiPosition& pos) : x(pos.x), y(pos.y), z(pos.z) { }
+        UiPosition(UiPosition *pos) : x(&pos->x), y(&pos->y), z(&pos->z) { }
 
         void operator=(const UiPosition& rhs)
         {
             x = rhs.x;
             y = rhs.y; 
             z = rhs.z; 
+        }
+
+        void operator=(UiPosition *rhs)
+        {
+            x = &rhs->x;
+            y = &rhs->y; 
+            z = &rhs->z; 
         }
 
         UiPosition operator+(const UiPosition& rhs) const {
@@ -176,19 +184,29 @@ namespace pg
     struct UiFrame
     {
         UiFrame() {}
-        UiFrame(const UiSize& x, const UiSize& y, const UiSize& w, const UiSize& h) { this->x = &x; this->y = &y; this->w = &w; this->h = &h; }
-        UiFrame(const UiFrame& frame) : x(frame.x), y(frame.y), w(frame.w), h(frame.h) { }
+        UiFrame(const UiSize& x, const UiSize& y, const UiSize& z, const UiSize& w, const UiSize& h) { this->pos.x = &x; this->pos.y = &y; this->pos.z = &z; this->w = &w; this->h = &h; }
+        UiFrame(const UiFrame& frame) : pos(frame.pos), w(frame.w), h(frame.h) { }
+        UiFrame(UiFrame *frame) : pos(&frame->pos), w(&frame->w), h(&frame->h) { }
 
         void operator=(const UiFrame& rhs)
         {
-            x = rhs.x;
-            y = rhs.y; 
+            pos.x = rhs.pos.x;
+            pos.y = rhs.pos.y; 
+            pos.z = rhs.pos.z;
             w = rhs.w;
             h = rhs.h; 
         }
 
-        UiSize x = UiSize(0, 0, nullptr);
-        UiSize y = UiSize(0, 0, nullptr);
+        void operator=(UiFrame *rhs)
+        {
+            pos.x = &rhs->pos.x;
+            pos.y = &rhs->pos.y; 
+            pos.z = &rhs->pos.z;
+            w = &rhs->w;
+            h = &rhs->h; 
+        }
+
+        UiPosition pos;
         UiSize w = UiSize(0, 0, nullptr);
         UiSize h = UiSize(0, 0, nullptr);
     };
