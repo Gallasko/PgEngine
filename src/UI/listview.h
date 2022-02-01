@@ -9,7 +9,7 @@ namespace pg
 
     // TODO: manage the orientation of the component
 
-    class SlideBar : UiComponent
+    class SlideBar : public UiComponent
     {
     public:
         SlideBar(const UiFrame& frame, UiSize* posToUpdate);

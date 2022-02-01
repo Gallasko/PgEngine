@@ -50,31 +50,32 @@ namespace pg
         std::vector<UiComponent*> children; // todo remove this
 
         UiComponent() { }
+        UiComponent(const UiFrame& frame) : pos(frame.pos), width(&frame.w), height(&frame.h) { }
         UiComponent(const UiComponent& rhs);
 
-        void inline setX(const int& value) { pos.x = value; update(); }
-        void inline setY(const int& value) { pos.y = value; update(); }
-        void inline setZ(const int& value) { pos.z = value; update(); }
+        inline void setX(const int& value) { pos.x = value; update(); }
+        inline void setY(const int& value) { pos.y = value; update(); }
+        inline void setZ(const int& value) { pos.z = value; update(); }
 
-        void inline setWidth(const int &value) { width = value; update(); }
-        void inline setWidth(const UiSize &value) { width = value; update(); }
-        void inline setHeight(const int &value) { height = value; update(); }
-        void inline setHeight(const UiSize &value) { height = value; update(); }
+        inline void setWidth(const int &value) { width = value; update(); }
+        inline void setWidth(const UiSize &value) { width = value; update(); }
+        inline void setHeight(const int &value) { height = value; update(); }
+        inline void setHeight(const UiSize &value) { height = value; update(); }
 
-        void inline setTopMargin(const int& value) { topMargin = value; update(); }
-        void inline setRightMargin(const int& value) { rightMargin = value; update(); }
-        void inline setBottomMargin(const int& value) { bottomMargin = value; update(); }
-        void inline setLeftMargin(const int& value) { leftMargin = value; update(); }
+        inline void setTopMargin(const int& value) { topMargin = value; update(); }
+        inline void setRightMargin(const int& value) { rightMargin = value; update(); }
+        inline void setBottomMargin(const int& value) { bottomMargin = value; update(); }
+        inline void setLeftMargin(const int& value) { leftMargin = value; update(); }
 
-        void inline setTopAnchor(UiSize *anchor) { topAnchor = anchor; update(); }
-        void inline setRightAnchor(UiSize *anchor) { rightAnchor = anchor; update(); }
-        void inline setBottomAnchor(UiSize *anchor) { bottomAnchor = anchor; update(); }
-        void inline setLeftAnchor(UiSize *anchor) { leftAnchor = anchor; update(); }
+        inline void setTopAnchor(UiSize *anchor) { topAnchor = anchor; update(); }
+        inline void setRightAnchor(UiSize *anchor) { rightAnchor = anchor; update(); }
+        inline void setBottomAnchor(UiSize *anchor) { bottomAnchor = anchor; update(); }
+        inline void setLeftAnchor(UiSize *anchor) { leftAnchor = anchor; update(); }
 
-        void inline setTopAnchor(const UiSize& anchor) { topAnchor = &anchor; update(); }
-        void inline setRightAnchor(const UiSize& anchor) { rightAnchor = &anchor; update(); }
-        void inline setBottomAnchor(const UiSize& anchor) { bottomAnchor = &anchor; update(); }
-        void inline setLeftAnchor(const UiSize& anchor) { leftAnchor = &anchor; update(); }
+        inline void setTopAnchor(const UiSize& anchor) { topAnchor = &anchor; update(); }
+        inline void setRightAnchor(const UiSize& anchor) { rightAnchor = &anchor; update(); }
+        inline void setBottomAnchor(const UiSize& anchor) { bottomAnchor = &anchor; update(); }
+        inline void setLeftAnchor(const UiSize& anchor) { leftAnchor = &anchor; update(); }
         
         bool updated = true; // todo remove this 
 

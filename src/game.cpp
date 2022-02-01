@@ -777,6 +777,10 @@ void GameWindow::updateGameState(double deltaTime)
         if (tileSelector->pos.z > highestZ)
             highestZ = tileSelector->pos.z;
 
+    if(slideBar->inBound(mousePos.x(), mousePos.y()))
+        if(slideBar->pos.z > highestZ)
+            highestZ = slideBar->pos.z;
+
     for(auto& mouseArea : ecs.view<MouseInputComponent*>())
     {
         if(mouseArea->inBound(mousePos.x(), mousePos.y()) && *mouseArea->enable && mouseArea->pos->z == highestZ)
@@ -788,6 +792,9 @@ void GameWindow::updateGameState(double deltaTime)
 
     if(tileSelector->pos.z == highestZ)
         tileSelector->mouseInput(inputHandler, deltaTime);
+
+    if(slideBar->pos.z == highestZ)
+        slideBar->mouseInput(inputHandler, deltaTime);
 
     //TODO make the map responsive to Z index 
     if(highestZ <= 0)
