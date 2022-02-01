@@ -45,6 +45,8 @@
 #include "Engine/particle.h"
 
 #include "GameElements/Gui/tileselector.h"
+#include "UI/listview.h"
+
 
 //TODO create unary test for all the basic component of the framework
 
@@ -164,6 +166,9 @@ private:
     QOpenGLVertexArrayObject *pigeonVAO;
     std::vector<PigeonEntity> pigeonEntities;
     std::mutex pigeonMutex;
+
+    //TODO slidebar stuff
+    SlideBar *slideBar;
 
     long long gold = 0;
 

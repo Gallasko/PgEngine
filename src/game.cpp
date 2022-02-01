@@ -175,6 +175,8 @@ void GameWindow::initialize()
     tileSelector->pos.x = screenUi->width - tileSelector->width;
     //tileSelector->setLeftAnchor(&screenUi->left);//(&screenUi->right);
 
+    slideBar = new SlideBar(UiFrame{0.0f, 0.0f, 0.0f, 20.0f, 100.0f}, nullptr);    
+
     //Sequence tileSelectorSeq = Sequence(
     //    Sequence::OriginPoint(screenUi->top, screenUi->right, 0.0f),
     //    UiKeyPoint(0.0f, -tileSelector->width, 2.0f, 0),
@@ -522,6 +524,7 @@ void GameWindow::render()
     }
 
     masterRenderer << tileSelector;
+    masterRenderer << slideBar;
 
     //masterRenderer.render<ParticleRenderer>(pComponent);
 
@@ -686,7 +689,7 @@ void GameWindow::gameplayTest(Input* inputHandler, double...)
         PigeonEntity entity;
         entity.path = path;
 
-        pigeonEntities.emplace_back(entity);
+        pigeonEntities.push_back(entity);
         pressed = true; 
     } 
 

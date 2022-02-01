@@ -62,8 +62,8 @@ namespace pg
 		bool isButtonPressed(const Qt::MouseButton& button) const;
 		bool isButtonReleased(const Qt::MouseButton& button) const;
 
-		QPoint getMousePos() const;
-		QPoint getMouseDelta() const;
+		const QPoint& getMousePos() const;
+		const QPoint& getMouseDelta() const;
 
 		void updateInput(double deltaTime);
 
@@ -78,7 +78,7 @@ namespace pg
 		double updateTime;
 
 		template <typename Container, typename Value>
-		int findInputPos(Value value, Container container) const;
+		int findInputPos(const Value& value, const Container& container) const;
 
 	};
 }

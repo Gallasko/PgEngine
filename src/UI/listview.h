@@ -21,19 +21,17 @@ namespace pg
 
         void onPosChanged();
 
-        void render(MasterRenderer *renderer);
+        void mouseInput(Input* inputhandler, double deltaTime...);
 
     private:
         friend void renderer<>(MasterRenderer* renderer, SlideBar* slidebar);
-
-        void mouseInput(Input* inputhandler, double deltaTime...);
 
         void updateCursorPos();
 
         TextureComponent* slider;
         TextureComponent* cursor;
         
-        float min, max;
+        UiSize yMin, yMax;
         float cursorPos;
         
         UiSize *posUpdate;
