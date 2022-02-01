@@ -5,14 +5,18 @@
 #include "../Input/inputcomponent.h"
 
 namespace pg
-{
-
-    // TODO: manage the orientation of the component
-
+{   
     class SlideBar : public UiComponent
     {
     public:
-        SlideBar(const UiFrame& frame, UiSize* posToUpdate);
+        enum class Orientation
+        {
+            VERTICAL,
+            HORIZONTAL
+        };
+
+    public:
+        SlideBar(const UiFrame& frame, UiSize* posToUpdate, Orientation orientation = Orientation::VERTICAL);
 
         void changeSliderTexture(const char* texture);
 
@@ -36,7 +40,10 @@ namespace pg
         
         UiSize *posUpdate;
 
-        MouseInputComponent* mouseArea;
+        Orientation orientation;
+
+        //Todo when creating a mouse area it should automatically be registered in the game state loop
+        //MouseInputComponent* mouseArea;
     };
 
     class ListView : UiComponent
