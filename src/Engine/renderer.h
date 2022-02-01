@@ -59,6 +59,8 @@ namespace pg
         QOpenGLShaderProgram* getShader(const std::string& name) { return shaderList[name]; }
         unsigned int getTexture(const std::string& name) { return textureList[name]; }
 
+        //TODO check if we need to make a special case UiComponent
+
         template<typename... Args>
         void render(const Args&... args) { renderer(this, args...); }
 
