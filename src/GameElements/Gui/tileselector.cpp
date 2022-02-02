@@ -72,10 +72,10 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
     //textVector[0].setBottomAnchor(&this->bottom); //TODO Fix issue when text is rendered in bottom right it need to be divided by 2
     //textVector[0].setBottomAnchor(&this->bottom);
 
-    textVector[0]->setTopAnchor(&texture->top); // TODO need to create a check of fix this issue: parenting must be done AFTER pushing the object in the vector
+    textVector[0]->setTopAnchor(texture->top); // TODO need to create a check of fix this issue: parenting must be done AFTER pushing the object in the vector
                                             // cause the vector create a copy thus invaliding parent to child call !
     textVector[0]->setTopMargin(41);
-    textVector[0]->setLeftAnchor(&texture->left);
+    textVector[0]->setLeftAnchor(texture->left);
     textVector[0]->setLeftMargin(10);
 
     //textVector[0].setBottomAnchor(&this->bottom); // TODO need to create a check of fix this issue: parenting must be done AFTER pushing the object in the vector
@@ -92,22 +92,22 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
     tileRendererVector.push_back(tileRenderer2);
     tileRendererVector.push_back(tileRenderer3);
 
-    tileRendererVector[0].setTopAnchor(&textVector[0]->bottom);
-    tileRendererVector[0].setLeftAnchor(&textVector[0]->left);
+    tileRendererVector[0].setTopAnchor(textVector[0]->bottom);
+    tileRendererVector[0].setLeftAnchor(textVector[0]->left);
     tileRendererVector[0].setTopMargin(5);
 
     tileRendererVector[0].setWidth(50.0f);
     tileRendererVector[0].setHeight(50.0f);
 
-    tileRendererVector[1].setTopAnchor(&tileRendererVector[0].top);
-    tileRendererVector[1].setLeftAnchor(&tileRendererVector[0].right);
+    tileRendererVector[1].setTopAnchor(tileRendererVector[0].top);
+    tileRendererVector[1].setLeftAnchor(tileRendererVector[0].right);
     tileRendererVector[1].setLeftMargin(5);
 
     tileRendererVector[1].setWidth(50.0f);
     tileRendererVector[1].setHeight(50.0f);
 
-    tileRendererVector[2].setTopAnchor(&tileRendererVector[1].top);
-    tileRendererVector[2].setLeftAnchor(&tileRendererVector[1].right);
+    tileRendererVector[2].setTopAnchor(tileRendererVector[1].top);
+    tileRendererVector[2].setLeftAnchor(tileRendererVector[1].right);
     tileRendererVector[2].setLeftMargin(5);
 
     tileRendererVector[2].setWidth(50.0f);

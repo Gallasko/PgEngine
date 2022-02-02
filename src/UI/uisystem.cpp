@@ -33,7 +33,7 @@ namespace pg
     {
         if(topAnchor != nullptr && bottomAnchor != nullptr)
         {
-            this->height = UiSize(0.0f, 1.0f, new UiSize(-bottomMargin, 1.0f, bottomAnchor),  new UiSize(-topMargin, 1.0f, topAnchor), UiSize::UiSizeOpType::SUB); // todo change this because () create elements that are temporary
+            this->height = UiSize(0.0f, 1.0f, new UiSize(-bottomMargin, 1.0f, bottomAnchor), new UiSize(-topMargin, 1.0f, topAnchor), UiSize::UiSizeOpType::SUB); // todo change this because () create elements that are temporary
             this->pos.y = *topAnchor + topMargin;
         }
         else if(topAnchor != nullptr && bottomAnchor == nullptr)
@@ -66,7 +66,7 @@ namespace pg
         //    child->update();
     }
 
-    TextureComponent::TextureComponent(UiSize width, UiSize height, const char* path)
+    TextureComponent::TextureComponent(const UiSize& width, const UiSize& height, const char* path)
     {
         initializeOpenGLFunctions(); 
 

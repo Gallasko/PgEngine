@@ -178,10 +178,10 @@ void GameWindow::initialize()
     frame.pos.x = 100;
     frame.pos.y = 50;
     frame.pos.z = 5;
-    frame.w = 20;
+    frame.w = 40;
     frame.h = 200;
     
-    slideBar = new SlideBar(frame, nullptr);    
+    slideBar = new SlideBar(frame, tileSelector->frame, 150, nullptr);  
 
     //Sequence tileSelectorSeq = Sequence(
     //    Sequence::OriginPoint(screenUi->top, screenUi->right, 0.0f),

@@ -32,6 +32,8 @@ namespace pg
         UiSize height = UiSize(0, 0, nullptr);
         float scale = 1.0f;
 
+        UiFrame frame = UiFrame(pos.x, pos.y, pos.z, width, height);
+
         const UiSize *topAnchor = nullptr;
         const UiSize *rightAnchor = nullptr;
         const UiSize *bottomAnchor = nullptr;
@@ -87,7 +89,7 @@ namespace pg
 
     struct TextureComponent : public UiComponent, private QOpenGLFunctions
     {
-        TextureComponent(UiSize width, UiSize height, const char* path);
+        TextureComponent(const UiSize& width, const UiSize& height, const char* path);
         TextureComponent(const TextureComponent &rhs);
         ~TextureComponent();
 

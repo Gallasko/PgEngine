@@ -10,6 +10,8 @@ namespace pg
         {
             ADD,
             SUB,
+            MUL,
+            DIV,
 
             NONE
         };
@@ -59,6 +61,11 @@ namespace pg
             return UiSize(0.0f, rhs, this);
         }
 
+        UiSize operator*(const int& rhs) const
+        {
+            return UiSize(0.0f, rhs, this);
+        }
+
         UiSize operator+(const int& rhs) const
         {
             return UiSize(rhs, 1.0f, this);
@@ -99,6 +106,12 @@ namespace pg
 
         template<typename Type>
         friend Type operator-(const Type& lhs, const UiSize& rhs);
+
+        template<typename Type>
+        friend Type operator*(const Type& lhs, const UiSize& rhs);
+
+        template<typename Type>
+        friend Type operator/(const Type& lhs, const UiSize& rhs);
 
         operator float() const
         {
@@ -146,6 +159,18 @@ namespace pg
         return lhs - static_cast<float>(rhs);
     }
 
+    template<typename Type>
+    Type operator*(const Type& lhs, const UiSize& rhs)
+    {
+        return lhs * static_cast<float>(rhs);
+    }
+
+    template<typename Type>
+    Type operator/(const Type& lhs, const UiSize& rhs)
+    {
+        return lhs / static_cast<float>(rhs);
+    }
+
     struct UiPosition 
     {
         UiPosition() {}
@@ -185,6 +210,7 @@ namespace pg
     {
         UiFrame() {}
         UiFrame(const UiSize& x, const UiSize& y, const UiSize& z, const UiSize& w, const UiSize& h) { this->pos.x = &x; this->pos.y = &y; this->pos.z = &z; this->w = &w; this->h = &h; }
+        UiFrame(const UiPosition& pos, const UiSize& w, const UiSize& h) : pos(pos), w(w), h(h) { }
         UiFrame(const UiFrame& frame) : pos(frame.pos), w(frame.w), h(frame.h) { }
         UiFrame(UiFrame *frame) : pos(&frame->pos), w(&frame->w), h(&frame->h) { }
 

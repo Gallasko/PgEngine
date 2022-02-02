@@ -17,6 +17,7 @@ namespace pg
 
     public:
         SlideBar(const UiFrame& frame, UiSize* posToUpdate, Orientation orientation = Orientation::VERTICAL);
+        SlideBar(const UiFrame& frame, const UiFrame& boxToMonitor, const UiSize& maxPos, UiSize* posToUpdate, Orientation orientation = Orientation::VERTICAL);
 
         void changeSliderTexture(const char* texture);
 
@@ -30,13 +31,18 @@ namespace pg
     private:
         friend void renderer<>(MasterRenderer* renderer, SlideBar* slidebar);
 
+        void updateCursorSize(const UiSize& maxPos);
         void updateCursorPos();
 
         TextureComponent* slider;
         TextureComponent* cursor;
+
+        UiSize buttonHeight = height / 10.0f;
         
-        UiSize yMin, yMax;
-        float cursorPos;
+        //UiSize yMin, yMax;
+        //float cursorPos;
+
+        UiFrame boxToMonitor;
         
         UiSize *posUpdate;
 
