@@ -711,6 +711,101 @@ namespace pg
 
         endRoad:;
         }
+
+        roadTiling();
+
+        std::vector<Map::Tiles* > availableSpace;
+
+        const int mapWidth = this->getWidth(), mapHeight = this->getHeight();
+
+        for(int i = 0; i < mapWidth; i++)
+        {
+            for(int j = 0; j < mapHeight; j++)
+            {
+                const auto tile = tileMap[i][j];
+
+                if(*tile->tileId == TileType::ROAD)
+                {
+                    if(i - 1 >= 0)
+                        if(!(*tileMap[i - 1][j]->tileId == TileType::ROAD))
+                            availableSpace.push_back(tileMap[i - 1][j]);
+                        
+                    if(i + 1 < mapWidth)
+                        if(!(*tileMap[i + 1][j]->tileId == TileType::ROAD))
+                            availableSpace.push_back(tileMap[i + 1][j]);
+                        
+                    if(j - 1 >= 0)
+                        if(!(*tileMap[i][j - 1]->tileId == TileType::ROAD))
+                            availableSpace.push_back(tileMap[i][j - 1]);
+                        
+                    if(j + 1 < mapHeight)
+                        if(!(*tileMap[i][j + 1]->tileId == TileType::ROAD))
+                            availableSpace.push_back(tileMap[i][j + 1]);
+                }
+            }
+        }
+
+        // [Road Tiling]
+        // [Building Placement]
+        int nbShop = availableSpace.size() / 10;
+        int nbHouse = availableSpace.size() / 2;
+        int blankSpace = availableSpace.size() - nbShop - nbHouse;
+        int placement = 3;
+        int placeResult;
+
+        TilesLoader::TilesId* placeList[3] = {tilesLoader->getTile("Dirt"), tilesLoader->getTile("Base House"), tilesLoader->getTile("Base Shop")};
+        TilesLoader::TilesId* placeItem;
+
+        for(int i = 0; i < availableSpace.size(); i++)
+        {
+            if(placement > 0)
+            {
+                srand(rand());
+                placeResult = rand() % placement;
+                placeItem = placeList[placeResult];
+                availableSpace[i]->tileId = placeItem;
+
+                if(placeItem == tilesLoader->getTile("Dirt"))
+                {
+                    blankSpace--;
+                    if(blankSpace <= 0)
+                    {
+                        placement--;
+                        if(placement > 0)
+                            for(int j = 0; j <= placement; j++)
+                                if(placeList[j] == placeItem)
+                                    placeList[j] = placeList[placement];
+                    }
+                }
+                else if(placeItem == tilesLoader->getTile("Base House"))
+                {
+                    nbHouse--;
+                    
+                    if(nbHouse <= 0)
+                    {
+                        placement--;
+                        if(placement > 0)
+                            for(int j = 0; j <= placement; j++)
+                                if(placeList[j] == placeItem)
+                                    placeList[j] = placeList[placement];
+                    }
+                }
+                else if(placeItem == tilesLoader->getTile("Base Shop"))
+                {
+                    nbShop--;
+                    
+                    if(nbShop <= 0)
+                    {
+                        placement--;
+                        if(placement > 0)
+                            for(int j = 0; j <= placement; j++)
+                                if(placeList[j] == placeItem)
+                                    placeList[j] = placeList[placement];
+                    }
+                }
+            }
+        }
+        // [Building Placement]
     }
 
     void Map::roadTiling()
