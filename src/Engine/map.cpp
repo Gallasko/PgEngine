@@ -2,6 +2,74 @@
 
 namespace pg
 {
+    namespace
+    {
+        enum class ByteDirName : int 
+        {
+            TOP = 0b1000,
+            RIGHT = 0b0100,
+            BOTTOM = 0b0010,
+            LEFT = 0b0001
+        };
+
+        struct ByteDir // byte representation 0btrbl
+        {
+            unsigned top    : 1;
+            unsigned right  : 1;
+            unsigned bottom : 1;
+            unsigned left   : 1;
+
+            ByteDir() : top(0), right(0), bottom(0), left(0) {}
+            ByteDir(const int& rhs) { *this = rhs; }
+            ByteDir(const ByteDir& rhs) { *this = rhs; }
+
+            void operator=(const int& rhs)
+            {
+                top = (rhs & (int)ByteDirName::TOP) >> 3;
+                right = (rhs & (int)ByteDirName::RIGHT) >> 2;
+                bottom = (rhs & (int)ByteDirName::BOTTOM) >> 1;
+                left = (rhs & (int)ByteDirName::LEFT);
+            }
+
+            void operator=(const ByteDir& rhs)
+            {
+                top = rhs.top; 
+                right = rhs.right; 
+                bottom = rhs.bottom; 
+                left = rhs.left;
+            }
+
+            operator int() const
+            {
+                int data = 0;
+                data |= top << 3; 
+                data |= right << 2;
+                data |= bottom << 1;
+                data |= left;
+
+                return data;
+            }
+
+            //const unsigned int count() const { return top + right + bottom + left; } 
+
+            //unsigned int operator&(const int& rhs)
+            //{
+            //    unsigned int data = 0;
+            //    data |= top << 3; 
+            //    data |= right << 2;
+            //    data |= bottom << 1;
+            //    data |= left;
+    //
+            //    return data & rhs;
+            //}
+        };
+
+        struct RoadConstruct
+        {
+            constant::Vector2D pos;
+            ByteDir availableDir;  
+        };
+    }
     Map::Map(EntitySystem *ecs, TilesLoader *tilesLoader, Map::MapConstraint constraint) : ecs(ecs), tilesLoader(tilesLoader), constraint(constraint)
     {
         initializeOpenGLFunctions(); 
@@ -50,6 +118,8 @@ namespace pg
         meshUpdate = false;
 
         tileToBePlaced = tilesLoader->getTile("Dirt");
+
+        generateRandomMap();
     }
 
     Map::~Map()
@@ -381,6 +451,268 @@ namespace pg
         }
     }
 
+    void Map::generateRandomMap()
+    {
+        std::queue<RoadConstruct> roadQueue;
+
+        srand(constraint.seed);
+
+        int xStart = rand() % constraint.width;
+        int yStart = rand() % constraint.height;
+        //int xStart = 0;
+        //int yStart = 0;
+
+        RoadConstruct startRoad = { constant::Vector2D(xStart, yStart), 0b0000 };
+
+        startRoad.availableDir.left = (xStart - 1 >= 0);
+        startRoad.availableDir.right = (xStart + 1 < constraint.width);
+        startRoad.availableDir.top = (yStart - 1 >= 0); 
+        startRoad.availableDir.bottom = (yStart + 1 < constraint.height);
+
+        roadQueue.push(startRoad); // TODO use emplace and create a ctor and a copy ctor for RoadConstruct
+
+        int openSpace = 1;
+
+        const float fillRatio = 0.6; // TODO need to be added in constraint
+        const int spaceToBeFilled = constraint.width * constraint.height * fillRatio; // TODO take in consideration unhabitable space such as water or mountain by scaning the map first for contiguous available space
+
+        tileMap[xStart][yStart]->tileId = tilesLoader->getTile("Base Road RoundAbout");
+
+        //While loop variables
+
+        RoadConstruct road;    
+
+        int nbAvailableDir = 0;
+        ByteDirName possibleDir[4];
+
+        ByteDirName currentDir;
+        int length;
+
+        ByteDir availableDir = 0b0000;
+
+        int x;
+        int y;
+
+        while(openSpace < spaceToBeFilled) //TODO check if space to be filled can actually be filled or not
+        {
+            road = roadQueue.front();
+            roadQueue.pop();
+
+            //std::cout << "Road : " << road.pos.x << ", " << road.pos.y << std::endl;
+
+            //auto nbDir = road.availableDir.count();
+
+            // Find the direction to install road
+
+            nbAvailableDir = 0;
+
+            //if(road.availableDir.top)
+            //{
+            //    possibleDir[nbAvailableDir] = Map::ByteDirName::TOP;
+            //    nbAvailableDir += 1;
+            //}
+            //if(road.availableDir.right)
+            //{
+            //    possibleDir[nbAvailableDir] = Map::ByteDirName::RIGHT;
+            //    nbAvailableDir += 1;
+            //}
+            //if(road.availableDir.bottom)
+            //{
+            //    possibleDir[nbAvailableDir] = Map::ByteDirName::BOTTOM;
+            //    nbAvailableDir += 1;
+            //}
+            //if(road.availableDir.left)
+            //{
+            //    possibleDir[nbAvailableDir] = Map::ByteDirName::LEFT;
+            //    nbAvailableDir += 1;
+            //}
+
+            // Branchless version of possible dir finding
+            availableDir = road.availableDir;
+            for(int i = 0; i < 4; i++)
+            {
+                possibleDir[nbAvailableDir] = ByteDirName(((availableDir >> i) & 0b0001) * (1 << i));
+                nbAvailableDir += (availableDir >> i) & 0b0001; 
+            }
+
+            //std::cout << nbAvailableDir << std::endl;
+    //
+            //for(int i = 0; i < nbAvailableDir; i++)
+            //    std::cout << (int)possibleDir[i] << std::endl;
+
+            // TODO till the edge case is not fix nbAvailableDir can be 0
+            currentDir = possibleDir[rand() % nbAvailableDir];
+            length = rand() % 4 + 1; // TODO insert max length in constraint
+
+            // End road direction finding
+
+            // Install road
+
+            road.availableDir = road.availableDir & ~(int)currentDir;
+
+            if(road.availableDir > 0)
+                roadQueue.push(road);
+
+            for(int i = 1; i <= length; i++)
+            {
+                x = road.pos.x;
+                y = road.pos.y;
+
+                switch (currentDir)
+                {
+                case ByteDirName::TOP:
+                    y -= 1;
+                    break;
+                
+                case ByteDirName::RIGHT:
+                    x += 1;
+                    break;
+
+                case ByteDirName::BOTTOM:
+                    y += 1;
+                    break;
+
+                case ByteDirName::LEFT:
+                    x -= 1;
+                    break;
+                }
+
+                // if out of bound -> break
+                if(x < 0 || x >= constraint.width)
+                    break;
+
+                if(y < 0 || y >= constraint.height)
+                    break;
+
+                // if destination tile can t be modified -> break  [TODO] make a function to check if a tile is modifiable
+                if(*tileMap[x][y]->tileId == TileType::ROAD)
+                    break;
+
+                // out of bound test
+                availableDir.left = (x - 1 >= 0);
+                availableDir.right = (x + 1 < constraint.width);
+                availableDir.top = (y - 1 >= 0); 
+                availableDir.bottom = (y + 1 < constraint.height);
+
+                switch (currentDir)
+                {
+                case ByteDirName::TOP:
+                    availableDir.bottom = 0;
+                    if(availableDir.left) // if left column exist
+                    {
+                        // if destination tile can t be modified -> dir is not available
+                        availableDir.left = *tileMap[x - 1][y]->tileId != TileType::ROAD;
+                        if(!availableDir.left && *tileMap[x - 1][y + 1]->tileId == TileType::ROAD)
+                            goto endRoad;
+                    }
+
+                    if(availableDir.right) // if right column exist
+                    {
+                        // if destination tile can t be modified -> dir is not available
+                        availableDir.right = *tileMap[x + 1][y]->tileId != TileType::ROAD;
+                        if(!availableDir.right && *tileMap[x + 1][y + 1]->tileId == TileType::ROAD)
+                            goto endRoad;
+                    }
+
+                    // TODO Edge case afterwards
+                    if(availableDir.top) // if top row exist
+                    {
+                        // if destination tile can t be modified -> dir is not available
+                        availableDir.top = *tileMap[x][y - 1]->tileId != TileType::ROAD;
+                    }                   
+                    break;
+                
+                case ByteDirName::RIGHT:
+                    availableDir.left = 0;
+                    if(availableDir.top) // if top row exist
+                    {
+                        // if destination tile can t be modified -> dir is not available
+                        availableDir.top = *tileMap[x][y - 1]->tileId != TileType::ROAD;
+                        if(!availableDir.top && *tileMap[x - 1][y - 1]->tileId == TileType::ROAD)
+                            goto endRoad;
+                    }
+
+                    if(availableDir.bottom) // if bottom row exist
+                    {
+                        // if destination tile can t be modified -> dir is not available
+                        availableDir.bottom = *tileMap[x][y + 1]->tileId != TileType::ROAD;
+                        if(!availableDir.bottom && *tileMap[x - 1][y + 1]->tileId == TileType::ROAD)
+                            goto endRoad;
+                    }
+
+                    if(availableDir.right) // if right column exist
+                    {
+                        // if destination tile can t be modified -> dir is not available
+                        availableDir.right = *tileMap[x + 1][y]->tileId != TileType::ROAD;
+                    }                   
+                    break;
+
+                case ByteDirName::BOTTOM:
+                    availableDir.top = 0;
+                    if(availableDir.left) // if left column exist
+                    {
+                        // if destination tile can t be modified -> dir is not available
+                        availableDir.left = *tileMap[x - 1][y]->tileId != TileType::ROAD;
+                        if(!availableDir.left && *tileMap[x - 1][y - 1]->tileId == TileType::ROAD)
+                            goto endRoad;
+                    }
+
+                    if(availableDir.right) // if right column exist
+                    {
+                        // if destination tile can t be modified -> dir is not available
+                        availableDir.right = *tileMap[x + 1][y]->tileId != TileType::ROAD;
+                        if(!availableDir.right && *tileMap[x + 1][y - 1]->tileId == TileType::ROAD)
+                            goto endRoad;
+                    }
+
+                    if(availableDir.bottom) // if bottom row exist
+                    {
+                        // if destination tile can t be modified -> dir is not available
+                        availableDir.bottom = *tileMap[x][y + 1]->tileId != TileType::ROAD;
+                    }                   
+                    break;
+
+                case ByteDirName::LEFT:
+                    availableDir.right = 0;
+                    if(availableDir.top) // if top row exist
+                    {
+                        // if destination tile can t be modified -> dir is not available
+                        availableDir.top = *tileMap[x][y - 1]->tileId != TileType::ROAD;
+                        if(!availableDir.top && *tileMap[x + 1][y - 1]->tileId == TileType::ROAD)
+                            goto endRoad;
+                    }
+
+                    if(availableDir.bottom) // if bottom row exist
+                    {
+                        // if destination tile can t be modified -> dir is not available
+                        availableDir.bottom = *tileMap[x][y + 1]->tileId != TileType::ROAD;
+                        if(!availableDir.bottom && *tileMap[x + 1][y + 1]->tileId == TileType::ROAD)
+                            goto endRoad;
+                    }
+
+                    if(availableDir.left) // if left column exist
+                    {
+                        // if destination tile can t be modified -> dir is not available
+                        availableDir.left = *tileMap[x - 1][y]->tileId != TileType::ROAD;
+                    }                   
+                    break;
+                }
+                
+                if(availableDir > 0) // TODO remove this check once the edge case are resolved
+                {
+                    openSpace++;
+
+                    tileMap[x][y]->tileId = tilesLoader->getTile("Base Road RoundAbout");
+
+                    road = RoadConstruct( {constant::Vector2D(x, y), availableDir} );
+                    roadQueue.push(road);
+                }
+            }
+
+        endRoad:;
+        }
+    }
+
     void Map::roadTiling()
     {
         // [Road Tiling]
@@ -479,6 +811,7 @@ namespace pg
 
         // [Road Tiling]
     }
+
 
     void Map::drawPath()
     {
