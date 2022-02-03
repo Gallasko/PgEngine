@@ -86,7 +86,7 @@ void GameWindow::initialize()
 
     mapConstraint.width = 15;
     mapConstraint.height = 15;
-    mapConstraint.seed = 1;
+    mapConstraint.seed = 2;
  
     mapConstraint.noiseParam = {4, 5, 50, -1, 0.4};
 
@@ -530,7 +530,7 @@ void GameWindow::render()
     }
 
     masterRenderer << tileSelector;
-    masterRenderer << slideBar;
+    //masterRenderer << slideBar;
 
     //masterRenderer.render<ParticleRenderer>(pComponent);
 
