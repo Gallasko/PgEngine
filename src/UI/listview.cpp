@@ -53,8 +53,8 @@ namespace pg
 
     void SlideBar::updateCursorSize(const UiSize& maxPos)
     {
-        if(this->maxPos > 0 && this->boxToMonitor.h > 0)
-            this->buttonHeight = (this->boxToMonitor.h / this->maxPos) * height;
+        if(maxPos > 0 && this->boxToMonitor.h > 0)
+            this->buttonHeight = (this->boxToMonitor.h / maxPos) * height;
         else
             this->buttonHeight = height;
 

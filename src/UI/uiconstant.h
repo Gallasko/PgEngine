@@ -107,12 +107,6 @@ namespace pg
         template<typename Type>
         friend Type operator-(const Type& lhs, const UiSize& rhs);
 
-        template<typename Type>
-        friend Type operator*(const Type& lhs, const UiSize& rhs);
-
-        template<typename Type>
-        friend Type operator/(const Type& lhs, const UiSize& rhs);
-
         operator float() const
         {
             return returnCurrentSize();
@@ -157,18 +151,6 @@ namespace pg
     Type operator-(const Type& lhs, const UiSize& rhs)
     {
         return lhs - static_cast<float>(rhs);
-    }
-
-    template<typename Type>
-    Type operator*(const Type& lhs, const UiSize& rhs)
-    {
-        return lhs * static_cast<float>(rhs);
-    }
-
-    template<typename Type>
-    Type operator/(const Type& lhs, const UiSize& rhs)
-    {
-        return lhs / static_cast<float>(rhs);
     }
 
     struct UiPosition 
