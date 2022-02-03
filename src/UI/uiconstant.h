@@ -10,6 +10,8 @@ namespace pg
         {
             ADD,
             SUB,
+            MUL,
+            DIV,
 
             NONE
         };
@@ -59,6 +61,11 @@ namespace pg
             return UiSize(0.0f, rhs, this);
         }
 
+        UiSize operator*(const int& rhs) const
+        {
+            return UiSize(0.0f, rhs, this);
+        }
+
         UiSize operator+(const int& rhs) const
         {
             return UiSize(rhs, 1.0f, this);
@@ -99,6 +106,12 @@ namespace pg
 
         template<typename Type>
         friend Type operator-(const Type& lhs, const UiSize& rhs);
+
+        template<typename Type>
+        friend Type operator*(const Type& lhs, const UiSize& rhs);
+
+        template<typename Type>
+        friend Type operator/(const Type& lhs, const UiSize& rhs);
 
         operator float() const
         {
@@ -146,17 +159,37 @@ namespace pg
         return lhs - static_cast<float>(rhs);
     }
 
+    template<typename Type>
+    Type operator*(const Type& lhs, const UiSize& rhs)
+    {
+        return lhs * static_cast<float>(rhs);
+    }
+
+    template<typename Type>
+    Type operator/(const Type& lhs, const UiSize& rhs)
+    {
+        return lhs / static_cast<float>(rhs);
+    }
+
     struct UiPosition 
     {
         UiPosition() {}
         UiPosition(const UiSize& x, const UiSize& y, const UiSize& z) { this->x = &x; this->y = &y; this->z = &z; }
         UiPosition(const UiPosition& pos) : x(pos.x), y(pos.y), z(pos.z) { }
+        UiPosition(UiPosition *pos) : x(&pos->x), y(&pos->y), z(&pos->z) { }
 
         void operator=(const UiPosition& rhs)
         {
             x = rhs.x;
             y = rhs.y; 
             z = rhs.z; 
+        }
+
+        void operator=(UiPosition *rhs)
+        {
+            x = &rhs->x;
+            y = &rhs->y; 
+            z = &rhs->z; 
         }
 
         UiPosition operator+(const UiPosition& rhs) const {
@@ -171,5 +204,36 @@ namespace pg
         UiSize x = UiSize(0, 0, nullptr);
         UiSize y = UiSize(0, 0, nullptr);
         UiSize z = UiSize(0, 0, nullptr);    
+    };
+
+    struct UiFrame
+    {
+        UiFrame() {}
+        UiFrame(const UiSize& x, const UiSize& y, const UiSize& z, const UiSize& w, const UiSize& h) { this->pos.x = &x; this->pos.y = &y; this->pos.z = &z; this->w = &w; this->h = &h; }
+        UiFrame(const UiPosition& pos, const UiSize& w, const UiSize& h) : pos(pos), w(w), h(h) { }
+        UiFrame(const UiFrame& frame) : pos(frame.pos), w(frame.w), h(frame.h) { }
+        UiFrame(UiFrame *frame) : pos(&frame->pos), w(&frame->w), h(&frame->h) { }
+
+        void operator=(const UiFrame& rhs)
+        {
+            pos.x = rhs.pos.x;
+            pos.y = rhs.pos.y; 
+            pos.z = rhs.pos.z;
+            w = rhs.w;
+            h = rhs.h; 
+        }
+
+        void operator=(UiFrame *rhs)
+        {
+            pos.x = &rhs->pos.x;
+            pos.y = &rhs->pos.y; 
+            pos.z = &rhs->pos.z;
+            w = &rhs->w;
+            h = &rhs->h; 
+        }
+
+        UiPosition pos;
+        UiSize w = UiSize(0, 0, nullptr);
+        UiSize h = UiSize(0, 0, nullptr);
     };
 }

@@ -22,8 +22,8 @@ namespace pg
 	{
 		LOG_THIS_MEMBER(DOM);
 
-		auto instance = KeyInstance{key, state};
-		auto it = findInputPos(instance, keyContainer);
+		const auto instance = KeyInstance{key, state};
+		const auto it = findInputPos(instance, keyContainer);
 
 		switch(state)
 		{
@@ -58,7 +58,7 @@ namespace pg
 	{
 		LOG_THIS_MEMBER(DOM);
 
-		auto it = findInputPos(button, buttonContainer);
+		const auto it = findInputPos(button, buttonContainer);
 		switch(state)
 		{
 			case Input::InputState::MOUSEPRESS:
@@ -107,7 +107,7 @@ namespace pg
 	{
 		LOG_THIS_MEMBER(DOM);
 
-		auto it = findInputPos(key, keyContainer);
+		const auto it = findInputPos(key, keyContainer);
 		return (it != -1) ? keyContainer.at(it).state : Input::InputState::INPUTERROR;
 	}
 
@@ -129,7 +129,7 @@ namespace pg
 	{
 		LOG_THIS_MEMBER(DOM);
 
-		auto it = findInputPos(button, buttonContainer);
+		const auto it = findInputPos(button, buttonContainer);
 		return (it != -1) ? buttonContainer.at(it).state : Input::InputState::INPUTERROR;
 	}
 
@@ -147,14 +147,14 @@ namespace pg
 		return buttonState(button) == Input::InputState::MOUSERELEASE;
 	}
 
-	QPoint Input::getMousePos() const
+	const QPoint& Input::getMousePos() const
 	{
 		LOG_THIS_MEMBER(DOM);
 
 		return this->mousePos;
 	}
 
-	QPoint Input::getMouseDelta() const
+	const QPoint& Input::getMouseDelta() const
 	{
 		LOG_THIS_MEMBER(DOM);
 
@@ -167,10 +167,10 @@ namespace pg
 		this->mouseDelta.setY(0);
 
 		// Remove old data
-		auto removeKey = std::remove_if(keyContainer.begin(), keyContainer.end(), &CheckReleased<KeyInstance>);
+		const auto removeKey = std::remove_if(keyContainer.begin(), keyContainer.end(), &CheckReleased<KeyInstance>);
 		keyContainer.erase(removeKey, keyContainer.end());
 
-		auto removeButton = std::remove_if(buttonContainer.begin(), buttonContainer.end(), &CheckReleased<ButtonInstance>);
+		const auto removeButton = std::remove_if(buttonContainer.begin(), buttonContainer.end(), &CheckReleased<ButtonInstance>);
 		buttonContainer.erase(removeButton, buttonContainer.end());
 	}
 

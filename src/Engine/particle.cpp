@@ -2,13 +2,9 @@
 
 namespace pg
 {
-    void ParticleRenderer::render(MasterRenderer* masterRenderer...)
-    { 
-        va_list args; 
-        va_start(args, masterRenderer); 
-        auto particle = va_arg(args, ParticleComponent*);
-        va_end(args);
-
+    template<>
+    void renderer(MasterRenderer* masterRenderer, ParticleComponent* particle)
+    {
         auto rTable = masterRenderer->getParameter();
         const int screenWidth = rTable["ScreenWidth"];
         const int screenHeight = rTable["ScreenHeight"];
