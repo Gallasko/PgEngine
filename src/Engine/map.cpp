@@ -763,11 +763,11 @@ namespace pg
                 srand(rand());
                 placeResult = rand() % placement;
                 placeItem = placeList[placeResult];
-                availableSpace[i]->tileId = placeItem;
 
                 if(placeItem == tilesLoader->getTile("Dirt"))
                 {
                     blankSpace--;
+                    
                     if(blankSpace <= 0)
                     {
                         placement--;
@@ -779,6 +779,8 @@ namespace pg
                 }
                 else if(placeItem == tilesLoader->getTile("Base House"))
                 {
+                    availableSpace[i]->tileId = placeItem;
+
                     nbHouse--;
                     
                     if(nbHouse <= 0)
@@ -792,6 +794,8 @@ namespace pg
                 }
                 else if(placeItem == tilesLoader->getTile("Base Shop"))
                 {
+                    availableSpace[i]->tileId = placeItem;
+
                     nbShop--;
                     
                     if(nbShop <= 0)
