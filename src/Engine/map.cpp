@@ -70,7 +70,7 @@ namespace pg
             ByteDir availableDir;  
         };
     }
-    Map::Map(EntitySystem *ecs, TilesLoader *tilesLoader, Map::MapConstraint constraint) : ecs(ecs), tilesLoader(tilesLoader), constraint(constraint)
+    Map::Map(EntitySystem *ecs, TilesLoader *tilesLoader, const Map::MapConstraint& constraint) : ecs(ecs), tilesLoader(tilesLoader), constraint(constraint)
     {
         initializeOpenGLFunctions(); 
 

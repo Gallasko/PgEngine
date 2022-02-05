@@ -223,7 +223,7 @@ namespace pg
             NoiseParameters noiseParam = {3, 5, 50, -1, 0.70};
         };
 
-        Map(EntitySystem *ecs, TilesLoader *tilesLoader, Map::MapConstraint constraint);
+        Map(EntitySystem *ecs, TilesLoader *tilesLoader, const Map::MapConstraint& constraint);
         ~Map();
 
         void generateMesh();
