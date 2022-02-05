@@ -473,7 +473,7 @@ namespace pg
 
         int openSpace = 1;
 
-        const float fillRatio = 0.6; // TODO need to be added in constraint
+        const float fillRatio = 0.3; // TODO need to be added in constraint
         const int spaceToBeFilled = constraint.width * constraint.height * fillRatio; // TODO take in consideration unhabitable space such as water or mountain by scaning the map first for contiguous available space
 
         tileMap[xStart][yStart]->tileId = tilesLoader->getTile("Base Road RoundAbout");
