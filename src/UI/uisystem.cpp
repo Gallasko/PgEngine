@@ -44,7 +44,7 @@ namespace pg
         else if(topAnchor == nullptr && bottomAnchor != nullptr)
         {
             //this->pos.y = (*bottomAnchor - bottomMargin) - this->height;
-            this->pos.y = *bottomAnchor - bottomMargin - this->height;
+            this->pos.y = (*bottomAnchor - bottomMargin) - this->height;
             //this->pos.y = UiSize(-this->height, 1.0f, new UiSize(-bottomMargin, 1.0f, bottomAnchor));
         }
 
@@ -56,7 +56,7 @@ namespace pg
         }
         else if(rightAnchor != nullptr && leftAnchor == nullptr)
         {
-            this->pos.x = *rightAnchor - rightMargin - this->width;
+            this->pos.x = (*rightAnchor - rightMargin) - this->width;
             //this->pos.x = UiSize(this->width, 1.0f, new UiSize(-rightMargin, 1.0f, rightAnchor));
         }
         else if(rightAnchor == nullptr && leftAnchor != nullptr)

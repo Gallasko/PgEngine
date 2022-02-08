@@ -28,8 +28,8 @@ namespace pg
 
         UiPosition pos;
 
-        UiSize width = UiSize(0, 0, nullptr);
-        UiSize height = UiSize(0, 0, nullptr);
+        UiSize width;
+        UiSize height;
         float scale = 1.0f;
 
         UiFrame frame = UiFrame(pos.x, pos.y, pos.z, width, height);
@@ -52,7 +52,7 @@ namespace pg
         std::vector<UiComponent*> children; // todo remove this
 
         UiComponent() { }
-        UiComponent(const UiFrame& frame) : pos(frame.pos), width(&frame.w), height(&frame.h) { }
+        UiComponent(const UiFrame& frame) : pos(&frame.pos), width(&frame.w), height(&frame.h) { }
         UiComponent(const UiComponent& rhs);
 
         inline void setX(const int& value) { pos.x = value; update(); }
@@ -81,8 +81,8 @@ namespace pg
         
         bool updated = true; // todo remove this 
 
-        bool inBound(int x, int y) { return x > this->pos.x / this->scale && x < (this->pos.x + this->width) / this->scale && y < (this->pos.y + this->height) / this->scale && y > this->pos.y / this->scale; }
-        bool inBound(constant::Vector2D vec2) { return inBound(vec2.x, vec2.y); }
+        bool inBound(int x, int y) const { return x > this->pos.x / this->scale && x < (this->pos.x + this->width) / this->scale && y < (this->pos.y + this->height) / this->scale && y > this->pos.y / this->scale; }
+        bool inBound(const constant::Vector2D& vec2) const { return inBound(vec2.x, vec2.y); }
         
         void update();
     };

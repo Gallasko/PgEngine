@@ -171,8 +171,8 @@ void GameWindow::initialize()
     tileSelector = new TileSelector(gameMap, tileLoader, fontLoader, screenUi);
     tileSelector->pos.z = 2;
     tileSelector->setTopAnchor(&screenUi->top);
-    //tileSelector->setRightAnchor(&screenUi->right); // TODO fix all of this
-    tileSelector->pos.x = screenUi->width - tileSelector->width;
+    tileSelector->setRightAnchor(&screenUi->right); // TODO fix all of this
+    //tileSelector->pos.x = screenUi->width - tileSelector->width;
     //tileSelector->setLeftAnchor(&screenUi->left);//(&screenUi->right);
 
     frame.pos.x = 100;
@@ -225,8 +225,8 @@ void GameWindow::initialize()
 
     auto pigeonSpawnerTexture = ecs.createEntity();
     auto pigeonSpawnerTextureC = ecs.attach<TextureComponent>(pigeonSpawnerTexture, {297, 196, "res/menu/menutest.png"});
-    pigeonSpawnerTextureC->pos.x = screenUi->right;
-    pigeonSpawnerTextureC->pos.y = screenUi->bottom;
+    pigeonSpawnerTextureC->setRightAnchor(screenUi->right);
+    pigeonSpawnerTextureC->setBottomAnchor(screenUi->bottom);
 
     auto pigeonSpawnButton = ecs.createEntity();
     auto pigeonSpawnButtonC = ecs.attach<TextureComponent>(pigeonSpawnButton, {64, 32, "res/menu/frame.png"});

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <iostream>
 
 namespace pg
 {
@@ -23,14 +24,12 @@ namespace pg
             };
             
         public:
-            UiValue(const float& pixelSize = 0.0f, const float& scaleValue = 0.0f, const UiSize* ref1 = nullptr, const UiSize* ref2 = nullptr, const UiSizeOpType& op = UiSizeOpType::NONE) : 
-            //pixelSize(pixelSize), scaleValue(scaleValue), refSize1(std::make_shared<UiSize>(ref1)), refSize2(std::make_shared<UiSize>(ref2)), opType(op) { }
-            pixelSize(pixelSize), scaleValue(scaleValue), refSize1(ref1), refSize2(ref2), opType(op) { }
+            UiValue(const float& pixelSize = 0.0f, const float& scaleValue = 0.0f, const std::shared_ptr<UiValue>& ref1 = nullptr, const std::shared_ptr<UiValue>& ref2 = nullptr, const UiSizeOpType& op = UiSizeOpType::NONE) : pixelSize(pixelSize), scaleValue(scaleValue), refSize1(ref1), refSize2(ref2), opType(op) { }
 
             float returnCurrentSize() const
             {
-                const float refSizeValue1 = refSize1 == nullptr ? 0.0f : refSize1->value->returnCurrentSize();
-                const float refSizeValue2 = refSize2 == nullptr ? 0.0f : refSize2->value->returnCurrentSize();
+                const float refSizeValue1 = refSize1 == nullptr ? 0.0f : refSize1->returnCurrentSize();
+                const float refSizeValue2 = refSize2 == nullptr ? 0.0f : refSize2->returnCurrentSize();
 
                 const float refSize1Result = pixelSize + refSizeValue1 * scaleValue;
 
@@ -58,16 +57,17 @@ namespace pg
         private:
             float pixelSize = 0.0f;
             float scaleValue = 0.0f;
-            std::shared_ptr<UiSize> refSize1;
-            std::shared_ptr<UiSize> refSize2;
+            std::shared_ptr<UiValue> refSize1;
+            std::shared_ptr<UiValue> refSize2;
+            //std::shared_ptr<UiSize> refSize2;
             UiSizeOpType opType = UiSizeOpType::NONE;
         };
 
     public:
-        UiSize(const float& pixelSize = 0.0f, const float& scaleValue = 0.0f, const UiSize* ref1 = nullptr, const UiSize* ref2 = nullptr, const UiValue::UiSizeOpType& op = UiValue::UiSizeOpType::NONE) : value(std::make_shared<UiValue>(pixelSize, scaleValue, ref1, ref2, op)) {}
+        UiSize(const float& pixelSize = 0.0f, const float& scaleValue = 0.0f, const std::shared_ptr<UiValue>& ref1 = nullptr, const std::shared_ptr<UiValue>& ref2 = nullptr, const UiValue::UiSizeOpType& op = UiValue::UiSizeOpType::NONE) : value(std::make_shared<UiValue>(pixelSize, scaleValue, ref1, ref2, op)) {}
         //UiSize(const float& pixelSize = 0.0f, const float& scaleValue = 0.0f, std::shared_ptr<UiValue> ref1 = nullptr, std::shared_ptr<UiValue> ref2 = nullptr, const UiValue::UiSizeOpType& op = UiValue::UiSizeOpType::NONE) : value(std::make_shared<UiValue>(pixelSize, scaleValue, ref1, ref2, op)) {}
         UiSize(const UiSize& size) { value = size.value; } // TODO create a copy contruct with a bool to delete pointer
-        UiSize(const UiSize* size) : UiSize(0.0f, 1.0f, size, nullptr, UiValue::UiSizeOpType::NONE) {}
+        UiSize(const UiSize* size) : UiSize(0.0f, 1.0f, size->value, nullptr, UiValue::UiSizeOpType::NONE) {}
 
         void operator=(const UiSize& rhs) // use to copy a ui size
         {
@@ -76,7 +76,8 @@ namespace pg
 
         void operator=(const UiSize *rhs) // use to make this ui size refer to another
         {
-            value = std::make_shared<UiValue>(0.0f, 1.0f, rhs, nullptr, UiValue::UiSizeOpType::NONE);
+            //value = std::shared_ptr<UiValue>(new UiValue(0.0f, 1.0f, rhs->value, nullptr, UiValue::UiSizeOpType::NONE));
+            value = std::make_shared<UiValue>(0.0f, 1.0f, rhs->value, nullptr, UiValue::UiSizeOpType::NONE);
         }
 
         void operator=(const int& rhs)
@@ -91,76 +92,107 @@ namespace pg
 
         UiSize operator*(const float& rhs) const 
         {
-            return UiSize(0.0f, rhs, this);
+            return UiSize(0.0f, rhs, this->value);
+            //auto res = std::make_shared<UiSize>(0.0f, rhs, this->value);
+            //return *res;
         }
 
         UiSize operator*(const int& rhs) const
         {
-            return UiSize(0.0f, rhs, this);
+            return UiSize(0.0f, rhs, this->value);
+            //auto res = std::make_shared<UiSize>(0.0f, rhs, this);
+            //return *res;
         }
 
         UiSize operator*(const UiSize& rhs) const
         {
-            return UiSize(0.0f, 1.0f, this, &rhs, UiValue::UiSizeOpType::MUL);
+            return UiSize(0.0f, 1.0f, this->value, rhs.value, UiValue::UiSizeOpType::MUL);
+            //auto res = std::make_shared<UiSize>(0.0f, 1.0f, this, &rhs, UiValue::UiSizeOpType::MUL);
+            //return *res;
         }
 
         //TODO make exception for division by 0
         UiSize operator/(const int& rhs) const 
         {
-            return UiSize(0.0f, 1.0f / rhs, this);
+            return UiSize(0.0f, 1.0f / rhs, this->value);
+            //auto res = std::make_shared<UiSize>(0.0f, 1.0f / rhs, this);
+            //return *res;
         }
 
         UiSize operator/(const float& rhs) const 
         {
-            return UiSize(0.0f, 1.0f / rhs, this);
+            return UiSize(0.0f, 1.0f / rhs, this->value);
+            //auto res = std::make_shared<UiSize>(0.0f, 1.0f / rhs, this);
+            //return *res;
         }
 
         UiSize operator/(const UiSize& rhs) const
         {
+            return UiSize(0.0f, 1.0f, this->value, rhs.value, UiValue::UiSizeOpType::DIV);
             //auto res = std::make_shared<UiSize>(0.0f, 1.0f, this, &rhs, UiValue::UiSizeOpType::DIV);
-            return UiSize(0.0f, 1.0f, this, &rhs, UiValue::UiSizeOpType::DIV);
+            //return *res;
         }
 
         UiSize operator+(const int& rhs) const
         {
-            return UiSize(rhs, 1.0f, this);
+            return UiSize(rhs, 1.0f, this->value);
+            //auto res = std::make_shared<UiSize>(rhs, 1.0f, this);
+            //return *res;
         }
 
         UiSize operator+(const float& rhs) const
         {
-            return UiSize(rhs, 1.0f, this);
+            return UiSize(rhs, 1.0f, this->value);
+            //auto res = std::make_shared<UiSize>(rhs, 1.0f, this);
+            //return *res;
         }
 
         UiSize operator+(const UiSize& rhs) const
         {
-            return UiSize(0.0f, 1.0f, this, &rhs, UiValue::UiSizeOpType::ADD);
+            return UiSize(0.0f, 1.0f, this->value, rhs.value, UiValue::UiSizeOpType::ADD);
+            //auto res = std::make_shared<UiSize>(0.0f, 1.0f, this, &rhs, UiValue::UiSizeOpType::ADD);
+            //return *res;
         }
 
         UiSize operator-(const int& rhs) const 
         {
-            return UiSize(-rhs, 1.0f, this);
+            return UiSize(-rhs, 1.0f, this->value);
+            //auto res = std::make_shared<UiSize>(-rhs, 1.0f, this);
+            //return *res;
         }
 
         UiSize operator-(const float& rhs) const
         {
-            return UiSize(-rhs, 1.0f, this);
+            return UiSize(-rhs, 1.0f, this->value);
+            //auto res = std::make_shared<UiSize>(-rhs, 1.0f, this);
+            //return *res;
         }
 
         UiSize operator-(const UiSize& rhs) const 
         {
-            return UiSize(0.0f, 1.0f, this, &rhs, UiValue::UiSizeOpType::SUB);
+            return UiSize(0.0f, 1.0f, this->value, rhs.value, UiValue::UiSizeOpType::SUB);
+            //auto res = std::make_shared<UiSize>(0.0f, 1.0f, this, &rhs, UiValue::UiSizeOpType::SUB);
+            //return *res;
         }
 
         UiSize operator-() const
         {
-            return UiSize(0.0f, -1.0f, this);
+            return UiSize(0.0f, -1.0f, this->value);
+            //auto res = std::make_shared<UiSize>(0.0f, -1.0f, this);
+            //return *res;
         }
 
         template<typename Type>
-        friend Type operator+(const Type& lhs, const UiSize& rhs);
+        friend UiSize operator+(const Type& lhs, const UiSize& rhs);
 
         template<typename Type>
-        friend Type operator-(const Type& lhs, const UiSize& rhs);
+        friend UiSize operator-(const Type& lhs, const UiSize& rhs);
+
+        template<typename Type>
+        friend UiSize operator*(const Type& lhs, const UiSize& rhs);
+
+        template<typename Type>
+        friend UiSize operator/(const Type& lhs, const UiSize& rhs);
 
         operator float() const
         {
@@ -172,23 +204,36 @@ namespace pg
     };
 
     template<typename Type>
-    Type operator+(const Type& lhs, const UiSize& rhs)
+    UiSize operator+(const Type& lhs, const UiSize& rhs)
     {
-        return lhs + static_cast<float>(rhs);
+        return rhs + lhs;
     }
 
     template<typename Type>
-    Type operator-(const Type& lhs, const UiSize& rhs)
+    UiSize operator-(const Type& lhs, const UiSize& rhs)
     {
-        return lhs - static_cast<float>(rhs);
+        return UiSize(lhs, -1.0f, rhs.value);
     }
+
+    template<typename Type>
+    UiSize operator*(const Type& lhs, const UiSize& rhs)
+    {
+        return rhs * lhs;
+    }
+
+    template<typename Type>
+    UiSize operator/(const Type& lhs, const UiSize& rhs)
+    {
+        return UiSize(lhs, 0.0f, nullptr, rhs.value, UiSize::UiValue::UiSizeOpType::DIV);
+    }
+
 
     struct UiPosition 
     {
         UiPosition() {}
         UiPosition(const UiSize& x, const UiSize& y, const UiSize& z) { this->x = &x; this->y = &y; this->z = &z; }
         UiPosition(const UiPosition& pos) : x(pos.x), y(pos.y), z(pos.z) { }
-        UiPosition(UiPosition *pos) : x(&pos->x), y(&pos->y), z(&pos->z) { }
+        UiPosition(const UiPosition *pos) : x(&pos->x), y(&pos->y), z(&pos->z) { }
 
         void operator=(const UiPosition& rhs)
         {
@@ -213,16 +258,16 @@ namespace pg
             return pos;
         } 
 
-        UiSize x = UiSize(0, 0, nullptr);
-        UiSize y = UiSize(0, 0, nullptr);
-        UiSize z = UiSize(0, 0, nullptr);    
+        UiSize x;
+        UiSize y;
+        UiSize z;
     };
 
     struct UiFrame
     {
         UiFrame() {}
         UiFrame(const UiSize& x, const UiSize& y, const UiSize& z, const UiSize& w, const UiSize& h) { this->pos.x = &x; this->pos.y = &y; this->pos.z = &z; this->w = &w; this->h = &h; }
-        UiFrame(const UiPosition& pos, const UiSize& w, const UiSize& h) : pos(pos), w(w), h(h) { }
+        UiFrame(const UiPosition& pos, const UiSize& w, const UiSize& h) : pos(&pos), w(&w), h(&h) { }
         UiFrame(const UiFrame& frame) : pos(frame.pos), w(frame.w), h(frame.h) { }
         UiFrame(UiFrame *frame) : pos(&frame->pos), w(&frame->w), h(&frame->h) { }
 
@@ -245,7 +290,7 @@ namespace pg
         }
 
         UiPosition pos;
-        UiSize w = UiSize(0, 0, nullptr);
-        UiSize h = UiSize(0, 0, nullptr);
+        UiSize w;
+        UiSize h;
     };
 }
