@@ -66,12 +66,13 @@ namespace pg
     public:
         UiSize(const float& pixelSize = 0.0f, const float& scaleValue = 0.0f, std::shared_ptr<UiValue> ref1 = nullptr, std::shared_ptr<UiValue> ref2 = nullptr, const UiValue::UiSizeOpType& op = UiValue::UiSizeOpType::NONE) : value(std::make_shared<UiValue>(pixelSize, scaleValue, ref1, ref2, op)) {}
         //UiSize(const float& pixelSize = 0.0f, const float& scaleValue = 0.0f, std::shared_ptr<UiValue> ref1 = nullptr, std::shared_ptr<UiValue> ref2 = nullptr, const UiValue::UiSizeOpType& op = UiValue::UiSizeOpType::NONE) : value(std::make_shared<UiValue>(pixelSize, scaleValue, ref1, ref2, op)) {}
-        UiSize(const UiSize& size) { value = size.value; } // TODO create a copy contruct with a bool to delete pointer
+        UiSize(const UiSize& size) : value(std::make_shared<UiValue>(size.value->pixelSize, size.value->scaleValue, size.value->refSize1, size.value->refSize2, size.value->opType)) {} // TODO create a copy contruct with a bool to delete pointer
         UiSize(const UiSize* size) : UiSize(0.0f, 1.0f, size->value, nullptr, UiValue::UiSizeOpType::NONE) {}
 
         void operator=(const UiSize& rhs) // use to copy a ui size
         {
-            value = rhs.value;
+            //value = rhs.value;
+            value = std::make_shared<UiValue>(rhs.value->pixelSize, rhs.value->scaleValue, rhs.value->refSize1, rhs.value->refSize2, rhs.value->opType);
         }
 
         void operator=(const UiSize *rhs) // use to make this ui size refer to another
