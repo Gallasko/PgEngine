@@ -16,10 +16,10 @@ namespace pg
         this->bottomAnchor = rhs.bottomAnchor;
         this->leftAnchor = rhs.leftAnchor;
 
-        this->top = &this->pos.y;
-        this->right = this->pos.x + this->width;
-        this->bottom = this->pos.y + this->height;
-        this->left = &this->pos.x;
+        //this->top = &this->pos.y;
+        //this->right = this->pos.x + this->width;
+        //this->bottom = this->pos.y + this->height;
+        //this->left = &this->pos.x;
 
         this->topMargin = rhs.topMargin;
         this->rightMargin = rhs.rightMargin;

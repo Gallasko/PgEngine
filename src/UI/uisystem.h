@@ -32,17 +32,17 @@ namespace pg
         UiSize height;
         float scale = 1.0f;
 
-        UiFrame frame = UiFrame(pos.x, pos.y, pos.z, width, height);
+        const UiFrame frame = UiFrame(pos.x, pos.y, pos.z, width, height);
 
         const UiSize *topAnchor = nullptr;
         const UiSize *rightAnchor = nullptr;
         const UiSize *bottomAnchor = nullptr;
         const UiSize *leftAnchor = nullptr;
 
-        UiSize top = &pos.y;
-        UiSize right = pos.x + width;
-        UiSize bottom = pos.y + height;
-        UiSize left = &pos.x;
+        const UiSize top = &pos.y;
+        const UiSize right = pos.x + width;
+        const UiSize bottom = pos.y + height;
+        const UiSize left = &pos.x;
 
         int topMargin = 0;
         int rightMargin = 0;
