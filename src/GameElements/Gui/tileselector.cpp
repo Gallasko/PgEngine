@@ -122,7 +122,6 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
     mouseAreaVector[2]->registerFunc(&map->changeTile, map);
 
     this->visible = true;
-    this->scale = 1.0;
 }
 
 void TileSelector::mouseInput(Input* inputHandler, double deltaTime)

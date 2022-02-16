@@ -29,7 +29,7 @@ namespace pg
         archive.endSerialization();
     }
 
-    Sentence::Sentence(const SentenceText& sentence, const float& scale, FontLoader *font) : QOpenGLFunctions(), font(font)
+    Sentence::Sentence(const SentenceText& sentence, const float& scale, FontLoader *font) : QOpenGLFunctions(), scale(scale), font(font)
     {
         initializeOpenGLFunctions(); 
 
@@ -40,8 +40,7 @@ namespace pg
         VAO->create();
         VBO->create();
         EBO->create();
-
-        this->scale = scale;
+        
         setText(sentence, font);
     }
 

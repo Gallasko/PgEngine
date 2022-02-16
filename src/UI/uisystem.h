@@ -28,31 +28,28 @@ namespace pg
 
         UiPosition pos;
 
-        UiSize width = UiSize(0, 0, nullptr);
-        UiSize height = UiSize(0, 0, nullptr);
-        float scale = 1.0f;
+        UiSize width;
+        UiSize height;
 
-        UiFrame frame = UiFrame(pos.x, pos.y, pos.z, width, height);
+        const UiFrame frame = UiFrame(pos.x, pos.y, pos.z, width, height);
 
         const UiSize *topAnchor = nullptr;
         const UiSize *rightAnchor = nullptr;
         const UiSize *bottomAnchor = nullptr;
         const UiSize *leftAnchor = nullptr;
 
-        UiSize top = &pos.y;
-        UiSize right = pos.x + width;
-        UiSize bottom = pos.y + height;
-        UiSize left = &pos.x;
+        const UiSize top = &pos.y;
+        const UiSize right = pos.x + width;
+        const UiSize bottom = pos.y + height;
+        const UiSize left = &pos.x;
 
         int topMargin = 0;
         int rightMargin = 0;
         int bottomMargin = 0;
         int leftMargin = 0;
 
-        std::vector<UiComponent*> children; // todo remove this
-
         UiComponent() { }
-        UiComponent(const UiFrame& frame) : pos(frame.pos), width(&frame.w), height(&frame.h) { }
+        UiComponent(const UiFrame& frame) : pos(&frame.pos), width(&frame.w), height(&frame.h) { }
         UiComponent(const UiComponent& rhs);
 
         inline void setX(const int& value) { pos.x = value; update(); }
@@ -81,8 +78,8 @@ namespace pg
         
         bool updated = true; // todo remove this 
 
-        bool inBound(int x, int y) { return x > this->pos.x / this->scale && x < (this->pos.x + this->width) / this->scale && y < (this->pos.y + this->height) / this->scale && y > this->pos.y / this->scale; }
-        bool inBound(constant::Vector2D vec2) { return inBound(vec2.x, vec2.y); }
+        bool inBound(int x, int y) const { return x > this->pos.x && x < (this->pos.x + this->width) && y < (this->pos.y + this->height) && y > this->pos.y; }
+        bool inBound(const constant::Vector2D& vec2) const { return inBound(vec2.x, vec2.y); }
         
         void update();
     };

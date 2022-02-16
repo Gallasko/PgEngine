@@ -69,10 +69,12 @@ namespace pg
 
         void generateMesh();
 
+        float scale = 0.0f;
+
         SentenceText text;
         FontLoader *font;
         int nbChara = 0;
-
+        
         constant::ModelInfo modelInfo;
 
         QOpenGLVertexArrayObject *VAO = nullptr;
