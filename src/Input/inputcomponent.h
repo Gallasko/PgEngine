@@ -1,11 +1,7 @@
 #pragma once
 
-#include <Qt>
-
 #include "../UI/uisystem.h"
 #include "input.h"
-
-#include <cstdarg>
 
 namespace pg
 {
@@ -32,10 +28,10 @@ namespace pg
         MouseInputComponent(const MouseInputComponent& component) : pos(component.pos), width(component.width), height(component.height), enable(component.enable), object(component.object), onPressed(component.onPressed), onPressedLambda(component.onPressedLambda) {}
 
         template<typename... Args>
-        void call(Input* inputHandler, double deltaTime, Args... args) { if(onPressed != nullptr) (*object.*onPressed)(inputHandler, deltaTime, args...); if(onPressedLambda != nullptr) (*onPressedLambda)(inputHandler, deltaTime); }
+        void call(Input* inputHandler, double deltaTime, const Args&... args) { if(onPressed != nullptr) (*object.*onPressed)(inputHandler, deltaTime, args...); if(onPressedLambda != nullptr) (*onPressedLambda)(inputHandler, deltaTime); }
 
         bool inBound(int x, int y) const { return x > this->pos->x && x < (this->pos->x + *this->width) && y < (this->pos->y + *this->height) && y > this->pos->y; }
-        bool inBound(constant::Vector2D vec2) const { return inBound(vec2.x, vec2.y); }
+        bool inBound(const constant::Vector2D& vec2) const { return inBound(vec2.x, vec2.y); }
 
         virtual ~MouseInputComponent() {}
     };
@@ -56,7 +52,7 @@ namespace pg
         //MouseInputBase(const MouseInputBase& component) : MouseInputComponent(component->x, component->y, component->z, component->width, component->height, component->enable, component->scale), onPressed(component.onPressed), object(component.object) { onPressedLambda = component.onPressedLambda; }
 
         template<typename... Args>
-        void call(Input* inputHandler, double deltaTime, Args... args) { if(onPressed != nullptr) {auto obj = static_cast<ObjectType*>(object); auto f = static_cast<void (ObjectType::*)(Input*, double, ...)>(*onPressed); (obj->f)(inputHandler, deltaTime, args...);} if(onPressedLambda != nullptr) (*onPressedLambda)(inputHandler, deltaTime); }
+        void call(Input* inputHandler, double deltaTime, const Args&... args) { if(onPressed != nullptr) {auto obj = static_cast<ObjectType*>(object); auto f = static_cast<void (ObjectType::*)(Input*, double, ...)>(*onPressed); (obj->f)(inputHandler, deltaTime, args...);} if(onPressedLambda != nullptr) (*onPressedLambda)(inputHandler, deltaTime); }
 
         ~MouseInputBase() {}
     };
@@ -78,7 +74,7 @@ namespace pg
         void registerFunc(void (*f)(Input*, double)) { onKeyLambda = f; }
 
         template<typename... Args>
-        void call(Input* inputHandler, double deltaTime, Args... args) { if(onKey != nullptr) (*object.*onKey)(inputHandler, deltaTime, args...); if(onKeyLambda != nullptr) (*onKeyLambda)(inputHandler, deltaTime); }
+        void call(Input* inputHandler, double deltaTime, const Args&... args) { if(onKey != nullptr) (*object.*onKey)(inputHandler, deltaTime, args...); if(onKeyLambda != nullptr) (*onKeyLambda)(inputHandler, deltaTime); }
 
         virtual ~KeyboardInputComponent() {}
     };
@@ -96,7 +92,7 @@ namespace pg
         //KeyboardInputBase(const KeyboardInputBase& component) : object(component.object), onKey(component.onKey) { onKeyLambda = component.onKeyLambda; }
 
         template<typename... Args>
-        void call(Input* inputHandler, double deltaTime, Args... args) { if(onKey != nullptr) {auto obj = static_cast<ObjectType*>(object); auto f = static_cast<void (ObjectType::*)(Input*, double, ...)>(*onKey); (obj->f)(inputHandler, deltaTime, args...);} if(onKeyLambda != nullptr) (*onKeyLambda)(inputHandler, deltaTime);  }
+        void call(Input* inputHandler, double deltaTime, const Args&... args) { if(onKey != nullptr) {auto obj = static_cast<ObjectType*>(object); auto f = static_cast<void (ObjectType::*)(Input*, double, ...)>(*onKey); (obj->f)(inputHandler, deltaTime, args...);} if(onKeyLambda != nullptr) (*onKeyLambda)(inputHandler, deltaTime);  }
 
         ~KeyboardInputBase() {}
     };

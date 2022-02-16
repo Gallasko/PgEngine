@@ -39,7 +39,7 @@ namespace pg
 			inline void setWidth(unsigned int w) { this->width = w; }
 			inline void setHeight(unsigned int h) { this->height = h; }
 			inline void setOffset(unsigned int offset) { this->yOffset = offset; }
-			inline void setName(std::string name) { this->name = name; }
+			inline void setName(const std::string& name) { this->name = name; }
 			void setMesh(unsigned int xPos, unsigned int yPos, unsigned int atlasWidth, unsigned int atlasHeight); 
 
 		private:

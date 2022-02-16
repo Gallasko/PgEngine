@@ -46,14 +46,6 @@ namespace pg
         unsigned int textureChangeRate;
     };
 
-    struct ParticleRenderer : public Renderer
-    {
-        using Renderer::Renderer;
-        virtual ~ParticleRenderer() {}
-
-        void render(MasterRenderer* masterRenderer...);
-    };
-
     //TODO create a particle system that create and manage all the particle component
 
 }

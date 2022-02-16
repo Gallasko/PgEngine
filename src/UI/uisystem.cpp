@@ -10,30 +10,28 @@ namespace pg
         this->pos = rhs.pos;
         this->width = rhs.width;
         this->height = rhs.height;
-        this->scale = rhs.scale;
         this->topAnchor = rhs.topAnchor;
         this->rightAnchor = rhs.rightAnchor;
         this->bottomAnchor = rhs.bottomAnchor;
         this->leftAnchor = rhs.leftAnchor;
 
-        this->top = &this->pos.y;
-        this->right = this->pos.x + this->width;
-        this->bottom = this->pos.y + this->height;
-        this->left = &this->pos.x;
+        //this->top = &this->pos.y;
+        //this->right = this->pos.x + this->width;
+        //this->bottom = this->pos.y + this->height;
+        //this->left = &this->pos.x;
 
         this->topMargin = rhs.topMargin;
         this->rightMargin = rhs.rightMargin;
         this->bottomMargin = rhs.bottomMargin;
         this->leftMargin = rhs.leftMargin;
-        this->children = rhs.children;
-        this->scale = scale;
     }
 
     void UiComponent::update()
     {
         if(topAnchor != nullptr && bottomAnchor != nullptr)
         {
-            this->height = UiSize(0.0f, 1.0f, new UiSize(-bottomMargin, 1.0f, bottomAnchor),  new UiSize(-topMargin, 1.0f, topAnchor), UiSize::UiSizeOpType::SUB); // todo change this because () create elements that are temporary
+            this->height = (*bottomAnchor - bottomMargin) - (*topAnchor - topMargin);
+            //this->height = UiSize(0.0f, 1.0f, new UiSize(-bottomMargin, 1.0f, bottomAnchor), new UiSize(-topMargin, 1.0f, topAnchor), UiSize::UiSizeOpType::SUB); // todo change this because () create elements that are temporary
             this->pos.y = *topAnchor + topMargin;
         }
         else if(topAnchor != nullptr && bottomAnchor == nullptr)
@@ -43,17 +41,20 @@ namespace pg
         else if(topAnchor == nullptr && bottomAnchor != nullptr)
         {
             //this->pos.y = (*bottomAnchor - bottomMargin) - this->height;
-            this->pos.y = UiSize(-this->height, 1.0f, new UiSize(-bottomMargin, 1.0f, bottomAnchor));
+            this->pos.y = (*bottomAnchor - bottomMargin) - this->height;
+            //this->pos.y = UiSize(-this->height, 1.0f, new UiSize(-bottomMargin, 1.0f, bottomAnchor));
         }
 
         if(rightAnchor != nullptr && leftAnchor != nullptr)
         {
-            this->width = UiSize(0.0f, 1.0f, new UiSize(-rightMargin, -1.0f, rightAnchor), new UiSize(-leftMargin, 1.0f, leftAnchor), UiSize::UiSizeOpType::SUB);
+            this->width = (*rightAnchor - rightMargin) - (*leftAnchor - leftMargin);
+            //this->width = UiSize(0.0f, 1.0f, new UiSize(-rightMargin, -1.0f, rightAnchor), new UiSize(-leftMargin, 1.0f, leftAnchor), UiSize::UiSizeOpType::SUB);
             this->pos.x = *leftAnchor + leftMargin;
         }
         else if(rightAnchor != nullptr && leftAnchor == nullptr)
         {
-            this->pos.x = UiSize(this->width, 1.0f, new UiSize(-rightMargin, 1.0f, rightAnchor));
+            this->pos.x = (*rightAnchor - rightMargin) - this->width;
+            //this->pos.x = UiSize(this->width, 1.0f, new UiSize(-rightMargin, 1.0f, rightAnchor));
         }
         else if(rightAnchor == nullptr && leftAnchor != nullptr)
         {
@@ -66,7 +67,7 @@ namespace pg
         //    child->update();
     }
 
-    TextureComponent::TextureComponent(UiSize width, UiSize height, const char* path)
+    TextureComponent::TextureComponent(const UiSize& width, const UiSize& height, const char* path)
     {
         initializeOpenGLFunctions(); 
 
@@ -171,13 +172,9 @@ namespace pg
         }
     }
 
-    void TextureRenderer::render(MasterRenderer* masterRenderer...)
+    template<>
+    void renderer(MasterRenderer* masterRenderer, TextureComponent* texture)
     { 
-        va_list args; 
-        va_start(args, masterRenderer); 
-        auto texture = va_arg(args, TextureComponent*);
-        va_end(args);
-
         auto rTable = masterRenderer->getParameter();
         const int screenWidth = rTable["ScreenWidth"];
         const int screenHeight = rTable["ScreenHeight"];
@@ -210,7 +207,7 @@ namespace pg
 
         texture->generateMesh();
 
-        glActiveTexture(GL_TEXTURE0);
+        //glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture->texture);
 
         view.setToIdentity();
@@ -224,69 +221,4 @@ namespace pg
         shaderProgram->release();
     }
 
-    void LoaderRenderer::render(MasterRenderer* ...)
-    {
-        /*
-        va_list args; 
-        va_start(args, rendererName); 
-        auto screenWidth = va_arg(args, int);
-        auto screenHeight = va_arg(args, int);
-        auto tileWidth = va_arg(args, int);
-        auto tileHeight = va_arg(args, int);
-        auto texture = va_arg(args, LoaderRenderer*);
-        va_end(args);
-
-        QMatrix4x4 projection;
-        QMatrix4x4 view;
-        QMatrix4x4 model;
-        QMatrix4x4 scale;
-
-        projection.setToIdentity();
-        model.setToIdentity();
-        scale.setToIdentity();
-        scale.scale(QVector3D(2.0f / screenWidth, 2.0f / screenHeight, 0.0f));
-
-        // Text rendering
-
-        shaderProgram->bind();
-
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("projection"), projection);
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("model"), model);
-
-        texture->generateMesh();
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture->texture);
-
-        view.setToIdentity();
-        view.translate(QVector3D(-1.0f + 2.0f * (float)(texture->x) / screenWidth, 1.0f + 2.0f * (float)( -texture->y) / screenHeight, 0.0f));
-
-        defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
-
-        texture->VAO->bind();
-        glDrawElements(GL_TRIANGLES, texture->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, tileTexture);
-
-        scale.setToIdentity();
-        scale.scale(QVector3D(tileWidth / screenWidth, tileHeight / screenHeight, 0.0f));
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("scale"), scale);
-
-        for(auto tile : tileRendererVector)
-        {
-            view.setToIdentity();
-            view.translate(QVector3D(-1.0f + 2.0f * (float)(tile.x + (tileHeight / 4.0f)) / screenWidth, 1.0f + 2.0f * (float)( -tile.y - (tileHeight / 8.0f)) / screenHeight, 0.0f));
-
-            shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
-
-            tile.id->getMesh()->bind();
-            glDrawElements(GL_TRIANGLES, tile.id->getModelInfo().nbIndices, GL_UNSIGNED_INT, 0);
-        }
-
-        //glDisable(GL_SCISSOR_TEST);
-
-        shaderProgram->release();
-        */
-    }
 }

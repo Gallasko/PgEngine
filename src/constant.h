@@ -324,10 +324,10 @@ namespace pg
 				void operator=(int value) { if(this->value) delete this->value; this->value = new NumericalInt(value); }
 				void operator=(float value) { if(this->value) delete this->value; this->value = new NumericalFloat(value); }
 
-				Ref operator+(const Ref &r) const { return Ref(*r.value + this->value, true); }
-				Ref operator-(const Ref &r) const { return Ref(*r.value - this->value, true); }
-				Ref operator*(const Ref &r) const { return Ref(*r.value * this->value, true); }
-				Ref operator/(const Ref &r) const { return Ref(*r.value / this->value, true); }
+				Ref operator+(const Ref& r) const { return Ref(*r.value + this->value, true); }
+				Ref operator-(const Ref& r) const { return Ref(*r.value - this->value, true); }
+				Ref operator*(const Ref& r) const { return Ref(*r.value * this->value, true); }
+				Ref operator/(const Ref& r) const { return Ref(*r.value / this->value, true); }
 
 				template <typename T>
 				Ref operator+(const T& rhs) const { return Ref(*this->value + rhs, true); }
@@ -343,7 +343,7 @@ namespace pg
 				operator float() const { return static_cast<NumericalFloat*>(this->value)->value; }
 			};
 
-			Ref& operator[](const std::string &name) { if(table.find(name) != table.end()) return table[name]; else { table[name] = Ref(nullptr); table[name].scoped = false; return table[name]; } }
+			Ref& operator[](const std::string& name) { if(table.find(name) != table.end()) return table[name]; else { table[name] = Ref(nullptr); table[name].scoped = false; return table[name]; } }
 
 			void clean() { for(auto& ref : table) delete ref.second.value; }
 

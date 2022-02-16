@@ -3,6 +3,11 @@
 #include "logger.h"
 #include "serialization.h"
 
+namespace
+{
+    const char* DOM = "Main window";
+}
+
 GameWindow::GameWindow(QWindow *parent) : QWindow(parent)
 {
     setSurfaceType(QWindow::OpenGLSurface);
@@ -52,19 +57,21 @@ void GameWindow::initialize()
 
     // Enable log in console
     auto terminalSink = pg::Logger::registerSink<pg::TerminalSink>(true);
-    terminalSink->addFilter("Log Level Filter", new pg::Logger::LogSink::FilterLogLevel(pg::Logger::InfoLevel::log));
+    //TODO fix FilterFile
+    //terminalSink->addFilter("Input Filter", new Logger::LogSink::FilterFile("src/Input/input.cpp"));
+    terminalSink->addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
 
     masterRenderer.setWindowSize(640, 480);
 
     masterRenderer.registerShader("default", "shader/default.vs", "shader/default.fs");
-    masterRenderer.registerRederer<TextureRenderer>();
+    //masterRenderer.registerRederer<TextureRenderer>();
 
     masterRenderer.registerShader("gui", "shader/default.vs", "shader/default.fs");
     masterRenderer.registerShader("text", "shader/textrendering.vs", "shader/textrendering.fs");
-    masterRenderer.registerRederer<SentenceRenderer>();
+    //masterRenderer.registerRederer<SentenceRenderer>();
 
     masterRenderer.registerShader("particle", "shader/particle.vs", "shader/particle.fs");
-    masterRenderer.registerRederer<ParticleRenderer>();
+    //masterRenderer.registerRederer<ParticleRenderer>();
 
     masterRenderer.registerTexture("atlas", "res/tiles/TeclaEatsAtlas.png");
     masterRenderer.registerTexture("menu", "res/menu/Menu.png");
@@ -79,7 +86,7 @@ void GameWindow::initialize()
 
     mapConstraint.width = 15;
     mapConstraint.height = 15;
-    mapConstraint.seed = 1;
+    mapConstraint.seed = 2;
  
     mapConstraint.noiseParam = {4, 5, 50, -1, 0.4};
 
@@ -164,9 +171,17 @@ void GameWindow::initialize()
     tileSelector = new TileSelector(gameMap, tileLoader, fontLoader, screenUi);
     tileSelector->pos.z = 2;
     tileSelector->setTopAnchor(&screenUi->top);
-    //tileSelector->setRightAnchor(&screenUi->right); // TODO fix all of this
-    tileSelector->pos.x = screenUi->width - tileSelector->width;
+    tileSelector->setRightAnchor(&screenUi->right); // TODO fix all of this
+    //tileSelector->pos.x = screenUi->width - tileSelector->width;
     //tileSelector->setLeftAnchor(&screenUi->left);//(&screenUi->right);
+
+    frame.pos.x = 100;
+    frame.pos.y = 50;
+    frame.pos.z = 5;
+    frame.w = 40;
+    frame.h = 200;
+    
+    slideBar = new SlideBar(frame, tileSelector->frame, 150, nullptr);  
 
     //Sequence tileSelectorSeq = Sequence(
     //    Sequence::OriginPoint(screenUi->top, screenUi->right, 0.0f),
@@ -210,8 +225,8 @@ void GameWindow::initialize()
 
     auto pigeonSpawnerTexture = ecs.createEntity();
     auto pigeonSpawnerTextureC = ecs.attach<TextureComponent>(pigeonSpawnerTexture, {297, 196, "res/menu/menutest.png"});
-    pigeonSpawnerTextureC->pos.x = screenUi->right;
-    pigeonSpawnerTextureC->pos.y = screenUi->bottom;
+    pigeonSpawnerTextureC->setRightAnchor(screenUi->right);
+    pigeonSpawnerTextureC->setBottomAnchor(screenUi->bottom);
 
     auto pigeonSpawnButton = ecs.createEntity();
     auto pigeonSpawnButtonC = ecs.attach<TextureComponent>(pigeonSpawnButton, {64, 32, "res/menu/frame.png"});
@@ -471,7 +486,7 @@ void GameWindow::render()
     nbFrames++;
     if(currentTime - lastFPSCount >= 1000 || currentTime < lastFPSCount)
     {
-        LOG_THIS_MEMBER("Main loop", "Fps counter updated");
+        LOG_THIS_MEMBER(DOM);
 
         auto fpsText = fpsCounter->get<Sentence>();
         if(fpsText != nullptr)
@@ -497,7 +512,7 @@ void GameWindow::render()
 
     updateGameState(float(currentTime - lastTime) / 1000);
 
-    //renderGame();
+    renderGame();
 
     if(!debug)
     {
@@ -505,7 +520,7 @@ void GameWindow::render()
         if(mousePosTextC != nullptr)
             mousePosTextC->visible = true;
 
-        //renderUi();
+        renderUi();
     }
     else
     {
@@ -515,6 +530,7 @@ void GameWindow::render()
     }
 
     masterRenderer << tileSelector;
+    //masterRenderer << slideBar;
 
     //masterRenderer.render<ParticleRenderer>(pComponent);
 
@@ -679,7 +695,7 @@ void GameWindow::gameplayTest(Input* inputHandler, double...)
         PigeonEntity entity;
         entity.path = path;
 
-        pigeonEntities.emplace_back(entity);
+        pigeonEntities.push_back(entity);
         pressed = true; 
     } 
 
@@ -761,6 +777,10 @@ void GameWindow::updateGameState(double deltaTime)
         if (tileSelector->pos.z > highestZ)
             highestZ = tileSelector->pos.z;
 
+    if(slideBar->inBound(mousePos.x(), mousePos.y()))
+        if(slideBar->pos.z > highestZ)
+            highestZ = slideBar->pos.z;
+
     for(auto& mouseArea : ecs.view<MouseInputComponent*>())
     {
         if(mouseArea->inBound(mousePos.x(), mousePos.y()) && *mouseArea->enable && mouseArea->pos->z == highestZ)
@@ -772,6 +792,9 @@ void GameWindow::updateGameState(double deltaTime)
 
     if(tileSelector->pos.z == highestZ)
         tileSelector->mouseInput(inputHandler, deltaTime);
+
+    if(slideBar->pos.z == highestZ)
+        slideBar->mouseInput(inputHandler, deltaTime);
 
     //TODO make the map responsive to Z index 
     if(highestZ <= 0)
@@ -868,7 +891,11 @@ void GameWindow::renderGame()
 
         int currentIndex = std::floor(entity.currentTime / 1000.0f);
 
-        auto currentPos = entity.path[currentIndex];
+        constant::Vector2D currentPos = {0, 0};
+        if(currentIndex < static_cast<int>(entity.path.size()))
+            currentPos = entity.path[currentIndex];
+        else
+            currentPos = entity.path[static_cast<int>(entity.path.size()) - 1];
 
         if(currentIndex + 1 < static_cast<int>(entity.path.size()))
         {
@@ -923,6 +950,9 @@ void GameWindow::renderUi()
     //glEnable(GL_SCISSOR_TEST);
     //glScissor(300, 200, 200, 500);
 
+    glActiveTexture(GL_TEXTURE0);
+
+    // Todo use the master renderer to render all the texture component but using only one shader binding 
     for(auto& texture : ecs.view<TextureComponent>())
     {
         if(texture.visible)
@@ -930,7 +960,6 @@ void GameWindow::renderUi()
             if(texture.initialised == false)
                 texture.generateMesh();
 
-            glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, texture.texture);
 
             view.setToIdentity();
@@ -964,8 +993,12 @@ void GameWindow::renderUi()
 
     textShaderProgram->setUniformValue(textShaderProgram->uniformLocation("time"), static_cast<int>(currentTime % 314159));
 
+    //masterRenderer.render(ecs.view<Sentence>());
+
     for(auto& sentence : ecs.view<Sentence>()) //TODO set a note about how auto& is important to pass by ref and not create a copy which is costy 
     {
+        masterRenderer.render(&sentence);
+        /*
         if(sentence.visible)
         {
             if(sentence.initialised == false)
@@ -978,6 +1011,7 @@ void GameWindow::renderUi()
             sentence.VAO->bind();
             glDrawElements(GL_TRIANGLES, sentence.modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
         }
+        */
     }
 
     textShaderProgram->release();
@@ -986,6 +1020,8 @@ void GameWindow::renderUi()
 //TODO make a tick object that take tick function and run in background when you start up the engine
 void GameWindow::tick()
 {
+    LOG_THIS_MEMBER(DOM);
+
     unsigned int tickTime = 0;
 
     auto currentTickTime = QDateTime::currentMSecsSinceEpoch();
@@ -1014,8 +1050,6 @@ void GameWindow::tick()
 
             if(pigeonEntities[i].currentTime > pigeonEntities[i].path.size() * 1000)
             {
-                LOG_THIS_MEMBER("Main loop", "Pigeon deleted");
-
                 pigeonMutex.lock();
                 pigeonEntities.erase(pigeonEntities.begin() + i);
                 gold += 1;

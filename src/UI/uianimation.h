@@ -32,9 +32,9 @@ namespace pg
         // or sort the whole list accordingly so that the last element is the duration of the sequence 
         // maybe replace the vector by a sorted map ? 
         template<typename... Args>
-        void add(const UiKeyPoint& point, Args... args) { keyPoints.emplace_back(point), duration = point.time; add(args...); }
+        void add(const UiKeyPoint& point, Args... args) { keyPoints.push_back(point), duration = point.time; add(args...); }
 
-        void add(const UiKeyPoint& point) { keyPoints.emplace_back(point); duration = point.time; }
+        void add(const UiKeyPoint& point) { keyPoints.push_back(point); duration = point.time; }
 
         //void add() { } Add this if i want to allow empty sequences
 

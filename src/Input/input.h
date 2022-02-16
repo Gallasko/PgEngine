@@ -6,7 +6,6 @@
 #include <QPoint>
 
 #include <vector>
-#include <algorithm>
 
 namespace pg
 {
@@ -54,16 +53,16 @@ namespace pg
 		Input::InputState registerMouseInput(const Qt::MouseButton& button, const Input::InputState& state);
 		Input::InputState registerMouseMove(const QPoint& mousePos, const QPoint& mouseDelta);
 
-		Input::InputState keyState(const Qt::Key& key);
-		bool isKeyPressed(const Qt::Key& key);
-		bool isKeyReleased(const Qt::Key& key);
+		Input::InputState keyState(const Qt::Key& key) const;
+		bool isKeyPressed(const Qt::Key& key) const;
+		bool isKeyReleased(const Qt::Key& key) const;
 
-		Input::InputState buttonState(const Qt::MouseButton& button);
-		bool isButtonPressed(const Qt::MouseButton& button);
-		bool isButtonReleased(const Qt::MouseButton& button);
+		Input::InputState buttonState(const Qt::MouseButton& button) const;
+		bool isButtonPressed(const Qt::MouseButton& button) const;
+		bool isButtonReleased(const Qt::MouseButton& button) const;
 
-		QPoint getMousePos();
-		QPoint getMouseDelta();
+		const QPoint& getMousePos() const;
+		const QPoint& getMouseDelta() const;
 
 		void updateInput(double deltaTime);
 
@@ -78,7 +77,7 @@ namespace pg
 		double updateTime;
 
 		template <typename Container, typename Value>
-		int findInputPos(Value value, Container container);
+		int findInputPos(const Value& value, const Container& container) const;
 
 	};
 }

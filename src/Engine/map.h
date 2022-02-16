@@ -246,6 +246,7 @@ namespace pg
     private:
         void initPathFinding();
         void updateModelInfo();
+        void generateRandomMap();
         void roadTiling();
         void drawPath();
 
