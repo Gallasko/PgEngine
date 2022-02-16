@@ -70,7 +70,7 @@ namespace pg
             ByteDir availableDir;  
         };
     }
-    Map::Map(EntitySystem *ecs, TilesLoader *tilesLoader, Map::MapConstraint constraint) : ecs(ecs), tilesLoader(tilesLoader), constraint(constraint)
+    Map::Map(EntitySystem *ecs, TilesLoader *tilesLoader, const Map::MapConstraint& constraint) : ecs(ecs), tilesLoader(tilesLoader), constraint(constraint)
     {
         initializeOpenGLFunctions(); 
 
@@ -473,7 +473,7 @@ namespace pg
 
         int openSpace = 1;
 
-        const float fillRatio = 0.6; // TODO need to be added in constraint
+        const float fillRatio = 0.3; // TODO need to be added in constraint
         const int spaceToBeFilled = constraint.width * constraint.height * fillRatio; // TODO take in consideration unhabitable space such as water or mountain by scaning the map first for contiguous available space
 
         tileMap[xStart][yStart]->tileId = tilesLoader->getTile("Base Road RoundAbout");
@@ -763,11 +763,11 @@ namespace pg
                 srand(rand());
                 placeResult = rand() % placement;
                 placeItem = placeList[placeResult];
-                availableSpace[i]->tileId = placeItem;
 
                 if(placeItem == tilesLoader->getTile("Dirt"))
                 {
                     blankSpace--;
+                    
                     if(blankSpace <= 0)
                     {
                         placement--;
@@ -779,6 +779,8 @@ namespace pg
                 }
                 else if(placeItem == tilesLoader->getTile("Base House"))
                 {
+                    availableSpace[i]->tileId = placeItem;
+
                     nbHouse--;
                     
                     if(nbHouse <= 0)
@@ -792,6 +794,8 @@ namespace pg
                 }
                 else if(placeItem == tilesLoader->getTile("Base Shop"))
                 {
+                    availableSpace[i]->tileId = placeItem;
+
                     nbShop--;
                     
                     if(nbShop <= 0)

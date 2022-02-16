@@ -86,7 +86,7 @@ void GameWindow::initialize()
 
     mapConstraint.width = 15;
     mapConstraint.height = 15;
-    mapConstraint.seed = 2;
+    mapConstraint.seed = 12;
  
     mapConstraint.noiseParam = {4, 5, 50, -1, 0.4};
 
@@ -690,12 +690,16 @@ void GameWindow::gameplayTest(Input* inputHandler, double...)
     if(inputHandler->isButtonPressed(Qt::LeftButton) && !pressed) 
     {
         LOG_INFO("Main Loop", "Created pigeon");
-        auto path = gameMap->createPathBetweenHouseAndShop(); 
+        for(int i = 0; i < 10; i++)
+        {
+            auto path = gameMap->createPathBetweenHouseAndShop(); 
 
-        PigeonEntity entity;
-        entity.path = path;
+            PigeonEntity entity;
+            entity.path = path;
 
-        pigeonEntities.push_back(entity);
+            pigeonEntities.push_back(entity);
+        }
+        
         pressed = true; 
     } 
 
