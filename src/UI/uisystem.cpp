@@ -10,7 +10,6 @@ namespace pg
         this->pos = rhs.pos;
         this->width = rhs.width;
         this->height = rhs.height;
-        this->scale = rhs.scale;
         this->topAnchor = rhs.topAnchor;
         this->rightAnchor = rhs.rightAnchor;
         this->bottomAnchor = rhs.bottomAnchor;
@@ -25,8 +24,6 @@ namespace pg
         this->rightMargin = rhs.rightMargin;
         this->bottomMargin = rhs.bottomMargin;
         this->leftMargin = rhs.leftMargin;
-        this->children = rhs.children;
-        this->scale = scale;
     }
 
     void UiComponent::update()

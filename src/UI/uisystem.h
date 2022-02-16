@@ -30,7 +30,6 @@ namespace pg
 
         UiSize width;
         UiSize height;
-        float scale = 1.0f;
 
         const UiFrame frame = UiFrame(pos.x, pos.y, pos.z, width, height);
 
@@ -48,8 +47,6 @@ namespace pg
         int rightMargin = 0;
         int bottomMargin = 0;
         int leftMargin = 0;
-
-        std::vector<UiComponent*> children; // todo remove this
 
         UiComponent() { }
         UiComponent(const UiFrame& frame) : pos(&frame.pos), width(&frame.w), height(&frame.h) { }
@@ -81,7 +78,7 @@ namespace pg
         
         bool updated = true; // todo remove this 
 
-        bool inBound(int x, int y) const { return x > this->pos.x / this->scale && x < (this->pos.x + this->width) / this->scale && y < (this->pos.y + this->height) / this->scale && y > this->pos.y / this->scale; }
+        bool inBound(int x, int y) const { return x > this->pos.x && x < (this->pos.x + this->width) && y < (this->pos.y + this->height) && y > this->pos.y; }
         bool inBound(const constant::Vector2D& vec2) const { return inBound(vec2.x, vec2.y); }
         
         void update();
