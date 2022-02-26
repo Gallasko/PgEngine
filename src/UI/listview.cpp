@@ -14,6 +14,10 @@ namespace pg
     SlideBar::SlideBar(const UiFrame& frame, UiSize* posToUpdate, Orientation orientation) : UiComponent(frame), posUpdate(posToUpdate), orientation(orientation)
     {
         // Default slider
+
+        // TODO create a unique instance of a texture creator and call it to create all textures
+        // TODO make the texture creator load the texture only once and call the same texture when needed (avoid duplication of a texture in memory)
+        // TODO make them dependent on the texture create and keep only shared ptr of it
         slider = new TextureComponent(this->width, this->height, "res/object/slider.png");
         slider->setTopAnchor(this->top);
         slider->setLeftAnchor(this->left);
@@ -28,6 +32,16 @@ namespace pg
         this->boxToMonitor = boxToMonitor;
 
         updateCursorSize(maxPos);
+    }
+
+    SlideBar::SlideBar(const SlideBar& rhs) : UiComponent(rhs), slider(rhs.slider), cursor(rhs.cursor), buttonHeight(rhs.buttonHeight), boxToMonitor(rhs.boxToMonitor), posUpdate(rhs.posUpdate), orientation(rhs.orientation)
+    {
+    }
+
+    SlideBar::~SlideBar()
+    {
+        delete slider;
+        delete cursor;
     }
 
     void SlideBar::mouseInput(Input* inputHandler, double deltaTime...)
@@ -68,6 +82,35 @@ namespace pg
             this->buttonHeight = height;
 
         cursor->setHeight(this->buttonHeight);
+    }
+
+    template<>
+    void renderer(MasterRenderer* masterRenderer, ListView* listView)
+    {
+        if(listView->background != nullptr)
+            masterRenderer->render(listView->background);
+
+        masterRenderer->render(&listView->slide);
+
+        //TODO gl scissor for list views 
+        glEnable(GL_SCISSOR_TEST);
+        glScissor(listView->pos.x, listView->pos.y, listView->width, listView->height);
+
+        //for(auto child : listView->children)
+        //    masterRenderer->render(child);
+
+        glDisable(GL_SCISSOR_TEST);
+    }
+
+    // TODO set a base size for the slide + fix the magic number in this line -->                                                                     this is a magic number  V 
+    ListView::ListView(const UiFrame& frame, TextureComponent* backgroundTexture) : UiComponent(frame), slide(SlideBar(UiFrame{this->right, this->top, this->pos.z, 20, this->height}, this->frame, this->frame.pos.y, nullptr)), background(backgroundTexture)
+    {
+
+    }
+
+    ListView::ListView(const UiFrame& frame, const SlideBar& slidebar, TextureComponent* backgroundTexture) : UiComponent(frame), slide(slidebar), background(backgroundTexture)
+    {
+
     }
     
 }

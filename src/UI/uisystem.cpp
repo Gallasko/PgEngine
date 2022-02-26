@@ -201,10 +201,6 @@ namespace pg
         shaderProgram->setUniformValue(shaderProgram->uniformLocation("model"), model);
         shaderProgram->setUniformValue(shaderProgram->uniformLocation("scale"), scale);
 
-        //TODO gl scissor for list views 
-        //glEnable(GL_SCISSOR_TEST);
-        //glScissor(300, 200, 200, 500);
-
         texture->generateMesh();
 
         //glActiveTexture(GL_TEXTURE0);

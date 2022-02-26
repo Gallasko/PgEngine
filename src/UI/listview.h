@@ -1,11 +1,15 @@
 #pragma once
 
+#include <vector>
+
 #include "uisystem.h"
 
 #include "../Input/inputcomponent.h"
 
 namespace pg
-{   
+{
+    //TODO make sliders part of the scrollable component cause not only the list view need them
+    //Scrollable widgets includes : listview, long text, long images, maps, etc... 
     class SlideBar : public UiComponent
     {
     public:
@@ -16,8 +20,12 @@ namespace pg
         };
 
     public:
+        //TODO use the orientation data
         SlideBar(const UiFrame& frame, UiSize* posToUpdate, Orientation orientation = Orientation::VERTICAL);
         SlideBar(const UiFrame& frame, const UiFrame& boxToMonitor, const UiSize& maxPos, UiSize* posToUpdate, Orientation orientation = Orientation::VERTICAL);
+        SlideBar(const SlideBar& slide);
+
+        ~SlideBar();
 
         void changeSliderTexture(const char* texture);
 
@@ -37,6 +45,7 @@ namespace pg
         TextureComponent* slider;
         TextureComponent* cursor;
 
+        // TODO: move this in the cursor class
         UiSize buttonHeight = height / 10.0f;
         
         //UiSize yMin, yMax;
@@ -52,13 +61,23 @@ namespace pg
         //MouseInputComponent* mouseArea;
     };
 
+    // Make list view subclass from scrollable components
     class ListView : UiComponent
     {
     public:
+        ListView(const UiFrame& frame, TextureComponent* backgroundTexture = nullptr);
+        ListView(const UiFrame& frame, const SlideBar& slidebar, TextureComponent* backgroundTexture = nullptr); 
+
+        void add(std::shared_ptr<UiComponent> child) { children.push_back(child); }
 
     private:
-        friend void renderer<>(MasterRenderer* renderer, SlideBar* slidebar);
-        SlideBar* slide;
+        friend void renderer<>(MasterRenderer* renderer, ListView* listView);
+
+        TextureComponent* background = nullptr;
+
+        SlideBar slide;
+
+        std::vector<std::shared_ptr<UiComponent>> children;
     };
 }
 
