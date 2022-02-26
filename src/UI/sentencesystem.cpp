@@ -29,6 +29,8 @@ namespace pg
         archive.endSerialization();
     }
 
+    //TODO make a class responsible for creating all the VAO/VBO for the meshes so the class doesn t need to subclass QOpenGLFunctions
+
     Sentence::Sentence(const SentenceText& sentence, const float& scale, FontLoader *font) : QOpenGLFunctions(), scale(scale), font(font)
     {
         initializeOpenGLFunctions(); 
@@ -58,6 +60,7 @@ namespace pg
 
         this->text = rhs.text;
         this->nbChara = rhs.nbChara;
+        this->scale = rhs.scale;
 
         this->modelInfo = rhs.modelInfo;
 

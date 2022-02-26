@@ -32,8 +32,15 @@ namespace pg
 
     void SlideBar::mouseInput(Input* inputHandler, double deltaTime...)
     {
-        if(inputHandler->isButtonPressed(Qt::LeftButton)) 
+        static bool pressed = false;
+
+        if(not inputHandler->isButtonGrabbed(Qt::LeftButton))
+            pressed = false;
+
+        if(inputHandler->isButtonPressed(Qt::LeftButton) or pressed) 
         {
+            inputHandler->grabMouse(Qt::LeftButton);
+
             const auto pos = inputHandler->getMousePos();
 
             auto currentPos = pos.y() - this->pos.y - this->buttonHeight / 2.0f;
@@ -48,7 +55,9 @@ namespace pg
                 *posUpdate = currentPos;
 
             cursor->setTopMargin(currentPos);
-        } 
+
+            pressed = true;
+        }
     }
 
     void SlideBar::updateCursorSize(const UiSize& maxPos)
