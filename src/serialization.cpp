@@ -8,36 +8,44 @@ namespace pg
 
     //Serialisation of base type
 
+    std::ostream& operator<<(std::ostream& stream, const Archive::EndOfLine& endOfLine)
+    {
+        stream << std::endl;
+        stream << std::string(*endOfLine.indentLevel, '\t');
+        
+        return stream;
+    }
+
     template<>
     void serialize(Archive& archive, const bool& value)
     {
         std::string res = value ? "true" : "false";
 
-        archive << res << ",\n";
+        archive << res << "," << archive.endl();
     }
 
     template<>
     void serialize(Archive& archive, const int& value)
     {
-        archive << value << ",\n";
+        archive << value << "," << archive.endl();
     }
 
     template<>
     void serialize(Archive& archive, const float& value)
     {
-        archive << value << ",\n";
+        archive << value << "," << archive.endl();
     }
 
     template<>
     void serialize(Archive& archive, const double& value)
     {
-        archive << value << ",\n";
+        archive << value << "," << archive.endl();
     }
 
     template<>
     void serialize(Archive& archive, const std::string& value)
     {
-        archive << value << ",\n";
+        archive << value << "," << archive.endl();
     }
 
     template<>
@@ -86,17 +94,16 @@ namespace pg
         for(unsigned int i = 0; i < modelInfo.nbVertices; i++)
             archive << modelInfo.vertices[i] << " ";
         
-        archive << "],\n";
+        archive << "]," << archive.endl();;
 
         //TODO make this automatically after a new line;
-        archive.indent();
 
         archive << "Indicies: [ ";
         
         for(unsigned int i = 0; i < modelInfo.nbIndices; i++)
             archive << modelInfo.indices[i] << " ";
         
-        archive << "],\n";
+        archive << "]," << archive.endl();;
         
         archive.endSerialization();
     }

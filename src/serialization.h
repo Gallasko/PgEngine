@@ -12,29 +12,23 @@ namespace pg
 {
     class Archive
     {
-    public:
-        void indent()
-        {
-            //TODO optimize this
+        struct EndOfLine { size_t* indentLevel = nullptr; };
 
-            for(unsigned int i = 0; i < indentLevel; i++)
-                container << "\t";
-        }
+    public:
+        Archive() { endOfLine.indentLevel = &indentLevel; }
+        
+        const EndOfLine& endl() const { return endOfLine; }
 
         void startSerialization(const std::string& className)
         {
-            indent();
-            container << className << " {\n";
-            
             indentLevel++;
+            container << className << " {" << endOfLine;
         }
 
         void endSerialization()
         {
             indentLevel--;
-            indent();
-
-            container << "}\n";
+            container << "}" << endOfLine;
         }
 
         template <typename Type>
@@ -44,9 +38,12 @@ namespace pg
             return *this;
         }
 
+        friend std::ostream& operator<<(std::ostream& stream, const Archive::EndOfLine& endOfLine);
+
         std::stringstream container;
 
-        unsigned int indentLevel = 0;
+        size_t indentLevel = 0;
+        EndOfLine endOfLine;
     };
 
     template<typename Type>
@@ -55,9 +52,6 @@ namespace pg
     template<typename Type>
     void serialize(Archive& archive, const std::string& name, const Type& value)
     {
-        //TODO make this automatically after a new line;
-        archive.indent();
-        
         archive << name << ": ";
 
         serialize(archive, value);

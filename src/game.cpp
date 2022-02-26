@@ -512,7 +512,7 @@ void GameWindow::render()
 
     updateGameState(float(currentTime - lastTime) / 1000);
 
-    renderGame();
+    //renderGame();
 
     if(!debug)
     {
@@ -520,7 +520,7 @@ void GameWindow::render()
         if(mousePosTextC != nullptr)
             mousePosTextC->visible = true;
 
-        renderUi();
+        //renderUi();
     }
     else
     {
@@ -529,7 +529,7 @@ void GameWindow::render()
             mousePosTextC->visible = false;
     }
 
-    masterRenderer << tileSelector;
+    //masterRenderer << tileSelector;
     //masterRenderer << slideBar;
 
     //masterRenderer.render<ParticleRenderer>(pComponent);
