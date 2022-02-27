@@ -69,7 +69,7 @@ namespace pg
 
         void generateMesh();
 
-        virtual void render(MasterRenderer* masterRenderer) { renderer(masterRenderer, this); }
+        virtual void render(MasterRenderer* masterRenderer);
 
         float scale = 0.0f;
 

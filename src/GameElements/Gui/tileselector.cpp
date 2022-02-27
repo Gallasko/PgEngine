@@ -119,15 +119,19 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
     this->visible = true;
 }
 
+TileSelector::~TileSelector()
+{
+    for(int i = 2; i >= 0; i--)
+        deleteInput(mouseAreaVector.at(i));
+}
+
 void TileSelector::setVisibility(bool visibility)
 {
     visible = visibility;
 }
 
 //void TileSelector::render(unsigned int screenWidth, unsigned int screenHeight, QOpenGLShaderProgram* defaultShaderProgram, unsigned int tileTexture, QOpenGLShaderProgram* textShaderProgram, unsigned int fontTexture, qint64 currentTime)
-
-TileSelector::~TileSelector()
-{
-    for(int i = 2; i >= 0; i--)
-        deleteInput(mouseAreaVector.at(i));
+void TileSelector::render(MasterRenderer* masterRenderer)
+{ 
+    renderer(masterRenderer, this); 
 }

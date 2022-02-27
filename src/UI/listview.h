@@ -36,7 +36,7 @@ namespace pg
 
         void mouseInput(Input* inputhandler, double deltaTime...);
 
-        virtual void render(MasterRenderer* masterRenderer) { renderer(masterRenderer, this); }
+        virtual void render(MasterRenderer* masterRenderer);
 
     private:
         friend void renderer<>(MasterRenderer* renderer, SlideBar* slidebar);
@@ -71,7 +71,7 @@ namespace pg
 
         void add(std::shared_ptr<UiComponent> child) { children.push_back(child); }
 
-        virtual void render(MasterRenderer* masterRenderer) { renderer(masterRenderer, this); }
+        virtual void render(MasterRenderer* masterRenderer);
 
     private:
         friend void renderer<>(MasterRenderer* renderer, ListView* listView);

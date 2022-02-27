@@ -11,6 +11,24 @@ namespace pg
         masterRenderer->render(slideBar->cursor);
     }
 
+    template<>
+    void renderer(MasterRenderer* masterRenderer, ListView* listView)
+    {
+        if(listView->background != nullptr)
+            masterRenderer->render(listView->background);
+
+        masterRenderer->render(&listView->slide);
+
+        //TODO gl scissor for list views 
+        glEnable(GL_SCISSOR_TEST);
+        glScissor(listView->pos.x, listView->pos.y, listView->width, listView->height);
+
+        for(auto& child : listView->children)
+            child->render(masterRenderer);
+
+        glDisable(GL_SCISSOR_TEST);
+    }
+
     SlideBar::SlideBar(const UiFrame& frame, UiSize* posToUpdate, Orientation orientation) : UiComponent(frame), posUpdate(posToUpdate), orientation(orientation)
     {
         // Default slider
@@ -84,23 +102,10 @@ namespace pg
 
         cursor->setHeight(this->buttonHeight);
     }
-
-    template<>
-    void renderer(MasterRenderer* masterRenderer, ListView* listView)
-    {
-        if(listView->background != nullptr)
-            masterRenderer->render(listView->background);
-
-        masterRenderer->render(&listView->slide);
-
-        //TODO gl scissor for list views 
-        glEnable(GL_SCISSOR_TEST);
-        glScissor(listView->pos.x, listView->pos.y, listView->width, listView->height);
-
-        //for(auto child : listView->children)
-        //    masterRenderer->render(child);
-
-        glDisable(GL_SCISSOR_TEST);
+    
+    void SlideBar::render(MasterRenderer* masterRenderer)
+    { 
+        renderer(masterRenderer, this); 
     }
 
     // TODO set a base size for the slide + fix the magic number in this line -->                                                                     this is a magic number  V 
@@ -113,5 +118,9 @@ namespace pg
     {
 
     }
-    
+
+    void ListView::render(MasterRenderer* masterRenderer)
+    { 
+        renderer(masterRenderer, this); 
+    }
 }

@@ -9,6 +9,51 @@ namespace pg
 		const char * DOM = "Ui System";
 	}
 
+    template<>
+    void renderer(MasterRenderer* masterRenderer, TextureComponent* texture)
+    { 
+        auto rTable = masterRenderer->getParameter();
+        const int screenWidth = rTable["ScreenWidth"];
+        const int screenHeight = rTable["ScreenHeight"];
+
+        QMatrix4x4 projection;
+        QMatrix4x4 view;
+        QMatrix4x4 model;
+        QMatrix4x4 scale;
+
+        projection.setToIdentity();
+        model.setToIdentity();
+        scale.setToIdentity();
+        scale.scale(QVector3D(2.0f / screenWidth, 2.0f / screenHeight, 0.0f)); 
+        // TODO why does it need to be scale * 2 ( the scaling now happen in the shader ) <- Done the * 2 is needed to map the -1 <-> 1 space to a 0 <-> 1 space 
+        // Need to make a note about that
+
+        auto shaderProgram = masterRenderer->getShader("default");
+
+        // Tex rendering
+        
+        shaderProgram->bind();
+
+        shaderProgram->setUniformValue(shaderProgram->uniformLocation("projection"), projection);
+        shaderProgram->setUniformValue(shaderProgram->uniformLocation("model"), model);
+        shaderProgram->setUniformValue(shaderProgram->uniformLocation("scale"), scale);
+
+        texture->generateMesh();
+
+        //glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture->texture);
+
+        view.setToIdentity();
+        view.translate(QVector3D(-1.0f + 2.0f * (float)(texture->pos.x) / screenWidth, 1.0f + 2.0f * (float)( -texture->pos.y) / screenHeight, 0.0f));
+
+        shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
+
+        texture->VAO->bind();
+        glDrawElements(GL_TRIANGLES, texture->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
+
+        shaderProgram->release();
+    }
+
     UiComponent::UiComponent(const UiComponent& rhs)
     {
         //TODO remove the previous reference of rhs inside the parent and push this pointer inside the parent child list to avoid resize error when this is being copied
@@ -28,7 +73,7 @@ namespace pg
         this->leftMargin = rhs.leftMargin;
     }
 
-    virtual void render(MasterRenderer* masterRenderer)
+    void UiComponent::render(MasterRenderer*)
     {
         LOG_ERROR(DOM, "Called Render of UiComponent when it should never be !");
     }
@@ -179,49 +224,8 @@ namespace pg
         }
     }
 
-    template<>
-    void renderer(MasterRenderer* masterRenderer, TextureComponent* texture)
+    void TextureComponent::render(MasterRenderer* masterRenderer)
     { 
-        auto rTable = masterRenderer->getParameter();
-        const int screenWidth = rTable["ScreenWidth"];
-        const int screenHeight = rTable["ScreenHeight"];
-
-        QMatrix4x4 projection;
-        QMatrix4x4 view;
-        QMatrix4x4 model;
-        QMatrix4x4 scale;
-
-        projection.setToIdentity();
-        model.setToIdentity();
-        scale.setToIdentity();
-        scale.scale(QVector3D(2.0f / screenWidth, 2.0f / screenHeight, 0.0f)); 
-        // TODO why does it need to be scale * 2 ( the scaling now happen in the shader ) <- Done the * 2 is needed to map the -1 <-> 1 space to a 0 <-> 1 space 
-        // Need to make a note about that
-
-        auto shaderProgram = masterRenderer->getShader("default");
-
-        // Tex rendering
-        
-        shaderProgram->bind();
-
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("projection"), projection);
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("model"), model);
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("scale"), scale);
-
-        texture->generateMesh();
-
-        //glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture->texture);
-
-        view.setToIdentity();
-        view.translate(QVector3D(-1.0f + 2.0f * (float)(texture->pos.x) / screenWidth, 1.0f + 2.0f * (float)( -texture->pos.y) / screenHeight, 0.0f));
-
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
-
-        texture->VAO->bind();
-        glDrawElements(GL_TRIANGLES, texture->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
-
-        shaderProgram->release();
+        renderer(masterRenderer, this); 
     }
-
 }

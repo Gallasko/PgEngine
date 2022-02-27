@@ -52,6 +52,8 @@ namespace pg
         UiComponent(const UiFrame& frame) : pos(&frame.pos), width(&frame.w), height(&frame.h) { }
         UiComponent(const UiComponent& rhs);
 
+        virtual ~UiComponent() { }
+
         inline void setX(const int& value) { pos.x = value; update(); }
         inline void setY(const int& value) { pos.y = value; update(); }
         inline void setZ(const int& value) { pos.z = value; update(); }
@@ -94,7 +96,7 @@ namespace pg
 
         void generateMesh();
 
-        virtual void render(MasterRenderer* masterRenderer) { renderer(masterRenderer, this); }
+        virtual void render(MasterRenderer* masterRenderer);
 
         unsigned int texture;
 

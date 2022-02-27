@@ -23,13 +23,12 @@ class TileSelector : public UiComponent, protected QOpenGLFunctions
 {
 public:
     TileSelector(Map *map, TilesLoader *TilesLoader, FontLoader *fontLoader, UiComponent *screenUi);
+    ~TileSelector();
 
     void setVisibility(bool visibility);
     inline bool isVisible() const { return visible; }
 
-    virtual void render(MasterRenderer* masterRenderer) { renderer(masterRenderer, this); }
-
-    ~TileSelector();
+    virtual void render(MasterRenderer* masterRenderer);
 
 private:
     friend void renderer<>(MasterRenderer* masterRenderer, TileSelector* tileSelector);
