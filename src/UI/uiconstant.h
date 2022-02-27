@@ -5,6 +5,13 @@
 
 namespace pg
 {
+    enum class UiOrientation
+    {
+        VERTICAL,
+        HORIZONTAL
+    };
+
+    //TODO check if a pointer to the current uisize is not already present in the children of the operation to avoid an infinite lockup
     //TODO make the operation here constant and then change uisystem and ui animation accordingly to make everything constant
     class UiSize
     {
@@ -108,6 +115,24 @@ namespace pg
             value->refSize1 = nullptr;
             value->refSize2 = nullptr;
             value->opType = UiValue::UiSizeOpType::NONE;
+        }
+
+        UiSize& operator+=(const UiSize& rhs)
+        {
+            UiSize current;
+            current.value->pixelSize = value->pixelSize;
+            current.value->scaleValue = value->scaleValue;
+            current.value->refSize1 = value->refSize1;
+            current.value->refSize2 = value->refSize2;
+            current.value->opType = value->opType;
+
+            value->pixelSize = 0.0f;
+            value->scaleValue = 1.0f;
+            value->refSize1 = current.value;
+            value->refSize2 = rhs.value;
+            value->opType = UiValue::UiSizeOpType::ADD;
+
+            return *this;
         }
 
         UiSize operator*(const float& rhs) const 

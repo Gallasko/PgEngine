@@ -156,13 +156,22 @@ void GameWindow::initialize()
     //tileSelector->pos.x = screenUi->width - tileSelector->width;
     //tileSelector->setLeftAnchor(&screenUi->left);//(&screenUi->right);
 
-    frame.pos.x = 100;
-    frame.pos.y = 50;
+    frame.pos.x = 400;
+    frame.pos.y = 200;
     frame.pos.z = 5;
-    frame.w = 40;
+    frame.w = 150;
     frame.h = 200;
+
+    auto testTexture = new TextureComponent(40, 200, "res/menu/frame.png");
     
-    slideBar = new SlideBar(frame, tileSelector->frame, 150, nullptr);  
+    //slideBar = new SlideBar(frame, tileSelector->frame, 150, nullptr);
+    listView = new ListView(frame, testTexture);
+
+    for (int i = 0; i < 10; i++)
+    {
+        auto testListViewChild = std::make_shared<TextureComponent>(43, 43, "res/menu/frame.png");
+        listView->add(testListViewChild);
+    }
 
     //Sequence tileSelectorSeq = Sequence(
     //    Sequence::OriginPoint(screenUi->top, screenUi->right, 0.0f),
@@ -480,7 +489,6 @@ void GameWindow::render()
     if(goldTextC != nullptr)
         goldTextC->setText("Gold: " + std::to_string(gold), fontLoader);
 
-    //updateGameState(float(currentTime - lastTime) / 1000);
     InputSystem::system()->updateState(inputHandler, float(currentTime - lastTime) / 1000);
 
     renderGame();
@@ -501,7 +509,7 @@ void GameWindow::render()
     }
 
     masterRenderer << tileSelector;
-    masterRenderer << slideBar;
+    masterRenderer << listView;
 
     //masterRenderer.render<ParticleRenderer>(pComponent);
 

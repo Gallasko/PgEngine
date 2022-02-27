@@ -13,16 +13,9 @@ namespace pg
     class SlideBar : public UiComponent
     {
     public:
-        enum class Orientation
-        {
-            VERTICAL,
-            HORIZONTAL
-        };
-
-    public:
         //TODO use the orientation data
-        SlideBar(const UiFrame& frame, UiSize* posToUpdate, Orientation orientation = Orientation::VERTICAL);
-        SlideBar(const UiFrame& frame, const UiFrame& boxToMonitor, const UiSize& maxPos, UiSize* posToUpdate, Orientation orientation = Orientation::VERTICAL);
+        SlideBar(const UiComponent& frame, UiSize* posToUpdate, const UiOrientation& orientation = UiOrientation::VERTICAL);
+        SlideBar(const UiComponent& frame, const UiFrame& boxToMonitor, const UiSize& maxPos, UiSize* posToUpdate, const UiOrientation& orientation = UiOrientation::VERTICAL);
         SlideBar(const SlideBar& slide);
 
         ~SlideBar();
@@ -57,30 +50,42 @@ namespace pg
         
         UiSize *posUpdate;
 
-        Orientation orientation;
+        UiOrientation orientation;
         
         MouseInputPtr mouseArea = makeMouseArea(this, this, SlideBar::mouseInput);
     };
 
     // Make list view subclass from scrollable components
-    class ListView : UiComponent
+    class ListView : public UiComponent
     {
     public:
-        ListView(const UiFrame& frame, TextureComponent* backgroundTexture = nullptr);
-        ListView(const UiFrame& frame, const SlideBar& slidebar, TextureComponent* backgroundTexture = nullptr); 
+        ListView(const UiComponent& frame, TextureComponent* backgroundTexture = nullptr, const UiOrientation& orientation = UiOrientation::VERTICAL);
+        ListView(const UiComponent& frame, const SlideBar& slidebar, TextureComponent* backgroundTexture = nullptr, const UiOrientation& orientation = UiOrientation::VERTICAL); 
 
-        void add(std::shared_ptr<UiComponent> child) { children.push_back(child); }
+        void setSpacing(int spacing);
+
+        void add(std::shared_ptr<UiComponent> child);
+
+        void mouseInput(Input* inputhandler, double deltaTime...);
 
         virtual void render(MasterRenderer* masterRenderer);
 
     private:
         friend void renderer<>(MasterRenderer* renderer, ListView* listView);
 
-        TextureComponent* background = nullptr;
+        void calculateListSize();
 
         SlideBar slide;
-
+        UiOrientation orientation;
+        TextureComponent* backgroundTexture;
         std::vector<std::shared_ptr<UiComponent>> children;
+
+        MouseInputPtr mouseArea = makeMouseArea(this, this, ListView::mouseInput);
+
+        int spacing = 5;
+
+        UiSize listWidth;
+        UiSize listHeight;
     };
 }
 

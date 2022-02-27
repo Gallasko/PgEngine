@@ -4,6 +4,13 @@
 
 namespace pg
 {
+    namespace
+    {
+        const char * DOM = "List View";
+
+        float DEFAULT_SLIDER_WIDTH = 20;
+    }
+
     template<>
     void renderer(MasterRenderer* masterRenderer, SlideBar* slideBar)
     {
@@ -14,14 +21,17 @@ namespace pg
     template<>
     void renderer(MasterRenderer* masterRenderer, ListView* listView)
     {
-        if(listView->background != nullptr)
-            masterRenderer->render(listView->background);
+        auto rTable = masterRenderer->getParameter();
+        const int screenHeight = rTable["ScreenHeight"];
+
+        if(listView->backgroundTexture != nullptr)
+            masterRenderer->render(listView->backgroundTexture);
 
         masterRenderer->render(&listView->slide);
 
-        //TODO gl scissor for list views 
         glEnable(GL_SCISSOR_TEST);
-        glScissor(listView->pos.x, listView->pos.y, listView->width, listView->height);
+        //glScissor defined the box from the bottom left corner (x, y, w, h);
+        glScissor(listView->pos.x, screenHeight - listView->height - listView->pos.y, listView->width, listView->height);
 
         for(auto& child : listView->children)
             child->render(masterRenderer);
@@ -29,7 +39,7 @@ namespace pg
         glDisable(GL_SCISSOR_TEST);
     }
 
-    SlideBar::SlideBar(const UiFrame& frame, UiSize* posToUpdate, Orientation orientation) : UiComponent(frame), posUpdate(posToUpdate), orientation(orientation)
+    SlideBar::SlideBar(const UiComponent& frame, UiSize* posToUpdate, const UiOrientation& orientation) : UiComponent(frame), posUpdate(posToUpdate), orientation(orientation)
     {
         // Default slider
 
@@ -45,7 +55,7 @@ namespace pg
         cursor->setLeftAnchor(this->left);
     }
 
-    SlideBar::SlideBar(const UiFrame& frame, const UiFrame& boxToMonitor, const UiSize& maxPos, UiSize* posToUpdate, Orientation orientation) : SlideBar(frame, posToUpdate, orientation)
+    SlideBar::SlideBar(const UiComponent& frame, const UiFrame& boxToMonitor, const UiSize& maxPos, UiSize* posToUpdate, const UiOrientation& orientation) : SlideBar(frame, posToUpdate, orientation)
     {
         this->boxToMonitor = boxToMonitor;
 
@@ -63,7 +73,7 @@ namespace pg
         delete cursor;
     }
 
-    void SlideBar::mouseInput(Input* inputHandler, double deltaTime...)
+    void SlideBar::mouseInput(Input* inputHandler, double...)
     {
         static bool pressed = false;
 
@@ -108,13 +118,86 @@ namespace pg
         renderer(masterRenderer, this); 
     }
 
-    // TODO set a base size for the slide + fix the magic number in this line -->                                                                     this is a magic number  V 
-    ListView::ListView(const UiFrame& frame, TextureComponent* backgroundTexture) : UiComponent(frame), slide(SlideBar(UiFrame{this->right, this->top, this->pos.z, 20, this->height}, this->frame, this->frame.pos.y, nullptr)), background(backgroundTexture)
+    ListView::ListView(const UiComponent& frame, TextureComponent* backgroundTexture, const UiOrientation& orientation) : UiComponent(frame), slide(SlideBar(UiFrame{this->right, this->top, this->pos.z, DEFAULT_SLIDER_WIDTH, this->height}, this->frame, this->frame.pos.y, nullptr)), orientation(orientation), backgroundTexture(backgroundTexture)
     {
+        if(backgroundTexture != nullptr)
+        {
+            backgroundTexture->setWidth(this->width);
+            backgroundTexture->setHeight(this->height);
 
+            backgroundTexture->setTopAnchor(this->top);
+            backgroundTexture->setLeftAnchor(this->left);
+        }
     }
 
-    ListView::ListView(const UiFrame& frame, const SlideBar& slidebar, TextureComponent* backgroundTexture) : UiComponent(frame), slide(slidebar), background(backgroundTexture)
+    ListView::ListView(const UiComponent& frame, const SlideBar& slidebar, TextureComponent* backgroundTexture, const UiOrientation& orientation) : UiComponent(frame), slide(slidebar), orientation(orientation), backgroundTexture(backgroundTexture)
+    {
+        if(backgroundTexture != nullptr)
+        {
+            backgroundTexture->setWidth(this->width);
+            backgroundTexture->setHeight(this->height);
+
+            backgroundTexture->setTopAnchor(this->top);
+            backgroundTexture->setLeftAnchor(this->left);
+        }
+    }
+
+    //TODO when changing orientation reset all margin !
+
+    void ListView::setSpacing(int spacing)
+    {
+        this->spacing = spacing;
+        
+        for(auto& child : this->children)
+        {
+            switch(orientation)
+            {
+            case UiOrientation::VERTICAL:
+                child->setTopMargin(spacing);
+                break;
+
+            case UiOrientation::HORIZONTAL:
+                child->setLeftMargin(spacing);
+                break;
+            }
+        }
+
+        calculateListSize();
+    }
+
+    void ListView::add(std::shared_ptr<UiComponent> child)
+    {
+        if(children.size() > 0)
+        {
+            switch(orientation)
+            {
+            case UiOrientation::VERTICAL:
+                child->setTopAnchor(children.back()->bottom);
+                child->setLeftAnchor(children.back()->left);
+
+                child->setTopMargin(spacing);
+                break;
+
+            case UiOrientation::HORIZONTAL:
+                child->setTopAnchor(children.back()->top);
+                child->setLeftAnchor(children.back()->right);
+
+                child->setLeftMargin(spacing);
+                break;
+            }
+        }
+        else
+        {
+            child->setTopAnchor(this->top);
+            child->setLeftAnchor(this->left);
+        }
+
+        children.push_back(child); 
+
+        calculateListSize();
+    }
+
+    void ListView::mouseInput(Input* inputhandler, double deltaTime...)
     {
 
     }
@@ -122,5 +205,35 @@ namespace pg
     void ListView::render(MasterRenderer* masterRenderer)
     { 
         renderer(masterRenderer, this); 
+    }
+
+    void ListView::calculateListSize()
+    {
+        listWidth = 0;
+        listHeight = 0;
+
+        for(const auto& child : children)
+        {
+            switch(orientation)
+            {
+            case UiOrientation::VERTICAL:
+                listHeight += child->height + child->topMargin;
+
+                if(listWidth < child->width)
+                    listWidth = child->width;
+
+                break;
+
+            case UiOrientation::HORIZONTAL:
+                listWidth += child->width + child->leftMargin;
+
+                if(listHeight < child->height)
+                    listHeight = child->height;
+
+                break;
+            }
+        }
+
+        std::cout << "listWidth: " << listWidth << " listHeight: " << listHeight << std::endl;
     }
 }

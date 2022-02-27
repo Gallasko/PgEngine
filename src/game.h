@@ -167,9 +167,9 @@ private:
     std::vector<PigeonEntity> pigeonEntities;
     std::mutex pigeonMutex;
 
-    //TODO slidebar stuff
+    //TODO listView stuff
     UiFrame frame;
-    SlideBar *slideBar;
+    ListView *listView;
 
     long long gold = 0;
 
