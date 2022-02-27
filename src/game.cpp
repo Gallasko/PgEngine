@@ -137,36 +137,17 @@ void GameWindow::initialize()
 
     screenEntity = ecs.createEntity();
     screenUi = ecs.attach<UiComponent>(screenEntity, {});
-    //screenUi->setWidth(width());
-    //screenUi->setHeight(height());
-    //screenUi->setWidth(1);
-    //screenUi->setHeight(1);
     screenUi->width = 1;
     screenUi->height = 1;
     screenUi->setZ(0);
 
-    std::cout << width() << std::endl;
-    std::cout << screenUi->right << std::endl;
+    makeMouseArea(screenUi, camera, Camera::updateMouse);
 
-    auto screenInput = ecs.attach<MouseInputComponent*>(screenEntity, {});
-    *screenInput = new MouseInputBase<Camera>(screenUi);
+    makeKeyInput(camera, &Camera::updateKeyboard);
 
-    (*screenInput)->registerFunc(Camera::updateMouse, camera);
+    makeKeyInput(gameMap, Map::switchToPathFind);
 
-    screenKeyInput = ecs.attach<KeyboardInputComponent* >(screenEntity, {});
-    *screenKeyInput = new KeyboardInputBase<Camera>();
-
-    (*screenKeyInput)->registerFunc(Camera::updateKeyboard, camera);
-
-    auto mapTemp = ecs.createEntity();
-    auto mapKeyInput = ecs.attach<KeyboardInputComponent* >(mapTemp, {});
-    *mapKeyInput = new KeyboardInputBase<Map>();
-
-    //(*mapKeyInput)->registerFunc(&gameMap->switchToPathFind, gameMap);
-    (*mapKeyInput)->registerFunc(Map::switchToPathFind, gameMap);
-
-    mapClickComponent = new MouseInputBase<Map>(screenUi);
-    mapClickComponent->registerFunc(Map::clicked, gameMap);
+    makeMouseArea(screenUi, gameMap, Map::clicked, &screenUi->width, &screenUi->height, &gameScale, camera);
 
     tileSelector = new TileSelector(gameMap, tileLoader, fontLoader, screenUi);
     tileSelector->pos.z = 2;
@@ -225,7 +206,7 @@ void GameWindow::initialize()
 
     auto pigeonSpawnerTexture = ecs.createEntity();
     auto pigeonSpawnerTextureC = ecs.attach<TextureComponent>(pigeonSpawnerTexture, {297, 196, "res/menu/menutest.png"});
-    pigeonSpawnerTextureC->setRightAnchor(screenUi->right);
+    pigeonSpawnerTextureC->setLeftAnchor(screenUi->right);
     pigeonSpawnerTextureC->setBottomAnchor(screenUi->bottom);
 
     auto pigeonSpawnButton = ecs.createEntity();
@@ -237,14 +218,7 @@ void GameWindow::initialize()
     pigeonSpawnButtonC->setLeftMargin(50);
     pigeonSpawnButtonC->pos.z = 5;
 
-    auto pigeonSpawnButtonMouseArea = ecs.attach<MouseInputComponent* >(pigeonSpawnButton, {});
-    *pigeonSpawnButtonMouseArea = new MouseInputBase<GameWindow>(pigeonSpawnButtonC); // TODO create a ctor taking a lambda or a function and template on it so i don t have to call register function manually and it could template on capturing lambdas
-    (*pigeonSpawnButtonMouseArea)->registerFunc(GameWindow::gameplayTest, this);
-    
-    //(*pigeonSpawnButtonMouseArea)->registerFunc([=](Input* inputHandler, double deltaTime) {
-    //    gameMap->createPathBetweenHouseAndShop();
-        //std::cout << "Creation" << std::endl;
-    //});
+    makeMouseArea(pigeonSpawnButtonC, this, GameWindow::gameplayTest);
 
     Sequence seq2 = Sequence(
         Sequence::OriginPoint(screenUi->right, screenUi->bottom, screenUi->pos.z),
@@ -266,11 +240,9 @@ void GameWindow::initialize()
 
     pigeonHide = new AnimationComponent(pigeonSpawnerTextureC, seq3, false);
 
-    pigeonShowingKeyboard = ecs.attach<KeyboardInputComponent* >(pigeonSpawnerTexture, {});
-    *pigeonShowingKeyboard = new KeyboardInputBase<GameWindow>();
-    (*pigeonShowingKeyboard)->registerFunc(GameWindow::showPigeonWidget, this);
-    //(*pathFindingButtonMouseArea)->registerFunc(GameWindow::changeRandomText, this);
+    makeKeyInput(this, GameWindow::showPigeonWidget);
 
+    //(*pathFindingButtonMouseArea)->registerFunc(GameWindow::changeRandomText, this);
 
     //cmpTexTest = new TextureComponent(300, 300, "res/menu/Menu2.png");
 
@@ -486,8 +458,6 @@ void GameWindow::render()
     nbFrames++;
     if(currentTime - lastFPSCount >= 1000 || currentTime < lastFPSCount)
     {
-        LOG_THIS_MEMBER(DOM);
-
         auto fpsText = fpsCounter->get<Sentence>();
         if(fpsText != nullptr)
             fpsText->setText(std::to_string(nbFrames), fontLoader);
@@ -510,7 +480,8 @@ void GameWindow::render()
     if(goldTextC != nullptr)
         goldTextC->setText("Gold: " + std::to_string(gold), fontLoader);
 
-    updateGameState(float(currentTime - lastTime) / 1000);
+    //updateGameState(float(currentTime - lastTime) / 1000);
+    InputSystem::system()->updateState(inputHandler, float(currentTime - lastTime) / 1000);
 
     renderGame();
 
@@ -707,7 +678,6 @@ void GameWindow::gameplayTest(Input* inputHandler, double...)
         pressed = false;
 }
 
-
 void GameWindow::renderLater()
 {
     requestUpdate();
@@ -765,51 +735,6 @@ void GameWindow::exposeEvent(QExposeEvent *event)
 
     if (isExposed())
         renderNow();
-}
-
-void GameWindow::updateGameState(double deltaTime)
-{
-    int highestZ = -1;
-
-    // Take the Highest Z under the mouse and make only those element clickable  
-    for(auto& mouseArea : ecs.view<MouseInputComponent*>())
-        if(mouseArea->inBound(mousePos.x(), mousePos.y()) && *mouseArea->enable)
-            if (mouseArea->pos->z > highestZ)
-                highestZ = mouseArea->pos->z;
-
-    if(tileSelector->inBound(mousePos.x(), mousePos.y()) && tileSelector->isVisible())
-        if (tileSelector->pos.z > highestZ)
-            highestZ = tileSelector->pos.z;
-
-    if(slideBar->inBound(mousePos.x(), mousePos.y()))
-        if(slideBar->pos.z > highestZ)
-            highestZ = slideBar->pos.z;
-
-    for(auto& mouseArea : ecs.view<MouseInputComponent*>())
-    {
-        if(mouseArea->inBound(mousePos.x(), mousePos.y()) && *mouseArea->enable && mouseArea->pos->z == highestZ)
-        {
-            //std::cout << "Mouse Hovering: " << mouseArea->pos->x << ", " << mouseArea->pos->y << ", " << mouseArea->width << ", " << mouseArea->height << std::endl;
-            mouseArea->call(inputHandler, deltaTime);
-        }
-    }
-
-    if(tileSelector->pos.z == highestZ)
-        tileSelector->mouseInput(inputHandler, deltaTime);
-
-    if(slideBar->pos.z == highestZ)
-        slideBar->mouseInput(inputHandler, deltaTime);
-
-    //TODO make the map responsive to Z index 
-    if(highestZ <= 0)
-        mapClickComponent->call(inputHandler, deltaTime, width(), height(), gameScale, camera);
-
-    for(auto& keyArea : ecs.view<KeyboardInputComponent*>())
-        keyArea->call(inputHandler, deltaTime);
-    
-    //(*pigeonShowingKeyboard)->call(inputHandler, deltaTime);
-    //(*screenKeyInput)->call(inputHandler, deltaTime);
-
 }
 
 void GameWindow::renderGame()

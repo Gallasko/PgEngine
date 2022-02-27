@@ -105,7 +105,7 @@ protected:
     void exposeEvent(QExposeEvent *event) override;
 
 private:
-    void updateGameState(double deltaTime);
+    //void updateGameState(double deltaTime);
     void renderGame();
     void renderUi();
     void tick();

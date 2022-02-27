@@ -56,9 +56,8 @@ namespace pg
         UiSize *posUpdate;
 
         Orientation orientation;
-
-        //Todo when creating a mouse area it should automatically be registered in the game state loop
-        //MouseInputComponent* mouseArea;
+        
+        MouseInputPtr mouseArea = makeMouseArea(this, this, SlideBar::mouseInput);
     };
 
     // Make list view subclass from scrollable components

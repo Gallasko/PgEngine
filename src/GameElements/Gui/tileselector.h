@@ -24,8 +24,6 @@ class TileSelector : public UiComponent, protected QOpenGLFunctions
 public:
     TileSelector(Map *map, TilesLoader *TilesLoader, FontLoader *fontLoader, UiComponent *screenUi);
 
-    void mouseInput(Input* inputHandler, double deltaTime);
-
     void setVisibility(bool visibility);
     inline bool isVisible() const { return visible; }
 
@@ -40,7 +38,7 @@ private:
     TextureComponent *texture;
 
     std::vector<LoaderRenderComponent<TilesLoader::TilesId>> tileRendererVector;
-    std::vector<MouseInputComponent* > mouseAreaVector;
+    std::vector<MouseInputPtr> mouseAreaVector;
 
     std::vector<Sentence*> textVector;
 

@@ -233,11 +233,11 @@ namespace pg
         inline unsigned int getHeight() const { return constraint.height; }
         inline QOpenGLVertexArrayObject* getMesh() { if(!meshUpdate) generateMesh(); return VAO; }
 
-        void changeTile(Input*, double deltaTime...) { va_list args; va_start(args, deltaTime); tileToBePlaced = va_arg(args, TilesLoader::TilesId*); }
+        void changeTile(Input* inputHandler, double deltaTime...) { va_list args; va_start(args, deltaTime); if(inputHandler->isButtonPressed(Qt::LeftButton)) tileToBePlaced = va_arg(args, TilesLoader::TilesId*); }
         
         void runPathFinding(Input* inputHandler, double deltaTime...);
         
-        void clicked(Input* inputHandler, double deltaTime...); // expect as argument : Input*, double, int, int, double, Camera*;
+        void clicked(Input* inputHandler, double deltaTime...); // expect as argument : Input*, double, UiSize*, UiSize*, double*, Camera*;
 
         void switchToPathFind(Input* inputHandler, double...) { static bool switched = false; if(inputHandler->isKeyPressed(Qt::Key_E) && !switched) { pathFindLookUp = !pathFindLookUp; switched = true; } if(inputHandler->isKeyPressed(Qt::Key_R) && !switched) { pathRoad = !pathRoad; switched = true; drawPath(); } if(!inputHandler->isKeyPressed(Qt::Key_E) && !inputHandler->isKeyPressed(Qt::Key_R)) switched = false; }
 

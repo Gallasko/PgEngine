@@ -40,6 +40,7 @@ namespace pg
 
     SlideBar::~SlideBar()
     {
+        deleteInput(mouseArea);
         delete slider;
         delete cursor;
     }
