@@ -29,7 +29,7 @@ public:
     void setVisibility(bool visibility);
     inline bool isVisible() const { return visible; }
 
-    void render(MasterRenderer* masterRenderer);
+    virtual void render(MasterRenderer* masterRenderer) { renderer(masterRenderer, this); }
 
     ~TileSelector();
 

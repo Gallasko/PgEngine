@@ -69,6 +69,8 @@ namespace pg
 
         void generateMesh();
 
+        virtual void render(MasterRenderer* masterRenderer) { renderer(masterRenderer, this); }
+
         float scale = 0.0f;
 
         SentenceText text;

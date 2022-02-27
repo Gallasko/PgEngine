@@ -28,6 +28,8 @@ namespace pg
 
         void mouseInput(Input* inputhandler, double deltaTime...);
 
+        virtual void render(MasterRenderer* masterRenderer) { renderer(masterRenderer, this); }
+
     private:
         friend void renderer<>(MasterRenderer* renderer, SlideBar* slidebar);
 
@@ -55,6 +57,8 @@ namespace pg
     class ListView : UiComponent
     {
     public:
+
+        virtual void render(MasterRenderer* masterRenderer) { renderer(masterRenderer, this); }
 
     private:
         friend void renderer<>(MasterRenderer* renderer, SlideBar* slidebar);

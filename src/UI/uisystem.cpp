@@ -1,7 +1,14 @@
 #include "uisystem.h"
 
+#include "../logger.h"
+
 namespace pg
 {
+    namespace
+	{
+		const char * DOM = "Ui System";
+	}
+
     UiComponent::UiComponent(const UiComponent& rhs)
     {
         //TODO remove the previous reference of rhs inside the parent and push this pointer inside the parent child list to avoid resize error when this is being copied
@@ -15,15 +22,15 @@ namespace pg
         this->bottomAnchor = rhs.bottomAnchor;
         this->leftAnchor = rhs.leftAnchor;
 
-        //this->top = &this->pos.y;
-        //this->right = this->pos.x + this->width;
-        //this->bottom = this->pos.y + this->height;
-        //this->left = &this->pos.x;
-
         this->topMargin = rhs.topMargin;
         this->rightMargin = rhs.rightMargin;
         this->bottomMargin = rhs.bottomMargin;
         this->leftMargin = rhs.leftMargin;
+    }
+
+    virtual void render(MasterRenderer* masterRenderer)
+    {
+        LOG_ERROR(DOM, "Called Render of UiComponent when it should never be !");
     }
 
     void UiComponent::update()
@@ -200,10 +207,6 @@ namespace pg
         shaderProgram->setUniformValue(shaderProgram->uniformLocation("projection"), projection);
         shaderProgram->setUniformValue(shaderProgram->uniformLocation("model"), model);
         shaderProgram->setUniformValue(shaderProgram->uniformLocation("scale"), scale);
-
-        //TODO gl scissor for list views 
-        //glEnable(GL_SCISSOR_TEST);
-        //glScissor(300, 200, 200, 500);
 
         texture->generateMesh();
 

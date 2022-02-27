@@ -5,7 +5,6 @@
 
 namespace pg
 {
-
     //TODO make the operation here constant and then change uisystem and ui animation accordingly to make everything constant
     class UiSize
     {
@@ -247,7 +246,6 @@ namespace pg
     {
         return UiSize(lhs, 0.0f, nullptr, rhs.value, UiSize::UiValue::UiSizeOpType::DIV);
     }
-
 
     struct UiPosition 
     {

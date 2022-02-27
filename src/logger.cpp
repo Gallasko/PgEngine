@@ -17,27 +17,27 @@ namespace pg
 
             switch (level)
             {
-                case Logger::InfoLevel::log:
+                case Logger::InfoLevel::LOG:
                     logLevelStringBuffer = "[Log]: ";
                     break;
 
-                case Logger::InfoLevel::info:
+                case Logger::InfoLevel::INFO:
                     logLevelStringBuffer = "[Info]: ";
                     break;
 
-                case Logger::InfoLevel::alert:
+                case Logger::InfoLevel::ALERT:
                     logLevelStringBuffer = "[Alert]: ";
                     break;
 
-                case Logger::InfoLevel::warning:
+                case Logger::InfoLevel::WARNING:
                     logLevelStringBuffer = "[Warning]: ";
                     break;
 
-                case Logger::InfoLevel::error:
+                case Logger::InfoLevel::ERROR:
                     logLevelStringBuffer = "[Error]: ";
                     break;
 
-                case Logger::InfoLevel::critical:
+                case Logger::InfoLevel::CRITICAL:
                     logLevelStringBuffer = "[Critical]: ";
                     break;
             }
