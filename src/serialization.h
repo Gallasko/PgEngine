@@ -19,29 +19,35 @@ namespace pg
         
         const EndOfLine& endl() const { return endOfLine; }
 
-        void startSerialization(const std::string& className)
-        {
-            indentLevel++;
-            container << className << " {" << endOfLine;
-        }
+        void startSerialization(const std::string& className);
 
-        void endSerialization()
+        void endSerialization();
+
+        Archive& operator<<(const EndOfLine&)
         {
-            indentLevel--;
-            container << "}" << endOfLine;
+            container << std::endl;
+            requestNewline = true;
+            return *this;
         }
 
         template <typename Type>
         Archive& operator<<(const Type& rhs)
         {
+            if(requestNewline)
+            {
+                container << std::string(*endOfLine.indentLevel, '\t');
+                requestNewline = false;
+            }
+
             container << rhs;
             return *this;
         }
 
-        friend std::ostream& operator<<(std::ostream& stream, const Archive::EndOfLine& endOfLine);
+        //friend std::ostream& operator<<(std::ostream& stream, const Archive::EndOfLine& endOfLine);
 
         std::stringstream container;
 
+        bool requestNewline = false;
         size_t indentLevel = 0;
         EndOfLine endOfLine;
     };

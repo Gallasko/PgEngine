@@ -1,20 +1,26 @@
 #include "serialization.h"
 
+#include "logger.h"
 #include "constant.h"
 
 namespace pg
 {
+    namespace
+    {
+        const char * DOM = "Serializer";
+    }
+
     std::string Serializer::filename = "serialize.sz";
 
     //Serialisation of base type
 
-    std::ostream& operator<<(std::ostream& stream, const Archive::EndOfLine& endOfLine)
-    {
-        stream << std::endl;
-        stream << std::string(*endOfLine.indentLevel, '\t');
-        
-        return stream;
-    }
+    //std::ostream& operator<<(std::ostream& stream, const Archive::EndOfLine& endOfLine)
+    //{
+    //    stream << std::endl;
+    //    stream << std::string(*endOfLine.indentLevel, '\t');
+    //    
+    //    return stream;
+    //}
 
     template<>
     void serialize(Archive& archive, const bool& value)
@@ -103,8 +109,24 @@ namespace pg
         for(unsigned int i = 0; i < modelInfo.nbIndices; i++)
             archive << modelInfo.indices[i] << " ";
         
-        archive << "]," << archive.endl();;
+        archive << "]," << archive.endl();
         
         archive.endSerialization();
+    }
+
+    void Archive::startSerialization(const std::string& className)
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        *this << className << " {" << endOfLine;
+        indentLevel++;
+    }
+
+    void Archive::endSerialization()
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        indentLevel--;
+        *this << "}" << endOfLine;
     }
 }
