@@ -31,9 +31,12 @@ namespace pg
 
         masterRenderer->render(&listView->slide);
 
+        //Avoid multiple lockup
+        float listViewHeight = listView->height;
+
         glEnable(GL_SCISSOR_TEST);
         //glScissor defined the box from the bottom left corner (x, y, w, h);
-        glScissor(listView->pos.x, screenHeight - listView->height - listView->pos.y, listView->width, listView->height);
+        glScissor(listView->pos.x, (screenHeight - listViewHeight) - listView->pos.y, listView->width, listViewHeight);
 
         //TODO see if the square calculation couldn t be optimized
         for(auto& child : listView->renderList)
@@ -290,7 +293,15 @@ namespace pg
 		renderList.shrink_to_fit();
 
         for(auto& child : children)
-            if(this->inBound(child->left, child->top) or this->inBound(child->left, child->bottom) or this->inBound(child->right, child->top) or this->inBound(child->right, child->bottom))
-                renderList.push_back(child);
+        {
+            //Cast once to avoid multiple value lockup
+            float childTop = child->top;
+            float childBottom = child->bottom;
+            float childLeft = child->left;
+            float childRight = child->right;
+
+             if(this->inBound(childLeft, childTop) or this->inBound(childLeft, childBottom) or this->inBound(childRight, childTop) or this->inBound(childRight, childBottom))
+                renderList.push_back(child);   
+        }
     }
 }

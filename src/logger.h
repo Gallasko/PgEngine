@@ -18,6 +18,8 @@
 #define LOG_ERROR(scope, msg)
 #endif
 
+//TODO if a log is whitelisted it is shown even if it/was blacklisted
+
 namespace pg
 {
     /**
