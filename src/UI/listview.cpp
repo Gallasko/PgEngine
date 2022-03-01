@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include "../logger.h"
+
 namespace pg
 {
     namespace
@@ -33,13 +35,14 @@ namespace pg
         //glScissor defined the box from the bottom left corner (x, y, w, h);
         glScissor(listView->pos.x, screenHeight - listView->height - listView->pos.y, listView->width, listView->height);
 
-        for(auto& child : listView->children)
+        //TODO see if the square calculation couldn t be optimized
+        for(auto& child : listView->renderList)
             child->render(masterRenderer);
-
+            
         glDisable(GL_SCISSOR_TEST);
     }
 
-    SlideBar::SlideBar(const UiComponent& frame, UiSize* posToUpdate, const UiOrientation& orientation) : UiComponent(frame), posUpdate(posToUpdate), orientation(orientation)
+    SlideBar::SlideBar(const UiComponent& frame, const PositionCallback& posToUpdate, const UiOrientation& orientation) : UiComponent(frame), posUpdate(posToUpdate), orientation(orientation)
     {
         // Default slider
 
@@ -55,10 +58,9 @@ namespace pg
         cursor->setLeftAnchor(this->left);
     }
 
-    SlideBar::SlideBar(const UiComponent& frame, const UiFrame& boxToMonitor, const UiSize& maxPos, UiSize* posToUpdate, const UiOrientation& orientation) : SlideBar(frame, posToUpdate, orientation)
+    SlideBar::SlideBar(const UiComponent& frame, const UiFrame& boxToMonitor, const UiSize& maxPos, const PositionCallback& posToUpdate, const UiOrientation& orientation) : SlideBar(frame, posToUpdate, orientation)
     {
-        this->boxToMonitor = boxToMonitor;
-
+        this->boxToMonitor = &boxToMonitor;
         updateCursorSize(maxPos);
     }
 
@@ -71,6 +73,32 @@ namespace pg
         deleteInput(mouseArea);
         delete slider;
         delete cursor;
+    }
+
+    //TODO this is needed we cant rely on the auto computation of the size cause they are some restriction
+    void SlideBar::updateCursorSize(const UiSize& maxPos)
+    {
+        // TODO do it for a horizontal slider
+
+        // Do this if the orientation is vertical
+
+        this->maxPos = maxPos;
+
+        if(this->maxPos > 0 && this->boxToMonitor.h > 0)
+        {
+            this->buttonHeight = (this->boxToMonitor.h / this->maxPos) * this->height;
+            
+            if(this->buttonHeight > this->height)
+                this->buttonHeight = this->height;
+        }
+        else
+        {
+            this->buttonHeight = this->height;
+        }
+            
+        std::cout << this->boxToMonitor.h << ", " << this->maxPos << ", " << this->buttonHeight << std::endl;
+
+        cursor->setHeight(this->buttonHeight);
     }
 
     void SlideBar::mouseInput(Input* inputHandler, double...)
@@ -94,23 +122,15 @@ namespace pg
             if(currentPos > height - this->buttonHeight)
                 currentPos = height - this->buttonHeight;
 
-            if(posUpdate)
-                *posUpdate = currentPos;
+            if(posUpdate && this->boxToMonitor.h > 0)
+                posUpdate(currentPos * (this->maxPos / this->boxToMonitor.h));
+
+            std::cout << currentPos << std::endl;
 
             cursor->setTopMargin(currentPos);
 
             pressed = true;
         }
-    }
-
-    void SlideBar::updateCursorSize(const UiSize& maxPos)
-    {
-        if(maxPos > 0 && this->boxToMonitor.h > 0)
-            this->buttonHeight = (this->boxToMonitor.h / maxPos) * height;
-        else
-            this->buttonHeight = height;
-
-        cursor->setHeight(this->buttonHeight);
     }
     
     void SlideBar::render(MasterRenderer* masterRenderer)
@@ -118,7 +138,8 @@ namespace pg
         renderer(masterRenderer, this); 
     }
 
-    ListView::ListView(const UiComponent& frame, TextureComponent* backgroundTexture, const UiOrientation& orientation) : UiComponent(frame), slide(SlideBar(UiFrame{this->right, this->top, this->pos.z, DEFAULT_SLIDER_WIDTH, this->height}, this->frame, this->frame.pos.y, nullptr)), orientation(orientation), backgroundTexture(backgroundTexture)
+    //TODO create a 2nd slider like said in the header
+    ListView::ListView(const UiComponent& frame, TextureComponent* backgroundTexture, const UiOrientation& orientation) : UiComponent(frame), slide(SlideBar(UiFrame{this->right, this->top, this->pos.z, DEFAULT_SLIDER_WIDTH, this->height}, this->frame, this->pos.y, [&](const UiSize& pos){ this->updateListPos(pos); })), orientation(orientation), backgroundTexture(backgroundTexture)
     {
         if(backgroundTexture != nullptr)
         {
@@ -130,8 +151,17 @@ namespace pg
         }
     }
 
+    //TODO don't pass a slider but the slider parameters and then contruct the slider to be relevent to this list view
     ListView::ListView(const UiComponent& frame, const SlideBar& slidebar, TextureComponent* backgroundTexture, const UiOrientation& orientation) : UiComponent(frame), slide(slidebar), orientation(orientation), backgroundTexture(backgroundTexture)
     {
+        // This is for the vertical slider
+        //Todo create the slider here (horizontalSilder = SlideBar(SlideParam, this->frame, this->listHeight, his->firstMargin))
+        slide.setHeight(this->height);
+        slide.setTopAnchor(this->top);
+        slide.setLeftAnchor(this->right);
+
+        //TODO make it for the horizontal one
+
         if(backgroundTexture != nullptr)
         {
             backgroundTexture->setWidth(this->width);
@@ -188,13 +218,17 @@ namespace pg
         }
         else
         {
-            child->setTopAnchor(this->top);
+            child->setTopAnchor(this->top - this->firstMargin);
             child->setLeftAnchor(this->left);
         }
 
-        children.push_back(child); 
+        //This make it so the mouse area of the elements can t be used directly because they will be beneath the Screen Ui ! (Which is the bottom line sitting at -1)
+        child->setZ(-2);
+
+        children.push_back(child);
 
         calculateListSize();
+        updateRenderList();
     }
 
     void ListView::mouseInput(Input* inputhandler, double deltaTime...)
@@ -207,8 +241,18 @@ namespace pg
         renderer(masterRenderer, this); 
     }
 
+    void ListView::updateListPos(const UiSize& pos)
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        this->firstMargin = pos;
+        this->updateRenderList();
+    }
+
     void ListView::calculateListSize()
     {
+        LOG_THIS_MEMBER(DOM);
+
         listWidth = 0;
         listHeight = 0;
 
@@ -234,6 +278,19 @@ namespace pg
             }
         }
 
-        std::cout << "listWidth: " << listWidth << " listHeight: " << listHeight << std::endl;
+        //this is for vertical slider
+        slide.updateCursorSize(listHeight);
+    }
+
+    void ListView::updateRenderList()
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        renderList.clear();
+		renderList.shrink_to_fit();
+
+        for(auto& child : children)
+            if(this->inBound(child->left, child->top) or this->inBound(child->left, child->bottom) or this->inBound(child->right, child->top) or this->inBound(child->right, child->bottom))
+                renderList.push_back(child);
     }
 }

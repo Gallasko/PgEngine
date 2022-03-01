@@ -12,10 +12,11 @@ namespace pg
     //Scrollable widgets includes : listview, long text, long images, maps, etc... 
     class SlideBar : public UiComponent
     {
+        typedef std::function<void(const UiSize&)> PositionCallback;
     public:
         //TODO use the orientation data
-        SlideBar(const UiComponent& frame, UiSize* posToUpdate, const UiOrientation& orientation = UiOrientation::VERTICAL);
-        SlideBar(const UiComponent& frame, const UiFrame& boxToMonitor, const UiSize& maxPos, UiSize* posToUpdate, const UiOrientation& orientation = UiOrientation::VERTICAL);
+        SlideBar(const UiComponent& frame, const PositionCallback& posToUpdate, const UiOrientation& orientation = UiOrientation::VERTICAL);
+        SlideBar(const UiComponent& frame, const UiFrame& boxToMonitor, const UiSize& maxPos, const PositionCallback& posToUpdate, const UiOrientation& orientation = UiOrientation::VERTICAL);
         SlideBar(const SlideBar& slide);
 
         ~SlideBar();
@@ -25,6 +26,7 @@ namespace pg
         //TODO: make the cursor more customizable -> texture / size
         void changeCursorTexture(const char* texture);
 
+        void updateCursorSize(const UiSize& maxPos);
         void onPosChanged();
 
         void mouseInput(Input* inputhandler, double deltaTime...);
@@ -34,25 +36,25 @@ namespace pg
     private:
         friend void renderer<>(MasterRenderer* renderer, SlideBar* slidebar);
 
-        void updateCursorSize(const UiSize& maxPos);
         void updateCursorPos();
 
         TextureComponent* slider;
         TextureComponent* cursor;
 
         // TODO: move this in the cursor class
-        UiSize buttonHeight = height / 10.0f;
+        UiSize buttonHeight;// = height / 10.0f;
         
         //UiSize yMin, yMax;
         //float cursorPos;
 
         UiFrame boxToMonitor;
-        
-        UiSize *posUpdate;
+        UiSize maxPos;
+
+        PositionCallback posUpdate = [](const UiSize&){};
 
         UiOrientation orientation;
         
-        MouseInputPtr mouseArea = makeMouseArea(this, this, SlideBar::mouseInput);
+        MouseComponent mouseArea = makeMouseArea(this, this, SlideBar::mouseInput);
     };
 
     // Make list view subclass from scrollable components
@@ -73,16 +75,25 @@ namespace pg
     private:
         friend void renderer<>(MasterRenderer* renderer, ListView* listView);
 
-        void calculateListSize();
+        void updateListPos(const UiSize& pos);
 
+        void calculateListSize();
+        void updateRenderList();
+
+        //Todo have 2 slidebar: 1 vertical and 1 horizontal, and hide them if unessesary
         SlideBar slide;
+
+        /** Orientation of the element put in the list */
         UiOrientation orientation;
         TextureComponent* backgroundTexture;
         std::vector<std::shared_ptr<UiComponent>> children;
+        std::vector<std::shared_ptr<UiComponent>> renderList;
 
-        MouseInputPtr mouseArea = makeMouseArea(this, this, ListView::mouseInput);
+        MouseComponent mouseArea = makeMouseArea(this, this, ListView::mouseInput);
 
         int spacing = 5;
+
+        UiSize firstMargin;
 
         UiSize listWidth;
         UiSize listHeight;

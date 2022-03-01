@@ -7,10 +7,10 @@
 #include <mutex>
 
 #ifdef DEBUG
-#define LOG_THIS(scope) pg::Logger::_log(__LINE__, __FILE__, __FUNCTION__, 0, 0, scope, "", pg::Logger::InfoLevel::log)
-#define LOG_THIS_MEMBER(scope) pg::Logger::_log(__LINE__, __FILE__, __FUNCTION__, this, typeid(*this).name(), scope, "", pg::Logger::InfoLevel::log)
-#define LOG_INFO(scope, msg) pg::Logger::_log(__LINE__, __FILE__, __FUNCTION__, 0, 0, scope, msg, pg::Logger::InfoLevel::info)
-#define LOG_ERROR(scope, msg) pg::Logger::_log(__LINE__, __FILE__, __FUNCTION__, 0, 0, scope, msg, pg::Logger::InfoLevel::error)
+#define LOG_THIS(scope) pg::Logger::_log(__LINE__, __FILE__, __func__, 0, 0, scope, "", pg::Logger::InfoLevel::log)
+#define LOG_THIS_MEMBER(scope) pg::Logger::_log(__LINE__, __FILE__, __func__, this, typeid(*this).name(), scope, "", pg::Logger::InfoLevel::log)
+#define LOG_INFO(scope, msg) pg::Logger::_log(__LINE__, __FILE__, __func__, 0, 0, scope, msg, pg::Logger::InfoLevel::info)
+#define LOG_ERROR(scope, msg) pg::Logger::_log(__LINE__, __FILE__, __func__, 0, 0, scope, msg, pg::Logger::InfoLevel::error)
 #else
 #define LOG_THIS(scope) 
 #define LOG_THIS_MEMBER(scope)
@@ -92,7 +92,7 @@ namespace pg
             class FilterFile : public Filter
             {
             public:
-                FilterFile(const char* filename, bool blacklisted = true) : filename(filename), blacklisted(blacklisted) {}
+                FilterFile(const std::string& filename, bool blacklisted = true) : filename(filename), blacklisted(blacklisted) {}
                 
                 inline virtual bool isFiltered(const Logger::Info& log) const
                 {
@@ -100,14 +100,14 @@ namespace pg
                 }
 
             private:
-                const char* filename;
+                std::string filename;
                 bool blacklisted;
             };
 
             class FilterFunction : public Filter
             {
             public:
-                FilterFunction(const char* function, bool blacklisted = true) : function(function), blacklisted(blacklisted) {}
+                FilterFunction(const std::string& function, bool blacklisted = true) : function(function), blacklisted(blacklisted) {}
                 
                 inline virtual bool isFiltered(const Logger::Info& log) const
                 {
@@ -115,7 +115,7 @@ namespace pg
                 }
 
             private:
-                const char* function;
+                std::string function;
                 bool blacklisted;
             };
 
@@ -141,7 +141,7 @@ namespace pg
             class FilterObjectName : public Filter
             {
             public:
-                FilterObjectName(const char* objectName, bool blacklisted = true) : objectName(objectName), blacklisted(blacklisted) {}
+                FilterObjectName(const std::string& objectName, bool blacklisted = true) : objectName(objectName), blacklisted(blacklisted) {}
                 
                 inline virtual bool isFiltered(const Logger::Info& log) const
                 {
@@ -149,14 +149,14 @@ namespace pg
                 }
 
             private:
-                const char* objectName;
+                std::string objectName;
                 bool blacklisted;
             };
 
             class FilterScope : public Filter
             {
             public:
-                FilterScope(const char* scope, bool blacklisted = true) : scope(scope), blacklisted(blacklisted) {}
+                FilterScope(const std::string& scope, bool blacklisted = true) : scope(scope), blacklisted(blacklisted) {}
                 
                 inline virtual bool isFiltered(const Logger::Info& log) const
                 {
@@ -164,7 +164,7 @@ namespace pg
                 }
 
             private:
-                const char* scope;
+                std::string scope;
                 bool blacklisted;
             };
 

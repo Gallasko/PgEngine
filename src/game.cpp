@@ -5,7 +5,7 @@
 
 namespace
 {
-    const char* DOM = "Main window";
+    const char * DOM = "Main window";
 }
 
 GameWindow::GameWindow(QWindow *parent) : QWindow(parent)
@@ -58,8 +58,9 @@ void GameWindow::initialize()
     // Enable log in console
     auto terminalSink = pg::Logger::registerSink<pg::TerminalSink>(true);
     //TODO fix FilterFile
-    //terminalSink->addFilter("Input Filter", new Logger::LogSink::FilterFile("src/Input/input.cpp"));
-    terminalSink->addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
+    //terminalSink->addFilter("Input Filter", new Logger::LogSink::FilterScope("Input"));
+    terminalSink->addFilter("Input Filter", new Logger::LogSink::FilterFile("src/Input/input.cpp"));
+    //terminalSink->addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
 
     masterRenderer.setWindowSize(640, 480);
 
@@ -139,7 +140,7 @@ void GameWindow::initialize()
     screenUi = ecs.attach<UiComponent>(screenEntity, {});
     screenUi->width = 1;
     screenUi->height = 1;
-    screenUi->setZ(0);
+    screenUi->setZ(-1);
 
     makeMouseArea(screenUi, camera, Camera::updateMouse);
 
@@ -156,20 +157,20 @@ void GameWindow::initialize()
     //tileSelector->pos.x = screenUi->width - tileSelector->width;
     //tileSelector->setLeftAnchor(&screenUi->left);//(&screenUi->right);
 
-    frame.pos.x = 400;
-    frame.pos.y = 200;
+    frame.pos.x = screenUi->right - frame.w - 20;
+    frame.pos.y = screenUi->bottom - frame.h;
     frame.pos.z = 5;
-    frame.w = 150;
-    frame.h = 200;
+    frame.w = 250;
+    frame.h = 300;
 
     auto testTexture = new TextureComponent(40, 200, "res/menu/frame.png");
     
-    //slideBar = new SlideBar(frame, tileSelector->frame, 150, nullptr);
+    //slideBar = new SlideBar(frame, tileSelector->frame, 150, nullptr);2
     listView = new ListView(frame, testTexture);
 
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 30; i++)
     {
-        auto testListViewChild = std::make_shared<TextureComponent>(43, 43, "res/menu/frame.png");
+        auto testListViewChild = std::make_shared<TileSelector>(gameMap, tileLoader, fontLoader, screenUi);
         listView->add(testListViewChild);
     }
 

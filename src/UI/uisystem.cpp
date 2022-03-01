@@ -73,6 +73,15 @@ namespace pg
         this->leftMargin = rhs.leftMargin;
     }
 
+    bool UiComponent::inBound(int x, int y) const
+    {
+        // Lockup x and y only once
+        const float xValue = x;
+        const float yValue = y;
+
+        return xValue > this->pos.x && xValue < (this->pos.x + this->width) && yValue < (this->pos.y + this->height) && yValue > this->pos.y;
+    }
+
     void UiComponent::render(MasterRenderer*)
     {
         LOG_ERROR(DOM, "Called Render of UiComponent when it should never be !");

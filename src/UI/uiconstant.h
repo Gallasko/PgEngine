@@ -313,7 +313,7 @@ namespace pg
         UiFrame(const UiSize& x, const UiSize& y, const UiSize& z, const UiSize& w, const UiSize& h) { this->pos.x = &x; this->pos.y = &y; this->pos.z = &z; this->w = &w; this->h = &h; }
         UiFrame(const UiPosition& pos, const UiSize& w, const UiSize& h) : pos(&pos), w(&w), h(&h) { }
         UiFrame(const UiFrame& frame) : pos(frame.pos), w(frame.w), h(frame.h) { }
-        UiFrame(UiFrame *frame) : pos(&frame->pos), w(&frame->w), h(&frame->h) { }
+        UiFrame(const UiFrame *frame) : pos(&frame->pos), w(&frame->w), h(&frame->h) { }
 
         void operator=(const UiFrame& rhs)
         {
@@ -324,7 +324,7 @@ namespace pg
             h = rhs.h; 
         }
 
-        void operator=(UiFrame *rhs)
+        void operator=(const UiFrame *rhs)
         {
             pos.x = &rhs->pos.x;
             pos.y = &rhs->pos.y; 

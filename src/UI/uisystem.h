@@ -80,7 +80,7 @@ namespace pg
         
         bool updated = true; // todo remove this 
 
-        bool inBound(int x, int y) const { return x > this->pos.x && x < (this->pos.x + this->width) && y < (this->pos.y + this->height) && y > this->pos.y; }
+        bool inBound(int x, int y) const;
         bool inBound(const constant::Vector2D& vec2) const { return inBound(vec2.x, vec2.y); }
 
         virtual void render(MasterRenderer* masterRenderer);
