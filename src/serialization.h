@@ -6,8 +6,6 @@
 #include <mutex>
 #include <sstream>
 
-#include <iostream>
-
 namespace pg
 {
     class Archive
@@ -80,21 +78,18 @@ namespace pg
         };
 
     public:
-        static std::unique_ptr<Serializer>& getSerializer()
-        {static std::unique_ptr<Serializer> serializer = std::unique_ptr<Serializer>(new Serializer); return serializer; }
+        Serializer(const std::string& filename) : filename(filename) { }
+
+        static std::unique_ptr<Serializer>& getSerializer(const std::string& filename = "serialize.sz")
+        {static std::unique_ptr<Serializer> serializer = std::unique_ptr<Serializer>(new Serializer(filename)); return serializer; }
 
         template <typename Type>
         void serializeObject(const Type& type) { ClassSerializer ar; serialize(ar.archive, type); }
 
     private:
-        void registerToFile(const std::stringstream& serializedString, std::recursive_mutex& mutex)
-        {
-            std::lock_guard<std::recursive_mutex> lock(mutex);
+        void registerToFile(const std::stringstream& serializedString, std::recursive_mutex& mutex);
 
-            std::cout << serializedString.str() << std::endl;
-        }
-
-        static std::string filename;
+        std::string filename;
     };
 }
 

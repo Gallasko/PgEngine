@@ -1,5 +1,7 @@
 #include "serialization.h"
 
+#include <fstream>
+
 #include "logger.h"
 #include "constant.h"
 
@@ -9,8 +11,6 @@ namespace pg
     {
         const char * DOM = "Serializer";
     }
-
-    std::string Serializer::filename = "serialize.sz";
 
     //Serialisation of base type
 
@@ -128,5 +128,16 @@ namespace pg
 
         indentLevel--;
         *this << "}" << endOfLine;
+    }
+
+    void Serializer::registerToFile(const std::stringstream& serializedString, std::recursive_mutex& mutex)
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+
+        std::ofstream file;
+        
+        file.open(filename);
+        file << serializedString.str();
+        file.close();
     }
 }
