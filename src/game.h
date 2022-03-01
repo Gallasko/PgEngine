@@ -63,7 +63,7 @@ struct PigeonEntity
     unsigned int currentTime = 0;
 };
 
-class GameWindow : public QWindow, protected QOpenGLFunctions, public Base
+class GameWindow : public QWindow, protected QOpenGLFunctions
 {
 	Q_OBJECT
 

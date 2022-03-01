@@ -13,7 +13,7 @@
 
 namespace pg
 {
-    class Camera : public QObject, protected QOpenGLFunctions, public Base
+    class Camera : public QObject, protected QOpenGLFunctions
     {
         Q_OBJECT
     public:

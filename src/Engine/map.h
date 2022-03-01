@@ -166,7 +166,7 @@ namespace pg
         const MapFloat map;
     };
 
-    class Map : private QOpenGLFunctions, public Base
+    class Map : private QOpenGLFunctions
     {
     public:
         enum class ZoneType

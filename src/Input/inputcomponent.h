@@ -7,6 +7,8 @@
 
 namespace pg
 {
+    struct Base {};
+    
     struct MouseInputComponent
     {
         UiPosition *pos;
@@ -20,7 +22,13 @@ namespace pg
         void (*onPressedLambda)(Input*, double) = nullptr;
 
         template<typename Func>
-        void registerFunc(void (Func::*f)(Input*, double, ...), Func *obj) { onPressed = static_cast<void (Base::*)(Input*, double, ...)>(f); object = static_cast<Base* >(obj); }
+        void registerFunc(void (Func::*f)(Input*, double, ...), Func *obj)
+        { 
+            struct Delegate : public Func, public Base {};
+
+            onPressed = static_cast<void (Base::*)(Input*, double, ...)>( static_cast<void (Delegate::*)(Input*, double, ...)>(f) );
+            object = static_cast<Delegate* >(obj);
+        }
 
         void registerFunc(void (*f)(Input*, double)) { onPressedLambda = f; }
 
@@ -61,10 +69,16 @@ namespace pg
         void (*onKeyLambda)(Input*, double) = nullptr;
 
         KeyboardInputComponent() {}
-        KeyboardInputComponent(const KeyboardInputComponent& component) :  object(component.object), onKey(component.onKey), onKeyLambda(component.onKeyLambda) {}
+        KeyboardInputComponent(const KeyboardInputComponent& component) : object(component.object), onKey(component.onKey), onKeyLambda(component.onKeyLambda) {}
 
         template<typename Func>
-        void registerFunc(void (Func::*f)(Input*, double, ...), Func *obj) { onKey = static_cast<void (Base::*)(Input*, double, ...)>(f); object = static_cast<Base* >(obj); }
+        void registerFunc(void (Func::*f)(Input*, double, ...), Func *obj)
+        { 
+            struct Delegate : public Func, public Base {};
+
+            onKey = static_cast<void (Base::*)(Input*, double, ...)>( static_cast<void (Delegate::*)(Input*, double, ...)>(f) );
+            object = static_cast<Delegate* >(obj);
+        }
 
         void registerFunc(void (*f)(Input*, double)) { onKeyLambda = f; }
 

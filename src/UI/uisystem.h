@@ -22,7 +22,7 @@
 //TODO create a destructor that go through the children and remove this ? or remove the child recursively ?
 namespace pg
 {
-    struct UiComponent : public Base
+    struct UiComponent
     {
         bool visible = true;
 
