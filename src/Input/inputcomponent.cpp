@@ -46,17 +46,15 @@ namespace pg
         for(const auto& component : mouseComponents)
         {
             const auto& mouseArea = component.component;
+
+            // Break of the loop if the current z value is lower than the highest z value in bound
+            // Possible because mouseComponents is sorted from highest to lowest Z
+            if(highestZ > mouseArea->pos->z)
+                break;
+
             if(mouseArea->inBound(mousePos.x(), mousePos.y()) and *mouseArea->enable)
-                if (mouseArea->pos->z > highestZ)
-                    highestZ = mouseArea->pos->z;
-        }
-
-        for(const auto& component : mouseComponents)
-        {
-            const auto& mouseArea = component.component;
-
-            if(mouseArea->inBound(mousePos.x(), mousePos.y()) and *mouseArea->enable and mouseArea->pos->z == highestZ)
             {
+                highestZ = mouseArea->pos->z;
                 component.callback(inputHandler, deltaTime);
             }
         }
