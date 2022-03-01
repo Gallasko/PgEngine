@@ -8,7 +8,6 @@
 
 #include "../../constant.h"
 
-#include "../../Engine/basesystem.h"
 #include "../../Engine/tileloader.h"
 #include "../../Engine/fontloader.h"
 #include "../../Engine/map.h"

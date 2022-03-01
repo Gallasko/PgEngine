@@ -10,7 +10,6 @@
 #include <algorithm>
 #include <vector>
 
-#include "../Engine/basesystem.h"
 #include "../constant.h"
 
 #include "../Engine/renderer.h"

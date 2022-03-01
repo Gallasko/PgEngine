@@ -7,10 +7,10 @@
 
 namespace pg
 {
-    struct Base {};
-    
     struct MouseInputComponent
     {
+        struct Base {};
+
         UiPosition *pos;
         UiSize *width, *height; // Input Area
         bool *enable;
@@ -62,6 +62,8 @@ namespace pg
 
     struct KeyboardInputComponent
     {
+        struct Base {};
+
         Base *object;
 
         void (Base::*onKey)(Input*, double, ...) = nullptr;
@@ -174,7 +176,7 @@ namespace pg
     {
         auto& system = InputSystem::system();
 
-        auto mouseArea = MouseInputPtr(new MouseInputBase<Base>(component));
+        auto mouseArea = MouseInputPtr(new MouseInputBase<MouseInputComponent::Base>(component));
         mouseArea->registerFunc(f);
 
         auto callback = [=](Input* inputHandler, double deltaTime) { mouseArea->call(inputHandler, deltaTime, args...); };
@@ -200,7 +202,7 @@ namespace pg
     {
         auto& system = InputSystem::system();
 
-        auto keyInput = KeyInputPtr(new KeyboardInputBase<Base>());
+        auto keyInput = KeyInputPtr(new KeyboardInputBase<KeyboardInputComponent::Base>());
         keyInput->registerFunc(f);
 
         auto callback = [=](Input* inputHandler, double deltaTime) { keyInput->call(inputHandler, deltaTime, args...); };
