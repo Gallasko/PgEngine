@@ -152,8 +152,8 @@ void GameWindow::initialize()
 
     tileSelector = new TileSelector(gameMap, tileLoader, fontLoader, screenUi);
     tileSelector->pos.z = 2;
-    tileSelector->setTopAnchor(&screenUi->top);
-    tileSelector->setRightAnchor(&screenUi->right); // TODO fix all of this
+    tileSelector->setTopAnchor(screenUi->top);
+    tileSelector->setRightAnchor(screenUi->right); // TODO fix all of this
     //tileSelector->pos.x = screenUi->width - tileSelector->width;
     //tileSelector->setLeftAnchor(&screenUi->left);//(&screenUi->right);
 
@@ -509,7 +509,7 @@ void GameWindow::render()
             mousePosTextC->visible = false;
     }
 
-    masterRenderer << tileSelector;
+    //masterRenderer << tileSelector;
     masterRenderer << listView;
 
     //masterRenderer.render<ParticleRenderer>(pComponent);
