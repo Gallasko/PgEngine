@@ -6,6 +6,7 @@
 
 #include "../Input/inputcomponent.h"
 
+//TODO add mouse wheel support and scrool by holding the mouse
 namespace pg
 {
     //TODO make sliders part of the scrollable component cause not only the list view need them
@@ -31,7 +32,7 @@ namespace pg
         void onPosChanged();
 
         void mouseInput(Input* inputhandler, double deltaTime...);
-        void mouseLeave(Input* inputhandler, double deltaTime...);
+        void mouseLeave(Input* inputhandler, double deltaTime);
 
         virtual void render(MasterRenderer* masterRenderer);
 
@@ -53,7 +54,7 @@ namespace pg
 
         UiOrientation orientation;
         
-        MouseComponent mouseArea = makeMouseArea(this, this, SlideBar::mouseInput, SlideBar::mouseLeave);
+        InputSystem::MouseComponent mouseArea = makeMouseArea(this, this, SlideBar::mouseInput, SlideBar::mouseLeave);
         bool pressed = false;
     };
 
@@ -69,7 +70,7 @@ namespace pg
         void add(std::shared_ptr<UiComponent> child);
 
         void mouseInput(Input* inputhandler, double deltaTime...);
-        void mouseLeave(Input* inputhandler, double deltaTime...);
+        void mouseLeave(Input* inputhandler, double deltaTime);
 
         virtual void render(MasterRenderer* masterRenderer);
 
@@ -90,7 +91,7 @@ namespace pg
         std::vector<std::shared_ptr<UiComponent>> children;
         std::vector<std::shared_ptr<UiComponent>> renderList;
 
-        MouseComponent mouseArea = makeMouseArea(this, this, ListView::mouseInput, ListView::mouseLeave);
+        InputSystem::MouseComponent mouseArea = makeMouseArea(this, this, ListView::mouseInput, ListView::mouseLeave);
 
         int spacing = 5;
 

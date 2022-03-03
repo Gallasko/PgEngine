@@ -148,7 +148,7 @@ void GameWindow::initialize()
 
     makeKeyInput(gameMap, Map::switchToPathFind);
 
-    makeMouseArea(screenUi, gameMap, Map::clicked, &screenUi->width, &screenUi->height, &gameScale, camera);
+    makeMouseArea(screenUi, gameMap, Map::clicked, nullptr, &screenUi->width, &screenUi->height, &gameScale, camera);
 
     tileSelector = new TileSelector(gameMap, tileLoader, fontLoader, screenUi);
     tileSelector->pos.z = 2;

@@ -20,8 +20,6 @@
 #include "../Input/input.h"
 #include "../camera.h"
 
-#include <iostream>
-
 // TODO Fix pathfinding sometimes a node is traversed multiple times
 // Sometimes the shortest route is not found because a longer route was not registered
 // Expend the pathfinding algorithm for open rooms by extending the research kernel
@@ -234,7 +232,7 @@ namespace pg
         inline unsigned int getHeight() const { return constraint.height; }
         inline QOpenGLVertexArrayObject* getMesh() { if(!meshUpdate) generateMesh(); return VAO; }
 
-        void changeTile(Input* inputHandler, double deltaTime...) { va_list args; va_start(args, deltaTime); std::cout << "Map Change Tile" << std::endl; if(inputHandler->isButtonPressed(Qt::LeftButton)) tileToBePlaced = va_arg(args, TilesLoader::TilesId*); }
+        void changeTile(Input* inputHandler, double deltaTime...) { va_list args; va_start(args, deltaTime); if(inputHandler->isButtonPressed(Qt::LeftButton)) tileToBePlaced = va_arg(args, TilesLoader::TilesId*); }
         
         void runPathFinding(Input* inputHandler, double deltaTime...);
         

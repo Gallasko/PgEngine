@@ -121,12 +121,12 @@ namespace pg
         }
     }
 
-    void SlideBar::mouseLeave(Input* inputHandler, double deltaTime...)
+    void SlideBar::mouseLeave(Input* inputHandler, double)
     {
         if(inputHandler->isButtonGrabbed(Qt::LeftButton) and pressed) 
         {
             const auto& pos = inputHandler->getMousePos();
-            
+
             updateCursorPos(pos);
         }
         else
@@ -255,7 +255,7 @@ namespace pg
         updateRenderList();
     }
 
-    void ListView::mouseInput(Input* inputhandler, double deltaTime...)
+    void ListView::mouseInput(Input* inputhandler, double...)
     {
         if(inputhandler->isButtonPressed(Qt::LeftButton) or inputhandler->isButtonGrabbed(Qt::LeftButton))
         {
@@ -275,11 +275,19 @@ namespace pg
         }
         else
         {
-            pressed = true;
+            if(pressed)
+            {
+                for(auto& child : children)
+                {
+                    child->pos.z = -2;
+                }
+            }
+                
+            pressed = false;
         }
     }
 
-    void ListView::mouseLeave(Input* inputhandler, double deltaTime...)
+    void ListView::mouseLeave(Input*, double)
     {
         if(pressed)
         {

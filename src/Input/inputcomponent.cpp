@@ -21,7 +21,7 @@ namespace pg
         }
     }
 
-    void InputSystem::deleteInput(const MouseComponent& component)
+    void InputSystem::deleteInput(const InputSystem::MouseComponent& component)
     {
         auto it = findInputPos(component, mouseComponents);
 
@@ -29,7 +29,7 @@ namespace pg
             mouseComponents.erase(mouseComponents.begin() + it);
     }
 
-    void InputSystem::deleteInput(const KeyComponent& component)
+    void InputSystem::deleteInput(const InputSystem::KeyComponent& component)
     {
         auto it = findInputPos(component, keyComponents);
 
@@ -56,7 +56,12 @@ namespace pg
             if(mouseArea->inBound(mousePos.x(), mousePos.y()) and *mouseArea->enable and mouseArea->pos->z >= highestZ)
             {
                 highestZ = mouseArea->pos->z;
-                component.callback(inputHandler, deltaTime);
+                component.inputCallback(inputHandler, deltaTime);
+            }
+            else
+            {
+                if(component.leaveCallback != nullptr)
+                    component.leaveCallback(inputHandler, deltaTime);
             }
         }
 
@@ -64,19 +69,19 @@ namespace pg
             component.callback(inputHandler, deltaTime);
     }
 
-    const MouseComponent& InputSystem::registerMouseArea(MouseInputPtr component, std::function<void(Input*, double)> callback)
+    const InputSystem::MouseComponent& InputSystem::registerMouseArea(MouseInputPtr component, const std::function<void(Input*, double)>& inputCallback, const std::function<void(Input*, double)>& leaveCallback)
     { 
-        mouseComponents.emplace_back(component, callback);
-        MouseComponent& returnComponent = mouseComponents.back();
+        mouseComponents.emplace_back(component, inputCallback, leaveCallback);
+        InputSystem::MouseComponent& returnComponent = mouseComponents.back();
 
         std::sort(mouseComponents.begin(), mouseComponents.end(), compareZValueFromComponents<MouseComponent>);
 
         return returnComponent; 
     }
-    const KeyComponent& InputSystem::registerKeyInput(KeyInputPtr component, std::function<void(Input*, double)> callback)
+    const InputSystem::KeyComponent& InputSystem::registerKeyInput(KeyInputPtr component, const std::function<void(Input*, double)>& callback)
     {
         keyComponents.emplace_back(component, callback);
-        KeyComponent& returnComponent = keyComponents.back();
+        InputSystem::KeyComponent& returnComponent = keyComponents.back();
 
         return returnComponent;
     }

@@ -36,7 +36,7 @@ private:
     TextureComponent *texture;
 
     std::vector<LoaderRenderComponent<TilesLoader::TilesId>> tileRendererVector;
-    std::vector<MouseComponent> mouseAreaVector;
+    std::vector<InputSystem::MouseComponent> mouseAreaVector;
 
     std::vector<Sentence*> textVector;
 
