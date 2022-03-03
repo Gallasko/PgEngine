@@ -17,7 +17,6 @@
 #include "tileloader.h"
 #include "Standalone/noise.h"
 #include "../constant.h"
-#include "basesystem.h"
 #include "../Input/input.h"
 #include "../camera.h"
 
@@ -166,7 +165,7 @@ namespace pg
         const MapFloat map;
     };
 
-    class Map : private QOpenGLFunctions, public Base
+    class Map : private QOpenGLFunctions
     {
     public:
         enum class ZoneType

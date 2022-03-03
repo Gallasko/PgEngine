@@ -8,7 +8,6 @@
 
 #include "../../constant.h"
 
-#include "../../Engine/basesystem.h"
 #include "../../Engine/tileloader.h"
 #include "../../Engine/fontloader.h"
 #include "../../Engine/map.h"
@@ -23,13 +22,12 @@ class TileSelector : public UiComponent, protected QOpenGLFunctions
 {
 public:
     TileSelector(Map *map, TilesLoader *TilesLoader, FontLoader *fontLoader, UiComponent *screenUi);
+    ~TileSelector();
 
     void setVisibility(bool visibility);
     inline bool isVisible() const { return visible; }
 
-    void render(MasterRenderer* masterRenderer);
-
-    ~TileSelector();
+    virtual void render(MasterRenderer* masterRenderer);
 
 private:
     friend void renderer<>(MasterRenderer* masterRenderer, TileSelector* tileSelector);
@@ -38,7 +36,7 @@ private:
     TextureComponent *texture;
 
     std::vector<LoaderRenderComponent<TilesLoader::TilesId>> tileRendererVector;
-    std::vector<MouseInputPtr> mouseAreaVector;
+    std::vector<InputSystem::MouseComponent> mouseAreaVector;
 
     std::vector<Sentence*> textVector;
 

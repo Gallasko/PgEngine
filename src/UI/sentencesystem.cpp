@@ -29,6 +29,103 @@ namespace pg
         archive.endSerialization();
     }
 
+    template<>
+    void renderer(MasterRenderer* masterRenderer, Sentence* sentence)
+    { 
+        auto rTable = masterRenderer->getParameter();
+        const int screenWidth = rTable["ScreenWidth"];
+        const int screenHeight = rTable["ScreenHeight"];
+        const int currentTime = rTable["CurrentTime"];
+
+        QMatrix4x4 projection;
+        QMatrix4x4 view;
+        QMatrix4x4 model;
+        QMatrix4x4 scale;
+
+        projection.setToIdentity();
+        model.setToIdentity();
+        scale.setToIdentity();
+        scale.scale(QVector3D(2.0f / screenWidth, 2.0f / screenHeight, 0.0f));
+
+        auto shaderProgram = masterRenderer->getShader("text");
+
+        // Text rendering
+        
+        shaderProgram->bind();
+
+        shaderProgram->setUniformValue(shaderProgram->uniformLocation("projection"), projection);
+        shaderProgram->setUniformValue(shaderProgram->uniformLocation("model"), model);
+        shaderProgram->setUniformValue(shaderProgram->uniformLocation("scale"), scale);
+
+        shaderProgram->setUniformValue(shaderProgram->uniformLocation("time"), static_cast<int>(currentTime % 314159));
+
+        if(sentence->initialised == false)
+            sentence->generateMesh();
+
+        //TODO store texture of the font in the font loader to get it back in the renderer
+        //glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, masterRenderer->getTexture("font"));
+
+        view.setToIdentity();
+        view.translate(QVector3D(-1.0f + 2.0f * (float)(sentence->pos.x) / screenWidth, 1.0f + 2.0f * (float)( -sentence->pos.y) / screenHeight, 0.0f));
+
+        shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
+
+        sentence->VAO->bind();
+        glDrawElements(GL_TRIANGLES, sentence->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
+
+        shaderProgram->release();
+    }
+
+    template<>
+    void renderer(MasterRenderer* masterRenderer, std::vector<Sentence*> sentenceList)
+    { 
+        auto rTable = masterRenderer->getParameter();
+        const int screenWidth = rTable["ScreenWidth"];
+        const int screenHeight = rTable["ScreenHeight"];
+        const int currentTime = rTable["CurrentTime"];
+
+        QMatrix4x4 projection;
+        QMatrix4x4 view;
+        QMatrix4x4 model;
+        QMatrix4x4 scale;
+
+        projection.setToIdentity();
+        model.setToIdentity();
+        scale.setToIdentity();
+        scale.scale(QVector3D(1.0f / screenWidth, 1.0f / screenHeight, 0.0f));
+
+        auto shaderProgram = masterRenderer->getShader("text");
+
+        // Tex rendering
+        
+        shaderProgram->bind();
+
+        shaderProgram->setUniformValue(shaderProgram->uniformLocation("projection"), projection);
+        shaderProgram->setUniformValue(shaderProgram->uniformLocation("model"), model);
+        shaderProgram->setUniformValue(shaderProgram->uniformLocation("scale"), scale);
+
+        shaderProgram->setUniformValue(shaderProgram->uniformLocation("time"), static_cast<int>(currentTime % 314159));
+        //TODO store texture of the font in the font loader to get it back in the renderer
+        glBindTexture(GL_TEXTURE_2D, masterRenderer->getTexture("font"));
+
+        for(auto& sentence : sentenceList)
+        {
+            if(sentence->initialised == false)
+            sentence->generateMesh();
+
+            view.setToIdentity();
+            view.translate(QVector3D(-1.0f + 2.0f * (float)(sentence->pos.x) / screenWidth, 1.0f + 2.0f * (float)( -sentence->pos.y) / screenHeight, 0.0f));
+
+            shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
+
+            sentence->VAO->bind();
+            glDrawElements(GL_TRIANGLES, sentence->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
+        }
+
+        shaderProgram->release();
+    }
+
     //TODO make a class responsible for creating all the VAO/VBO for the meshes so the class doesn t need to subclass QOpenGLFunctions
 
     Sentence::Sentence(const SentenceText& sentence, const float& scale, FontLoader *font) : QOpenGLFunctions(), scale(scale), font(font)
@@ -215,100 +312,8 @@ namespace pg
         initialised = true;
     }
 
-    template<>
-    void renderer(MasterRenderer* masterRenderer, Sentence* sentence)
+    void Sentence::render(MasterRenderer* masterRenderer)
     { 
-        auto rTable = masterRenderer->getParameter();
-        const int screenWidth = rTable["ScreenWidth"];
-        const int screenHeight = rTable["ScreenHeight"];
-        const int currentTime = rTable["CurrentTime"];
-
-        QMatrix4x4 projection;
-        QMatrix4x4 view;
-        QMatrix4x4 model;
-        QMatrix4x4 scale;
-
-        projection.setToIdentity();
-        model.setToIdentity();
-        scale.setToIdentity();
-        scale.scale(QVector3D(2.0f / screenWidth, 2.0f / screenHeight, 0.0f));
-
-        auto shaderProgram = masterRenderer->getShader("text");
-
-        // Text rendering
-        
-        shaderProgram->bind();
-
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("projection"), projection);
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("model"), model);
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("scale"), scale);
-
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("time"), static_cast<int>(currentTime % 314159));
-
-        if(sentence->initialised == false)
-            sentence->generateMesh();
-
-        //TODO store texture of the font in the font loader to get it back in the renderer
-        //glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, masterRenderer->getTexture("font"));
-
-        view.setToIdentity();
-        view.translate(QVector3D(-1.0f + 2.0f * (float)(sentence->pos.x) / screenWidth, 1.0f + 2.0f * (float)( -sentence->pos.y) / screenHeight, 0.0f));
-
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
-
-        sentence->VAO->bind();
-        glDrawElements(GL_TRIANGLES, sentence->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
-
-        shaderProgram->release();
-    }
-
-    template<>
-    void renderer(MasterRenderer* masterRenderer, std::vector<Sentence*> sentenceList)
-    { 
-        auto rTable = masterRenderer->getParameter();
-        const int screenWidth = rTable["ScreenWidth"];
-        const int screenHeight = rTable["ScreenHeight"];
-        const int currentTime = rTable["CurrentTime"];
-
-        QMatrix4x4 projection;
-        QMatrix4x4 view;
-        QMatrix4x4 model;
-        QMatrix4x4 scale;
-
-        projection.setToIdentity();
-        model.setToIdentity();
-        scale.setToIdentity();
-        scale.scale(QVector3D(1.0f / screenWidth, 1.0f / screenHeight, 0.0f));
-
-        auto shaderProgram = masterRenderer->getShader("text");
-
-        // Tex rendering
-        
-        shaderProgram->bind();
-
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("projection"), projection);
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("model"), model);
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("scale"), scale);
-
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("time"), static_cast<int>(currentTime % 314159));
-        //TODO store texture of the font in the font loader to get it back in the renderer
-        glBindTexture(GL_TEXTURE_2D, masterRenderer->getTexture("font"));
-
-        for(auto& sentence : sentenceList)
-        {
-            if(sentence->initialised == false)
-            sentence->generateMesh();
-
-            view.setToIdentity();
-            view.translate(QVector3D(-1.0f + 2.0f * (float)(sentence->pos.x) / screenWidth, 1.0f + 2.0f * (float)( -sentence->pos.y) / screenHeight, 0.0f));
-
-            shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
-
-            sentence->VAO->bind();
-            glDrawElements(GL_TRIANGLES, sentence->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
-        }
-
-        shaderProgram->release();
+        renderer(masterRenderer, this); 
     }
 }
