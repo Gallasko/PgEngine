@@ -106,8 +106,6 @@ namespace pg
 
     void SlideBar::mouseInput(Input* inputHandler, double...)
     {
-        static bool pressed = false;
-
         if(not inputHandler->isButtonGrabbed(Qt::LeftButton))
             pressed = false;
 
@@ -115,30 +113,45 @@ namespace pg
         {
             inputHandler->grabMouse(Qt::LeftButton);
 
-            const auto pos = inputHandler->getMousePos();
+            const auto& pos = inputHandler->getMousePos();
 
-            auto currentPos = pos.y() - this->pos.y - this->buttonHeight / 2.0f;
-
-            if(currentPos < 0)
-                currentPos = 0;
-
-            if(currentPos > height - this->buttonHeight)
-                currentPos = height - this->buttonHeight;
-
-            if(posUpdate && this->boxToMonitor.h > 0)
-                posUpdate(currentPos * (this->maxPos / this->boxToMonitor.h));
-
-            std::cout << currentPos << std::endl;
-
-            cursor->setTopMargin(currentPos);
+            updateCursorPos(pos);
 
             pressed = true;
         }
+    }
+
+    void SlideBar::mouseLeave(Input* inputHandler, double deltaTime...)
+    {
+        if(inputHandler->isButtonGrabbed(Qt::LeftButton) and pressed) 
+        {
+            const auto& pos = inputHandler->getMousePos();
+            
+            updateCursorPos(pos);
+        }
+        else
+            pressed = false;
     }
     
     void SlideBar::render(MasterRenderer* masterRenderer)
     { 
         renderer(masterRenderer, this); 
+    }
+
+    void SlideBar::updateCursorPos(const QPoint& pos)
+    {
+        auto currentPos = pos.y() - this->pos.y - this->buttonHeight / 2.0f;
+
+        if(currentPos < 0)
+            currentPos = 0;
+
+        if(currentPos > height - this->buttonHeight)
+            currentPos = height - this->buttonHeight;
+
+        if(posUpdate && this->boxToMonitor.h > 0)
+            posUpdate(currentPos * (this->maxPos / this->boxToMonitor.h));
+
+        cursor->setTopMargin(currentPos);
     }
 
     //TODO create a 2nd slider like said in the header
@@ -244,10 +257,12 @@ namespace pg
 
     void ListView::mouseInput(Input* inputhandler, double deltaTime...)
     {
-        LOG_THIS_MEMBER(DOM);
-
         if(inputhandler->isButtonPressed(Qt::LeftButton) or inputhandler->isButtonGrabbed(Qt::LeftButton))
         {
+            LOG_THIS_MEMBER(DOM);
+
+            pressed = true;
+
             const auto& mousePos = inputhandler->getMousePos();
 
             for(auto& child : children)
@@ -255,11 +270,27 @@ namespace pg
                 child->pos.z = -2;
 
                 if (child->inBound(mousePos.x(), mousePos.y()))
-                {
-                    std::cout << "Set z" << std::endl;
                     child->pos.z = this->pos.z;
-                }
             }
+        }
+        else
+        {
+            pressed = true;
+        }
+    }
+
+    void ListView::mouseLeave(Input* inputhandler, double deltaTime...)
+    {
+        if(pressed)
+        {
+            LOG_THIS_MEMBER(DOM);
+
+            for(auto& child : children)
+            {
+                child->pos.z = -2;
+            }
+
+            pressed = false;
         }
     }
 
@@ -324,8 +355,13 @@ namespace pg
             float childLeft = child->left;
             float childRight = child->right;
 
-             if(this->inBound(childLeft, childTop) or this->inBound(childLeft, childBottom) or this->inBound(childRight, childTop) or this->inBound(childRight, childBottom))
-                renderList.push_back(child);   
+            child->visible = false;
+
+            if(this->inBound(childLeft, childTop) or this->inBound(childLeft, childBottom) or this->inBound(childRight, childTop) or this->inBound(childRight, childBottom))
+            {
+                renderList.push_back(child);
+                child->visible = true;
+            }
         }
     }
 }

@@ -31,13 +31,14 @@ namespace pg
         void onPosChanged();
 
         void mouseInput(Input* inputhandler, double deltaTime...);
+        void mouseLeave(Input* inputhandler, double deltaTime...);
 
         virtual void render(MasterRenderer* masterRenderer);
 
     private:
         friend void renderer<>(MasterRenderer* renderer, SlideBar* slidebar);
 
-        void updateCursorPos();
+        void updateCursorPos(const QPoint& pos);
 
         TextureComponent* slider;
         TextureComponent* cursor;
@@ -52,7 +53,8 @@ namespace pg
 
         UiOrientation orientation;
         
-        MouseComponent mouseArea = makeMouseArea(this, this, SlideBar::mouseInput);
+        MouseComponent mouseArea = makeMouseArea(this, this, SlideBar::mouseInput, SlideBar::mouseLeave);
+        bool pressed = false;
     };
 
     // Make list view subclass from scrollable components
@@ -67,6 +69,7 @@ namespace pg
         void add(std::shared_ptr<UiComponent> child);
 
         void mouseInput(Input* inputhandler, double deltaTime...);
+        void mouseLeave(Input* inputhandler, double deltaTime...);
 
         virtual void render(MasterRenderer* masterRenderer);
 
@@ -87,7 +90,7 @@ namespace pg
         std::vector<std::shared_ptr<UiComponent>> children;
         std::vector<std::shared_ptr<UiComponent>> renderList;
 
-        MouseComponent mouseArea = makeMouseArea(this, this, ListView::mouseInput);
+        MouseComponent mouseArea = makeMouseArea(this, this, ListView::mouseInput, ListView::mouseLeave);
 
         int spacing = 5;
 
@@ -95,6 +98,8 @@ namespace pg
 
         UiSize listWidth;
         UiSize listHeight;
+
+        bool pressed = false;
     };
 }
 

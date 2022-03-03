@@ -96,6 +96,8 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
     tileRendererVector[0].setLeftAnchor(textVector[0]->left);
     tileRendererVector[0].setTopMargin(5);
 
+    tileRendererVector[0].pos.z = this->pos.z + 1;
+
     tileRendererVector[0].setWidth(50.0f);
     tileRendererVector[0].setHeight(50.0f);
 
@@ -103,12 +105,16 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
     tileRendererVector[1].setLeftAnchor(tileRendererVector[0].right);
     tileRendererVector[1].setLeftMargin(5);
 
+    tileRendererVector[1].pos.z = this->pos.z + 1;
+
     tileRendererVector[1].setWidth(50.0f);
     tileRendererVector[1].setHeight(50.0f);
 
     tileRendererVector[2].setTopAnchor(tileRendererVector[1].top);
     tileRendererVector[2].setLeftAnchor(tileRendererVector[1].right);
     tileRendererVector[2].setLeftMargin(5);
+
+    tileRendererVector[2].pos.z = this->pos.z + 1;
 
     tileRendererVector[2].setWidth(50.0f);
     tileRendererVector[2].setHeight(50.0f);
