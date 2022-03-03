@@ -9,6 +9,8 @@ namespace pg
 {
     struct MouseInputComponent
     {
+        struct Base {};
+
         // TODO replace this by a UiFrame
         UiPosition *pos;
         UiSize *width, *height; // Input Area
@@ -21,7 +23,13 @@ namespace pg
         void (*onPressedLambda)(Input*, double) = nullptr;
 
         template<typename Func>
-        void registerFunc(void (Func::*f)(Input*, double, ...), Func *obj) { onPressed = static_cast<void (Base::*)(Input*, double, ...)>(f); object = static_cast<Base* >(obj); }
+        void registerFunc(void (Func::*f)(Input*, double, ...), Func *obj)
+        { 
+            struct Delegate : public Func, public Base {};
+
+            onPressed = static_cast<void (Base::*)(Input*, double, ...)>( static_cast<void (Delegate::*)(Input*, double, ...)>(f) );
+            object = static_cast<Delegate* >(obj);
+        }
 
         void registerFunc(void (*f)(Input*, double)) { onPressedLambda = f; }
 
@@ -55,6 +63,8 @@ namespace pg
 
     struct KeyboardInputComponent
     {
+        struct Base {};
+
         Base *object;
 
         void (Base::*onKey)(Input*, double, ...) = nullptr;
@@ -62,10 +72,16 @@ namespace pg
         void (*onKeyLambda)(Input*, double) = nullptr;
 
         KeyboardInputComponent() {}
-        KeyboardInputComponent(const KeyboardInputComponent& component) :  object(component.object), onKey(component.onKey), onKeyLambda(component.onKeyLambda) {}
+        KeyboardInputComponent(const KeyboardInputComponent& component) : object(component.object), onKey(component.onKey), onKeyLambda(component.onKeyLambda) {}
 
         template<typename Func>
-        void registerFunc(void (Func::*f)(Input*, double, ...), Func *obj) { onKey = static_cast<void (Base::*)(Input*, double, ...)>(f); object = static_cast<Base* >(obj); }
+        void registerFunc(void (Func::*f)(Input*, double, ...), Func *obj)
+        { 
+            struct Delegate : public Func, public Base {};
+
+            onKey = static_cast<void (Base::*)(Input*, double, ...)>( static_cast<void (Delegate::*)(Input*, double, ...)>(f) );
+            object = static_cast<Delegate* >(obj);
+        }
 
         void registerFunc(void (*f)(Input*, double)) { onKeyLambda = f; }
 
@@ -161,7 +177,7 @@ namespace pg
     {
         auto& system = InputSystem::system();
 
-        auto mouseArea = MouseInputPtr(new MouseInputBase<Base>(component));
+        auto mouseArea = MouseInputPtr(new MouseInputBase<MouseInputComponent::Base>(component));
         mouseArea->registerFunc(f);
 
         auto callback = [=](Input* inputHandler, double deltaTime) { mouseArea->call(inputHandler, deltaTime, args...); };
@@ -187,7 +203,7 @@ namespace pg
     {
         auto& system = InputSystem::system();
 
-        auto keyInput = KeyInputPtr(new KeyboardInputBase<Base>());
+        auto keyInput = KeyInputPtr(new KeyboardInputBase<KeyboardInputComponent::Base>());
         keyInput->registerFunc(f);
 
         auto callback = [=](Input* inputHandler, double deltaTime) { keyInput->call(inputHandler, deltaTime, args...); };

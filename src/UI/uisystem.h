@@ -10,7 +10,6 @@
 #include <algorithm>
 #include <vector>
 
-#include "../Engine/basesystem.h"
 #include "../constant.h"
 
 #include "../Engine/renderer.h"
@@ -22,7 +21,7 @@
 //TODO create a destructor that go through the children and remove this ? or remove the child recursively ?
 namespace pg
 {
-    struct UiComponent : public Base
+    struct UiComponent
     {
         bool visible = true;
 
