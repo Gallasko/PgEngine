@@ -43,7 +43,7 @@ namespace pg
         int highestZ = INT_MIN;
         const auto& mousePos = inputHandler->getMousePos();
 
-        for(const auto& component : mouseComponents)
+        for( auto& component : mouseComponents)
         {
             const auto& mouseArea = component.component;
 

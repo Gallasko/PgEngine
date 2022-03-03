@@ -13,6 +13,7 @@ namespace pg
     class SlideBar : public UiComponent
     {
         typedef std::function<void(const UiSize&)> PositionCallback;
+        
     public:
         //TODO use the orientation data
         SlideBar(const UiComponent& frame, const PositionCallback& posToUpdate, const UiOrientation& orientation = UiOrientation::VERTICAL);
@@ -42,10 +43,7 @@ namespace pg
         TextureComponent* cursor;
 
         // TODO: move this in the cursor class
-        UiSize buttonHeight;// = height / 10.0f;
-        
-        //UiSize yMin, yMax;
-        //float cursorPos;
+        UiSize buttonHeight; // = height / 10.0f;
 
         UiFrame boxToMonitor;
         UiSize maxPos;

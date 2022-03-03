@@ -59,8 +59,8 @@ void GameWindow::initialize()
     auto terminalSink = pg::Logger::registerSink<pg::TerminalSink>(true);
     //TODO fix FilterFile
     //terminalSink->addFilter("Input Filter", new Logger::LogSink::FilterScope("Input"));
-    terminalSink->addFilter("Input Filter", new Logger::LogSink::FilterFile("src/Input/input.cpp"));
-    //terminalSink->addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
+    //terminalSink->addFilter("Input Filter", new Logger::LogSink::FilterFile("src/Input/input.cpp"));
+    terminalSink->addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
 
     masterRenderer.setWindowSize(640, 480);
 
@@ -152,8 +152,8 @@ void GameWindow::initialize()
 
     tileSelector = new TileSelector(gameMap, tileLoader, fontLoader, screenUi);
     tileSelector->pos.z = 2;
-    tileSelector->setTopAnchor(&screenUi->top);
-    tileSelector->setRightAnchor(&screenUi->right); // TODO fix all of this
+    tileSelector->setTopAnchor(screenUi->top);
+    tileSelector->setRightAnchor(screenUi->right); // TODO fix all of this
     //tileSelector->pos.x = screenUi->width - tileSelector->width;
     //tileSelector->setLeftAnchor(&screenUi->left);//(&screenUi->right);
 
@@ -458,8 +458,7 @@ void GameWindow::render()
     }
     catch(const std::exception& e)
     {
-        std::cout << "Resize error" << std::endl;
-        std::cerr << e.what() << '\n';
+        LOG_ERROR(DOM, "Resize error");
     }
 
     masterRenderer.setCurrentTime(currentTime);

@@ -9,6 +9,7 @@ namespace pg
 {
     struct MouseInputComponent
     {
+        // TODO replace this by a UiFrame
         UiPosition *pos;
         UiSize *width, *height; // Input Area
         bool *enable;

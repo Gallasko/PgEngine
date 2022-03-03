@@ -144,6 +144,8 @@ namespace pg
     //TODO create a 2nd slider like said in the header
     ListView::ListView(const UiComponent& frame, TextureComponent* backgroundTexture, const UiOrientation& orientation) : UiComponent(frame), slide(SlideBar(UiFrame{this->right, this->top, this->pos.z, DEFAULT_SLIDER_WIDTH, this->height}, this->frame, this->pos.y, [&](const UiSize& pos){ this->updateListPos(pos); })), orientation(orientation), backgroundTexture(backgroundTexture)
     {
+        LOG_THIS_MEMBER(DOM);
+
         if(backgroundTexture != nullptr)
         {
             backgroundTexture->setWidth(this->width);
@@ -157,6 +159,8 @@ namespace pg
     //TODO don't pass a slider but the slider parameters and then contruct the slider to be relevent to this list view
     ListView::ListView(const UiComponent& frame, const SlideBar& slidebar, TextureComponent* backgroundTexture, const UiOrientation& orientation) : UiComponent(frame), slide(slidebar), orientation(orientation), backgroundTexture(backgroundTexture)
     {
+        LOG_THIS_MEMBER(DOM);
+
         // This is for the vertical slider
         //Todo create the slider here (horizontalSilder = SlideBar(SlideParam, this->frame, this->listHeight, his->firstMargin))
         slide.setHeight(this->height);
@@ -179,6 +183,8 @@ namespace pg
 
     void ListView::setSpacing(int spacing)
     {
+        LOG_THIS_MEMBER(DOM);
+
         this->spacing = spacing;
         
         for(auto& child : this->children)
@@ -200,6 +206,8 @@ namespace pg
 
     void ListView::add(std::shared_ptr<UiComponent> child)
     {
+        LOG_THIS_MEMBER(DOM);
+
         if(children.size() > 0)
         {
             switch(orientation)
@@ -236,7 +244,23 @@ namespace pg
 
     void ListView::mouseInput(Input* inputhandler, double deltaTime...)
     {
+        LOG_THIS_MEMBER(DOM);
 
+        if(inputhandler->isButtonPressed(Qt::LeftButton) or inputhandler->isButtonGrabbed(Qt::LeftButton))
+        {
+            const auto& mousePos = inputhandler->getMousePos();
+
+            for(auto& child : children)
+            {
+                child->pos.z = -2;
+
+                if (child->inBound(mousePos.x(), mousePos.y()))
+                {
+                    std::cout << "Set z" << std::endl;
+                    child->pos.z = this->pos.z;
+                }
+            }
+        }
     }
 
     void ListView::render(MasterRenderer* masterRenderer)
