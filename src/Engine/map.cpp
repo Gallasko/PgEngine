@@ -1,5 +1,7 @@
 #include "map.h"
 
+#include "../UI/uiconstant.h"
+
 namespace pg
 {
     namespace
@@ -187,12 +189,16 @@ namespace pg
             va_list args; 
             va_start(args, deltaTime); 
             
-            auto screenWidth = va_arg(args, int);
-            auto screenHeight = va_arg(args, int);
-            auto gameScale = va_arg(args, double);
+            auto screenWidthPtr = va_arg(args, UiSize*);
+            auto screenHeightPtr = va_arg(args, UiSize*);
+            auto gameScalePtr = va_arg(args, float*);
             auto camera = va_arg(args, Camera*);
 
             va_end(args);
+
+            auto screenWidth = *screenWidthPtr;
+            auto screenHeight = *screenHeightPtr;
+            auto gameScale = *gameScalePtr;
 
             float selectedTileX = ((float)(mousePos.x() - screenWidth / 2.0f )) / (gameScale / 2.0f) + camera->Position.x() * screenWidth / gameScale;
             float selectedTileY = ((float)(screenHeight / 2.0f - mousePos.y())) / (gameScale / 4.0f) + camera->Position.y() * screenHeight / gameScale * 2;

@@ -1,0 +1,89 @@
+#include "inputcomponent.h"
+
+namespace pg
+{
+    namespace
+    {
+        template <typename Container, typename Value>
+        int findInputPos(const Value& value, const Container& container)
+        {
+            for (long long unsigned int i = 0; i < container.size(); i++)
+                if(value == container.at(i))
+                    return i;
+
+            return -1;
+        }
+
+        template<typename InputHolder>
+        bool compareZValueFromComponents(const InputHolder& left, const InputHolder& right)
+        {
+            return left.component->pos->z > right.component->pos->z;
+        }
+    }
+
+    void InputSystem::deleteInput(const InputSystem::MouseComponent& component)
+    {
+        auto it = findInputPos(component, mouseComponents);
+
+        if(it != -1)
+            mouseComponents.erase(mouseComponents.begin() + it);
+    }
+
+    void InputSystem::deleteInput(const InputSystem::KeyComponent& component)
+    {
+        auto it = findInputPos(component, keyComponents);
+
+        if(it != -1)
+            keyComponents.erase(keyComponents.begin() + it);
+    }
+
+    void InputSystem::updateState(Input* inputHandler, double deltaTime)
+    {
+        // Lowest value of an integer
+        int highestZ = INT_MIN;
+        const auto& mousePos = inputHandler->getMousePos();
+
+        for(auto& component : mouseComponents)
+        {
+            const auto& mouseArea = component.component;
+
+            // Break of the loop if the current z value is lower than the highest z value in bound
+            // Possible because mouseComponents is sorted from highest to lowest Z 
+            // TODO need to reorder the list when a Z value is modified
+            //if(highestZ > mouseArea->pos->z) // care some edge case exist like listview promoting a Z value so list is not always sorted ! 
+            //    break;
+
+            if(mouseArea->inBound(mousePos.x(), mousePos.y()) and *mouseArea->enable and mouseArea->pos->z >= highestZ)
+            {
+                highestZ = mouseArea->pos->z;
+                component.inputCallback(inputHandler, deltaTime);
+            }
+            else
+            {
+                if(component.leaveCallback != nullptr)
+                    component.leaveCallback(inputHandler, deltaTime);
+            }
+        }
+
+        for(auto& component : keyComponents)
+            component.callback(inputHandler, deltaTime);
+    }
+
+    const InputSystem::MouseComponent& InputSystem::registerMouseArea(MouseInputPtr component, const std::function<void(Input*, double)>& inputCallback, const std::function<void(Input*, double)>& leaveCallback)
+    { 
+        mouseComponents.emplace_back(component, inputCallback, leaveCallback);
+        InputSystem::MouseComponent& returnComponent = mouseComponents.back();
+
+        std::sort(mouseComponents.begin(), mouseComponents.end(), compareZValueFromComponents<MouseComponent>);
+
+        return returnComponent; 
+    }
+    const InputSystem::KeyComponent& InputSystem::registerKeyInput(KeyInputPtr component, const std::function<void(Input*, double)>& callback)
+    {
+        keyComponents.emplace_back(component, callback);
+        InputSystem::KeyComponent& returnComponent = keyComponents.back();
+
+        return returnComponent;
+    }
+
+}
