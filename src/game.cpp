@@ -88,6 +88,9 @@ void GameWindow::initialize()
     Configuration::config()->set("Gold", 500);
     Configuration::config()->set("Pos x", 15.0f);
 
+    std::cout << Configuration::config()->get<std::string>("Username", "None") << std::endl;
+    std::cout << Configuration::config()->get<std::string>("Password", "None") << std::endl;
+
     camera = new Camera(QVector3D(0.0f, 0.0f, 3.0f));
 
     tileLoader = new TilesLoader("res/tiles/");

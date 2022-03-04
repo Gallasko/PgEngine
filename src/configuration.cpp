@@ -94,14 +94,4 @@ namespace pg
         }
     }
 
-    template<typename Type>
-    Type Configuration::get(const std::string& name, const Type& defaultValue) const
-    {
-        const auto& it = elementMap.find(name);
-
-        if(it == elementMap.end())
-            return defaultValue;
-
-        return it->second.get<Type>();
-    }
 }
