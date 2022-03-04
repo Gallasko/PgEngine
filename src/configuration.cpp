@@ -9,6 +9,47 @@ namespace pg
         const char * DOM = "Configuration";
     }
 
+    template<>
+    void serialize(Archive& archive, const Configuration& config)
+    {
+        archive.startSerialization("Configuration");
+
+        for(const auto& element : config.elementMap)
+        {
+            switch(element.second.type)
+            {
+            case Configuration::ElementType::UnionType::FLOAT:
+                serialize(archive, element.first, element.second.get<float>());
+                break;
+
+            case Configuration::ElementType::UnionType::INT:
+                serialize(archive, element.first, element.second.get<int>());
+                break;
+
+            case Configuration::ElementType::UnionType::STRING:
+                serialize(archive, element.first, element.second.get<std::string>());
+                break;
+
+            case Configuration::ElementType::UnionType::BOOL:
+                serialize(archive, element.first, element.second.get<bool>());
+                break; 
+            }
+        }
+
+        archive.endSerialization();
+    }
+
+    std::string Configuration::ElementType::enumTypeToString(const Configuration::ElementType::UnionType& type) const
+    {
+        switch(type)
+        {
+            case UnionType::FLOAT: return "float"; break;
+            case UnionType::INT: return "int"; break;
+            case UnionType::STRING: return "string"; break;
+            case UnionType::BOOL: return "bool"; break;
+        }
+    }
+
     Configuration::ElementType::operator float() const
     {
         if(this->type == UnionType::FLOAT)
@@ -53,14 +94,20 @@ namespace pg
         }
     }
 
-    std::string enumTypeToString(const Configuration::ElementType::UnionType& type)
+    template<typename Type>
+    Type Configuration::get(const std::string& name, const Type& defaultValue) const
     {
-        switch(type)
-        {
-            case Configuration::ElementType::UnionType::FLOAT: return "float"; break;
-            case Configuration::ElementType::UnionType::INT: return "int"; break;
-            case Configuration::ElementType::UnionType::STRING: return "string"; break;
-            case Configuration::ElementType::UnionType::BOOL: return "bool"; break;
-        }
+        const auto& it = elementMap.find(name);
+
+        if(it == elementMap.end())
+            return defaultValue;
+
+        return it->second.get<Type>();
+    }
+
+    template<typename Type>
+    void Configuration::set(const std::string& name, const Type& value)
+    {
+        elementMap[name] = value;
     }
 }

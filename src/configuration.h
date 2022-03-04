@@ -3,13 +3,15 @@
 #include <typeinfo>
 #include <string>
 #include <memory>
+#include <unordered_map>
+
+#include "serialization.h"
 
 namespace pg
 {
     class Configuration
     {
-    public:
-        //TODO: Make this struct private -> rn public for testing purposes
+    private:
         struct ElementType
         {
         private:
@@ -24,27 +26,15 @@ namespace pg
                 std::string s;
                 bool b;
                 // Big Int bi;
-            } data;
+            };
 
+        public:
             enum class UnionType
             {
                 FLOAT,
                 INT,
                 STRING,
                 BOOL
-            };
-
-            template<typename Type>
-            struct ReturnUnion
-            {
-                Type value;
-
-                ReturnUnion(const Type& value) : value(value) {}
-
-                explicit operator Type() const
-                {
-                    return value;
-                }
             };
         
         public:
@@ -106,14 +96,6 @@ namespace pg
                 this->type = UnionType::BOOL;
             }
 
-            explicit operator float() const;
-
-            explicit operator int() const;
-
-            explicit operator std::string() const;
-
-            explicit operator bool() const;
-
             template<typename Type>
             Type get() const
             {
@@ -129,8 +111,28 @@ namespace pg
                 // TODO add Big Int clear too here
             }
 
-            friend std::string enumTypeToString(const Configuration::ElementType::UnionType& type);
+            std::string enumTypeToString(const Configuration::ElementType::UnionType& type) const;
+
+            explicit operator float() const;
+            explicit operator int() const;
+            explicit operator std::string() const;
+            explicit operator bool() const;
+
+            U data;
         };
 
+    public:
+        Configuration();
+
+        template<typename Type>
+        Type get(const std::string& name, const Type& defaultValue) const;
+
+        template<typename Type>
+        void set(const std::string& name, const Type& value);
+
+    private:
+        friend void serialize<>(Archive& archive, const Configuration& config);
+
+        std::unordered_map<std::string, Configuration::ElementType> elementMap;
     };
 }
