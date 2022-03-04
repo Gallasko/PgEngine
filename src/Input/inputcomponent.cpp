@@ -17,7 +17,7 @@ namespace pg
         template<typename InputHolder>
         bool compareZValueFromComponents(const InputHolder& left, const InputHolder& right)
         {
-            return left.component->pos->z > right.component->pos->z;
+            return left.component->frame->pos.z > right.component->frame->pos.z;
         }
     }
 
@@ -53,9 +53,9 @@ namespace pg
             //if(highestZ > mouseArea->pos->z) // care some edge case exist like listview promoting a Z value so list is not always sorted ! 
             //    break;
 
-            if(mouseArea->inBound(mousePos.x(), mousePos.y()) and *mouseArea->enable and mouseArea->pos->z >= highestZ)
+            if(mouseArea->inBound(mousePos.x(), mousePos.y()) and *mouseArea->enable and mouseArea->frame->pos.z >= highestZ)
             {
-                highestZ = mouseArea->pos->z;
+                highestZ = mouseArea->frame->pos.z;
                 component.inputCallback(inputHandler, deltaTime);
             }
             else

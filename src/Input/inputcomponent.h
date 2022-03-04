@@ -7,44 +7,98 @@
 
 namespace pg
 {
+    /**
+     * @struct MouseInputComponent
+     * @brief Mouse Input Component
+     * 
+     * A structure that holds all the data needed to manage a mouse input component.
+     * This structure is created throught the Mouse Input Base to get the correct templated function !
+     * 
+     * @see MouseInputBase
+     */
     struct MouseInputComponent
     {
+        /** Base struct to convert any class member and store them as generic function pointer */
         struct Base {};
 
-        // TODO replace this by a UiFrame
-        UiPosition *pos;
-        UiSize *width, *height; // Input Area
+        /** Frame where the mouse input happened */
+        const UiFrame *frame;
+        /** Pointer to the visible parameters to see if the area is visible and accessible */
         bool *enable;
 
+        /** Pointer to the object where the functions needs to be called */
         Base *object;
 
+        /** Pointer to the class member function to call when the mouse is in the area */
         void (Base::*onPressed)(Input*, double, ...) = nullptr;
+        /** Pointer to the class member function to call when the mouse is not in the area */
         void (Base::*onLeave)(Input*, double) = nullptr;
 
+        /** Pointer to the lambda function to call when the mouse is in the area */
         void (*onPressedLambda)(Input*, double) = nullptr;
+        /** Pointer to the lambda function to call when the mouse is not in the area */
         void (*onLeaveLambda)(Input*, double) = nullptr;
 
-        template<typename Func>
-        void registerFunc(void (Func::*mouseInput)(Input*, double, ...), Func *obj, void (Func::*mouseLeave)(Input*, double) = nullptr)
-        { 
-            struct Delegate : public Func, public Base {};
+        /**
+         * @fn registerFunc
+         * @brief Function to register an object and its mouseInput and mouseLeave callback
+         * 
+         * @tparam Object The type of the object that we be called from the callback function 
+         * @param mouseInput a callback function that get called when the mouse is in the area defined
+         * @param obj a pointer to the object called
+         * @param mouseLeave 'Optional' a callback function that get called when the mouse is not in the area  
+         */
+        template<typename Object>
+        void registerFunc(void (Object::*mouseInput)(Input*, double, ...), Object *obj, void (Object::*mouseLeave)(Input*, double) = nullptr)
+        {
+            // A Helper struct to convert any Object to a Base class to archive type erasure
+            struct Delegate : public Object, public Base {};
 
+            // Cast the function to the delegate then to base to erase the input type
             onPressed = static_cast<void (Base::*)(Input*, double, ...)>( static_cast<void (Delegate::*)(Input*, double, ...)>(mouseInput) );
             onLeave = static_cast<void (Base::*)(Input*, double)>( static_cast<void (Delegate::*)(Input*, double)>(mouseLeave) );
 
+            // Cast the object to delegate then it get implicitly cast to Base
             object = static_cast<Delegate* >(obj);
         }
 
-        void registerFunc(void (*mouseEnter)(Input*, double), void (*mouseLeave)(Input*, double))
+        /**
+         * @fn registerFunc
+         * @brief Overload function of registerFunc for lambdas
+         * 
+         * @param mouseInput a callback function that get called when the mouse is in the area defined
+         * @param mouseLeave 'Optional' a callback function that get called when the mouse is not in the area
+         */
+        void registerFunc(void (*mouseEnter)(Input*, double), void (*mouseLeave)(Input*, double) = nullptr)
         {
             onPressedLambda = mouseEnter;
             onLeaveLambda = mouseLeave;
         }
 
-        MouseInputComponent(UiComponent *component) : pos(&component->pos), width(&component->width), height(&component->height), enable(&component->visible) {}
-        MouseInputComponent(const MouseInputComponent& component) : pos(component.pos), width(component.width), height(component.height), enable(component.enable), object(component.object), onPressed(component.onPressed), onLeave(component.onLeave), onPressedLambda(component.onPressedLambda), onLeaveLambda(component.onLeaveLambda) {}
+        /**
+         * @brief Construct a new Mouse Input Component object
+         * 
+         * @param component a pointer to an UiComponent to get the area where mouse input are handled
+         */
+        MouseInputComponent(UiComponent *component) : frame(&component->frame), enable(&component->visible) {}
 
-        //TODO check if we can send const Args& all the time or if some specific application need to modify arguments
+        /**
+         * @brief Copy and construct a new Mouse Input Component object
+         * 
+         * @param component the Mouse Input Component to copy
+         */
+        MouseInputComponent(const MouseInputComponent& component) : frame(component.frame), enable(component.enable), object(component.object), onPressed(component.onPressed), onLeave(component.onLeave), onPressedLambda(component.onPressedLambda), onLeaveLambda(component.onLeaveLambda) {}
+
+        /**
+         * @fn call
+         * @brief Call the mouseInput and mouseInputLambda functions registered
+         * TODO check if we can send const Args& all the time or if some specific application need to modify arguments
+         * 
+         * @tparam Args Type of the arguments of the mouse input function
+         * @param inputHandler a pointer to the input handler
+         * @param deltaTime time passed since the last call
+         * @param args arguments of the mouse input function
+         */
         template<typename... Args>
         void call(Input* inputHandler, double deltaTime, const Args&... args)
         {
@@ -55,7 +109,14 @@ namespace pg
                 (*onPressedLambda)(inputHandler, deltaTime);
         }
 
-        // TODO see if leave function need more args or not
+        /**
+         * @fn leave
+         * @brief Call the mouseLeave and mouseLeaveLambda functions registered
+         * TODO check if leave function need more args or not
+         * 
+         * @param inputHandler a pointer to the input handler
+         * @param deltaTime time passed since the last call
+         */
         void leave(Input* inputHandler, double deltaTime)
         {
             if(onLeave != nullptr)
@@ -65,22 +126,65 @@ namespace pg
                 (*onLeaveLambda)(inputHandler, deltaTime);
         }
 
-        bool inBound(int x, int y) const { return x > this->pos->x && x < (this->pos->x + *this->width) && y < (this->pos->y + *this->height) && y > this->pos->y; }
+        /**
+         * @fn inBound
+         * @brief Calculate if a point is in the Mouse Area
+         * 
+         * @param x x coordinate of the point
+         * @param y y coordinate of the point
+         * @return true if the point is inside the area, false otherwise
+         */
+        bool inBound(int x, int y) const { return x > this->frame->pos.x && x < (this->frame->pos.x + this->frame->w) && y < (this->frame->pos.y + this->frame->h) && y > this->frame->pos.y; }
+        
+        /**
+         * @fn inBound
+         * @brief Overload of the inBound(int x, int y) function, call exctract x and y and pass it to the function
+         * 
+         * @param vec2 a vector of the coordinate of the point
+         * @return true if the point is inside the area, false otherwise
+         */
         bool inBound(const constant::Vector2D& vec2) const { return inBound(vec2.x, vec2.y); }
 
+        /** Virtual destructor of MouseInputComponent */
         virtual ~MouseInputComponent() {}
     };
 
+    /**
+     * @struct MouseInputBase
+     * @brief Mouse Input Base
+     * 
+     * @tparam ObjectType the type of object which will call the function of the mouse area
+     * 
+     * Base of the Mouse Input Component, it initialize a mouse input component for a given object.
+     * It permits the use of members of the object to be call inside the mouse area.
+     * 
+     * @see MouseInputComponent
+     */
     template<typename ObjectType>
     struct MouseInputBase : public MouseInputComponent
     {
+        /** The object which will call the function */
         ObjectType *object;
 
+        /** Pointer to the member to call on mouse input inside the mouse area */
         void (ObjectType::*onPressed)(Input*, double, ...) = nullptr;
+        
+        /** Pointer to the member to call on mouse input outside the mouse area */
         void (ObjectType::*onLeave)(Input*, double) = nullptr;
 
+        // Import all base constructor from MouseInputComponent
         using MouseInputComponent::MouseInputComponent;
 
+        /**
+         * @fn call
+         * @brief Call the mouseInput and mouseInputLambda functions registered
+         * This hide the Base call function and cast all the function that had they type erased in the correct Type
+         * 
+         * @tparam Args Type of the arguments of the mouse input function
+         * @param inputHandler a pointer to the input handler
+         * @param deltaTime time passed since the last call
+         * @param args arguments of the mouse input function
+         */
         template<typename... Args>
         void call(Input* inputHandler, double deltaTime, const Args&... args)
         {
@@ -96,7 +200,14 @@ namespace pg
                 (*onPressedLambda)(inputHandler, deltaTime);
         }
 
-        // TODO see if leave function need more args or not
+        /**
+         * @fn leave
+         * @brief Call the mouseLeave and mouseLeaveLambda functions registered
+         * This hide the Base call function and cast all the function that had they type erased in the correct Type
+         * 
+         * @param inputHandler a pointer to the input handler
+         * @param deltaTime time passed since the last call
+         */
         void leave(Input* inputHandler, double deltaTime)
         {
             if(onLeave != nullptr)
@@ -111,7 +222,8 @@ namespace pg
                 (*onLeaveLambda)(inputHandler, deltaTime);
         }
 
-        ~MouseInputBase() {}
+        /** Virtual destructor of MouseInputBase */
+        virtual ~MouseInputBase() {}
     };
 
     struct KeyboardInputComponent
