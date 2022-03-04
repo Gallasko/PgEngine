@@ -9,46 +9,46 @@ namespace pg
         const char * DOM = "Configuration";
     }
 
-    explicit Configuration::ElementType::operator float() const
+    Configuration::ElementType::operator float() const
     {
         if(this->type == UnionType::FLOAT)
             return data.f;
         else
         {
-            LOG_ERROR(DOM, "Error in casting an element to float when defined as " + enumTypeToString(this->type));
+            LOG_ERROR(DOM, ("Error in casting an element to float when defined as " + enumTypeToString(this->type)).c_str());
             return 0.0f;
         }
     }
 
-    explicit Configuration::ElementType::operator int() const
+    Configuration::ElementType::operator int() const
     {
         if(this->type == UnionType::INT)
             return data.i;
         else
         {
-            LOG_ERROR(DOM, "Error in casting an element to int when defined as " + enumTypeToString(this->type));
+            LOG_ERROR(DOM, ("Error in casting an element to int when defined as " + enumTypeToString(this->type)).c_str());
             return 0;
         }
     }
 
-    explicit Configuration::ElementType::operator std::string() const
+    Configuration::ElementType::operator std::string() const
     {
         if(this->type == UnionType::STRING)
             return data.s;
         else
         {
-            LOG_ERROR(DOM, "Error in casting an element to string when defined as " + enumTypeToString(this->type));
+            LOG_ERROR(DOM, ("Error in casting an element to string when defined as " + enumTypeToString(this->type)).c_str());
             return "";
         }
     }
 
-    explicit Configuration::ElementType::operator bool() const
+    Configuration::ElementType::operator bool() const
     {
         if(this->type == UnionType::BOOL)
             return data.b;
         else
         {
-            LOG_ERROR(DOM, "Error in casting an element to bool when defined as " + enumTypeToString(this->type));
+            LOG_ERROR(DOM, ("Error in casting an element to bool when defined as " + enumTypeToString(this->type)).c_str());
             return false;
         }
     }

@@ -120,24 +120,6 @@ namespace pg
                 return static_cast<Type>(*this);
             }
 
-            //template <typename Type>
-            //std::shared_ptr<ReturnUnion> getValue() const
-            //{
-            //    if(typeid(Type) == typeid(float) and this->type == UnionType::FLOAT)
-            //        return ReturnUnion<float>(data.f);
-            //    else if(typeid(Type) == typeid(int) and this->type == UnionType::INT)
-            //        return ReturnUnion<int>(data.i);
-            //    else if(typeid(Type) == typeid(std::string) and this->type == UnionType::STRING)
-            //        return ReturnUnion<std::string>(data.s);
-            //    else if(typeid(Type) == typeid(bool) and this->type == UnionType::BOOL)
-            //        return ReturnUnion<bool>(data.b);
-            //    else
-            //    {
-            //        // TODO LOG_ERROR
-            //        return ReturnUnion<Type>(Type());
-            //    }
-            //}
-
         private:
             void clearPreviousType()
             {
