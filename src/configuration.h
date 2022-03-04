@@ -121,8 +121,10 @@ namespace pg
             U data;
         };
 
+        typedef std::unique_ptr<Configuration> ConfigurationPtr;
+
     public:
-        Configuration();
+        inline static const ConfigurationPtr& config() { static ConfigurationPtr config = ConfigurationPtr(new Configuration()); return config; }
 
         template<typename Type>
         Type get(const std::string& name, const Type& defaultValue) const;

@@ -1,7 +1,8 @@
 #include "game.h"
 
 #include "logger.h"
-#include "serialization.h"
+#include "serialization.h" 
+#include "configuration.h"
 
 namespace
 {
@@ -20,6 +21,8 @@ GameWindow::GameWindow(QWindow *parent) : QWindow(parent)
 GameWindow::~GameWindow()
 {
     ticking = false;
+
+    Serializer::getSerializer()->serializeObject(*Configuration::config());
 
     if(gameMap != nullptr)
         delete gameMap;
