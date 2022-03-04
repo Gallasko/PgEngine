@@ -22,6 +22,7 @@ GameWindow::~GameWindow()
 {
     ticking = false;
 
+    // Save the current configuration file to disk
     Serializer::getSerializer()->serializeObject(*Configuration::config());
 
     if(gameMap != nullptr)
@@ -81,6 +82,11 @@ void GameWindow::initialize()
     masterRenderer.registerTexture("menu", "res/menu/Menu.png");
     masterRenderer.registerTexture("font", "res/font/font.png");
     masterRenderer.registerTexture("pigeon", "res/object/PigeonMockUp.png");
+
+    Configuration::config()->set("Fullscreen On", true);
+    Configuration::config()->set("Username", "Gallasko");
+    Configuration::config()->set("Gold", 500);
+    Configuration::config()->set("Pos x", 15.0f);
 
     camera = new Camera(QVector3D(0.0f, 0.0f, 3.0f));
 

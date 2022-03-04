@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include <typeinfo>
@@ -17,8 +18,13 @@ namespace pg
         private:
             union U
             {
-                // Need to explicitly declare ctor and dtor cause they are non POD type in the union
-                U() {}
+                /**
+                 * @brief Construct a new union U object
+                 * 
+                 * Need to explicitly declare ctor and dtor cause they are non POD type in the union
+                 * By default the union construct itself as an int with the value of 0;
+                 */
+                U() { i = 0; }
                 ~U() {}
 
                 float f;
@@ -40,6 +46,13 @@ namespace pg
         public:
             UnionType type;
 
+            /**
+             * @brief Construct a new Element Type object
+             * 
+             * By default it is a int set as 0
+             */
+            ElementType() { this->setValue(0); }
+
             template <typename Type>
             explicit ElementType(const Type& value) { this->setValue(value); }
 
@@ -55,6 +68,17 @@ namespace pg
             }
 
             ~ElementType() { clearPreviousType(); }
+
+            void operator=(const ElementType& other)
+            {
+                switch (other.type)
+                {
+                    case UnionType::FLOAT: this->setValue(other.data.f); break;
+                    case UnionType::INT: this->setValue(other.data.i); break;
+                    case UnionType::STRING: this->setValue(other.data.s); break;
+                    case UnionType::BOOL: this->setValue(other.data.b); break;
+                }
+            }
 
             void setValue(float value)
             {
@@ -132,9 +156,24 @@ namespace pg
         template<typename Type>
         void set(const std::string& name, const Type& value);
 
+        template<typename Type>
+        void set(const char* name, const Type& value);
+
     private:
         friend void serialize<>(Archive& archive, const Configuration& config);
 
         std::unordered_map<std::string, Configuration::ElementType> elementMap;
     };
+
+    template<typename Type>
+    void Configuration::set(const std::string& name, const Type& value)
+    {
+        elementMap[name] = ElementType(value);
+    }
+
+    template<typename Type>
+    void Configuration::set(const char* name, const Type& value)
+    {
+        elementMap[std::string(name)] = ElementType(value);
+    }
 }

@@ -104,10 +104,4 @@ namespace pg
 
         return it->second.get<Type>();
     }
-
-    template<typename Type>
-    void Configuration::set(const std::string& name, const Type& value)
-    {
-        elementMap[name] = value;
-    }
 }
