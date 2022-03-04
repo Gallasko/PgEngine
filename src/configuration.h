@@ -2,16 +2,23 @@
 
 #include <typeinfo>
 #include <string>
+#include <memory>
 
 namespace pg
 {
     class Configuration
     {
+    public:
+        //TODO: Make this struct private -> rn public for testing purposes
         struct ElementType
         {
         private:
-            union 
+            union U
             {
+                // Need to explicitly declare ctor and dtor cause they are non POD type in the union
+                U() {}
+                ~U() {}
+
                 float f;
                 int i;
                 std::string s;
@@ -26,12 +33,38 @@ namespace pg
                 STRING,
                 BOOL
             };
+
+            template<typename Type>
+            struct ReturnUnion
+            {
+                Type value;
+
+                ReturnUnion(const Type& value) : value(value) {}
+
+                explicit operator Type() const
+                {
+                    return value;
+                }
+            };
         
         public:
             UnionType type;
 
             template <typename Type>
-            ElementType(const Type& value) : setValue(value) {} 
+            explicit ElementType(const Type& value) { this->setValue(value); }
+
+            ElementType(const ElementType& other)
+            {
+                switch (other.type)
+                {
+                    case UnionType::FLOAT: this->setValue(other.data.f); break;
+                    case UnionType::INT: this->setValue(other.data.i); break;
+                    case UnionType::STRING: this->setValue(other.data.s); break;
+                    case UnionType::BOOL: this->setValue(other.data.b); break;
+                }
+            }
+
+            ~ElementType() { clearPreviousType(); }
 
             void setValue(float value)
             {
@@ -47,6 +80,14 @@ namespace pg
                 
                 data.i = value;
                 this->type = UnionType::INT;
+            }
+
+            void setValue(const char* value)
+            {
+                clearPreviousType();
+
+                new(&data.s) std::string(value);
+                this->type = UnionType::STRING;
             }
 
             void setValue(const std::string& value)
@@ -65,23 +106,37 @@ namespace pg
                 this->type = UnionType::BOOL;
             }
 
-            template <typename Type>
-            Type getValue() const
+            explicit operator float() const;
+
+            explicit operator int() const;
+
+            explicit operator std::string() const;
+
+            explicit operator bool() const;
+
+            template<typename Type>
+            Type get() const
             {
-                if(typeid(Type) == typeid(float) and this->type == UnionType::FLOAT)
-                    return data.f;
-                else if(typeid(Type) == typeid(int) and this->type == UnionType::INT)
-                    return data.i;
-                else if(typeid(Type) == typeid(std::string) and this->type == UnionType::STRING)
-                    return data.s;
-                else if(typeid(Type) == typeid(bool) and this->type == UnionType::BOOL)
-                    return data.b;
-                else
-                {
-                    // TODO LOG_ERROR
-                    return Type();
-                }
+                return static_cast<Type>(*this);
             }
+
+            //template <typename Type>
+            //std::shared_ptr<ReturnUnion> getValue() const
+            //{
+            //    if(typeid(Type) == typeid(float) and this->type == UnionType::FLOAT)
+            //        return ReturnUnion<float>(data.f);
+            //    else if(typeid(Type) == typeid(int) and this->type == UnionType::INT)
+            //        return ReturnUnion<int>(data.i);
+            //    else if(typeid(Type) == typeid(std::string) and this->type == UnionType::STRING)
+            //        return ReturnUnion<std::string>(data.s);
+            //    else if(typeid(Type) == typeid(bool) and this->type == UnionType::BOOL)
+            //        return ReturnUnion<bool>(data.b);
+            //    else
+            //    {
+            //        // TODO LOG_ERROR
+            //        return ReturnUnion<Type>(Type());
+            //    }
+            //}
 
         private:
             void clearPreviousType()
@@ -91,6 +146,8 @@ namespace pg
 
                 // TODO add Big Int clear too here
             }
+
+            friend std::string enumTypeToString(const Configuration::ElementType::UnionType& type);
         };
 
     };
