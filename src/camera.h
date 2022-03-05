@@ -9,11 +9,10 @@
 
 #include "constant.h"
 #include "Input/input.h"
-#include "Engine/basesystem.h"
 
 namespace pg
 {
-    class Camera : public QObject, protected QOpenGLFunctions, public Base
+    class Camera : public QObject, protected QOpenGLFunctions
     {
         Q_OBJECT
     public:

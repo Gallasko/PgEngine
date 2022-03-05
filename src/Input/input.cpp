@@ -38,6 +38,17 @@ namespace pg
 			
 			break;
 
+			case Input::InputState::KEYGRABBED:
+				if (it == -1)
+				{
+					keyContainer.at(it).state = Input::InputState::KEYGRABBED;
+					return Input::InputState::INPUTREGISTERED;
+				}
+				else
+					return Input::InputState::INPUTERROR;
+			
+			break;
+
 			case Input::InputState::KEYRELEASED:
 				if (it != -1)
 				{
@@ -66,6 +77,18 @@ namespace pg
 				if (it == -1)
 				{
 					buttonContainer.push_back(Input::ButtonInstance{button, Input::InputState::MOUSEPRESS});
+					return Input::InputState::INPUTREGISTERED;
+				}
+				else
+					return Input::InputState::INPUTERROR;
+			}
+			break;
+
+			case Input::InputState::MOUSEGRABBED:
+			{
+				if (it != -1)
+				{
+					buttonContainer.at(it).state = Input::InputState::MOUSEGRABBED;
 					return Input::InputState::INPUTREGISTERED;
 				}
 				else
@@ -103,6 +126,20 @@ namespace pg
 		return Input::InputState::INPUTREGISTERED;
 	}
 
+	void Input::grabKey(const Qt::Key& key)
+	{
+		LOG_THIS_MEMBER(DOM);
+
+		registerKeyInput(key, Input::InputState::KEYGRABBED);
+	}
+
+	void Input::grabMouse(const Qt::MouseButton& button)
+	{
+		LOG_THIS_MEMBER(DOM);
+
+		registerMouseInput(button, Input::InputState::MOUSEGRABBED);
+	}
+
 	Input::InputState Input::keyState(const Qt::Key& key) const
 	{
 		LOG_THIS_MEMBER(DOM);
@@ -116,6 +153,13 @@ namespace pg
 		LOG_THIS_MEMBER(DOM);
 
 		return keyState(key) == Input::InputState::KEYPRESSED;
+	}
+
+	bool Input::isKeyGrabbed(const Qt::Key& key) const
+	{
+		LOG_THIS_MEMBER(DOM);
+
+		return keyState(key) == Input::InputState::KEYGRABBED;
 	}
 
 	bool Input::isKeyReleased(const Qt::Key& key) const
@@ -138,6 +182,13 @@ namespace pg
 		LOG_THIS_MEMBER(DOM);
 
 		return buttonState(button) == Input::InputState::MOUSEPRESS;
+	}
+
+	bool Input::isButtonGrabbed(const Qt::MouseButton& button) const
+	{
+		LOG_THIS_MEMBER(DOM);
+
+		return buttonState(button) == Input::InputState::MOUSEGRABBED;
 	}
 
 	bool Input::isButtonReleased(const Qt::MouseButton& button) const
@@ -163,6 +214,8 @@ namespace pg
 
 	void Input::updateInput(double)
 	{
+		LOG_THIS_MEMBER(DOM);
+		
 		this->mouseDelta.setX(0);
 		this->mouseDelta.setY(0);
 

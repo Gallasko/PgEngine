@@ -10,7 +10,6 @@
 #include <algorithm>
 #include <vector>
 
-#include "../Engine/basesystem.h"
 #include "../constant.h"
 
 #include "../Engine/renderer.h"
@@ -22,7 +21,7 @@
 //TODO create a destructor that go through the children and remove this ? or remove the child recursively ?
 namespace pg
 {
-    struct UiComponent : public Base
+    struct UiComponent
     {
         bool visible = true;
 
@@ -52,6 +51,8 @@ namespace pg
         UiComponent(const UiFrame& frame) : pos(&frame.pos), width(&frame.w), height(&frame.h) { }
         UiComponent(const UiComponent& rhs);
 
+        virtual ~UiComponent() { }
+
         inline void setX(const int& value) { pos.x = value; update(); }
         inline void setY(const int& value) { pos.y = value; update(); }
         inline void setZ(const int& value) { pos.z = value; update(); }
@@ -78,8 +79,10 @@ namespace pg
         
         bool updated = true; // todo remove this 
 
-        bool inBound(int x, int y) const { return x > this->pos.x && x < (this->pos.x + this->width) && y < (this->pos.y + this->height) && y > this->pos.y; }
+        bool inBound(int x, int y) const;
         bool inBound(const constant::Vector2D& vec2) const { return inBound(vec2.x, vec2.y); }
+
+        virtual void render(MasterRenderer* masterRenderer);
         
         void update();
     };
@@ -91,6 +94,8 @@ namespace pg
         ~TextureComponent();
 
         void generateMesh();
+
+        virtual void render(MasterRenderer* masterRenderer);
 
         unsigned int texture;
 
@@ -111,6 +116,8 @@ namespace pg
     {
         LoaderRenderComponent(LoaderId *id) : id(id) {}
         LoaderRenderComponent(const LoaderRenderComponent& rhs);
+
+        //virtual void render(MasterRenderer* masterRenderer) { renderer(masterRenderer, this); }
 
         LoaderId *id;
     };

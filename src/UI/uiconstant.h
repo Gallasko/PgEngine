@@ -5,7 +5,13 @@
 
 namespace pg
 {
+    enum class UiOrientation
+    {
+        VERTICAL,
+        HORIZONTAL
+    };
 
+    //TODO check if a pointer to the current uisize is not already present in the children of the operation to avoid an infinite lockup
     //TODO make the operation here constant and then change uisystem and ui animation accordingly to make everything constant
     class UiSize
     {
@@ -109,6 +115,24 @@ namespace pg
             value->refSize1 = nullptr;
             value->refSize2 = nullptr;
             value->opType = UiValue::UiSizeOpType::NONE;
+        }
+
+        UiSize& operator+=(const UiSize& rhs)
+        {
+            UiSize current;
+            current.value->pixelSize = value->pixelSize;
+            current.value->scaleValue = value->scaleValue;
+            current.value->refSize1 = value->refSize1;
+            current.value->refSize2 = value->refSize2;
+            current.value->opType = value->opType;
+
+            value->pixelSize = 0.0f;
+            value->scaleValue = 1.0f;
+            value->refSize1 = current.value;
+            value->refSize2 = rhs.value;
+            value->opType = UiValue::UiSizeOpType::ADD;
+
+            return *this;
         }
 
         UiSize operator*(const float& rhs) const 
@@ -248,7 +272,6 @@ namespace pg
         return UiSize(lhs, 0.0f, nullptr, rhs.value, UiSize::UiValue::UiSizeOpType::DIV);
     }
 
-
     struct UiPosition 
     {
         UiPosition() {}
@@ -290,7 +313,7 @@ namespace pg
         UiFrame(const UiSize& x, const UiSize& y, const UiSize& z, const UiSize& w, const UiSize& h) { this->pos.x = &x; this->pos.y = &y; this->pos.z = &z; this->w = &w; this->h = &h; }
         UiFrame(const UiPosition& pos, const UiSize& w, const UiSize& h) : pos(&pos), w(&w), h(&h) { }
         UiFrame(const UiFrame& frame) : pos(frame.pos), w(frame.w), h(frame.h) { }
-        UiFrame(UiFrame *frame) : pos(&frame->pos), w(&frame->w), h(&frame->h) { }
+        UiFrame(const UiFrame *frame) : pos(&frame->pos), w(&frame->w), h(&frame->h) { }
 
         void operator=(const UiFrame& rhs)
         {
@@ -301,7 +324,7 @@ namespace pg
             h = rhs.h; 
         }
 
-        void operator=(UiFrame *rhs)
+        void operator=(const UiFrame *rhs)
         {
             pos.x = &rhs->pos.x;
             pos.y = &rhs->pos.y; 

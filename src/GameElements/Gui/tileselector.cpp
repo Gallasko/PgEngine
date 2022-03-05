@@ -96,12 +96,16 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
     tileRendererVector[0].setLeftAnchor(textVector[0]->left);
     tileRendererVector[0].setTopMargin(5);
 
+    tileRendererVector[0].pos.z = &this->pos.z;
+
     tileRendererVector[0].setWidth(50.0f);
     tileRendererVector[0].setHeight(50.0f);
 
     tileRendererVector[1].setTopAnchor(tileRendererVector[0].top);
     tileRendererVector[1].setLeftAnchor(tileRendererVector[0].right);
     tileRendererVector[1].setLeftMargin(5);
+
+    tileRendererVector[1].pos.z = &this->pos.z;
 
     tileRendererVector[1].setWidth(50.0f);
     tileRendererVector[1].setHeight(50.0f);
@@ -110,42 +114,21 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
     tileRendererVector[2].setLeftAnchor(tileRendererVector[1].right);
     tileRendererVector[2].setLeftMargin(5);
 
+    tileRendererVector[2].pos.z = &this->pos.z;
+
     tileRendererVector[2].setWidth(50.0f);
     tileRendererVector[2].setHeight(50.0f);
-
-    mouseAreaVector.push_back(new MouseInputBase<Map>(&tileRendererVector[0]));
-    mouseAreaVector.push_back(new MouseInputBase<Map>(&tileRendererVector[1]));
-    mouseAreaVector.push_back(new MouseInputBase<Map>(&tileRendererVector[2]));
-
-    mouseAreaVector[0]->registerFunc(&map->changeTile, map);
-    mouseAreaVector[1]->registerFunc(&map->changeTile, map);
-    mouseAreaVector[2]->registerFunc(&map->changeTile, map);
+    
+    for(int i = 0; i < 3; i++)
+        mouseAreaVector.push_back(makeMouseArea(&tileRendererVector[i], map, Map::changeTile, nullptr, tileRendererVector[i].id));
 
     this->visible = true;
 }
 
-void TileSelector::mouseInput(Input* inputHandler, double deltaTime)
+TileSelector::~TileSelector()
 {
-    auto mousePos = inputHandler->getMousePos();
-
-    //std::cout << mousePos.x() << ", " << mousePos.y() << std::endl;
-
-    if(inputHandler->isButtonPressed(Qt::LeftButton))
-    {
-        for(unsigned int i = 0; i < mouseAreaVector.size(); i++)
-        {
-            auto mouseArea = mouseAreaVector[i];
-            //std::cout << "Mouse Hovering: " << *mouseArea->x << ", " << *mouseArea->y << ", " << *mouseArea->width << ", " << *mouseArea->height << std::endl;
-            
-            //if(mousePos.x() > *mouseArea->x / static_cast<int>(mouseArea->scale) && mousePos.x() < (*mouseArea->x + *mouseArea->width) / static_cast<int>(mouseArea->scale) && mousePos.y() < (*mouseArea->y + *mouseArea->height) / static_cast<int>(mouseArea->scale) && mousePos.y() > *mouseArea->y / static_cast<int>(mouseArea->scale) && *mouseArea->enable)
-            //{
-            if(mouseArea->inBound(mousePos.x(), mousePos.y()) && *mouseArea->enable)
-            {
-                //std::cout << "Mouse Hovering: " << *mouseArea->x << ", " << *mouseArea->y << ", " << *mouseArea->width << ", " << *mouseArea->height << std::endl;
-                mouseArea->call(inputHandler, deltaTime, tileRendererVector[i].id);
-            }
-        }
-    }
+    for(int i = 2; i >= 0; i--)
+        deleteInput(mouseAreaVector.at(i));
 }
 
 void TileSelector::setVisibility(bool visibility)
@@ -154,8 +137,7 @@ void TileSelector::setVisibility(bool visibility)
 }
 
 //void TileSelector::render(unsigned int screenWidth, unsigned int screenHeight, QOpenGLShaderProgram* defaultShaderProgram, unsigned int tileTexture, QOpenGLShaderProgram* textShaderProgram, unsigned int fontTexture, qint64 currentTime)
-
-TileSelector::~TileSelector()
-{
-
+void TileSelector::render(MasterRenderer* masterRenderer)
+{ 
+    renderer(masterRenderer, this); 
 }

@@ -19,8 +19,10 @@ namespace pg
 			INPUTERROR,
 			INPUTREGISTERED,
 			KEYPRESSED,
+			KEYGRABBED,
 			KEYRELEASED,
 			MOUSEPRESS,
+			MOUSEGRABBED,
 			MOUSERELEASE
 		};
 
@@ -53,12 +55,17 @@ namespace pg
 		Input::InputState registerMouseInput(const Qt::MouseButton& button, const Input::InputState& state);
 		Input::InputState registerMouseMove(const QPoint& mousePos, const QPoint& mouseDelta);
 
+		void grabKey(const Qt::Key& key);
+		void grabMouse(const Qt::MouseButton& button);
+
 		Input::InputState keyState(const Qt::Key& key) const;
 		bool isKeyPressed(const Qt::Key& key) const;
+		bool isKeyGrabbed(const Qt::Key& key) const;
 		bool isKeyReleased(const Qt::Key& key) const;
 
 		Input::InputState buttonState(const Qt::MouseButton& button) const;
 		bool isButtonPressed(const Qt::MouseButton& button) const;
+		bool isButtonGrabbed(const Qt::MouseButton& button) const;
 		bool isButtonReleased(const Qt::MouseButton& button) const;
 
 		const QPoint& getMousePos() const;
@@ -78,7 +85,6 @@ namespace pg
 
 		template <typename Container, typename Value>
 		int findInputPos(const Value& value, const Container& container) const;
-
 	};
 }
 
