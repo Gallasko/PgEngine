@@ -5,6 +5,7 @@
 #include <memory>
 #include <mutex>
 #include <sstream>
+#include <unordered_map>
 
 namespace pg
 {
@@ -23,7 +24,7 @@ namespace pg
 
         Archive& operator<<(const EndOfLine&)
         {
-            container << std::endl;
+            requestComma = true;
             requestNewline = true;
             return *this;
         }
@@ -33,6 +34,10 @@ namespace pg
         {
             if(requestNewline)
             {
+                if(requestComma)
+                    container << ",";
+                
+                container << std::endl;
                 container << std::string(*endOfLine.indentLevel, '\t');
                 requestNewline = false;
             }
@@ -46,6 +51,7 @@ namespace pg
         std::stringstream container;
 
         bool requestNewline = false;
+        bool requestComma = false;
         size_t indentLevel = 0;
         EndOfLine endOfLine;
     };
@@ -66,30 +72,34 @@ namespace pg
         class ClassSerializer
         {
         friend class Serializer;
-            //ClassSerializer(const std::string& className) { archive << className << " {\n"; }
-            //~ClassSerializer() { archive << "}\n"; auto& serializer = Serializer::getSerializer(); serializer->registerToFile(archive.container, mutex); }
-            ~ClassSerializer() { auto& serializer = Serializer::getSerializer(); serializer->registerToFile(archive.container, mutex); }
+            ClassSerializer(const std::string& objectName) : objectName(objectName) {}
+            ~ClassSerializer() { archive.container << std::endl; auto& serializer = Serializer::getSerializer(); serializer->registerSerialized(objectName, archive.container); }
         
         public:
             Archive archive;
 
         private:
-            std::recursive_mutex mutex;
+            std::string objectName;
         };
 
     public:
         Serializer(const std::string& filename) : filename(filename) { }
+        ~Serializer();
 
         static std::unique_ptr<Serializer>& getSerializer(const std::string& filename = "serialize.sz")
         {static std::unique_ptr<Serializer> serializer = std::unique_ptr<Serializer>(new Serializer(filename)); return serializer; }
 
         template <typename Type>
-        void serializeObject(const Type& type) { ClassSerializer ar; serialize(ar.archive, type); }
+        void serializeObject(const std::string& objectName, const Type& type) { ClassSerializer ar(objectName); serialize(ar.archive, type); }
 
     private:
-        void registerToFile(const std::stringstream& serializedString, std::recursive_mutex& mutex);
+        void registerSerialized(const std::string& objectName, const std::stringstream& serializedString);
+        void registerToFile() const;
 
         std::string filename;
+        std::mutex mutex;
+
+        std::unordered_map<std::string, std::string> serializedMap;
     };
 }
 

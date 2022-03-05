@@ -14,44 +14,36 @@ namespace pg
 
     //Serialisation of base type
 
-    //std::ostream& operator<<(std::ostream& stream, const Archive::EndOfLine& endOfLine)
-    //{
-    //    stream << std::endl;
-    //    stream << std::string(*endOfLine.indentLevel, '\t');
-    //    
-    //    return stream;
-    //}
-
     template<>
     void serialize(Archive& archive, const bool& value)
     {
         std::string res = value ? "true" : "false";
 
-        archive << res << "," << archive.endl();
+        archive << "bool {" << res << "}" << archive.endl();
     }
 
     template<>
     void serialize(Archive& archive, const int& value)
     {
-        archive << value << "," << archive.endl();
+        archive << "int {" << value << "}" << archive.endl();
     }
 
     template<>
     void serialize(Archive& archive, const float& value)
     {
-        archive << value << "," << archive.endl();
+        archive << "float {" << value << "}" << archive.endl();
     }
 
     template<>
     void serialize(Archive& archive, const double& value)
     {
-        archive << value << "," << archive.endl();
+        archive << "double {" << value << "}" << archive.endl();
     }
 
     template<>
     void serialize(Archive& archive, const std::string& value)
     {
-        archive << value << "," << archive.endl();
+        archive << "string {" << value << "}" << archive.endl();
     }
 
     template<>
@@ -100,7 +92,7 @@ namespace pg
         for(unsigned int i = 0; i < modelInfo.nbVertices; i++)
             archive << modelInfo.vertices[i] << " ";
         
-        archive << "]," << archive.endl();;
+        archive << "]" << archive.endl();;
 
         //TODO make this automatically after a new line;
 
@@ -109,7 +101,7 @@ namespace pg
         for(unsigned int i = 0; i < modelInfo.nbIndices; i++)
             archive << modelInfo.indices[i] << " ";
         
-        archive << "]," << archive.endl();
+        archive << "]" << archive.endl();
         
         archive.endSerialization();
     }
@@ -120,24 +112,55 @@ namespace pg
 
         *this << className << " {" << endOfLine;
         indentLevel++;
+
+        requestComma = false;
     }
 
     void Archive::endSerialization()
     {
         LOG_THIS_MEMBER(DOM);
 
+        requestComma = false;
+
         indentLevel--;
         *this << "}" << endOfLine;
     }
 
-    void Serializer::registerToFile(const std::stringstream& serializedString, std::recursive_mutex& mutex)
+    Serializer::~Serializer()
     {
-        std::lock_guard<std::recursive_mutex> lock(mutex);
+        std::lock_guard<std::mutex> lock(mutex);
+
+        registerToFile();
+    }
+
+    void Serializer::registerSerialized(const std::string& objectName, const std::stringstream& serializedString)
+    {
+        LOG_THIS_MEMBER(DOM);
+        
+        std::lock_guard<std::mutex> lock(mutex);
+        serializedMap[objectName] = serializedString.str();
+
+        registerToFile();
+    }
+
+    void Serializer::registerToFile() const
+    {
+        LOG_THIS_MEMBER(DOM);
 
         std::ofstream file;
         
         file.open(filename);
-        file << serializedString.str();
-        file.close();
+
+        if(file.is_open())
+        {
+            for(const auto& serializedString : serializedMap)
+                file << serializedString.first << ": " << serializedString.second;
+
+            file.close();
+        }
+        else
+        {
+            LOG_ERROR(DOM, "Serializer can't open serialize file: " + filename);
+        }
     }
 }

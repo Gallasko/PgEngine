@@ -23,7 +23,7 @@ GameWindow::~GameWindow()
     ticking = false;
 
     // Save the current configuration file to disk
-    Serializer::getSerializer()->serializeObject(*Configuration::config());
+    Serializer::getSerializer()->serializeObject("Config", *Configuration::config());
 
     if(gameMap != nullptr)
         delete gameMap;
@@ -139,7 +139,7 @@ void GameWindow::initialize()
 
     Sentence goldSentence{{"Gold: 0"}, 2.0f, fontLoader};
     auto& serializer = Serializer::getSerializer();
-    serializer->serializeObject(goldSentence);
+    serializer->serializeObject("Gold Sentence", goldSentence);
 
     goldText = ecs.createEntity();
     auto goldTextC = ecs.attach<Sentence>(goldText, goldSentence);
