@@ -1,43 +1,57 @@
 #include "serialization.h"
 
+#include <fstream>
+
+#include "logger.h"
 #include "constant.h"
 
 namespace pg
 {
-    std::string Serializer::filename = "serialize.sz";
+    namespace
+    {
+        const char * DOM = "Serializer";
+    }
 
     //Serialisation of base type
+
+    //std::ostream& operator<<(std::ostream& stream, const Archive::EndOfLine& endOfLine)
+    //{
+    //    stream << std::endl;
+    //    stream << std::string(*endOfLine.indentLevel, '\t');
+    //    
+    //    return stream;
+    //}
 
     template<>
     void serialize(Archive& archive, const bool& value)
     {
         std::string res = value ? "true" : "false";
 
-        archive << res << ",\n";
+        archive << res << "," << archive.endl();
     }
 
     template<>
     void serialize(Archive& archive, const int& value)
     {
-        archive << value << ",\n";
+        archive << value << "," << archive.endl();
     }
 
     template<>
     void serialize(Archive& archive, const float& value)
     {
-        archive << value << ",\n";
+        archive << value << "," << archive.endl();
     }
 
     template<>
     void serialize(Archive& archive, const double& value)
     {
-        archive << value << ",\n";
+        archive << value << "," << archive.endl();
     }
 
     template<>
     void serialize(Archive& archive, const std::string& value)
     {
-        archive << value << ",\n";
+        archive << value << "," << archive.endl();
     }
 
     template<>
@@ -86,18 +100,44 @@ namespace pg
         for(unsigned int i = 0; i < modelInfo.nbVertices; i++)
             archive << modelInfo.vertices[i] << " ";
         
-        archive << "],\n";
+        archive << "]," << archive.endl();;
 
         //TODO make this automatically after a new line;
-        archive.indent();
 
         archive << "Indicies: [ ";
         
         for(unsigned int i = 0; i < modelInfo.nbIndices; i++)
             archive << modelInfo.indices[i] << " ";
         
-        archive << "],\n";
+        archive << "]," << archive.endl();
         
         archive.endSerialization();
+    }
+
+    void Archive::startSerialization(const std::string& className)
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        *this << className << " {" << endOfLine;
+        indentLevel++;
+    }
+
+    void Archive::endSerialization()
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        indentLevel--;
+        *this << "}" << endOfLine;
+    }
+
+    void Serializer::registerToFile(const std::stringstream& serializedString, std::recursive_mutex& mutex)
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex);
+
+        std::ofstream file;
+        
+        file.open(filename);
+        file << serializedString.str();
+        file.close();
     }
 }

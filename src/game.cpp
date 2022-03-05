@@ -1,7 +1,8 @@
 #include "game.h"
 
 #include "logger.h"
-#include "serialization.h"
+#include "serialization.h" 
+#include "configuration.h"
 
 namespace
 {
@@ -20,6 +21,9 @@ GameWindow::GameWindow(QWindow *parent) : QWindow(parent)
 GameWindow::~GameWindow()
 {
     ticking = false;
+
+    // Save the current configuration file to disk
+    Serializer::getSerializer()->serializeObject(*Configuration::config());
 
     if(gameMap != nullptr)
         delete gameMap;
@@ -78,6 +82,14 @@ void GameWindow::initialize()
     masterRenderer.registerTexture("menu", "res/menu/Menu.png");
     masterRenderer.registerTexture("font", "res/font/font.png");
     masterRenderer.registerTexture("pigeon", "res/object/PigeonMockUp.png");
+
+    Configuration::config()->set("Fullscreen On", true);
+    Configuration::config()->set("Username", "Gallasko");
+    Configuration::config()->set("Gold", 500);
+    Configuration::config()->set("Pos x", 15.0f);
+
+    std::cout << Configuration::config()->get<std::string>("Username", "None") << std::endl;
+    std::cout << Configuration::config()->get<std::string>("Password", "None") << std::endl;
 
     camera = new Camera(QVector3D(0.0f, 0.0f, 3.0f));
 
@@ -491,7 +503,7 @@ void GameWindow::render()
 
     InputSystem::system()->updateState(inputHandler, float(currentTime - lastTime) / 1000);
 
-    renderGame();
+    //renderGame();
 
     if(!debug)
     {
@@ -499,7 +511,7 @@ void GameWindow::render()
         if(mousePosTextC != nullptr)
             mousePosTextC->visible = true;
 
-        renderUi();
+        //renderUi();
     }
     else
     {
@@ -508,8 +520,8 @@ void GameWindow::render()
             mousePosTextC->visible = false;
     }
 
-    masterRenderer << tileSelector;
-    masterRenderer << listView;
+    //masterRenderer << tileSelector;
+    //masterRenderer << slideBar;
 
     //masterRenderer.render<ParticleRenderer>(pComponent);
 

@@ -6,47 +6,48 @@
 #include <mutex>
 #include <sstream>
 
-#include <iostream>
-
 namespace pg
 {
     class Archive
     {
+        struct EndOfLine { size_t* indentLevel = nullptr; };
+
     public:
-        void indent()
+        Archive() { endOfLine.indentLevel = &indentLevel; }
+        
+        const EndOfLine& endl() const { return endOfLine; }
+
+        void startSerialization(const std::string& className);
+
+        void endSerialization();
+
+        Archive& operator<<(const EndOfLine&)
         {
-            //TODO optimize this
-
-            for(unsigned int i = 0; i < indentLevel; i++)
-                container << "\t";
-        }
-
-        void startSerialization(const std::string& className)
-        {
-            indent();
-            container << className << " {\n";
-            
-            indentLevel++;
-        }
-
-        void endSerialization()
-        {
-            indentLevel--;
-            indent();
-
-            container << "}\n";
+            container << std::endl;
+            requestNewline = true;
+            return *this;
         }
 
         template <typename Type>
         Archive& operator<<(const Type& rhs)
         {
+            if(requestNewline)
+            {
+                container << std::string(*endOfLine.indentLevel, '\t');
+                requestNewline = false;
+            }
+
             container << rhs;
             return *this;
         }
 
+        //friend std::ostream& operator<<(std::ostream& stream, const Archive::EndOfLine& endOfLine);
+
         std::stringstream container;
 
-        unsigned int indentLevel = 0;
+        bool requestNewline = false;
+        size_t indentLevel = 0;
+        EndOfLine endOfLine;
     };
 
     template<typename Type>
@@ -55,9 +56,6 @@ namespace pg
     template<typename Type>
     void serialize(Archive& archive, const std::string& name, const Type& value)
     {
-        //TODO make this automatically after a new line;
-        archive.indent();
-        
         archive << name << ": ";
 
         serialize(archive, value);
@@ -80,21 +78,18 @@ namespace pg
         };
 
     public:
-        static std::unique_ptr<Serializer>& getSerializer()
-        {static std::unique_ptr<Serializer> serializer = std::unique_ptr<Serializer>(new Serializer); return serializer; }
+        Serializer(const std::string& filename) : filename(filename) { }
+
+        static std::unique_ptr<Serializer>& getSerializer(const std::string& filename = "serialize.sz")
+        {static std::unique_ptr<Serializer> serializer = std::unique_ptr<Serializer>(new Serializer(filename)); return serializer; }
 
         template <typename Type>
         void serializeObject(const Type& type) { ClassSerializer ar; serialize(ar.archive, type); }
 
     private:
-        void registerToFile(const std::stringstream& serializedString, std::recursive_mutex& mutex)
-        {
-            std::lock_guard<std::recursive_mutex> lock(mutex);
+        void registerToFile(const std::stringstream& serializedString, std::recursive_mutex& mutex);
 
-            std::cout << serializedString.str() << std::endl;
-        }
-
-        static std::string filename;
+        std::string filename;
     };
 }
 
