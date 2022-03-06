@@ -522,7 +522,7 @@ void GameWindow::render()
     }
 
     //masterRenderer << tileSelector;
-    //masterRenderer << slideBar;
+    //masterRenderer << listView;
 
     //masterRenderer.render<ParticleRenderer>(pComponent);
 

@@ -251,7 +251,7 @@ namespace pg
             
         while(std::getline(iss, nextLine))
         {
-            LOG_INFO(DOM, "Current line: " + currentLine + ", with class indent: " + std::to_string(classIndent) + ", and current indent: " + std::to_string(currentIndent));
+            LOG_INFO(DOM, "Current line: " + currentLine + " with class indent: " + std::to_string(classIndent) + ", and current indent: " + std::to_string(currentIndent));
 
             nextIndent = nbLeadingSpaces(nextLine);
             if(nextIndent > classChildIndent and startOfClass == false and lockupClass == false)
@@ -260,23 +260,23 @@ namespace pg
             if(startOfClass)
             {
                 // Trim the current line first when retriving the object name to not get whitespace issues.
-                tempObjectName = trim(currentLine);
+                //tempObjectName = trim(currentLine);
 
                 // Check if the name given to the constructor match to the class in the serialized string
-                pos = tempObjectName.find(delimiter);
+                pos = currentLine.find(delimiter);
 
                 // If ":" is not found for the class declaration then it is a unnamed one
                 if(pos == std::string::npos)
                     tempObjectName = "";
                 else // Else the name of the object is the first part of the string
-                    tempObjectName = tempObjectName.substr(0, pos);
+                    tempObjectName = currentLine.substr(0, pos);
 
                 LOG_INFO(DOM, "Child Object name: '" + tempObjectName + "'");
 
                 // Todo: check if we need to retrive the class name from the serialized object
 
                 // Look up for another ":" if found the serialized string is ill formated
-                pos = tempObjectName.find(delimiter, pos + delimiter.length());
+                pos = currentLine.find(delimiter, pos + delimiter.length());
                 if(pos != std::string::npos)
                 {
                     LOG_ERROR(DOM, "Class string is ill formated, current line possess multiple ':' '" + currentLine + "'");
@@ -285,7 +285,7 @@ namespace pg
                     break;
                 }
 
-                serializedString = currentLine + "\n";
+                tempSerializedString = currentLine + "\n";
 
                 startOfClass = false;
                 lockupClass = true;
@@ -299,6 +299,8 @@ namespace pg
                     const auto trimmed = trim(currentLine);
                     if((classChildIndent == currentIndent) and (trimmed == "}" or trimmed =="},"))
                     {
+                        LOG_INFO(DOM, "Create a new child object with the name: '" + tempObjectName + "'");
+
                         children.emplace_back(tempSerializedString, tempObjectName);
                         lockupClass = false;
                     }
