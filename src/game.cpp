@@ -22,9 +22,6 @@ GameWindow::~GameWindow()
 {
     ticking = false;
 
-    // Save the current configuration file to disk
-    Serializer::getSerializer()->serializeObject("Config", *Configuration::config());
-
     if(gameMap != nullptr)
         delete gameMap;
 
@@ -83,6 +80,8 @@ void GameWindow::initialize()
     masterRenderer.registerTexture("font", "res/font/font.png");
     masterRenderer.registerTexture("pigeon", "res/object/PigeonMockUp.png");
 
+    // Todo config stuff:
+
     Configuration::config()->set("Fullscreen On", true);
     Configuration::config()->set("Username", "Gallasko");
     Configuration::config()->set("Gold", 500);
@@ -90,6 +89,8 @@ void GameWindow::initialize()
 
     std::cout << Configuration::config()->get<std::string>("Username", "None") << std::endl;
     std::cout << Configuration::config()->get<std::string>("Password", "None") << std::endl;
+
+    //
 
     camera = new Camera(QVector3D(0.0f, 0.0f, 3.0f));
 

@@ -1,7 +1,5 @@
 #include "listview.h"
 
-#include <iostream>
-
 #include "../logger.h"
 
 namespace pg
@@ -99,8 +97,6 @@ namespace pg
             this->buttonHeight = this->height;
         }
             
-        std::cout << this->boxToMonitor.h << ", " << this->maxPos << ", " << this->buttonHeight << std::endl;
-
         cursor->setHeight(this->buttonHeight);
     }
 

@@ -6,6 +6,7 @@
 #include <mutex>
 #include <sstream>
 #include <unordered_map>
+#include <vector>
 
 namespace pg
 {
@@ -22,10 +23,19 @@ namespace pg
 
         void endSerialization();
 
+        // Todo specialize this with std::endl() to disable it by making static assert !
+        // Archive require the usage of EndOfLine otherwise it can break the whole serialization file !!!
         Archive& operator<<(const EndOfLine&)
         {
             requestComma = true;
             requestNewline = true;
+            return *this;
+        }
+
+        Archive& operator<<(std::ostream & (*)(std::ostream &))
+        {
+            static_assert(true, "Can't use any std:: manipulator on this class !");
+
             return *this;
         }
 
@@ -59,6 +69,7 @@ namespace pg
     template<typename Type>
     void serialize(Archive& archive, const Type& value);
 
+    // Todo make a static_assert to check if ": " is present in the name and reject it at compile time
     template<typename Type>
     void serialize(Archive& archive, const std::string& name, const Type& value)
     {
@@ -66,6 +77,35 @@ namespace pg
 
         serialize(archive, value);
     }
+
+    template<typename Type>
+    void serialize(Archive& archive, const char* value)
+    {
+        // Todo store the number of characters in the string
+        serialize(archive, std::string(value));
+    }
+
+    struct UnserializedObject
+    {
+        std::string objectName = "";
+        //std::string className;
+
+        std::vector<UnserializedObject> children;
+
+        UnserializedObject() : isNullObject(true) { }
+        UnserializedObject(const std::string& serializedString, const std::string& objectName = "") : objectName(objectName), serializedString(serializedString), isNullObject(true) { parseString(); }
+
+        inline bool isNull() const { return isNullObject; }
+
+    private:
+        void parseString();
+        
+        std::string serializedString = "";
+        bool isNullObject = false;
+    };
+
+    template<typename Type>
+    Type deserialize(const UnserializedObject& name);
 
     class Serializer
     {
@@ -83,14 +123,18 @@ namespace pg
         };
 
     public:
-        Serializer(const std::string& filename) : filename(filename) { }
+        Serializer(const std::string& filename);
         ~Serializer();
 
         static std::unique_ptr<Serializer>& getSerializer(const std::string& filename = "serialize.sz")
         {static std::unique_ptr<Serializer> serializer = std::unique_ptr<Serializer>(new Serializer(filename)); return serializer; }
 
+        // Todo make a static_assert to check if ": " is present in the objectName and reject it at compile time
         template <typename Type>
         void serializeObject(const std::string& objectName, const Type& type) { ClassSerializer ar(objectName); serialize(ar.archive, type); }
+
+        template <typename Type>
+        Type deserializeObject(const std::string& objectName) const { const auto& it = serializedMap.find(objectName); if(it != serializedMap.end()) return deserialize<Type>(UnserializedObject(it->second, objectName)); else return deserialize<Type>(UnserializedObject()); }
 
     private:
         void registerSerialized(const std::string& objectName, const std::stringstream& serializedString);

@@ -10,33 +10,53 @@ namespace pg
     }
 
     template<>
+    void serialize(Archive& archive, const Configuration::ElementType& element)
+    {
+        archive.startSerialization("Element Type");
+        
+        switch(element.type)
+        {
+        case Configuration::ElementType::UnionType::FLOAT:
+            serialize(archive, "type", element.enumTypeToString(element.type));
+            serialize(archive, "data", element.data.f);
+            break;
+
+        case Configuration::ElementType::UnionType::INT:
+            serialize(archive, "type", element.enumTypeToString(element.type));
+            serialize(archive, "data", element.data.i);
+            break;
+
+        case Configuration::ElementType::UnionType::STRING:
+            serialize(archive, "type", element.enumTypeToString(element.type));
+            serialize(archive, "data", element.data.s);
+            break;
+
+        case Configuration::ElementType::UnionType::BOOL:
+            serialize(archive, "type", element.enumTypeToString(element.type));
+            serialize(archive, "data", element.data.b);
+            break; 
+        }
+
+        archive.endSerialization();
+    }
+
+    template<>
     void serialize(Archive& archive, const Configuration& config)
     {
         archive.startSerialization("Configuration");
 
         for(const auto& element : config.elementMap)
         {
-            switch(element.second.type)
-            {
-            case Configuration::ElementType::UnionType::FLOAT:
-                serialize(archive, element.first, element.second.get<float>());
-                break;
-
-            case Configuration::ElementType::UnionType::INT:
-                serialize(archive, element.first, element.second.get<int>());
-                break;
-
-            case Configuration::ElementType::UnionType::STRING:
-                serialize(archive, element.first, element.second.get<std::string>());
-                break;
-
-            case Configuration::ElementType::UnionType::BOOL:
-                serialize(archive, element.first, element.second.get<bool>());
-                break; 
-            }
+            serialize(archive, element.second);
         }
 
         archive.endSerialization();
+    }
+
+    template<>
+    Configuration deserialize(const UnserializedObject& serializedString)
+    {
+        return Configuration();
     }
 
     std::string Configuration::ElementType::enumTypeToString(const Configuration::ElementType::UnionType& type) const
@@ -56,7 +76,7 @@ namespace pg
             return data.f;
         else
         {
-            LOG_ERROR(DOM, ("Error in casting an element to float when defined as " + enumTypeToString(this->type)).c_str());
+            LOG_ERROR(DOM, "Error in casting an element to float when defined as " + enumTypeToString(this->type));
             return 0.0f;
         }
     }
@@ -67,7 +87,7 @@ namespace pg
             return data.i;
         else
         {
-            LOG_ERROR(DOM, ("Error in casting an element to int when defined as " + enumTypeToString(this->type)).c_str());
+            LOG_ERROR(DOM, "Error in casting an element to int when defined as " + enumTypeToString(this->type));
             return 0;
         }
     }
@@ -78,7 +98,7 @@ namespace pg
             return data.s;
         else
         {
-            LOG_ERROR(DOM, ("Error in casting an element to string when defined as " + enumTypeToString(this->type)).c_str());
+            LOG_ERROR(DOM, "Error in casting an element to string when defined as " + enumTypeToString(this->type));
             return "";
         }
     }
@@ -89,7 +109,7 @@ namespace pg
             return data.b;
         else
         {
-            LOG_ERROR(DOM, ("Error in casting an element to bool when defined as " + enumTypeToString(this->type)).c_str());
+            LOG_ERROR(DOM, "Error in casting an element to bool when defined as " + enumTypeToString(this->type));
             return false;
         }
     }
