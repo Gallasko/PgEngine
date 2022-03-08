@@ -82,6 +82,8 @@ void GameWindow::initialize()
 
     // Todo config stuff:
 
+    std::cout << Configuration::config()->get<std::string>("Username", "None") << std::endl;
+
     Configuration::config()->set("Fullscreen On", true);
     Configuration::config()->set("Username", "Gallasko");
     Configuration::config()->set("Gold", 500);

@@ -12,6 +12,8 @@ namespace pg
     template<>
     void serialize(Archive& archive, const Configuration::ElementType& element)
     {
+        LOG_THIS(DOM);
+
         archive.startSerialization("Element Type");
         
         switch(element.type)
@@ -43,35 +45,99 @@ namespace pg
     template<>
     void serialize(Archive& archive, const Configuration& config)
     {
+        LOG_THIS(DOM);
+
         archive.startSerialization("Configuration");
 
         for(const auto& element : config.elementMap)
         {
-            serialize(archive, element.second);
+            serialize(archive, element.first, element.second);
         }
 
         archive.endSerialization();
     }
 
     template<>
+    Configuration::ElementType deserialize(const UnserializedObject& serializedString)
+    {
+        LOG_THIS(DOM);
+
+        Configuration::ElementType value;
+
+        std::string type = "";
+
+        if(serializedString.isNull())
+            LOG_ERROR(DOM, "Element is null");
+        else
+        {
+            LOG_INFO(DOM, "Deserializing an Element Type");
+
+            type = deserialize<std::string>(serializedString["type"]);
+
+            if(type == "float")
+                value.setValue(deserialize<float>(serializedString["data"]));
+            else if(type == "int")
+                value.setValue(deserialize<int>(serializedString["data"]));
+            else if(type == "string")
+                value.setValue(deserialize<std::string>(serializedString["data"]));
+            else if(type == "bool")
+                value.setValue(deserialize<bool>(serializedString["data"]));
+            else
+            {
+                LOG_ERROR(DOM, "Error in casting an string to UnionType");
+                return value;
+            }
+        }
+
+        return value;
+    }
+
+    template<>
     Configuration deserialize(const UnserializedObject& serializedString)
     {
-        return Configuration();
+        LOG_THIS(DOM);
+
+        Configuration value;
+
+        for(auto& element : serializedString.children)
+        {
+            if(element.isNull())
+                LOG_ERROR(DOM, "Element is null");
+            else if(element.getObjectName() == "")
+                LOG_ERROR(DOM, "Element has no name");
+            else
+            {
+                LOG_INFO(DOM, "Deserializing " + element.getObjectName());
+
+                auto child = deserialize<Configuration::ElementType>(element);
+                value.elementMap[element.getObjectName()] = child;
+            }
+        }
+        
+        return value;
     }
 
     std::string Configuration::ElementType::enumTypeToString(const Configuration::ElementType::UnionType& type) const
     {
+        LOG_THIS(DOM);
+
         switch(type)
         {
             case UnionType::FLOAT: return "float"; break;
             case UnionType::INT: return "int"; break;
             case UnionType::STRING: return "string"; break;
             case UnionType::BOOL: return "bool"; break;
+            default:
+                LOG_ERROR(DOM, "Error in casting type to a string");
+                return "int";
+                break;
         }
     }
 
     Configuration::ElementType::operator float() const
     {
+        LOG_THIS(DOM);
+
         if(this->type == UnionType::FLOAT)
             return data.f;
         else
@@ -83,6 +149,8 @@ namespace pg
 
     Configuration::ElementType::operator int() const
     {
+        LOG_THIS(DOM);
+
         if(this->type == UnionType::INT)
             return data.i;
         else
@@ -94,6 +162,8 @@ namespace pg
 
     Configuration::ElementType::operator std::string() const
     {
+        LOG_THIS(DOM);
+
         if(this->type == UnionType::STRING)
             return data.s;
         else
@@ -105,6 +175,8 @@ namespace pg
 
     Configuration::ElementType::operator bool() const
     {
+        LOG_THIS(DOM);
+
         if(this->type == UnionType::BOOL)
             return data.b;
         else

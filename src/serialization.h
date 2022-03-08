@@ -10,6 +10,11 @@
 
 namespace pg
 {
+    // TODO correctly ban ":" from class name "{" for attribute name and ATTRIBUTECONST from any litteral !
+    // check and remove any \t not correctly placed
+    // Indent always go up one by one so if we skip an increment their is a problem 
+    // Test all those case !
+
     class Archive
     {
         struct EndOfLine { size_t* indentLevel = nullptr; };
@@ -22,6 +27,8 @@ namespace pg
         void startSerialization(const std::string& className);
 
         void endSerialization();
+
+        void setAttribute(const std::string& value, const std::string& type = "");
 
         // Todo specialize this with std::endl() to disable it by making static assert !
         // Archive require the usage of EndOfLine otherwise it can break the whole serialization file !!!
@@ -56,8 +63,6 @@ namespace pg
             return *this;
         }
 
-        //friend std::ostream& operator<<(std::ostream& stream, const Archive::EndOfLine& endOfLine);
-
         std::stringstream container;
 
         bool requestNewline = false;
@@ -85,23 +90,46 @@ namespace pg
         serialize(archive, std::string(value));
     }
 
-    struct UnserializedObject
+    class UnserializedObject
     {
-        std::string objectName = "";
-        //std::string className;
+        struct Attribute
+        {
+            std::string name = "";
+            std::string value = "";
+        };
+    public:
+        UnserializedObject() : isNullObject(true), isClass(false) { }
+        UnserializedObject(const std::string& serializedString, const std::string& objectName = "", bool isClass = true) : objectName(objectName), serializedString(serializedString), isNullObject(false), isClass(isClass) { if(isClass) parseString(); }
 
-        std::vector<UnserializedObject> children;
+        const std::string& getObjectName() const { return objectName; }
 
-        UnserializedObject() : isNullObject(true) { }
-        UnserializedObject(const std::string& serializedString, const std::string& objectName = "") : objectName(objectName), serializedString(serializedString), isNullObject(true) { parseString(); }
+        /**
+         * @brief Return the object as an Attribute object.
+         * Can only be called if isClass is set to false.
+         * 
+         * @return The representation of the string in an attribute form
+         */
+        UnserializedObject::Attribute getAsAttribute() const;
 
         inline bool isNull() const { return isNullObject; }
 
+        UnserializedObject operator[](const std::string& key);
+        const UnserializedObject& operator[](const std::string& key) const;
+
+        UnserializedObject operator[](unsigned int id);
+        const UnserializedObject& operator[](unsigned int id) const;
+
+    public:
+        std::vector<UnserializedObject> children;
+
     private:
         void parseString();
-        
+
+        std::string objectName = "";
         std::string serializedString = "";
+        
         bool isNullObject = false;
+        bool isClass = true;
     };
 
     template<typename Type>

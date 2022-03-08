@@ -6,7 +6,10 @@
 #include "constant.h"
 
 #include <iostream>
-#include <sstream> 
+#include <sstream>
+#include <algorithm>
+#include <memory>
+#include <cstring>
 
 namespace pg
 {
@@ -14,8 +17,12 @@ namespace pg
     {
         const char * DOM = "Serializer";
 
+        std::string ATTRIBUTECONST = "PGSERIALISEDATTRIBUTE";
+
         size_t nbLeadingSpaces(const std::string& str, const std::string& whitespace = " \t")
         {
+            LOG_THIS(DOM);
+            
             const auto strBegin = str.find_first_not_of(whitespace);
             if (strBegin == std::string::npos)
                 return -1; // no content
@@ -25,6 +32,8 @@ namespace pg
 
         std::string trim(const std::string& str, const std::string& whitespace = " \t")
         {
+            LOG_THIS(DOM);
+
             const auto strBegin = str.find_first_not_of(whitespace);
             if (strBegin == std::string::npos)
                 return ""; // no content
@@ -41,51 +50,187 @@ namespace pg
     template<>
     void serialize(Archive& archive, const bool& value)
     {
+        LOG_THIS(DOM);
+
         std::string res = value ? "true" : "false";
 
-        archive << "bool {" << res << "}" << archive.endl();
+        archive.setAttribute(res, "bool");
+    }
+
+    template<>
+    bool deserialize(const UnserializedObject& serializedString)
+    {
+        LOG_THIS(DOM);
+
+        auto attribute = serializedString.getAsAttribute();
+        if(attribute.name != "bool")
+        {
+            LOG_ERROR(DOM, "Serialized string is not a bool");
+            return false;
+        }
+
+        if(attribute.value == "true")
+            return true;
+        else if (attribute.value == "false")
+            return false;
+
+        LOG_ERROR(DOM, "Serialized string of bool is neither true or false");
+        return false;
     }
 
     template<>
     void serialize(Archive& archive, const int& value)
     {
-        archive << "int {" << value << "}" << archive.endl();
+        LOG_THIS(DOM);
+
+        archive.setAttribute(std::to_string(value), "int");
+    }
+
+    template<>
+    int deserialize(const UnserializedObject& serializedString)
+    {
+        LOG_THIS(DOM);
+
+        int value = 0;
+
+        auto attribute = serializedString.getAsAttribute();
+        if(attribute.name != "int")
+        {
+            LOG_ERROR(DOM, "Serialized string is not a int");
+            return value;
+        }
+
+        std::stringstream sstream(attribute.value);
+        sstream >> value;
+
+        return value;
     }
 
     template<>
     void serialize(Archive& archive, const float& value)
     {
-        archive << "float {" << value << "}" << archive.endl();
+        LOG_THIS(DOM);
+
+        archive.setAttribute(std::to_string(value), "float");
+    }
+
+    template<>
+    float deserialize(const UnserializedObject& serializedString)
+    {
+        LOG_THIS(DOM);
+
+        float value = 0;
+
+        auto attribute = serializedString.getAsAttribute();
+        if(attribute.name != "float")
+        {
+            LOG_ERROR(DOM, "Serialized string is not a float");
+            return value;
+        }
+
+        std::stringstream sstream(attribute.value);
+        sstream >> value;
+
+        return value;
     }
 
     template<>
     void serialize(Archive& archive, const double& value)
     {
-        archive << "double {" << value << "}" << archive.endl();
+        LOG_THIS(DOM);
+
+        archive.setAttribute(std::to_string(value), "double");
+    }
+
+    template<>
+    double deserialize(const UnserializedObject& serializedString)
+    {
+        LOG_THIS(DOM);
+
+        double value = 0;
+
+        auto attribute = serializedString.getAsAttribute();
+        if(attribute.name != "double")
+        {
+            LOG_ERROR(DOM, "Serialized string is not a double");
+            return value;
+        }
+
+        std::stringstream sstream(attribute.value);
+        sstream >> value;
+
+        return value;
     }
 
     template<>
     void serialize(Archive& archive, const size_t& value)
     {
-        archive << "size_t {" << value << "}" << archive.endl();
+        LOG_THIS(DOM);
+
+        archive.setAttribute(std::to_string(value), "size_t");
+    }
+
+    template<>
+    size_t deserialize(const UnserializedObject& serializedString)
+    {
+        LOG_THIS(DOM);
+
+        size_t value = 0;
+
+        auto attribute = serializedString.getAsAttribute();
+        if(attribute.name != "size_t")
+        {
+            LOG_ERROR(DOM, "Serialized string is not a size_t");
+            return value;
+        }
+
+        std::stringstream sstream(attribute.value);
+        sstream >> value;
+
+        return value;
     }
 
     template<>
     void serialize(Archive& archive, const std::string& value)
     {
+        LOG_THIS(DOM);
+
         // Todo if the string contains end of line characters -> make sure to correctly indent the string in the archive
         // by spliting the input string by end of line and then reconstructing the end of line with archive.endl()
-        archive.startSerialization("String");
+        archive.setAttribute(value, "string");
+    }
 
-        serialize(archive, "size", value.size());
-        archive << "string " << " {" << value << "}" << archive.endl();
+    template<>
+    std::string deserialize(const UnserializedObject& serializedString)
+    {
+        LOG_THIS(DOM);
 
-        archive.endSerialization();
+        std::string value;
+
+        if(serializedString.isNull())
+            LOG_ERROR(DOM, "Element is null");
+        else
+        {
+            auto stringAttribute = serializedString.getAsAttribute();
+
+            if(stringAttribute.name != "string")
+            {
+                LOG_ERROR(DOM, "String attribute name is not 'string'");
+                
+                return std::string();
+            }
+
+            return stringAttribute.value;
+        }
+
+        return std::string();
     }
 
     template<>
     void serialize(Archive& archive, const constant::Vector2D& vec2D)
     {
+        LOG_THIS(DOM);
+
         archive.startSerialization("Vector 2D");
 
         serialize(archive, "x", vec2D.x);
@@ -97,6 +242,8 @@ namespace pg
     template<>
     void serialize(Archive& archive, const constant::Vector3D& vec3D)
     {
+        LOG_THIS(DOM);
+
         archive.startSerialization("Vector 3D");
 
         serialize(archive, "x", vec3D.x);
@@ -109,6 +256,8 @@ namespace pg
     template<>
     void serialize(Archive& archive, const constant::Vector4D& vec4D)
     {
+        LOG_THIS(DOM);
+
         archive.startSerialization("Vector 4D");
 
         serialize(archive, "x", vec4D.x);
@@ -122,23 +271,27 @@ namespace pg
     template<>
     void serialize(Archive& archive, const constant::ModelInfo& modelInfo)
     {
+        LOG_THIS(DOM);
+
         archive.startSerialization("Model Info");
 
-        archive << "Verticies: [ ";
+        std::string attribute = "[ ";
         
         for(unsigned int i = 0; i < modelInfo.nbVertices; i++)
-            archive << modelInfo.vertices[i] << " ";
+            attribute += std::to_string(modelInfo.vertices[i]) + " ";
         
-        archive << "]" << archive.endl();
+        attribute += "]";
+        archive.setAttribute(attribute, "Verticies");
 
         //TODO make this automatically after a new line;
 
-        archive << "Indicies: [ ";
+        attribute = "[ ";
         
         for(unsigned int i = 0; i < modelInfo.nbIndices; i++)
-            archive << modelInfo.indices[i] << " ";
+            attribute += std::to_string(modelInfo.indices[i]) + " ";
         
-        archive << "]" << archive.endl();
+        attribute += "]";
+        archive.setAttribute(attribute, "Indicies");
         
         archive.endSerialization();
     }
@@ -163,6 +316,149 @@ namespace pg
         *this << "}" << endOfLine;
     }
 
+    void Archive::setAttribute(const std::string& value, const std::string& type)
+    {
+        if(type.find(ATTRIBUTECONST) != std::string::npos)
+        {
+            LOG_ERROR(DOM, "Invalid attribute, " + std::string(ATTRIBUTECONST) + " is present in the string. Archive will not register it !");
+
+            return;
+        }
+
+        // Set the prefix ATTRIBUTECONST inside the attribute to mark it so the parser can handle multiline attribute
+        *this << ATTRIBUTECONST << " " << type << " {";
+        
+        std::istringstream iss(value);
+        std::string line;
+
+        bool firstLine = true;
+
+        // Remove any std::endl and replace them with the archive.endl so the parser doesn't mix up classes and attribute !
+        while(std::getline(iss, line))
+        {
+            if(firstLine)
+                firstLine = false;
+            else
+                *this << endl();
+            *this << line;
+        }
+            
+
+         *this << "}" << endl();
+    }
+
+    UnserializedObject::Attribute UnserializedObject::getAsAttribute() const
+    {
+        UnserializedObject::Attribute attribute;
+
+        // Check if the isClass is set to true, then it is a class object and not a attribute object so we return a blank attribute and raise an error.
+        if(isClass)
+        {
+            LOG_ERROR(DOM, "Object is not an attribute");
+
+            return UnserializedObject::Attribute();
+        }
+
+        // Lockup for the ATTRIBUTECONST
+        auto ATTRIBUTECONSTPos = serializedString.find(ATTRIBUTECONST);
+
+        if(ATTRIBUTECONSTPos == std::string::npos)
+        {
+            LOG_ERROR(DOM, "The serializedString is missing the 'ATTRIBUTECONST' !");
+
+            return UnserializedObject::Attribute();
+        }
+
+        ATTRIBUTECONSTPos += ATTRIBUTECONST.size();
+
+        auto startAttributeValue = serializedString.find("{", ATTRIBUTECONSTPos);
+
+        if(startAttributeValue == std::string::npos)
+        {
+            LOG_ERROR(DOM, "The serializedString is missing the '{' that start the attribute !");
+
+            return UnserializedObject::Attribute();
+        }
+
+        if(startAttributeValue - ATTRIBUTECONSTPos < 2)
+        {
+            LOG_ERROR(DOM, "The serializedString is ill formated 'ATTRIBUTECONST' and '{' should at least be separeted by two characters !");
+
+            return UnserializedObject::Attribute();
+        }
+        else if(startAttributeValue - ATTRIBUTECONSTPos == 2)
+        {
+            attribute.name = "";
+        }
+        else
+        {
+            attribute.name = serializedString.substr(ATTRIBUTECONSTPos + 1, startAttributeValue - ATTRIBUTECONSTPos - 2);
+        }
+
+        auto endAttributeValue = serializedString.rfind("}");
+
+        if(endAttributeValue == std::string::npos)
+        {
+            LOG_ERROR(DOM, "The serializedString is missing the '}' that end the attribute !");
+
+            return UnserializedObject::Attribute();
+        }
+
+        attribute.value = serializedString.substr(startAttributeValue + 1, endAttributeValue - (startAttributeValue + 1));
+
+        return attribute;
+    }
+
+    UnserializedObject UnserializedObject::operator[](const std::string& key)
+    {
+        auto isObjectName = [=](UnserializedObject obj) { return obj.objectName == key; }; 
+        auto it = std::find_if(children.begin(), children.end(), isObjectName);
+
+        if(it != children.end())
+            return *it;
+        else
+        {
+            LOG_ERROR(DOM, "Requested the child: '" + key + "' not present inside the object");
+            return UnserializedObject();
+        }
+    }
+
+    const UnserializedObject& UnserializedObject::operator[](const std::string& key) const
+    {
+        auto isObjectName = [=](const UnserializedObject& obj) { return obj.objectName == key; }; 
+        const auto& it = std::find_if(children.begin(), children.end(), isObjectName);
+
+        if(it != children.end())
+            return *it;
+        else
+        {
+            LOG_ERROR(DOM, "Requested the child: '" + key + "' not present inside the object");
+            return *std::shared_ptr<UnserializedObject>();
+        }
+    }
+
+    UnserializedObject UnserializedObject::operator[](unsigned int id)
+    {
+        if(id < children.size())
+            return children.at(id);
+        else
+        {
+            LOG_ERROR(DOM, "Requested the child: '" + std::to_string(id) + "' not present inside the object");
+            return UnserializedObject();
+        }
+    }
+
+    const UnserializedObject& UnserializedObject::operator[](unsigned int id) const
+    {
+        if(id < children.size())
+            return children.at(id);
+        else
+        {
+            LOG_ERROR(DOM, "Requested the child: '" + std::to_string(id)  + "' not present inside the object");
+            return *std::shared_ptr<UnserializedObject>();
+        }
+    }
+
     void UnserializedObject::parseString()
     {
         LOG_THIS_MEMBER(DOM);
@@ -178,7 +474,7 @@ namespace pg
         std::istringstream iss(serializedString);
 
         std::string tempObjectName = ""; 
-        //std::string tempClassName = ""; 
+        std::string tempAttributeName = ""; 
         std::string delimiter = ": ";
         std::string tempSerializedString = "";
         size_t pos;
@@ -186,6 +482,8 @@ namespace pg
         // First line should always be the beginning of a class declaration
         bool startOfClass = false;
         bool lockupClass = false;
+
+        bool lockupAttribute = false;
 
         // First class of the serialized string is for the current class
         //bool firstClass = true;
@@ -216,7 +514,7 @@ namespace pg
             if(pos == std::string::npos)
                 tempObjectName = "";
             else // Else the name of the object is the first part of the string
-                tempObjectName = currentLine.substr(0, pos);
+                tempObjectName = trim(currentLine.substr(0, pos));
 
             // If the object name doesn't match we throw an error
             if(tempObjectName != objectName)
@@ -244,6 +542,7 @@ namespace pg
             {
                 LOG_INFO(DOM, "Object: " + objectName + " doesn't have any children in serialization !");
                 
+                isNullObject = false;
                 return;
             }
 
@@ -259,17 +558,21 @@ namespace pg
 
             if(startOfClass)
             {
-                // Trim the current line first when retriving the object name to not get whitespace issues.
-                //tempObjectName = trim(currentLine);
+                // If lockupAttribute is true, then we finished processing the previous attribute
+                if(lockupAttribute)
+                {
+                    children.emplace_back(tempSerializedString, tempAttributeName, false);
+                    lockupAttribute = false;
+                }
 
-                // Check if the name given to the constructor match to the class in the serialized string
+                // Try to find ":" to see if the class is named or not 
                 pos = currentLine.find(delimiter);
 
                 // If ":" is not found for the class declaration then it is a unnamed one
                 if(pos == std::string::npos)
                     tempObjectName = "";
                 else // Else the name of the object is the first part of the string
-                    tempObjectName = currentLine.substr(0, pos);
+                    tempObjectName = trim(currentLine.substr(0, pos));
 
                 LOG_INFO(DOM, "Child Object name: '" + tempObjectName + "'");
 
@@ -305,17 +608,76 @@ namespace pg
                         lockupClass = false;
                     }
                 }
+                else
+                {
+                    pos = currentLine.find(ATTRIBUTECONST);
+
+                    // The current line is the beginning of a new attribute
+                    if(pos != std::string::npos)
+                    {
+                        // If lockupAttribute is true, then we finished processing the previous attribute
+                        if(lockupAttribute)
+                        {
+                            children.emplace_back(tempSerializedString, tempAttributeName, false);
+                            lockupAttribute = false;
+                        }
+
+                        // Cut the beginning of the current line to look for the attribute name
+                        tempAttributeName = currentLine.substr(0, pos);
+
+                        // Try to find ":" to see if the attribute is named or not 
+                        pos = tempAttributeName.find(delimiter);
+
+                        // If ":" is not found for the class declaration then it is a unnamed one
+                        if(pos == std::string::npos)
+                            tempAttributeName = "";
+                        else // Else the name of the object is the first part of the string
+                            tempAttributeName = trim(tempAttributeName.substr(0, pos));
+
+                        LOG_INFO(DOM, "Child Attribute name: '" + tempAttributeName + "'");
+
+                        tempSerializedString = currentLine + "\n";
+
+                        lockupAttribute = true;
+                    }
+                    // Error the current line describe nothing
+                    else if(pos == std::string::npos and lockupAttribute == false)
+                    {
+                        LOG_ERROR(DOM, "Line is neither a class definition, a class body nor a attribute, serialization string is ill formed. Exiting Serialization Parsing !");
+
+                        errorHappened = true;
+                        break;
+                    }
+                    // The current line is part of the body of the attribute
+                    else if(pos == std::string::npos and lockupAttribute == true)
+                    {
+                        // Trim the line by the current number of indent to make it back to the origanl format before making the value an attribute !
+                        tempSerializedString += currentLine.substr(currentIndent) + "\n";
+                    }
+                    
+                }
             }
 
             currentLine = nextLine;
             currentIndent = nextIndent;
         }
 
+        // If lockupAttribute is true, then we finished processing the previous attribute
+        if(lockupAttribute)
+        {
+            children.emplace_back(tempSerializedString, tempAttributeName, false);
+            lockupAttribute = false;
+        }
+
         if(errorHappened)
         {
             LOG_ERROR(DOM, "Error happened when parsing serialized string for object: '" + objectName + "'");
             isNullObject = true;
+
+            return;
         }
+
+        isNullObject = false;
     }
 
     Serializer::Serializer(const std::string& filename) : filename(filename)
