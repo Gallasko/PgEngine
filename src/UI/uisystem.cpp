@@ -121,11 +121,6 @@ namespace pg
         {
             this->pos.x = *leftAnchor + leftMargin;
         }
-
-        updated = true;
-
-        //for(const auto& child : children)
-        //    child->update();
     }
 
     TextureComponent::TextureComponent(const UiSize& width, const UiSize& height, const char* path)

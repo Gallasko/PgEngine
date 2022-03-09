@@ -2,10 +2,6 @@
 
 #include <vector>
 
-#include <QOpenGLFunctions>
-#include <QOpenGLShaderProgram>
-#include <QMatrix4x4>
-
 #include "../../constant.h"
 
 #include "../../Engine/tileloader.h"
@@ -18,7 +14,7 @@
 
 using namespace pg;
 
-class TileSelector : public UiComponent, protected QOpenGLFunctions
+class TileSelector : public UiComponent
 {
 public:
     TileSelector(Map *map, TilesLoader *TilesLoader, FontLoader *fontLoader, UiComponent *screenUi);

@@ -71,6 +71,8 @@ namespace pg
         EndOfLine endOfLine;
     };
 
+    // TODO make a specialized renderer for std::nullptr_t to catch nullptr error ?; 
+
     template<typename Type>
     void serialize(Archive& archive, const Type& value);
 

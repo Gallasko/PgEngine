@@ -14,7 +14,7 @@ namespace pg
         // TODO replace this by a UiFrame
         UiPosition *pos;
         UiSize *width, *height; // Input Area
-        bool *enable;
+        const bool *enable;
 
         Base *object;
 
@@ -41,7 +41,7 @@ namespace pg
             onLeaveLambda = mouseLeave;
         }
 
-        MouseInputComponent(UiComponent *component) : pos(&component->pos), width(&component->width), height(&component->height), enable(&component->visible) {}
+        MouseInputComponent(UiComponent *component) : pos(&component->pos), width(&component->width), height(&component->height), enable(&component->isVisible()) {}
         MouseInputComponent(const MouseInputComponent& component) : pos(component.pos), width(component.width), height(component.height), enable(component.enable), object(component.object), onPressed(component.onPressed), onLeave(component.onLeave), onPressedLambda(component.onPressedLambda), onLeaveLambda(component.onLeaveLambda) {}
 
         //TODO check if we can send const Args& all the time or if some specific application need to modify arguments

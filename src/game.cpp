@@ -517,7 +517,7 @@ void GameWindow::render()
     {
         auto mousePosTextC = mousePosText->get<Sentence>();
         if(mousePosTextC != nullptr)
-            mousePosTextC->visible = true;
+            mousePosTextC->show();
 
         renderUi();
     }
@@ -525,7 +525,7 @@ void GameWindow::render()
     {
         auto mousePosTextC = mousePosText->get<Sentence>();
         if(mousePosTextC != nullptr)
-            mousePosTextC->visible = false;
+            mousePosTextC->hide();
     }
 
     //masterRenderer << tileSelector;
@@ -912,7 +912,7 @@ void GameWindow::renderUi()
     // Todo use the master renderer to render all the texture component but using only one shader binding 
     for(auto& texture : ecs.view<TextureComponent>())
     {
-        if(texture.visible)
+        if(texture.isVisible())
         {
             if(texture.initialised == false)
                 texture.generateMesh();

@@ -359,12 +359,12 @@ namespace pg
             float childLeft = child->left;
             float childRight = child->right;
 
-            child->visible = false;
+            child->hide();
 
             if(this->inBound(childLeft, childTop) or this->inBound(childLeft, childBottom) or this->inBound(childRight, childTop) or this->inBound(childRight, childBottom))
             {
                 renderList.push_back(child);
-                child->visible = true;
+                child->show();
             }
         }
     }

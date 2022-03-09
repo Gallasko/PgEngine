@@ -35,6 +35,8 @@ namespace pg
 
     class MasterRenderer;
 
+    // TODO make a specialized renderer for std::nullptr_t to catch nullptr error;
+
     template <typename... Args>
     void renderer(MasterRenderer* masterRender, Args... args);
 

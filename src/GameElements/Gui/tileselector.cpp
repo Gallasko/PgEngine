@@ -57,8 +57,6 @@ namespace pg
 
 TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLoader, UiComponent*) : map(map), tileLoader(tileLoader), fontLoader(fontLoader)
 {
-    initializeOpenGLFunctions();
-
     this->width = 240;
     this->height = 135;
 

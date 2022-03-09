@@ -23,8 +23,6 @@ namespace pg
 {
     struct UiComponent
     {
-        bool visible = true;
-
         UiPosition pos;
 
         UiSize width;
@@ -76,15 +74,21 @@ namespace pg
         inline void setRightAnchor(const UiSize& anchor) { rightAnchor = &anchor; update(); }
         inline void setBottomAnchor(const UiSize& anchor) { bottomAnchor = &anchor; update(); }
         inline void setLeftAnchor(const UiSize& anchor) { leftAnchor = &anchor; update(); }
-        
-        bool updated = true; // todo remove this 
 
         bool inBound(int x, int y) const;
         bool inBound(const constant::Vector2D& vec2) const { return inBound(vec2.x, vec2.y); }
 
+        const bool& isVisible() const { return visible; }
+
+        virtual void show() { this->visible = true; }
+        virtual void hide() { this->visible = false; }
+
         virtual void render(MasterRenderer* masterRenderer);
         
         void update();
+
+    private:
+        bool visible = true;
     };
 
     struct TextureComponent : public UiComponent, private QOpenGLFunctions
