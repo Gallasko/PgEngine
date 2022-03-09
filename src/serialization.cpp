@@ -58,52 +58,11 @@ namespace pg
     }
 
     template<>
-    bool deserialize(const UnserializedObject& serializedString)
-    {
-        LOG_THIS(DOM);
-
-        auto attribute = serializedString.getAsAttribute();
-        if(attribute.name != "bool")
-        {
-            LOG_ERROR(DOM, "Serialized string is not a bool");
-            return false;
-        }
-
-        if(attribute.value == "true")
-            return true;
-        else if (attribute.value == "false")
-            return false;
-
-        LOG_ERROR(DOM, "Serialized string of bool is neither true or false");
-        return false;
-    }
-
-    template<>
     void serialize(Archive& archive, const int& value)
     {
         LOG_THIS(DOM);
 
         archive.setAttribute(std::to_string(value), "int");
-    }
-
-    template<>
-    int deserialize(const UnserializedObject& serializedString)
-    {
-        LOG_THIS(DOM);
-
-        int value = 0;
-
-        auto attribute = serializedString.getAsAttribute();
-        if(attribute.name != "int")
-        {
-            LOG_ERROR(DOM, "Serialized string is not a int");
-            return value;
-        }
-
-        std::stringstream sstream(attribute.value);
-        sstream >> value;
-
-        return value;
     }
 
     template<>
@@ -115,51 +74,11 @@ namespace pg
     }
 
     template<>
-    float deserialize(const UnserializedObject& serializedString)
-    {
-        LOG_THIS(DOM);
-
-        float value = 0;
-
-        auto attribute = serializedString.getAsAttribute();
-        if(attribute.name != "float")
-        {
-            LOG_ERROR(DOM, "Serialized string is not a float");
-            return value;
-        }
-
-        std::stringstream sstream(attribute.value);
-        sstream >> value;
-
-        return value;
-    }
-
-    template<>
     void serialize(Archive& archive, const double& value)
     {
         LOG_THIS(DOM);
 
         archive.setAttribute(std::to_string(value), "double");
-    }
-
-    template<>
-    double deserialize(const UnserializedObject& serializedString)
-    {
-        LOG_THIS(DOM);
-
-        double value = 0;
-
-        auto attribute = serializedString.getAsAttribute();
-        if(attribute.name != "double")
-        {
-            LOG_ERROR(DOM, "Serialized string is not a double");
-            return value;
-        }
-
-        std::stringstream sstream(attribute.value);
-        sstream >> value;
-
-        return value;
     }
 
     template<>
@@ -171,59 +90,11 @@ namespace pg
     }
 
     template<>
-    size_t deserialize(const UnserializedObject& serializedString)
-    {
-        LOG_THIS(DOM);
-
-        size_t value = 0;
-
-        auto attribute = serializedString.getAsAttribute();
-        if(attribute.name != "size_t")
-        {
-            LOG_ERROR(DOM, "Serialized string is not a size_t");
-            return value;
-        }
-
-        std::stringstream sstream(attribute.value);
-        sstream >> value;
-
-        return value;
-    }
-
-    template<>
     void serialize(Archive& archive, const std::string& value)
     {
         LOG_THIS(DOM);
 
-        // Todo if the string contains end of line characters -> make sure to correctly indent the string in the archive
-        // by spliting the input string by end of line and then reconstructing the end of line with archive.endl()
         archive.setAttribute(value, "string");
-    }
-
-    template<>
-    std::string deserialize(const UnserializedObject& serializedString)
-    {
-        LOG_THIS(DOM);
-
-        std::string value;
-
-        if(serializedString.isNull())
-            LOG_ERROR(DOM, "Element is null");
-        else
-        {
-            auto stringAttribute = serializedString.getAsAttribute();
-
-            if(stringAttribute.name != "string")
-            {
-                LOG_ERROR(DOM, "String attribute name is not 'string'");
-                
-                return std::string();
-            }
-
-            return stringAttribute.value;
-        }
-
-        return std::string();
     }
 
     template<>
@@ -296,6 +167,133 @@ namespace pg
         archive.endSerialization();
     }
 
+    template<>
+    bool deserialize(const UnserializedObject& serializedString)
+    {
+        LOG_THIS(DOM);
+
+        auto attribute = serializedString.getAsAttribute();
+        if(attribute.name != "bool")
+        {
+            LOG_ERROR(DOM, "Serialized string is not a bool");
+            return false;
+        }
+
+        if(attribute.value == "true")
+            return true;
+        else if (attribute.value == "false")
+            return false;
+
+        LOG_ERROR(DOM, "Serialized string of bool is neither true or false");
+        return false;
+    }
+
+    template<>
+    int deserialize(const UnserializedObject& serializedString)
+    {
+        LOG_THIS(DOM);
+
+        int value = 0;
+
+        auto attribute = serializedString.getAsAttribute();
+        if(attribute.name != "int")
+        {
+            LOG_ERROR(DOM, "Serialized string is not a int");
+            return value;
+        }
+
+        std::stringstream sstream(attribute.value);
+        sstream >> value;
+
+        return value;
+    }
+
+    template<>
+    float deserialize(const UnserializedObject& serializedString)
+    {
+        LOG_THIS(DOM);
+
+        float value = 0;
+
+        auto attribute = serializedString.getAsAttribute();
+        if(attribute.name != "float")
+        {
+            LOG_ERROR(DOM, "Serialized string is not a float");
+            return value;
+        }
+
+        std::stringstream sstream(attribute.value);
+        sstream >> value;
+
+        return value;
+    }
+
+    template<>
+    double deserialize(const UnserializedObject& serializedString)
+    {
+        LOG_THIS(DOM);
+
+        double value = 0;
+
+        auto attribute = serializedString.getAsAttribute();
+        if(attribute.name != "double")
+        {
+            LOG_ERROR(DOM, "Serialized string is not a double");
+            return value;
+        }
+
+        std::stringstream sstream(attribute.value);
+        sstream >> value;
+
+        return value;
+    }
+
+    template<>
+    size_t deserialize(const UnserializedObject& serializedString)
+    {
+        LOG_THIS(DOM);
+
+        size_t value = 0;
+
+        auto attribute = serializedString.getAsAttribute();
+        if(attribute.name != "size_t")
+        {
+            LOG_ERROR(DOM, "Serialized string is not a size_t");
+            return value;
+        }
+
+        std::stringstream sstream(attribute.value);
+        sstream >> value;
+
+        return value;
+    }
+
+    template<>
+    std::string deserialize(const UnserializedObject& serializedString)
+    {
+        LOG_THIS(DOM);
+
+        std::string value;
+
+        if(serializedString.isNull())
+            LOG_ERROR(DOM, "Element is null");
+        else
+        {
+            auto stringAttribute = serializedString.getAsAttribute();
+
+            if(stringAttribute.name != "string")
+            {
+                LOG_ERROR(DOM, "String attribute name is not 'string'");
+                
+                return std::string();
+            }
+
+            return stringAttribute.value;
+        }
+
+        return std::string();
+    }
+    
     void Archive::startSerialization(const std::string& className)
     {
         LOG_THIS_MEMBER(DOM);
