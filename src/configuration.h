@@ -13,24 +13,42 @@ namespace pg
     class Configuration
     {
     public:
+        /**
+         * @struct ElementType
+         * @brief Variant strut to hold the element type of a configuration element.
+         * 
+         * This structure can represent a configuration element which can be any of the following types:
+         * float, int, string, bool.
+         * 
+         * This structure can be serialized.
+         */
         struct ElementType
         {
         private:
+            /**
+             * @union U
+             * 
+             * @brief Hold the data of the element type.
+             */
             union U
             {
                 /**
-                 * @brief Construct a new union U object
+                 * @brief Construct a new union U object.
                  * 
-                 * Need to explicitly declare ctor and dtor cause they are non POD type in the union
+                 * Need to explicitly declare ctor and dtor cause they are non POD type in the union.
                  * By default the union construct itself as an int with the value of 0;
                  */
                 U() { i = 0; }
+
+                /**
+                 * @brief Destroy the U object.
+                 */
                 ~U() {}
 
-                float f;
-                int i;
-                std::string s;
-                bool b;
+                float f;        ///< Float representation of the element type.
+                int i;          ///< Int representation of the element type.
+                std::string s;  ///< String representation of the element type.
+                bool b;         ///< Bool representation of the element type.
                 // Big Int bi;
             };
 
@@ -44,15 +62,29 @@ namespace pg
             };
         
         public:
+            /** The type of the internal representation of the union. */
             UnionType type;
 
             /**
-             * @brief Construct a new Element Type object
+             * @brief Construct a new Element Type object.
              * 
-             * By default it is a int set as 0
+             * By default it is a int set as 0.
              */
             ElementType() { this->setValue(0); }
 
+            /**
+             * @brief Construct a new Element Type object.
+             * 
+             * @tparam Type The type of the value to be constructed.
+             * @param value The value to be constructed.
+             * 
+             * This constructor is explicit to avoid any problems with const char* being implicitly converted to int !
+             * Currently this class only support 4 types of data:
+             *  -   float
+             *  -   int
+             *  -   string
+             *  -   bool
+             */
             template <typename Type>
             explicit ElementType(const Type& value) { this->setValue(value); }
 
@@ -163,9 +195,9 @@ namespace pg
 
     private:
         /**
-         * @brief Construct a new Configuration object
+         * @brief Construct a new Configuration object.
          * 
-         * @param fromSerialization boolean to know if the configuration should be built from serialization or not
+         * @param fromSerialization boolean to know if the configuration should be built from serialization or not.
          */
         Configuration(bool fromSerialization = false)
         {
@@ -178,9 +210,6 @@ namespace pg
 
         void operator=(const Configuration& config)
         {
-            if(config.elementMap.size() == 0)
-                return;
-
             for(const auto& element : config.elementMap)
                 this->elementMap[element.first] = element.second;
         }

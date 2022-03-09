@@ -119,7 +119,7 @@ namespace pg
 
     std::string Configuration::ElementType::enumTypeToString(const Configuration::ElementType::UnionType& type) const
     {
-        LOG_THIS(DOM);
+        LOG_THIS_MEMBER(DOM);
 
         switch(type)
         {
@@ -136,7 +136,7 @@ namespace pg
 
     Configuration::ElementType::operator float() const
     {
-        LOG_THIS(DOM);
+        LOG_THIS_MEMBER(DOM);
 
         if(this->type == UnionType::FLOAT)
             return data.f;
@@ -149,7 +149,7 @@ namespace pg
 
     Configuration::ElementType::operator int() const
     {
-        LOG_THIS(DOM);
+        LOG_THIS_MEMBER(DOM);
 
         if(this->type == UnionType::INT)
             return data.i;
@@ -162,7 +162,7 @@ namespace pg
 
     Configuration::ElementType::operator std::string() const
     {
-        LOG_THIS(DOM);
+        LOG_THIS_MEMBER(DOM);
 
         if(this->type == UnionType::STRING)
             return data.s;
@@ -175,7 +175,7 @@ namespace pg
 
     Configuration::ElementType::operator bool() const
     {
-        LOG_THIS(DOM);
+        LOG_THIS_MEMBER(DOM);
 
         if(this->type == UnionType::BOOL)
             return data.b;
