@@ -270,6 +270,8 @@ void GameWindow::initialize()
 
     makeKeyInput(this, GameWindow::showPigeonWidget);
 
+    makeKeyInput(this, GameWindow::quit);
+
     //(*pathFindingButtonMouseArea)->registerFunc(GameWindow::changeRandomText, this);
 
     //cmpTexTest = new TextureComponent(300, 300, "res/menu/Menu2.png");

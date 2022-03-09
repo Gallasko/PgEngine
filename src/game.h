@@ -109,6 +109,7 @@ private:
     void renderGame();
     void renderUi();
     void tick();
+    void quit(Input* inputHandler, double, ...) { if(inputHandler->isKeyPressed(Qt::Key_Escape)) emit quitApp(); }
     bool m_animating = false;
     bool ticking = false;
 
