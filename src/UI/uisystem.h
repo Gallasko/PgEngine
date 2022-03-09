@@ -40,10 +40,10 @@ namespace pg
         const UiSize bottom = pos.y + height;
         const UiSize left = &pos.x;
 
-        int topMargin = 0;
-        int rightMargin = 0;
-        int bottomMargin = 0;
-        int leftMargin = 0;
+        UiSize topMargin;
+        UiSize rightMargin;
+        UiSize bottomMargin;
+        UiSize leftMargin;
 
         UiComponent() { }
         UiComponent(const UiFrame& frame) : pos(&frame.pos), width(&frame.w), height(&frame.h) { }
@@ -55,6 +55,10 @@ namespace pg
         inline void setY(const int& value) { pos.y = value; update(); }
         inline void setZ(const int& value) { pos.z = value; update(); }
 
+        inline void setX(const UiSize& value) { pos.x = value; update(); }
+        inline void setY(const UiSize& value) { pos.y = value; update(); }
+        inline void setZ(const UiSize& value) { pos.z = value; update(); }
+
         inline void setWidth(const int &value) { width = value; update(); }
         inline void setWidth(const UiSize &value) { width = value; update(); }
         inline void setHeight(const int &value) { height = value; update(); }
@@ -65,10 +69,15 @@ namespace pg
         inline void setBottomMargin(const int& value) { bottomMargin = value; update(); }
         inline void setLeftMargin(const int& value) { leftMargin = value; update(); }
 
-        inline void setTopAnchor(UiSize *anchor) { topAnchor = anchor; update(); }
-        inline void setRightAnchor(UiSize *anchor) { rightAnchor = anchor; update(); }
-        inline void setBottomAnchor(UiSize *anchor) { bottomAnchor = anchor; update(); }
-        inline void setLeftAnchor(UiSize *anchor) { leftAnchor = anchor; update(); }
+        inline void setTopMargin(const UiSize& value) { topMargin = value; update(); }
+        inline void setRightMargin(const UiSize& value) { rightMargin = value; update(); }
+        inline void setBottomMargin(const UiSize& value) { bottomMargin = value; update(); }
+        inline void setLeftMargin(const UiSize& value) { leftMargin = value; update(); }
+
+        inline void setTopAnchor(const UiSize *anchor) { topAnchor = anchor; update(); }
+        inline void setRightAnchor(const UiSize *anchor) { rightAnchor = anchor; update(); }
+        inline void setBottomAnchor(const UiSize *anchor) { bottomAnchor = anchor; update(); }
+        inline void setLeftAnchor(const UiSize *anchor) { leftAnchor = anchor; update(); }
 
         inline void setTopAnchor(const UiSize& anchor) { topAnchor = &anchor; update(); }
         inline void setRightAnchor(const UiSize& anchor) { rightAnchor = &anchor; update(); }

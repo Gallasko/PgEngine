@@ -11,7 +11,10 @@ namespace pg
 
     template<>
     void renderer(MasterRenderer* masterRenderer, TextureComponent* texture)
-    { 
+    {
+        if(not texture->isVisible())
+            return;
+    
         auto rTable = masterRenderer->getParameter();
         const int screenWidth = rTable["ScreenWidth"];
         const int screenHeight = rTable["ScreenHeight"];

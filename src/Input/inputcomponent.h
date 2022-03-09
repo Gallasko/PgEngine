@@ -12,8 +12,8 @@ namespace pg
         struct Base {};
 
         // TODO replace this by a UiFrame
-        UiPosition *pos;
-        UiSize *width, *height; // Input Area
+        const UiPosition *pos;
+        const UiSize *width, *height; // Input Area
         const bool *enable;
 
         Base *object;

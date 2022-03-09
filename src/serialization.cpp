@@ -464,7 +464,6 @@ namespace pg
         LOG_THIS_MEMBER(DOM);
 
         std::string currentLine;
-        size_t classIndent = 0;
         size_t classChildIndent = 0;
 
         std::string nextLine;
@@ -502,8 +501,6 @@ namespace pg
         {
             LOG_INFO(DOM, currentLine);
 
-            // Get the current indent of the class
-            classIndent = nbLeadingSpaces(currentLine);
             // Then calculate the indent of the children
             classChildIndent = nbLeadingSpaces("\t" + currentLine);
 
@@ -550,7 +547,7 @@ namespace pg
             
         while(std::getline(iss, nextLine))
         {
-            LOG_INFO(DOM, "Current line: " + currentLine + " with class indent: " + std::to_string(classIndent) + ", and current indent: " + std::to_string(currentIndent));
+            LOG_INFO(DOM, "Current line: " + currentLine + ", and current indent: " + std::to_string(currentIndent));
 
             nextIndent = nbLeadingSpaces(nextLine);
             if(nextIndent > classChildIndent and startOfClass == false and lockupClass == false)
@@ -744,7 +741,7 @@ namespace pg
             }
 
             if(errorHappened)
-                LOG_ERROR(DOM, "Error happened when parsing: " + filename);
+                { LOG_ERROR(DOM, "Error happened when parsing: " + filename); }
         }
         else
         {

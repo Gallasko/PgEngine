@@ -41,11 +41,12 @@
 #include "Engine/renderer.h"
 #include "UI/sentencesystem.h"
 #include "UI/uianimation.h"
+#include "UI/listview.h"
 
 #include "Engine/particle.h"
 
 #include "GameElements/Gui/tileselector.h"
-#include "UI/listview.h"
+#include "GameElements/Gui/escapepanel.h"
 
 
 //TODO create unary test for all the basic component of the framework
@@ -109,7 +110,7 @@ private:
     void renderGame();
     void renderUi();
     void tick();
-    void quit(Input* inputHandler, double, ...) { if(inputHandler->isKeyPressed(Qt::Key_Escape)) emit quitApp(); }
+    void quit(Input* inputHandler, double...);
     bool m_animating = false;
     bool ticking = false;
 
@@ -171,6 +172,9 @@ private:
     //TODO listView stuff
     UiFrame frame;
     ListView *listView;
+
+    //TODO escape stuff
+    EscapePanel *escapePanel;
 
     long long gold = 0;
 

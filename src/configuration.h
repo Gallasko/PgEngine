@@ -63,7 +63,7 @@ namespace pg
         
         public:
             /** The type of the internal representation of the union. */
-            UnionType type;
+            UnionType type = UnionType::INT;
 
             /**
              * @brief Construct a new Element Type object.

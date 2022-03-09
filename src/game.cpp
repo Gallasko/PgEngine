@@ -270,6 +270,14 @@ void GameWindow::initialize()
 
     makeKeyInput(this, GameWindow::showPigeonWidget);
 
+    escapePanel = new EscapePanel(new TextureComponent(297, 196, "res/menu/menutest.png"));
+    escapePanel->width = 297;
+    escapePanel->height = 196;
+    escapePanel->pos.x = (screenUi->width / 2) - (escapePanel->width / 2);
+    escapePanel->pos.y = (screenUi->height / 2) - (escapePanel->height / 2);
+
+    escapePanel->hide();
+
     makeKeyInput(this, GameWindow::quit);
 
     //(*pathFindingButtonMouseArea)->registerFunc(GameWindow::changeRandomText, this);
@@ -530,6 +538,7 @@ void GameWindow::render()
 
     //masterRenderer << tileSelector;
     masterRenderer << listView;
+    masterRenderer << escapePanel;
 
     //masterRenderer.render<ParticleRenderer>(pComponent);
 
@@ -1026,4 +1035,13 @@ void GameWindow::tick()
         currentTickTime = QDateTime::currentMSecsSinceEpoch();
         std::this_thread::sleep_for(std::chrono::milliseconds(40 - (currentTickTime - lastTickTime)));
     }
+}
+
+void GameWindow::quit(Input* inputHandler, double...)
+{
+    if(inputHandler->isKeyPressed(Qt::Key_Escape))
+    {
+        escapePanel->show();
+    }
+    //emit quitApp();
 }

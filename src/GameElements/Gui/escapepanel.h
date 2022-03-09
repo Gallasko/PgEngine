@@ -6,7 +6,10 @@ using namespace pg;
 
 struct EscapePanel : public UiComponent
 {
-    TextureComponent* background;
+    TextureComponent *background;
 
-    EscapePanel(TextureComponent* background = nullptr);
+    EscapePanel(TextureComponent *background = nullptr);
+
+    virtual void show();
+    virtual void hide();
 };

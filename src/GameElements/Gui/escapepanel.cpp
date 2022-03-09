@@ -17,7 +17,26 @@ namespace pg
     }
 }
 
-EscapePanel::EscapePanel(TextureComponent* background)
+EscapePanel::EscapePanel(TextureComponent* background) : background(background)
 {
+    if(background != nullptr)
+    {
+        background->setTopAnchor(this->top);
+        background->setLeftAnchor(this->left);
+    }
+}
 
+void EscapePanel::show()
+{
+    if(background != nullptr)
+        background->show();
+}
+
+
+#include <iostream>
+
+void EscapePanel::hide()
+{
+    if(background != nullptr)
+        background->hide();
 }
