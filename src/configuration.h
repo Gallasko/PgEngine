@@ -12,7 +12,7 @@ namespace pg
 {
     class Configuration
     {
-    private:
+    public:
         struct ElementType
         {
         private:
@@ -127,6 +127,8 @@ namespace pg
             }
 
         private:
+            friend void serialize<>(Archive& archive, const Configuration::ElementType& element);
+
             void clearPreviousType()
             {
                 if(this->type == UnionType::STRING)
@@ -148,7 +150,7 @@ namespace pg
         typedef std::unique_ptr<Configuration> ConfigurationPtr;
 
     public:
-        inline static const ConfigurationPtr& config() { static ConfigurationPtr config = ConfigurationPtr(new Configuration()); return config; }
+        inline static const ConfigurationPtr& config() { static ConfigurationPtr config = ConfigurationPtr(new Configuration(true)); return config; }
 
         template<typename Type>
         Type get(const std::string& name, const Type& defaultValue) const;
@@ -160,7 +162,28 @@ namespace pg
         void set(const char* name, const Type& value);
 
     private:
+        /**
+         * @brief Construct a new Configuration object
+         * 
+         * @param fromSerialization boolean to know if the configuration should be built from serialization or not
+         */
+        Configuration(bool fromSerialization = false)
+        {
+            if(fromSerialization)
+                *this = Serializer::getSerializer()->deserializeObject<Configuration>("Config");
+        }
+
         friend void serialize<>(Archive& archive, const Configuration& config);
+        friend Configuration deserialize<>(const UnserializedObject& serializedString);
+
+        void operator=(const Configuration& config)
+        {
+            if(config.elementMap.size() == 0)
+                return;
+
+            for(const auto& element : config.elementMap)
+                this->elementMap[element.first] = element.second;
+        }
 
         std::unordered_map<std::string, Configuration::ElementType> elementMap;
     };
@@ -180,11 +203,17 @@ namespace pg
     void Configuration::set(const std::string& name, const Type& value)
     {
         elementMap[name] = ElementType(value);
+
+        // Save the current configuration file inside the serializer
+        Serializer::getSerializer()->serializeObject("Config", *this);
     }
 
     template<typename Type>
     void Configuration::set(const char* name, const Type& value)
     {
         elementMap[std::string(name)] = ElementType(value);
+
+        // Save the current configuration file inside the serializer
+        Serializer::getSerializer()->serializeObject("Config", *this);
     }
 }

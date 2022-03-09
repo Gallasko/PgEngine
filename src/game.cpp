@@ -22,9 +22,6 @@ GameWindow::~GameWindow()
 {
     ticking = false;
 
-    // Save the current configuration file to disk
-    Serializer::getSerializer()->serializeObject(*Configuration::config());
-
     if(gameMap != nullptr)
         delete gameMap;
 
@@ -83,13 +80,22 @@ void GameWindow::initialize()
     masterRenderer.registerTexture("font", "res/font/font.png");
     masterRenderer.registerTexture("pigeon", "res/object/PigeonMockUp.png");
 
-    Configuration::config()->set("Fullscreen On", true);
+    // Todo config stuff:
+
+    std::cout << Configuration::config()->get<std::string>("Username", "None") << std::endl;
+
+    auto fScreen = Configuration::config()->get("Fullscreen On", false);
+    if(fScreen)
+        setWindowState(Qt::WindowFullScreen);
+
     Configuration::config()->set("Username", "Gallasko");
     Configuration::config()->set("Gold", 500);
     Configuration::config()->set("Pos x", 15.0f);
 
     std::cout << Configuration::config()->get<std::string>("Username", "None") << std::endl;
     std::cout << Configuration::config()->get<std::string>("Password", "None") << std::endl;
+
+    //
 
     camera = new Camera(QVector3D(0.0f, 0.0f, 3.0f));
 
@@ -139,7 +145,7 @@ void GameWindow::initialize()
 
     Sentence goldSentence{{"Gold: 0"}, 2.0f, fontLoader};
     auto& serializer = Serializer::getSerializer();
-    serializer->serializeObject(goldSentence);
+    serializer->serializeObject("Gold Sentence", goldSentence);
 
     goldText = ecs.createEntity();
     auto goldTextC = ecs.attach<Sentence>(goldText, goldSentence);
@@ -511,7 +517,7 @@ void GameWindow::render()
         if(mousePosTextC != nullptr)
             mousePosTextC->visible = true;
 
-        //renderUi();
+        renderUi();
     }
     else
     {
@@ -521,7 +527,7 @@ void GameWindow::render()
     }
 
     //masterRenderer << tileSelector;
-    //masterRenderer << slideBar;
+    masterRenderer << listView;
 
     //masterRenderer.render<ParticleRenderer>(pComponent);
 
