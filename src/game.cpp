@@ -519,7 +519,7 @@ void GameWindow::render()
 
     InputSystem::system()->updateState(inputHandler, float(currentTime - lastTime) / 1000);
 
-    //renderGame();
+    renderGame();
 
     if(!debug)
     {
@@ -537,7 +537,7 @@ void GameWindow::render()
     }
 
     //masterRenderer << tileSelector;
-    masterRenderer << listView;
+    //masterRenderer << listView;
     masterRenderer << escapePanel;
 
     //masterRenderer.render<ParticleRenderer>(pComponent);
@@ -1039,9 +1039,22 @@ void GameWindow::tick()
 
 void GameWindow::quit(Input* inputHandler, double...)
 {
-    if(inputHandler->isKeyPressed(Qt::Key_Escape))
+    static bool pressed = false;
+
+    if(inputHandler->isKeyPressed(Qt::Key_Escape) and not pressed)
     {
-        escapePanel->show();
+        auto visible = escapePanel->isVisible() ? "true" : "false";
+        std::cout << visible << std::endl;
+        
+        if(escapePanel->isVisible())
+            escapePanel->hide();
+        else
+            escapePanel->show();
+
+        pressed = true;
     }
+    
+    if(not inputHandler->isKeyPressed(Qt::Key_Escape))
+        pressed = false;
     //emit quitApp();
 }

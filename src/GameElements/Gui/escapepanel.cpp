@@ -1,4 +1,5 @@
 #include "escapepanel.h"
+#include "../../logger.h"
 
 using namespace pg;
 
@@ -19,6 +20,8 @@ namespace pg
 
 EscapePanel::EscapePanel(TextureComponent* background) : background(background)
 {
+    LOG_THIS_MEMBER(DOM);
+
     if(background != nullptr)
     {
         background->setTopAnchor(this->top);
@@ -28,15 +31,20 @@ EscapePanel::EscapePanel(TextureComponent* background) : background(background)
 
 void EscapePanel::show()
 {
+    LOG_THIS_MEMBER(DOM);
+
+    UiComponent::show();
+
     if(background != nullptr)
         background->show();
 }
 
-
-#include <iostream>
-
 void EscapePanel::hide()
 {
+    LOG_THIS_MEMBER(DOM);
+
+    UiComponent::hide();
+
     if(background != nullptr)
         background->hide();
 }

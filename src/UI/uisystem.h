@@ -96,7 +96,7 @@ namespace pg
         
         void update();
 
-    private:
+    protected:
         bool visible = true;
     };
 
