@@ -15,11 +15,35 @@ namespace pg
     // Indent always go up one by one so if we skip an increment their is a problem 
     // Test all those case !
 
+    /**
+     * @brief Archive class 
+     */
     class Archive
     {
-        struct EndOfLine { size_t* indentLevel = nullptr; };
+
+        // Helper struct
+
+        /**
+         * @brief Helper struct for end of line in the serialized string.
+         * 
+         * This struct is used to put an end of line in the serialized string.
+         * A specialized template catches this struct and can then put an end of line
+         * and the matching indent thanks to it.
+         */
+        struct EndOfLine
+        { 
+            /** */
+            size_t* indentLevel = nullptr;
+        };
+
+        // Public members --------------------------------
 
     public:
+
+        /**
+         * @brief Construct a new Archive object
+         * 
+         */
         Archive() { endOfLine.indentLevel = &indentLevel; }
         
         const EndOfLine& endl() const { return endOfLine; }
@@ -63,8 +87,11 @@ namespace pg
             return *this;
         }
 
+        //TODO: create a getter for this and then pass it directly to the serializer
+        //so no one can modify the container 
         std::stringstream container;
 
+    private:
         bool requestNewline = false;
         bool requestComma = false;
         size_t indentLevel = 0;
