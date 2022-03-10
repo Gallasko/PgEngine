@@ -750,6 +750,8 @@ namespace pg
         {
             LOG_ERROR(DOM, "Serializer can't open serialize file: " + filename);
         }
+
+        file.close();
     }
 
     Serializer::~Serializer()

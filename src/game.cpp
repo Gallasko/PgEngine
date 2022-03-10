@@ -84,7 +84,10 @@ void GameWindow::initialize()
 
     std::cout << Configuration::config()->get<std::string>("Username", "None") << std::endl;
 
-    Configuration::config()->set("Fullscreen On", true);
+    auto fScreen = Configuration::config()->get("Fullscreen On", false);
+    if(fScreen)
+        setWindowState(Qt::WindowFullScreen);
+
     Configuration::config()->set("Username", "Gallasko");
     Configuration::config()->set("Gold", 500);
     Configuration::config()->set("Pos x", 15.0f);
@@ -514,7 +517,7 @@ void GameWindow::render()
         if(mousePosTextC != nullptr)
             mousePosTextC->visible = true;
 
-        //renderUi();
+        renderUi();
     }
     else
     {
@@ -524,7 +527,7 @@ void GameWindow::render()
     }
 
     //masterRenderer << tileSelector;
-    //masterRenderer << listView;
+    masterRenderer << listView;
 
     //masterRenderer.render<ParticleRenderer>(pComponent);
 
