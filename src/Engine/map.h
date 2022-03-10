@@ -53,8 +53,8 @@ namespace pg
             std::unordered_map<constant::Vector2D, float> dist;
             std::unordered_map<constant::Vector2D, constant::Vector2D> prev;
 
-            prev[from] = constant::Vector2D{-1, -1};
-            prev[to] = constant::Vector2D{-1, -1};
+            prev[from] = constant::Vector2D{std::numeric_limits<float>::min(), std::numeric_limits<float>::min()};
+            prev[to] = constant::Vector2D{std::numeric_limits<float>::min(), std::numeric_limits<float>::min()};
 
             struct queue_node
             {
@@ -79,7 +79,7 @@ namespace pg
                         dist[coord] = std::numeric_limits<float>::max();
                         Q.push({coord, std::numeric_limits<float>::max()});
 
-                        prev[coord] = constant::Vector2D{-1, -1};
+                        prev[coord] = constant::Vector2D{std::numeric_limits<float>::min(), std::numeric_limits<float>::min()};
                     }
                 }
             }
@@ -117,11 +117,11 @@ namespace pg
             // Trace path - if there is one
             std::vector<constant::Vector2D> path;
 
-            if (prev[to].x != -1) // Todo: right now the condition is on -1 but the map could go to the negativ so i need to keep that in mind and change the end condition
+            if (prev[to].x != std::numeric_limits<float>::min()) // Todo: right now the condition is on -1 but the map could go to the negativ so i need to keep that in mind and change the end condition
             {
                 constant::Vector2D current = to;
 
-                while (current.x != -1) 
+                while (current.x != std::numeric_limits<float>::min()) 
                 {
                     path.push_back(current);
                     current = prev[current];
