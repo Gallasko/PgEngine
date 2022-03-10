@@ -45,6 +45,8 @@ namespace pg
         UiSize bottomMargin;
         UiSize leftMargin;
 
+        //TODO create VerticalCenter and HorizontalCenter anchor positions
+
         UiComponent() { }
         UiComponent(const UiFrame& frame) : pos(&frame.pos), width(&frame.w), height(&frame.h) { }
         UiComponent(const UiComponent& rhs);

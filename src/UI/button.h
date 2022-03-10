@@ -19,7 +19,15 @@ namespace pg
         Button(void(*onPress)(Input*, double), const UiComponent& frame = UiComponent(), TextureComponent* background = nullptr, Sentence* sentence = nullptr);
 
         ~Button();
-    private:
 
+        void show() override;
+        void hide() override;
+        
+    public:
+        TextureComponent* background;
+        Sentence* sentence;
+
+    private:        
+        InputSystem::MouseComponent onPress;
     };
 }

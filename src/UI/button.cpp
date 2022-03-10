@@ -45,12 +45,33 @@ namespace pg
 
     }
 
-    Button::Button(const InputSystem::MouseComponent& onPress, const UiComponent& frame, TextureComponent* background, Sentence* sentence)
+    template<>
+    void renderer(MasterRenderer* masterRenderer, Button* button)
     {
+        if(button->background != nullptr)
+            masterRenderer->render(button->background);
+
+        if(button->sentence != nullptr)
+            masterRenderer->render(button->sentence);
+    }
+
+    Button::Button(const InputSystem::MouseComponent& onPress, const UiComponent& frame, TextureComponent* background, Sentence* sentence) : UiComponent(frame), background(background), sentence(sentence), onPress(onPress)
+    {
+        if(background != nullptr)
+        {
+            background->setTopAnchor(this->top);
+            background->setLeftAnchor(this->left);
+        }
+            
+        if(sentence != nullptr)
+        {
+            sentence->setTopAnchor(this->top);
+            sentence->setLeftAnchor(this->left);
+        }
     }
         
     template<typename Type, typename... Args>
-    Button::Button(const Type& object, void(Type::*onPress)(Input*, double), const UiComponent& frame, TextureComponent* background, Sentence* sentence) : Button(makeButtonMouseComponent(this, onPress), frame, background, sentence)
+    Button::Button(const Type& object, void(Type::*onPress)(Input*, double), const UiComponent& frame, TextureComponent* background, Sentence* sentence, const Args&... args) : Button(makeButtonMouseComponent(this, object, onPress, args...), frame, background, sentence)
     {
 
     }
@@ -62,6 +83,24 @@ namespace pg
 
     Button::~Button()
     {
+        deleteInput(onPress);
+    }
 
+    void Button::show()
+    {
+        if(background != nullptr)
+            background->show();
+
+        if(sentence != nullptr)
+            sentence->show();
+    }
+
+    void Button::hide()
+    {
+        if(background != nullptr)
+            background->hide();
+
+        if(sentence != nullptr)
+            sentence->hide();
     }
 }
