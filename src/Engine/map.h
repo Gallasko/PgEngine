@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <functional>
 #include <queue>
+#include <mutex>
 
 #include <QOpenGLFunctions>
 #include <QOpenGLTexture>
@@ -40,13 +41,16 @@ namespace pg
     struct MapFloat
     {
         const float **map;
-        const unsigned int width, height;
+        unsigned int width, height;
     };
 
     class Path2D
     {
     public:
+        Path2D() {}
         Path2D(const MapFloat& map) : map(map) {}
+
+        inline void setMap(const MapFloat& map) { this->map = map; }
 
         std::vector<constant::Vector2D> operator()(const constant::Vector2D& from, const constant::Vector2D& to) const
         {
@@ -162,7 +166,7 @@ namespace pg
             return pos.x >= 0 && pos.y >= 0 && pos.x < map.width && pos.y < map.height ? map.map[static_cast<int>(pos.x)][static_cast<int>(pos.y)] : std::numeric_limits<float>::max();
         }
 
-        const MapFloat map;
+        MapFloat map = {nullptr, 0, 0};
     };
 
     class Map : private QOpenGLFunctions
@@ -262,9 +266,12 @@ namespace pg
         QOpenGLBuffer *VBO;
         QOpenGLBuffer *EBO;
 
-        //PathFinder pathFinder;
+        Path2D pathFinder;
         bool floatMapInitialised = false;
         const float **floatMap;
+
+        std::vector<constant::Vector2D> housePos;
+        std::vector<constant::Vector2D> shopPos;
 
         TilesLoader::TilesId *tileToBePlaced = nullptr;
         bool pathFindingInitialised = false;
@@ -275,5 +282,7 @@ namespace pg
 
         constant::Vector2D startPath;
         bool pathRoad = false;
+
+        std::mutex syncMutex;
     };
 }

@@ -72,6 +72,7 @@ namespace pg
             ByteDir availableDir;  
         };
     }
+
     Map::Map(EntitySystem *ecs, TilesLoader *tilesLoader, const Map::MapConstraint& constraint) : ecs(ecs), tilesLoader(tilesLoader), constraint(constraint)
     {
         initializeOpenGLFunctions(); 
@@ -210,9 +211,13 @@ namespace pg
             {
                 if(tileX >= 0 && tileX < this->getWidth() && tileY >= 0 && tileY < this->getHeight())
                 {
+                    syncMutex.lock();
                     tileMap[static_cast<int>(std::floor(selectedTileX + selectedTileY + 1))][static_cast<int>(std::floor(selectedTileY - selectedTileX + 1))]->tileId = tileToBePlaced;
+                    syncMutex.unlock();
+
                     roadTiling();
                     pathFindingInitialised = false;
+                    initPathFinding();
                 }
             }
             else
@@ -249,7 +254,7 @@ namespace pg
 
                             if(floatMapInitialised)
                             {
-                                auto pathFinder = Path2D(MapFloat{floatMap, this->getWidth(), this->getHeight()});
+                                //auto pathFinder = Path2D(MapFloat{floatMap, this->getWidth(), this->getHeight()});
                                 auto path = pathFinder(startPath, end);
 
                                 //std::cout << path.size() << std::endl;
@@ -338,25 +343,6 @@ namespace pg
     {
         static unsigned int rng = time(NULL);
 
-        initPathFinding();
-
-        auto pathFinder = Path2D(MapFloat{floatMap, this->getWidth(), this->getHeight()});
-
-        std::vector<constant::Vector2D> housePos;
-        std::vector<constant::Vector2D> shopPos;
-
-        for(unsigned int i = 0; i < constraint.width; i++)
-        {
-            for(unsigned int j = 0; j < constraint.height; j++)
-            {
-                if(*tileMap[i][j]->tileId == TileType::HOUSE)
-                    housePos.push_back({i, j});
-
-                if(*tileMap[i][j]->tileId == TileType::SHOP)
-                    shopPos.push_back({i, j});
-            } 
-        }
-
         if(housePos.size() > 0 && shopPos.size() > 0)
         {
             srand(rng);
@@ -365,11 +351,9 @@ namespace pg
             int s = rand() % housePos.size();
             int e = rand() % shopPos.size();
             
+            std::lock_guard<std::mutex> lock(syncMutex);
             //Create a path from a house position to a shop position
             auto path = pathFinder(housePos[s], shopPos[e]);
-
-            //for(auto p : path)
-            //    std::cout << p.x << " " << p.y << std::endl;
 
             return path;
         }
@@ -379,6 +363,8 @@ namespace pg
 
     void Map::initPathFinding()
     {
+        std::lock_guard<std::mutex> lock(syncMutex);
+
         if(!pathFindingInitialised)
         {
             if(floatMapInitialised)
@@ -407,8 +393,28 @@ namespace pg
             }
             floatMapInitialised = true;
 
-            // TODO
-            //pathFinder.processMap(floatMap, this->getWidth(), this->getHeight());
+            // Set PathFinder for the current map
+            pathFinder.setMap({floatMap, this->getWidth(), this->getHeight()});
+
+            // Find all houses and shop of the Map and store them in a vector
+
+            housePos.clear();
+            housePos.shrink_to_fit();
+
+            shopPos.clear();
+            shopPos.shrink_to_fit();
+
+            for(unsigned int i = 0; i < constraint.width; i++)
+            {
+                for(unsigned int j = 0; j < constraint.height; j++)
+                {
+                    if(*tileMap[i][j]->tileId == TileType::HOUSE)
+                        housePos.push_back({i, j});
+
+                    if(*tileMap[i][j]->tileId == TileType::SHOP)
+                        shopPos.push_back({i, j});
+                } 
+            }
 
             pathFindingInitialised = true;
         }
@@ -471,9 +477,9 @@ namespace pg
         RoadConstruct startRoad = { constant::Vector2D(xStart, yStart), 0b0000 };
 
         startRoad.availableDir.left = (xStart - 1 >= 0);
-        startRoad.availableDir.right = (xStart + 1 < constraint.width);
+        startRoad.availableDir.right = (xStart + 1 < static_cast<int>(constraint.width));
         startRoad.availableDir.top = (yStart - 1 >= 0); 
-        startRoad.availableDir.bottom = (yStart + 1 < constraint.height);
+        startRoad.availableDir.bottom = (yStart + 1 < static_cast<int>(constraint.height));
 
         roadQueue.push(startRoad); // TODO use emplace and create a ctor and a copy ctor for RoadConstruct
 
@@ -511,27 +517,6 @@ namespace pg
             // Find the direction to install road
 
             nbAvailableDir = 0;
-
-            //if(road.availableDir.top)
-            //{
-            //    possibleDir[nbAvailableDir] = Map::ByteDirName::TOP;
-            //    nbAvailableDir += 1;
-            //}
-            //if(road.availableDir.right)
-            //{
-            //    possibleDir[nbAvailableDir] = Map::ByteDirName::RIGHT;
-            //    nbAvailableDir += 1;
-            //}
-            //if(road.availableDir.bottom)
-            //{
-            //    possibleDir[nbAvailableDir] = Map::ByteDirName::BOTTOM;
-            //    nbAvailableDir += 1;
-            //}
-            //if(road.availableDir.left)
-            //{
-            //    possibleDir[nbAvailableDir] = Map::ByteDirName::LEFT;
-            //    nbAvailableDir += 1;
-            //}
 
             // Branchless version of possible dir finding
             availableDir = road.availableDir;
@@ -584,10 +569,10 @@ namespace pg
                 }
 
                 // if out of bound -> break
-                if(x < 0 || x >= constraint.width)
+                if(x < 0 || x >= static_cast<int>(constraint.width))
                     break;
 
-                if(y < 0 || y >= constraint.height)
+                if(y < 0 || y >= static_cast<int>(constraint.height))
                     break;
 
                 // if destination tile can t be modified -> break  [TODO] make a function to check if a tile is modifiable
@@ -596,9 +581,9 @@ namespace pg
 
                 // out of bound test
                 availableDir.left = (x - 1 >= 0);
-                availableDir.right = (x + 1 < constraint.width);
+                availableDir.right = (x + 1 < static_cast<int>(constraint.width));
                 availableDir.top = (y - 1 >= 0); 
-                availableDir.bottom = (y + 1 < constraint.height);
+                availableDir.bottom = (y + 1 < static_cast<int>(constraint.height));
 
                 switch (currentDir)
                 {
@@ -762,7 +747,7 @@ namespace pg
         TilesLoader::TilesId* placeList[3] = {tilesLoader->getTile("Dirt"), tilesLoader->getTile("Base House"), tilesLoader->getTile("Base Shop")};
         TilesLoader::TilesId* placeItem;
 
-        for(int i = 0; i < availableSpace.size(); i++)
+        for(size_t i = 0; i < availableSpace.size(); i++)
         {
             if(placement > 0)
             {
@@ -816,6 +801,8 @@ namespace pg
             }
         }
         // [Building Placement]
+
+        initPathFinding();
     }
 
     void Map::roadTiling()
@@ -838,8 +825,6 @@ namespace pg
             for(int j = 0; j < mapHeight; j++)
             {
                 tile = tileMap[i][j];
-                //if(*tile->tileId == TileType::HOUSE)
-                //    tile->tileId = tilesLoader->getTile("Dirt");
 
                 if(*tile->tileId == TileType::ROAD)
                 {
@@ -916,7 +901,6 @@ namespace pg
 
         // [Road Tiling]
     }
-
 
     void Map::drawPath()
     {

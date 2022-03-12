@@ -537,7 +537,7 @@ void GameWindow::render()
     }
 
     //masterRenderer << tileSelector;
-    //masterRenderer << listView;
+    masterRenderer << listView;
     masterRenderer << escapePanel;
 
     //masterRenderer.render<ParticleRenderer>(pComponent);
@@ -1007,21 +1007,33 @@ void GameWindow::tick()
 
         tickTime++;
 
+        if(tickTime % 5 == 0)
+        {
+            auto path = gameMap->createPathBetweenHouseAndShop(); 
+
+            PigeonEntity entity;
+            entity.path = path;
+
+            pigeonMutex.lock();
+            pigeonEntities.push_back(entity);
+            pigeonMutex.unlock();
+        }
+        
         //std::cout << "animation running: "  << AnimationComponent::runningQueue.size() - 1 << std::endl;
 
         //Pigeon movement tick loop
+        pigeonMutex.lock();
         for(int i = pigeonEntities.size() - 1; i >= 0; i--) 
         {
             pigeonEntities[i].currentTime += 40; // tickRate
 
             if(pigeonEntities[i].currentTime > pigeonEntities[i].path.size() * 1000)
             {
-                pigeonMutex.lock();
                 pigeonEntities.erase(pigeonEntities.begin() + i);
                 gold += 1;
-                pigeonMutex.unlock();
             }
         }
+        pigeonMutex.unlock();
         
         //Animation tick loop
         for(int i = AnimationComponent::runningQueue.size() - 1; i >= 0; i--) 
@@ -1045,7 +1057,7 @@ void GameWindow::quit(Input* inputHandler, double...)
     {
         auto visible = escapePanel->isVisible() ? "true" : "false";
         std::cout << visible << std::endl;
-        
+
         if(escapePanel->isVisible())
             escapePanel->hide();
         else
