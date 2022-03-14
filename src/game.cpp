@@ -45,8 +45,13 @@ void GameWindow::render(QPainter *painter)
     Q_UNUSED(painter);
 }
 
+#include "GameElements/Systems/namegen.h"
+
 void GameWindow::initialize()
 {
+    NameGenerator ng;
+    ng.listFiles("res/names");
+
 	initializeOpenGLFunctions();
 
     masterRenderer.initialize(m_context);
@@ -60,7 +65,8 @@ void GameWindow::initialize()
     auto terminalSink = pg::Logger::registerSink<pg::TerminalSink>(true);
     //TODO fix FilterFile
     //terminalSink->addFilter("Input Filter", new Logger::LogSink::FilterScope("Input"));
-    //terminalSink->addFilter("Input Filter", new Logger::LogSink::FilterFile("src/Input/input.cpp"));
+    terminalSink->addFilter("Serializer Filter", new Logger::LogSink::FilterFile("src/serialization.cpp"));
+    terminalSink->addFilter("Configuration Filter", new Logger::LogSink::FilterFile("src/configuration.cpp"));
     terminalSink->addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
 
     masterRenderer.setWindowSize(640, 480);

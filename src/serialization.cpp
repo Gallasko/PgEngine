@@ -1,15 +1,13 @@
 #include "serialization.h"
 
 #include <fstream>
-
-#include "logger.h"
-#include "constant.h"
-
-#include <iostream>
 #include <sstream>
 #include <algorithm>
 #include <memory>
 #include <cstring>
+
+#include "logger.h"
+#include "constant.h"
 
 namespace pg
 {
@@ -699,8 +697,6 @@ namespace pg
 
             while(std::getline(file, line))
             {
-                std::cout << line << std::endl;
-
                 if(startOfClass)
                 {
                     pos = line.find(delimiter);
@@ -712,7 +708,6 @@ namespace pg
                     }
                     
                     objectName = line.substr(0, pos);
-                    std::cout << objectName << std::endl;
 
                     pos = line.find(delimiter, pos + delimiter.length());
 

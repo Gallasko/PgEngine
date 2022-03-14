@@ -7,6 +7,11 @@
 #include "gametime.h"
 #include "inventory.h"
 
+#include "../../constant.h"
+
+
+using namespace pg::constant;
+
 class WorkingTime
 {
 public:
@@ -49,10 +54,11 @@ class Character
         std::string name;                 ///< Name of the character
         double speed;                     ///< Speed of the character
         unsigned int nbHoldableObjects;   ///< Number of maximum holdable objects
-        WorkingTime workingHours;
+        WorkingTime workingHours;         ///< Working time of the character
+        constant::Vector2D housePos;      ///< Position of the house of the character
     };
 public:
-    Character(const CharacterInfo& info) : info(info), managerId(-1), elapsedTimeOnPath(0.0f) {}
+    static Character createCharacter(const std::string& name);
 
     void setManager(int managerId) { managerId = managerId; }
 
@@ -69,24 +75,34 @@ public:
         return false; }
 
     bool depositItem(const Item& item) {
-        auto it = std::find(heldItems.begin(), heldItems.end(), item);
-        if(it != heldItems.end())
-        {
-            heldItems.erase(it);
-            return true;
-        }
+        //auto it = std::find(heldItems.begin(), heldItems.end(), item);
+        //if(it != heldItems.end())
+        //{
+        //    heldItems.erase(it);
+        //    return true;
+        //}
 
         return false; }
 
 private:
-    CharacterInfo info; ///< Character information
+    Character(const CharacterInfo& info) : info(info), managerId(-1), elapsedTimeOnPath(0.0f) {}
 
-    int managerId; // -1 => no manager, any positive integer is a manager id;
+    /** Struct holding all the basic information about a character */
+    CharacterInfo info;
 
-    // Path pathToFollow;
-    double elapsedTimeOnPath; //Value to know how much the character moved on the path
+    /** The id of the manager that owns this character: -1 => no manager, any positive integer is a manager id */
+    int managerId;
 
-    std::vector<Item> heldItems; //
+    /** Current position of the character on the map */
+    constant::Vector2D currentPos;
+    /** Current path taht the character is following */
+    std::vector<constant::Vector2D> currentPath;
+
+    /** Value to know how much the character moved on the path */
+    double elapsedTimeOnPath;
+
+    /** Current items held by the character */
+    std::vector<Item> heldItems;
 };
 
 class Manager
