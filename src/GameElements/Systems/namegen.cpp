@@ -11,7 +11,7 @@ namespace
     const char * DOM = "Name Generation";
 }
 
-std::string NameGenerator::getRandomName() const
+std::string NameGenerator::getRandomName(const Gender& gender) const
 {
     
 }

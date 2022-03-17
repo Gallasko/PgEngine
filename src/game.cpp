@@ -24,7 +24,7 @@ GameWindow::~GameWindow()
 {
     ticking = false;
 
-    Serializer::getSerializer()->serializeObject("Random Number Generator", RandomNumberGenerator::generator());
+    Serializer::getSerializer()->serializeObject("Random Number Generator", *RandomNumberGenerator::generator());
 
     if(gameMap != nullptr)
         delete gameMap;
@@ -49,12 +49,12 @@ void GameWindow::render(QPainter *painter)
     Q_UNUSED(painter);
 }
 
-#include "GameElements/Systems/namegen.h"
-
 void GameWindow::initialize()
 {
-    NameGenerator ng;
-    ng.listFiles("res/names");
+    std::cout << RandomNumberGenerator::generator()->generateNumber() << std::endl;
+    std::cout << RandomNumberGenerator::generator()->generateNumber() << std::endl;
+    std::cout << RandomNumberGenerator::generator()->generateNumber() << std::endl;
+    std::cout << RandomNumberGenerator::generator()->generateNumber() << std::endl;
 
 	initializeOpenGLFunctions();
 

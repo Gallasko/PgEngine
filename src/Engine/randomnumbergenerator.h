@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include "../serialization.h"
 
 namespace pg
 {
@@ -9,7 +10,7 @@ namespace pg
     public:
         static std::unique_ptr<RandomNumberGenerator>& generator() { static auto generator = std::unique_ptr<RandomNumberGenerator>(new RandomNumberGenerator(true)); return generator; }
 
-        int getNumbers();
+        int generateNumber();
 
         void setSeed(unsigned int seed);
         unsigned int getSeed() const { return seed; }

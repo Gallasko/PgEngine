@@ -78,12 +78,43 @@ namespace pg
 
         return returnComponent; 
     }
+
     const InputSystem::KeyComponent& InputSystem::registerKeyInput(KeyInputPtr component, const std::function<void(Input*, double)>& callback)
     {
         keyComponents.emplace_back(component, callback);
         InputSystem::KeyComponent& returnComponent = keyComponents.back();
 
         return returnComponent;
+    }
+
+    const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double), void (*mouseLeave)(Input*, double) = nullptr)
+    {
+        auto& system = InputSystem::system();
+
+        auto mouseArea = MouseInputPtr(new MouseInputBase<MouseInputComponent::Base>(component));
+        mouseArea->registerFunc(mouseInput, mouseLeave);
+
+        auto inputCallback = [=](Input* inputHandler, double deltaTime) { mouseArea->call(inputHandler, deltaTime); };
+
+        std::function<void(Input*, double)> leaveCallback;
+        if(mouseLeave != nullptr)
+            leaveCallback = [=](Input* inputHandler, double deltaTime) { mouseArea->leave(inputHandler, deltaTime); };
+        else
+            leaveCallback = nullptr;
+
+        return system->registerMouseArea(mouseArea, inputCallback, leaveCallback);
+    }
+
+    const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double), std::nullptr_t)
+    {
+        auto& system = InputSystem::system();
+
+        auto mouseArea = MouseInputPtr(new MouseInputBase<MouseInputComponent::Base>(component));
+        mouseArea->registerFunc(mouseInput, static_cast<void (*)(pg::Input*, double)>(nullptr));
+
+        auto inputCallback = [=](Input* inputHandler, double deltaTime) { mouseArea->call(inputHandler, deltaTime); };
+
+        return system->registerMouseArea(mouseArea, inputCallback, static_cast<std::function<void(pg::Input*, double)>>(nullptr));
     }
 
 }
