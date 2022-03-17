@@ -17,6 +17,8 @@ using pg::RandomNumberGenerator;
 
 std::string NameGenerator::getRandomName(const Gender& gender) const
 {
+    LOG_THIS_MEMBER(DOM);
+    
     std::string name = "";
 
     switch(gender)

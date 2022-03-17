@@ -49,9 +49,11 @@ void GameWindow::render(QPainter *painter)
     Q_UNUSED(painter);
 }
 
+#include "GameElements/Systems/namegen.h"
+
 void GameWindow::initialize()
 {
-    std::cout << NameGenerator::generator()->getRandomName(NameGenerator::Gender::FEMALE);
+    std::cout << NameGenerator::generator()->getRandomName(NameGenerator::Gender::FEMALE) << std::endl;
 
 	initializeOpenGLFunctions();
 
