@@ -18,9 +18,13 @@ GameWindow::GameWindow(QWindow *parent) : QWindow(parent)
     inputHandler = new Input();
 }
 
+#include "Engine/randomnumbergenerator.h"
+
 GameWindow::~GameWindow()
 {
     ticking = false;
+
+    Serializer::getSerializer()->serializeObject("Random Number Generator", RandomNumberGenerator::generator());
 
     if(gameMap != nullptr)
         delete gameMap;

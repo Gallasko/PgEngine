@@ -15,12 +15,23 @@ class NameGenerator
     };
 
 public:
+    enum class Gender
+    {
+        MALE,
+        FEMALE
+    };
 
-    std::string getRandomName() const;
-//private:
+public:
+    std::unique_ptr<NameGenerator>& nameGenerator() const { static auto nameGenerator = std::unique_ptr<NameGenerator>(new NameGenerator()); return nameGenerator; }
+
+    std::string getRandomName(const Gender& gender = Gender::MALE) const;
+
+private:
+    NameGenerator();
+
     void listFiles(const std::string& path);
     void parseFile(const std::string& path);
-private:
+
     std::vector<Name> maleList;
     std::vector<Name> femaleList;
     std::vector<Name> surnameList;

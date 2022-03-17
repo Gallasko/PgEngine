@@ -64,6 +64,14 @@ namespace pg
     }
 
     template<>
+    void serialize(Archive& archive, const unsigned int& value)
+    {
+        LOG_THIS(DOM);
+
+        archive.setAttribute(std::to_string(value), "unsigned int");
+    }
+
+    template<>
     void serialize(Archive& archive, const float& value)
     {
         LOG_THIS(DOM);
@@ -196,7 +204,27 @@ namespace pg
         auto attribute = serializedString.getAsAttribute();
         if(attribute.name != "int")
         {
-            LOG_ERROR(DOM, "Serialized string is not a int");
+            LOG_ERROR(DOM, "Serialized string is not an int");
+            return value;
+        }
+
+        std::stringstream sstream(attribute.value);
+        sstream >> value;
+
+        return value;
+    }
+
+    template<>
+    unsigned int deserialize(const UnserializedObject& serializedString)
+    {
+        LOG_THIS(DOM);
+
+        unsigned int value = 0;
+
+        auto attribute = serializedString.getAsAttribute();
+        if(attribute.name != "unsigned int")
+        {
+            LOG_ERROR(DOM, "Serialized string is not an unsigned int");
             return value;
         }
 

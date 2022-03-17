@@ -1,0 +1,24 @@
+#pragma once
+
+#include <memory>
+
+namespace pg
+{
+    class RandomNumberGenerator
+    {
+    public:
+        static std::unique_ptr<RandomNumberGenerator>& generator() { static auto generator = std::unique_ptr<RandomNumberGenerator>(new RandomNumberGenerator(true)); return generator; }
+
+        int getNumbers();
+
+        void setSeed(unsigned int seed);
+        unsigned int getSeed() const { return seed; }
+
+    private:
+        friend RandomNumberGenerator deserialize<>(const UnserializedObject& serializedString);
+
+        RandomNumberGenerator(bool fromSerialization = false);
+        unsigned int seed = 0;
+    };
+
+}
