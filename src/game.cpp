@@ -525,7 +525,7 @@ void GameWindow::render()
 
     InputSystem::system()->updateState(inputHandler, float(currentTime - lastTime) / 1000);
 
-    renderGame();
+    //renderGame();
 
     if(!debug)
     {
@@ -533,7 +533,7 @@ void GameWindow::render()
         if(mousePosTextC != nullptr)
             mousePosTextC->show();
 
-        renderUi();
+        //renderUi();
     }
     else
     {
@@ -543,8 +543,8 @@ void GameWindow::render()
     }
 
     //masterRenderer << tileSelector;
-    masterRenderer << listView;
-    masterRenderer << escapePanel;
+    //masterRenderer << listView;
+    //masterRenderer << escapePanel;
 
     //masterRenderer.render<ParticleRenderer>(pComponent);
 

@@ -11,6 +11,11 @@ namespace
     const char * DOM = "Name Generation";
 }
 
+std::string NameGenerator::getRandomName() const
+{
+    
+}
+
 void NameGenerator::listFiles(const std::string &path)
 {
     LOG_THIS_MEMBER(DOM);
@@ -57,7 +62,24 @@ void NameGenerator::parseFile(const std::string &path)
             return;
         }
 
-        if()
+        std::vector<Name> *nameVector;
+
+        if(line == "female")
+            nameVector = &femaleList;
+        else if(line == "male")
+            nameVector = &maleList;
+        else if(line == "any")
+            nameVector = &surnameList;
+        else
+        {
+            LOG_ERROR(DOM, "Error in parsing the gender of the file: " + path);
+            return;
+        }
+
+        while(std::getline(file, line))
+        {
+            nameVector->emplace_back(country, line);
+        }
     }
 
 }
