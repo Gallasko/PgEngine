@@ -4,6 +4,7 @@
 //TODO have no include in constant
 
 #include <unordered_map> // Included for RefractTable
+#include <string> // Included for RefractTable
 
 namespace pg
 {

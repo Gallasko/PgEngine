@@ -5,21 +5,48 @@
 #include <dirent.h>
 
 #include "../../logger.h"
+#include "../../Engine/randomnumbergenerator.h"
+
 
 namespace
 {
     const char * DOM = "Name Generation";
 }
 
-std::string NameGenerator::getRandomName() const
+using pg::RandomNumberGenerator;
+
+std::string NameGenerator::getRandomName(const Gender& gender) const
 {
-    
+    std::string name = "";
+
+    switch(gender)
+    {
+        case Gender::FEMALE:
+            name = femaleList.at(RandomNumberGenerator::generator()->generateNumber() % femaleList.size()).name;
+            break;
+
+        case Gender::MALE:
+        default:
+            name = maleList.at(RandomNumberGenerator::generator()->generateNumber() % maleList.size()).name;
+            break;
+    }
+
+    name += " " + surnameList.at(RandomNumberGenerator::generator()->generateNumber() % surnameList.size()).name;
+
+    return name;
+}
+
+NameGenerator::NameGenerator()
+{
+    //TODO make this lockuped from somewhere
+    listFiles("res/names");
 }
 
 void NameGenerator::listFiles(const std::string &path)
 {
     LOG_THIS_MEMBER(DOM);
 
+    // TODO Need to create a class for opening files !
     if (auto dir = opendir(path.c_str()))
     {
         while (auto f = readdir(dir))

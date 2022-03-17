@@ -3,7 +3,8 @@
 #include <stdlib.h>
 
 #include "../logger.h"
-#include "../serialization.h"
+
+#include <iostream>
 
 namespace pg
 {
@@ -31,6 +32,12 @@ namespace pg
 
         RandomNumberGenerator generator;
 
+        if(serializedString.isNull())
+        {
+            LOG_INFO(DOM, "Random Number Generator is not in the serialized file.");
+            return generator;
+        }
+
         auto element = serializedString["seed"];
 
         if(element.isNull())
@@ -43,14 +50,15 @@ namespace pg
 
             auto seed = deserialize<unsigned int>(element);
 
+            std::cout << seed << std::endl;
+
             generator.setSeed(seed);
         }
         
         return generator;
     }
 
-
-    int RandomNumberGenerator::getNumbers()
+    int RandomNumberGenerator::generateNumber()
     {
         auto rng = rand();
         this->seed = rng;
@@ -63,7 +71,7 @@ namespace pg
         this->seed = seed;
     }
 
-    RandomNumberGenerator::RandomNumberGenerator(bool fromSerialization = false)
+    RandomNumberGenerator::RandomNumberGenerator(bool fromSerialization)
     {
         if(fromSerialization)
         {

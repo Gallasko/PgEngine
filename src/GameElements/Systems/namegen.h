@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 
 class NameGenerator
 {
@@ -22,7 +23,7 @@ public:
     };
 
 public:
-    std::unique_ptr<NameGenerator>& nameGenerator() const { static auto nameGenerator = std::unique_ptr<NameGenerator>(new NameGenerator()); return nameGenerator; }
+    static const std::unique_ptr<NameGenerator>& generator() { static auto nameGenerator = std::unique_ptr<NameGenerator>(new NameGenerator()); return nameGenerator; }
 
     std::string getRandomName(const Gender& gender = Gender::MALE) const;
 

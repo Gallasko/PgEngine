@@ -202,16 +202,17 @@ namespace pg
         void updateState(Input* inputHandler, double deltaTime);
 
         template<typename ObjectType, typename... Args>
-        friend const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, ObjectType *obj, void (ObjectType::*mouseInput)(Input*, double, ...), void (ObjectType::*mouseLeave)(Input*, double) = nullptr, const Args&... args);
+        friend const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, ObjectType *obj, void (ObjectType::*mouseInput)(Input*, double, ...), void (ObjectType::*mouseLeave)(Input*, double), const Args&... args);
 
         template<typename ObjectType, typename... Args>
         friend const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, ObjectType *obj, void (ObjectType::*mouseInput)(Input*, double, ...), std::nullptr_t, const Args&... args);
-    
-        template<typename... Args>
-        friend const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double), void (*mouseLeave)(Input*, double) = nullptr, const Args&... args);
 
-        template<typename... Args>
-        friend const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double), void (*mouseLeave)(Input*, double), const Args&... args);
+        template<typename ObjectType, typename... Args>
+        friend const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, ObjectType *obj, void (ObjectType::*mouseInput)(Input*, double, ...));
+    
+        friend const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double), void (*mouseLeave)(Input*, double));
+
+        friend const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double), std::nullptr_t);
     
         template<typename ObjectType, typename... Args>
         friend const InputSystem::KeyComponent& makeKeyInput(ObjectType *obj, void (ObjectType::*f)(Input*, double, ...), const Args&... args);
@@ -219,10 +220,10 @@ namespace pg
         template<typename... Args>
         friend const InputSystem::KeyComponent& makeKeyInput(void (*f)(Input*, double), const Args&... args);
 
-    private:
         const InputSystem::MouseComponent& registerMouseArea(MouseInputPtr component, const std::function<void(Input*, double)>& inputCallback, const std::function<void(Input*, double)>& leaveCallback = nullptr);
         const InputSystem::KeyComponent& registerKeyInput(KeyInputPtr component, const std::function<void(Input*, double)>& callback);
-        
+
+    private:        
         std::vector<InputSystem::MouseComponent> mouseComponents;
         std::vector<InputSystem::KeyComponent> keyComponents;
     };
@@ -237,11 +238,7 @@ namespace pg
 
         auto inputCallback = [=](Input* inputHandler, double deltaTime) { mouseArea->call(inputHandler, deltaTime, args...); };
 
-        std::function<void(Input*, double)> leaveCallback;
-        if(mouseLeave != nullptr)
-            leaveCallback = [=](Input* inputHandler, double deltaTime) { mouseArea->leave(inputHandler, deltaTime); };
-        else
-            leaveCallback = nullptr;
+        std::function<void(Input*, double)> leaveCallback = [=](Input* inputHandler, double deltaTime) { mouseArea->leave(inputHandler, deltaTime); };
 
         return system->registerMouseArea(mouseArea, inputCallback, leaveCallback);
     }
@@ -256,39 +253,20 @@ namespace pg
 
         auto inputCallback = [=](Input* inputHandler, double deltaTime) { mouseArea->call(inputHandler, deltaTime, args...); };
 
-        return system->registerMouseArea(mouseArea, inputCallback, static_cast<std::function<void(pg::Input*, double)>>(nullptr));
+        return system->registerMouseArea(mouseArea, inputCallback);
     }
 
-    template<typename... Args>
-    const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double), void (*mouseLeave)(Input*, double), const Args&... args)
+    template<typename ObjectType>
+    const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, ObjectType *obj, void (ObjectType::*mouseInput)(Input*, double, ...))
     {
         auto& system = InputSystem::system();
 
-        auto mouseArea = MouseInputPtr(new MouseInputBase<MouseInputComponent::Base>(component));
-        mouseArea->registerFunc(mouseInput, mouseLeave);
+        auto mouseArea = MouseInputPtr(new MouseInputBase<ObjectType>(component));
+        mouseArea->registerFunc(mouseInput, obj, static_cast<void (ObjectType::*)(pg::Input*, double)>(nullptr));
 
-        auto inputCallback = [=](Input* inputHandler, double deltaTime) { mouseArea->call(inputHandler, deltaTime, args...); };
+        auto inputCallback = [=](Input* inputHandler, double deltaTime) { mouseArea->call(inputHandler, deltaTime); };
 
-        std::function<void(Input*, double)> leaveCallback;
-        if(mouseLeave != nullptr)
-            leaveCallback = [=](Input* inputHandler, double deltaTime) { mouseArea->leave(inputHandler, deltaTime); };
-        else
-            leaveCallback = nullptr;
-
-        return system->registerMouseArea(mouseArea, inputCallback, leaveCallback);
-    }
-
-    template<typename... Args>
-    const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double), std::nullptr_t, const Args&... args)
-    {
-        auto& system = InputSystem::system();
-
-        auto mouseArea = MouseInputPtr(new MouseInputBase<MouseInputComponent::Base>(component));
-        mouseArea->registerFunc(mouseInput, static_cast<void (*)(pg::Input*, double)>(nullptr));
-
-        auto inputCallback = [=](Input* inputHandler, double deltaTime) { mouseArea->call(inputHandler, deltaTime, args...); };
-
-        return system->registerMouseArea(mouseArea, inputCallback, static_cast<std::function<void(pg::Input*, double)>>(nullptr));
+        return system->registerMouseArea(mouseArea, inputCallback);
     }
 
     template<typename ObjectType, typename... Args>
