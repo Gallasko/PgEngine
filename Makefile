@@ -57,6 +57,8 @@ DEPENDENCIES := dependencies
 SHADER := shader
 RESSOURCES := res
 
+BUILDDIR := build
+
 ifeq ($(OS),Windows_NT)
 MAIN		 	 := main.exe
 SOURCEDIRS		 := $(SRC)
@@ -97,6 +99,8 @@ MOC_SOURCES	:= $(call rwildcard,$(SOURCEDIRS), *.h)
 # define the C object files 
 OBJECTS		:= $(SOURCES:.cpp=.o) $(MOC_SOURCES:.h=.moc.o) 
 
+DEP := $(OBJECTS:%.o=%.d)
+
 #
 # The following part of the makefile is generic; it can be used to 
 # build any executable just by changing the definitions above and by
@@ -126,11 +130,19 @@ $(OUTPUT):
 	$(MD) $(OUTPUT)/shader
 	$(MD) $(OUTPUT)/res
 
+#%.d: %.cpp
+#	@echo Converting $< to $@
+#    $(CXX) $(CXXFLAGS) $(INCLUDES) -MM -MT $@ -MF $@ $<
+
 # this is a suffix replacement rule for building .o's from .c's
 # it uses automatic variables $<: the name of the prerequisite of
 # the rule(a .c file) and $@: the name of the target of the rule (a .o file) 
 # (see the gnu make manual section about automatic variables)
 %.o: %.cpp
+	@echo Converting $< to $@
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD  -MP -c $< -o $@
+
+%.moc.o: %.moc.cpp
 	@echo Converting $< to $@
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $<  -o $@
 
@@ -142,8 +154,12 @@ $(OUTPUT):
 
 clean:
 	$(RM) $(call FIXPATH, $(call rwildcard,$(SOURCEDIRS),*.o))
+	$(RM) $(call FIXPATH, $(call rwildcard,$(SOURCEDIRS),*.d))
+#	$(RM) $(OBJECTS) $(DEP)
 	@echo Cleanup complete!
 
 run: all
 	./$(OUTPUTMAIN)
 	@echo Executing 'run: all' complete!
+
+-include $(DEP)

@@ -57,8 +57,10 @@ class Character
         const unsigned int id;            ///< Id of the character
         std::string name;                 ///< Name of the character
         double speed;                     ///< Speed of the character
-        unsigned int nbHoldableObjects;   ///< Number of maximum holdable objects
+    unsigned int nbHoldableObjects;   ///< Number of maximum holdable objects
         WorkingTime workingHours;         ///< Working time of the character
+
+        bool hasHouse;                    ///< Boolean to know if the character has currently a house
         constant::Vector2D housePos;      ///< Position of the house of the character
     };
 

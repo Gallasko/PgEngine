@@ -2,9 +2,9 @@
 
 #include <stdlib.h>
 
-#include "../logger.h"
+#include <mutex>
 
-#include <iostream>
+#include "../logger.h"
 
 namespace pg
 {
@@ -50,8 +50,6 @@ namespace pg
 
             auto seed = deserialize<unsigned int>(element);
 
-            std::cout << seed << std::endl;
-
             generator.setSeed(seed);
         }
         
@@ -60,6 +58,9 @@ namespace pg
 
     int RandomNumberGenerator::generateNumber()
     {
+        static std::mutex syncMutex;
+        std::lock_guard<std::mutex> lock(syncMutex);
+
         auto rng = rand();
         this->seed = rng;
         return rng;
