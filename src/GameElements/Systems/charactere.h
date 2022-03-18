@@ -35,6 +35,10 @@ private:
     std::vector<WorkingPeriod> workingPeriods;
 };
 
+class UpgradeManager
+{
+
+};
 
 /**
  * @class Character
@@ -50,15 +54,16 @@ class Character
      */
     struct CharacterInfo
     {
-        unsigned int id;
+        const unsigned int id;            ///< Id of the character
         std::string name;                 ///< Name of the character
         double speed;                     ///< Speed of the character
         unsigned int nbHoldableObjects;   ///< Number of maximum holdable objects
         WorkingTime workingHours;         ///< Working time of the character
         constant::Vector2D housePos;      ///< Position of the house of the character
     };
+
 public:
-    static Character createCharacter(const std::string& name);
+    static Character createCharacter(const std::string& name = "");
 
     void setManager(int managerId) { managerId = managerId; }
 
@@ -95,7 +100,7 @@ private:
 
     /** Current position of the character on the map */
     constant::Vector2D currentPos;
-    /** Current path taht the character is following */
+    /** Current path that the character is following */
     std::vector<constant::Vector2D> currentPath;
 
     /** Value to know how much the character moved on the path */
@@ -113,6 +118,7 @@ class Manager
         unsigned int nbManageableCharacters;
         WorkingTime workingHours;
     };
+    
 public:
     Manager(const ManagerInfo& info) : info(info) {}
 
