@@ -68,8 +68,8 @@ DEPENDENCIESDIRS := $(DEPENDENCIES)
 SHADERDIR := $(SHADER)
 RESSOURCESDIR := $(RESSOURCES)
 FIXPATH = $(subst /,\,$1)
-RM			:= del /q /f
-MD	:= mkdir
+RM			:= powershell rm -r -fo
+MD	:= powershell mkdir
 else
 MAIN			 := main
 SOURCEDIRS		 := $(shell find $(SRC) -type d)
@@ -148,29 +148,29 @@ $(BUILDDIR)/%.o: %.cpp
 	@echo Converting $< to $@
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD  -MP -c $< -o $@
 
-$(BUILDDIR)/%.moc.o: %.moc.cpp
-	@echo Converting $< to $@
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD  -MP -c $< -o $@
+#$(BUILDDIR)/%.moc.o: $(BUILDDIR)/%.moc.cpp
+#	@echo Converting $< to $@
+#	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD  -MP -c $< -o $@
 
 %.moc.o: %.moc.cpp
 	@echo Converting $< to $@
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $<  -o $@
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD  -MP -c $<  -o $@
 
-%.moc.cpp: %.h
+$(BUILDDIR)/%.moc.cpp: %.h
 	@echo Creating $@
 	$(MOC) $(INCLUDES) $< -o $@
 
 $(OBJECTS): | $(BUILDDIR)
 
 $(BUILDDIR):
-	$(MD) $(SOURCESDIRTREE)
+	$(MD) $(foreach dir, $(SOURCESDIRTREE), $(BUILDDIR)/$(dir),) build/stop
 
 .PHONY: clean
 
 clean:
-	$(RM) $(call FIXPATH, $(call rwildcard,$(SOURCEDIRS),*.o))
-	$(RM) $(call FIXPATH, $(call rwildcard,$(SOURCEDIRS),*.d))
-#	$(RM) $(OBJECTS) $(DEP)
+#	$(RM) $(call FIXPATH, $(call rwildcard,$(SOURCEDIRS),*.o))
+#	$(RM) $(call FIXPATH, $(call rwildcard,$(SOURCEDIRS),*.d))
+	$(RM) $(BUILDDIR)
 	@echo Cleanup complete!
 
 run: all

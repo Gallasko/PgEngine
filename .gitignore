@@ -2,5 +2,4 @@
 /output*
 /debug_build*
 /release_build*
-*.o
-*.d
+/build*
