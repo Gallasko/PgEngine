@@ -96,8 +96,10 @@ LIBS		:= $(patsubst %,-L%, $(LIBDIRS:%/=%)) \
 SOURCES		:= $(call rwildcard,$(SOURCEDIRS), *.cpp)
 MOC_SOURCES	:= $(call rwildcard,$(SOURCEDIRS), *.h)
 
+SOURCESDIRTREE := ${sort ${dir ${wildcard ${SOURCEDIRS}/*/ ${SOURCEDIRS}/*/*/}}}
+
 # define the C object files 
-OBJECTS		:= $(SOURCES:.cpp=.o) $(MOC_SOURCES:.h=.moc.o) 
+OBJECTS		:= $(SOURCES:%.cpp=$(BUILDDIR)/%.o) $(MOC_SOURCES:%.h=$(BUILDDIR)/%.moc.o) 
 
 DEP := $(OBJECTS:%.o=%.d)
 
@@ -112,6 +114,11 @@ OUTPUTMAIN	:= $(call FIXPATH,$(OUTPUT)/$(MAIN))
 all: $(OUTPUT) $(MAIN)
 	@echo Executing 'all' complete!
 
+$(OUTPUT):
+	$(MD) $(OUTPUT)
+	$(MD) $(OUTPUT)\shader
+	$(MD) $(OUTPUT)\res
+
 $(MAIN): $(OBJECTS)
 	@echo Building Main ...
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(OUTPUTMAIN) $(OBJECTS) $(LFLAGS) $(LIBS)
@@ -125,10 +132,9 @@ $(MAIN): $(OBJECTS)
 	@echo Copy the shader dir
 	xcopy $(RESSOURCESDIR) $(OUTPUT)\res /v /f /s /y /d
 
-$(OUTPUT):
-	$(MD) $(OUTPUT)
-	$(MD) $(OUTPUT)/shader
-	$(MD) $(OUTPUT)/res
+#%.d: %.cpp
+#	@echo Converting $< to $@
+#    $(CXX) $(CXXFLAGS) $(INCLUDES) -MM -MT $@ -MF $@ $<
 
 #%.d: %.cpp
 #	@echo Converting $< to $@
@@ -138,7 +144,11 @@ $(OUTPUT):
 # it uses automatic variables $<: the name of the prerequisite of
 # the rule(a .c file) and $@: the name of the target of the rule (a .o file) 
 # (see the gnu make manual section about automatic variables)
-%.o: %.cpp
+$(BUILDDIR)/%.o: %.cpp
+	@echo Converting $< to $@
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD  -MP -c $< -o $@
+
+$(BUILDDIR)/%.moc.o: %.moc.cpp
 	@echo Converting $< to $@
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD  -MP -c $< -o $@
 
@@ -149,6 +159,11 @@ $(OUTPUT):
 %.moc.cpp: %.h
 	@echo Creating $@
 	$(MOC) $(INCLUDES) $< -o $@
+
+$(OBJECTS): | $(BUILDDIR)
+
+$(BUILDDIR):
+	$(MD) $(SOURCESDIRTREE)
 
 .PHONY: clean
 
