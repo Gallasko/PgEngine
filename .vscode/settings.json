@@ -95,7 +95,13 @@
         "valarray": "cpp",
         "qopenglfunctions": "cpp",
         "queue": "cpp",
-        "qobject": "cpp"
+        "qobject": "cpp",
+        "format": "cpp",
+        "locale": "cpp",
+        "xlocbuf": "cpp",
+        "xlocmes": "cpp",
+        "xlocmon": "cpp",
+        "xloctime": "cpp"
     },
     "files.exclude": {
         "**/*.o": true,
