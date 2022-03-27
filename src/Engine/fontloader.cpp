@@ -88,7 +88,6 @@ namespace pg
         } } );
 
         parser.run();
-
     }
 
     FontLoader::~FontLoader()

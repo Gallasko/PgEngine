@@ -4,10 +4,12 @@
 #include <vector>
 #include <algorithm>
 
+#include "../../constant.h"
+#include "../../UI/uisystem.h"
+#include "../../UI//sentencesystem.h"
+
 #include "gametime.h"
 #include "inventory.h"
-
-#include "../../constant.h"
 
 using namespace pg::constant;
 
@@ -59,6 +61,25 @@ class Character
     };
 
 public:
+    class CharacterUi : public pg::UiComponent
+    {
+    friend class Character;
+    
+    public:
+        CharacterUi(Character *chara, pg::FontLoader *fontLoader);
+        CharacterUi(const CharacterUi& other);
+
+        virtual void render(MasterRenderer* masterRenderer);
+
+    private:
+        friend void pg::renderer<>(MasterRenderer* renderer, CharacterUi* chara);
+
+        Character *chara;
+
+        pg::Sentence *displayName;
+    };
+
+public:
     static Character createCharacter(const std::string& name = "");
 
     void setManager(int managerId) { managerId = managerId; }
@@ -84,6 +105,8 @@ public:
         //}
 
         return false; }
+
+    const std::string& getName() const { return info.name; }
 
 private:
     Character(const CharacterInfo& info) : info(info), managerId(-1), elapsedTimeOnPath(0.0f) {}

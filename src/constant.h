@@ -4,7 +4,8 @@
 //TODO have no include in constant
 
 #include <unordered_map> // Included for RefractTable
-#include <string> // Included for RefractTable
+#include <string> // Included for RefractTable and Big Int
+#include <vector> // Included for Big Int
 
 namespace pg
 {
@@ -175,6 +176,190 @@ namespace pg
 			{
 				return (this->x == rhs.x) && (this->y == rhs.y) && (this->z == rhs.z) && (this->w == rhs.w);
 			}
+		};
+
+		class BigInt
+		{
+		public:
+			BigInt() { digits.push_back(0); }
+			BigInt(const BigInt& bigNum) : digits(bigNum.digits), sign(bigNum.sign) {}
+			BigInt(const long long int& value) { *this = value; }
+			BigInt(const std::string& value) { *this = value; }
+			BigInt(const char* value) { *this = std::string(value); }
+
+			void operator=(const BigInt& rhs)
+			{
+				digits = rhs.digits;
+				sign = rhs.sign;
+			}
+
+			void operator=(long long int value) 
+			{
+				digits.clear();
+
+				sign = value > 0;
+				if(sign == 0)
+					value = -value;
+
+				for(; value > 0; value /= 1000)
+					digits.push_back(value % 1000);
+			}
+
+			void operator=(const std::string& value)
+			{
+				digits.clear();
+				sign = 1;
+
+				if(value.size() < 1)
+				{
+					digits.push_back(0);
+					return;
+				}
+
+				int pos = 0;
+				if(value[0] == '-' || value[0] == '+')
+				{
+					pos++;
+
+					if(value.size() < 2)
+					{
+						digits.push_back(0);
+						return;
+					}
+
+					if(value[0] == '-')
+						sign = 0;
+				}
+
+				for(int i = value.size() - 1; i >= pos; i -= 3)
+				{
+					int x = 0;
+					for (int j = std::max(pos, i - 3 + 1); j <= i; j++)
+						x = x * 10 + value[j] - '0';
+
+					digits.push_back(x);
+				}
+
+				trim();
+			}
+
+			BigInt operator+(const BigInt& rhs) const
+			{
+				if(sign == rhs.sign)
+				{
+					BigInt result(rhs);
+					unsigned short carry = 0;
+
+					for (int i = 0; i < (int)std::max(digits.size(), rhs.digits.size()) || carry; i++)
+					{
+						if(i == (int)result.digits.size())
+							result.digits.push_back(0);
+
+						result.digits[i] += carry + (i < (int)digits.size() ? digits[i] : 0);
+						
+						carry = result.digits[i] >= 1000;
+						if(carry)
+							result.digits[i] -= 1000;
+					}
+
+					return result;
+				}
+				
+				return *this - (-rhs);
+			}
+
+			BigInt operator-() const 
+			{
+				BigInt res = *this;
+				res.sign = !sign;
+				return res;
+			}
+
+			BigInt operator-(const BigInt &rhs) const 
+			{
+				if (sign == rhs.sign) 
+				{
+					if (abs() >= rhs.abs()) 
+					{
+						BigInt res = *this;
+
+						for (int i = 0, carry = 0; i < (int) rhs.digits.size() || carry; i++) 
+						{
+							res.digits[i] -= carry + (i < (int) rhs.digits.size() ? rhs.digits[i] : 0);
+
+							carry = res.digits[i] < 0;
+							if (carry)
+								res.digits[i] += 1000;
+						}
+
+						res.trim();
+						return res;
+					}
+					return -(rhs - *this);
+				}
+				return *this + (-rhs);
+			}
+
+			void operator+=(const BigInt &rhs) { *this = *this + rhs; }
+			void operator-=(const BigInt &rhs) { *this = *this - rhs; }
+
+			bool operator< (const BigInt &rhs) const 
+			{
+				if (sign != rhs.sign)
+					return sign < rhs.sign;
+
+				if (digits.size() != rhs.digits.size())
+					return digits.size() * sign < rhs.digits.size() * rhs.sign;
+
+				for (int i = digits.size() - 1; i >= 0; i--)
+					if (digits[i] != rhs.digits[i])
+						return digits[i] * sign < rhs.digits[i] * sign;
+
+				return false;
+			}
+		
+			bool operator> (const BigInt &rhs) const { return rhs < *this; }
+			bool operator<=(const BigInt &rhs) const { return !(rhs < *this); }
+			bool operator>=(const BigInt &rhs) const { return !(*this < rhs); }
+			bool operator==(const BigInt &rhs) const { return !(*this < rhs) && !(rhs < *this); }
+			bool operator!=(const BigInt &rhs) const { return *this < rhs || rhs < *this; }
+
+			std::string toString() const { std::string res = ""; if(sign == 0) res += "-"; auto it = digits.rbegin(); if(it != digits.rend()) res += std::to_string(*it++); while(it != digits.rend()) { res += numberWithLeadingZero(*it++); } return res; }
+
+			friend std::ostream& operator<<(std::ostream& out, const BigInt& n) { return out << n.toString(); }
+
+		private:
+			std::vector<short> digits; // digit stored in base 1000 -> 1 slot == 3 digits
+			bool sign = 1; // sign = 1 positiv integer, sign = 0 negativ integer 
+
+			std::string numberWithLeadingZero(short n) const
+			{ 
+				std::string value = "";
+				if(n < 100)
+						value += "0";
+				if(n < 10)
+						value += "0";
+
+				value += std::to_string(n);
+
+				return value;
+			}
+
+			BigInt abs() const 
+			{
+				BigInt res = *this;
+				res.sign = 1;
+				return res;
+			}
+
+			void trim()
+			{ 
+				while (!digits.empty() && !digits.back())
+					digits.pop_back();
+				if (digits.empty())
+					sign = 1;
+			}
+
 		};
 
 		// TODO make a check on whether the numerical is empty or not
