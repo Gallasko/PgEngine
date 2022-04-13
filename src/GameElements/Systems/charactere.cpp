@@ -3,14 +3,28 @@
 #include "../../Engine/randomnumbergenerator.h"
 #include "namegen.h"
 
-Character::CharacterUi::CharacterUi(Character *chara, pg::FontLoader *fontLoader) : chara(chara)
+namespace pg
+{
+    template<>
+    void renderer(MasterRenderer* renderer, CharacterUi* chara)
+    {
+
+    }
+}
+
+CharacterUi::CharacterUi(Character *chara, pg::FontLoader *fontLoader) : pg::UiComponent(), chara(chara)
 {
     displayName = new pg::Sentence({chara->getName()}, 2.0f, fontLoader);
 }
 
-Character::CharacterUi::CharacterUi(const Character::CharacterUi& other) : CharacterUi(other.chara, other.displayName->font)
+CharacterUi::CharacterUi(const CharacterUi& other) : CharacterUi(other.chara, other.displayName->font)
 {
 
+}
+
+void CharacterUi::render(pg::MasterRenderer* masterRenderer)
+{
+   pg::renderer(masterRenderer, this);
 }
 
 Character Character::createCharacter(const std::string& name)

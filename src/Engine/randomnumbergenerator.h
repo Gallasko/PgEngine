@@ -14,7 +14,7 @@ namespace pg
         int generateNumber();
 
         void setSeed(unsigned int seed);
-        unsigned int getSeed() const { return seed; }
+        inline unsigned int getSeed() const { return seed; }
 
     private:
         friend RandomNumberGenerator deserialize<>(const UnserializedObject& serializedString);

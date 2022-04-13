@@ -61,25 +61,6 @@ class Character
     };
 
 public:
-    class CharacterUi : public pg::UiComponent
-    {
-    friend class Character;
-    
-    public:
-        CharacterUi(Character *chara, pg::FontLoader *fontLoader);
-        CharacterUi(const CharacterUi& other);
-
-        virtual void render(MasterRenderer* masterRenderer);
-
-    private:
-        friend void pg::renderer<>(MasterRenderer* renderer, CharacterUi* chara);
-
-        Character *chara;
-
-        pg::Sentence *displayName;
-    };
-
-public:
     static Character createCharacter(const std::string& name = "");
 
     void setManager(int managerId) { managerId = managerId; }
@@ -127,6 +108,25 @@ private:
 
     /** Current items held by the character */
     std::vector<Item> heldItems;
+};
+
+class CharacterUi : public pg::UiComponent
+{
+friend class Character;
+public:
+    CharacterUi(Character *chara, pg::FontLoader *fontLoader);
+    CharacterUi(const CharacterUi& other);
+    
+    ~CharacterUi() {}
+
+    virtual void render(pg::MasterRenderer* masterRenderer);
+
+private:
+    friend void pg::renderer<>(pg::MasterRenderer* renderer, CharacterUi* chara);
+
+    Character *chara;
+
+    pg::Sentence *displayName;
 };
 
 class Manager

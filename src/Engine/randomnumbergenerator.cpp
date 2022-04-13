@@ -62,7 +62,7 @@ namespace pg
         std::lock_guard<std::mutex> lock(syncMutex);
 
         auto rng = rand();
-        this->seed = rng;
+        this->setSeed(rng);
         return rng;
     }
 
