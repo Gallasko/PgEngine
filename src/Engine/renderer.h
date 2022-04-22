@@ -27,7 +27,7 @@ namespace pg
         QOpenGLBuffer *VBO = nullptr;
         QOpenGLBuffer *EBO = nullptr;
 
-        OpenGLObject() { initializeOpenGLFunctions(); }
+        OpenGLObject() {}
         ~OpenGLObject() { delete VAO; delete VBO; delete EBO; }
 
         void initialize();

@@ -1,6 +1,6 @@
 #include "fontloader.h"
 
-#include <fstream>
+#include "parser.h"
 
 namespace pg
 {
@@ -61,94 +61,33 @@ namespace pg
 
     FontLoader::FontLoader(const std::string& fontFile) : nbCharaId(0)
     {
-        std::ifstream f;
+        FileParser parser(fontFile);
         FontLoader::Font *newChara = nullptr;
-
-        f.open(fontFile, std::ifstream::in);
 
         unsigned int xPos = 0;
         unsigned int yPos = 0;
 
-        if(f.is_open())
-        {
+        parser.addCallback("Atlas Width",  [&](const std::string&) { atlasWidth = std::stoi(parser.getNextLine()); } );
+        parser.addCallback("Atlas Height", [&](const std::string&) { atlasHeight = std::stoi(parser.getNextLine()); } );
+        parser.addCallback("Opacity 1",    [&](const std::string&) { opacity[0] = std::stoi(parser.getNextLine()); } );
+        parser.addCallback("Opacity 2",    [&](const std::string&) { opacity[1] = std::stoi(parser.getNextLine()); } );
+        parser.addCallback("Opacity 3",    [&](const std::string&) { opacity[2] = std::stoi(parser.getNextLine()); } );
+        parser.addCallback("Row",          [&](const std::string&) { if(parser.getNextLine() == "Base Y") { xPos = 1; yPos = std::stoi(parser.getNextLine()); } } );
+        parser.addCallback("Charactere",   [&](const std::string&) { newChara = new FontLoader::Font(); newChara->setId(nbCharaId); newChara->setName(parser.getNextLine()); } );
+        parser.addCallback("Width",        [&](const std::string&) { if(newChara != nullptr) newChara->setWidth(std::stoi(parser.getNextLine())); } );
+        parser.addCallback("Height",       [&](const std::string&) { if(newChara != nullptr) newChara->setHeight(std::stoi(parser.getNextLine())); } );
+        parser.addCallback("Y-Offset",     [&](const std::string&) { if(newChara != nullptr) newChara->setOffset(std::stoi(parser.getNextLine())); } );
+        
+        parser.addCallback("###########",  [&](const std::string&) { if (newChara != nullptr) { 
+            newChara->setMesh(xPos, yPos, atlasWidth, atlasHeight);
+            charaList.push_back(newChara);
+            charaDict[newChara->getName()] = nbCharaId;
 
-            for(std::string line; std::getline(f, line); )
-            {
-                if(line == "Atlas Width")
-                    if (std::getline(f, line))
-                        atlasWidth = std::stoi(line);
+            nbCharaId++;
+            xPos += newChara->getWidth() + 1;
+        } } );
 
-                if(line == "Atlas Height")
-                    if (std::getline(f, line))
-                        atlasHeight = std::stoi(line);
-
-                if(line == "Opacity 1")
-                    if (std::getline(f, line))
-                        opacity[0] = std::stoi(line);
-
-                if(line == "Opacity 2")
-                    if (std::getline(f, line))
-                        opacity[1] = std::stoi(line);
-
-                if(line == "Opacity 3")
-                    if (std::getline(f, line))
-                        opacity[2] = std::stoi(line);
-
-                if(line == "Row")
-                {
-                    if (std::getline(f, line))
-                    {
-                        if(line == "Base Y")
-                        {
-                            if (std::getline(f, line))
-                            {
-                                xPos = 1;
-                                yPos = std::stoi(line);
-                            }
-                        }
-                    }
-                }
-                    
-                if(line == "Charactere")
-                {
-                    newChara = new FontLoader::Font();
-                    newChara->setId(nbCharaId);
-
-                    if (std::getline(f, line))
-                        newChara->setName(line);
-                }
-
-                if(line == "Width")
-                    if (std::getline(f, line) && newChara != nullptr)
-                        newChara->setWidth(std::stoi(line));
-                    
-                if(line == "Height")
-                    if (std::getline(f, line) && newChara != nullptr)
-                        newChara->setHeight(std::stoi(line));
-
-                if(line == "Y-Offset")
-                    if (std::getline(f, line) && newChara != nullptr)
-                        newChara->setOffset(std::stoi(line));
-
-                if(line == "###########")
-                {
-                    if (std::getline(f, line) && newChara != nullptr)
-                    {
-                        newChara->setMesh(xPos, yPos, atlasWidth, atlasHeight);
-
-                        charaList.push_back(newChara);
-                        charaDict[newChara->getName()] = nbCharaId;
-
-                        nbCharaId++;
-                        xPos += newChara->getWidth() + 1;
-                    }
-                        
-                }
-                    
-            }
-        }
-
-        f.close();
+        parser.run();
     }
 
     FontLoader::~FontLoader()

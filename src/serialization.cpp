@@ -1,15 +1,13 @@
 #include "serialization.h"
 
 #include <fstream>
-
-#include "logger.h"
-#include "constant.h"
-
-#include <iostream>
 #include <sstream>
 #include <algorithm>
 #include <memory>
 #include <cstring>
+
+#include "logger.h"
+#include "constant.h"
 
 namespace pg
 {
@@ -63,6 +61,14 @@ namespace pg
         LOG_THIS(DOM);
 
         archive.setAttribute(std::to_string(value), "int");
+    }
+
+    template<>
+    void serialize(Archive& archive, const unsigned int& value)
+    {
+        LOG_THIS(DOM);
+
+        archive.setAttribute(std::to_string(value), "unsigned int");
     }
 
     template<>
@@ -198,7 +204,27 @@ namespace pg
         auto attribute = serializedString.getAsAttribute();
         if(attribute.name != "int")
         {
-            LOG_ERROR(DOM, "Serialized string is not a int");
+            LOG_ERROR(DOM, "Serialized string is not an int");
+            return value;
+        }
+
+        std::stringstream sstream(attribute.value);
+        sstream >> value;
+
+        return value;
+    }
+
+    template<>
+    unsigned int deserialize(const UnserializedObject& serializedString)
+    {
+        LOG_THIS(DOM);
+
+        unsigned int value = 0;
+
+        auto attribute = serializedString.getAsAttribute();
+        if(attribute.name != "unsigned int")
+        {
+            LOG_ERROR(DOM, "Serialized string is not an unsigned int");
             return value;
         }
 
@@ -699,8 +725,6 @@ namespace pg
 
             while(std::getline(file, line))
             {
-                std::cout << line << std::endl;
-
                 if(startOfClass)
                 {
                     pos = line.find(delimiter);
@@ -712,7 +736,6 @@ namespace pg
                     }
                     
                     objectName = line.substr(0, pos);
-                    std::cout << objectName << std::endl;
 
                     pos = line.find(delimiter, pos + delimiter.length());
 

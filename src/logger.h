@@ -20,6 +20,7 @@
 #define LOG_ERROR(scope, msg)
 #endif
 
+//TODO Filter only filter log, info, alert and warning level message -> error and critical are not filtered !
 //TODO if a log is whitelisted it is shown even if it/was blacklisted
 
 namespace pg

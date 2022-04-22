@@ -8,7 +8,8 @@ rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(su
 
 # Qt path
 #Qt_PATH := C:/Qt/5.11.2-x64
-Qt_PATH := Z:\Qt\5.15.2\mingw81_64
+Qt_PATH := $(QTPATH)
+#Qt_PATH := Z:\Qt\5.15.2\mingw81_64
 
 # define the Cpp compiler to use
 CXX = g++
@@ -56,6 +57,8 @@ DEPENDENCIES := dependencies
 SHADER := shader
 RESSOURCES := res
 
+BUILDDIR := build
+
 ifeq ($(OS),Windows_NT)
 MAIN		 	 := main.exe
 SOURCEDIRS		 := $(SRC)
@@ -65,8 +68,8 @@ DEPENDENCIESDIRS := $(DEPENDENCIES)
 SHADERDIR := $(SHADER)
 RESSOURCESDIR := $(RESSOURCES)
 FIXPATH = $(subst /,\,$1)
-RM			:= del /q /f
-MD	:= mkdir
+RM			:= powershell rm -r -fo
+MD	:= powershell mkdir
 else
 MAIN			 := main
 SOURCEDIRS		 := $(shell find $(SRC) -type d)
@@ -97,6 +100,8 @@ SOURCESDIRTREE := ${sort ${dir ${wildcard ${SOURCEDIRS}/*/ ${SOURCEDIRS}/*/*/}}}
 
 # define the C object files 
 OBJECTS		:= $(SOURCES:%.cpp=$(BUILDDIR)/%.o) $(MOC_SOURCES:%.h=$(BUILDDIR)/%.moc.o) 
+
+DEP := $(OBJECTS:%.o=%.d)
 
 #
 # The following part of the makefile is generic; it can be used to 
@@ -131,6 +136,10 @@ $(MAIN): $(OBJECTS)
 #	@echo Converting $< to $@
 #    $(CXX) $(CXXFLAGS) $(INCLUDES) -MM -MT $@ -MF $@ $<
 
+#%.d: %.cpp
+#	@echo Converting $< to $@
+#    $(CXX) $(CXXFLAGS) $(INCLUDES) -MM -MT $@ -MF $@ $<
+
 # this is a suffix replacement rule for building .o's from .c's
 # it uses automatic variables $<: the name of the prerequisite of
 # the rule(a .c file) and $@: the name of the target of the rule (a .o file) 
@@ -139,25 +148,33 @@ $(BUILDDIR)/%.o: %.cpp
 	@echo Converting $< to $@
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD  -MP -c $< -o $@
 
-$(BUILDDIR)/%.moc.o: %.moc.cpp
-	@echo Converting $< to $@
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $<  -o $@
+#$(BUILDDIR)/%.moc.o: $(BUILDDIR)/%.moc.cpp
+#	@echo Converting $< to $@
+#	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD  -MP -c $< -o $@
 
-%.moc.cpp: %.h
+%.moc.o: %.moc.cpp
+	@echo Converting $< to $@
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD  -MP -c $<  -o $@
+
+$(BUILDDIR)/%.moc.cpp: %.h
 	@echo Creating $@
 	$(MOC) $(INCLUDES) $< -o $@
 
 $(OBJECTS): | $(BUILDDIR)
 
 $(BUILDDIR):
-	$(MD) $(SOURCESDIRTREE)
+	$(MD) $(foreach dir, $(SOURCESDIRTREE), $(BUILDDIR)/$(dir),) build/stop
 
 .PHONY: clean
 
 clean:
-	$(RM) $(call FIXPATH, $(call rwildcard,$(SOURCEDIRS),*.o))
+#	$(RM) $(call FIXPATH, $(call rwildcard,$(SOURCEDIRS),*.o))
+#	$(RM) $(call FIXPATH, $(call rwildcard,$(SOURCEDIRS),*.d))
+	$(RM) $(BUILDDIR)
 	@echo Cleanup complete!
 
 run: all
 	./$(OUTPUTMAIN)
 	@echo Executing 'run: all' complete!
+
+-include $(DEP)
