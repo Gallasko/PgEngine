@@ -495,7 +495,7 @@ void GameWindow::render()
     }
     catch(const std::exception& e)
     {
-        LOG_ERROR(DOM, "Resize error");
+        LOG_ERROR(DOM, "Resize error: " + std::string(e.what()));
     }
 
     masterRenderer.setCurrentTime(currentTime);

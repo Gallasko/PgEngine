@@ -5,8 +5,6 @@
 #include <QImage>
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
-#include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLExtraFunctions>
 
@@ -14,24 +12,13 @@
 #include <cstdarg>
 
 #include "..\constant.h"
+#include "meshbuilder.h"
 
 namespace pg
 {
     typedef constant::RefracTable RefracRef;
     typedef std::unordered_map<std::string, QOpenGLShaderProgram*> ShaderRef;
     typedef std::unordered_map<std::string, unsigned int> TextureRef;
-
-    struct OpenGLObject : protected QOpenGLFunctions
-    {
-        QOpenGLVertexArrayObject *VAO = nullptr;
-        QOpenGLBuffer *VBO = nullptr;
-        QOpenGLBuffer *EBO = nullptr;
-
-        OpenGLObject() {}
-        ~OpenGLObject() { delete VAO; delete VBO; delete EBO; }
-
-        void initialize();
-    };
 
     class MasterRenderer;
 

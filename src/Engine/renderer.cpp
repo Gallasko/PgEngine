@@ -2,19 +2,6 @@
 
 namespace pg
 {
-    void OpenGLObject::initialize()
-    {
-        initializeOpenGLFunctions();
-        
-        VAO = new QOpenGLVertexArrayObject();
-        VBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-        EBO = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer); 
-
-        VAO->create();
-        VBO->create();
-        EBO->create();
-    }
-
     void MasterRenderer::registerShader(const std::string& name, const char* vsPath, const char* fsPath)
     {
         auto shaderProgram = new QOpenGLShaderProgram();

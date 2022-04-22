@@ -17,6 +17,9 @@ CXX = g++
 # define the moc
 MOC = $(Qt_PATH)/bin/moc.exe
 
+# define the rcc
+RCC = $(Qt_PATH)/bin/rcc.exe
+
 DebugActive ?= $(DEBUG)
 
 # define any compile-time flags -mwindows to make the app launch without a command prompt
@@ -95,11 +98,12 @@ LIBS		:= $(patsubst %,-L%, $(LIBDIRS:%/=%)) \
 # define the C source files
 SOURCES		:= $(call rwildcard,$(SOURCEDIRS), *.cpp)
 MOC_SOURCES	:= $(call rwildcard,$(SOURCEDIRS), *.h)
+RCC_SOURCES	:= $(call rwildcard,., *.qrc)
 
 SOURCESDIRTREE := ${sort ${dir ${wildcard ${SOURCEDIRS}/*/ ${SOURCEDIRS}/*/*/}}}
 
 # define the C object files 
-OBJECTS		:= $(SOURCES:%.cpp=$(BUILDDIR)/%.o) $(MOC_SOURCES:%.h=$(BUILDDIR)/%.moc.o) 
+OBJECTS		:= $(SOURCES:%.cpp=$(BUILDDIR)/%.o) $(MOC_SOURCES:%.h=$(BUILDDIR)/%.moc.o) $(RCC_SOURCES:%.qrc=$(BUILDDIR)/%.rcc.o)
 
 DEP := $(OBJECTS:%.o=%.d)
 
@@ -132,14 +136,6 @@ $(MAIN): $(OBJECTS)
 	@echo Copy the shader dir
 	xcopy $(RESSOURCESDIR) $(OUTPUT)\res /v /f /s /y /d
 
-#%.d: %.cpp
-#	@echo Converting $< to $@
-#    $(CXX) $(CXXFLAGS) $(INCLUDES) -MM -MT $@ -MF $@ $<
-
-#%.d: %.cpp
-#	@echo Converting $< to $@
-#    $(CXX) $(CXXFLAGS) $(INCLUDES) -MM -MT $@ -MF $@ $<
-
 # this is a suffix replacement rule for building .o's from .c's
 # it uses automatic variables $<: the name of the prerequisite of
 # the rule(a .c file) and $@: the name of the target of the rule (a .o file) 
@@ -147,10 +143,6 @@ $(MAIN): $(OBJECTS)
 $(BUILDDIR)/%.o: %.cpp
 	@echo Converting $< to $@
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD  -MP -c $< -o $@
-
-#$(BUILDDIR)/%.moc.o: $(BUILDDIR)/%.moc.cpp
-#	@echo Converting $< to $@
-#	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD  -MP -c $< -o $@
 
 %.moc.o: %.moc.cpp
 	@echo Converting $< to $@
@@ -160,6 +152,14 @@ $(BUILDDIR)/%.moc.cpp: %.h
 	@echo Creating $@
 	$(MOC) $(INCLUDES) $< -o $@
 
+%.rcc.o: %.rcc.cpp
+	@echo Converting $< to $@
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD  -MP -c $< -o $@
+
+$(BUILDDIR)/%.rcc.cpp: %.qrc
+	@echo Creating $@
+	$(RCC) $< -o $@
+
 $(OBJECTS): | $(BUILDDIR)
 
 $(BUILDDIR):
@@ -168,6 +168,7 @@ $(BUILDDIR):
 .PHONY: clean
 
 clean:
+	@echo Cleaning...
 #	$(RM) $(call FIXPATH, $(call rwildcard,$(SOURCEDIRS),*.o))
 #	$(RM) $(call FIXPATH, $(call rwildcard,$(SOURCEDIRS),*.d))
 	$(RM) $(BUILDDIR)
