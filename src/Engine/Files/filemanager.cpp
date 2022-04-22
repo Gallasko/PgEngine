@@ -1,67 +1,71 @@
 #include "filemanager.h"
 
-/*
 #include <QFile>
+#include <QDir>
 #include <QString>
 #include <QTextStream>
 
+#include <stdexcept>
 
-QFile file(":/res/names/american/female.names");
-
-if (!file.open(QIODevice::ReadOnly))
-{
-    std::cout << "Couldn't open file" << std::endl;
-    return -1;
-}
-
-QTextStream in(&file);
-while (!in.atEnd()) {
-    QString line = in.readLine();
-    std::cout << line.toStdString() << std::endl;
-}
-*/
+#include "../../logger.h"
 
 namespace pg
 {
-    
-    TextFile RessourceManager::openTextFile(const std::string& filename)
+    namespace
     {
+        const char * DOM = "File Manager";
 
+        TextFile openTxtFile(const std::string& filename)
+        {
+            LOG_THIS(DOM);
+
+            QFile file(filename.c_str());
+
+            if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+            {
+                LOG_ERROR(DOM, "Can't open file '" + filename + "'.");
+                throw std::runtime_error("Can't open file " + filename + "'.");
+            }
+
+            auto text = file.readAll().toStdString();
+
+            file.close();
+
+            return TextFile{filename, text};
+        }
     }
 
-    BinaryFile RessourceManager::openBinaryFile(const std::string& filename)
+    TextFile RessourceManager::openTextFile(const std::string& filename)
     {
-
+        return openTxtFile(":/" + filename);
     }
 
     std::vector<TextFile> RessourceManager::openTextFolder(const std::string& foldername)
     {
+        std::vector<TextFile> folder;
 
-    }
+        foreach(const QString& fileName, QDir((":/" + foldername).c_str()).entryList())
+        {
+            folder.push_back(openTxtFile(":/" + foldername + fileName.toStdString()));
+        }
 
-    std::vector<BinaryFile> RessourceManager::openBinaryFolder(const std::string& foldername)
-    {
-
+        return folder;
     }
 
     TextFile FileManager::openTextFile(const std::string& filename)
     {
-
-    }
-
-    BinaryFile FileManager::openBinaryFile(const std::string& filename)
-    {
-
+        return openTxtFile(filename);
     }
 
     std::vector<TextFile> FileManager::openTextFolder(const std::string& foldername)
     {
+        std::vector<TextFile> folder;
 
+        foreach(const QString& fileName, QDir(foldername.c_str()).entryList() )
+        {
+            folder.push_back(openTxtFile(fileName.toStdString()));
+        }
+
+        return folder;
     }
-
-    std::vector<BinaryFile> FileManager::openBinaryFolder(const std::string& foldername)
-    {
-
-    }
-
 }

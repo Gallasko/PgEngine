@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include "../logger.h"
+#include "../../logger.h"
 
 namespace pg
 {
@@ -15,14 +15,7 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
-        if(!file.is_open())
-        {
-            LOG_ERROR(DOM, "File is not open");
-
-            return "";
-        }
-        
-        if(std::getline(file, nextLine))
+        if(std::getline(stream, nextLine))
         {
             return nextLine;
         }
@@ -37,13 +30,9 @@ namespace pg
     void FileParser::run()
     {
         LOG_THIS_MEMBER(DOM);
-
-        file.open(filename, std::ifstream::in);
         
-        for(std::string line; std::getline(file, line);)
+        for(std::string line; std::getline(stream, line);)
             std::for_each(callbacks.begin(), callbacks.end(), [&line](const FileParser::ParsingCallback& element) { executeCallback(line, element); });
-
-        file.close();
     }
 
     void executeCallback(const std::string& line, const FileParser::ParsingCallback& callback)

@@ -1,13 +1,24 @@
 #include "tileloader.h"
 
+#include "Files/parser.h"
+#include "../logger.h"
+
 namespace pg
 {
-	#define NBROWTEXTUREATLAS 16.0f
-	#define SPRITESIZE 64.0f
-	#define ATLASSIZE 1024.0f
+	namespace
+	{
+		//TODO make this a param of the atlas somewhere in a file
+		#define NBROWTEXTUREATLAS 16.0f
+		#define SPRITESIZE 64.0f
+		#define ATLASSIZE 1024.0f
+
+		const char * DOM = "Tile Loader";
+	}
 
 	TilesLoader::TilesId::TilesId()
 	{
+		LOG_THIS_MEMBER(DOM);
+
 		initializeOpenGLFunctions(); 
 
 		VAO = new QOpenGLVertexArrayObject();
@@ -21,6 +32,8 @@ namespace pg
 
 	TilesLoader::TilesId::~TilesId()
 	{
+		LOG_THIS_MEMBER(DOM);
+
 		delete VAO;
 		delete VBO;
 		delete EBO;
@@ -28,6 +41,8 @@ namespace pg
 
 	void TilesLoader::TilesId::setMesh(int textureId)
 	{
+		LOG_THIS_MEMBER(DOM);
+
 		int column = textureId % (int)NBROWTEXTUREATLAS;
 		float xMin = (column * SPRITESIZE) / ATLASSIZE;
 		float xMax = ((column + 1) * SPRITESIZE) / ATLASSIZE;
@@ -65,6 +80,8 @@ namespace pg
 
 	void TilesLoader::TilesId::setType(std::string type)
 	{
+		LOG_THIS_MEMBER(DOM);
+
 		if(type == "Blank")
 			tileType = TileType::BLANK;
 		else if(type == "House")
@@ -81,65 +98,71 @@ namespace pg
 			tileType = TileType::BLANK;
 	}
 
-	TilesLoader::TilesLoader(std::string tilesFolder) : nbTilesId(0)
+	TilesLoader::TilesLoader(const std::string& tilesFolder) : nbTilesId(0)
 	{
-		std::ifstream f;
-		TilesLoader::TilesId *newTile;
+		LOG_THIS_MEMBER(DOM);
 
-		f.open(tilesFolder + std::to_string(nbTilesId) + ".tile", std::ifstream::in);
+		std::shared_ptr<TilesLoader::TilesId> newTile;
 
-		while (f.is_open())
+		std::vector<TextFile> folder;
+		try
 		{
-			newTile = new TilesLoader::TilesId();
+			folder = RessourceManager::openTextFolder(tilesFolder);
+		}
+		catch(const std::exception& e)
+		{
+			LOG_ERROR(DOM, e.what());
+			return;
+		}
 
+		for(auto file : folder)
+		{
+			newTile = std::make_shared<TilesLoader::TilesId>();
 			newTile->setId(nbTilesId);
 
-			for(std::string line; std::getline(f, line); )
-			{
-				if(line == "Tile Name")
-					if (std::getline(f, line))
-						newTile->setName(line);
+			FileParser parser(file);
 
-				if(line == "Texture")
-					if (std::getline(f, line))
-						newTile->setMesh(std::stoi(line));
+        	parser.addCallback("Tile Name",  [&](const std::string&) { newTile->setName(parser.getNextLine()); } );
+        	parser.addCallback("Texture",    [&](const std::string&) { newTile->setMesh(std::stoi(parser.getNextLine())); } );
+        	parser.addCallback("Type",       [&](const std::string&) { newTile->setType(parser.getNextLine()); } );
 
-				if(line == "Type")
-					if (std::getline(f, line))
-						newTile->setType(line);
-			}
+			parser.run();
 
 			tilesList.push_back(newTile);
 			tilesDict[newTile->getName()] = nbTilesId;
 
-			f.close();
 			nbTilesId++; 
-			f.open(tilesFolder + std::to_string(nbTilesId) + ".tile", std::ifstream::in);
 		}
 	}
 
 	TilesLoader::~TilesLoader()
 	{
+		LOG_THIS_MEMBER(DOM);
+
 		tilesList.clear();
 		tilesList.shrink_to_fit();
 		//std::vector<TilesLoader::TilesId* >().swap(tilesList); //delete block list
 	}
 
-	TilesLoader::TilesId* TilesLoader::getTile(int id) const
+	const TilesLoader::TilesId* TilesLoader::getTile(int id) const
 	{
+		LOG_THIS_MEMBER(DOM);
+
 		if(id < nbTilesId)
-			return tilesList[id];
+			return tilesList[id].get();
 		else
-			return NULL;
+			return nullptr;
 	}
 
-	TilesLoader::TilesId* TilesLoader::getTile(std::string tileName) const
+	const TilesLoader::TilesId* TilesLoader::getTile(std::string tileName) const
 	{
+		LOG_THIS_MEMBER(DOM);
+
 		auto it = tilesDict.find(tileName);
 
 		if(it != tilesDict.end())
-			return tilesList[tilesDict.at(tileName)];
+			return tilesList[tilesDict.at(tileName)].get();
 		else
-			return NULL;
+			return nullptr;
 	}
 }

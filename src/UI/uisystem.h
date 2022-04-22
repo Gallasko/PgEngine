@@ -127,19 +127,17 @@ namespace pg
     template <typename LoaderId> 
     struct LoaderRenderComponent : public UiComponent
     {
-        LoaderRenderComponent(LoaderId *id) : id(id) {}
+        LoaderRenderComponent(const LoaderId *id) : id(id) {}
         LoaderRenderComponent(const LoaderRenderComponent& rhs);
 
         //virtual void render(MasterRenderer* masterRenderer) { renderer(masterRenderer, this); }
 
-        LoaderId *id;
+        const LoaderId *id;
     };
 
     template <typename LoaderId> 
-    LoaderRenderComponent<LoaderId>::LoaderRenderComponent(const LoaderRenderComponent &rhs) : UiComponent(rhs)
+    LoaderRenderComponent<LoaderId>::LoaderRenderComponent(const LoaderRenderComponent &rhs) : UiComponent(rhs), id(rhs.id)
     {
-        this->id = rhs.id;
-
         update();
     }
 

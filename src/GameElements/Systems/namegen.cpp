@@ -1,12 +1,8 @@
 #include "namegen.h"
 
-#include <fstream>
-
-#include <dirent.h>
-
 #include "../../logger.h"
 #include "../../Engine/randomnumbergenerator.h"
-
+#include "../../Engine/Files/parser.h"
 
 namespace
 {
@@ -40,55 +36,46 @@ std::string NameGenerator::getRandomName(const Gender& gender) const
 
 NameGenerator::NameGenerator()
 {
-    //TODO make this lockuped from somewhere
-    listFiles("res/names");
+    //TODO make this lookup from somewhere
+    parseFiles("names/");
 }
 
-void NameGenerator::listFiles(const std::string &path)
+void NameGenerator::parseFiles(const std::string &path)
 {
     LOG_THIS_MEMBER(DOM);
 
-    // TODO Need to create a class for opening files !
-    if (auto dir = opendir(path.c_str()))
+    std::string line;
+    std::string country;
+
+    std::vector<pg::TextFile> folder;
+    try
     {
-        while (auto f = readdir(dir))
-        {
-            if (!f->d_name || f->d_name[0] == '.') continue;
-
-            if(std::string(f->d_name).find(".names") != std::string::npos)
-                parseFile(path + f->d_name);
-
-            listFiles(path + "/" + f->d_name + "/");
-        }
-
-        closedir(dir);
+        folder = pg::RessourceManager::openTextFolder(path);
     }
-}
-
-void NameGenerator::parseFile(const std::string &path)
-{
-    LOG_THIS_MEMBER(DOM);
-
-    std::ifstream file;
-        
-    file.open(path);
-
-    if(file.is_open())
+    catch(const std::exception& e)
     {
-        std::string line;
+        LOG_ERROR(DOM, e.what());
+        return;
+    }
 
-        std::string country;
+    for(auto file : folder)
+    {
+        pg::FileParser parser(file);        
 
-        if(!std::getline(file, country))
+        country = parser.getNextLine();
+
+        if(country == "")
         {
-            LOG_ERROR(DOM, "Error parsing: " + path + " file is empty");
-            return;
+            LOG_ERROR(DOM, "Error parsing: " + file.filename + " file is empty");
+            continue;
         }
 
-        if(!std::getline(file, line))
+        line = parser.getNextLine();
+
+        if(line == "")
         {
-            LOG_ERROR(DOM, "Error parsing: " + path + " file is missing the gender type");
-            return;
+            LOG_ERROR(DOM, "Error parsing: " + file.filename + " file is missing the gender type");
+            continue;
         }
 
         std::vector<Name> *nameVector;
@@ -101,14 +88,12 @@ void NameGenerator::parseFile(const std::string &path)
             nameVector = &surnameList;
         else
         {
-            LOG_ERROR(DOM, "Error in parsing the gender of the file: " + path);
-            return;
+            LOG_ERROR(DOM, "Error in parsing the gender of the file: " + file.filename);
+            continue;
         }
 
-        while(std::getline(file, line))
-        {
-            nameVector->emplace_back(country, line);
-        }
+        parser.addCallback(std::regex{".*"},[&](const std::string& line) { nameVector->emplace_back(country, line); } );
+
+        parser.run();
     }
-
 }

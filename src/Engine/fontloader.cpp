@@ -1,11 +1,19 @@
 #include "fontloader.h"
 
-#include "parser.h"
+#include "Files/parser.h"
+#include "../logger.h"
 
 namespace pg
 {
+    namespace
+    {
+        const char * DOM = "Font Loader";
+    }
+
     FontLoader::Font::Font()
     {
+        LOG_THIS_MEMBER(DOM);
+
         initializeOpenGLFunctions(); 
 
         VAO = new QOpenGLVertexArrayObject();
@@ -26,6 +34,8 @@ namespace pg
 
     void FontLoader::Font::setMesh(unsigned int xPos, unsigned int yPos, unsigned int atlasWidth, unsigned int atlasHeight)
     {
+        LOG_THIS_MEMBER(DOM);
+
         float xMin = xPos / (float)atlasWidth;
         float xMax = (xPos + width) / (float)atlasWidth;
         
@@ -61,8 +71,22 @@ namespace pg
 
     FontLoader::FontLoader(const std::string& fontFile) : nbCharaId(0)
     {
-        FileParser parser(fontFile);
-        FontLoader::Font *newChara = nullptr;
+        LOG_THIS_MEMBER(DOM);
+
+        TextFile file;
+
+        try
+        {
+            file = RessourceManager::openTextFile(fontFile);
+        }
+        catch(const std::exception& e)
+        {
+            LOG_ERROR(DOM, e.what());
+            return;
+        }
+
+        FileParser parser(file);
+        std::shared_ptr<FontLoader::Font> newChara = nullptr;
 
         unsigned int xPos = 0;
         unsigned int yPos = 0;
@@ -73,7 +97,7 @@ namespace pg
         parser.addCallback("Opacity 2",    [&](const std::string&) { opacity[1] = std::stoi(parser.getNextLine()); } );
         parser.addCallback("Opacity 3",    [&](const std::string&) { opacity[2] = std::stoi(parser.getNextLine()); } );
         parser.addCallback("Row",          [&](const std::string&) { if(parser.getNextLine() == "Base Y") { xPos = 1; yPos = std::stoi(parser.getNextLine()); } } );
-        parser.addCallback("Charactere",   [&](const std::string&) { newChara = new FontLoader::Font(); newChara->setId(nbCharaId); newChara->setName(parser.getNextLine()); } );
+        parser.addCallback("Charactere",   [&](const std::string&) { newChara = std::make_shared<FontLoader::Font>(); newChara->setId(nbCharaId); newChara->setName(parser.getNextLine()); } );
         parser.addCallback("Width",        [&](const std::string&) { if(newChara != nullptr) newChara->setWidth(std::stoi(parser.getNextLine())); } );
         parser.addCallback("Height",       [&](const std::string&) { if(newChara != nullptr) newChara->setHeight(std::stoi(parser.getNextLine())); } );
         parser.addCallback("Y-Offset",     [&](const std::string&) { if(newChara != nullptr) newChara->setOffset(std::stoi(parser.getNextLine())); } );
@@ -96,21 +120,25 @@ namespace pg
         charaList.shrink_to_fit();
     }
 
-    FontLoader::Font* FontLoader::getChara(int id) const
+    const FontLoader::Font* FontLoader::getChara(int id) const
     {
+        LOG_THIS_MEMBER(DOM);
+
         if(id < nbCharaId)
-            return charaList[id];
+            return charaList[id].get();
         else
-            return charaList[0];
+            return charaList[0].get();
     }
 
-    FontLoader::Font* FontLoader::getChara(const std::string& charaName) const
+    const FontLoader::Font* FontLoader::getChara(const std::string& charaName) const
     {
+        LOG_THIS_MEMBER(DOM);
+
         auto it = charaDict.find(charaName);
 
         if(it != charaDict.end())
-            return charaList[charaDict.at(charaName)];
+            return charaList[charaDict.at(charaName)].get();
         else
-            return charaList[0];
+            return charaList[0].get();
     }
 }

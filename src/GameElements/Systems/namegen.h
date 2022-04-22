@@ -30,8 +30,7 @@ public:
 private:
     NameGenerator();
 
-    void listFiles(const std::string& path);
-    void parseFile(const std::string& path);
+    void parseFiles(const std::string& path);
 
     std::vector<Name> maleList;
     std::vector<Name> femaleList;

@@ -9,12 +9,13 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <memory>
 
 #include "..\constant.h"
 
 namespace pg
 {
-	class FontLoader : protected QOpenGLFunctions
+	class FontLoader
 	{
 	public:
 		class Font : protected QOpenGLFunctions
@@ -59,14 +60,14 @@ namespace pg
 		FontLoader(const std::string& fontFile);
 		~FontLoader();
 
-		FontLoader::Font* getChara(int id) const;
-		FontLoader::Font* getChara(const std::string& charaName) const;
+		const FontLoader::Font* getChara(int id) const;
+		const FontLoader::Font* getChara(const std::string& charaName) const;
 
 		inline unsigned int getAtlasWidth() const { return atlasWidth; }
 		inline unsigned int getAtlasHeight() const { return atlasHeight; }
 
 	private:
-		std::vector<FontLoader::Font* > charaList;
+		std::vector<std::shared_ptr<FontLoader::Font>> charaList;
 		std::unordered_map<std::string, int> charaDict;
 		int nbCharaId;
 

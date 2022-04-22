@@ -26,7 +26,7 @@
         <file>res/menu/menutest.png</file>
     </qresource>
 
-    <qresource prefix="/tiles">
+    <qresource prefix="/">
         <file>res/tiles/0.tile</file>
         <file>res/tiles/1.tile</file>
         <file>res/tiles/10.tile</file>
@@ -51,44 +51,44 @@
     </qresource>
 
     <qresource prefix="/names">
-        <file>res/names/american/female.names</file>
-        <file>res/names/american/male.names</file>
-        <file>res/names/american/sur.names</file>
-        <file>res/names/argentinian/female.names</file>
-        <file>res/names/argentinian/male.names</file>
-        <file>res/names/argentinian/sur.names</file>
-        <file>res/names/british/female.names</file>
-        <file>res/names/british/male.names</file>
-        <file>res/names/british/sur.names</file>
-        <file>res/names/canadian/female.names</file>
-        <file>res/names/canadian/male.names</file>
-        <file>res/names/canadian/sur.names</file>
-        <file>res/names/chinese/female.names</file>
-        <file>res/names/chinese/male.names</file>
-        <file>res/names/chinese/sur.names</file>
-        <file>res/names/danish/female.names</file>
-        <file>res/names/danish/male.names</file>
-        <file>res/names/danish/sur.names</file>
-        <file>res/names/finnish/female.names</file>
-        <file>res/names/finnish/male.names</file>
-        <file>res/names/finnish/sur.names</file>
-        <file>res/names/french/female.names</file>
-        <file>res/names/french/male.names</file>
-        <file>res/names/french/sur.names</file>
-        <file>res/names/german/female.names</file>
-        <file>res/names/german/male.names</file>
-        <file>res/names/german/sur.names</file>
-        <file>res/names/russian/female.names</file>
-        <file>res/names/russian/male.names</file>
-        <file>res/names/russian/sur.names</file>
-        <file>res/names/spanish/female.names</file>
-        <file>res/names/spanish/male.names</file>
-        <file>res/names/spanish/sur.names</file>
-        <file>res/names/turkish/female.names</file>
-        <file>res/names/turkish/male.names</file>
-        <file>res/names/turkish/sur.names</file>
-        <file>res/names/ukranian/female.names</file>
-        <file>res/names/ukranian/male.names</file>
-        <file>res/names/ukranian/sur.names</file>
+        <file alias="names0">res/names/american/female.names</file>
+        <file alias="names1">res/names/american/male.names</file>
+        <file alias="names2">res/names/american/sur.names</file>
+        <file alias="names3">res/names/argentinian/female.names</file>
+        <file alias="names4">res/names/argentinian/male.names</file>
+        <file alias="names5">res/names/argentinian/sur.names</file>
+        <file alias="names6">res/names/british/female.names</file>
+        <file alias="names7">res/names/british/male.names</file>
+        <file alias="names8">res/names/british/sur.names</file>
+        <file alias="names9">res/names/canadian/female.names</file>
+        <file alias="names10">res/names/canadian/male.names</file>
+        <file alias="names11">res/names/canadian/sur.names</file>
+        <file alias="names12">res/names/chinese/female.names</file>
+        <file alias="names13">res/names/chinese/male.names</file>
+        <file alias="names14">res/names/chinese/sur.names</file>
+        <file alias="names15">res/names/danish/female.names</file>
+        <file alias="names16">res/names/danish/male.names</file>
+        <file alias="names17">res/names/danish/sur.names</file>
+        <file alias="names18">res/names/finnish/female.names</file>
+        <file alias="names19">res/names/finnish/male.names</file>
+        <file alias="names20">res/names/finnish/sur.names</file>
+        <file alias="names21">res/names/french/female.names</file>
+        <file alias="names22">res/names/french/male.names</file>
+        <file alias="names23">res/names/french/sur.names</file>
+        <file alias="names24">res/names/german/female.names</file>
+        <file alias="names25">res/names/german/male.names</file>
+        <file alias="names26">res/names/german/sur.names</file>
+        <file alias="names27">res/names/russian/female.names</file>
+        <file alias="names28">res/names/russian/male.names</file>
+        <file alias="names29">res/names/russian/sur.names</file>
+        <file alias="names30">res/names/spanish/female.names</file>
+        <file alias="names31">res/names/spanish/male.names</file>
+        <file alias="names32">res/names/spanish/sur.names</file>
+        <file alias="names33">res/names/turkish/female.names</file>
+        <file alias="names34">res/names/turkish/male.names</file>
+        <file alias="names35">res/names/turkish/sur.names</file>
+        <file alias="names36">res/names/ukranian/female.names</file>
+        <file alias="names37">res/names/ukranian/male.names</file>
+        <file alias="names38">res/names/ukranian/sur.names</file>
     </qresource>
 </RCC>

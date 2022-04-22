@@ -5,10 +5,10 @@
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLBuffer>
 
-#include <fstream>
 #include <vector>
 #include <string>
 #include <map>
+#include <memory>
 
 #include "../constant.h"
 
@@ -25,7 +25,7 @@ namespace pg
 		MISC
 	};
 
-	class TilesLoader : protected QOpenGLFunctions
+	class TilesLoader
 	{
 	public:
 		class TilesId : protected QOpenGLFunctions
@@ -65,14 +65,14 @@ namespace pg
 			QOpenGLBuffer *EBO;
 		};
 
-		TilesLoader(std::string tilesFolder);
+		TilesLoader(const std::string& tilesFolder);
 		~TilesLoader();
 
-		TilesLoader::TilesId* getTile(int id) const;
-		TilesLoader::TilesId* getTile(std::string tileName) const;
+		const TilesLoader::TilesId* getTile(int id) const;
+		const TilesLoader::TilesId* getTile(std::string tileName) const;
 
 	private:
-		std::vector<TilesLoader::TilesId* > tilesList;
+		std::vector<std::shared_ptr<TilesLoader::TilesId>> tilesList;
 		std::map<std::string, int> tilesDict;
 		int nbTilesId;
 	};

@@ -11,6 +11,14 @@ namespace
 
 GameWindow::GameWindow(QWindow *parent) : QWindow(parent)
 {
+    // Enable log in console
+    auto terminalSink = pg::Logger::registerSink<pg::TerminalSink>(true);
+    //TODO fix FilterFile
+    //terminalSink->addFilter("Input Filter", new Logger::LogSink::FilterScope("Input"));
+    terminalSink->addFilter("Serializer Filter", new Logger::LogSink::FilterFile("src/serialization.cpp"));
+    terminalSink->addFilter("Configuration Filter", new Logger::LogSink::FilterFile("src/configuration.cpp"));
+    terminalSink->addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
+
     setSurfaceType(QWindow::OpenGLSurface);
 
     mousePos = QPoint(0.0f, 0.0f);
@@ -64,40 +72,32 @@ void GameWindow::initialize()
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // Enable log in console
-    auto terminalSink = pg::Logger::registerSink<pg::TerminalSink>(true);
-    //TODO fix FilterFile
-    //terminalSink->addFilter("Input Filter", new Logger::LogSink::FilterScope("Input"));
-    terminalSink->addFilter("Serializer Filter", new Logger::LogSink::FilterFile("src/serialization.cpp"));
-    terminalSink->addFilter("Configuration Filter", new Logger::LogSink::FilterFile("src/configuration.cpp"));
-    terminalSink->addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
-
     masterRenderer.setWindowSize(640, 480);
 
-    masterRenderer.registerShader("default", "shader/default.vs", "shader/default.fs");
+    masterRenderer.registerShader("default", ":/shader/default.vs", ":/shader/default.fs");
     //masterRenderer.registerRederer<TextureRenderer>();
 
-    masterRenderer.registerShader("gui", "shader/default.vs", "shader/default.fs");
-    masterRenderer.registerShader("text", "shader/textrendering.vs", "shader/textrendering.fs");
+    masterRenderer.registerShader("gui", ":/shader/default.vs", ":/shader/default.fs");
+    masterRenderer.registerShader("text", ":/shader/textrendering.vs", ":/shader/textrendering.fs");
     //masterRenderer.registerRederer<SentenceRenderer>();
 
-    masterRenderer.registerShader("particle", "shader/particle.vs", "shader/particle.fs");
+    masterRenderer.registerShader("particle", ":/shader/particle.vs", ":/shader/particle.fs");
     //masterRenderer.registerRederer<ParticleRenderer>();
 
-    masterRenderer.registerTexture("atlas", "res/tiles/TeclaEatsAtlas.png");
-    masterRenderer.registerTexture("menu", "res/menu/Menu.png");
-    masterRenderer.registerTexture("font", "res/font/font.png");
-    masterRenderer.registerTexture("pigeon", "res/object/PigeonMockUp.png");
+    masterRenderer.registerTexture("atlas", ":/res/tiles/TeclaEatsAtlas.png");
+    masterRenderer.registerTexture("menu", ":/res/menu/Menu.png");
+    masterRenderer.registerTexture("font", ":/res/font/font.png");
+    masterRenderer.registerTexture("pigeon", ":/res/object/PigeonMockUp.png");
 
     //TODO register texture used in a Scene
     // and unload them when the scene is destroyed
 
     //TODO remove this
-    masterRenderer.registerTexture("frame", "res/menu/frame.png");
-    masterRenderer.registerTexture("menutest", "res/menu/menutest.png");
-    masterRenderer.registerTexture("Menu2", "res/menu/Menu2.png");
-    masterRenderer.registerTexture("slider", "res/object/slider.png");
-    masterRenderer.registerTexture("cursor", "res/object/cursor.png");
+    masterRenderer.registerTexture("frame", ":/res/menu/frame.png");
+    masterRenderer.registerTexture("menutest", ":/res/menu/menutest.png");
+    masterRenderer.registerTexture("Menu2", ":/res/menu/Menu2.png");
+    masterRenderer.registerTexture("slider", ":/res/object/slider.png");
+    masterRenderer.registerTexture("cursor", ":/res/object/cursor.png");
 
     // Todo config stuff:
 

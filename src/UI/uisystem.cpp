@@ -143,7 +143,7 @@ namespace pg
         this->height = height;
     }
 
-    TextureComponent::TextureComponent(const TextureComponent &rhs) : UiComponent(rhs), QOpenGLFunctions(), textureName(textureName)
+    TextureComponent::TextureComponent(const TextureComponent &rhs) : UiComponent(rhs), QOpenGLFunctions(), textureName(rhs.textureName)
     {
         initializeOpenGLFunctions(); 
 

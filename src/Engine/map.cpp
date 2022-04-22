@@ -744,8 +744,8 @@ namespace pg
         int placement = 3;
         int placeResult;
 
-        TilesLoader::TilesId* placeList[3] = {tilesLoader->getTile("Dirt"), tilesLoader->getTile("Base House"), tilesLoader->getTile("Base Shop")};
-        TilesLoader::TilesId* placeItem;
+        const TilesLoader::TilesId* placeList[3] = {tilesLoader->getTile("Dirt"), tilesLoader->getTile("Base House"), tilesLoader->getTile("Base Shop")};
+        const TilesLoader::TilesId* placeItem;
 
         for(size_t i = 0; i < availableSpace.size(); i++)
         {

@@ -189,12 +189,12 @@ namespace pg
         {
             int x;
             int y;
-            TilesLoader::TilesId *tileId;
+            const TilesLoader::TilesId *tileId;
             ZoneType zoneType;
 
             double nValue;
 
-            Tiles(int x, int y, TilesLoader::TilesId *tileId = nullptr) : x(x), y(y), tileId(tileId) {}
+            Tiles(int x, int y, const TilesLoader::TilesId *tileId = nullptr) : x(x), y(y), tileId(tileId) {}
         
             //operator float() { return tileId == nullptr ? 0.0f : *tileId == TileType::ROAD ? 1.0f : *tileId == TileType::HOUSE ? 5.0f : 0.0f; } 
             operator float() const { return tileId == nullptr ? 0.0f : *tileId == TileType::ROAD ? 1.0f : 0.0f; } 
@@ -273,7 +273,7 @@ namespace pg
         std::vector<constant::Vector2D> housePos;
         std::vector<constant::Vector2D> shopPos;
 
-        TilesLoader::TilesId *tileToBePlaced = nullptr;
+        const TilesLoader::TilesId *tileToBePlaced = nullptr;
         bool pathFindingInitialised = false;
 
         bool meshUpdate = false;

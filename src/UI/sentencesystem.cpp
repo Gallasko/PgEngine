@@ -179,7 +179,6 @@ namespace pg
         if(text != sentence)
         {
             nbChara = sentence.text.length();
-            FontLoader::Font* letter;
             
             modelInfo.nbVertices = 72 * nbChara;
             modelInfo.nbIndices = 6 * nbChara;
@@ -199,7 +198,7 @@ namespace pg
 
             for(int i = 0; i < nbChara; i++)
             {
-                letter = font->getChara(std::string(1, sentence.text.at(i)));
+                const auto letter = font->getChara(std::string(1, sentence.text.at(i)));
 
                 outO = 0.0f;
 

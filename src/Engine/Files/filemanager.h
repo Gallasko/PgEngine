@@ -3,35 +3,28 @@
 #include <vector>
 #include <string>
 
+
+// TODO add all helper function for file in here
+// TODO Manage binary files
 namespace pg
-{
+{   
     struct TextFile
     {
         std::string filename;
-    };
-
-    struct BinaryFile
-    {
-        std::string filename;
+        std::string data;
     };
 
     class RessourceManager
     {
     public:
         static TextFile openTextFile(const std::string& filename);
-        static BinaryFile openBinaryFile(const std::string& filename);
-        
         static std::vector<TextFile> openTextFolder(const std::string& foldername);
-        static std::vector<BinaryFile> openBinaryFolder(const std::string& foldername);
     };
 
     class FileManager
     {
     public:
         static TextFile openTextFile(const std::string& filename);
-        static BinaryFile openBinaryFile(const std::string& filename);
-        
         static std::vector<TextFile> openTextFolder(const std::string& foldername);
-        static std::vector<BinaryFile> openBinaryFolder(const std::string& foldername);
     };
 }
