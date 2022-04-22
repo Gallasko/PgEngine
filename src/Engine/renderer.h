@@ -2,7 +2,6 @@
 
 #include <unordered_map>
 
-#include <QImage>
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>

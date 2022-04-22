@@ -32,6 +32,7 @@ namespace pg
         // Need to make a note about that
 
         auto shaderProgram = masterRenderer->getShader("default");
+        auto tex = masterRenderer->getTexture(texture->textureName);
 
         // Tex rendering
         
@@ -44,7 +45,7 @@ namespace pg
         texture->generateMesh();
 
         //glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture->texture);
+        glBindTexture(GL_TEXTURE_2D, tex);
 
         view.setToIdentity();
         view.translate(QVector3D(-1.0f + 2.0f * (float)(texture->pos.x) / screenWidth, 1.0f + 2.0f * (float)( -texture->pos.y) / screenHeight, 0.0f));
@@ -126,7 +127,7 @@ namespace pg
         }
     }
 
-    TextureComponent::TextureComponent(const UiSize& width, const UiSize& height, const char* path)
+    TextureComponent::TextureComponent(const UiSize& width, const UiSize& height, const std::string& textureName) : textureName(textureName)
     {
         initializeOpenGLFunctions(); 
 
@@ -140,26 +141,9 @@ namespace pg
 
         this->width = width;
         this->height = height;
-
-        //TODO dont create the texture inside the component but pull it from the masterRenderer 
-        QImage textureAtlas = QImage(QString(path));
-        textureAtlas = textureAtlas.convertToFormat(QImage::Format_RGBA8888);// mirrored();
-
-        glGenTextures(1, &texture);
-        glBindTexture(GL_TEXTURE_2D, texture);
-        // set the texture wrapping parameters
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        // set texture filtering parameters
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        // load image, create texture and generate mipmaps
-        
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureAtlas.width(), textureAtlas.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, textureAtlas.bits());
-        glGenerateMipmap(GL_TEXTURE_2D);
     }
 
-    TextureComponent::TextureComponent(const TextureComponent &rhs) : UiComponent(rhs), QOpenGLFunctions()
+    TextureComponent::TextureComponent(const TextureComponent &rhs) : UiComponent(rhs), QOpenGLFunctions(), textureName(textureName)
     {
         initializeOpenGLFunctions(); 
 
@@ -175,8 +159,6 @@ namespace pg
         this->oldHeight = rhs.oldHeight;
 
         this->modelInfo = rhs.modelInfo;
-
-        this->texture = rhs.texture;
 
         update();
     }

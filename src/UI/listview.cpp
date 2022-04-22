@@ -50,11 +50,11 @@ namespace pg
         // TODO create a unique instance of a texture creator and call it to create all textures
         // TODO make the texture creator load the texture only once and call the same texture when needed (avoid duplication of a texture in memory)
         // TODO make them dependent on the texture create and keep only shared ptr of it
-        slider = new TextureComponent(this->width, this->height, "res/object/slider.png");
+        slider = new TextureComponent(this->width, this->height, "slider");
         slider->setTopAnchor(this->top);
         slider->setLeftAnchor(this->left);
 
-        cursor = new TextureComponent(this->width, this->buttonHeight, "res/object/cursor.png");
+        cursor = new TextureComponent(this->width, this->buttonHeight, "cursor");
         cursor->setTopAnchor(this->top);
         cursor->setLeftAnchor(this->left);
     }

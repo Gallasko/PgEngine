@@ -16,7 +16,7 @@
 
 #include "../ECS/entitysystem.h"
 #include "tileloader.h"
-#include "Standalone/noise.h"
+#include "Maths/noise.h"
 #include "../constant.h"
 #include "../Input/input.h"
 #include "../camera.h"

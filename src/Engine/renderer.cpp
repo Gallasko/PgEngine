@@ -1,5 +1,7 @@
 #include "renderer.h"
 
+#include <QImage>
+
 namespace pg
 {
     void MasterRenderer::registerShader(const std::string& name, const char* vsPath, const char* fsPath)

@@ -1,0 +1,94 @@
+<RCC>
+    <qresource prefix="/">
+        <file>res/font/font.png</file>
+        <file>res/font/fontmap.ft</file>
+
+        <file>res/tiles/basetile1.png</file>
+        <file>res/tiles/basetile2.png</file>
+        <file>res/tiles/quickGrass.png</file>
+        <file>res/tiles/TeclaEatsAtlas.png</file>
+        <file>res/tiles/TeclaEatsAtlasNormal.png</file>
+
+        <file>shader/default.fs</file>
+        <file>shader/default.vs</file>
+        <file>shader/gui.fs</file>
+        <file>shader/particle.fs</file>
+        <file>shader/particle.vs</file>
+        <file>shader/textrendering.fs</file>
+        <file>shader/textrendering.vs</file>
+        
+        <file>res/object/cursor.png</file>
+        <file>res/object/PigeonMockUp.png</file>
+        <file>res/object/slider.png</file>
+        <file>res/menu/frame.png</file>
+        <file>res/menu/Menu.png</file>
+        <file>res/menu/Menu2.png</file>
+        <file>res/menu/menutest.png</file>
+    </qresource>
+
+    <qresource prefix="/tiles">
+        <file>res/tiles/0.tile</file>
+        <file>res/tiles/1.tile</file>
+        <file>res/tiles/10.tile</file>
+        <file>res/tiles/11.tile</file>
+        <file>res/tiles/12.tile</file>
+        <file>res/tiles/13.tile</file>
+        <file>res/tiles/14.tile</file>
+        <file>res/tiles/15.tile</file>
+        <file>res/tiles/16.tile</file>
+        <file>res/tiles/17.tile</file>
+        <file>res/tiles/18.tile</file>
+        <file>res/tiles/19.tile</file>
+        <file>res/tiles/2.tile</file>
+        <file>res/tiles/20.tile</file>
+        <file>res/tiles/3.tile</file>
+        <file>res/tiles/4.tile</file>
+        <file>res/tiles/5.tile</file>
+        <file>res/tiles/6.tile</file>
+        <file>res/tiles/7.tile</file>
+        <file>res/tiles/8.tile</file>
+        <file>res/tiles/9.tile</file>
+    </qresource>
+
+    <qresource prefix="/names">
+        <file>res/names/american/female.names</file>
+        <file>res/names/american/male.names</file>
+        <file>res/names/american/sur.names</file>
+        <file>res/names/argentinian/female.names</file>
+        <file>res/names/argentinian/male.names</file>
+        <file>res/names/argentinian/sur.names</file>
+        <file>res/names/british/female.names</file>
+        <file>res/names/british/male.names</file>
+        <file>res/names/british/sur.names</file>
+        <file>res/names/canadian/female.names</file>
+        <file>res/names/canadian/male.names</file>
+        <file>res/names/canadian/sur.names</file>
+        <file>res/names/chinese/female.names</file>
+        <file>res/names/chinese/male.names</file>
+        <file>res/names/chinese/sur.names</file>
+        <file>res/names/danish/female.names</file>
+        <file>res/names/danish/male.names</file>
+        <file>res/names/danish/sur.names</file>
+        <file>res/names/finnish/female.names</file>
+        <file>res/names/finnish/male.names</file>
+        <file>res/names/finnish/sur.names</file>
+        <file>res/names/french/female.names</file>
+        <file>res/names/french/male.names</file>
+        <file>res/names/french/sur.names</file>
+        <file>res/names/german/female.names</file>
+        <file>res/names/german/male.names</file>
+        <file>res/names/german/sur.names</file>
+        <file>res/names/russian/female.names</file>
+        <file>res/names/russian/male.names</file>
+        <file>res/names/russian/sur.names</file>
+        <file>res/names/spanish/female.names</file>
+        <file>res/names/spanish/male.names</file>
+        <file>res/names/spanish/sur.names</file>
+        <file>res/names/turkish/female.names</file>
+        <file>res/names/turkish/male.names</file>
+        <file>res/names/turkish/sur.names</file>
+        <file>res/names/ukranian/female.names</file>
+        <file>res/names/ukranian/male.names</file>
+        <file>res/names/ukranian/sur.names</file>
+    </qresource>
+</RCC>

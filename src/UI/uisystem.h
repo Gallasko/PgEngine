@@ -102,7 +102,7 @@ namespace pg
 
     struct TextureComponent : public UiComponent, private QOpenGLFunctions
     {
-        TextureComponent(const UiSize& width, const UiSize& height, const char* path);
+        TextureComponent(const UiSize& width, const UiSize& height, const std::string& textureName);
         TextureComponent(const TextureComponent &rhs);
         ~TextureComponent();
 
@@ -110,7 +110,7 @@ namespace pg
 
         virtual void render(MasterRenderer* masterRenderer);
 
-        unsigned int texture;
+        std::string textureName;
 
         constant::SquareInfo modelInfo;
 

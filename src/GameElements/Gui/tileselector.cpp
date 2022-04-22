@@ -60,7 +60,7 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
     this->width = 240;
     this->height = 135;
 
-    texture = new TextureComponent(this->width, this->height, "res/menu/Menu2.png");
+    texture = new TextureComponent(this->width, this->height, "Menu2");
     texture->pos.x = &this->pos.x;
     texture->pos.y = &this->pos.y;
 

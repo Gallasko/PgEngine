@@ -5,10 +5,6 @@
 
 #include <QTimer>
 
-#include <QFile>
-#include <QString>
-#include <QTextStream>
-
 //[TODO] Variant using operator* dereferencing to recast to the original type
 int main(int argc, char *argv[])
 {
@@ -20,23 +16,6 @@ int main(int argc, char *argv[])
 
     QSurfaceFormat::setDefaultFormat(format);
 
-    //Q_INIT_RESOURCE(qml);
-
-    QFile file(":/res/names/american/female.names");
-
-    if (!file.open(QIODevice::ReadOnly))
-    {
-        std::cout << "Couldn't open file" << std::endl;
-        return -1;
-    }
-
-    QTextStream in(&file);
-    while (!in.atEnd()) {
-        QString line = in.readLine();
-        std::cout << line.toStdString() << std::endl;
-    }
-    
-    /*
 	QGuiApplication app(argc, argv);
 
 	GameWindow game;
@@ -53,7 +32,4 @@ int main(int argc, char *argv[])
 
     QObject::connect(&game, SIGNAL(quitApp()), &app, SLOT(quit()));
     return app.exec();
-
-    */
-    return 0;
 }

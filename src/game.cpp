@@ -89,6 +89,16 @@ void GameWindow::initialize()
     masterRenderer.registerTexture("font", "res/font/font.png");
     masterRenderer.registerTexture("pigeon", "res/object/PigeonMockUp.png");
 
+    //TODO register texture used in a Scene
+    // and unload them when the scene is destroyed
+
+    //TODO remove this
+    masterRenderer.registerTexture("frame", "res/menu/frame.png");
+    masterRenderer.registerTexture("menutest", "res/menu/menutest.png");
+    masterRenderer.registerTexture("Menu2", "res/menu/Menu2.png");
+    masterRenderer.registerTexture("slider", "res/object/slider.png");
+    masterRenderer.registerTexture("cursor", "res/object/cursor.png");
+
     // Todo config stuff:
 
     std::cout << Configuration::config()->get<std::string>("Username", "None") << std::endl;
@@ -190,7 +200,7 @@ void GameWindow::initialize()
     frame.w = 250;
     frame.h = 300;
 
-    auto testTexture = new TextureComponent(40, 200, "res/menu/frame.png");
+    auto testTexture = new TextureComponent(40, 200, "frame");
     
     //slideBar = new SlideBar(frame, tileSelector->frame, 150, nullptr);2
     listView = new ListView(frame, testTexture);
@@ -220,7 +230,7 @@ void GameWindow::initialize()
     //tileSelectorAnimation->start();
 
     auto pathFindingButton = ecs.createEntity();
-    auto pathFindingButtonTexC = ecs.attach<TextureComponent>(pathFindingButton, {64, 32, "res/menu/frame.png"});
+    auto pathFindingButtonTexC = ecs.attach<TextureComponent>(pathFindingButton, {64, 32, "frame"});
     //pathFindingButtonTexC->setX(0);
     //pathFindingButtonTexC->setY(height() - 32);
     //pathFindingButtonTexC->setZ(1);
@@ -242,12 +252,12 @@ void GameWindow::initialize()
     animation->start();
 
     auto pigeonSpawnerTexture = ecs.createEntity();
-    auto pigeonSpawnerTextureC = ecs.attach<TextureComponent>(pigeonSpawnerTexture, {297, 196, "res/menu/menutest.png"});
+    auto pigeonSpawnerTextureC = ecs.attach<TextureComponent>(pigeonSpawnerTexture, {297, 196, "menutest"});
     pigeonSpawnerTextureC->setLeftAnchor(screenUi->right);
     pigeonSpawnerTextureC->setBottomAnchor(screenUi->bottom);
 
     auto pigeonSpawnButton = ecs.createEntity();
-    auto pigeonSpawnButtonC = ecs.attach<TextureComponent>(pigeonSpawnButton, {64, 32, "res/menu/frame.png"});
+    auto pigeonSpawnButtonC = ecs.attach<TextureComponent>(pigeonSpawnButton, {64, 32, "frame"});
 
     pigeonSpawnButtonC->setTopAnchor(pigeonSpawnerTextureC->top);
     pigeonSpawnButtonC->setLeftAnchor(pigeonSpawnerTextureC->left);
@@ -279,7 +289,7 @@ void GameWindow::initialize()
 
     makeKeyInput(this, GameWindow::showPigeonWidget);
 
-    escapePanel = new EscapePanel(new TextureComponent(297, 196, "res/menu/menutest.png"));
+    escapePanel = new EscapePanel(new TextureComponent(297, 196, "menutest"));
     escapePanel->width = 297;
     escapePanel->height = 196;
     escapePanel->pos.x = (screenUi->width / 2) - (escapePanel->width / 2);
@@ -935,7 +945,9 @@ void GameWindow::renderUi()
             if(texture.initialised == false)
                 texture.generateMesh();
 
-            glBindTexture(GL_TEXTURE_2D, texture.texture);
+            auto tex = masterRenderer.getTexture(texture.textureName);
+
+            glBindTexture(GL_TEXTURE_2D, tex);
 
             view.setToIdentity();
             view.translate(QVector3D(-1.0f + 2.0f * (float)(texture.pos.x) / width(), 1.0f + 2.0f * (float)( -texture.pos.y) / height(), 0.0f));

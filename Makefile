@@ -120,8 +120,6 @@ all: $(OUTPUT) $(MAIN)
 
 $(OUTPUT):
 	$(MD) $(OUTPUT)
-	$(MD) $(OUTPUT)\shader
-	$(MD) $(OUTPUT)\res
 
 $(MAIN): $(OBJECTS)
 	@echo Building Main ...
@@ -129,12 +127,6 @@ $(MAIN): $(OBJECTS)
 
 	@echo Copy the ddl dependencies
 	xcopy $(DEPENDENCIESDIRS) $(OUTPUT) /v /f /s /y /d
-
-	@echo Copy the ddl dependencies
-	xcopy $(SHADERDIR) $(OUTPUT)\shader /v /f /s /y /d
-	
-	@echo Copy the shader dir
-	xcopy $(RESSOURCESDIR) $(OUTPUT)\res /v /f /s /y /d
 
 # this is a suffix replacement rule for building .o's from .c's
 # it uses automatic variables $<: the name of the prerequisite of

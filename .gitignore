@@ -3,3 +3,4 @@
 /debug_build*
 /release_build*
 /build*
+/dependencies*
