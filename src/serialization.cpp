@@ -13,10 +13,20 @@ namespace pg
 {
     namespace
     {
+        /** Name of the current domain (for logging purposes)*/
         const char * DOM = "Serializer";
 
+        /** Name of the constant string indicating an attribute */
         std::string ATTRIBUTECONST = "PGSERIALISEDATTRIBUTE";
 
+        /**
+         * @brief A function that returns the number of leading whitespace characters in a string
+         * 
+         * @param str The string to check
+         * @param whitespace Characters used as whitespace characters
+         * 
+         * @return size_t The number of whitespace characters at the beginning of the string
+         */
         size_t nbLeadingSpaces(const std::string& str, const std::string& whitespace = " \t")
         {
             LOG_THIS(DOM);
@@ -28,6 +38,14 @@ namespace pg
             return strBegin;
         }
 
+        /**
+         * @brief A function that trim all whitespace characters from the beginning of a string
+         * 
+         * @param str The string to trim
+         * @param whitespace Characters used as whitespace characters
+         * 
+         * @return std::string The resulting string trimmed of the whitespace characters
+         */
         std::string trim(const std::string& str, const std::string& whitespace = " \t")
         {
             LOG_THIS(DOM);
@@ -43,7 +61,7 @@ namespace pg
         }
     }
 
-    //Serialisation of base type
+    // Serialisation of base type
 
     template<>
     void serialize(Archive& archive, const bool& value)
@@ -159,8 +177,6 @@ namespace pg
         
         attribute += "]";
         archive.setAttribute(attribute, "Verticies");
-
-        //TODO make this automatically after a new line;
 
         attribute = "[ ";
         
@@ -433,7 +449,7 @@ namespace pg
         return attribute;
     }
 
-    UnserializedObject UnserializedObject::operator[](const std::string& key)
+    const UnserializedObject& UnserializedObject::operator[](const std::string& key)
     {
         auto isObjectName = [=](UnserializedObject obj) { return obj.objectName == key; }; 
         auto it = std::find_if(children.begin(), children.end(), isObjectName);
@@ -443,7 +459,7 @@ namespace pg
         else
         {
             LOG_ERROR(DOM, "Requested the child: '" + key + "' not present inside the object");
-            return UnserializedObject();
+            return *emptyObject;
         }
     }
 
@@ -457,18 +473,18 @@ namespace pg
         else
         {
             LOG_ERROR(DOM, "Requested the child: '" + key + "' not present inside the object");
-            return *std::shared_ptr<UnserializedObject>();
+            return *emptyObject;
         }
     }
 
-    UnserializedObject UnserializedObject::operator[](unsigned int id)
+    const UnserializedObject& UnserializedObject::operator[](unsigned int id)
     {
         if(id < children.size())
             return children.at(id);
         else
         {
             LOG_ERROR(DOM, "Requested the child: '" + std::to_string(id) + "' not present inside the object");
-            return UnserializedObject();
+            return *emptyObject;
         }
     }
 
@@ -479,7 +495,7 @@ namespace pg
         else
         {
             LOG_ERROR(DOM, "Requested the child: '" + std::to_string(id)  + "' not present inside the object");
-            return *std::shared_ptr<UnserializedObject>();
+            return *emptyObject;
         }
     }
 

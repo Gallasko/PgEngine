@@ -1,6 +1,17 @@
 #ifndef SERIALIZATION_H
 #define SERIALIZATION_H
 
+/**
+ * @file serialization.h
+ * @author Pigeon Codeur
+ * @brief Definition of the serialization class
+ * @version 0.1
+ * @date 2022-04-28
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
 #include <string>
 #include <memory>
 #include <mutex>
@@ -15,19 +26,51 @@ namespace pg
     // Indent always go up one by one so if we skip an increment their is a problem 
     // Test all those case !
 
+    /**
+     * @brief Archive class responsible for creating the serialized string to be written to file
+     */
     class Archive
     {
-        struct EndOfLine { size_t* indentLevel = nullptr; };
+        // Helper struct
 
+        /**
+         * @brief Helper struct for end of line in the serialized string.
+         * 
+         * This struct is used to put an end of line in the serialized string.
+         * A specialized template catches this struct and can then put an end of line
+         * and the matching indent thanks to it.
+         */
+        struct EndOfLine
+        {
+            size_t* indentLevel = nullptr; //< References to the current indentation level of the related Archive
+        };
+
+        // Public methods
     public:
+        /**
+         * @brief Construct a new Archive object
+         * 
+         * The archive object is an advanced container for a serialized string
+         * It manages all the operation related to the creation of the serialized string from user defined data
+         * The underlying stringstream hold the serialized string
+         * 
+         */
         Archive() { endOfLine.indentLevel = &indentLevel; }
         
+        /**
+         * @brief Function used to put an end of line in the serialized string
+         * 
+         * @return const EndOfLine& A reference to the end of line object of the Archive
+         */
         const EndOfLine& endl() const { return endOfLine; }
 
+        /** Start the serialization process of a class */
         void startSerialization(const std::string& className);
 
+        /** Start the serialization process of a class */
         void endSerialization();
 
+        /** Put an Attribute in the serialization process*/
         void setAttribute(const std::string& value, const std::string& type = "");
 
         // Todo specialize this with std::endl() to disable it by making static assert !
@@ -46,6 +89,18 @@ namespace pg
             return *this;
         }
 
+        /**
+         * @brief Operator used to put data into the serialized string
+         * 
+         * @tparam Type The type of data to be serialized
+         * 
+         * @param rhs A value to be serialized
+         * @return Archive& A reference to the current Archive object
+         * 
+         * This operator put the data passed as the first parameter into the underlying container
+         * It is responsible for putting new lines and setting the appropriate indent level,
+         * to make it valid data for the parser !
+         */
         template <typename Type>
         Archive& operator<<(const Type& rhs)
         {
@@ -63,11 +118,16 @@ namespace pg
             return *this;
         }
 
+        /** The underlying container of the Archive. */
         std::stringstream container;
 
+        /** Flag indicating whether a new line should be inserted */
         bool requestNewline = false;
+        /** Flag indicating whether a comma should be inserted */
         bool requestComma = false;
+        /** The indent level of the current data */
         size_t indentLevel = 0;
+        /** The custom end of line object */
         EndOfLine endOfLine;
     };
 
@@ -100,8 +160,10 @@ namespace pg
             std::string value = "";
         };
     public:
-        UnserializedObject() : isNullObject(true), isClass(false) { }
-        UnserializedObject(const std::string& serializedString, const std::string& objectName = "", bool isClass = true) : objectName(objectName), serializedString(serializedString), isNullObject(false), isClass(isClass) { if(isClass) parseString(); }
+        UnserializedObject() : emptyObject(new UnserializedObject()), isNullObject(true), isClass(false) { }
+        UnserializedObject(const std::string& serializedString, const std::string& objectName = "", bool isClass = true) : objectName(objectName), serializedString(serializedString), emptyObject(new UnserializedObject()), isNullObject(false), isClass(isClass) { if(isClass) parseString(); }
+
+        ~UnserializedObject() { delete emptyObject; }
 
         const std::string& getObjectName() const { return objectName; }
 
@@ -115,10 +177,10 @@ namespace pg
 
         inline bool isNull() const { return isNullObject; }
 
-        UnserializedObject operator[](const std::string& key);
+        const UnserializedObject& operator[](const std::string& key);
         const UnserializedObject& operator[](const std::string& key) const;
 
-        UnserializedObject operator[](unsigned int id);
+        const UnserializedObject& operator[](unsigned int id);
         const UnserializedObject& operator[](unsigned int id) const;
 
     public:
@@ -129,6 +191,8 @@ namespace pg
 
         std::string objectName = "";
         std::string serializedString = "";
+
+        const UnserializedObject* emptyObject;
         
         bool isNullObject = false;
         bool isClass = true;

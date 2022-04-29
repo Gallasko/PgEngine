@@ -1062,7 +1062,10 @@ void GameWindow::tick()
             AnimationComponent::runningQueue[i]->tick(40); // tickRate
             
             if(!AnimationComponent::runningQueue[i]->isRunning())
+            {
+                delete AnimationComponent::runningQueue[i];
                 AnimationComponent::runningQueue.erase(AnimationComponent::runningQueue.begin() + i);
+            }
         }
 
         currentTickTime = QDateTime::currentMSecsSinceEpoch();

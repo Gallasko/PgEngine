@@ -50,7 +50,7 @@ namespace pg
             // Break of the loop if the current z value is lower than the highest z value in bound
             // Possible because mouseComponents is sorted from highest to lowest Z 
             // TODO need to reorder the list when a Z value is modified
-            //if(highestZ > mouseArea->pos->z) // care some edge case exist like listview promoting a Z value so list is not always sorted ! 
+            // if(highestZ > mouseArea->pos->z) // care some edge case exist like listview promoting a Z value so list is not always sorted ! 
             //    break;
 
             if(mouseArea->inBound(mousePos.x(), mousePos.y()) and *mouseArea->enable and mouseArea->pos->z >= highestZ)
