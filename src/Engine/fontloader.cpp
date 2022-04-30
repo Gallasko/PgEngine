@@ -77,7 +77,7 @@ namespace pg
 
         try
         {
-            file = RessourceManager::openTextFile(fontFile);
+            file = ResourceManager::openTextFile(fontFile);
         }
         catch(const std::exception& e)
         {

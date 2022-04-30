@@ -35,12 +35,12 @@ namespace pg
         }
     }
 
-    TextFile RessourceManager::openTextFile(const std::string& filename)
+    TextFile ResourceManager::openTextFile(const std::string& filename)
     {
         return openTxtFile(":/" + filename);
     }
 
-    std::vector<TextFile> RessourceManager::openTextFolder(const std::string& foldername)
+    std::vector<TextFile> ResourceManager::openTextFolder(const std::string& foldername)
     {
         std::vector<TextFile> folder;
 

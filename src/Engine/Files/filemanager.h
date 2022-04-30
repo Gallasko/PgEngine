@@ -14,7 +14,7 @@ namespace pg
         std::string data;
     };
 
-    class RessourceManager
+    class ResourceManager
     {
     public:
         static TextFile openTextFile(const std::string& filename);

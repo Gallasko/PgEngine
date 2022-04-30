@@ -107,7 +107,7 @@ namespace pg
 		std::vector<TextFile> folder;
 		try
 		{
-			folder = RessourceManager::openTextFolder(tilesFolder);
+			folder = ResourceManager::openTextFolder(tilesFolder);
 		}
 		catch(const std::exception& e)
 		{

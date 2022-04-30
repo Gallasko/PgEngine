@@ -50,7 +50,7 @@ void NameGenerator::parseFiles(const std::string &path)
     std::vector<pg::TextFile> folder;
     try
     {
-        folder = pg::RessourceManager::openTextFolder(path);
+        folder = pg::ResourceManager::openTextFolder(path);
     }
     catch(const std::exception& e)
     {
