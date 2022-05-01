@@ -17,14 +17,16 @@ namespace pg
     class ResourceManager
     {
     public:
-        static TextFile openTextFile(const std::string& filename);
-        static std::vector<TextFile> openTextFolder(const std::string& foldername);
+        static TextFile openTextFile(const std::string& filename) noexcept;
+        static std::vector<TextFile> openTextFolder(const std::string& foldername) noexcept;
     };
 
     class FileManager
     {
     public:
-        static TextFile openTextFile(const std::string& filename);
-        static std::vector<TextFile> openTextFolder(const std::string& foldername);
+        static TextFile openTextFile(const std::string& filename) noexcept;
+        static std::vector<TextFile> openTextFolder(const std::string& foldername) noexcept;
+
+        static void writeToFile(const TextFile& file, const std::string& data) noexcept;
     };
 }

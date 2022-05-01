@@ -182,6 +182,9 @@ namespace pg
         typedef std::unique_ptr<Configuration> ConfigurationPtr;
 
     public:
+        //Configuration(const Configuration&& other) : elementMap(std::move(other.elementMap)) {}
+        Configuration(const Configuration& other) : elementMap(other.elementMap) {}
+
         inline static const ConfigurationPtr& config() { static ConfigurationPtr config = ConfigurationPtr(new Configuration(true)); return config; }
 
         template<typename Type>
@@ -208,10 +211,12 @@ namespace pg
         friend void serialize<>(Archive& archive, const Configuration& config);
         friend Configuration deserialize<>(const UnserializedObject& serializedString);
 
-        void operator=(const Configuration& config)
+        Configuration& operator=(const Configuration& config)
         {
             for(const auto& element : config.elementMap)
                 this->elementMap[element.first] = element.second;
+
+            return *this;
         }
 
         std::unordered_map<std::string, Configuration::ElementType> elementMap;

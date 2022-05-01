@@ -19,6 +19,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "Engine/Files/filemanager.h"
+
 namespace pg
 {
     // TODO correctly ban ":" from class name "{" for attribute name and ATTRIBUTECONST from any litteral !
@@ -160,10 +162,8 @@ namespace pg
             std::string value = "";
         };
     public:
-        UnserializedObject() : emptyObject(new UnserializedObject()), isNullObject(true), isClass(false) { }
-        UnserializedObject(const std::string& serializedString, const std::string& objectName = "", bool isClass = true) : objectName(objectName), serializedString(serializedString), emptyObject(new UnserializedObject()), isNullObject(false), isClass(isClass) { if(isClass) parseString(); }
-
-        ~UnserializedObject() { delete emptyObject; }
+        UnserializedObject() : isNullObject(true), isClass(false) { }
+        UnserializedObject(const std::string& serializedString, const std::string& objectName = "", bool isClass = true) : objectName(objectName), serializedString(serializedString), isNullObject(false), isClass(isClass) { if(isClass) parseString(); }
 
         const std::string& getObjectName() const { return objectName; }
 
@@ -191,8 +191,6 @@ namespace pg
 
         std::string objectName = "";
         std::string serializedString = "";
-
-        const UnserializedObject* emptyObject;
         
         bool isNullObject = false;
         bool isClass = true;
@@ -217,7 +215,7 @@ namespace pg
         };
 
     public:
-        Serializer(const std::string& filename);
+        Serializer(const TextFile& file);
         ~Serializer();
 
         static std::unique_ptr<Serializer>& getSerializer(const std::string& filename = "serialize.sz")
@@ -228,13 +226,23 @@ namespace pg
         void serializeObject(const std::string& objectName, const Type& type) { ClassSerializer ar(objectName); serialize(ar.archive, type); }
 
         template <typename Type>
-        Type deserializeObject(const std::string& objectName) const { const auto& it = serializedMap.find(objectName); if(it != serializedMap.end()) return deserialize<Type>(UnserializedObject(it->second, objectName)); else return deserialize<Type>(UnserializedObject()); }
+        Type deserializeObject(const std::string& objectName) const
+        { 
+            const auto& it = serializedMap.find(objectName); 
+            if(it != serializedMap.end()) 
+                return deserialize<Type>(UnserializedObject(it->second, objectName)); 
+            else 
+                return deserialize<Type>(UnserializedObject());
+        }
 
     private:
+        Serializer(const std::string& filename);
+        void readFile(const std::string& data);
+
         void registerSerialized(const std::string& objectName, const std::stringstream& serializedString);
         void registerToFile() const;
 
-        std::string filename;
+        TextFile file;
         std::mutex mutex;
 
         std::unordered_map<std::string, std::string> serializedMap;

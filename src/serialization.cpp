@@ -459,7 +459,7 @@ namespace pg
         else
         {
             LOG_ERROR(DOM, "Requested the child: '" + key + "' not present inside the object");
-            return *emptyObject;
+            return children[0];
         }
     }
 
@@ -473,7 +473,7 @@ namespace pg
         else
         {
             LOG_ERROR(DOM, "Requested the child: '" + key + "' not present inside the object");
-            return *emptyObject;
+            return children[0];
         }
     }
 
@@ -484,7 +484,7 @@ namespace pg
         else
         {
             LOG_ERROR(DOM, "Requested the child: '" + std::to_string(id) + "' not present inside the object");
-            return *emptyObject;
+            return children[0];
         }
     }
 
@@ -495,7 +495,7 @@ namespace pg
         else
         {
             LOG_ERROR(DOM, "Requested the child: '" + std::to_string(id)  + "' not present inside the object");
-            return *emptyObject;
+            return children[0];
         }
     }
 
@@ -528,6 +528,9 @@ namespace pg
         //bool firstClass = true;
 
         bool errorHappened = false;
+
+        // The first child is a empty one
+        children.emplace_back();
 
         // Check if their is at least one line in the serialized string
         if(!std::getline(iss, currentLine))
@@ -717,75 +720,21 @@ namespace pg
         isNullObject = false;
     }
 
-    Serializer::Serializer(const std::string& filename) : filename(filename)
+    Serializer::Serializer(const TextFile& file) : file(file)
     {
         LOG_THIS_MEMBER(DOM);
 
-        std::ifstream file;
-        
-        file.open(filename);
+        readFile(file.data);
+    }
+    
+    Serializer::Serializer(const std::string& filename)
+    {
+        LOG_THIS_MEMBER(DOM);
 
-        if(file.is_open())
-        {
-            std::string line;
-            std::string serializedString;
+        TextFile file = FileManager::openTextFile(filename);
+        this->file = file;
 
-            std::string objectName = ""; 
-            std::string delimiter = ": ";
-            size_t pos;
-            
-            // First line should always be the beginning of a class declaration
-            bool startOfClass = true;
-
-            bool errorHappened = false;
-
-            while(std::getline(file, line))
-            {
-                if(startOfClass)
-                {
-                    pos = line.find(delimiter);
-
-                    if(pos == std::string::npos)
-                    {
-                        errorHappened = true;
-                        break;
-                    }
-                    
-                    objectName = line.substr(0, pos);
-
-                    pos = line.find(delimiter, pos + delimiter.length());
-
-                    if(pos != std::string::npos)
-                    {
-                        errorHappened = true;
-                        break;
-                    }
-
-                    serializedString = line + '\n';
-                    startOfClass = false;
-                }
-                else
-                {
-                    serializedString += line + '\n';
-
-                    if(line == "}")
-                    {
-                        serializedMap[objectName] = serializedString;
-                        startOfClass = true;
-                    }
-                        
-                }
-            }
-
-            if(errorHappened)
-                { LOG_ERROR(DOM, "Error happened when parsing: " + filename); }
-        }
-        else
-        {
-            LOG_ERROR(DOM, "Serializer can't open serialize file: " + filename);
-        }
-
-        file.close();
+        readFile(file.data);
     }
 
     Serializer::~Serializer()
@@ -795,6 +744,66 @@ namespace pg
         std::lock_guard<std::mutex> lock(mutex);
 
         registerToFile();
+    }
+
+    void Serializer::readFile(const std::string& data)
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        std::string line;
+        std::string serializedString;
+
+        std::string objectName = ""; 
+        std::string delimiter = ": ";
+        size_t pos;
+        
+        // First line should always be the beginning of a class declaration
+        bool startOfClass = true;
+
+        bool errorHappened = false;
+
+        std::istringstream stream(data);
+
+        while(std::getline(stream, line))
+        {
+            if(startOfClass)
+            {
+                pos = line.find(delimiter);
+
+                if(pos == std::string::npos)
+                {
+                    errorHappened = true;
+                    break;
+                }
+                
+                objectName = line.substr(0, pos);
+
+                pos = line.find(delimiter, pos + delimiter.length());
+
+                if(pos != std::string::npos)
+                {
+                    errorHappened = true;
+                    break;
+                }
+
+                serializedString = line + '\n';
+                startOfClass = false;
+            }
+            else
+            {
+                serializedString += line + '\n';
+
+                if(line == "}")
+                {
+                    serializedMap[objectName] = serializedString;
+                    startOfClass = true;
+                }
+                    
+            }
+        }
+
+        if(errorHappened)
+            { LOG_ERROR(DOM, "Error happened when parsing: " + file.filename); }
     }
 
     void Serializer::registerSerialized(const std::string& objectName, const std::stringstream& serializedString)
@@ -811,20 +820,11 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
-        std::ofstream file;
-        
-        file.open(filename);
+        std::ostringstream stream;
 
-        if(file.is_open())
-        {
-            for(const auto& serializedString : serializedMap)
-                file << serializedString.first << ": " << serializedString.second;
+        for(const auto& serializedString : serializedMap)
+            stream << serializedString.first << ": " << serializedString.second;
 
-            file.close();
-        }
-        else
-        {
-            LOG_ERROR(DOM, "Serializer can't open serialize file: " + filename);
-        }
+        FileManager::writeToFile(file, stream.str());
     }
 }

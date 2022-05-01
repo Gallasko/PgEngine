@@ -15,33 +15,46 @@ namespace pg
     {
         const char * DOM = "File Manager";
 
-        TextFile openTxtFile(const std::string& filename)
+        TextFile openTxtFile(const std::string& filename) noexcept
         {
             LOG_THIS(DOM);
 
-            QFile file(filename.c_str());
-
-            if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+            try
             {
-                LOG_ERROR(DOM, "Can't open file '" + filename + "'.");
-                throw std::runtime_error("Can't open file " + filename + "'.");
+                QFile file(filename.c_str());
+
+                if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+                {
+                    LOG_INFO(DOM, "Can't open file '" + filename + "'.");
+                    return TextFile{filename, ""};
+                }
+
+                auto text = file.readAll().toStdString();
+
+                file.close();
+
+                return TextFile{filename, text};
             }
+            catch (const std::exception& e)
+            {
+                LOG_INFO(DOM, e.what());
 
-            auto text = file.readAll().toStdString();
-
-            file.close();
-
-            return TextFile{filename, text};
+                return TextFile{filename, ""};
+            }
         }
     }
 
-    TextFile ResourceManager::openTextFile(const std::string& filename)
+    TextFile ResourceManager::openTextFile(const std::string& filename) noexcept
     {
+        LOG_THIS(DOM);
+
         return openTxtFile(":/" + filename);
     }
 
-    std::vector<TextFile> ResourceManager::openTextFolder(const std::string& foldername)
+    std::vector<TextFile> ResourceManager::openTextFolder(const std::string& foldername) noexcept
     {
+        LOG_THIS(DOM);
+
         std::vector<TextFile> folder;
 
         foreach(const QString& fileName, QDir((":/" + foldername).c_str()).entryList())
@@ -52,20 +65,49 @@ namespace pg
         return folder;
     }
 
-    TextFile FileManager::openTextFile(const std::string& filename)
+    TextFile FileManager::openTextFile(const std::string& filename) noexcept
     {
+        LOG_THIS(DOM);
+
         return openTxtFile(filename);
     }
 
-    std::vector<TextFile> FileManager::openTextFolder(const std::string& foldername)
+    std::vector<TextFile> FileManager::openTextFolder(const std::string& foldername) noexcept
     {
+        LOG_THIS(DOM);
+
         std::vector<TextFile> folder;
 
         foreach(const QString& fileName, QDir(foldername.c_str()).entryList() )
         {
-            folder.push_back(openTxtFile(fileName.toStdString()));
+            folder.push_back(openTxtFile(foldername + fileName.toStdString()));
         }
 
         return folder;
     }
+
+    void FileManager::writeToFile(const TextFile& file, const std::string& data) noexcept
+    {
+        LOG_THIS(DOM);
+
+        try
+        {
+            QFile f(file.filename.c_str());
+
+            if (!f.open(QIODevice::WriteOnly | QIODevice::Text))
+            {
+                LOG_ERROR(DOM, "Can't open file '" + file.filename + "'.");
+                return;
+            }
+
+            f.write(data.c_str());
+
+            f.close();
+        }
+        catch (const std::exception& e)
+        {
+            LOG_ERROR(DOM, e.what());
+        }
+    }
+
 }
