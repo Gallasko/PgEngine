@@ -731,7 +731,7 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
-        TextFile file = FileManager::openTextFile(filename);
+        TextFile file = FileAccessor::openTextFile(filename);
         this->file = file;
 
         readFile(file.data);
@@ -825,6 +825,6 @@ namespace pg
         for(const auto& serializedString : serializedMap)
             stream << serializedString.first << ": " << serializedString.second;
 
-        FileManager::writeToFile(file, stream.str());
+        FileAccessor::writeToFile(file, stream.str());
     }
 }

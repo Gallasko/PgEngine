@@ -47,16 +47,7 @@ void NameGenerator::parseFiles(const std::string &path)
     std::string line;
     std::string country;
 
-    std::vector<pg::TextFile> folder;
-    try
-    {
-        folder = pg::ResourceManager::openTextFolder(path);
-    }
-    catch(const std::exception& e)
-    {
-        LOG_ERROR(DOM, e.what());
-        return;
-    }
+    std::vector<pg::TextFile> folder = pg::ResourceAccessor::openTextFolder(path);
 
     for(auto file : folder)
     {

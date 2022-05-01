@@ -73,17 +73,7 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
-        TextFile file;
-
-        try
-        {
-            file = ResourceManager::openTextFile(fontFile);
-        }
-        catch(const std::exception& e)
-        {
-            LOG_ERROR(DOM, e.what());
-            return;
-        }
+        TextFile file = ResourceAccessor::openTextFile(fontFile);
 
         FileParser parser(file);
         std::shared_ptr<FontLoader::Font> newChara = nullptr;

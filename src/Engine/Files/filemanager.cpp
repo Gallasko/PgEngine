@@ -44,14 +44,14 @@ namespace pg
         }
     }
 
-    TextFile ResourceManager::openTextFile(const std::string& filename) noexcept
+    TextFile ResourceAccessor::openTextFile(const std::string& filename) noexcept
     {
         LOG_THIS(DOM);
 
         return openTxtFile(":/" + filename);
     }
 
-    std::vector<TextFile> ResourceManager::openTextFolder(const std::string& foldername) noexcept
+    std::vector<TextFile> ResourceAccessor::openTextFolder(const std::string& foldername) noexcept
     {
         LOG_THIS(DOM);
 
@@ -65,14 +65,14 @@ namespace pg
         return folder;
     }
 
-    TextFile FileManager::openTextFile(const std::string& filename) noexcept
+    TextFile FileAccessor::openTextFile(const std::string& filename) noexcept
     {
         LOG_THIS(DOM);
 
         return openTxtFile(filename);
     }
 
-    std::vector<TextFile> FileManager::openTextFolder(const std::string& foldername) noexcept
+    std::vector<TextFile> FileAccessor::openTextFolder(const std::string& foldername) noexcept
     {
         LOG_THIS(DOM);
 
@@ -86,7 +86,7 @@ namespace pg
         return folder;
     }
 
-    void FileManager::writeToFile(const TextFile& file, const std::string& data) noexcept
+    void FileAccessor::writeToFile(const TextFile& file, const std::string& data) noexcept
     {
         LOG_THIS(DOM);
 

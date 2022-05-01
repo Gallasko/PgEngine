@@ -14,14 +14,14 @@ namespace pg
         std::string data;
     };
 
-    class ResourceManager
+    class ResourceAccessor
     {
     public:
         static TextFile openTextFile(const std::string& filename) noexcept;
         static std::vector<TextFile> openTextFolder(const std::string& foldername) noexcept;
     };
 
-    class FileManager
+    class FileAccessor
     {
     public:
         static TextFile openTextFile(const std::string& filename) noexcept;

@@ -104,16 +104,7 @@ namespace pg
 
 		std::shared_ptr<TilesLoader::TilesId> newTile;
 
-		std::vector<TextFile> folder;
-		try
-		{
-			folder = ResourceManager::openTextFolder(tilesFolder);
-		}
-		catch(const std::exception& e)
-		{
-			LOG_ERROR(DOM, e.what());
-			return;
-		}
+		std::vector<TextFile> folder = ResourceAccessor::openTextFolder(tilesFolder);
 
 		for(auto file : folder)
 		{
