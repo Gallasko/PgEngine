@@ -3,6 +3,7 @@
 #include "logger.h"
 #include "serialization.h" 
 #include "configuration.h"
+#include "Engine/Scene/sceneloader.h"
 
 namespace
 {
@@ -179,6 +180,8 @@ void GameWindow::initialize()
     screenUi->height = 1;
     screenUi->setZ(-1);
 
+    serializer->serializeObject("Screen", *screenUi);
+
     makeMouseArea(screenUi, camera, Camera::updateMouse);
 
     makeKeyInput(camera, &Camera::updateKeyboard);
@@ -252,9 +255,20 @@ void GameWindow::initialize()
     animation->start();
 
     auto pigeonSpawnerTexture = ecs.createEntity();
-    auto pigeonSpawnerTextureC = ecs.attach<TextureComponent>(pigeonSpawnerTexture, {297, 196, "menutest"});
+
+    
+
+    auto deserializedPigeonTexture = Serializer::getSerializer()->deserializeObject<TextureComponent>("Pigeon spawner texture");
+    TextureComponent* pigeonSpawnerTextureC;
+    if(deserializedPigeonTexture.textureName == "")
+        pigeonSpawnerTextureC = ecs.attach<TextureComponent>(pigeonSpawnerTexture, {297, 196, "menutest"});
+    else
+        pigeonSpawnerTextureC = ecs.attach<TextureComponent>(pigeonSpawnerTexture, deserializedPigeonTexture);
+
     pigeonSpawnerTextureC->setLeftAnchor(screenUi->right);
     pigeonSpawnerTextureC->setBottomAnchor(screenUi->bottom);
+
+    serializer->serializeObject("Pigeon spawner texture", *pigeonSpawnerTextureC);
 
     auto pigeonSpawnButton = ecs.createEntity();
     auto pigeonSpawnButtonC = ecs.attach<TextureComponent>(pigeonSpawnButton, {64, 32, "frame"});
@@ -556,7 +570,7 @@ void GameWindow::render()
     }
 
     masterRenderer << tileSelector;
-    masterRenderer << listView;
+    //masterRenderer << listView;
     masterRenderer << escapePanel;
 
     //masterRenderer.render<ParticleRenderer>(pComponent);
@@ -1063,7 +1077,7 @@ void GameWindow::tick()
             
             if(!AnimationComponent::runningQueue[i]->isRunning())
             {
-                delete AnimationComponent::runningQueue[i];
+                //delete AnimationComponent::runningQueue[i]; // TODO check where to put this
                 AnimationComponent::runningQueue.erase(AnimationComponent::runningQueue.begin() + i);
             }
         }

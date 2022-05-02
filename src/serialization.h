@@ -235,6 +235,8 @@ namespace pg
                 return deserialize<Type>(UnserializedObject());
         }
 
+        const std::unordered_map<std::string, std::string>& getSerializedMap() const { return serializedMap; }
+
     private:
         Serializer(const std::string& filename);
         void readFile(const std::string& data);

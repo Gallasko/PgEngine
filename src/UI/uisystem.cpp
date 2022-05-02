@@ -1,6 +1,7 @@
 #include "uisystem.h"
 
 #include "../logger.h"
+#include "../serialization.h"
 
 namespace pg
 {
@@ -56,6 +57,196 @@ namespace pg
         glDrawElements(GL_TRIANGLES, texture->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
 
         shaderProgram->release();
+    }
+
+    template<>
+    void serialize(Archive& archive, const UiSize& value)
+    {
+        LOG_THIS(DOM);
+
+        archive.startSerialization("UiSize");
+
+        serialize(archive, "value", static_cast<float>(value));
+
+        archive.endSerialization();
+    }
+
+    template<>
+    void serialize(Archive& archive, const UiPosition& value)
+    {
+        LOG_THIS(DOM);
+
+        archive.startSerialization("UiPosition");
+
+        serialize(archive, "x", value.x);
+        serialize(archive, "y", value.y);
+        serialize(archive, "z", value.z);
+
+        archive.endSerialization();
+    }
+
+    template<>
+    void serialize(Archive& archive, const UiFrame& value)
+    {
+        LOG_THIS(DOM);
+
+        archive.startSerialization("UiFrame");
+
+        serialize(archive, "pos", value.pos);
+        serialize(archive, "w", value.w);
+        serialize(archive, "h", value.h);
+
+        archive.endSerialization();
+    }
+
+    template<>
+    void serialize(Archive& archive, const UiComponent& value)
+    {
+        LOG_THIS(DOM);
+
+        archive.startSerialization("UiComponent");
+
+        serialize(archive, "visibility", value.isVisible());
+        serialize(archive, "pos", value.pos);
+        serialize(archive, "width", value.width);
+        serialize(archive, "height", value.height);
+
+        serialize(archive, "topMargin", value.topMargin);
+        serialize(archive, "rightMargin", value.rightMargin);
+        serialize(archive, "bottomMargin", value.bottomMargin);
+        serialize(archive, "leftMargin", value.leftMargin);
+
+        archive.endSerialization();
+    }
+
+    template<>
+    void serialize(Archive& archive, const TextureComponent& value)
+    {
+        LOG_THIS(DOM);
+
+        archive.startSerialization("TextureComponent");
+
+        serialize(archive, "uicomponent", static_cast<UiComponent>(value));
+        serialize(archive, "textureName", value.textureName);
+    
+        archive.endSerialization();
+    }
+
+    template<>
+    UiSize deserialize(const UnserializedObject& serializedString)
+    {
+        LOG_THIS(DOM);
+
+        UiSize size;
+
+        std::string type = "";
+
+        if(serializedString.isNull())
+            LOG_ERROR(DOM, "Element is null");
+        else
+        {
+            size = deserialize<float>(serializedString["value"]);
+        }
+
+        return size;
+    }
+
+    template<>
+    UiPosition deserialize(const UnserializedObject& serializedString)
+    {
+        LOG_THIS(DOM);
+
+        UiPosition pos;
+
+        std::string type = "";
+
+        if(serializedString.isNull())
+            LOG_ERROR(DOM, "Element is null");
+        else
+        {
+            pos.x = deserialize<UiSize>(serializedString["x"]);
+            pos.y = deserialize<UiSize>(serializedString["y"]);
+            pos.z = deserialize<UiSize>(serializedString["z"]);
+        }
+
+        return pos;
+    }
+
+    template<>
+    UiFrame deserialize(const UnserializedObject& serializedString)
+    {
+        LOG_THIS(DOM);
+
+        UiFrame frame;
+
+        std::string type = "";
+
+        if(serializedString.isNull())
+            LOG_ERROR(DOM, "Element is null");
+        else
+        {
+            LOG_INFO(DOM, "Deserializing an UiFrame");
+
+            frame.pos = deserialize<UiPosition>(serializedString["pos"]);
+            frame.w = deserialize<UiSize>(serializedString["w"]);
+            frame.h = deserialize<UiSize>(serializedString["h"]);
+        }
+
+        return frame;
+    }
+
+    template<>
+    UiComponent deserialize(const UnserializedObject& serializedString)
+    {
+        LOG_THIS(DOM);
+
+        UiComponent component;
+
+        std::string type = "";
+
+        if(serializedString.isNull())
+            LOG_ERROR(DOM, "Element is null");
+        else
+        {
+            LOG_INFO(DOM, "Deserializing an UiComponent");
+
+            deserialize<bool>(serializedString["visibility"]) ? component.show() : component.hide();
+
+            component.pos = deserialize<UiPosition>(serializedString["pos"]);
+            component.width = deserialize<UiSize>(serializedString["width"]);
+            component.height = deserialize<UiSize>(serializedString["height"]);
+
+            component.topMargin = deserialize<UiSize>(serializedString["topMargin"]);
+            component.rightMargin = deserialize<UiSize>(serializedString["rightMargin"]);
+            component.bottomMargin = deserialize<UiSize>(serializedString["bottomMargin"]);
+            component.leftMargin = deserialize<UiSize>(serializedString["leftMargin"]);
+
+            component.update();
+        }
+
+        return component;
+    }
+
+    template<>
+    TextureComponent deserialize(const UnserializedObject& serializedString)
+    {
+        LOG_THIS(DOM);
+
+        std::string type = "";
+
+        if(serializedString.isNull())
+            LOG_ERROR(DOM, "Element is null");
+        else
+        {
+            LOG_INFO(DOM, "Deserializing an TextureComponent");
+
+            auto uiComponent = deserialize<UiComponent>(serializedString["uicomponent"]);
+            auto textureName = deserialize<std::string>(serializedString["textureName"]);
+
+            return TextureComponent{uiComponent, textureName};
+        }
+
+        return TextureComponent{0.0f, 0.0f, ""};
     }
 
     UiComponent::UiComponent(const UiComponent& rhs)
@@ -141,6 +332,21 @@ namespace pg
 
         this->width = width;
         this->height = height;
+    }
+
+    TextureComponent::TextureComponent(const UiComponent& component, const std::string& textureName) : UiComponent(component), QOpenGLFunctions(), textureName(textureName)
+    {
+        initializeOpenGLFunctions(); 
+
+        VAO = new QOpenGLVertexArrayObject();
+        VBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+        EBO = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
+
+        VAO->create();
+        VBO->create();
+        EBO->create();
+
+        update();
     }
 
     TextureComponent::TextureComponent(const TextureComponent &rhs) : UiComponent(rhs), QOpenGLFunctions(), textureName(rhs.textureName)
