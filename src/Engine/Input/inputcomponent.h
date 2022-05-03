@@ -1,12 +1,18 @@
 #pragma once
 
-#include "../UI/uisystem.h"
 #include "input.h"
+
+#include "../constant.h"
 
 #include <memory>
 
 namespace pg
 {
+    // Definition forwarding
+    class UiPosition;
+    class UiSize;
+    class UiComponent;
+
     struct MouseInputComponent
     {
         struct Base {};
@@ -41,8 +47,8 @@ namespace pg
             onLeaveLambda = mouseLeave;
         }
 
-        MouseInputComponent(UiComponent *component) : pos(&component->pos), width(&component->width), height(&component->height), enable(&component->isVisible()) {}
-        MouseInputComponent(const MouseInputComponent& component) : pos(component.pos), width(component.width), height(component.height), enable(component.enable), object(component.object), onPressed(component.onPressed), onLeave(component.onLeave), onPressedLambda(component.onPressedLambda), onLeaveLambda(component.onLeaveLambda) {}
+        MouseInputComponent(UiComponent *component);
+        MouseInputComponent(const MouseInputComponent& component);
 
         //TODO check if we can send const Args& all the time or if some specific application need to modify arguments
         template<typename... Args>
@@ -65,7 +71,7 @@ namespace pg
                 (*onLeaveLambda)(inputHandler, deltaTime);
         }
 
-        bool inBound(int x, int y) const { return x > this->pos->x && x < (this->pos->x + *this->width) && y < (this->pos->y + *this->height) && y > this->pos->y; }
+        bool inBound(int x, int y) const;
         bool inBound(const constant::Vector2D& vec2) const { return inBound(vec2.x, vec2.y); }
 
         virtual ~MouseInputComponent() {}

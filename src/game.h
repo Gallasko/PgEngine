@@ -31,20 +31,20 @@
 #include <mutex>
 
 
-#include "ECS/entitysystem.h"
+#include "Engine/ECS/entitysystem.h"
 
-#include "camera.h"
-#include "Input/input.h"
-#include "Input/inputcomponent.h"
-#include "constant.h"
-#include "Engine/map.h"
-#include "Engine/fontloader.h"
-#include "Engine/renderer.h"
-#include "UI/sentencesystem.h"
-#include "UI/uianimation.h"
-#include "UI/listview.h"
+#include "Engine/camera.h"
+#include "Engine/Input/input.h"
+#include "Engine/Input/inputcomponent.h"
+#include "Engine/constant.h"
+#include "GameElements/Systems/map.h"
+#include "Engine/Loaders/fontloader.h"
+#include "Engine/Renderer/renderer.h"
+#include "Engine/UI/sentencesystem.h"
+#include "Engine/UI/uianimation.h"
+#include "Engine/UI/listview.h"
 
-#include "Engine/particle.h"
+#include "Engine/Renderer/particle.h"
 
 #include "GameElements/Gui/tileselector.h"
 #include "GameElements/Gui/escapepanel.h"

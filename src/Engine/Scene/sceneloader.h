@@ -5,10 +5,10 @@
 #include <unordered_map>
 #include <functional>
 
-#include "../renderer.h"
-#include "../../UI/uisystem.h"
+#include "../Renderer/renderer.h"
+#include "../UI/uisystem.h"
 #include "../Files/filemanager.h"
-#include "../../serialization.h"
+#include "../serialization.h"
 
 namespace pg
 {

@@ -1,7 +1,7 @@
 #include "namegen.h"
 
-#include "../../logger.h"
-#include "../../Engine/randomnumbergenerator.h"
+#include "../../Engine/logger.h"
+#include "../../Engine/Maths/randomnumbergenerator.h"
 #include "../../Engine/Files/parser.h"
 
 namespace

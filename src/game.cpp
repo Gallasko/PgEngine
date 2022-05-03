@@ -1,8 +1,8 @@
 #include "game.h"
 
-#include "logger.h"
-#include "serialization.h" 
-#include "configuration.h"
+#include "Engine/logger.h"
+#include "Engine/serialization.h" 
+#include "Engine/configuration.h"
 #include "Engine/Scene/sceneloader.h"
 
 namespace
@@ -27,7 +27,7 @@ GameWindow::GameWindow(QWindow *parent) : QWindow(parent)
     inputHandler = new Input();
 }
 
-#include "Engine/randomnumbergenerator.h"
+#include "Engine/Maths/randomnumbergenerator.h"
 
 GameWindow::~GameWindow()
 {

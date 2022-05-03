@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include "../../logger.h"
+#include "../logger.h"
 
 namespace pg
 {

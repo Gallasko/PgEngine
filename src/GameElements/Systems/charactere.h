@@ -4,9 +4,9 @@
 #include <vector>
 #include <algorithm>
 
-#include "../../constant.h"
-#include "../../UI/uisystem.h"
-#include "../../UI//sentencesystem.h"
+#include "../../Engine/constant.h"
+#include "../../Engine/UI/uisystem.h"
+#include "../../Engine/UI//sentencesystem.h"
 
 #include "gametime.h"
 #include "inventory.h"

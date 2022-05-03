@@ -2,15 +2,15 @@
 
 #include <vector>
 
-#include "../../constant.h"
+#include "../../Engine/constant.h"
 
-#include "../../Engine/tileloader.h"
-#include "../../Engine/fontloader.h"
-#include "../../Engine/map.h"
-#include "../../UI/uisystem.h"
-#include "../../UI/sentencesystem.h"
-#include "../../Input/input.h"
-#include "../../Input/inputcomponent.h"
+#include "../../Engine/Loaders/tileloader.h"
+#include "../../Engine/Loaders/fontloader.h"
+#include "../Systems/map.h"
+#include "../../Engine/UI/uisystem.h"
+#include "../../Engine/UI/sentencesystem.h"
+#include "../../Engine/Input/input.h"
+#include "../../Engine/Input/inputcomponent.h"
 
 using namespace pg;
 

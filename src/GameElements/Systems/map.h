@@ -14,12 +14,12 @@
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLBuffer>
 
-#include "../ECS/entitysystem.h"
-#include "tileloader.h"
-#include "Maths/noise.h"
-#include "../constant.h"
-#include "../Input/input.h"
-#include "../camera.h"
+#include "../../Engine/ECS/entitysystem.h"
+#include "../../Engine/Loaders/tileloader.h"
+#include "../../Engine/Maths/noise.h"
+#include "../../Engine/constant.h"
+#include "../../Engine/Input/input.h"
+#include "../../Engine/camera.h"
 
 // TODO Fix pathfinding sometimes a node is traversed multiple times
 // Sometimes the shortest route is not found because a longer route was not registered

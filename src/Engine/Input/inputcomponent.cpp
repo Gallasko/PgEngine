@@ -1,5 +1,7 @@
 #include "inputcomponent.h"
 
+#include "../UI/uisystem.h"
+
 namespace pg
 {
     namespace
@@ -67,6 +69,21 @@ namespace pg
 
         for(auto& component : keyComponents)
             component.callback(inputHandler, deltaTime);
+    }
+
+    MouseInputComponent::MouseInputComponent(UiComponent *component) : pos(&component->pos), width(&component->width), height(&component->height), enable(&component->isVisible())
+    {
+
+    }
+
+    MouseInputComponent::MouseInputComponent(const MouseInputComponent& component) : pos(component.pos), width(component.width), height(component.height), enable(component.enable), object(component.object), onPressed(component.onPressed), onLeave(component.onLeave), onPressedLambda(component.onPressedLambda), onLeaveLambda(component.onLeaveLambda)
+    {
+
+    }
+
+    bool MouseInputComponent::inBound(int x, int y) const
+    { 
+        return x > this->pos->x && x < (this->pos->x + *this->width) && y < (this->pos->y + *this->height) && y > this->pos->y; 
     }
 
     const InputSystem::MouseComponent& InputSystem::registerMouseArea(MouseInputPtr component, const std::function<void(Input*, double)>& inputCallback, const std::function<void(Input*, double)>& leaveCallback)

@@ -4,8 +4,8 @@
 #include <vector>
 
 #include "uisystem.h"
-#include "../Engine/fontloader.h"
-#include "../Engine/renderer.h"
+#include "../Loaders/fontloader.h"
+#include "../Renderer/renderer.h"
 #include "../constant.h"
 
 #include "../serialization.h"
