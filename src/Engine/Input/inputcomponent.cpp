@@ -104,7 +104,7 @@ namespace pg
         return returnComponent;
     }
 
-    const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double), void (*mouseLeave)(Input*, double) = nullptr)
+    const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double), void (*mouseLeave)(Input*, double))
     {
         auto& system = InputSystem::system();
 
@@ -132,6 +132,36 @@ namespace pg
         auto inputCallback = [=](Input* inputHandler, double deltaTime) { mouseArea->call(inputHandler, deltaTime); };
 
         return system->registerMouseArea(mouseArea, inputCallback, static_cast<std::function<void(pg::Input*, double)>>(nullptr));
+    }
+
+    const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double))
+    {
+        auto& system = InputSystem::system();
+
+        auto mouseArea = MouseInputPtr(new MouseInputBase<MouseInputComponent::Base>(component));
+        mouseArea->registerFunc(mouseInput, static_cast<void (*)(pg::Input*, double)>(nullptr));
+
+        auto inputCallback = [=](Input* inputHandler, double deltaTime) { mouseArea->call(inputHandler, deltaTime); };
+
+        return system->registerMouseArea(mouseArea, inputCallback, static_cast<std::function<void(pg::Input*, double)>>(nullptr));
+    }
+
+    const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, const std::function<void(pg::Input*, double)>& mouseInput)
+    {
+        auto& system = InputSystem::system();
+
+        auto mouseArea = MouseInputPtr(new MouseInputBase<MouseInputComponent::Base>(component));
+
+        return system->registerMouseArea(mouseArea, mouseInput, static_cast<std::function<void(pg::Input*, double)>>(nullptr));
+    }
+
+    const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, const std::function<void(pg::Input*, double)>& mouseInput, const std::function<void(pg::Input*, double)>& mouseLeave)
+    {
+        auto& system = InputSystem::system();
+
+        auto mouseArea = MouseInputPtr(new MouseInputBase<MouseInputComponent::Base>(component));
+
+        return system->registerMouseArea(mouseArea, mouseInput, mouseLeave);
     }
 
 }
