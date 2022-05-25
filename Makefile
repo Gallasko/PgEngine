@@ -86,8 +86,12 @@ RM = rm -f
 MD	:= mkdir -p
 endif
 
+
+SOURCESDIRTREE := ${sort ${dir ${wildcard ${SOURCEDIRS}/*/ ${SOURCEDIRS}/*/*/}}}
+
 # define any directories containing header files other than /usr/include
-INCLUDES	:= $(patsubst %,-I%, $(INCLUDEDIRS:%/=%))
+INCLUDES	:= $(patsubst %,-I%, $(INCLUDEDIRS:%/=%)) \
+			   $(patsubst %,-I%, $(SOURCESDIRTREE:%/=%))
 
 # define the C libs
 LIBS		:= $(patsubst %,-L%, $(LIBDIRS:%/=%)) \
@@ -99,8 +103,6 @@ LIBS		:= $(patsubst %,-L%, $(LIBDIRS:%/=%)) \
 SOURCES		:= $(call rwildcard,$(SOURCEDIRS), *.cpp)
 MOC_SOURCES	:= $(call rwildcard,$(SOURCEDIRS), *.h)
 RCC_SOURCES	:= $(call rwildcard,., *.qrc)
-
-SOURCESDIRTREE := ${sort ${dir ${wildcard ${SOURCEDIRS}/*/ ${SOURCEDIRS}/*/*/}}}
 
 # define the C object files 
 OBJECTS		:= $(SOURCES:%.cpp=$(BUILDDIR)/%.o) $(MOC_SOURCES:%.h=$(BUILDDIR)/%.moc.o) $(RCC_SOURCES:%.qrc=$(BUILDDIR)/%.rcc.o)

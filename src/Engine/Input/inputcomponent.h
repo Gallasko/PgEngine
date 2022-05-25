@@ -4,6 +4,7 @@
 
 #include "../constant.h"
 
+#include <functional>
 #include <memory>
 
 namespace pg
