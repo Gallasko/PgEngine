@@ -92,7 +92,7 @@ void EditorWindow::initialize()
     fontLoader = new FontLoader("res/font/fontmap.ft");
 
     screenEntity = ecs.createEntity();
-    screenUi = ecs.attach<UiComponent>(screenEntity, {});
+    screenUi = ecs.attach<UiComponent>(screenEntity);
     screenUi->width = 1;
     screenUi->height = 1;
     screenUi->setZ(-1);
@@ -100,14 +100,14 @@ void EditorWindow::initialize()
     makeKeyInput(this, EditorWindow::quit);
 
     auto optionTab = ecs.createEntity();
-    auto optionTabC = ecs.attach<TextureComponent>(optionTab, {300, 1, "TabTexture"});
+    auto optionTabC = ecs.attach<TextureComponent>(optionTab, 300, 1, "TabTexture");
 
     optionTabC->setTopAnchor(screenUi->top);
     optionTabC->setRightAnchor(screenUi->right);
     optionTabC->setBottomAnchor(screenUi->bottom);
 
     auto sceneEntity = ecs.createEntity();
-    auto sceneEntityC = ecs.attach<UiComponent>(sceneEntity, {});
+    auto sceneEntityC = ecs.attach<UiComponent>(sceneEntity);
 
     sceneEntityC->setLeftAnchor(screenUi->left);
     sceneEntityC->setRightAnchor(optionTabC->left);
@@ -119,15 +119,15 @@ void EditorWindow::initialize()
     // [Start] Context menu UI
 
     auto contextMenuEntity = ecs.createEntity();
-    contextMenu = ecs.attach<TextureComponent>(contextMenuEntity, {250, 100, "TabTexture"});
+    contextMenu = ecs.attach<TextureComponent>(contextMenuEntity, 250, 100, "TabTexture");
 
     contextMenu->hide();
 
     auto addTextureButton = ecs.createEntity();
-    auto addTextureButtonC = ecs.attach<Button>(addTextureButton, {
+    auto addTextureButtonC = ecs.attach<Button>(addTextureButton,
         [](Input* inputHandler, double){ if(inputHandler->isButtonPressed(Qt::LeftButton)) std::cout << "Pressed" << std::endl; },
-        {{"Add button"}, 2.0f, fontLoader}
-        });
+        Sentence::SentenceParameters{{"Add button"}, 2.0f, fontLoader}
+        );
 
     addTextureButtonC->setTopAnchor(contextMenu->top);
     addTextureButtonC->setLeftAnchor(contextMenu->left);
