@@ -10,7 +10,7 @@ namespace pg
         int findInputPos(const Value& value, const Container& container)
         {
             for (long long unsigned int i = 0; i < container.size(); i++)
-                if(value == container.at(i))
+                if(value == *container.at(i))
                     return i;
 
             return -1;
@@ -19,7 +19,7 @@ namespace pg
         template<typename InputHolder>
         bool compareZValueFromComponents(const InputHolder& left, const InputHolder& right)
         {
-            return left.component->pos->z > right.component->pos->z;
+            return left->component->pos->z > right->component->pos->z;
         }
     }
 
@@ -47,7 +47,7 @@ namespace pg
 
         for(auto& component : mouseComponents)
         {
-            const auto& mouseArea = component.component;
+            const auto& mouseArea = component->component;
 
             // Break of the loop if the current z value is lower than the highest z value in bound
             // Possible because mouseComponents is sorted from highest to lowest Z 
@@ -58,17 +58,17 @@ namespace pg
             if(mouseArea->inBound(mousePos.x(), mousePos.y()) and *mouseArea->enable and mouseArea->pos->z >= highestZ)
             {
                 highestZ = mouseArea->pos->z;
-                component.inputCallback(inputHandler, deltaTime);
+                component->inputCallback(inputHandler, deltaTime);
             }
             else
             {
-                if(component.leaveCallback != nullptr)
-                    component.leaveCallback(inputHandler, deltaTime);
+                if(component->leaveCallback != nullptr)
+                    component->leaveCallback(inputHandler, deltaTime);
             }
         }
 
         for(auto& component : keyComponents)
-            component.callback(inputHandler, deltaTime);
+            component->callback(inputHandler, deltaTime);
     }
 
     MouseInputComponent::MouseInputComponent(UiComponent *component) : pos(&component->pos), width(&component->width), height(&component->height), enable(&component->isVisible())
@@ -87,19 +87,21 @@ namespace pg
     }
 
     const InputSystem::MouseComponent& InputSystem::registerMouseArea(MouseInputPtr component, const std::function<void(Input*, double)>& inputCallback, const std::function<void(Input*, double)>& leaveCallback)
-    { 
-        mouseComponents.emplace_back(component, inputCallback, leaveCallback);
-        InputSystem::MouseComponent& returnComponent = mouseComponents.back();
+    {
+        // This create an unique ptr of the component to not invalidate the ref to the component
+        mouseComponents.emplace_back(new InputSystem::MouseComponent(component, inputCallback, leaveCallback));
+        const InputSystem::MouseComponent& returnComponent = *mouseComponents.back();
 
-        std::sort(mouseComponents.begin(), mouseComponents.end(), compareZValueFromComponents<MouseComponent>);
+        std::sort(mouseComponents.begin(), mouseComponents.end(), compareZValueFromComponents<std::unique_ptr<InputSystem::MouseComponent>>);
 
         return returnComponent; 
     }
 
     const InputSystem::KeyComponent& InputSystem::registerKeyInput(KeyInputPtr component, const std::function<void(Input*, double)>& callback)
     {
-        keyComponents.emplace_back(component, callback);
-        InputSystem::KeyComponent& returnComponent = keyComponents.back();
+        // This create an unique ptr of the component to not invalidate the ref to the component
+        keyComponents.emplace_back(new InputSystem::KeyComponent(component, callback));
+        const InputSystem::KeyComponent& returnComponent = *keyComponents.back(); // TODO change this cause an element of a vector can be invalidate at any point of the app !
 
         return returnComponent;
     }
@@ -162,6 +164,15 @@ namespace pg
         auto mouseArea = MouseInputPtr(new MouseInputBase<MouseInputComponent::Base>(component));
 
         return system->registerMouseArea(mouseArea, mouseInput, mouseLeave);
+    }
+
+    const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, const InputSystem::MouseComponent& mouseArea)
+    {
+        auto& system = InputSystem::system();
+
+        auto mArea = MouseInputPtr(new MouseInputBase<MouseInputComponent::Base>(component));
+
+        return system->registerMouseArea(mArea, mouseArea.inputCallback, mouseArea.leaveCallback);
     }
 
 }

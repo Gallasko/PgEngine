@@ -61,7 +61,15 @@ namespace pg
     //TODO check if in need to be static
     struct Sentence : public UiComponent, private QOpenGLFunctions
     {
+        struct SentenceParameters
+        {
+            SentenceText text;
+            float scale;
+            FontLoader *font;
+        };
+
         Sentence(const SentenceText& sentence, const float& scale, FontLoader *font);
+        Sentence(const SentenceParameters& parameters);
         Sentence(const Sentence &rhs);
         ~Sentence();
 

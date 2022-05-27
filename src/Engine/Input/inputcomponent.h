@@ -223,6 +223,8 @@ namespace pg
         friend const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, const std::function<void(pg::Input*, double)>& mouseInput);
         friend const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, const std::function<void(pg::Input*, double)>& mouseInput, const std::function<void(pg::Input*, double)>& mouseLeave);
     
+        friend const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, const InputSystem::MouseComponent& mouseArea);
+
         template<typename ObjectType, typename... Args>
         friend const InputSystem::KeyComponent& makeKeyInput(ObjectType *obj, void (ObjectType::*f)(Input*, double, ...), const Args&... args);
 
@@ -232,9 +234,10 @@ namespace pg
         const InputSystem::MouseComponent& registerMouseArea(MouseInputPtr component, const std::function<void(Input*, double)>& inputCallback, const std::function<void(Input*, double)>& leaveCallback = nullptr);
         const InputSystem::KeyComponent& registerKeyInput(KeyInputPtr component, const std::function<void(Input*, double)>& callback);
 
-    private:        
-        std::vector<InputSystem::MouseComponent> mouseComponents;
-        std::vector<InputSystem::KeyComponent> keyComponents;
+    private:
+        // Storing unique ptr of the component to avoid invaliding the ref to the component
+        std::vector<std::unique_ptr<InputSystem::MouseComponent>> mouseComponents;
+        std::vector<std::unique_ptr<InputSystem::KeyComponent>> keyComponents;
     };
 
     const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double), void (*mouseLeave)(Input*, double));
@@ -242,6 +245,7 @@ namespace pg
     const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double));
     const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, const std::function<void(pg::Input*, double)>& mouseInput);
     const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, const std::function<void(pg::Input*, double)>& mouseInput, const std::function<void(pg::Input*, double)>& mouseLeave);
+    const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, const InputSystem::MouseComponent& mouseArea);
 
     template<typename ObjectType, typename... Args>
     const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, ObjectType *obj, void (ObjectType::*mouseInput)(Input*, double, ...), void (ObjectType::*mouseLeave)(Input*, double), const Args&... args)

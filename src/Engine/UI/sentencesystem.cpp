@@ -143,6 +143,11 @@ namespace pg
         setText(sentence, font);
     }
 
+    Sentence::Sentence(const SentenceParameters& parameters) : Sentence(parameters.text, parameters.scale, parameters.font)
+    {
+
+    }
+
     Sentence::Sentence(const Sentence &rhs) : UiComponent(rhs), QOpenGLFunctions()
     {
         initializeOpenGLFunctions(); 

@@ -7,6 +7,8 @@
 #include "Engine/configuration.h"
 #include "Engine/Scene/sceneloader.h"
 
+#include "UI/button.h"
+
 namespace
 {
     const char * DOM = "Editor window";
@@ -35,6 +37,9 @@ EditorWindow::~EditorWindow()
 
     if(inputHandler != nullptr)
         delete inputHandler;
+
+    if(fontLoader != nullptr)
+        delete fontLoader;
 
     delete m_device;
 }
@@ -82,6 +87,10 @@ void EditorWindow::initialize()
     masterRenderer.registerTexture("slider", ":/res/object/slider.png");
     masterRenderer.registerTexture("cursor", ":/res/object/cursor.png");
 
+    masterRenderer.registerTexture("TabTexture", ":/res/menu/NavyBlueTexture.png");
+
+    fontLoader = new FontLoader("res/font/fontmap.ft");
+
     screenEntity = ecs.createEntity();
     screenUi = ecs.attach<UiComponent>(screenEntity, {});
     screenUi->width = 1;
@@ -90,15 +99,46 @@ void EditorWindow::initialize()
 
     makeKeyInput(this, EditorWindow::quit);
 
+    auto optionTab = ecs.createEntity();
+    auto optionTabC = ecs.attach<TextureComponent>(optionTab, {300, 1, "TabTexture"});
+
+    optionTabC->setTopAnchor(screenUi->top);
+    optionTabC->setRightAnchor(screenUi->right);
+    optionTabC->setBottomAnchor(screenUi->bottom);
+
     auto sceneEntity = ecs.createEntity();
     auto sceneEntityC = ecs.attach<UiComponent>(sceneEntity, {});
 
     sceneEntityC->setLeftAnchor(screenUi->left);
-    sceneEntityC->setRightAnchor(screenUi->right);
+    sceneEntityC->setRightAnchor(optionTabC->left);
     sceneEntityC->setTopAnchor(screenUi->top);
     sceneEntityC->setBottomAnchor(screenUi->bottom);
 
-    makeMouseArea(sceneEntityC, this, EditorWindow::openContextMenu);
+    makeMouseArea(sceneEntityC, this, EditorWindow::openContextMenu, EditorWindow::closeContextMenu);
+
+    // [Start] Context menu UI
+
+    auto contextMenuEntity = ecs.createEntity();
+    contextMenu = ecs.attach<TextureComponent>(contextMenuEntity, {250, 100, "TabTexture"});
+
+    contextMenu->hide();
+
+    auto addTextureButton = ecs.createEntity();
+    auto addTextureButtonC = ecs.attach<Button>(addTextureButton, {
+        [](Input* inputHandler, double){ if(inputHandler->isButtonPressed(Qt::LeftButton)) std::cout << "Pressed" << std::endl; },
+        {{"Add button"}, 2.0f, fontLoader}
+        });
+
+    addTextureButtonC->setTopAnchor(contextMenu->top);
+    addTextureButtonC->setLeftAnchor(contextMenu->left);
+    addTextureButtonC->setRightAnchor(contextMenu->right);
+
+    addTextureButtonC->setHeight(addTextureButtonC->sentence->height);
+
+    addTextureButtonC->pos.z = contextMenu->pos.z + 1;
+    
+
+    // [End] Context menu UI
     
     ticking = true;
     std::thread t (&EditorWindow::tick, this);
@@ -251,9 +291,48 @@ void EditorWindow::exposeEvent(QExposeEvent *event)
         renderNow();
 }
 
+
+/**
+ * @brief Ui callback function that open the content window to add elements to the scene
+ * 
+ * @param inputHandler A pointer to the input handler object
+ * 
+ * Open a context menu to add element to the scene when the user right click in the scene space in the editor
+ * 
+ * @see closeContextMenu
+ */
 void EditorWindow::openContextMenu(Input* inputHandler, double...)
 {
+    static bool pressed = false;
 
+    if(inputHandler->isButtonPressed(Qt::LeftButton))
+        contextMenu->hide();
+
+    if(inputHandler->isButtonPressed(Qt::RightButton) && !pressed)
+    {
+        pressed = true;
+    }
+
+    if(not inputHandler->isButtonPressed(Qt::RightButton) && pressed)
+    {
+        const auto& mousePos = inputHandler->getMousePos();
+
+        contextMenu->setX(mousePos.x());
+        contextMenu->setY(mousePos.y());
+
+        contextMenu->show();
+
+        pressed = false;
+    }
+
+}
+
+void EditorWindow::closeContextMenu(Input* inputHandler, double)
+{
+    if(inputHandler->isButtonPressed(Qt::LeftButton))
+    {
+         contextMenu->hide();
+    }
 }
 
 void EditorWindow::renderUi()
@@ -262,6 +341,11 @@ void EditorWindow::renderUi()
     for(auto& texture : ecs.view<TextureComponent>())
     {
         masterRenderer.render(&texture);
+    }
+
+    for(auto& button : ecs.view<Button>())
+    {
+       masterRenderer.render(&button);
     }
 
     for(auto& sentence : ecs.view<Sentence>()) //TODO set a note about how auto& is important to pass by ref and not create a copy which is costy 

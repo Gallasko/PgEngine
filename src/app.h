@@ -17,18 +17,20 @@
 #include <chrono>
 #include <thread>
 
-#include "Engine/ECS/entitysystem.h"
+#include "ECS/entitysystem.h"
 
-#include "Engine/Input/input.h"
-#include "Engine/Input/inputcomponent.h"
-#include "Engine/constant.h"
-#include "Engine/Loaders/fontloader.h"
-#include "Engine/Renderer/renderer.h"
-#include "Engine/UI/sentencesystem.h"
-#include "Engine/UI/uianimation.h"
-#include "Engine/UI/listview.h"
+#include "Input/input.h"
+#include "Input/inputcomponent.h"
+#include "constant.h"
+#include "Loaders/fontloader.h"
+#include "Renderer/renderer.h"
+#include "UI/sentencesystem.h"
+#include "UI/uianimation.h"
+#include "UI/listview.h"
 
 using namespace pg;
+
+//TODO make a MainWindow that handle all the QT events and can start all the base engine systems !
 
 class EditorWindow : public QWindow, protected QOpenGLFunctions
 {
@@ -69,6 +71,9 @@ protected:
 private:
     // Ui Input callbacks
     void openContextMenu(Input* inputHandler, double...);
+    void closeContextMenu(Input* inputHandler, double);
+
+    TextureComponent* contextMenu;
 
     void renderUi();
     void tick();
@@ -85,6 +90,7 @@ private:
     MasterRenderer masterRenderer;
 
     Input *inputHandler;
+    FontLoader *fontLoader;
 
     EntitySystem::Entity *screenEntity;
     UiComponent *screenUi;

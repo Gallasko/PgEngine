@@ -374,6 +374,8 @@ void EntitySystem::dettach(EntitySystem::Entity *entity)
     }
 }
 
+//TODO make an empty list and make this const !
+
 template <typename Component>
 EntitySystem::ComponentList<Component> EntitySystem::view()
 {
