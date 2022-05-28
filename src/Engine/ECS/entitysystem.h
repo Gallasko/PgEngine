@@ -31,6 +31,8 @@ namespace pg
 
         struct GenericComponent
         {
+            GenericComponent(unsigned int entityId, GenericComponent *prev, GenericComponent *next, void *data) : entityId(entityId), prev(prev), next(next), data(data) {}
+            
             unsigned int entityId;
 
             GenericComponent *prev;
@@ -266,7 +268,7 @@ namespace pg
         {
             if(componentMap.find(id) == componentMap.end())
             {
-                EntitySystem::GenericComponent *cp = new EntitySystem::GenericComponent {entity->id, nullptr, nullptr, cmp};
+                EntitySystem::GenericComponent *cp = componentPool.allocate(entity->id, nullptr, nullptr, cmp);
                 componentMap[id] = cp;
 
                 entity->componentList[id] = cp;
@@ -275,7 +277,7 @@ namespace pg
             {
                 if(componentMap[id]->prev == nullptr)
                 {
-                    EntitySystem::GenericComponent *cp = new EntitySystem::GenericComponent {entity->id, componentMap[id], nullptr, cmp};
+                    EntitySystem::GenericComponent *cp = componentPool.allocate(entity->id, componentMap[id], nullptr, cmp);
                     componentMap[id]->prev = cp;
                     componentMap[id]->next = cp;
 
@@ -285,7 +287,7 @@ namespace pg
                 }
                 else
                 {
-                    EntitySystem::GenericComponent *cp = new EntitySystem::GenericComponent {entity->id, componentMap[id]->prev, nullptr, cmp};
+                    EntitySystem::GenericComponent *cp = componentPool.allocate(entity->id, componentMap[id]->prev, nullptr, cmp);
                     componentMap[id]->prev->next = cp;
                     componentMap[id]->prev = cp;
 
@@ -369,7 +371,7 @@ namespace pg
                 }
 
                 entity->componentList.erase(id);
-                delete component;
+                componentPool.release(component);
 
                 for(auto& it : groupList)
                 {
