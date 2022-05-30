@@ -15,11 +15,16 @@ namespace pg
         template<typename Type, typename... Args>
         Button(const Type& object, void(Type::*onPress)(Input*, double), TextureComponent* background = nullptr, Sentence* sentence = nullptr, const UiComponent& frame = UiComponent(), const Args&... args);
         
+        // Constructor for funtion pointer
         Button(void(*onPress)(Input*, double), TextureComponent* background = nullptr, Sentence* sentence = nullptr, const UiComponent& frame = UiComponent());
-
         Button(void(*onPress)(Input*, double), const Sentence::SentenceParameters& sentence, const UiComponent& frame = UiComponent());
         Button(void(*onPress)(Input*, double), const std::string& textureName, const UiComponent& frame = UiComponent());
         Button(void(*onPress)(Input*, double), const std::string& textureName, const Sentence::SentenceParameters& sentence, const UiComponent& frame = UiComponent());
+
+        // Constructor for std::function 
+        Button(const std::function<void(Input*, double)>& onPress, const std::string& textureName, const UiComponent& frame = UiComponent());
+        Button(const std::function<void(Input*, double)>& onPress, const Sentence::SentenceParameters& sentence, const UiComponent& frame = UiComponent());
+        Button(const std::function<void(Input*, double)>& onPress, const std::string& textureName, const Sentence::SentenceParameters& sentence, const UiComponent& frame = UiComponent());
 
         Button(const Button& rhs);
 

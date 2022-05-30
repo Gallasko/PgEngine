@@ -49,6 +49,26 @@ namespace pg
             return makeMouseArea(uiComponent, press);
         }
 
+        const InputSystem::MouseComponent& makeButtonMouseComponent(UiComponent *uiComponent, const std::function<void(Input*, double)>& onPress)
+        {
+            std::function<void(Input*, double)> press = [onPress](Input* inputHandler, double deltaTime) {
+                static bool pressed = false;
+                
+                if(inputHandler->isButtonPressed(Qt::LeftButton))
+                    pressed = true;
+
+                if(not inputHandler->isButtonPressed(Qt::LeftButton))
+                {
+                    if(pressed)
+                        onPress(inputHandler, deltaTime);
+
+                    pressed = false;
+                }
+            };
+
+            return makeMouseArea(uiComponent, press);
+        }
+
     }
 
     template<>
@@ -82,21 +102,18 @@ namespace pg
         this->sentence = new Sentence(sentence);
         ownSentence = true;
 
-        this->sentence->setTopAnchor(this->top);
-        this->sentence->setLeftAnchor(this->left);
+        moveUiElements();
 
         this->width = this->sentence->width;
         this->height = this->sentence->height;
-
-        // Align text at the center of the button
-        this->sentence->setLeftMargin(this->width / 2.0f - this->sentence->width / 2.0f);
-        this->sentence->setTopMargin(this->height / 2.0f - this->sentence->height / 2.0f);
     }
 
     Button::Button(void(*onPress)(Input*, double), const std::string& textureName, const UiComponent& frame) : UiComponent(frame), onPress(makeButtonMouseComponent(this, onPress))
     {
         this->background = new TextureComponent(this->width, this->height, textureName);
         ownBackground = true;
+
+        moveUiElements();
     }
 
     Button::Button(void(*onPress)(Input*, double), const std::string& textureName, const Sentence::SentenceParameters& sentence, const UiComponent& frame) : UiComponent(frame), onPress(makeButtonMouseComponent(this, onPress))
@@ -106,6 +123,35 @@ namespace pg
 
         this->background = new TextureComponent(this->width, this->height, textureName);
         ownBackground = true;
+
+        moveUiElements();
+    }
+
+    Button::Button(const std::function<void(Input*, double)>& onPress, const std::string& textureName, const UiComponent& frame) : UiComponent(frame), onPress(makeButtonMouseComponent(this, onPress))
+    {
+        this->background = new TextureComponent(this->width, this->height, textureName);
+        ownBackground = true;
+
+        moveUiElements();
+    }
+
+    Button::Button(const std::function<void(Input*, double)>& onPress, const Sentence::SentenceParameters& sentence, const UiComponent& frame) : UiComponent(frame), onPress(makeButtonMouseComponent(this, onPress))
+    {
+        this->sentence = new Sentence(sentence);
+        ownSentence = true;
+
+        moveUiElements();
+    }
+
+    Button::Button(const std::function<void(Input*, double)>& onPress, const std::string& textureName, const Sentence::SentenceParameters& sentence, const UiComponent& frame) : UiComponent(frame), onPress(makeButtonMouseComponent(this, onPress))
+    {
+        this->sentence = new Sentence(sentence);
+        ownSentence = true;
+
+        this->background = new TextureComponent(this->width, this->height, textureName);
+        ownBackground = true;
+
+        moveUiElements();
     }
 
     Button::Button(const Button& rhs) : UiComponent(rhs), onPress(makeMouseArea(this, rhs.onPress)), ownBackground(rhs.ownBackground), ownSentence(rhs.ownSentence)
@@ -113,6 +159,8 @@ namespace pg
         if(rhs.ownBackground)
         {
             this->background = new TextureComponent(this->width, this->height, rhs.background->textureName);
+
+            moveUiElements();
         }
         else
             this->background = rhs.background;
@@ -121,11 +169,7 @@ namespace pg
         {
             this->sentence = new Sentence(rhs.sentence->text, rhs.sentence->scale, rhs.sentence->font);
 
-            this->sentence->setTopAnchor(this->top);
-            this->sentence->setLeftAnchor(this->left);
-
-            this->sentence->setLeftMargin(this->width / 2.0f - this->sentence->width / 2.0f);
-            this->sentence->setTopMargin(this->height / 2.0f - this->sentence->height / 2.0f);
+            moveUiElements();
         }
         else
             this->sentence = rhs.sentence;
@@ -175,8 +219,12 @@ namespace pg
             
         if(sentence != nullptr)
         {
-            sentence->setTopAnchor(this->top);
-            sentence->setLeftAnchor(this->left);
+            this->sentence->setTopAnchor(this->top);
+            this->sentence->setLeftAnchor(this->left);
+
+            // Align text at the center of the button
+            this->sentence->setLeftMargin(this->width / 2.0f - this->sentence->width / 2.0f);
+            this->sentence->setTopMargin(this->height / 2.0f - this->sentence->height / 2.0f);
         }
     }
 }

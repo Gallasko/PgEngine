@@ -25,8 +25,8 @@ namespace editor
 {
     ContextMenu::ContextMenu(EntitySystem &ecs, FontLoader *fontLoader, const std::string& textureName, const std::function<void(const UiComponentType&)>& callback) : UiComponent()
     {
-        UiSize currentWidth = 0.0f;
-        UiSize currentHeight = 0.0f;
+        this->width = 0;
+        this->height = 0;
 
         // [Start] Add Button
 
@@ -41,8 +41,7 @@ namespace editor
 
         addButtonButtonC->pos.z = this->pos.z;
 
-        currentWidth = addButtonButtonC->width > currentWidth ? addButtonButtonC->width : currentWidth;
-        currentHeight += addButtonButtonC->height;
+        this->width = addButtonButtonC->width > this->width ? addButtonButtonC->width : this->width;
 
         // [End] Add Button
 
@@ -59,8 +58,7 @@ namespace editor
 
         addTextureButtonC->pos.z = this->pos.z;
 
-        currentWidth = addTextureButtonC->width > currentWidth ? addTextureButtonC->width : currentWidth;
-        currentHeight += addTextureButtonC->height;
+        this->width  = addTextureButtonC->width > this->width ? addTextureButtonC->width : this->width;
 
         // [End] Add Texture
 
@@ -77,8 +75,7 @@ namespace editor
 
         addTextButtonC->pos.z = this->pos.z;
 
-        currentWidth = addTextButtonC->width > currentWidth ? addTextButtonC->width : currentWidth;
-        currentHeight += addTextButtonC->height;
+        this->width  = addTextButtonC->width > this->width ? addTextButtonC->width : this->width;
 
         // [End] Add Text
 
@@ -95,8 +92,7 @@ namespace editor
 
         addListButtonC->pos.z = this->pos.z;
 
-        currentWidth = addListButtonC->width > currentWidth ? addListButtonC->width : currentWidth;
-        currentHeight += addListButtonC->height;
+        this->width  = addListButtonC->width > this->width ? addListButtonC->width : this->width;
 
         // [End] Add Text
 
@@ -104,8 +100,8 @@ namespace editor
 
         auto backgroundTexture = ecs.createEntity();
         backgroundTextureC = ecs.attach<TextureComponent>(backgroundTexture,
-            currentWidth,
-            currentHeight,
+            this->width,
+            this->height,
             textureName
             );
 
@@ -115,9 +111,6 @@ namespace editor
         backgroundTextureC->pos.z = this->pos.z;
 
         // [End] Create background texture
-
-        this->width = currentWidth;
-        this->height = currentHeight;
 
     }
 

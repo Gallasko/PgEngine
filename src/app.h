@@ -28,6 +28,8 @@
 #include "UI/uianimation.h"
 #include "UI/listview.h"
 
+#include "Editor/Gui/contextmenu.h"
+
 using namespace pg;
 
 //TODO make a MainWindow that handle all the QT events and can start all the base engine systems !
@@ -73,8 +75,10 @@ private:
     void openContextMenu(Input* inputHandler, double...);
     void closeContextMenu(Input* inputHandler, double);
 
+    void addElement(const UiComponentType& type);
+
     UiComponent *sceneEntityC;
-    TextureComponent* contextMenu;
+    UiComponent *contextMenu;
 
     void renderUi();
     void tick();

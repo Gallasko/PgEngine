@@ -118,8 +118,10 @@ void EditorWindow::initialize()
 
     // [Start] Context menu UI
 
-    auto contextMenuEntity = ecs.createEntity();
-    contextMenu = ecs.attach<TextureComponent>(contextMenuEntity, 250, 100, "TabTexture");
+    contextMenu = new editor::ContextMenu(ecs, fontLoader, "TabTexture", [&](const UiComponentType& type) {this->addElement(type);});
+
+    //auto contextMenuEntity = ecs.createEntity();
+    //contextMenu = ecs.attach<TextureComponent>(contextMenuEntity, 250, 100, "TabTexture");
 
     contextMenu->hide();
 
@@ -278,7 +280,6 @@ void EditorWindow::exposeEvent(QExposeEvent *event)
         renderNow();
 }
 
-
 /**
  * @brief Ui callback function that open the content window to add elements to the scene
  * 
@@ -334,6 +335,11 @@ void EditorWindow::closeContextMenu(Input* inputHandler, double)
     {
         contextMenu->hide();
     }
+}
+
+void EditorWindow::addElement(const UiComponentType& type)
+{
+
 }
 
 void EditorWindow::renderUi()
