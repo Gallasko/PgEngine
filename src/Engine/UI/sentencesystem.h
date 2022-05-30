@@ -71,7 +71,7 @@ namespace pg
         Sentence(const SentenceText& sentence, const float& scale, FontLoader *font);
         Sentence(const SentenceParameters& parameters);
         Sentence(const Sentence &rhs);
-        ~Sentence();
+        virtual ~Sentence();
 
         void setText(const SentenceText& sentence, FontLoader *font);
 

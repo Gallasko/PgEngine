@@ -104,7 +104,7 @@ namespace pg
         TextureComponent(const UiSize& width, const UiSize& height, const std::string& textureName);
         TextureComponent(const UiComponent& component, const std::string& textureName);
         TextureComponent(const TextureComponent &rhs);
-        ~TextureComponent();
+        virtual ~TextureComponent();
 
         void generateMesh();
 

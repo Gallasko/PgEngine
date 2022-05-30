@@ -3,7 +3,7 @@
 #include "uisystem.h"
 #include "sentencesystem.h"
 
-#include "../Input/inputcomponent.h"
+#include "Input/inputcomponent.h"
 
 namespace pg
 {
@@ -23,7 +23,9 @@ namespace pg
 
         Button(const Button& rhs);
 
-        ~Button();
+        virtual ~Button();
+
+        virtual void render(MasterRenderer* masterRenderer);
 
         void show() override;
         void hide() override;

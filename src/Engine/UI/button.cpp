@@ -17,10 +17,13 @@ namespace pg
                 if(inputHandler->isButtonPressed(Qt::LeftButton))
                     pressed = true;
 
-                if(not inputHandler->isButtonPressed(Qt::LeftButton) and pressed)
-                    obj->onPress(inputHandler, deltaTime, args...);
+                if(not inputHandler->isButtonPressed(Qt::LeftButton))
+                {
+                    if(pressed)
+                        obj->onPress(inputHandler, deltaTime, args...);
 
-                pressed = false;
+                    pressed = false;
+                }
             };
 
             return makeMouseArea(uiComponent, press);
@@ -34,10 +37,13 @@ namespace pg
                 if(inputHandler->isButtonPressed(Qt::LeftButton))
                     pressed = true;
 
-                if(not inputHandler->isButtonPressed(Qt::LeftButton) and pressed)
-                    onPress(inputHandler, deltaTime);
+                if(not inputHandler->isButtonPressed(Qt::LeftButton))
+                {
+                    if(pressed)
+                        onPress(inputHandler, deltaTime);
 
-                pressed = false;
+                    pressed = false;
+                }
             };
 
             return makeMouseArea(uiComponent, press);
@@ -79,6 +85,9 @@ namespace pg
         this->sentence->setTopAnchor(this->top);
         this->sentence->setLeftAnchor(this->left);
 
+        this->width = this->sentence->width;
+        this->height = this->sentence->height;
+
         // Align text at the center of the button
         this->sentence->setLeftMargin(this->width / 2.0f - this->sentence->width / 2.0f);
         this->sentence->setTopMargin(this->height / 2.0f - this->sentence->height / 2.0f);
@@ -88,7 +97,6 @@ namespace pg
     {
         this->background = new TextureComponent(this->width, this->height, textureName);
         ownBackground = true;
-
     }
 
     Button::Button(void(*onPress)(Input*, double), const std::string& textureName, const Sentence::SentenceParameters& sentence, const UiComponent& frame) : UiComponent(frame), onPress(makeButtonMouseComponent(this, onPress))
@@ -132,6 +140,11 @@ namespace pg
 
         if(ownBackground)
             delete background;
+    }
+
+    void Button::render(MasterRenderer *masterRenderer)
+    {
+        renderer(masterRenderer, this);
     }
 
     void Button::show()

@@ -73,6 +73,7 @@ private:
     void openContextMenu(Input* inputHandler, double...);
     void closeContextMenu(Input* inputHandler, double);
 
+    UiComponent *sceneEntityC;
     TextureComponent* contextMenu;
 
     void renderUi();

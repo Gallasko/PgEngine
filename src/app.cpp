@@ -107,7 +107,7 @@ void EditorWindow::initialize()
     optionTabC->setBottomAnchor(screenUi->bottom);
 
     auto sceneEntity = ecs.createEntity();
-    auto sceneEntityC = ecs.attach<UiComponent>(sceneEntity);
+    sceneEntityC = ecs.attach<UiComponent>(sceneEntity);
 
     sceneEntityC->setLeftAnchor(screenUi->left);
     sceneEntityC->setRightAnchor(optionTabC->left);
@@ -123,21 +123,8 @@ void EditorWindow::initialize()
 
     contextMenu->hide();
 
-    auto addTextureButton = ecs.createEntity();
-    auto addTextureButtonC = ecs.attach<Button>(addTextureButton,
-        [](Input* inputHandler, double){ if(inputHandler->isButtonPressed(Qt::LeftButton)) std::cout << "Pressed" << std::endl; },
-        Sentence::SentenceParameters{{"Add button"}, 2.0f, fontLoader}
-        );
-
-    addTextureButtonC->setTopAnchor(contextMenu->top);
-    addTextureButtonC->setLeftAnchor(contextMenu->left);
-    addTextureButtonC->setRightAnchor(contextMenu->right);
-
-    addTextureButtonC->setHeight(addTextureButtonC->sentence->height);
-
-    addTextureButtonC->pos.z = contextMenu->pos.z + 1;
     
-
+    
     // [End] Context menu UI
     
     ticking = true;
@@ -306,7 +293,12 @@ void EditorWindow::openContextMenu(Input* inputHandler, double...)
     static bool pressed = false;
 
     if(inputHandler->isButtonPressed(Qt::LeftButton))
-        contextMenu->hide();
+    {
+        const auto& mousePos = inputHandler->getMousePos();
+
+        if(not contextMenu->inBound(mousePos.x(), mousePos.y()))
+            contextMenu->hide();
+    }
 
     if(inputHandler->isButtonPressed(Qt::RightButton) && !pressed)
     {
@@ -317,8 +309,17 @@ void EditorWindow::openContextMenu(Input* inputHandler, double...)
     {
         const auto& mousePos = inputHandler->getMousePos();
 
-        contextMenu->setX(mousePos.x());
-        contextMenu->setY(mousePos.y());
+        auto xPos = mousePos.x();
+        auto yPos = mousePos.y();
+
+        if(contextMenu->width + xPos > sceneEntityC->width)
+            xPos -= contextMenu->width;
+
+        if(contextMenu->height + yPos > sceneEntityC->height)
+            yPos -= contextMenu->height;
+
+        contextMenu->setX(xPos);
+        contextMenu->setY(yPos);
 
         contextMenu->show();
 
@@ -331,7 +332,7 @@ void EditorWindow::closeContextMenu(Input* inputHandler, double)
 {
     if(inputHandler->isButtonPressed(Qt::LeftButton))
     {
-         contextMenu->hide();
+        contextMenu->hide();
     }
 }
 
