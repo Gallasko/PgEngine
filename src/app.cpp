@@ -9,6 +9,8 @@
 
 #include "UI/button.h"
 
+#include "Editor/Gui/contextmenu.h"
+
 namespace
 {
     const char * DOM = "Editor window";
@@ -40,6 +42,9 @@ EditorWindow::~EditorWindow()
 
     if(fontLoader != nullptr)
         delete fontLoader;
+
+    if(contextMenu != nullptr)
+        delete contextMenu;
 
     delete m_device;
 }

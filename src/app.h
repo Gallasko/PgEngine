@@ -28,9 +28,13 @@
 #include "UI/uianimation.h"
 #include "UI/listview.h"
 
-#include "Editor/Gui/contextmenu.h"
-
 using namespace pg;
+
+namespace pg
+{
+    // Forward declarations
+    enum class UiComponentType;
+}
 
 //TODO make a MainWindow that handle all the QT events and can start all the base engine systems !
 
@@ -78,7 +82,7 @@ private:
     void addElement(const UiComponentType& type);
 
     UiComponent *sceneEntityC;
-    UiComponent *contextMenu;
+    UiComponent *contextMenu = nullptr;
 
     void renderUi();
     void tick();
@@ -94,8 +98,8 @@ private:
     EntitySystem ecs;
     MasterRenderer masterRenderer;
 
-    Input *inputHandler;
-    FontLoader *fontLoader;
+    Input *inputHandler = nullptr;
+    FontLoader *fontLoader = nullptr;
 
     EntitySystem::Entity *screenEntity;
     UiComponent *screenUi;
