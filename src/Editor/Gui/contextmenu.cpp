@@ -1,12 +1,13 @@
 #include "contextmenu.h"
 
 #include <string>
-#include <functional>
 
 #include "ECS/entitysystem.h"
 #include "Loaders/fontloader.h"
 #include "UI/button.h"
 #include "Renderer/renderer.h"
+
+#include <iostream>
 
 namespace pg
 {
@@ -23,16 +24,18 @@ namespace pg
 
 namespace editor
 {
-    ContextMenu::ContextMenu(EntitySystem &ecs, FontLoader *fontLoader, const std::string& textureName, const std::function<void(const UiComponentType&)>& callback) : UiComponent()
+    ContextMenu::ContextMenu(EntitySystem &ecs, FontLoader *fontLoader, const std::string& textureName, const std::function<void(const UiComponentType&)>& callback) : UiComponent(), callback(callback)
     {
         this->width = 0;
         this->height = 0;
+
+        callback(UiComponentType::BUTTON);
 
         // [Start] Add Button
 
         auto addButtonButton = ecs.createEntity();
         addButtonButtonC = ecs.attach<Button>(addButtonButton,
-            [&](Input*, double){ callback(UiComponentType::BUTTON); },
+            [&](Input*, double){ this->callback(UiComponentType::BUTTON); },
             Sentence::SentenceParameters{{"Add Button"}, 2.0f, fontLoader}
             );
 
@@ -42,6 +45,7 @@ namespace editor
         addButtonButtonC->pos.z = this->pos.z;
 
         this->width = addButtonButtonC->width > this->width ? addButtonButtonC->width : this->width;
+        this->height += addButtonButtonC->height;
 
         // [End] Add Button
 
@@ -49,7 +53,7 @@ namespace editor
 
         auto addTextureButton = ecs.createEntity();
         addTextureButtonC = ecs.attach<Button>(addTextureButton,
-            [&](Input*, double){ callback(UiComponentType::TEXTURE); },
+            [&](Input*, double){ this->callback(UiComponentType::TEXTURE); },
             Sentence::SentenceParameters{{"Add Texture"}, 2.0f, fontLoader}
             );
 
@@ -59,6 +63,7 @@ namespace editor
         addTextureButtonC->pos.z = this->pos.z;
 
         this->width  = addTextureButtonC->width > this->width ? addTextureButtonC->width : this->width;
+        this->height += addTextureButtonC->height;
 
         // [End] Add Texture
 
@@ -66,7 +71,7 @@ namespace editor
 
         auto addTextButton = ecs.createEntity();
         addTextButtonC = ecs.attach<Button>(addTextButton,
-            [&](Input*, double){ callback(UiComponentType::TEXT); },
+            [&](Input*, double){ this->callback(UiComponentType::TEXT); },
             Sentence::SentenceParameters{{"Add Text"}, 2.0f, fontLoader}
             );
 
@@ -76,6 +81,7 @@ namespace editor
         addTextButtonC->pos.z = this->pos.z;
 
         this->width  = addTextButtonC->width > this->width ? addTextButtonC->width : this->width;
+        this->height += addTextButtonC->height;
 
         // [End] Add Text
 
@@ -83,7 +89,7 @@ namespace editor
 
         auto addListButton = ecs.createEntity();
         addListButtonC = ecs.attach<Button>(addListButton,
-            [&](Input*, double){ callback(UiComponentType::LIST); },
+            [&](Input*, double){ this->callback(UiComponentType::LIST); },
             Sentence::SentenceParameters{{"Add List"}, 2.0f, fontLoader}
             );
 
@@ -93,6 +99,7 @@ namespace editor
         addListButtonC->pos.z = this->pos.z;
 
         this->width  = addListButtonC->width > this->width ? addListButtonC->width : this->width;
+        this->height += addListButtonC->height;
 
         // [End] Add Text
 

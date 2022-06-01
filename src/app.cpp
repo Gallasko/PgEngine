@@ -118,14 +118,12 @@ void EditorWindow::initialize()
 
     // [Start] Context menu UI
 
-    contextMenu = new editor::ContextMenu(ecs, fontLoader, "TabTexture", [&](const UiComponentType& type) {this->addElement(type);});
+    contextMenu = new editor::ContextMenu(ecs, fontLoader, "TabTexture", [=](const UiComponentType& type) {this->addElement(type);});
 
     //auto contextMenuEntity = ecs.createEntity();
     //contextMenu = ecs.attach<TextureComponent>(contextMenuEntity, 250, 100, "TabTexture");
 
     contextMenu->hide();
-
-    
     
     // [End] Context menu UI
     
@@ -339,7 +337,7 @@ void EditorWindow::closeContextMenu(Input* inputHandler, double)
 
 void EditorWindow::addElement(const UiComponentType& type)
 {
-
+    std::cout << "Add element called" << std::endl;
 }
 
 void EditorWindow::renderUi()

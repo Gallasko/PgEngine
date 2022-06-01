@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 #include "UI/uisystem.h"
 
 namespace pg {
@@ -9,7 +11,7 @@ namespace pg {
         TEXTURE,
         TEXT,
         LIST,
-        PREFAB
+        PREFAB // TOdo to implement !
     };
 
     // Class forwarding
@@ -35,6 +37,8 @@ namespace editor
         UiComponent *addTextureButtonC;
         UiComponent *addTextButtonC;
         UiComponent *addListButtonC;
+
+        std::function<void(const UiComponentType&)> callback;
     };
 }
 }

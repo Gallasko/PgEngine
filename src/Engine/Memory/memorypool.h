@@ -86,12 +86,8 @@ namespace pg
          */
         ~AllocatorPool()
         {
-            while(freeList != nullptr)
-            {
-                auto curr = freeList;
-                freeList = curr->next;
-                delete curr;
-            }
+            for(Chunk<T>* chunk : chunkList)
+                delete chunk;
         }
 
         /**
@@ -113,6 +109,8 @@ namespace pg
             {
                 auto newBlock = Block<T, N>();
                 freeList = newBlock.chunks;
+
+                chunkList.push_back(newBlock.chunks);
             }
 
             auto chunk = freeList;
@@ -146,6 +144,9 @@ namespace pg
     private:
         /** Pointer to the next free object in the pool */
         Chunk<T>* freeList = nullptr;
+
+        /** Chunk Lists used in the pool (used to free the memory) */
+        std::vector<Chunk<T>*> chunkList;
 
         /** Static assertion to ensure that the pool must created block of at least two free object */
         static_assert(N >= 2, "BlockSize too small.");

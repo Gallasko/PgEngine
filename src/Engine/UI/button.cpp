@@ -121,6 +121,9 @@ namespace pg
         this->sentence = new Sentence(sentence);
         ownSentence = true;
 
+        this->width = this->sentence->width;
+        this->height = this->sentence->height;
+
         this->background = new TextureComponent(this->width, this->height, textureName);
         ownBackground = true;
 
@@ -141,12 +144,18 @@ namespace pg
         ownSentence = true;
 
         moveUiElements();
+
+        this->width = this->sentence->width;
+        this->height = this->sentence->height;
     }
 
     Button::Button(const std::function<void(Input*, double)>& onPress, const std::string& textureName, const Sentence::SentenceParameters& sentence, const UiComponent& frame) : UiComponent(frame), onPress(makeButtonMouseComponent(this, onPress))
     {
         this->sentence = new Sentence(sentence);
         ownSentence = true;
+
+        this->width = this->sentence->width;
+        this->height = this->sentence->height;
 
         this->background = new TextureComponent(this->width, this->height, textureName);
         ownBackground = true;
