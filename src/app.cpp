@@ -337,6 +337,32 @@ void EditorWindow::closeContextMenu(Input* inputHandler, double)
 
 void EditorWindow::addElement(const UiComponentType& type)
 {
+    switch(type)
+    {
+    case UiComponentType::BUTTON:
+
+        break;
+
+    case UiComponentType::TEXTURE:
+
+        break;
+
+    case UiComponentType::TEXT:
+
+        break;
+
+    case UiComponentType::LIST:
+
+        break;
+
+    case UiComponentType::PREFAB:
+
+        break;
+
+    default:
+
+        break;
+    }
     std::cout << "Add element called" << std::endl;
 }
 
