@@ -2,6 +2,14 @@
 
 namespace pg
 {
+    EntitySystem::~EntitySystem()
+    {
+        while(lastEntity != nullptr)
+        {
+            removeEntity(lastEntity);
+        }
+    }
+
     void EntitySystem::GroupList::erase(unsigned int entityId)
     {
         auto start = begin();
@@ -149,7 +157,7 @@ namespace pg
         }
 
         nbEntity--;
-        delete entity;
+        entityPool.release(entity);
     }
 
     std::unordered_map<std::string, EntitySystem::GenericComponent* >::iterator EntitySystem::dettach(EntitySystem::Entity *entity, std::string id, std::unordered_map<std::string, EntitySystem::GenericComponent* >::iterator it)

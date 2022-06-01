@@ -12,6 +12,7 @@
 #include <typeinfo>
 
 #include "Memory/memorypool.h"
+
 namespace pg
 {
     template <typename View>
@@ -28,6 +29,7 @@ namespace pg
     {
     public:
         EntitySystem() {};
+        ~EntitySystem();
 
         struct GenericComponent
         {
@@ -184,7 +186,7 @@ namespace pg
             unsigned int nbElement;
         };
 
-        inline EntitySystem::Entity* createEntity() { EntitySystem::Entity *newEntity = new EntitySystem::Entity {nbEntity++, lastEntity}; if(lastEntity != nullptr) { lastEntity->nextEntity = newEntity; } lastEntity = newEntity; return newEntity; }
+        inline EntitySystem::Entity* createEntity() { EntitySystem::Entity *newEntity = entityPool.allocate(nbEntity++, lastEntity); if(lastEntity != nullptr) { lastEntity->nextEntity = newEntity; } lastEntity = newEntity; return newEntity; }
         void removeEntity(EntitySystem::Entity* entity);
 
         template <typename Component, typename... Args>
@@ -249,6 +251,7 @@ namespace pg
         std::unordered_map<std::string, EntitySystem::GroupList*> groupList;
         std::unordered_map<std::string, std::vector<std::string>> groupNameSpliceList;
 
+        AllocatorPool<EntitySystem::Entity, 1024> entityPool;
         AllocatorPool<GenericComponent, 64> componentPool;
         AllocatorPool<GroupList, 64> groupPool;
     };
