@@ -7,8 +7,6 @@
 #include "UI/button.h"
 #include "Renderer/renderer.h"
 
-#include <iostream>
-
 namespace pg
 {
     template<>
@@ -28,8 +26,6 @@ namespace editor
     {
         this->width = 0;
         this->height = 0;
-
-        callback(UiComponentType::BUTTON);
 
         // [Start] Add Button
 
@@ -103,6 +99,24 @@ namespace editor
 
         // [End] Add Text
 
+        // [Start] Add Prefab
+
+        auto addPrefabButton = ecs.createEntity();
+        addPrefabButtonC = ecs.attach<Button>(addPrefabButton,
+            [&](Input*, double){ this->callback(UiComponentType::LIST); },
+            Sentence::SentenceParameters{{"Add Prefab"}, 2.0f, fontLoader}
+            );
+
+        addPrefabButtonC->setTopAnchor(addListButtonC->bottom);
+        addPrefabButtonC->setLeftAnchor(this->left);
+
+        addPrefabButtonC->pos.z = this->pos.z;
+
+        this->width  = addPrefabButtonC->width > this->width ? addPrefabButtonC->width : this->width;
+        this->height += addPrefabButtonC->height;
+
+        // [End] Add Prefab
+
         // [Start] Create background texture
 
         auto backgroundTexture = ecs.createEntity();
@@ -139,6 +153,7 @@ namespace editor
         addTextureButtonC->show();
         addTextButtonC->show();
         addListButtonC->show();
+        addPrefabButtonC->show();
     }
 
     void ContextMenu::hide()
@@ -149,6 +164,7 @@ namespace editor
         addTextureButtonC->hide();
         addTextButtonC->hide();
         addListButtonC->hide();
+        addPrefabButtonC->hide();
     }
 }
 }

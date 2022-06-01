@@ -37,6 +37,7 @@ namespace editor
         UiComponent *addTextureButtonC;
         UiComponent *addTextButtonC;
         UiComponent *addListButtonC;
+        UiComponent *addPrefabButtonC;
 
         std::function<void(const UiComponentType&)> callback;
     };
