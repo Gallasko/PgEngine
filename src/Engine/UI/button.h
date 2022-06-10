@@ -32,6 +32,10 @@ namespace pg
 
         virtual void render(MasterRenderer* masterRenderer);
 
+        // TODO
+        // void setFunction(void(*onPress)(Input*, double));
+        // void setFunction(const std::function<void(Input*, double)>& onPress);
+
         void show() override;
         void hide() override;
         

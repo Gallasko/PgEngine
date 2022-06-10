@@ -4,11 +4,11 @@
 #include <vector>
 
 #include "uisystem.h"
-#include "../Loaders/fontloader.h"
-#include "../Renderer/renderer.h"
-#include "../constant.h"
+#include "Loaders/fontloader.h"
+#include "Renderer/renderer.h"
+#include "constant.h"
 
-#include "../serialization.h"
+#include "serialization.h"
 
 namespace pg
 {

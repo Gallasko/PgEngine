@@ -11,9 +11,20 @@
 
 #include "Editor/Gui/contextmenu.h"
 
+// TODO create a find function in ECS
+
 namespace
 {
     const char * DOM = "Editor window";
+
+    struct SceneElement
+    {
+        SceneElement(int id, UiComponent *component) : id(id), component(component) {}
+
+        int id;
+
+        UiComponent *component;
+    };
 }
 
 EditorWindow::EditorWindow(QWindow *parent) : QWindow(parent)
@@ -342,18 +353,41 @@ void EditorWindow::closeContextMenu(Input* inputHandler, double)
 
 void EditorWindow::addElement(const UiComponentType& type)
 {
+    static int index = 0;
+    auto ent = sceneEcs.createEntity();
+    UiComponent *component = nullptr;
+    int componentX = 0, componentY = 0;
+
+    if(contextMenu != nullptr)
+    {
+    	componentX = contextMenu->pos.x;
+        componentY = contextMenu->pos.y;
+    }
+
     switch(type)
     {
     case UiComponentType::BUTTON:
-
+        // sceneEcs.attach<SceneElement>(index, new Button());
         break;
 
     case UiComponentType::TEXTURE:
+        component = new TextureComponent(50, 50, "TabTexture");
 
+        component->setTopAnchor(sceneEntityC->top);
+        component->setLeftAnchor(sceneEntityC->left);
+
+        component->setTopMargin(componentY - 25);
+        component->setLeftMargin(componentX - 25);
         break;
 
     case UiComponentType::TEXT:
+        component = new Sentence({"Text"}, 2.0f, fontLoader);
 
+        component->setTopAnchor(sceneEntityC->top);
+        component->setLeftAnchor(sceneEntityC->left);
+
+        component->setTopMargin(componentY - component->height / 2.0f);
+        component->setLeftMargin(componentX - component->width / 2.0f);
         break;
 
     case UiComponentType::LIST:
@@ -368,11 +402,21 @@ void EditorWindow::addElement(const UiComponentType& type)
 
         break;
     }
-    std::cout << "Add element called" << std::endl;
+
+    sceneEcs.attach<SceneElement>(ent, index, component);
+    index++;
+
+    contextMenu->hide();
 }
 
 void EditorWindow::renderUi()
 {
+    for(auto& child : sceneEcs.view<SceneElement>())
+    {
+        if(child.component != nullptr)
+            child.component->render(&masterRenderer);
+    }
+
     // Todo use the master renderer to render all the texture component but using only one shader binding 
     for(auto& texture : ecs.view<TextureComponent>())
     {

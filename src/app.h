@@ -98,6 +98,8 @@ private:
     EntitySystem ecs;
     MasterRenderer masterRenderer;
 
+    EntitySystem sceneEcs;
+
     Input *inputHandler = nullptr;
     FontLoader *fontLoader = nullptr;
 
