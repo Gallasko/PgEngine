@@ -147,6 +147,8 @@ namespace editor
 
     void ContextMenu::show()
     {
+        UiComponent::show();
+
         backgroundTextureC->show();
 
         addButtonButtonC->show();
@@ -158,6 +160,8 @@ namespace editor
 
     void ContextMenu::hide()
     {
+        UiComponent::hide();
+
         backgroundTextureC->hide();
 
         addButtonButtonC->hide();

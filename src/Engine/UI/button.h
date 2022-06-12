@@ -21,7 +21,8 @@ namespace pg
         Button(void(*onPress)(Input*, double), const std::string& textureName, const UiComponent& frame = UiComponent());
         Button(void(*onPress)(Input*, double), const std::string& textureName, const Sentence::SentenceParameters& sentence, const UiComponent& frame = UiComponent());
 
-        // Constructor for std::function 
+        // Constructor for std::function
+        Button(const std::function<void(Input*, double)>& onPress, const UiComponent& frame = UiComponent());
         Button(const std::function<void(Input*, double)>& onPress, const std::string& textureName, const UiComponent& frame = UiComponent());
         Button(const std::function<void(Input*, double)>& onPress, const Sentence::SentenceParameters& sentence, const UiComponent& frame = UiComponent());
         Button(const std::function<void(Input*, double)>& onPress, const std::string& textureName, const Sentence::SentenceParameters& sentence, const UiComponent& frame = UiComponent());
@@ -45,6 +46,8 @@ namespace pg
 
     private:
         void moveUiElements();
+
+        std::function<void(Input*, double)> callback = nullptr;
 
         //TODO make sure to copy that when making a copy of this button
         InputSystem::MouseComponent onPress;

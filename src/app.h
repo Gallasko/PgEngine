@@ -80,6 +80,9 @@ private:
     void closeContextMenu(Input* inputHandler, double);
 
     void addElement(const UiComponentType& type);
+    
+    template<typename SceneElementType>
+    void openInOption(UiComponent* component);
 
     UiComponent *sceneEntityC;
     UiComponent *contextMenu = nullptr;

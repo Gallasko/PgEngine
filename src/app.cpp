@@ -19,11 +19,14 @@ namespace
 
     struct SceneElement
     {
-        SceneElement(int id, UiComponent *component) : id(id), component(component) {}
+        SceneElement(int id, UiComponent *component, Button *mouseArea) : id(id), component(component), mouseArea(mouseArea) {}
 
         int id;
 
         UiComponent *component;
+
+        /** Store a reference to the mouse area for delete purpose */
+        Button *mouseArea;
     };
 }
 
@@ -142,6 +145,15 @@ void EditorWindow::initialize()
     contextMenu->hide();
     
     // [End] Context menu UI
+
+    // Button test
+    Button* b1 = new Button([](Input*, double){ "Hello world !"; }, sceneEntityC->frame);
+    Button* b2 = new Button([](Input*, double){ "Grr !"; }, sceneEntityC->frame);
+    Button* b3 = new Button([](Input*, double){ "Hey !"; }, sceneEntityC->frame);
+    Button* b4 = new Button([](Input*, double){ "Success !"; }, sceneEntityC->frame);
+
+    std::cout << b1->width << std::endl;
+    std::cout << b1->pos.x << std::endl;
     
     ticking = true;
     std::thread t (&EditorWindow::tick, this);
@@ -357,7 +369,9 @@ void EditorWindow::addElement(const UiComponentType& type)
     auto ent = sceneEcs.createEntity();
     UiComponent *component = nullptr;
     int componentX = 0, componentY = 0;
+    Button *mouseArea = nullptr;
 
+    // TODO: take the correct coord of the context menu (context menu can show up from the top of the cursor if their is not enough space in the bottom of the screen)
     if(contextMenu != nullptr)
     {
     	componentX = contextMenu->pos.x;
@@ -378,6 +392,8 @@ void EditorWindow::addElement(const UiComponentType& type)
 
         component->setTopMargin(componentY - 25);
         component->setLeftMargin(componentX - 25);
+
+        mouseArea = new Button([=](Input*, double){ this->openInOption<TextureComponent>(component); }, component->frame);
         break;
 
     case UiComponentType::TEXT:
@@ -388,6 +404,8 @@ void EditorWindow::addElement(const UiComponentType& type)
 
         component->setTopMargin(componentY - component->height / 2.0f);
         component->setLeftMargin(componentX - component->width / 2.0f);
+
+        //mouseArea = new Button([=](Input*, double){ this->openInOption<Sentence>(component); }, component->frame);
         break;
 
     case UiComponentType::LIST:
@@ -403,10 +421,16 @@ void EditorWindow::addElement(const UiComponentType& type)
         break;
     }
 
-    sceneEcs.attach<SceneElement>(ent, index, component);
+    sceneEcs.attach<SceneElement>(ent, index, component, mouseArea);
     index++;
 
     contextMenu->hide();
+}
+
+template<typename SceneElementType>
+void EditorWindow::openInOption(UiComponent*)
+{
+    std::cout << "Clicked on component " << std::endl;
 }
 
 void EditorWindow::renderUi()
