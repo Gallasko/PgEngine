@@ -34,6 +34,8 @@ namespace pg
 {
     // Forward declarations
     enum class UiComponentType;
+
+    class Button;
 }
 
 //TODO make a MainWindow that handle all the QT events and can start all the base engine systems !
@@ -85,7 +87,10 @@ private:
     void openInOption(UiComponent* component);
 
     UiComponent *sceneEntityC;
+    UiComponent *optionTabC;
     UiComponent *contextMenu = nullptr;
+
+    // Button* b1;
 
     void renderUi();
     void tick();

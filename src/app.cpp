@@ -119,14 +119,18 @@ void EditorWindow::initialize()
     makeKeyInput(this, EditorWindow::quit);
 
     auto optionTab = ecs.createEntity();
-    auto optionTabC = ecs.attach<TextureComponent>(optionTab, 300, 1, "TabTexture");
+    optionTabC = ecs.attach<TextureComponent>(optionTab, 300, 1, "TabTexture");
 
     optionTabC->setTopAnchor(screenUi->top);
     optionTabC->setRightAnchor(screenUi->right);
     optionTabC->setBottomAnchor(screenUi->bottom);
 
+    std::cout << optionTabC->width << std::endl;
+
     auto sceneEntity = ecs.createEntity();
     sceneEntityC = ecs.attach<UiComponent>(sceneEntity);
+
+    std::cout << screenUi->left << " " << optionTabC->left << std::endl;
 
     sceneEntityC->setLeftAnchor(screenUi->left);
     sceneEntityC->setRightAnchor(optionTabC->left);
@@ -147,13 +151,15 @@ void EditorWindow::initialize()
     // [End] Context menu UI
 
     // Button test
-    Button* b1 = new Button([](Input*, double){ "Hello world !"; }, sceneEntityC->frame);
-    Button* b2 = new Button([](Input*, double){ "Grr !"; }, sceneEntityC->frame);
-    Button* b3 = new Button([](Input*, double){ "Hey !"; }, sceneEntityC->frame);
-    Button* b4 = new Button([](Input*, double){ "Success !"; }, sceneEntityC->frame);
+    auto b1 = new Button([](Input*, double){ std::cout << "Hello world !" << std::endl; }, sceneEntityC->frame);
+    Button* b2 = new Button([](Input*, double){ std::cout << "Grr !" << std::endl; }, sceneEntityC->frame);
+    Button* b3 = new Button([](Input*, double){ std::cout << "Hey !" << std::endl; }, sceneEntityC->frame);
+    Button* b4 = new Button([](Input*, double){ std::cout << "Success !" << std::endl; }, sceneEntityC->frame);
 
-    std::cout << b1->width << std::endl;
-    std::cout << b1->pos.x << std::endl;
+    // std::cout << b1->width << std::endl;
+    // std::cout << b1->pos.x << std::endl;
+
+    std::cout << sceneEntityC->frame.w << std::endl;
     
     ticking = true;
     std::thread t (&EditorWindow::tick, this);
@@ -357,7 +363,7 @@ void EditorWindow::openContextMenu(Input* inputHandler, double...)
 
 void EditorWindow::closeContextMenu(Input* inputHandler, double)
 {
-    if(inputHandler->isButtonPressed(Qt::LeftButton))
+    if(inputHandler->isButtonPressed(Qt::LeftButton) or inputHandler->isButtonPressed(Qt::RightButton))
     {
         contextMenu->hide();
     }
@@ -394,6 +400,7 @@ void EditorWindow::addElement(const UiComponentType& type)
         component->setLeftMargin(componentX - 25);
 
         mouseArea = new Button([=](Input*, double){ this->openInOption<TextureComponent>(component); }, component->frame);
+        mouseArea->setZ(component->pos.z + 1);
         break;
 
     case UiComponentType::TEXT:
@@ -405,7 +412,8 @@ void EditorWindow::addElement(const UiComponentType& type)
         component->setTopMargin(componentY - component->height / 2.0f);
         component->setLeftMargin(componentX - component->width / 2.0f);
 
-        //mouseArea = new Button([=](Input*, double){ this->openInOption<Sentence>(component); }, component->frame);
+        mouseArea = new Button([=](Input*, double){ this->openInOption<Sentence>(component); }, component->frame);
+        mouseArea->setZ(component->pos.z + 1);
         break;
 
     case UiComponentType::LIST:

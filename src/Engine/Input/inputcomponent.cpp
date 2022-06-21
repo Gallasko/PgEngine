@@ -10,7 +10,7 @@ namespace pg
         int findInputPos(const Value& value, const Container& container)
         {
             for (long long unsigned int i = 0; i < container.size(); i++)
-                if(value == *container.at(i))
+                if(value == container.at(i))
                     return i;
 
             return -1;
@@ -19,7 +19,15 @@ namespace pg
         template<typename InputHolder>
         bool compareZValueFromComponents(const InputHolder& left, const InputHolder& right)
         {
-            return left->component->pos->z > right->component->pos->z;
+            int index = 0;
+            if(left.component->pos->z > right.component->pos->z)
+            {
+                index = left.indice->index;
+                left.indice->index = right.indice->index;
+                right.indice->index = index;
+            }
+
+            return left.component->pos->z > right.component->pos->z;
         }
     }
 
@@ -47,7 +55,7 @@ namespace pg
 
         for(auto& component : mouseComponents)
         {
-            const auto& mouseArea = component->component;
+            const auto& mouseArea = component.component;
 
             // Break of the loop if the current z value is lower than the highest z value in bound
             // Possible because mouseComponents is sorted from highest to lowest Z 
@@ -58,17 +66,17 @@ namespace pg
             if(mouseArea->inBound(mousePos.x(), mousePos.y()) and *mouseArea->enable and mouseArea->pos->z >= highestZ)
             {
                 highestZ = mouseArea->pos->z;
-                component->inputCallback(inputHandler, deltaTime);
+                component.inputCallback(inputHandler, deltaTime);
             }
             else
             {
-                if(component->leaveCallback != nullptr)
-                    component->leaveCallback(inputHandler, deltaTime);
+                if(component.leaveCallback != nullptr)
+                    component.leaveCallback(inputHandler, deltaTime);
             }
         }
 
         for(auto& component : keyComponents)
-            component->callback(inputHandler, deltaTime);
+            component.callback(inputHandler, deltaTime);
     }
 
     MouseInputComponent::MouseInputComponent(UiComponent *component) : pos(&component->pos), width(&component->width), height(&component->height), enable(&component->isVisible())
@@ -86,27 +94,51 @@ namespace pg
         return x > this->pos->x && x < (this->pos->x + *this->width) && y < (this->pos->y + *this->height) && y > this->pos->y; 
     }
 
-    const InputSystem::MouseComponent& InputSystem::registerMouseArea(MouseInputPtr component, const std::function<void(Input*, double)>& inputCallback, const std::function<void(Input*, double)>& leaveCallback)
+    MouseInput InputSystem::registerMouseArea(MouseInputPtr component, const std::function<void(Input*, double)>& inputCallback, const std::function<void(Input*, double)>& leaveCallback)
     {
         // This create an unique ptr of the component to not invalidate the ref to the component
-        mouseComponents.emplace_back(new InputSystem::MouseComponent(component, inputCallback, leaveCallback));
-        const InputSystem::MouseComponent& returnComponent = *mouseComponents.back();
+        // mouseComponents.push_back(new InputSystem::MouseComponent(component, inputCallback, leaveCallback));
+        mouseComponents.emplace_back(component, inputCallback, leaveCallback);
+        MouseInput input;
 
-        std::sort(mouseComponents.begin(), mouseComponents.end(), compareZValueFromComponents<std::unique_ptr<InputSystem::MouseComponent>>);
+        auto indice = findLastIndice();
+        if(indice == nullptr)
+        {
+            firstIndice = &(input.indice);
+        }
+        else
+        {
+            indice->next = &(input.indice);
+            input.indice.index = indice->index + 1;
+        }
 
-        return returnComponent; 
+        std::sort(mouseComponents.begin(), mouseComponents.end(), compareZValueFromComponents<InputSystem::MouseComponent>);
+
+        return input;
     }
 
     const InputSystem::KeyComponent& InputSystem::registerKeyInput(KeyInputPtr component, const std::function<void(Input*, double)>& callback)
     {
         // This create an unique ptr of the component to not invalidate the ref to the component
-        keyComponents.emplace_back(new InputSystem::KeyComponent(component, callback));
-        const InputSystem::KeyComponent& returnComponent = *keyComponents.back(); // TODO change this cause an element of a vector can be invalidate at any point of the app !
+        // keyComponents.emplace_back(new InputSystem::KeyComponent(component, callback));
+        
 
-        return returnComponent;
+        // TODO
+
+        //mouseComponents.push_back(std::make_shared<InputSystem::KeyComponent>(component, callback));
+        //const InputSystem::KeyComponent& returnComponent = *keyComponents.back(); // TODO change this cause an element of a vector can be invalidate at any point of the app !
+
+        //return returnComponent;
     }
 
-    const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double), void (*mouseLeave)(Input*, double))
+    void MouseInput::changeZ(const UiSize& zOrder) const
+    {
+        auto& system = InputSystem::system();
+        system->mouseComponents[indice.index].component->pos->z = zOrder;
+        system->reorderMouse();
+    }
+
+    MouseInput makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double), void (*mouseLeave)(Input*, double))
     {
         auto& system = InputSystem::system();
 
@@ -124,7 +156,7 @@ namespace pg
         return system->registerMouseArea(mouseArea, inputCallback, leaveCallback);
     }
 
-    const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double), std::nullptr_t)
+    MouseInput makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double), std::nullptr_t)
     {
         auto& system = InputSystem::system();
 
@@ -136,7 +168,7 @@ namespace pg
         return system->registerMouseArea(mouseArea, inputCallback, static_cast<std::function<void(pg::Input*, double)>>(nullptr));
     }
 
-    const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double))
+    MouseInput makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double))
     {
         auto& system = InputSystem::system();
 
@@ -148,7 +180,7 @@ namespace pg
         return system->registerMouseArea(mouseArea, inputCallback, static_cast<std::function<void(pg::Input*, double)>>(nullptr));
     }
 
-    const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, const std::function<void(pg::Input*, double)>& mouseInput)
+    MouseInput makeMouseArea(UiComponent *component, const std::function<void(pg::Input*, double)>& mouseInput)
     {
         auto& system = InputSystem::system();
 
@@ -157,7 +189,7 @@ namespace pg
         return system->registerMouseArea(mouseArea, mouseInput, static_cast<std::function<void(pg::Input*, double)>>(nullptr));
     }
 
-    const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, const std::function<void(pg::Input*, double)>& mouseInput, const std::function<void(pg::Input*, double)>& mouseLeave)
+    MouseInput makeMouseArea(UiComponent *component, const std::function<void(pg::Input*, double)>& mouseInput, const std::function<void(pg::Input*, double)>& mouseLeave)
     {
         auto& system = InputSystem::system();
 
@@ -166,7 +198,7 @@ namespace pg
         return system->registerMouseArea(mouseArea, mouseInput, mouseLeave);
     }
 
-    const InputSystem::MouseComponent& makeMouseArea(UiComponent *component, const InputSystem::MouseComponent& mouseArea)
+    MouseInput makeMouseArea(UiComponent *component, const InputSystem::MouseComponent& mouseArea)
     {
         auto& system = InputSystem::system();
 

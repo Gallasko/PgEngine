@@ -9,7 +9,7 @@ namespace pg
         const char * DOM = "Button";
 
         template <typename Type, typename... Args>
-        const InputSystem::MouseComponent& makeButtonMouseComponent(UiComponent* uiComponent, Type *obj, void(Type::*onPress)(Input*, double...), const Args&... args)
+        MouseInput makeButtonMouseComponent(UiComponent* uiComponent, Type *obj, void(Type::*onPress)(Input*, double...), const Args&... args)
         {
             std::function<void(Input*, double)> press = [=](Input* inputHandler, double deltaTime) {
                 static bool pressed = false;
@@ -29,7 +29,7 @@ namespace pg
             return makeMouseArea(uiComponent, press);
         }
 
-        const InputSystem::MouseComponent& makeButtonMouseComponent(UiComponent* uiComponent, void(*onPress)(Input*, double))
+        MouseInput makeButtonMouseComponent(UiComponent* uiComponent, void(*onPress)(Input*, double))
         {
             std::function<void(Input*, double)> press = [onPress](Input* inputHandler, double deltaTime) {
                 static bool pressed = false;
@@ -49,7 +49,7 @@ namespace pg
             return makeMouseArea(uiComponent, press);
         }
 
-        const InputSystem::MouseComponent& makeButtonMouseComponent(UiComponent *uiComponent, const std::function<void(Input*, double)>& onPress)
+        MouseInput makeButtonMouseComponent(UiComponent *uiComponent, const std::function<void(Input*, double)>& onPress)
         {
             std::function<void(Input*, double)> press = [onPress](Input* inputHandler, double deltaTime) {
                 static bool pressed = false;
@@ -82,7 +82,7 @@ namespace pg
     }
 
     // TODO create an edge case for a copy of this type of button cause it doesn t have a callback
-    Button::Button(const InputSystem::MouseComponent& onPress, TextureComponent* background, Sentence* sentence, const UiComponent& frame) : UiComponent(frame), background(background), sentence(sentence), onPress(onPress)
+    Button::Button(MouseInput onPress, TextureComponent* background, Sentence* sentence, const UiComponent& frame) : UiComponent(frame), background(background), sentence(sentence), onPress(onPress)
     {
         moveUiElements();
     }
