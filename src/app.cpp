@@ -393,7 +393,8 @@ void EditorWindow::addElement(const UiComponentType& type)
         component->setTopMargin(componentY - 25);
         component->setLeftMargin(componentX - 25);
 
-        mouseArea = new Button([=](Input*, double){ this->openInOption<TextureComponent>(component); }, component->frame);
+        // Todo
+        // mouseArea = new Button([=](Input*, double){ delete component; delete mouseArea; sceneEcs.dettach<SceneElement>(ent); }, component->frame);
         mouseArea->setZ(component->pos.z + 1);
         break;
 

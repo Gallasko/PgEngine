@@ -53,6 +53,29 @@ namespace pg
         int highestZ = INT_MIN;
         const auto& mousePos = inputHandler->getMousePos();
 
+        if(mouseDeleteList.size() > 0)
+        {
+            for(auto index : mouseDeleteList)
+            {
+                auto indice = mouseComponents[index].indice;
+
+                if(indice->prev != nullptr)
+                    indice->prev->next = indice->next;
+
+                InputIndice* fIndice = firstIndice;
+
+                while(firstIndice != nullptr && fIndice->next != nullptr)
+                {
+                    if(fIndice->index > index)
+                        fIndice->index--;
+
+                    fIndice = fIndice->next;
+                }
+            }
+
+            reorderMouse();
+        }
+
         // for(auto& component : mouseComponents)
         for(int i = 0; i < mouseComponents.size(); i++)
         {
@@ -62,8 +85,8 @@ namespace pg
             // Break of the loop if the current z value is lower than the highest z value in bound
             // Possible because mouseComponents is sorted from highest to lowest Z 
             // TODO need to reorder the list when a Z value is modified
-            // if(highestZ > mouseArea->pos->z) // care some edge case exist like listview promoting a Z value so list is not always sorted ! 
-            //    break;
+            if(highestZ > mouseArea->pos->z) // care some edge case exist like listview promoting a Z value so list is not always sorted ! 
+                break;
 
             if(mouseArea->inBound(mousePos.x(), mousePos.y()) and *mouseArea->enable and mouseArea->pos->z >= highestZ)
             {
@@ -110,13 +133,14 @@ namespace pg
         }
         else
         {
+            input.indice->prev = indice;
             indice->next = input.indice;
             input.indice->index = indice->index + 1;
         }
 
         mouseComponents.emplace_back(component, input.indice, inputCallback, leaveCallback);
 
-        std::sort(mouseComponents.begin(), mouseComponents.end(), compareZValueFromComponents<InputSystem::MouseComponent>);
+        reorderMouse();
 
         return input;
     }
@@ -134,6 +158,11 @@ namespace pg
 
         //return returnComponent;
     }
+
+    void InputSystem::reorderMouse()
+    {
+        std::sort(mouseComponents.begin(), mouseComponents.end(), compareZValueFromComponents<InputSystem::MouseComponent>);
+    };
 
     void MouseInput::changeZ(const UiSize& zOrder) const
     {

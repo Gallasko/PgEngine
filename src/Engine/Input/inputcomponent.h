@@ -174,6 +174,7 @@ namespace pg
     struct InputIndice
     {
         int index = 0;
+        InputIndice *prev = nullptr;
         InputIndice *next = nullptr;
     };
 
@@ -259,10 +260,11 @@ namespace pg
             return indice;
         };
 
-        void reorderMouse() {};
+        void reorderMouse();
+        
         void deleteMouseInput(int index)
         {
-
+            mouseDeleteList.push_back(index);
         };
 
         // Storing unique ptr of the component to avoid invaliding the ref to the component
