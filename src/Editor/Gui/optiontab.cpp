@@ -1,0 +1,47 @@
+#include "optiontab.h"
+
+namespace pg
+{
+    template<>
+    void renderer(MasterRenderer *masterRenderer, pg::editor::OptionTab* optionTab)
+    {
+        optionTab->backgroundTexture->render(masterRenderer);
+        optionTab->listView.render(masterRenderer);
+    }
+
+    namespace editor
+    {
+        OptionTab::OptionTab(int width, int height) : listView(this->frame)
+        {
+            this->width = width;
+            this->height = height;
+            
+            this->backgroundTexture = new TextureComponent(this->width, this->height, "TabTexture");
+            this->backgroundTexture->setTopAnchor(this->top);
+            this->backgroundTexture->setLeftAnchor(this->left);
+            this->backgroundTexture->setRightAnchor(this->right);
+            this->backgroundTexture->setBottomAnchor(this->bottom);
+        }
+
+        void OptionTab::render(MasterRenderer* masterRenderer)
+        {
+            renderer(masterRenderer, this);
+        }
+
+        void OptionTab::show()
+        {
+            UiComponent::show();
+
+            listView.show();
+            backgroundTexture->show();
+        }
+
+        void OptionTab::hide()
+        {
+            UiComponent::hide();
+
+            listView.hide();
+            backgroundTexture->hide();
+        }
+    }
+}

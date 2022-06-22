@@ -53,7 +53,7 @@ namespace pg
         int highestZ = INT_MIN;
         const auto& mousePos = inputHandler->getMousePos();
 
-        if(mouseDeleteList.size() > 0)
+        if(not mouseDeleteList.empty())
         {
             for(auto index : mouseDeleteList)
             {

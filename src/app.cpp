@@ -10,6 +10,7 @@
 #include "UI/button.h"
 
 #include "Editor/Gui/contextmenu.h"
+#include "Editor/Gui/optiontab.h"
 
 // TODO create a find function in ECS
 
@@ -112,28 +113,23 @@ void EditorWindow::initialize()
 
     screenEntity = ecs.createEntity();
     screenUi = ecs.attach<UiComponent>(screenEntity);
-    screenUi->width = 1;
-    screenUi->height = 1;
+    screenUi->width = 400;
+    screenUi->height = 400;
     screenUi->setZ(-1);
 
     makeKeyInput(this, EditorWindow::quit);
 
-    auto optionTab = ecs.createEntity();
-    optionTabC = ecs.attach<TextureComponent>(optionTab, 300, 1, "TabTexture");
+    optionTab = new editor::OptionTab(300, 1);
 
-    optionTabC->setTopAnchor(screenUi->top);
-    optionTabC->setRightAnchor(screenUi->right);
-    optionTabC->setBottomAnchor(screenUi->bottom);
-
-    std::cout << optionTabC->width << std::endl;
+    optionTab->setTopAnchor(screenUi->top);
+    optionTab->setRightAnchor(screenUi->right);
+    optionTab->setBottomAnchor(screenUi->bottom);
 
     auto sceneEntity = ecs.createEntity();
     sceneEntityC = ecs.attach<UiComponent>(sceneEntity);
 
-    std::cout << screenUi->left << " " << optionTabC->left << std::endl;
-
     sceneEntityC->setLeftAnchor(screenUi->left);
-    sceneEntityC->setRightAnchor(optionTabC->left);
+    sceneEntityC->setRightAnchor(optionTab->left);
     sceneEntityC->setTopAnchor(screenUi->top);
     sceneEntityC->setBottomAnchor(screenUi->bottom);
 
@@ -394,7 +390,8 @@ void EditorWindow::addElement(const UiComponentType& type)
         component->setLeftMargin(componentX - 25);
 
         // Todo
-        // mouseArea = new Button([=](Input*, double){ delete component; delete mouseArea; sceneEcs.dettach<SceneElement>(ent); }, component->frame);
+        // mouseArea = new Button([=](Input*, double){ delete component; delete mouseArea; ecsRef->dettach<SceneElement>(ent); }, component->frame);
+        mouseArea = new Button([=](Input*, double){ this->openInOption<TextureComponent>(component); }, component->frame);
         mouseArea->setZ(component->pos.z + 1);
         break;
 
@@ -431,13 +428,15 @@ void EditorWindow::addElement(const UiComponentType& type)
 }
 
 template<typename SceneElementType>
-void EditorWindow::openInOption(UiComponent*)
+void EditorWindow::openInOption(UiComponent* component)
 {
     std::cout << "Clicked on component " << std::endl;
 }
 
 void EditorWindow::renderUi()
 {
+    masterRenderer.render(optionTab);
+
     for(auto& child : sceneEcs.view<SceneElement>())
     {
         if(child.component != nullptr)
