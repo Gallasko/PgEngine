@@ -53,8 +53,10 @@ namespace pg
         int highestZ = INT_MIN;
         const auto& mousePos = inputHandler->getMousePos();
 
-        for(auto& component : mouseComponents)
+        // for(auto& component : mouseComponents)
+        for(int i = 0; i < mouseComponents.size(); i++)
         {
+            auto& component = mouseComponents[i];
             const auto& mouseArea = component.component;
 
             // Break of the loop if the current z value is lower than the highest z value in bound

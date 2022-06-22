@@ -150,12 +150,6 @@ void EditorWindow::initialize()
     
     // [End] Context menu UI
 
-    // Button test
-    auto b1 = new Button([](Input*, double){ std::cout << "Hello world !" << std::endl; }, sceneEntityC->frame);
-    Button* b2 = new Button([](Input*, double){ std::cout << "Grr !" << std::endl; }, sceneEntityC->frame);
-    Button* b3 = new Button([](Input*, double){ std::cout << "Hey !" << std::endl; }, sceneEntityC->frame);
-    Button* b4 = new Button([](Input*, double){ std::cout << "Success !" << std::endl; }, sceneEntityC->frame);
-
     // std::cout << b1->width << std::endl;
     // std::cout << b1->pos.x << std::endl;
 
