@@ -19,7 +19,7 @@ namespace pg
         struct Base {};
 
         // TODO replace this by a UiFrame
-        UiPosition *pos;
+        UiPosition *pos; // Todo see if it can be set to const without conflit with MouseInput
         const UiSize *width, *height; // Input Area
         const bool *enable;
 
@@ -190,7 +190,7 @@ namespace pg
         // Helper Struct
         struct MouseComponent
         {
-            MouseComponent(const MouseInputPtr& component, const std::function<void(Input*, double)>& inputCallback, const std::function<void(Input*, double)>& leaveCallback = nullptr) : component(component), inputCallback(inputCallback), leaveCallback(leaveCallback) {}
+            MouseComponent(const MouseInputPtr& component, InputIndice* indice, const std::function<void(Input*, double)>& inputCallback, const std::function<void(Input*, double)>& leaveCallback = nullptr) : component(component), inputCallback(inputCallback), leaveCallback(leaveCallback), indice(indice) {}
             
             bool operator==(const MouseComponent& rhs) const { return component == rhs.component; }
 
@@ -253,14 +253,17 @@ namespace pg
             if(indice == nullptr)
                 return nullptr;
 
-            while(indice->next == nullptr)
+            while(indice->next != nullptr)
                 indice = indice->next;
 
             return indice;
         };
 
-        void reorderMouse();
-        void deleteMouseInput(int index);
+        void reorderMouse() {};
+        void deleteMouseInput(int index)
+        {
+
+        };
 
         // Storing unique ptr of the component to avoid invaliding the ref to the component
         std::vector<InputSystem::MouseComponent> mouseComponents;
@@ -275,17 +278,17 @@ namespace pg
     {
     friend class InputSystem;
     public:
-        MouseInputPtr operator->() const { return InputSystem::system()->mouseComponents[indice.index].component; }
+        MouseInputPtr operator->() const { return InputSystem::system()->mouseComponents[indice->index].component; }
 
         void changeZ(const UiSize& zOrder) const;
 
         void deleteInput() const
         {
-            InputSystem::system()->deleteMouseInput(indice.index);
+            InputSystem::system()->deleteMouseInput(indice->index);
         }
 
     private:
-        InputIndice indice;
+        InputIndice *indice;
     };
 
     MouseInput makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double), void (*mouseLeave)(Input*, double));
@@ -373,8 +376,5 @@ namespace pg
     }
     */
 
-    void deleteInput(const MouseInput& input)
-    {
-        input.deleteInput();
-    }
+    void deleteInput(const MouseInput& input);
 }

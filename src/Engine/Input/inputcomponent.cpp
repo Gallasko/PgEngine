@@ -98,19 +98,21 @@ namespace pg
     {
         // This create an unique ptr of the component to not invalidate the ref to the component
         // mouseComponents.push_back(new InputSystem::MouseComponent(component, inputCallback, leaveCallback));
-        mouseComponents.emplace_back(component, inputCallback, leaveCallback);
         MouseInput input;
+        input.indice = new InputIndice();
 
         auto indice = findLastIndice();
         if(indice == nullptr)
         {
-            firstIndice = &(input.indice);
+            firstIndice = input.indice;
         }
         else
         {
-            indice->next = &(input.indice);
-            input.indice.index = indice->index + 1;
+            indice->next = input.indice;
+            input.indice->index = indice->index + 1;
         }
+
+        mouseComponents.emplace_back(component, input.indice, inputCallback, leaveCallback);
 
         std::sort(mouseComponents.begin(), mouseComponents.end(), compareZValueFromComponents<InputSystem::MouseComponent>);
 
@@ -134,7 +136,7 @@ namespace pg
     void MouseInput::changeZ(const UiSize& zOrder) const
     {
         auto& system = InputSystem::system();
-        system->mouseComponents[indice.index].component->pos->z = zOrder;
+        system->mouseComponents[indice->index].component->pos->z = zOrder;
         system->reorderMouse();
     }
 
@@ -205,6 +207,11 @@ namespace pg
         auto mArea = MouseInputPtr(new MouseInputBase<MouseInputComponent::Base>(component));
 
         return system->registerMouseArea(mArea, mouseArea.inputCallback, mouseArea.leaveCallback);
+    }
+
+    void deleteInput(const MouseInput& input)
+    {
+        input.deleteInput();
     }
 
 }

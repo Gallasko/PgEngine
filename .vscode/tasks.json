@@ -12,7 +12,7 @@
                 "command": "powershell",
                 "args": [
                     "-c",
-                    "mingw32-make DEBUG=True"
+                    "mingw32-make DEBUG=True -j 8"
                 ]
             },
             "linux": {
@@ -42,7 +42,7 @@
                 "command": "powershell",
                 "args": [
                     "-c",
-                    "mingw32-make DEBUG=False"
+                    "mingw32-make DEBUG=False -j 8"
                 ]
             },
             "linux": {
