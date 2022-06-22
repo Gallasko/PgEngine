@@ -5,10 +5,14 @@
 #include "uisystem.h"
 
 #include "../Input/inputcomponent.h"
+#include "Renderer/renderer.h"
 
 //TODO add mouse wheel support and scrool by holding the mouse
 namespace pg
 {
+    // Forwarding
+    class TextureComponent;
+
     //TODO make sliders part of the scrollable component cause not only the list view need them
     //Scrollable widgets includes : listview, long text, long images, maps, etc... 
     class SlideBar : public UiComponent

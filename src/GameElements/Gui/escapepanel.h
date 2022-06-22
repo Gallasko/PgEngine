@@ -4,6 +4,11 @@
 
 using namespace pg;
 
+namespace pg
+{
+    class TextureComponent;
+}
+
 struct EscapePanel : public UiComponent
 {
     TextureComponent *background;

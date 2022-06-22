@@ -14,6 +14,11 @@
 
 using namespace pg;
 
+namespace pg
+{
+    class TextureComponent;
+}
+
 class TileSelector : public UiComponent
 {
 public:

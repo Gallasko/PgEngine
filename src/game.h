@@ -49,6 +49,8 @@
 #include "GameElements/Gui/tileselector.h"
 #include "GameElements/Gui/escapepanel.h"
 
+#include "UI/texture.h"
+
 
 //TODO create unary test for all the basic component of the framework
 

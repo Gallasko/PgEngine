@@ -1,5 +1,7 @@
 #include "button.h"
 
+#include "UI/texture.h"
+
 #include <functional>
 
 namespace pg

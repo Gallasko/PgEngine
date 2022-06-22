@@ -1,17 +1,6 @@
 #pragma once
 
-#include <QOpenGLFunctions>
-#include <QOpenGLTexture>
-#include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
-
-#include <algorithm>
-#include <vector>
-
 #include "uiconstant.h"
-#include "../constant.h"
-
-#include "../Renderer/renderer.h"
 
 //Todo parenting, better anchoring
 //TODO refactor all the struct that need to be a class and make the element private
@@ -20,6 +9,13 @@
 //TODO create a destructor that go through the children and remove this ? or remove the child recursively ?
 namespace pg
 {
+    namespace constant
+    {
+        // Forward declaration
+        class Vector2D;
+    }
+    class MasterRenderer;
+
     struct UiComponent
     {
         UiPosition pos;
@@ -84,7 +80,7 @@ namespace pg
         inline void setLeftAnchor(const UiSize& anchor) { leftAnchor = &anchor; update(); }
 
         bool inBound(int x, int y) const;
-        bool inBound(const constant::Vector2D& vec2) const { return inBound(vec2.x, vec2.y); }
+        bool inBound(const constant::Vector2D& vec2) const;
 
         const bool& isVisible() const { return visible; }
 
@@ -97,30 +93,6 @@ namespace pg
 
     protected:
         bool visible = true;
-    };
-
-    struct TextureComponent : public UiComponent, private QOpenGLFunctions
-    {
-        TextureComponent(const UiSize& width, const UiSize& height, const std::string& textureName);
-        TextureComponent(const UiComponent& component, const std::string& textureName);
-        TextureComponent(const TextureComponent &rhs);
-        virtual ~TextureComponent();
-
-        void generateMesh();
-
-        virtual void render(MasterRenderer* masterRenderer);
-
-        std::string textureName;
-
-        constant::SquareInfo modelInfo;
-
-        QOpenGLVertexArrayObject *VAO = nullptr;
-        QOpenGLBuffer *VBO = nullptr;
-        QOpenGLBuffer *EBO = nullptr;
-
-        float oldWidth = width, oldHeight = height;
-
-        bool initialised = false;
     };
 
     //TODO Copy Constructor

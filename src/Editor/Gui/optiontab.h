@@ -5,6 +5,8 @@
 
 namespace pg
 {
+    class TextureComponent;
+    
     namespace editor
     {
         struct OptionTab : public UiComponent

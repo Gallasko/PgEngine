@@ -8,6 +8,7 @@
 #include "Engine/Scene/sceneloader.h"
 
 #include "UI/button.h"
+#include "UI/texture.h"
 
 #include "Editor/Gui/contextmenu.h"
 #include "Editor/Gui/optiontab.h"

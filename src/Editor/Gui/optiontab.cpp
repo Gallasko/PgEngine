@@ -1,5 +1,9 @@
 #include "optiontab.h"
 
+#include "UI/texture.h"
+
+#include "Renderer/renderer.h"
+
 namespace pg
 {
     template<>

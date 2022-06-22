@@ -1,6 +1,7 @@
 #include "listview.h"
 
-#include "../logger.h"
+#include "texture.h"
+#include "logger.h"
 
 namespace pg
 {
