@@ -83,6 +83,7 @@ namespace pg
     void TextInput::focus(Input* inputHandler, double)
     {
 
+
     }
 
     void TextInput::unfocus(Input* inputHandler, double)
