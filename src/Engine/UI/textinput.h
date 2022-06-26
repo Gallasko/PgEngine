@@ -32,7 +32,7 @@ namespace pg
     private:
         void changeTextCallback(Input* inputHandler, double...);
 
-        void focus(Input* inputHandler, double...);
+        void focus(Input* inputHandler, double);
         void unfocus(Input* inputHandler, double);
 
         // Private Variables

@@ -13,7 +13,7 @@
 
 namespace pg
 {
-    TextInput::TextInput(const TextInputCallback& callback) : Button(this, TextInput::focus, TextInput::unfocus)
+    TextInput::TextInput(const TextInputCallback& callback) : Button(this, TextInput::focus)
     {
 
     }
@@ -80,7 +80,7 @@ namespace pg
             callback(text);
     }
 
-    void TextInput::focus(Input* inputHandler, double...)
+    void TextInput::focus(Input* inputHandler, double)
     {
 
     }
