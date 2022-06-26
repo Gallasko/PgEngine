@@ -187,6 +187,8 @@ namespace pg
 
     void Sentence::setText(const SentenceText& sentence, FontLoader *font)
     {
+        this->font = font;
+
         if(text != sentence)
         {
             nbChara = sentence.text.length();
@@ -278,6 +280,11 @@ namespace pg
             update();
         }
         
+    }
+
+    void Sentence::setText(const SentenceText& sentence)
+    {
+        this->setText(sentence, this->font);
     }
 
     //TODO add a parameters to set the usage patern and make it static by default

@@ -74,6 +74,7 @@ namespace pg
         virtual ~Sentence();
 
         void setText(const SentenceText& sentence, FontLoader *font);
+        void setText(const SentenceText& sentence);
 
         void generateMesh();
 
