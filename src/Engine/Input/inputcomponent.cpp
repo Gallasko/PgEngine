@@ -55,25 +55,62 @@ namespace pg
 
         if(not mouseDeleteList.empty())
         {
-            for(auto index : mouseDeleteList)
+            for(int i = 0; i < mouseDeleteList.size(); i++)
             {
-                auto indice = mouseComponents[index].indice;
+                auto indice = mouseDeleteList[i];
+
+                auto index = indice->index;
 
                 if(indice->prev != nullptr)
                     indice->prev->next = indice->next;
 
-                InputIndice* fIndice = firstIndice;
+                InputIndice* fIndice = firstMouseIndice;
 
-                while(firstIndice != nullptr && fIndice->next != nullptr)
+                while(firstMouseIndice != nullptr && fIndice->next != nullptr)
                 {
                     if(fIndice->index > index)
                         fIndice->index--;
 
                     fIndice = fIndice->next;
                 }
+
+                mouseComponents.erase(mouseComponents.begin() + index);
+
+                delete indice;
             }
 
+            mouseDeleteList.clear();
+
             reorderMouse();
+        }
+
+        if(not keyDeleteList.empty())
+        {
+            for(int i = 0; i < keyDeleteList.size(); i++)
+            {
+                auto indice = keyDeleteList[i];
+
+                auto index = indice->index;
+
+                if(indice->prev != nullptr)
+                    indice->prev->next = indice->next;
+
+                InputIndice* fIndice = firstKeyIndice;
+
+                while(firstKeyIndice != nullptr && fIndice->next != nullptr)
+                {
+                    if(fIndice->index > index)
+                        fIndice->index--;
+
+                    fIndice = fIndice->next;
+                }
+
+                keyComponents.erase(keyComponents.begin() + index);
+
+                delete indice;
+            }
+
+            keyDeleteList.clear();
         }
 
         // for(auto& component : mouseComponents)
@@ -121,15 +158,13 @@ namespace pg
 
     MouseInput InputSystem::registerMouseArea(MouseInputPtr component, const std::function<void(Input*, double)>& inputCallback, const std::function<void(Input*, double)>& leaveCallback)
     {
-        // This create an unique ptr of the component to not invalidate the ref to the component
-        // mouseComponents.push_back(new InputSystem::MouseComponent(component, inputCallback, leaveCallback));
         MouseInput input;
         input.indice = new InputIndice();
 
-        auto indice = findLastIndice();
+        auto indice = findLastMouseIndice();
         if(indice == nullptr)
         {
-            firstIndice = input.indice;
+            firstMouseIndice = input.indice;
         }
         else
         {
@@ -241,6 +276,11 @@ namespace pg
     }
 
     void deleteInput(const MouseInput& input)
+    {
+        input.deleteInput();
+    }
+
+    void deleteInput(const KeyInput& input)
     {
         input.deleteInput();
     }

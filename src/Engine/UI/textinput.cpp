@@ -11,11 +11,61 @@
 
 #include "textinput.h"
 
+#include "Input/input.h"
+
+#include "texture.h"
+#include "sentencesystem.h"
+
 namespace pg
 {
-    TextInput::TextInput(const TextInputCallback& callback) : Button(this, TextInput::focus)
+    template<>
+    void renderer(MasterRenderer* masterRenderer, TextInput* textInput)
     {
+        if(textInput->background != nullptr)
+            masterRenderer->render(textInput->background);
 
+        if(textInput->sentence != nullptr)
+            masterRenderer->render(textInput->sentence);
+    }
+
+    TextInput::TextInput(const UiFrame& frame, const std::string& texture, FontLoader* fontLoader, const TextInputCallback& callback) : UiComponent(frame)
+    {
+        // TODO set TextureComponent with only a frame or a pointer to an UiComponent
+        this->texture = new TextureComponent(this->width, this->height, texture);
+        
+        // TODO Set sentence wihtout a fontloader call a basic font loader 
+        this->sentence = new Sentence({""}, 4.0f, fontLoader);
+
+        mouseInput = makeMouseArea(this, this, TextInput::focus, TextInput::unfocus);
+
+        keyInput = makeKeyInput(this, changeTextCallback);
+    }
+
+    TextInput::~TextInput()
+    {
+        delete texture;
+        delete sentence;
+    }
+
+    void TextInput::setTexture(const std::string& texture)
+    {
+        texture->textureName = texture;
+    }
+
+    void TextInput::show()
+    {
+        UiComponent::show();
+
+        texture->show();
+        sentence->show();
+    }
+
+    void TextInput::hide()
+    {
+        UiComponent::hide();
+
+        texture->hide();
+        sentence->hide();
     }
 
     /**
@@ -27,6 +77,9 @@ namespace pg
      */
     void TextInput::changeTextCallback(Input* inputHandler, double...) 
     {
+        if(not focused)
+            return;
+        
         auto previousText = text;
         // A static vector to keep track of the current key pressed
         static std::vector<int> keyPressed;
@@ -80,15 +133,16 @@ namespace pg
             callback(text);
     }
 
-    void TextInput::focus(Input* inputHandler, double)
+    void TextInput::focus(Input* inputHandler, double...)
     {
-
-
+        if(inputHandler->isButtonPressed(Qt::LeftButton))
+            focused = true;
     }
 
     void TextInput::unfocus(Input* inputHandler, double)
     {
-
+        if(inputHandler->isButtonPressed(Qt::LeftButton) || inputHandler->isButtonPressed(Qt::RightButton))
+            focused = false;
     }
 
 }

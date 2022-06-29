@@ -170,6 +170,7 @@ namespace pg
     typedef std::shared_ptr<KeyboardInputComponent> KeyInputPtr;
 
     class MouseInput;
+    class KeyInput;
 
     struct InputIndice
     {
@@ -181,6 +182,7 @@ namespace pg
     class InputSystem 
     {
         friend class MouseInput;
+        friend class KeyInput;
 
         // Typedefs
 
@@ -247,9 +249,9 @@ namespace pg
         const InputSystem::KeyComponent& registerKeyInput(KeyInputPtr component, const std::function<void(Input*, double)>& callback);
 
     private:
-        InputIndice* findLastIndice() const
+        InputIndice* findLastMouseIndice() const
         {
-            InputIndice* indice = firstIndice;
+            InputIndice* indice = firstMouseIndice;
 
             if(indice == nullptr)
                 return nullptr;
@@ -262,18 +264,18 @@ namespace pg
 
         void reorderMouse();
         
-        void deleteMouseInput(int index)
-        {
-            mouseDeleteList.push_back(index);
-        };
+        inline void deleteMouseInput(InputIndice *index) { mouseDeleteList.push_back(index); }
+        inline void deleteKeyInput(InputIndice *index) { keyDeleteList.push_back(index); }
 
         // Storing unique ptr of the component to avoid invaliding the ref to the component
         std::vector<InputSystem::MouseComponent> mouseComponents;
         std::vector<InputSystem::KeyComponent> keyComponents;
 
-        InputIndice *firstIndice = nullptr;
+        InputIndice *firstMouseIndice = nullptr;
+        InputIndice *firstKeyIndice = nullptr;
 
-        std::vector<int> mouseDeleteList;
+        std::vector<InputIndice*> mouseDeleteList;
+        std::vector<InputIndice*> keyDeleteList;
     };
 
     class MouseInput 
@@ -286,7 +288,22 @@ namespace pg
 
         void deleteInput() const
         {
-            InputSystem::system()->deleteMouseInput(indice->index);
+            InputSystem::system()->deleteMouseInput(indice);
+        }
+
+    private:
+        InputIndice *indice;
+    };
+
+    class KeyInput
+    {
+    friend class InputSystem;
+    public:
+        KeyInputPtr operator->() const { return InputSystem::system()->keyComponents[indice->index].component; }
+
+        void deleteInput() const
+        {
+            InputSystem::system()->deleteKeyInput(indice);
         }
 
     private:
@@ -367,16 +384,6 @@ namespace pg
         return system->registerKeyInput(keyInput, callback);
     }
 
-    // TODO 
-    /*
-    template<typename Input>
-    void deleteInput(const Input& input)
-    {
-        auto& system = InputSystem::system();
-
-        system->deleteInput(input);
-    }
-    */
-
     void deleteInput(const MouseInput& input);
+    void deleteInput(const KeyInput& input);
 }

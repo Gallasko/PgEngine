@@ -8,7 +8,7 @@
 namespace pg
 {
     class TextureComponent;
-    
+
     class Button : public UiComponent
     {
     public:
