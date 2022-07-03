@@ -240,13 +240,13 @@ namespace pg
         friend MouseInput makeMouseArea(UiComponent *component, const InputSystem::MouseComponent& mouseArea);
 
         template<typename ObjectType, typename... Args>
-        friend const InputSystem::KeyComponent& makeKeyInput(ObjectType *obj, void (ObjectType::*f)(Input*, double, ...), const Args&... args);
+        friend KeyInput makeKeyInput(ObjectType *obj, void (ObjectType::*f)(Input*, double, ...), const Args&... args);
 
         template<typename... Args>
-        friend const InputSystem::KeyComponent& makeKeyInput(void (*f)(Input*, double), const Args&... args);
+        friend KeyInput makeKeyInput(void (*f)(Input*, double), const Args&... args);
 
         MouseInput registerMouseArea(MouseInputPtr component, const std::function<void(Input*, double)>& inputCallback, const std::function<void(Input*, double)>& leaveCallback = nullptr);
-        const InputSystem::KeyComponent& registerKeyInput(KeyInputPtr component, const std::function<void(Input*, double)>& callback);
+        KeyInput registerKeyInput(KeyInputPtr component, const std::function<void(Input*, double)>& callback);
 
     private:
         InputIndice* findLastMouseIndice() const
@@ -359,7 +359,7 @@ namespace pg
     }
 
     template<typename ObjectType, typename... Args>
-    const InputSystem::KeyComponent& makeKeyInput(ObjectType *obj, void (ObjectType::*f)(Input*, double, ...), const Args&... args)
+    KeyInput makeKeyInput(ObjectType *obj, void (ObjectType::*f)(Input*, double, ...), const Args&... args)
     {
         auto& system = InputSystem::system();
 
@@ -372,7 +372,7 @@ namespace pg
     }
 
     template<typename... Args>
-    const InputSystem::KeyComponent& makeKeyInput(void (*f)(Input*, double), const Args&... args)
+    KeyInput makeKeyInput(void (*f)(Input*, double), const Args&... args)
     {
         auto& system = InputSystem::system();
 

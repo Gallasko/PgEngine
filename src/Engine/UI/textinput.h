@@ -42,8 +42,8 @@ namespace pg
         void show() override;
         void hide() override;
 
-        inline void render(MasterRenderer *masterRenderer) override { renderer(masterRenderer, this); }
-
+        inline void render(MasterRenderer *masterRenderer) override;
+        
         // Private Interface
     private:
         friend void renderer<>(MasterRenderer *masterRenderer, TextInput *textInput);

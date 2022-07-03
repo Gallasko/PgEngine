@@ -17,6 +17,7 @@ namespace pg
         TextureComponent(const TextureComponent &rhs);
         virtual ~TextureComponent();
 
+        inline void setTexture(const std::string& textureName) { this->textureName = textureName; }
         void generateMesh();
 
         virtual void render(MasterRenderer* masterRenderer);

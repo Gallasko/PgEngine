@@ -60,7 +60,7 @@ namespace pg
 
             template <typename Component>
             inline EntitySystem::GenericComponent* getComponent() { return has<Component>() ? componentList[typeid(Component).name()] : nullptr; }
-            inline EntitySystem::GenericComponent* getComponent(std::string id) { return has(id) ? componentList[id] : nullptr; }
+            inline EntitySystem::GenericComponent* getComponent(const std::string& id) { return has(id) ? componentList[id] : nullptr; }
 
             unsigned int id;
             Entity *previousEntity;

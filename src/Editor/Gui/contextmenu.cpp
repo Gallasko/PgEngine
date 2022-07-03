@@ -84,6 +84,24 @@ namespace editor
 
         // [Start] Add Text
 
+        auto addTextInputButton = ecs.createEntity();
+        addTextInputButtonC = ecs.attach<Button>(addTextInputButton,
+            [&](Input*, double){ this->callback(UiComponentType::TEXTINPUT); },
+            Sentence::SentenceParameters{{"Add Text Input"}, 2.0f, fontLoader}
+            );
+
+        addTextInputButtonC->setTopAnchor(addTextButtonC->bottom);
+        addTextInputButtonC->setLeftAnchor(this->left);
+
+        addTextInputButtonC->pos.z = this->pos.z;
+
+        this->width  = addTextInputButtonC->width > this->width ? addTextInputButtonC->width : this->width;
+        this->height += addTextInputButtonC->height;
+
+        // [End] Add Text
+
+        // [Start] Add List
+
         auto addListButton = ecs.createEntity();
         addListButtonC = ecs.attach<Button>(addListButton,
             [&](Input*, double){ this->callback(UiComponentType::LIST); },
@@ -98,7 +116,7 @@ namespace editor
         this->width  = addListButtonC->width > this->width ? addListButtonC->width : this->width;
         this->height += addListButtonC->height;
 
-        // [End] Add Text
+        // [End] Add List
 
         // [Start] Add Prefab
 

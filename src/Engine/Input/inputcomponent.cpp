@@ -180,7 +180,7 @@ namespace pg
         return input;
     }
 
-    const InputSystem::KeyComponent& InputSystem::registerKeyInput(KeyInputPtr component, const std::function<void(Input*, double)>& callback)
+    KeyInput InputSystem::registerKeyInput(KeyInputPtr component, const std::function<void(Input*, double)>& callback)
     {
         // This create an unique ptr of the component to not invalidate the ref to the component
         // keyComponents.emplace_back(new InputSystem::KeyComponent(component, callback));

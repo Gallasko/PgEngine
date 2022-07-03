@@ -10,6 +10,7 @@ namespace pg {
         BUTTON,
         TEXTURE,
         TEXT,
+        TEXTINPUT,
         LIST,
         PREFAB // TOdo to implement !
     };

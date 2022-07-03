@@ -21,8 +21,8 @@ namespace pg
     template<>
     void renderer(MasterRenderer* masterRenderer, TextInput* textInput)
     {
-        if(textInput->background != nullptr)
-            masterRenderer->render(textInput->background);
+        if(textInput->texture != nullptr)
+            masterRenderer->render(textInput->texture);
 
         if(textInput->sentence != nullptr)
             masterRenderer->render(textInput->sentence);
@@ -49,7 +49,7 @@ namespace pg
 
     void TextInput::setTexture(const std::string& texture)
     {
-        texture->textureName = texture;
+        this->texture->setTexture(texture);
     }
 
     void TextInput::show()
@@ -66,6 +66,11 @@ namespace pg
 
         texture->hide();
         sentence->hide();
+    }
+
+    void TextInput::render(MasterRenderer *masterRenderer) 
+    { 
+        renderer(masterRenderer, this);
     }
 
     /**
