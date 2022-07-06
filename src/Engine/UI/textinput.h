@@ -35,6 +35,7 @@ namespace pg
         // Public Interface
     public:
         TextInput(const UiFrame& frame, const std::string& texture, FontLoader* fontLoader, const TextInputCallback& callback);
+        // TextInput(const TextInput& other);
         virtual ~TextInput();
 
         void setTexture(const std::string& texture);

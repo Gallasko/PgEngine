@@ -18,6 +18,7 @@ namespace pg
         contextMenu->addButtonButtonC->render(masterRenderer);
         contextMenu->addTextureButtonC->render(masterRenderer);
         contextMenu->addTextButtonC->render(masterRenderer);
+        contextMenu->addTextInputButtonC->render(masterRenderer);
         contextMenu->addListButtonC->render(masterRenderer);
     }
 
@@ -108,7 +109,7 @@ namespace editor
             Sentence::SentenceParameters{{"Add List"}, 2.0f, fontLoader}
             );
 
-        addListButtonC->setTopAnchor(addTextButtonC->bottom);
+        addListButtonC->setTopAnchor(addTextInputButtonC->bottom);
         addListButtonC->setLeftAnchor(this->left);
 
         addListButtonC->pos.z = this->pos.z;
@@ -173,6 +174,7 @@ namespace editor
         addButtonButtonC->show();
         addTextureButtonC->show();
         addTextButtonC->show();
+        addTextInputButtonC->show();
         addListButtonC->show();
         addPrefabButtonC->show();
     }
@@ -186,6 +188,7 @@ namespace editor
         addButtonButtonC->hide();
         addTextureButtonC->hide();
         addTextButtonC->hide();
+        addTextInputButtonC->hide();
         addListButtonC->hide();
         addPrefabButtonC->hide();
     }

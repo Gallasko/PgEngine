@@ -206,12 +206,13 @@ namespace pg
         // Helper Struct
         struct KeyComponent
         {
-            KeyComponent(const KeyInputPtr& component, const std::function<void(Input*, double)>& callback) : component(component), callback(callback) {}
+            KeyComponent(const KeyInputPtr& component, InputIndice* indice, const std::function<void(Input*, double)>& callback) : component(component), callback(callback), indice(indice) {}
             
             bool operator==(const KeyComponent& rhs) const { return component == rhs.component; }
 
             KeyInputPtr component;
             std::function<void(Input*, double)> callback;
+            InputIndice* indice = nullptr;
         };
 
     public:
@@ -252,6 +253,19 @@ namespace pg
         InputIndice* findLastMouseIndice() const
         {
             InputIndice* indice = firstMouseIndice;
+
+            if(indice == nullptr)
+                return nullptr;
+
+            while(indice->next != nullptr)
+                indice = indice->next;
+
+            return indice;
+        };
+
+        InputIndice* findLastKeyIndice() const
+        {
+            InputIndice* indice = firstKeyIndice;
 
             if(indice == nullptr)
                 return nullptr;

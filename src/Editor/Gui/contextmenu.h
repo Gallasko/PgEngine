@@ -37,6 +37,7 @@ namespace editor
         UiComponent *addButtonButtonC;
         UiComponent *addTextureButtonC;
         UiComponent *addTextButtonC;
+        UiComponent *addTextInputButtonC;
         UiComponent *addListButtonC;
         UiComponent *addPrefabButtonC;
 

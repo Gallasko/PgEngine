@@ -182,16 +182,24 @@ namespace pg
 
     KeyInput InputSystem::registerKeyInput(KeyInputPtr component, const std::function<void(Input*, double)>& callback)
     {
-        // This create an unique ptr of the component to not invalidate the ref to the component
-        // keyComponents.emplace_back(new InputSystem::KeyComponent(component, callback));
-        
+        KeyInput input;
+        input.indice = new InputIndice();
 
-        // TODO
+        auto indice = findLastKeyIndice();
+        if(indice == nullptr)
+        {
+            firstKeyIndice = input.indice;
+        }
+        else
+        {
+            input.indice->prev = indice;
+            indice->next = input.indice;
+            input.indice->index = indice->index + 1;
+        }
 
-        //mouseComponents.push_back(std::make_shared<InputSystem::KeyComponent>(component, callback));
-        //const InputSystem::KeyComponent& returnComponent = *keyComponents.back(); // TODO change this cause an element of a vector can be invalidate at any point of the app !
+        keyComponents.emplace_back(component, input.indice, callback);
 
-        //return returnComponent;
+        return input;
     }
 
     void InputSystem::reorderMouse()

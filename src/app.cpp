@@ -9,6 +9,7 @@
 
 #include "UI/button.h"
 #include "UI/texture.h"
+#include "UI/textinput.h"
 
 #include "Editor/Gui/contextmenu.h"
 #include "Editor/Gui/optiontab.h"
@@ -413,7 +414,16 @@ void EditorWindow::addElement(const UiComponentType& type)
         break;
 
     case UiComponentType::TEXTINPUT:
+        component = new TextInput(UiFrame{0.0f, 0.0f, 10.0f, 100.0f, 50.0f}, "TabTexture", fontLoader, [](const std::string& text){std::cout << text << std::endl;});
 
+        component->setTopAnchor(sceneEntityC->top);
+        component->setLeftAnchor(sceneEntityC->left);
+
+        component->setTopMargin(componentY - component->height / 2.0f);
+        component->setLeftMargin(componentX - component->width / 2.0f);
+
+        mouseArea = new Button([=](Input*, double){ this->openInOption<Sentence>(component); }, component->frame);
+        mouseArea->setZ(component->pos.z - 1);
         break;
 
     case UiComponentType::LIST:

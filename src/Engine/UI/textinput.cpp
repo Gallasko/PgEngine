@@ -16,6 +16,8 @@
 #include "texture.h"
 #include "sentencesystem.h"
 
+#include <iostream>
+
 namespace pg
 {
     template<>
@@ -32,14 +34,23 @@ namespace pg
     {
         // TODO set TextureComponent with only a frame or a pointer to an UiComponent
         this->texture = new TextureComponent(this->width, this->height, texture);
+        this->texture->setTopAnchor(this->top);
+        this->texture->setLeftAnchor(this->left);
         
         // TODO Set sentence wihtout a fontloader call a basic font loader 
-        this->sentence = new Sentence({""}, 4.0f, fontLoader);
+        this->sentence = new Sentence({"Text"}, 2.0f, fontLoader);
+        this->sentence->setTopAnchor(this->top);
+        this->sentence->setLeftAnchor(this->left);
 
         mouseInput = makeMouseArea(this, this, TextInput::focus, TextInput::unfocus);
 
         keyInput = makeKeyInput(this, changeTextCallback);
     }
+
+    // TextInput::TextInput(const TextInput& other) : pub
+    // {
+    //     this->texture = new TextureComponent()
+    // }
 
     TextInput::~TextInput()
     {
@@ -85,6 +96,7 @@ namespace pg
         if(not focused)
             return;
         
+        // Store the old text to change visible text only on changed text
         auto previousText = text;
         // A static vector to keep track of the current key pressed
         static std::vector<int> keyPressed;
@@ -135,19 +147,28 @@ namespace pg
 
         // If enter key is pressed, execute the callback
         if(inputHandler->isKeyPressed(Qt::Key_Enter))
+        {
+            focused = false;
             callback(text);
+        }
+            
     }
 
     void TextInput::focus(Input* inputHandler, double...)
     {
         if(inputHandler->isButtonPressed(Qt::LeftButton))
-            focused = true;
+        {
+            this->focused = true;
+        }
     }
 
     void TextInput::unfocus(Input* inputHandler, double)
     {
         if(inputHandler->isButtonPressed(Qt::LeftButton) || inputHandler->isButtonPressed(Qt::RightButton))
-            focused = false;
+        {
+            this->focused = false;
+        }
+            
     }
 
 }
