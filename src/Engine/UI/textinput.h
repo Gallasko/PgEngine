@@ -31,10 +31,23 @@ namespace pg
     public:
         /** Definition of a text input callback function */
         typedef std::function<void(const std::string&)> TextInputCallback;
+
+        /**
+         * @brief Enum defining what type of character can be typed in the text input
+         * 
+         * Text: Can hold any ascii characters
+         * Numeric: Accept only digits
+         * 
+         */
+        enum class InputMode
+        {
+            TEXT,
+            NUMERIC
+        };
     
         // Public Interface
     public:
-        TextInput(const UiFrame& frame, const std::string& texture, FontLoader* fontLoader, const TextInputCallback& callback);
+        TextInput(const UiFrame& frame, const std::string& texture, FontLoader* fontLoader, const TextInputCallback& callback, const InputMode& mode = InputMode::TEXT);
         // TextInput(const TextInput& other);
         virtual ~TextInput();
 
@@ -76,5 +89,8 @@ namespace pg
 
         /** Boolean to indicate whether the text input is focused or not */
         bool focused = false;
+
+        /** Hold what type of character does the text input accept */
+        InputMode mode = InputMode::TEXT;
     };
 }

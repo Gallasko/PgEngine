@@ -13,6 +13,8 @@ namespace pg
         {
             OptionTab(int width, int height);
 
+            void clear();
+
             void render(MasterRenderer *masterRenderer) override;
 
             void show() override;
@@ -23,6 +25,6 @@ namespace pg
         };
 
         template<typename... Args>
-        void printOption(OptionTab* tab, const Args&... args);
+        void printOption(OptionTab* tab, Args... args);
     }
 }

@@ -299,6 +299,15 @@ namespace pg
         }
     }
 
+    void ListView::clear()
+    {
+        children.clear();
+        children.shrink_to_fit();
+
+        calculateListSize();
+        updateRenderList();
+    }
+
     void ListView::render(MasterRenderer* masterRenderer)
     { 
         renderer(masterRenderer, this); 

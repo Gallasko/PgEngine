@@ -76,6 +76,8 @@ namespace pg
         void mouseInput(Input* inputhandler, double deltaTime...);
         void mouseLeave(Input* inputhandler, double deltaTime);
 
+        void clear();
+
         virtual void render(MasterRenderer* masterRenderer);
 
     private:

@@ -448,7 +448,8 @@ void EditorWindow::addElement(const UiComponentType& type)
 template<typename SceneElementType>
 void EditorWindow::openInOption(UiComponent* component)
 {
-    std::cout << "Clicked on component " << std::endl;
+    // optionTab->clear();
+    // printOption(optionTab, static_cast<SceneElementType>(component));
 }
 
 void EditorWindow::renderUi()

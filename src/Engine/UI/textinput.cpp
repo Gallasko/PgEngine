@@ -30,7 +30,7 @@ namespace pg
             masterRenderer->render(textInput->sentence);
     }
 
-    TextInput::TextInput(const UiFrame& frame, const std::string& texture, FontLoader* fontLoader, const TextInputCallback& callback) : UiComponent(frame)
+    TextInput::TextInput(const UiFrame& frame, const std::string& texture, FontLoader* fontLoader, const TextInputCallback& callback, const InputMode& mode) : UiComponent(frame), callback(callback), mode(mode)
     {
         // TODO set TextureComponent with only a frame or a pointer to an UiComponent
         this->texture = new TextureComponent(this->width, this->height, texture);
@@ -39,8 +39,10 @@ namespace pg
         
         // TODO Set sentence wihtout a fontloader call a basic font loader 
         this->sentence = new Sentence({"Text"}, 2.0f, fontLoader);
-        this->sentence->setTopAnchor(this->top);
+        this->sentence->setTopAnchor(this->texture->top);
+        this->sentence->setTopMargin(this->texture->height / 2.0f - this->sentence->height / 2.0f);
         this->sentence->setLeftAnchor(this->left);
+        this->sentence->setLeftMargin(10.0f);
 
         mouseInput = makeMouseArea(this, this, TextInput::focus, TextInput::unfocus);
 
@@ -146,7 +148,7 @@ namespace pg
             this->sentence->setText(text);
 
         // If enter key is pressed, execute the callback
-        if(inputHandler->isKeyPressed(Qt::Key_Enter))
+        if(inputHandler->isKeyPressed(Qt::Key_Enter) || inputHandler->isKeyPressed(Qt::Key_Return))
         {
             focused = false;
             callback(text);
@@ -168,7 +170,6 @@ namespace pg
         {
             this->focused = false;
         }
-            
     }
 
 }
