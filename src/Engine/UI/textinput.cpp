@@ -30,6 +30,15 @@ namespace pg
             masterRenderer->render(textInput->sentence);
     }
 
+    /**
+     * @brief Construct a new Text Input object
+     * 
+     * @param frame The frame where the text input must be rendered
+     * @param texture The texture used to render the background of the text input
+     * @param fontLoader The font used for the text
+     * @param callback The fonction to call when the user press enter after inputing some text
+     * @param mode The mode set up for this text input
+     */
     TextInput::TextInput(const UiFrame& frame, const std::string& texture, FontLoader* fontLoader, const TextInputCallback& callback, const InputMode& mode) : UiComponent(frame), callback(callback), mode(mode)
     {
         // TODO set TextureComponent with only a frame or a pointer to an UiComponent
@@ -49,22 +58,30 @@ namespace pg
         keyInput = makeKeyInput(this, changeTextCallback);
     }
 
-    // TextInput::TextInput(const TextInput& other) : pub
-    // {
-    //     this->texture = new TextureComponent()
-    // }
-
+    /**
+     * @brief Destroy the Text Input object
+     */
     TextInput::~TextInput()
     {
         delete texture;
         delete sentence;
     }
 
+    /**
+     * @brief Set the underlying texture of the text input
+     * 
+     * @param texture The name of the texture registered in the renderer
+     */
     void TextInput::setTexture(const std::string& texture)
     {
         this->texture->setTexture(texture);
     }
 
+    /**
+     * @brief Override of the show function of UiComponent
+     * 
+     * Used to show this and the texture and sentence of the text input.
+     */
     void TextInput::show()
     {
         UiComponent::show();
@@ -73,6 +90,12 @@ namespace pg
         sentence->show();
     }
 
+    /**
+     * @brief Override of the hide function of UiComponent
+     * 
+     * Used to hide this and the texture and sentence of the text input.
+     * 
+     */
     void TextInput::hide()
     {
         UiComponent::hide();
@@ -81,6 +104,11 @@ namespace pg
         sentence->hide();
     }
 
+    /**
+     * @brief Override of the render function of UiComponent
+     * 
+     * @param masterRenderer The renderer to render this text input
+     */
     void TextInput::render(MasterRenderer *masterRenderer) 
     { 
         renderer(masterRenderer, this);
@@ -156,6 +184,11 @@ namespace pg
             
     }
 
+    /**
+     * @brief Mouse callback to focus this text input
+     * 
+     * @param inputHandler A pointer to the input handler
+     */
     void TextInput::focus(Input* inputHandler, double...)
     {
         if(inputHandler->isButtonPressed(Qt::LeftButton))
@@ -164,6 +197,11 @@ namespace pg
         }
     }
 
+    /**
+     * @brief Mouse callback to unfocus this text input
+     * 
+     * @param inputHandler A pointer to the input handler
+     */
     void TextInput::unfocus(Input* inputHandler, double)
     {
         if(inputHandler->isButtonPressed(Qt::LeftButton) || inputHandler->isButtonPressed(Qt::RightButton))
