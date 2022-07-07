@@ -41,10 +41,11 @@ namespace pg
      * @param frame The frame where the text input must be rendered
      * @param texture The texture used to render the background of the text input
      * @param fontLoader The font used for the text
-     * @param callback The fonction to call when the user press enter after inputing some text
+     * @param onAccept The fonction to call when the user press enter after inputing some text
+     * @param onChange The fonction to call when the text is different from before
      * @param mode The mode set up for this text input
      */
-    TextInput::TextInput(const UiFrame& frame, const std::string& texture, FontLoader* fontLoader, const TextInputCallback& callback, const InputMode& mode) : UiComponent(frame), callback(callback), mode(mode)
+    TextInput::TextInput(const UiFrame& frame, const std::string& texture, FontLoader* fontLoader, const TextInputCallback& onAccept, const TextInputCallback& onChange, const InputMode& mode) : UiComponent(frame), onAccept(onAccept), onChange(onChange), mode(mode)
     {
         // TODO set TextureComponent with only a frame or a pointer to an UiComponent
         this->texture = new TextureComponent(this->width, this->height, texture);
@@ -178,13 +179,18 @@ namespace pg
 
         // Set the text of the underlying sentence to the current text
         if(previousText != text)
+        {
             this->sentence->setText(text);
+            
+            if(onChange != nullptr)
+                onChange(text);
+        }
 
         // If enter key is pressed, execute the callback
         if(inputHandler->isKeyPressed(Qt::Key_Enter) || inputHandler->isKeyPressed(Qt::Key_Return))
         {
             focused = false;
-            callback(text);
+            onAccept(text);
         }
             
     }

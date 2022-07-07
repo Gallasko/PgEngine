@@ -48,7 +48,7 @@ namespace pg
     
         // Public Interface
     public:
-        TextInput(const UiFrame& frame, const std::string& texture, FontLoader* fontLoader, const TextInputCallback& callback, const InputMode& mode = InputMode::TEXT);
+        TextInput(const UiFrame& frame, const std::string& texture, FontLoader* fontLoader, const TextInputCallback& onAccept, const TextInputCallback& onChange = nullptr, const InputMode& mode = InputMode::TEXT);
         // TextInput(const TextInput& other);
         virtual ~TextInput();
 
@@ -58,6 +58,15 @@ namespace pg
         void hide() override;
 
         inline void render(MasterRenderer *masterRenderer) override;
+
+        // Inline functions
+    public:
+        /**
+         * @brief Set the Mode of the text input
+         * 
+         * @param mode The mode to set to the text input
+         */
+        inline void setMode(const InputMode& mode) { this->mode = mode; }
         
         // Private Interface
     private:
@@ -70,8 +79,11 @@ namespace pg
 
         // Private Variables
     private:
-        /** Hold the callback function */
-        TextInputCallback callback;
+        /** Hold the accept callback function */
+        TextInputCallback onAccept;
+
+        /** Hold the accept callback function */
+        TextInputCallback onChange;
 
         /** Hold the mouse input handler */
         MouseInput mouseInput;
