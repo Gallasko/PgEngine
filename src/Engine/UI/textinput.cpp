@@ -16,10 +16,15 @@
 #include "texture.h"
 #include "sentencesystem.h"
 
-#include <iostream>
-
 namespace pg
 {
+    /**
+     * @brief Render function of the text input
+     * 
+     * @tparam Template specialization of renderer for a text input object
+     * @param masterRenderer A pointer to the master renderer
+     * @param textInput A pointer to the text input
+     */
     template<>
     void renderer(MasterRenderer* masterRenderer, TextInput* textInput)
     {

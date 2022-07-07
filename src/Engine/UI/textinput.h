@@ -20,6 +20,7 @@
 
 namespace pg
 {
+    // Type forwarding
     class Input;
     class TextureComponent;
     class Sentence;
