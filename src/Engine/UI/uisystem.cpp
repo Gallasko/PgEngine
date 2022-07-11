@@ -13,6 +13,12 @@ namespace pg
 		const char * DOM = "Ui System";
 	}
 
+    /**
+     * @brief Specialization of the serialize function for UiSize 
+     * 
+     * @param archive A references to the archive
+     * @param value The ui size value
+     */
     template<>
     void serialize(Archive& archive, const UiSize& value)
     {
@@ -25,6 +31,12 @@ namespace pg
         archive.endSerialization();
     }
 
+    /**
+     * @brief Specialization of the serialize function for UiPosition 
+     * 
+     * @param archive A references to the archive
+     * @param value The ui position value
+     */
     template<>
     void serialize(Archive& archive, const UiPosition& value)
     {
@@ -39,6 +51,12 @@ namespace pg
         archive.endSerialization();
     }
 
+    /**
+     * @brief Specialization of the serialize function for UiFrame 
+     * 
+     * @param archive A references to the archive
+     * @param value The ui frame value
+     */
     template<>
     void serialize(Archive& archive, const UiFrame& value)
     {
@@ -53,10 +71,19 @@ namespace pg
         archive.endSerialization();
     }
 
+    /**
+     * @brief Specialization of the serialize function for UiComponent 
+     * 
+     * @param archive A references to the archive
+     * @param value The ui component value
+     */
     template<>
     void serialize(Archive& archive, const UiComponent& value)
     {
         LOG_THIS(DOM);
+
+        // Can't actually serialize anchors here cause they are just pointers to other components
+        // So they don't hold the same value each time
 
         archive.startSerialization("UiComponent");
 
@@ -73,6 +100,12 @@ namespace pg
         archive.endSerialization();
     }
 
+    /**
+     * @brief Specialization of the deserialize function for UiSize
+     * 
+     * @param serializedString A serialized string
+     * @return UiSize An UiSize object contructed via the serialization string
+     */
     template<>
     UiSize deserialize(const UnserializedObject& serializedString)
     {
@@ -92,6 +125,12 @@ namespace pg
         return size;
     }
 
+    /**
+     * @brief Specialization of the deserialize function for UiPosition
+     * 
+     * @param serializedString A serialized string
+     * @return UiPosition An UiPosition object contructed via the serialization string
+     */
     template<>
     UiPosition deserialize(const UnserializedObject& serializedString)
     {
@@ -113,6 +152,12 @@ namespace pg
         return pos;
     }
 
+    /**
+     * @brief Specialization of the deserialize function for UiFrame
+     * 
+     * @param serializedString A serialized string
+     * @return UiFrame An UiFrame object contructed via the serialization string
+     */
     template<>
     UiFrame deserialize(const UnserializedObject& serializedString)
     {
@@ -136,6 +181,12 @@ namespace pg
         return frame;
     }
 
+    /**
+     * @brief Specialization of the deserialize function for UiComponent
+     * 
+     * @param serializedString A serialized string
+     * @return UiComponent An UiComponent object contructed via the serialization string
+     */
     template<>
     UiComponent deserialize(const UnserializedObject& serializedString)
     {

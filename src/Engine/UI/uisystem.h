@@ -37,9 +37,13 @@ namespace pg
         const UiFrame frame = UiFrame(pos.x, pos.y, pos.z, width, height);
 
         // Pointer to anchors where this object is tied
+        /** Pointer to the top attached anchor */
         const UiSize *topAnchor = nullptr;
+        /** Pointer to the right attached anchor */
         const UiSize *rightAnchor = nullptr;
+        /** Pointer to the bottom attached anchor */
         const UiSize *bottomAnchor = nullptr;
+        /** Pointer to the left attached anchor */
         const UiSize *leftAnchor = nullptr;
 
         // The 4 anchors points of the object
@@ -53,9 +57,13 @@ namespace pg
         const UiSize left = &pos.x;
 
         // The margin to the given anchor point
+        /** The margin from the top anchor point */
         UiSize topMargin;
+        /** The margin from the right anchor point */
         UiSize rightMargin;
+        /** The margin from the bottom anchor point */
         UiSize bottomMargin;
+        /** The margin from the left anchor point */
         UiSize leftMargin;
 
         /**
@@ -89,6 +97,8 @@ namespace pg
          */
         virtual ~UiComponent() { }
 
+        // Setter methods for position and size properties
+    public:
         inline void setX(const int& value) { pos.x = value; update(); }
         inline void setY(const int& value) { pos.y = value; update(); }
         inline void setZ(const int& value) { pos.z = value; update(); }
@@ -122,6 +132,8 @@ namespace pg
         inline void setBottomAnchor(const UiSize& anchor) { bottomAnchor = &anchor; update(); }
         inline void setLeftAnchor(const UiSize& anchor) { leftAnchor = &anchor; update(); }
 
+        // Public helper methods
+    public:
         bool inBound(int x, int y) const;
         bool inBound(const constant::Vector2D& vec2) const;
 
