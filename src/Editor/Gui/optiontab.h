@@ -1,3 +1,14 @@
+/**
+ * @file optiontab.h
+ * @author Pigeon Codeur (pigeoncodeur@gmail.com)
+ * @brief Definition of the option tab.
+ * @version 0.1
+ * @date 2022-07-08
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
 #pragma once
 
 #include "UI/uisystem.h"
@@ -5,6 +16,7 @@
 
 namespace pg
 {
+    // Type forwarding
     class TextureComponent;
     
     namespace editor
@@ -19,6 +31,17 @@ namespace pg
 
             void show() override;
             void hide() override;
+
+            template<class T>
+            void addTextInput(const std::string& text, T* value)
+            {
+                
+            }
+
+            void addTextInput(const std::string& text, const std::function<void(const std::string&)>& callback)
+            {
+                //std::make_shared<>
+            }
 
             ListView listView;
             TextureComponent* backgroundTexture;

@@ -1,3 +1,14 @@
+/**
+ * @file optiontab.cpp
+ * @author Pigeon Codeur (pigeoncodeur@gmail.com)
+ * @brief Implementation of the option tab.
+ * @version 0.1
+ * @date 2022-07-08
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
 #include "optiontab.h"
 
 #include "UI/texture.h"
@@ -19,13 +30,14 @@ namespace pg
         template<>
         void printOption(OptionTab *tab, UiComponent* component)
         {
-
+            tab->addTextInput("Width", &component->width);
+            tab->addTextInput("Height", &component->height);
         }
 
         template<>
         void printOption(OptionTab* tab, TextInput* textInput)
         {
-            // tab->printOption<UiComponent*>(tab, textInput);
+            printOption<UiComponent*>(tab, textInput);
 
         }
 

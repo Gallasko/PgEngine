@@ -7,6 +7,8 @@
 
 namespace pg
 {
+    const char * DOM = "Texture";
+
     template<>
     void renderer(MasterRenderer* masterRenderer, TextureComponent* texture)
     {
@@ -156,8 +158,6 @@ namespace pg
 
         if(!initialised)
         {
-    //        std::cout << width << " " << height << std::endl;
-
             // TODO fix this generateMesh() why we need a *2 to get correct size and why does it update itself each frame ?
 
             modelInfo.vertices[0] =  0.0f;  modelInfo.vertices[1] =    0.0f;   modelInfo.vertices[2] =  0.0f;
