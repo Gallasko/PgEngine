@@ -17,14 +17,34 @@ namespace pg
     class MasterRenderer;
 
     /**
-     * @struct UiComponent
+     * @class UiComponent
      *
      * Base struct of all the ui components.
      * This struct all data about the position of the object
      * as well as a render function
      */
-    struct UiComponent
+    class UiComponent
     {
+        // Type definition
+    private:
+        // Todo use this struct instead of a plain uisize to avoid possible problems with user
+        // passing a plain float or a deletable uisize where an anchor was expected
+        // struct Anchor
+        // {
+        //     UiSize anchorPoint;
+        // };
+
+        /**
+         * @brief A struct describing the two anchor points needed to represent a corner
+         */
+        struct Corner
+        {
+            const UiSize* verticalAnchor;       ///< The vertical anchor point of the corner
+            const UiSize* horizontalAnchor;     ///< The horizontal anchor point of the corner
+        };
+
+        // Public interface
+    public:
         /** The position of the object */
         UiPosition pos;
 
@@ -36,25 +56,35 @@ namespace pg
         /** The bounding box of the object */
         const UiFrame frame = UiFrame(pos.x, pos.y, pos.z, width, height);
 
-        // Pointer to anchors where this object is tied
-        /** Pointer to the top attached anchor */
-        const UiSize *topAnchor = nullptr;
-        /** Pointer to the right attached anchor */
-        const UiSize *rightAnchor = nullptr;
-        /** Pointer to the bottom attached anchor */
-        const UiSize *bottomAnchor = nullptr;
-        /** Pointer to the left attached anchor */
-        const UiSize *leftAnchor = nullptr;
-
         // The 4 anchors points of the object
         /** Top anchor points of the object */
-        const UiSize top = &pos.y;
+        const UiSize top    = &pos.y;
         /** Right anchor points of the object */
-        const UiSize right = pos.x + width;
+        const UiSize right  = pos.x + width;
         /** Bottom anchor points of the object */
         const UiSize bottom = pos.y + height;
         /** Left anchor points of the object */
-        const UiSize left = &pos.x;
+        const UiSize left   = &pos.x;
+
+        // Pointer to anchors where this object is tied
+        /** Pointer to the top attached anchor */
+        const UiSize *topAnchor     = nullptr;
+        /** Pointer to the right attached anchor */
+        const UiSize *rightAnchor   = nullptr;
+        /** Pointer to the bottom attached anchor */
+        const UiSize *bottomAnchor  = nullptr;
+        /** Pointer to the left attached anchor */
+        const UiSize *leftAnchor    = nullptr;
+
+        // The 4 corner points of the object
+        /** Top left corner of the object */
+        const Corner topLeft     = {topAnchor,    leftAnchor};
+        /** Top right corner of the object */
+        const Corner topRight    = {topAnchor,    rightAnchor};
+        /** Bottom left corner of the object */
+        const Corner bottomLeft  = {bottomAnchor, leftAnchor};
+        /** Bottom right corner of the object */
+        const Corner bottomRight = {bottomAnchor, rightAnchor};
 
         // The margin to the given anchor point
         /** The margin from the top anchor point */
@@ -108,9 +138,20 @@ namespace pg
         inline void setZ(const UiSize& value) { pos.z = value; update(); }
 
         inline void setWidth(const int &value) { width = value; update(); }
-        inline void setWidth(const UiSize &value) { width = value; update(); }
         inline void setHeight(const int &value) { height = value; update(); }
+
+        inline void setWidth(const UiSize &value) { width = value; update(); }
         inline void setHeight(const UiSize &value) { height = value; update(); }
+
+        inline void setTopAnchor(const UiSize *anchor) { topAnchor = anchor; update(); }
+        inline void setRightAnchor(const UiSize *anchor) { rightAnchor = anchor; update(); }
+        inline void setBottomAnchor(const UiSize *anchor) { bottomAnchor = anchor; update(); }
+        inline void setLeftAnchor(const UiSize *anchor) { leftAnchor = anchor; update(); }
+
+        inline void setTopAnchor(const UiSize& anchor) { topAnchor = &anchor; update(); }
+        inline void setRightAnchor(const UiSize& anchor) { rightAnchor = &anchor; update(); }
+        inline void setBottomAnchor(const UiSize& anchor) { bottomAnchor = &anchor; update(); }
+        inline void setLeftAnchor(const UiSize& anchor) { leftAnchor = &anchor; update(); }
 
         inline void setTopMargin(const int& value) { topMargin = value; update(); }
         inline void setRightMargin(const int& value) { rightMargin = value; update(); }
@@ -122,15 +163,8 @@ namespace pg
         inline void setBottomMargin(const UiSize& value) { bottomMargin = value; update(); }
         inline void setLeftMargin(const UiSize& value) { leftMargin = value; update(); }
 
-        inline void setTopAnchor(const UiSize *anchor) { topAnchor = anchor; update(); }
-        inline void setRightAnchor(const UiSize *anchor) { rightAnchor = anchor; update(); }
-        inline void setBottomAnchor(const UiSize *anchor) { bottomAnchor = anchor; update(); }
-        inline void setLeftAnchor(const UiSize *anchor) { leftAnchor = anchor; update(); }
-
-        inline void setTopAnchor(const UiSize& anchor) { topAnchor = &anchor; update(); }
-        inline void setRightAnchor(const UiSize& anchor) { rightAnchor = &anchor; update(); }
-        inline void setBottomAnchor(const UiSize& anchor) { bottomAnchor = &anchor; update(); }
-        inline void setLeftAnchor(const UiSize& anchor) { leftAnchor = &anchor; update(); }
+        // TODO add function for alignement with corner, vertical and horizontal center, center alignement
+        // and fill
 
         // Public helper methods
     public:

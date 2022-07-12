@@ -38,9 +38,7 @@ namespace pg
         void printOption(OptionTab* tab, TextInput* textInput)
         {
             printOption<UiComponent*>(tab, textInput);
-
         }
-
 
         OptionTab::OptionTab(int width, int height) : listView(this->frame)
         {

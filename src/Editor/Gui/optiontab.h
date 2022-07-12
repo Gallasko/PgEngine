@@ -23,6 +23,7 @@ namespace pg
     {
         struct OptionTab : public UiComponent
         {
+            // Todo set with Uisize or Uiframe
             OptionTab(int width, int height);
 
             void clear();

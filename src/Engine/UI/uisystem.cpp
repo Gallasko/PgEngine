@@ -221,8 +221,6 @@ namespace pg
 
     UiComponent::UiComponent(const UiComponent& rhs)
     {
-        //TODO remove the previous reference of rhs inside the parent and push this pointer inside the parent child list to avoid resize error when this is being copied
-        //also don t forget to call this constructor when creating the copy constructor of the child class
         this->visible = rhs.visible;
         this->pos = rhs.pos;
         this->width = rhs.width;
@@ -254,7 +252,7 @@ namespace pg
 
     void UiComponent::render(MasterRenderer*)
     {
-        LOG_ERROR(DOM, "Called Render of UiComponent when it should never be !");
+        LOG_ERROR(DOM, "Called base Render of UiComponent when it should never be !");
     }
 
     void UiComponent::update()
@@ -262,7 +260,6 @@ namespace pg
         if(topAnchor != nullptr && bottomAnchor != nullptr)
         {
             this->height = (*bottomAnchor - bottomMargin) - (*topAnchor - topMargin);
-            //this->height = UiSize(0.0f, 1.0f, new UiSize(-bottomMargin, 1.0f, bottomAnchor), new UiSize(-topMargin, 1.0f, topAnchor), UiSize::UiSizeOpType::SUB); // todo change this because () create elements that are temporary
             this->pos.y = *topAnchor + topMargin;
         }
         else if(topAnchor != nullptr && bottomAnchor == nullptr)
@@ -271,21 +268,17 @@ namespace pg
         }
         else if(topAnchor == nullptr && bottomAnchor != nullptr)
         {
-            //this->pos.y = (*bottomAnchor - bottomMargin) - this->height;
             this->pos.y = (*bottomAnchor - bottomMargin) - this->height;
-            //this->pos.y = UiSize(-this->height, 1.0f, new UiSize(-bottomMargin, 1.0f, bottomAnchor));
         }
 
         if(rightAnchor != nullptr && leftAnchor != nullptr)
         {
             this->width = (*rightAnchor - rightMargin) - (*leftAnchor - leftMargin);
-            //this->width = UiSize(0.0f, 1.0f, new UiSize(-rightMargin, -1.0f, rightAnchor), new UiSize(-leftMargin, 1.0f, leftAnchor), UiSize::UiSizeOpType::SUB);
             this->pos.x = *leftAnchor + leftMargin;
         }
         else if(rightAnchor != nullptr && leftAnchor == nullptr)
         {
             this->pos.x = (*rightAnchor - rightMargin) - this->width;
-            //this->pos.x = UiSize(this->width, 1.0f, new UiSize(-rightMargin, 1.0f, rightAnchor));
         }
         else if(rightAnchor == nullptr && leftAnchor != nullptr)
         {

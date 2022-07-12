@@ -269,6 +269,7 @@ namespace pg
         }
         else
         {
+            // TODO create a unique componentPool for each component list !
             if(componentMap.find(id) == componentMap.end())
             {
                 EntitySystem::GenericComponent *cp = componentPool.allocate(entity->id, nullptr, nullptr, cmp);
@@ -390,6 +391,8 @@ namespace pg
     template <typename Component>
     EntitySystem::ComponentList<Component> EntitySystem::view()
     {
+        // TODO uniform the id name of a component whatever it is in a component list or a group list
+        // (use type to id)
         auto id = typeid(Component).name();
 
         if(componentMap.find(id) != componentMap.end())
@@ -398,6 +401,7 @@ namespace pg
             return EntitySystem::ComponentList<Component>();
     }
 
+    // TODO enable group of a single component list
     template <typename Component, typename... Group>
     EntitySystem::GroupList* EntitySystem::registerGroup()
     {

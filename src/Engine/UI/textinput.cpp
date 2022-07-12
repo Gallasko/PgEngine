@@ -22,8 +22,8 @@ namespace pg
      * @brief Render function of the text input
      * 
      * @tparam Template specialization of renderer for a text input object
-     * @param masterRenderer A pointer to the master renderer
-     * @param textInput A pointer to the text input
+     * @param[in] masterRenderer A pointer to the master renderer
+     * @param[in] textInput      A pointer to the text input
      */
     template<>
     void renderer(MasterRenderer* masterRenderer, TextInput* textInput)
@@ -38,12 +38,12 @@ namespace pg
     /**
      * @brief Construct a new Text Input object
      * 
-     * @param frame The frame where the text input must be rendered
-     * @param texture The texture used to render the background of the text input
-     * @param fontLoader The font used for the text
-     * @param onAccept The fonction to call when the user press enter after inputing some text
-     * @param onChange The fonction to call when the text is different from before
-     * @param mode The mode set up for this text input
+     * @param[in] frame      The frame where the text input must be rendered
+     * @param[in] texture    The texture used to render the background of the text input
+     * @param[in] fontLoader The font used for the text
+     * @param[in] onAccept   The fonction to call when the user press enter after inputing some text
+     * @param[in] onChange   The fonction to call when the text is different from before
+     * @param[in] mode       The mode set up for this text input
      */
     TextInput::TextInput(const UiFrame& frame, const std::string& texture, FontLoader* fontLoader, const TextInputCallback& onAccept, const TextInputCallback& onChange, const InputMode& mode) : UiComponent(frame), onAccept(onAccept), onChange(onChange), mode(mode)
     {
@@ -76,7 +76,7 @@ namespace pg
     /**
      * @brief Set the underlying texture of the text input
      * 
-     * @param texture The name of the texture registered in the renderer
+     * @param[in] texture The name of the texture registered in the renderer
      */
     void TextInput::setTexture(const std::string& texture)
     {
@@ -113,7 +113,7 @@ namespace pg
     /**
      * @brief Override of the render function of UiComponent
      * 
-     * @param masterRenderer The renderer to render this text input
+     * @param[in] masterRenderer The renderer to render this text input
      */
     void TextInput::render(MasterRenderer *masterRenderer) 
     { 
@@ -123,7 +123,7 @@ namespace pg
     /**
      * @brief Key function of the text input
      * 
-     * @param inputHandler A pointer to the input handler
+     * @param[in] inputHandler A pointer to the input handler
      * 
      * This function is used to handle how the key events translate into a new text.
      */
@@ -198,7 +198,7 @@ namespace pg
     /**
      * @brief Mouse callback to focus this text input
      * 
-     * @param inputHandler A pointer to the input handler
+     * @param[in] inputHandler A pointer to the input handler
      */
     void TextInput::focus(Input* inputHandler, double...)
     {
@@ -211,7 +211,7 @@ namespace pg
     /**
      * @brief Mouse callback to unfocus this text input
      * 
-     * @param inputHandler A pointer to the input handler
+     * @param[in] inputHandler A pointer to the input handler
      */
     void TextInput::unfocus(Input* inputHandler, double)
     {

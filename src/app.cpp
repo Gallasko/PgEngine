@@ -110,6 +110,7 @@ void EditorWindow::initialize()
     masterRenderer.registerTexture("cursor", ":/res/object/cursor.png");
 
     masterRenderer.registerTexture("TabTexture", ":/res/menu/NavyBlueTexture.png");
+    masterRenderer.registerTexture("Light Blue", ":/res/menu/LightBlueTexture.png");
 
     fontLoader = new FontLoader("res/font/fontmap.ft");
 
