@@ -2,6 +2,8 @@
 
 #include "../UI/uisystem.h"
 
+#include <iostream>
+
 namespace pg
 {
     namespace
@@ -22,6 +24,8 @@ namespace pg
             int index = 0;
             if(left.component->pos->z > right.component->pos->z)
             {
+                std::cout << "Indice " << left.indice->index << " with z = " << left.component->pos->z <<
+                " is swapping with Indice " << right.indice->index << " with z = " << right.component->pos->z << std::endl;
                 index = left.indice->index;
                 left.indice->index = right.indice->index;
                 right.indice->index = index;
@@ -60,6 +64,8 @@ namespace pg
                 auto indice = mouseDeleteList[i];
 
                 auto index = indice->index;
+
+                std::cout << "Removing index: " << index << std::endl;
 
                 if(indice->prev != nullptr)
                     indice->prev->next = indice->next;
@@ -125,6 +131,8 @@ namespace pg
             if(highestZ > mouseArea->pos->z) // care some edge case exist like listview promoting a Z value so list is not always sorted ! 
                 break;
 
+            std::cout << "[" << i << "]: "  << mouseComponents[i].indice->index << " with z=" << mouseArea->pos->z << std::endl;
+
             if(mouseArea->inBound(mousePos.x(), mousePos.y()) and *mouseArea->enable and mouseArea->pos->z >= highestZ)
             {
                 highestZ = mouseArea->pos->z;
@@ -170,7 +178,7 @@ namespace pg
         {
             input.indice->prev = indice;
             indice->next = input.indice;
-            input.indice->index = indice->index + 1;
+            input.indice->index = mouseComponents.size();
         }
 
         mouseComponents.emplace_back(component, input.indice, inputCallback, leaveCallback);
@@ -194,7 +202,7 @@ namespace pg
         {
             input.indice->prev = indice;
             indice->next = input.indice;
-            input.indice->index = indice->index + 1;
+            input.indice->index = keyComponents.size();
         }
 
         keyComponents.emplace_back(component, input.indice, callback);
@@ -204,7 +212,8 @@ namespace pg
 
     void InputSystem::reorderMouse()
     {
-        std::sort(mouseComponents.begin(), mouseComponents.end(), compareZValueFromComponents<InputSystem::MouseComponent>);
+        // Usage of stable_sort to preserve the order of inputs that has the same z value !
+        std::stable_sort(mouseComponents.begin(), mouseComponents.end(), compareZValueFromComponents<InputSystem::MouseComponent>);
     };
 
     void MouseInput::changeZ(const UiSize& zOrder) const

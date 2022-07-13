@@ -386,6 +386,7 @@ void EditorWindow::addElement(const UiComponentType& type)
 
     case UiComponentType::TEXTURE:
         component = new TextureComponent(50, 50, "TabTexture");
+        component->setZ(index);
 
         component->setTopAnchor(sceneEntityC->top);
         component->setLeftAnchor(sceneEntityC->left);
