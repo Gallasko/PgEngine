@@ -172,6 +172,8 @@ test: $(TEST_OBJECTS) gtest-all.o
 	@echo Building Test ...
 	$(CXX) $(TESTFLAGS) $(INCLUDES) $(TEST_INCLUDE) -o $(TESTMAIN) $(TEST_OBJECTS) gtest-all.o $(LFLAGS) $(LIBS)
 
+	./debug_build/test.exe
+
 # Create the output hierarchy
 $(OUTPUT):
 	$(MD) $(OUTPUT)

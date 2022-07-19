@@ -66,16 +66,6 @@ namespace pg
         /** Left anchor points of the object */
         const UiSize left   = &pos.x;
 
-        // Pointer to anchors where this object is tied
-        /** Pointer to the top attached anchor */
-        const UiSize *topAnchor     = nullptr;
-        /** Pointer to the right attached anchor */
-        const UiSize *rightAnchor   = nullptr;
-        /** Pointer to the bottom attached anchor */
-        const UiSize *bottomAnchor  = nullptr;
-        /** Pointer to the left attached anchor */
-        const UiSize *leftAnchor    = nullptr;
-
         // The 4 corner points of the object
         /** Top left corner of the object */
         const Corner topLeft     = {topAnchor,    leftAnchor};
@@ -129,24 +119,24 @@ namespace pg
 
         // Setter methods for position and size properties
     public:
-        inline void setX(const int& value) { pos.x = value; update(); }
-        inline void setY(const int& value) { pos.y = value; update(); }
-        inline void setZ(const int& value) { pos.z = value; update(); }
+        inline void setX(const float& value) { pos.x = value; update(); }
+        inline void setY(const float& value) { pos.y = value; update(); }
+        inline void setZ(const float& value) { pos.z = value; update(); }
 
         inline void setX(const UiSize& value) { pos.x = value; update(); }
         inline void setY(const UiSize& value) { pos.y = value; update(); }
         inline void setZ(const UiSize& value) { pos.z = value; update(); }
 
-        inline void setWidth(const int &value) { width = value; update(); }
-        inline void setHeight(const int &value) { height = value; update(); }
+        inline void setWidth(const float& value) { width = value; update(); }
+        inline void setHeight(const float& value) { height = value; update(); }
 
-        inline void setWidth(const UiSize &value) { width = value; update(); }
-        inline void setHeight(const UiSize &value) { height = value; update(); }
+        inline void setWidth(const UiSize& value) { width = value; update(); }
+        inline void setHeight(const UiSize& value) { height = value; update(); }
 
-        inline void setTopAnchor(const UiSize *anchor) { topAnchor = anchor; update(); }
-        inline void setRightAnchor(const UiSize *anchor) { rightAnchor = anchor; update(); }
-        inline void setBottomAnchor(const UiSize *anchor) { bottomAnchor = anchor; update(); }
-        inline void setLeftAnchor(const UiSize *anchor) { leftAnchor = anchor; update(); }
+        inline void setTopAnchor(const UiSize* anchor) { topAnchor = anchor; update(); }
+        inline void setRightAnchor(const UiSize* anchor) { rightAnchor = anchor; update(); }
+        inline void setBottomAnchor(const UiSize* anchor) { bottomAnchor = anchor; update(); }
+        inline void setLeftAnchor(const UiSize* anchor) { leftAnchor = anchor; update(); }
 
         inline void setTopAnchor(const UiSize& anchor) { topAnchor = &anchor; update(); }
         inline void setRightAnchor(const UiSize& anchor) { rightAnchor = &anchor; update(); }
@@ -181,7 +171,19 @@ namespace pg
         void update();
 
     protected:
+        /** Flag indicating if the uicomponent should be rendered. */
         bool visible = true;
+
+    private:
+        // Pointer to anchors where this object is tied
+        /** Pointer to the top attached anchor */
+        const UiSize *topAnchor     = nullptr;
+        /** Pointer to the right attached anchor */
+        const UiSize *rightAnchor   = nullptr;
+        /** Pointer to the bottom attached anchor */
+        const UiSize *bottomAnchor  = nullptr;
+        /** Pointer to the left attached anchor */
+        const UiSize *leftAnchor    = nullptr;
     };
 
     //TODO Copy Constructor
