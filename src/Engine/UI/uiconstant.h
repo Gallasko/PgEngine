@@ -1,10 +1,16 @@
 #pragma once
 
 #include <memory>
-#include <iostream>
+
+#include "logger.h"
 
 namespace pg
 {
+    // namespace
+    // {
+    //     const char * DOM = "Ui constant";
+    // }
+
     enum class UiOrientation
     {
         VERTICAL,
@@ -13,6 +19,7 @@ namespace pg
 
     //TODO check if a pointer to the current uisize is not already present in the children of the operation to avoid an infinite lockup
     //TODO make the operation here constant and then change uisystem and ui animation accordingly to make everything constant
+    //TODO throw if we try to divide by zero
     class UiSize
     {
         class UiValue
@@ -34,6 +41,9 @@ namespace pg
 
             float returnCurrentSize() const
             {
+                // TODO
+                // LOG_THIS_MEMBER(DOM);
+
                 const float refSizeValue1 = refSize1 == nullptr ? 0.0f : refSize1->returnCurrentSize();
                 const float refSizeValue2 = refSize2 == nullptr ? 0.0f : refSize2->returnCurrentSize();
 
@@ -52,6 +62,12 @@ namespace pg
                         return refSize1Result * refSizeValue2;
                         break;
                     case UiSizeOpType::DIV:
+                        if(refSizeValue2 == 0.0f)
+                        {
+                            // TODO
+                            // LOG_ERROR(DOM, "Division by zero");
+                            return 0.0f;
+                        }
                         return refSize1Result / refSizeValue2;
                         break;
                     case UiSizeOpType::NONE:

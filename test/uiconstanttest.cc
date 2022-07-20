@@ -39,6 +39,11 @@ namespace pg
 
             EXPECT_FLOAT_EQ(value, -15.02f);
 
+            value2 = 10.37f;
+
+            EXPECT_FLOAT_EQ(value, -15.02f);
+            EXPECT_FLOAT_EQ(value2, 10.37f);
+
             UiSize value3 = 2.2f;
 
             value = &value3;
@@ -102,6 +107,79 @@ namespace pg
             EXPECT_FLOAT_EQ(res, 4.0f);
 
             EXPECT_FLOAT_EQ(-value1, -8.0f);
+        }
+
+        TEST(ui_pos_test, initialization)
+        {
+            UiPosition pos;
+
+            EXPECT_FLOAT_EQ(pos.x, 0.0f);
+            EXPECT_FLOAT_EQ(pos.y, 0.0f);
+            EXPECT_FLOAT_EQ(pos.z, 0.0f);
+
+            UiPosition pos1 = {1.5f, -2.5f, 3.0f};
+
+            EXPECT_FLOAT_EQ(pos1.x,  1.5f);
+            EXPECT_FLOAT_EQ(pos1.y, -2.5f);
+            EXPECT_FLOAT_EQ(pos1.z,  3.0f);
+        }
+
+        TEST(ui_pos_test, assignment)
+        {
+            UiPosition pos;
+
+            pos = {1.1f, 1.2f, 2.0f};
+
+            EXPECT_FLOAT_EQ(pos.x, 1.1f);
+            EXPECT_FLOAT_EQ(pos.y, 1.2f);
+            EXPECT_FLOAT_EQ(pos.z, 2.0f);
+        }
+
+        TEST(ui_pos_test, reference)
+        {
+            UiPosition pos;
+
+            UiSize size = 1.5f;
+
+            pos.x = &size;
+
+            EXPECT_FLOAT_EQ(pos.x, 1.5f);
+
+            size = 2.34f;
+
+            EXPECT_FLOAT_EQ(pos.x, 2.34f);
+
+            UiPosition ref = {0.3f, 2.2f, 4.0f};
+
+            pos = &ref;
+
+            EXPECT_FLOAT_EQ(pos.x, 0.3f);
+            EXPECT_FLOAT_EQ(pos.y, 2.2f);
+            EXPECT_FLOAT_EQ(pos.z, 4.0f);
+
+            ref = {1.5f, 2.6f, 3.3f};
+
+            EXPECT_FLOAT_EQ(pos.x, 1.5f);
+            EXPECT_FLOAT_EQ(pos.y, 2.6f);
+            EXPECT_FLOAT_EQ(pos.z, 3.3f);
+
+            ref.x = -0.2f;
+
+            EXPECT_FLOAT_EQ(pos.x, -0.2f);
+            EXPECT_FLOAT_EQ(pos.y,  2.6f);
+            EXPECT_FLOAT_EQ(pos.z,  3.3f);
+        }
+
+        TEST(ui_pos_test, addition)
+        {
+            UiPosition pos1 = { 1.4f, 2.34f, 4.0f};
+            UiPosition pos2 = {-2.3f, 1.2f,  2.0f};
+
+            UiPosition res = pos1 + pos2;
+
+            EXPECT_FLOAT_EQ(res.x, -0.9f);
+            EXPECT_FLOAT_EQ(res.y,  3.54f);
+            EXPECT_FLOAT_EQ(res.z,  6.0f);
         }
 
     }

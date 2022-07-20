@@ -68,13 +68,13 @@ namespace pg
 
         // The 4 corner points of the object
         /** Top left corner of the object */
-        const Corner topLeft     = {topAnchor,    leftAnchor};
+        const Corner topLeft     = {&top,    &left};
         /** Top right corner of the object */
-        const Corner topRight    = {topAnchor,    rightAnchor};
+        const Corner topRight    = {&top,    &right};
         /** Bottom left corner of the object */
-        const Corner bottomLeft  = {bottomAnchor, leftAnchor};
+        const Corner bottomLeft  = {&bottom, &left};
         /** Bottom right corner of the object */
-        const Corner bottomRight = {bottomAnchor, rightAnchor};
+        const Corner bottomRight = {&bottom, &right};
 
         // The margin to the given anchor point
         /** The margin from the top anchor point */

@@ -8,6 +8,8 @@
 
 #include <string>
 
+//TODO Create an object to utilize the ctor/dtor and know when we enter and exit the function called
+//     instead of only calling the _log() at the start of the function
 #ifdef DEBUG
 #define LOG_THIS(scope) pg::Logger::_log(__LINE__, __FILE__, __func__, 0, 0, scope, "", pg::Logger::InfoLevel::log)
 #define LOG_THIS_MEMBER(scope) pg::Logger::_log(__LINE__, __FILE__, __func__, this, typeid(*this).name(), scope, "", pg::Logger::InfoLevel::log)
