@@ -11,6 +11,16 @@ namespace pg
 
     namespace
     {
+        template <typename Container, typename Value>
+        int findSinkPos(const Value& value, const Container& container)
+        {
+            for (long long unsigned int i = 0; i < container.size(); i++)
+                if(value == container.at(i))
+                    return i;
+
+            return -1;
+        }
+
         std::string logLevelString(const Logger::InfoLevel& level)
         {
             std::string logLevelStringBuffer = "";
@@ -73,6 +83,17 @@ namespace pg
 
         if(accepted)
             processLog(log);
+    }
+
+    void Logger::removeSink(std::shared_ptr<Logger::LogSink> sink)
+    {
+        // Fonctor to use C++ scope initialisation to easely lock log pushback
+        std::lock_guard<std::mutex> lock(_lock);
+
+        const auto& it = findSinkPos(sink, sinks);
+
+        if(it != -1)
+            sinks.erase(sinks.begin() + it);
     }
 
     void TerminalSink::processLog(const Logger::Info& log)

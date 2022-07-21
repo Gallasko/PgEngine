@@ -2,8 +2,6 @@
 
 #include "UI/uisystem.h"
 
-#include <iostream>
-
 namespace pg
 {
     namespace test
@@ -28,6 +26,9 @@ namespace pg
             EXPECT_FLOAT_EQ(component.bottom, 0.0f);
         }
 
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         TEST(ui_component_test, change_position)
         {
             UiComponent component;
@@ -49,6 +50,9 @@ namespace pg
             EXPECT_FLOAT_EQ(component.pos.z, -1.8f);
         }
 
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         TEST(ui_component_test, change_size)
         {
             UiComponent component;
@@ -66,6 +70,9 @@ namespace pg
             EXPECT_FLOAT_EQ(component.height, -2.5f);
         }
 
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         TEST(ui_component_test, check_anchor)
         {
             UiComponent component;
@@ -103,5 +110,7 @@ namespace pg
             EXPECT_FLOAT_EQ(component.right,   5.7f);
             EXPECT_FLOAT_EQ(component.bottom, -1.7f);
         }
+
     } // namespace test
+    
 } // namespace pg

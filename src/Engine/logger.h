@@ -44,11 +44,11 @@ namespace pg
          */
         enum class InfoLevel
         {
-            log = 0,                    ///< Log level used anywhere for basic logging
-            info = 1,                   ///< Info level used to print some important and informative message about the execution of the code
-            alert = 2,                  ///< Alert level used to alert the dev of weird branchings that can affect the output 
-            warning = 3,                ///< Warning level used to warn the developer of an error that is non blocking 
-            error = 4,                  ///< Error level used to tell the developer of an error that is blocking and may need a restart of a component
+            log      = 0,               ///< Log level used anywhere for basic logging
+            info     = 1,               ///< Info level used to print some important and informative message about the execution of the code
+            alert    = 2,               ///< Alert level used to alert the dev of weird branchings that can affect the output 
+            warning  = 3,               ///< Warning level used to warn the developer of an error that is non blocking 
+            error    = 4,               ///< Error level used to tell the developer of an error that is blocking and may need a restart of a component
             critical = 5                ///< Critical level used to tell the developer of an error that is critical to the integrity of the application and need a full reboot of it
         };
 
@@ -228,6 +228,8 @@ namespace pg
         template <typename Sink, typename... Args>
         inline static std::shared_ptr<Logger::LogSink> registerSink(Args... args);
 
+        static void removeSink(std::shared_ptr<Logger::LogSink> sink);
+
         /**
          * @brief Main function used to register a log message
          * 
@@ -278,7 +280,14 @@ namespace pg
          * This function create an Logger object the first time it is called and then return an unique reference to this object
          *
          */
-        inline static const LoggerPtr& getLogger() { static LoggerPtr logger = LoggerPtr(new Logger()); return logger; } 
+        inline static const LoggerPtr& getLogger() { static LoggerPtr logger = LoggerPtr(new Logger()); return logger; }
+
+        /**
+         * @brief Get the number of sinks currently attached to the logger subsystem
+         * 
+         * @return the number of sink
+         */
+        inline static unsigned int getNbSink() { return sinks.size(); }
 
     // TODO commit log to file when a certain threashold of message is passed
     // Define in #define max log length

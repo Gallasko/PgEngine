@@ -221,6 +221,8 @@ namespace pg
 
     UiComponent::UiComponent(const UiComponent& rhs)
     {
+        LOG_THIS_MEMBER(DOM);
+
         this->visible = rhs.visible;
         this->pos = rhs.pos;
         this->width = rhs.width;
@@ -238,6 +240,8 @@ namespace pg
 
     bool UiComponent::inBound(int x, int y) const
     {
+        LOG_THIS_MEMBER(DOM);
+
         // Lockup x and y only once
         const float xValue = x;
         const float yValue = y;
@@ -247,6 +251,8 @@ namespace pg
 
     bool UiComponent::inBound(const constant::Vector2D& vec2) const
     {
+        LOG_THIS_MEMBER(DOM);
+
         return inBound(vec2.x, vec2.y);
     }
 
@@ -257,6 +263,8 @@ namespace pg
 
     void UiComponent::update()
     {
+        LOG_THIS_MEMBER(DOM);
+        
         if(topAnchor != nullptr && bottomAnchor != nullptr)
         {
             this->height = (*bottomAnchor - bottomMargin) - (*topAnchor - topMargin);
