@@ -328,6 +328,7 @@ namespace pg
         virtual void processLog(const Logger::Info& log) override;
 
     private:
+        /** Flag indicating whether we should ignore errors or not */
         bool ignoreNonErrors;
     };
 }

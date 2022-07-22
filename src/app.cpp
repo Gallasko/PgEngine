@@ -396,7 +396,7 @@ void EditorWindow::addElement(const UiComponentType& type)
 
         // Todo
         // mouseArea = new Button([=](Input*, double){ delete component; }, component->frame);
-        mouseArea = new Button([component, mouseArea, ecsRef, ent](Input*, double){ delete component; delete mouseArea; ecsRef->dettach<SceneElement>(ent); }, component->frame);
+        mouseArea = new Button([component, mouseArea, ecsRef, ent](Input*, double){ ecsRef->dettach<SceneElement>(ent); delete component; delete mouseArea; }, component->frame);
         // mouseArea = new Button([=](Input*, double){ this->openInOption<TextureComponent>(component); }, component->frame);
         mouseArea->setZ(component->pos.z + 1);
         break;
