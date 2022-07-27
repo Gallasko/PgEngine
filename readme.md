@@ -9,7 +9,7 @@ The first step to build is to download the two external depencies of this projec
 The first step is to install [Mingw 64](https://www.mingw-w64.org/downloads/) 
 
 Once mingw is installed, add the bin folder in your PATH to use make !
-![[readme/Pasted image 20220727111153.png]]
+[Set up mingw in path](docs/mingwpath.png)
 
 The next step is to install QT, please use [this online installer](https://www.qt.io/download-qt-installer)
 Only QT open source is mendatory for this project, After the registration step install a version of QT at least equals to 5.11 !
@@ -17,7 +17,7 @@ It should be noted that this application needs to be build with the support for 
 
 Once the download is done, insert QTPATH pointing to your freshly built QT inside your environment variables.
 
-![[readme/Pasted image 20220727110524.png]]
+[Set up qt in environment variables](docs/qtpathimage.png)
 
 This will enable the Makefile to find QT depencies as well as utilitaries, such as rcc used to compile ressource file in the .exe and moc used to resolve signals and slots made with QT ! 
 
