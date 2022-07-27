@@ -11,6 +11,7 @@
 #include <vector>
 #include <typeinfo>
 
+#include "component.h"
 #include "Memory/memorypool.h"
 
 namespace pg
