@@ -25,10 +25,13 @@ DebugActive ?= $(DEBUG)
 # define any compile-time flags -mwindows to make the app launch without a command prompt
 
 ifeq ($(DebugActive),True)
-CXXFLAGS	:= -std=c++11 -Wall -Wextra -g -DDEBUG # -mwindows -O3 -DNDEBUG
+CXXFLAGS	:= -std=c++11 -Wall -Wextra -g -DDEBUG
 else
 CXXFLAGS	:= -std=c++11 -Wall -Wextra -g -mwindows -O2 -DNDEBUG
 endif
+
+TESTFLAGS := $(CXXFLAGS)
+TESTFLAGS += -pthread
 
 # define library paths in addition to /usr/lib
 #   if I wanted to include libraries not in /usr/lib I'd specify
@@ -51,43 +54,76 @@ INCLUDE	:= include \
 		   $(Qt_PATH)/include/QtCore \
 		   $(Qt_PATH)/include/QtGui
 
+# define import directory
+IMPORT 	:= import
+
 # define lib directory
 LIB		:= lib \
 		   $(Qt_PATH)/lib
 
+# define dependency directory
 DEPENDENCIES := dependencies
 
+# TODO merge the shader directory inside of the ressource directory
+# define shader directory
 SHADER := shader
+
+# define ressource directory
 RESSOURCES := res
 
-BUILDDIR := build
+# intermediate build directory
+BUILD := build
+
+# define test directory
+TEST := test
 
 ifeq ($(OS),Windows_NT)
 MAIN		 	 := main.exe
 SOURCEDIRS		 := $(SRC)
 INCLUDEDIRS		 := $(INCLUDE)
+IMPORTDIRS 		 := $(IMPORT)
 LIBDIRS			 := $(LIB)
 DEPENDENCIESDIRS := $(DEPENDENCIES)
-SHADERDIR := $(SHADER)
-RESSOURCESDIR := $(RESSOURCES)
-FIXPATH = $(subst /,\,$1)
-RM			:= powershell rm -r -fo
-MD	:= powershell mkdir
+SHADERDIR 		 := $(SHADER)
+RESSOURCESDIR 	 := $(RESSOURCES)
+BUILDDIR 	  	 := $(BUILD)
+TESTDIR 	  	 := $(TEST)
+FIXPATH 		  = $(subst /,\,$1)
+RM				 := powershell rm -r -fo
+MD				 := powershell mkdir
 else
 MAIN			 := main
 SOURCEDIRS		 := $(shell find $(SRC) -type d)
 INCLUDEDIRS		 := $(shell find $(INCLUDE) -type d)
+IMPORTDIRS 		 := $(shell find $(IMPORT) -type d)
 LIBDIRS			 := $(shell find $(LIB) -type d)
 DEPENDENCIESDIRS := $(shell find $(DEPENDENCIES) -type d)
-SHADERDIR := $(shell find $(SHADER) -type d)
-RESSOURCESDIR := $(shell find $(RESSOURCES) -type d)
-FIXPATH = $1
-RM = rm -f
-MD	:= mkdir -p
+SHADERDIR 		 := $(shell find $(SHADER) -type d)
+RESSOURCESDIR 	 := $(shell find $(RESSOURCES) -type d)
+BUILDDIR 	  	 := $(shell find $(BUILD) -type d)
+TESTDIR 	  	 := $(shell find $(TEST) -type d)
+FIXPATH			  = $1
+RM 				 := rm -f
+MD				 := mkdir -p
 endif
 
+# Look, up to 3 nested directories, to create an include tree of the include files in the source directory
+SOURCESDIRTREE := ${sort ${dir ${wildcard ${SOURCEDIRS}/*/ ${SOURCEDIRS}/*/*/ ${SOURCEDIRS}/*/*/*/}}}
+
 # define any directories containing header files other than /usr/include
-INCLUDES	:= $(patsubst %,-I%, $(INCLUDEDIRS:%/=%))
+INCLUDES	 := $(patsubst %,-I%, $(INCLUDEDIRS:%/=%)) \
+			    $(patsubst %,-I%, $(SOURCESDIRTREE:%/=%))
+
+# define GTest directory
+GTESTDIR := $(IMPORTDIRS)/googletest/googletest
+
+# All Google Test headers.  Usually you shouldn't change this definition.
+GTEST_HEADERS = $(GTESTDIR)/include/gtest/*.h \
+                $(GTESTDIR)/include/gtest/internal/*.h
+
+TESTFLAGS += -isystem $(GTESTDIR)/include
+
+TEST_INCLUDES := $(patsubst %,-I%, $(TESTDIR:%/=%))
 
 # define the C libs
 LIBS		:= $(patsubst %,-L%, $(LIBDIRS:%/=%)) \
@@ -96,14 +132,25 @@ LIBS		:= $(patsubst %,-L%, $(LIBDIRS:%/=%)) \
 			   -lopengl32
 
 # define the C source files
-SOURCES		:= $(call rwildcard,$(SOURCEDIRS), *.cpp)
-MOC_SOURCES	:= $(call rwildcard,$(SOURCEDIRS), *.h)
-RCC_SOURCES	:= $(call rwildcard,., *.qrc)
+SOURCES		 := $(call rwildcard,$(SOURCEDIRS), *.cpp)
+MOC_SOURCES	 := $(call rwildcard,$(SOURCEDIRS), *.h)
+RCC_SOURCES	 := $(call rwildcard,., *.qrc)
 
-SOURCESDIRTREE := ${sort ${dir ${wildcard ${SOURCEDIRS}/*/ ${SOURCEDIRS}/*/*/}}}
+GTEST_SOURCES = $(GTESTDIR)/src/*.cc $(GTESTDIR)/src/*.h $(GTEST_HEADERS)
+TEST_SOURCES := $(call rwildcard,$(TESTDIR), *.cc) 
 
 # define the C object files 
-OBJECTS		:= $(SOURCES:%.cpp=$(BUILDDIR)/%.o) $(MOC_SOURCES:%.h=$(BUILDDIR)/%.moc.o) $(RCC_SOURCES:%.qrc=$(BUILDDIR)/%.rcc.o)
+OBJECTS		 := $(SOURCES:%.cpp=$(BUILDDIR)/%.o) \
+				$(MOC_SOURCES:%.h=$(BUILDDIR)/%.moc.o) \
+				$(RCC_SOURCES:%.qrc=$(BUILDDIR)/%.rcc.o)
+
+TEST_OBJECTS := $(SOURCES:%.cpp=$(BUILDDIR)/%.o) \
+				$(MOC_SOURCES:%.h=$(BUILDDIR)/%.moc.o) \
+				$(RCC_SOURCES:%.qrc=$(BUILDDIR)/%.rcc.o) \
+				$(TEST_SOURCES:%.cc=$(BUILDDIR)/%.o)
+
+
+TEST_OBJECTS := $(filter-out build/src/main.o, $(TEST_OBJECTS))
 
 DEP := $(OBJECTS:%.o=%.d)
 
@@ -114,13 +161,24 @@ DEP := $(OBJECTS:%.o=%.d)
 #
 
 OUTPUTMAIN	:= $(call FIXPATH,$(OUTPUT)/$(MAIN))
+TESTMAIN 	:= $(call FIXPATH,$(OUTPUT)/test.exe)
 
+# Compile the executable
 all: $(OUTPUT) $(MAIN)
 	@echo Executing 'all' complete!
 
+# Compile the test
+test: $(TEST_OBJECTS) gtest-all.o
+	@echo Building Test ...
+	$(CXX) $(TESTFLAGS) $(INCLUDES) $(TEST_INCLUDE) -o $(TESTMAIN) $(TEST_OBJECTS) gtest-all.o $(LFLAGS) $(LIBS)
+
+	./debug_build/test.exe
+
+# Create the output hierarchy
 $(OUTPUT):
 	$(MD) $(OUTPUT)
 
+# Build main and copy dependencies
 $(MAIN): $(OBJECTS)
 	@echo Building Main ...
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(OUTPUTMAIN) $(OBJECTS) $(LFLAGS) $(LIBS)
@@ -132,22 +190,41 @@ $(MAIN): $(OBJECTS)
 # it uses automatic variables $<: the name of the prerequisite of
 # the rule(a .c file) and $@: the name of the target of the rule (a .o file) 
 # (see the gnu make manual section about automatic variables)
+
+# Compile the test files
+$(BUILDDIR)/%.o: %.cc
+	@echo Converting $< to $@
+	$(CXX) $(TESTFLAGS) $(TEST_INCLUDE) $(INCLUDES) -MMD  -MP -c $< -o $@
+
+gtest-all.o : $(GTEST_SOURCES)
+	$(CXX) $(TESTFLAGS) -I$(GTESTDIR) $(TESTFLAGS) -c \
+            $(GTESTDIR)/src/gtest-all.cc
+
+gtest_main.o : $(GTEST_SOURCES)
+	$(CXX) $(TESTFLAGS) -I$(GTESTDIR) $(TESTFLAGS) -c \
+            $(GTESTDIR)/src/gtest_main.cc
+
+# Compile all the remaining source files
 $(BUILDDIR)/%.o: %.cpp
 	@echo Converting $< to $@
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD  -MP -c $< -o $@
 
+# Compile headers
 %.moc.o: %.moc.cpp
 	@echo Converting $< to $@
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD  -MP -c $<  -o $@
 
+# Run qmoc on .h files as qt may need to bind signals and slots
 $(BUILDDIR)/%.moc.cpp: %.h
 	@echo Creating $@
 	$(MOC) $(INCLUDES) $< -o $@
 
+# Compile the ressource file
 %.rcc.o: %.rcc.cpp
 	@echo Converting $< to $@
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD  -MP -c $< -o $@
 
+# Read the qrc file and generate the ressource cpp file
 $(BUILDDIR)/%.rcc.cpp: %.qrc
 	@echo Creating $@
 	$(RCC) $< -o $@
@@ -155,7 +232,7 @@ $(BUILDDIR)/%.rcc.cpp: %.qrc
 $(OBJECTS): | $(BUILDDIR)
 
 $(BUILDDIR):
-	$(MD) $(foreach dir, $(SOURCESDIRTREE), $(BUILDDIR)/$(dir),) build/stop
+	$(MD) $(foreach dir, $(SOURCESDIRTREE), $(BUILDDIR)/$(dir),) build/test
 
 .PHONY: clean
 

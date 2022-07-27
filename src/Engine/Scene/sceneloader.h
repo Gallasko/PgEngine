@@ -33,7 +33,7 @@ namespace pg
         int nbAllocatedObjects;
     };
 
-    typedef std::function<UiComponent*(const UnserializedObject&)> uiCtorFunc;
+    typedef std::function<UiComponent*(const UnserializedObject&)> UiCtorFunc;
 
     class SceneLoader
     {
@@ -41,12 +41,12 @@ namespace pg
         SceneLoader();
         ~SceneLoader();
 
-        void addPrefab(const std::string& name, const uiCtorFunc& creator);
+        void addPrefab(const std::string& name, const UiCtorFunc& creator);
 
         Scene* load(const TextFile& sceneFile) const;
         static void unload(Scene *scene);
 
     private:
-        std::unordered_map<std::string, uiCtorFunc> cTorLookupTable; 
+        std::unordered_map<std::string, UiCtorFunc> cTorLookupTable; 
     };
 }

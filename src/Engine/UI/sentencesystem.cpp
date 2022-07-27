@@ -31,7 +31,10 @@ namespace pg
 
     template<>
     void renderer(MasterRenderer* masterRenderer, Sentence* sentence)
-    { 
+    {
+        if(not sentence->isVisible())
+            return;
+
         auto rTable = masterRenderer->getParameter();
         const int screenWidth = rTable["ScreenWidth"];
         const int screenHeight = rTable["ScreenHeight"];
@@ -111,8 +114,11 @@ namespace pg
 
         for(auto& sentence : sentenceList)
         {
+            if(not sentence->isVisible())
+                return;
+
             if(sentence->initialised == false)
-            sentence->generateMesh();
+                sentence->generateMesh();
 
             view.setToIdentity();
             view.translate(QVector3D(-1.0f + 2.0f * (float)(sentence->pos.x) / screenWidth, 1.0f + 2.0f * (float)( -sentence->pos.y) / screenHeight, 0.0f));
@@ -141,6 +147,11 @@ namespace pg
         EBO->create();
         
         setText(sentence, font);
+    }
+
+    Sentence::Sentence(const SentenceParameters& parameters) : Sentence(parameters.text, parameters.scale, parameters.font)
+    {
+
     }
 
     Sentence::Sentence(const Sentence &rhs) : UiComponent(rhs), QOpenGLFunctions()
@@ -176,6 +187,8 @@ namespace pg
 
     void Sentence::setText(const SentenceText& sentence, FontLoader *font)
     {
+        this->font = font;
+
         if(text != sentence)
         {
             nbChara = sentence.text.length();
@@ -267,6 +280,11 @@ namespace pg
             update();
         }
         
+    }
+
+    void Sentence::setText(const SentenceText& sentence)
+    {
+        this->setText(sentence, this->font);
     }
 
     //TODO add a parameters to set the usage patern and make it static by default

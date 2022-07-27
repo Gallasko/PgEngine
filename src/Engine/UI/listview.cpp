@@ -1,6 +1,7 @@
 #include "listview.h"
 
-#include "../logger.h"
+#include "texture.h"
+#include "logger.h"
 
 namespace pg
 {
@@ -296,6 +297,15 @@ namespace pg
 
             pressed = false;
         }
+    }
+
+    void ListView::clear()
+    {
+        children.clear();
+        children.shrink_to_fit();
+
+        calculateListSize();
+        updateRenderList();
     }
 
     void ListView::render(MasterRenderer* masterRenderer)

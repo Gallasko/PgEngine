@@ -1,5 +1,7 @@
 #include "tileselector.h"
 
+#include "UI/texture.h"
+
 namespace pg
 {
     template<>

@@ -1,17 +1,6 @@
 #pragma once
 
-#include <QOpenGLFunctions>
-#include <QOpenGLTexture>
-#include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
-
-#include <algorithm>
-#include <vector>
-
 #include "uiconstant.h"
-#include "../constant.h"
-
-#include "../Renderer/renderer.h"
 
 //Todo parenting, better anchoring
 //TODO refactor all the struct that need to be a class and make the element private
@@ -20,48 +9,139 @@
 //TODO create a destructor that go through the children and remove this ? or remove the child recursively ?
 namespace pg
 {
-    struct UiComponent
+    // Forward declaration
+    namespace constant
     {
+        class Vector2D;
+    }
+    class MasterRenderer;
+
+    /**
+     * @class UiComponent
+     *
+     * Base struct of all the ui components.
+     * This struct all data about the position of the object
+     * as well as a render function
+     */
+    class UiComponent
+    {
+        // Type definition
+    private:
+        // Todo use this struct instead of a plain uisize to avoid possible problems with user
+        // passing a plain float or a deletable uisize where an anchor was expected
+        // struct Anchor
+        // {
+        //     UiSize anchorPoint;
+        // };
+
+        /**
+         * @brief A struct describing the two anchor points needed to represent a corner
+         */
+        struct Corner
+        {
+            const UiSize* verticalAnchor;       ///< The vertical anchor point of the corner
+            const UiSize* horizontalAnchor;     ///< The horizontal anchor point of the corner
+        };
+
+        // Public interface
+    public:
+        /** The position of the object */
         UiPosition pos;
 
+        /** The width of the object */
         UiSize width;
+        /** The height of the object */
         UiSize height;
 
+        /** The bounding box of the object */
         const UiFrame frame = UiFrame(pos.x, pos.y, pos.z, width, height);
 
-        const UiSize *topAnchor = nullptr;
-        const UiSize *rightAnchor = nullptr;
-        const UiSize *bottomAnchor = nullptr;
-        const UiSize *leftAnchor = nullptr;
-
-        const UiSize top = &pos.y;
-        const UiSize right = pos.x + width;
+        // The 4 anchors points of the object
+        /** Top anchor points of the object */
+        const UiSize top    = &pos.y;
+        /** Right anchor points of the object */
+        const UiSize right  = pos.x + width;
+        /** Bottom anchor points of the object */
         const UiSize bottom = pos.y + height;
-        const UiSize left = &pos.x;
+        /** Left anchor points of the object */
+        const UiSize left   = &pos.x;
 
+        // The 4 corner points of the object
+        /** Top left corner of the object */
+        const Corner topLeft     = {&top,    &left};
+        /** Top right corner of the object */
+        const Corner topRight    = {&top,    &right};
+        /** Bottom left corner of the object */
+        const Corner bottomLeft  = {&bottom, &left};
+        /** Bottom right corner of the object */
+        const Corner bottomRight = {&bottom, &right};
+
+        // The margin to the given anchor point
+        /** The margin from the top anchor point */
         UiSize topMargin;
+        /** The margin from the right anchor point */
         UiSize rightMargin;
+        /** The margin from the bottom anchor point */
         UiSize bottomMargin;
+        /** The margin from the left anchor point */
         UiSize leftMargin;
 
+        /**
+         * @brief Construct a new Ui Component object
+         * 
+         * This construct an empty ui component at coord (0.0f, 0.0f, 0.0f) of size 0, 0
+         */
         UiComponent() { }
+        
+        /**
+         * @brief Construct a new Ui Component object
+         * 
+         * @param frame The reference frame for this object
+         * 
+         * This construct an ui component from a given reference
+         * The position and size of the newly created object is automatically updated on the fly
+         */
         UiComponent(const UiFrame& frame) : pos(&frame.pos), width(&frame.w), height(&frame.h) { }
+
+        /**
+         * @brief Construct a new Ui Component object
+         * 
+         * @param rhs Another UiComponent
+         * 
+         * This creates a copy of the rhs ui component
+         */
         UiComponent(const UiComponent& rhs);
 
+        /**
+         * @brief Destroy the Ui Component object
+         */
         virtual ~UiComponent() { }
 
-        inline void setX(const int& value) { pos.x = value; update(); }
-        inline void setY(const int& value) { pos.y = value; update(); }
-        inline void setZ(const int& value) { pos.z = value; update(); }
+        // Setter methods for position and size properties
+    public:
+        inline void setX(const float& value) { pos.x = value; update(); }
+        inline void setY(const float& value) { pos.y = value; update(); }
+        inline void setZ(const float& value) { pos.z = value; update(); }
 
         inline void setX(const UiSize& value) { pos.x = value; update(); }
         inline void setY(const UiSize& value) { pos.y = value; update(); }
         inline void setZ(const UiSize& value) { pos.z = value; update(); }
 
-        inline void setWidth(const int &value) { width = value; update(); }
-        inline void setWidth(const UiSize &value) { width = value; update(); }
-        inline void setHeight(const int &value) { height = value; update(); }
-        inline void setHeight(const UiSize &value) { height = value; update(); }
+        inline void setWidth(const float& value) { width = value; update(); }
+        inline void setHeight(const float& value) { height = value; update(); }
+
+        inline void setWidth(const UiSize& value) { width = value; update(); }
+        inline void setHeight(const UiSize& value) { height = value; update(); }
+
+        inline void setTopAnchor(const UiSize* anchor) { topAnchor = anchor; update(); }
+        inline void setRightAnchor(const UiSize* anchor) { rightAnchor = anchor; update(); }
+        inline void setBottomAnchor(const UiSize* anchor) { bottomAnchor = anchor; update(); }
+        inline void setLeftAnchor(const UiSize* anchor) { leftAnchor = anchor; update(); }
+
+        inline void setTopAnchor(const UiSize& anchor) { topAnchor = &anchor; update(); }
+        inline void setRightAnchor(const UiSize& anchor) { rightAnchor = &anchor; update(); }
+        inline void setBottomAnchor(const UiSize& anchor) { bottomAnchor = &anchor; update(); }
+        inline void setLeftAnchor(const UiSize& anchor) { leftAnchor = &anchor; update(); }
 
         inline void setTopMargin(const int& value) { topMargin = value; update(); }
         inline void setRightMargin(const int& value) { rightMargin = value; update(); }
@@ -73,18 +153,13 @@ namespace pg
         inline void setBottomMargin(const UiSize& value) { bottomMargin = value; update(); }
         inline void setLeftMargin(const UiSize& value) { leftMargin = value; update(); }
 
-        inline void setTopAnchor(const UiSize *anchor) { topAnchor = anchor; update(); }
-        inline void setRightAnchor(const UiSize *anchor) { rightAnchor = anchor; update(); }
-        inline void setBottomAnchor(const UiSize *anchor) { bottomAnchor = anchor; update(); }
-        inline void setLeftAnchor(const UiSize *anchor) { leftAnchor = anchor; update(); }
+        // TODO add function for alignement with corner, vertical and horizontal center, center alignement
+        // and fill
 
-        inline void setTopAnchor(const UiSize& anchor) { topAnchor = &anchor; update(); }
-        inline void setRightAnchor(const UiSize& anchor) { rightAnchor = &anchor; update(); }
-        inline void setBottomAnchor(const UiSize& anchor) { bottomAnchor = &anchor; update(); }
-        inline void setLeftAnchor(const UiSize& anchor) { leftAnchor = &anchor; update(); }
-
+        // Public helper methods
+    public:
         bool inBound(int x, int y) const;
-        bool inBound(const constant::Vector2D& vec2) const { return inBound(vec2.x, vec2.y); }
+        bool inBound(const constant::Vector2D& vec2) const;
 
         const bool& isVisible() const { return visible; }
 
@@ -96,31 +171,19 @@ namespace pg
         void update();
 
     protected:
+        /** Flag indicating if the uicomponent should be rendered. */
         bool visible = true;
-    };
 
-    struct TextureComponent : public UiComponent, private QOpenGLFunctions
-    {
-        TextureComponent(const UiSize& width, const UiSize& height, const std::string& textureName);
-        TextureComponent(const UiComponent& component, const std::string& textureName);
-        TextureComponent(const TextureComponent &rhs);
-        ~TextureComponent();
-
-        void generateMesh();
-
-        virtual void render(MasterRenderer* masterRenderer);
-
-        std::string textureName;
-
-        constant::SquareInfo modelInfo;
-
-        QOpenGLVertexArrayObject *VAO = nullptr;
-        QOpenGLBuffer *VBO = nullptr;
-        QOpenGLBuffer *EBO = nullptr;
-
-        float oldWidth = width, oldHeight = height;
-
-        bool initialised = false;
+    private:
+        // Pointer to anchors where this object is tied
+        /** Pointer to the top attached anchor */
+        const UiSize *topAnchor     = nullptr;
+        /** Pointer to the right attached anchor */
+        const UiSize *rightAnchor   = nullptr;
+        /** Pointer to the bottom attached anchor */
+        const UiSize *bottomAnchor  = nullptr;
+        /** Pointer to the left attached anchor */
+        const UiSize *leftAnchor    = nullptr;
     };
 
     //TODO Copy Constructor

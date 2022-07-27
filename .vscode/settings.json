@@ -102,7 +102,9 @@
         "xlocmes": "cpp",
         "xlocmon": "cpp",
         "xloctime": "cpp",
-        "qstring": "cpp"
+        "qstring": "cpp",
+        "*.rh": "cpp",
+        "any": "cpp"
     },
     "files.exclude": {
         "**/*.o": true,

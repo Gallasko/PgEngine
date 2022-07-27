@@ -132,32 +132,32 @@ void GameWindow::initialize()
     gameMap = new Map(&ecs, tileLoader, mapConstraint);
 
     auto debugText = ecs.createEntity();
-    auto debugTextC = ecs.attach<Sentence>(debugText, {{"Debug: ", constant::Vector4D(255.0f, 0.0f, 0.0f, 255.0f)}, 4.0f, fontLoader});
+    auto debugTextC = ecs.attach<Sentence>(debugText, SentenceText{"Debug: ", constant::Vector4D(255.0f, 0.0f, 0.0f, 255.0f)}, 4.0f, fontLoader);
 
     debugTextC->setX(10);
     debugTextC->setY(10);
 
     fpsCounter = ecs.createEntity();
-    auto fpsCounterC = ecs.attach<Sentence>(fpsCounter, {{"00"}, 4.0f, fontLoader});
+    auto fpsCounterC = ecs.attach<Sentence>(fpsCounter, SentenceText{"00"}, 4.0f, fontLoader);
     
     fpsCounterC->setX(10);
     fpsCounterC->setY(55);
     
     auto mousePosLabel = ecs.createEntity();
-    auto mousePosLabelC = ecs.attach<Sentence>(mousePosLabel, {{"Mouse Pos: "}, 2.0f, fontLoader});
+    auto mousePosLabelC = ecs.attach<Sentence>(mousePosLabel, SentenceText{"Mouse Pos: "}, 2.0f, fontLoader);
     
     mousePosLabelC->setX(10);
     mousePosLabelC->setY(100);
 
     mousePosText = ecs.createEntity();
-    auto mousePosTextC = ecs.attach<Sentence>(mousePosText, {{"(0, 0)"}, 2.0f, fontLoader});
+    auto mousePosTextC = ecs.attach<Sentence>(mousePosText, SentenceText{"(0, 0)"}, 2.0f, fontLoader);
     
     mousePosTextC->setX(10);
     mousePosTextC->setZ(2);
     mousePosTextC->setY(125);
 
     gameScaleText = ecs.createEntity();
-    auto gameScaleTextC = ecs.attach<Sentence>(gameScaleText, {{"Game Scale: 0"}, 2.0f, fontLoader});
+    auto gameScaleTextC = ecs.attach<Sentence>(gameScaleText, SentenceText{"Game Scale: 0"}, 2.0f, fontLoader);
     
     gameScaleTextC->setX(10);
     gameScaleTextC->setZ(2);
@@ -175,7 +175,7 @@ void GameWindow::initialize()
     goldTextC->setY(180);
 
     screenEntity = ecs.createEntity();
-    screenUi = ecs.attach<UiComponent>(screenEntity, {});
+    screenUi = ecs.attach<UiComponent>(screenEntity);
     screenUi->width = 1;
     screenUi->height = 1;
     screenUi->setZ(-1);
@@ -233,12 +233,12 @@ void GameWindow::initialize()
     //tileSelectorAnimation->start();
 
     auto pathFindingButton = ecs.createEntity();
-    auto pathFindingButtonTexC = ecs.attach<TextureComponent>(pathFindingButton, {64, 32, "frame"});
+    auto pathFindingButtonTexC = ecs.attach<TextureComponent>(pathFindingButton, 64, 32, "frame");
     //pathFindingButtonTexC->setX(0);
     //pathFindingButtonTexC->setY(height() - 32);
     //pathFindingButtonTexC->setZ(1);
 
-    auto pathFindingButtonMouseArea = ecs.attach<MouseInputComponent* >(pathFindingButton, {});
+    auto pathFindingButtonMouseArea = ecs.attach<MouseInputComponent* >(pathFindingButton);
     *pathFindingButtonMouseArea = new MouseInputBase<Map>(pathFindingButtonTexC);
     (*pathFindingButtonMouseArea)->registerFunc(Map::runPathFinding, gameMap);
 
@@ -261,7 +261,7 @@ void GameWindow::initialize()
     auto deserializedPigeonTexture = Serializer::getSerializer()->deserializeObject<TextureComponent>("Pigeon spawner texture");
     TextureComponent* pigeonSpawnerTextureC;
     if(deserializedPigeonTexture.textureName == "")
-        pigeonSpawnerTextureC = ecs.attach<TextureComponent>(pigeonSpawnerTexture, {297, 196, "menutest"});
+        pigeonSpawnerTextureC = ecs.attach<TextureComponent>(pigeonSpawnerTexture, 297, 196, "menutest");
     else
         pigeonSpawnerTextureC = ecs.attach<TextureComponent>(pigeonSpawnerTexture, deserializedPigeonTexture);
 
@@ -271,7 +271,7 @@ void GameWindow::initialize()
     serializer->serializeObject("Pigeon spawner texture", *pigeonSpawnerTextureC);
 
     auto pigeonSpawnButton = ecs.createEntity();
-    auto pigeonSpawnButtonC = ecs.attach<TextureComponent>(pigeonSpawnButton, {64, 32, "frame"});
+    auto pigeonSpawnButtonC = ecs.attach<TextureComponent>(pigeonSpawnButton, 64, 32, "frame");
 
     pigeonSpawnButtonC->setTopAnchor(pigeonSpawnerTextureC->top);
     pigeonSpawnButtonC->setLeftAnchor(pigeonSpawnerTextureC->left);

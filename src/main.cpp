@@ -1,7 +1,7 @@
 #include <QGuiApplication>
 #include <iostream>
 
-#include "game.h"
+#include "app.h"
 
 #include <QTimer>
 
@@ -18,18 +18,18 @@ int main(int argc, char *argv[])
 
 	QGuiApplication app(argc, argv);
 
-	GameWindow game;
+	EditorWindow editor;
     //game.resize(640, 480);
-    game.resize(800, 480);
+    editor.resize(800, 480);
     //game.setWindowState(Qt::WindowFullScreen);
-    game.setAnimating(true);
+    editor.setAnimating(true);
     //game.showFullScreen();
-    game.show();
+    editor.show();
 
     QTimer* timer = new QTimer();
-    QObject::connect( timer, SIGNAL( timeout() ), &game, SLOT( renderNow() ) );
+    QObject::connect( timer, SIGNAL( timeout() ), &editor, SLOT( renderNow() ) );
     timer->start(0);
 
-    QObject::connect(&game, SIGNAL(quitApp()), &app, SLOT(quit()));
+    QObject::connect(&editor, SIGNAL(quitApp()), &app, SLOT(quit()));
     return app.exec();
 }

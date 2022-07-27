@@ -4,11 +4,11 @@
 #include <vector>
 
 #include "uisystem.h"
-#include "../Loaders/fontloader.h"
-#include "../Renderer/renderer.h"
-#include "../constant.h"
+#include "Loaders/fontloader.h"
+#include "Renderer/renderer.h"
+#include "constant.h"
 
-#include "../serialization.h"
+#include "serialization.h"
 
 namespace pg
 {
@@ -61,11 +61,20 @@ namespace pg
     //TODO check if in need to be static
     struct Sentence : public UiComponent, private QOpenGLFunctions
     {
+        struct SentenceParameters
+        {
+            SentenceText text;
+            float scale;
+            FontLoader *font;
+        };
+
         Sentence(const SentenceText& sentence, const float& scale, FontLoader *font);
+        Sentence(const SentenceParameters& parameters);
         Sentence(const Sentence &rhs);
-        ~Sentence();
+        virtual ~Sentence();
 
         void setText(const SentenceText& sentence, FontLoader *font);
+        void setText(const SentenceText& sentence);
 
         void generateMesh();
 

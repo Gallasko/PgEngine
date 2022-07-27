@@ -14,6 +14,11 @@
 
 using namespace pg;
 
+namespace pg
+{
+    class TextureComponent;
+}
+
 class TileSelector : public UiComponent
 {
 public:
@@ -32,7 +37,7 @@ private:
     TextureComponent *texture;
 
     std::vector<LoaderRenderComponent<TilesLoader::TilesId>> tileRendererVector;
-    std::vector<InputSystem::MouseComponent> mouseAreaVector;
+    std::vector<MouseInput> mouseAreaVector;
 
     std::vector<Sentence*> textVector;
 

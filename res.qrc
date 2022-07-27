@@ -24,6 +24,8 @@
         <file>res/menu/Menu.png</file>
         <file>res/menu/Menu2.png</file>
         <file>res/menu/menutest.png</file>
+        <file>res/menu/NavyBlueTexture.png</file>
+        <file>res/menu/LightBlueTexture.png</file>
     </qresource>
 
     <qresource prefix="/">

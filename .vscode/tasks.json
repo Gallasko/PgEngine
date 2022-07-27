@@ -12,7 +12,37 @@
                 "command": "powershell",
                 "args": [
                     "-c",
-                    "mingw32-make DEBUG=True"
+                    "mingw32-make DEBUG=True -j 8"
+                ]
+            },
+            "linux": {
+                "command": "bash",
+                "args": [
+                    "-c",
+                    "make DEBUG=True"
+                ]
+            },
+            "osx": {
+                "command": "bash",
+                "args": [
+                    "-c",
+                    "make DEBUG=True"
+                ]
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "test",
+            "type": "shell",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "windows": {
+                "command": "powershell",
+                "args": [
+                    "-c",
+                    "mingw32-make test DEBUG=True -j 8",
                 ]
             },
             "linux": {
@@ -42,7 +72,7 @@
                 "command": "powershell",
                 "args": [
                     "-c",
-                    "mingw32-make DEBUG=False"
+                    "mingw32-make DEBUG=False -j 8"
                 ]
             },
             "linux": {

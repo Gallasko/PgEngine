@@ -1,5 +1,7 @@
 #include "escapepanel.h"
-#include "../../Engine/logger.h"
+#include "UI/texture.h"
+#include "Engine/logger.h"
+#include "Renderer/renderer.h"
 
 using namespace pg;
 

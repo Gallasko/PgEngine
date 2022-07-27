@@ -98,7 +98,7 @@ namespace pg
         LOG_THIS_MEMBER(DOM);
     }
 
-    void SceneLoader::addPrefab(const std::string& name, const uiCtorFunc& creator)
+    void SceneLoader::addPrefab(const std::string& name, const UiCtorFunc& creator)
     {
         cTorLookupTable[name] = creator;
     }
