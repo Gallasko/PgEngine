@@ -1,6 +1,12 @@
 #include "component.h"
 
-Component::Component(const std::string& name)
+namespace pg
 {
+    namespace ecs
+    {
+        Component::Component(const std::string& name)
+        {
 
+        }
+    }
 }
