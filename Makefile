@@ -79,11 +79,8 @@ BUILD := build
 # define test directory
 TEST := test
 
-ROOT := .
-
 ifeq ($(OS),Windows_NT)
 MAIN		 	 := main.exe
-ROOTDIRS		 := $(ROOT)
 SOURCEDIRS		 := $(SRC)
 INCLUDEDIRS		 := $(INCLUDE)
 IMPORTDIRS 		 := $(IMPORT)
@@ -98,7 +95,6 @@ RM				 := powershell rm -r -fo
 MD				 := powershell mkdir
 else
 MAIN			 := main
-ROOTDIRS		 := $(shell find $(ROOT) -type d)
 SOURCEDIRS		 := $(shell find $(SRC) -type d)
 INCLUDEDIRS		 := $(shell find $(INCLUDE) -type d)
 IMPORTDIRS 		 := $(shell find $(IMPORT) -type d)
@@ -244,7 +240,7 @@ $(BUILDDIR):
 
 clean:
 	@echo Cleaning...
-	$(RM) $(call FIXPATH, $(call rwildcard,$(ROOTDIRS),*.o))
+	$(RM) gtest-all.o
 #	$(RM) $(call FIXPATH, $(call rwildcard,$(SOURCEDIRS),*.o))
 #	$(RM) $(call FIXPATH, $(call rwildcard,$(SOURCEDIRS),*.d))
 	$(RM) $(BUILDDIR)

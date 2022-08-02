@@ -201,7 +201,7 @@ namespace pg
             constexpr size_t nbElements() const { return size - 1; }
 
             template<typename Comp>
-            SparseSetList<Comp> view() { return SparseSetList<Comp>(size, &componentList); }
+            SparseSetList<Comp> view() { return SparseSetList<Comp>(nbElements(), &componentList); }
 
         private:
             std::vector<uint64> dense;
