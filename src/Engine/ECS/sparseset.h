@@ -173,9 +173,9 @@ namespace pg
                 // Private variables
             private:
                 /** An iterator at the beginning of the list */
-                constexpr Iterator head;
+                const Iterator head;
                 /** An iterator at the end of the list */
-                constexpr Iterator tail;
+                const Iterator tail;
 
                 /** The component list to iterate over */
                 Component **componentList;      
