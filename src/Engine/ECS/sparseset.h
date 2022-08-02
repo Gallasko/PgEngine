@@ -5,6 +5,8 @@
 
 #include "component.h"
 
+#include <iostream>
+
 namespace pg
 {
     namespace ecs
@@ -33,37 +35,53 @@ namespace pg
          */
         class SparseSet
         {
-        public:
-            /**
-             * @brief An Iterator for iterating over the elements of a sparse set
-             * 
-             * This iterator is a read only iterator that iterates over the elements ot the sparse set
-             * Using the operator-> you can obtain a pointer to the component 
-             */
+        private:
             template<typename Comp>
-            class Iterator
+            class SparseSetList
             {
             friend class SparseSet;
             public:
-                //Pre Increment
-                inline Iterator& operator++() { index++; return *this; }
-                
-                //Post Increment
-                inline Iterator operator++(int) { Iterator old = *this; index++; return old; }
+                /**
+                 * @brief An Iterator for iterating over the elements of a sparse set
+                 * 
+                 * This iterator is a read only iterator that iterates over the elements ot the sparse set
+                 * Using the operator-> you can obtain a pointer to the component 
+                 */
+                class Iterator
+                {
+                friend class SparseSet;
+                friend class SparseSetList;
+                public:
+                    //Pre Increment
+                    inline Iterator& operator++() { index++; return *this; }
+                    
+                    //Post Increment
+                    inline Iterator operator++(int) { Iterator old = *this; index++; return old; }
 
-                inline bool operator==(const Iterator& rhs) const { return index == rhs.index; } 
-                inline bool operator!=(const Iterator& rhs) const { return index != rhs.index; } 
+                    inline bool operator==(const Iterator& rhs) const { return index == rhs.index; } 
+                    inline bool operator!=(const Iterator& rhs) const { return index != rhs.index; } 
 
-                inline Comp* operator->() const { return (*componentList)[index]; }
+                    inline Comp* operator*() const { return static_cast<Comp*>((*componentList)[index]); }
 
-            protected:
-                Iterator(size_t pos, std::vector<Component*> *componentList) : index(pos), componentList(componentList) {}
+                protected:
+                    Iterator(const size_t& pos, std::vector<Component*> *componentList) : index(pos), componentList(componentList) {}
+
+                private:
+                    size_t index = 1;
+                    std::vector<Component*> *componentList;
+                };
+
+            public:
+                SparseSetList(const size_t& size, std::vector<Component*> *componentList) : head(1, componentList), tail(size, componentList) {}
+
+                inline Iterator begin() const { return head; }
+                inline Iterator end() const { return tail; }
 
             private:
-                size_t index = 0;
-                std::vector<Comp*> *componentList;
+                Iterator head;
+                Iterator tail;                
             };
-
+            
         public:
             bool has(const uint64& value) const { return value < sparse.capacity() && sparse[value] < dense.capacity() && dense[sparse[value]] == value; };
 
@@ -83,18 +101,32 @@ namespace pg
                 return 0;
             }
 
-            void insert(const uint64& value)
+            Component* add(const uint64& entityId, Component* component)
             {
+                std::cout << size << std::endl;
+                if(entityId < 1)
+                {
+                    // LOG_ERROR
+                    return nullptr;
+                }
+
                 if(size >= dense.capacity())
+                {
                     dense.reserve(size * 2);
+                    componentList.reserve(size * 2);
+                }
 
-                if(value >= sparse.capacity())
-                    sparse.reserve(value * 2);
+                if(entityId >= sparse.capacity())
+                    sparse.reserve(entityId * 2);
 
-                dense[size] = value;
-                sparse[value] = size;
+                dense[size] = entityId;
+                sparse[entityId] = size;
+
+                componentList[size] = component;
 
                 size++;
+
+                return component;
             }
 
             /**
@@ -160,25 +192,23 @@ namespace pg
              */
             void clear()
             {
-                size = 0;
+                size = 1;
 
                 for(auto component : componentList)
                     delete component;
             }
 
-            template<typename Comp>
-            inline Iterator<Comp> begin() { return Iterator<Comp>(0, &componentList); }
+            constexpr size_t nbElements() const { return size - 1; }
 
             template<typename Comp>
-            inline Iterator<Comp> end() { return Iterator<Comp>(size, &componentList); }
+            SparseSetList<Comp> view() { return SparseSetList<Comp>(size, &componentList); }
 
         private:
             std::vector<uint64> dense;
             std::vector<uint64> sparse;
             std::vector<Component*> componentList;
 
-            std::size_t size = 0;
-            std::size_t sparseCapacity = 1;
+            std::size_t size = 1;
         };
     }    
 }

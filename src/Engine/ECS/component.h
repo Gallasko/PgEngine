@@ -8,17 +8,23 @@ namespace pg
 {
     namespace ecs
     {
+        template<class T>struct tag{using type=T;};
+
         struct Component
         {
             Component(const std::string& name);
 
             template<typename Comp>
-            Component() : Component(typeid(Comp).name()) { }
+            Component(const tag<Comp>&) : Component(typeid(Comp).name()) { }
+
+            virtual ~Component() {}
         };
 
         struct NamedComponent : public Component
         {
             NamedComponent(const std::string& name) : Component(name) {}
+
+            virtual ~NamedComponent() {}
         };
     }
 }

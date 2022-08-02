@@ -3,6 +3,8 @@
 # 'make clean'  removes all .o and executable files
 #
 
+# Todo link Qt libraries only against the file needing those to reduce link time
+
 # Wildcard use to get recursively all the .cpp
 rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
@@ -77,8 +79,11 @@ BUILD := build
 # define test directory
 TEST := test
 
+ROOT := .
+
 ifeq ($(OS),Windows_NT)
 MAIN		 	 := main.exe
+ROOTDIRS		 := $(ROOT)
 SOURCEDIRS		 := $(SRC)
 INCLUDEDIRS		 := $(INCLUDE)
 IMPORTDIRS 		 := $(IMPORT)
@@ -93,6 +98,7 @@ RM				 := powershell rm -r -fo
 MD				 := powershell mkdir
 else
 MAIN			 := main
+ROOTDIRS		 := $(shell find $(ROOT) -type d)
 SOURCEDIRS		 := $(shell find $(SRC) -type d)
 INCLUDEDIRS		 := $(shell find $(INCLUDE) -type d)
 IMPORTDIRS 		 := $(shell find $(IMPORT) -type d)
@@ -238,6 +244,7 @@ $(BUILDDIR):
 
 clean:
 	@echo Cleaning...
+	$(RM) $(call FIXPATH, $(call rwildcard,$(ROOTDIRS),*.o))
 #	$(RM) $(call FIXPATH, $(call rwildcard,$(SOURCEDIRS),*.o))
 #	$(RM) $(call FIXPATH, $(call rwildcard,$(SOURCEDIRS),*.d))
 	$(RM) $(BUILDDIR)
