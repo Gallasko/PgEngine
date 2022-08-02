@@ -12,6 +12,12 @@ namespace pg
     class SparseSet
     {
     public:
+        /**
+         * @brief An Iterator for iterating over the elements of a sparse set
+         * 
+         * This iterator is a read only iterator that iterates over the elements ot the sparse set
+         * Using the operator* you can obtain 
+         */
         class Iterator
         {
         friend class SparseSet;
@@ -25,7 +31,7 @@ namespace pg
             inline bool operator==(const Iterator& rhs) const { return index == rhs.index; } 
             inline bool operator!=(const Iterator& rhs) const { return index != rhs.index; } 
 
-            inline uint64 operator*() const { return dense[index]; }
+            inline uint64 operator*() const { return (*dense)[index]; }
 
         protected:
             Iterator(size_t pos, std::vector<uint64> *dense) : index(pos), dense(dense) {}
@@ -54,7 +60,7 @@ namespace pg
             return 0;
         }
 
-        void push_back(const uint64& value)
+        void insert(const uint64& value)
         {
             if(size >= dense.capacity())
                 dense.reserve(size * 2);
