@@ -1,5 +1,15 @@
 #pragma once
 
+/**
+ * @file sparseset.h
+ * @author Pigeon Codeur (pigeoncodeur@gmail.com)
+ * @brief Definition of the sparse set container class
+ * @version 0.1
+ * @date 2022-08-02
+ * 
+ * @copyright Copyright (c) 2022
+ */
+
 #include <cstdint>
 #include <vector>
 
@@ -13,8 +23,6 @@ namespace pg
     {
         typedef uint_fast64_t uint64;
         typedef uint_fast32_t entityId;
-
-        // TODO
 
         /**
          * @brief A container object used to store components
@@ -36,6 +44,14 @@ namespace pg
         class SparseSet
         {
         private:
+            /**
+             * @brief List representation of the component of the sparse set
+             * 
+             * @tparam Comp The type of the component
+             * 
+             * This helper class is used to iterate through the whole component list of the sparse set
+             * It provides a basic [] interface as well as an iterator to support range based for loop
+             */
             template<typename Comp>
             class SparseSetList
             {
@@ -51,40 +67,172 @@ namespace pg
                 {
                 friend class SparseSet;
                 friend class SparseSetList;
+                    // Public interface
                 public:
-                    //Pre Increment
+                    /** 
+                     * @brief Overload of the pre increment operator
+                     * 
+                     * @return The current iterator with the next indice
+                     */
                     inline Iterator& operator++() { index++; return *this; }
                     
-                    //Post Increment
+                    /**
+                     * @brief Overload of the post increment operator
+                     * 
+                     * @return A new iterator with the next indice
+                     */
                     inline Iterator operator++(int) { Iterator old = *this; index++; return old; }
 
+                    /**
+                     * @brief Overload of the equal operator
+                     * 
+                     * @param rhs Value to compare to
+                     * 
+                     * @return true if the value are equal
+                     * @return false otherwise
+                     */
                     inline bool operator==(const Iterator& rhs) const { return index == rhs.index; } 
+                    
+                    /**
+                     * @brief Overload of the not equal operator
+                     * 
+                     * @param rhs Value to compare to
+                     * 
+                     * @return true if the value are not equal
+                     * @return false otherwise
+                     */
                     inline bool operator!=(const Iterator& rhs) const { return index != rhs.index; } 
 
-                    inline Comp* operator*() const { return static_cast<Comp*>((*componentList)[index]); }
+                    /**
+                     * @brief Overload of the * operator
+                     * 
+                     * @return Comp* A pointer to the component stored recasted into the actual component
+                     */
+                    inline Comp* operator*() const { return static_cast<Comp*>(componentList[index]);}
 
+                    // Protected constructor
                 protected:
-                    Iterator(const size_t& pos, std::vector<Component*> *componentList) : index(pos), componentList(componentList) {}
+                    /**
+                     * @brief Construct a new Iterator object
+                     * 
+                     * @param pos The starting position in the component list array of the iterator
+                     * @param componentList The component list to iterate over
+                     * 
+                     * This object can only be created from a SparseSet List inside of a SparseSet Object
+                     */
+                    Iterator(const size_t& pos, Component **componentList) : index(pos), componentList(componentList) {}
 
+                    // Private variables
                 private:
+                    /** Index of the current position in the componentList */
                     size_t index = 1;
-                    std::vector<Component*> *componentList;
+                    /** An array of component pointers */
+                    Component **componentList;
                 };
 
+                // Public interface
             public:
-                SparseSetList(const size_t& size, std::vector<Component*> *componentList) : head(1, componentList), tail(size, componentList) {}
+                /**
+                 * @brief Overload of the [] operator
+                 * 
+                 * @param index Position in the component list
+                 * @return Comp* The pointer requested from the component list
+                 * 
+                 * This helper operator is used to provide access to a component inside of the component list.
+                 * Be careful as the operator doesn't not check the bound of the list, this can throw an out of bound exception
+                 * Use with nbElement of the sparse set to be in bound
+                 */
+                Comp* operator[](const size_t& index) { return static_cast<Comp*>(componentList[index]); }
 
-                inline Iterator begin() const { return head; }
-                inline Iterator end() const { return tail; }
+                /**
+                 * @brief Get the head iterator
+                 * 
+                 * @return constexpr Iterator An iterator at the head of the component list
+                 */
+                constexpr inline Iterator begin() const { return head; }
 
+                /**
+                 * @brief Get the tail iterator
+                 * 
+                 * @return constexpr Iterator An iterator at the tail of the component list
+                 */
+                constexpr inline Iterator end() const { return tail; }
+
+                // Protected constructor
+            protected:
+                /**
+                 * @brief Construct a new Sparse Set List object
+                 * 
+                 * @param size The current size of the component list
+                 * @param componentList The component list to iterate over
+                 * 
+                 * This object can only be created from a SparseSet Object
+                 */
+                SparseSetList(const size_t& size, Component **componentList) : head(1, componentList), tail(size, componentList), componentList(componentList) {}
+
+                // Private variables
             private:
-                Iterator head;
-                Iterator tail;                
+                /** An iterator at the beginning of the list */
+                constexpr Iterator head;
+                /** An iterator at the end of the list */
+                constexpr Iterator tail;
+
+                /** The component list to iterate over */
+                Component **componentList;      
             };
             
+            // Publiv constructors
         public:
-            bool has(const uint64& value) const { return value < sparse.capacity() && sparse[value] < dense.capacity() && dense[sparse[value]] == value; };
+            /**
+             * @brief Construct a new Sparse Set object
+             * 
+             * Initialize all the internal arrays
+             * Component list should always strictly match the dense array
+             */
+            SparseSet()
+            {
+                dense = new uint64[denseCapacity];
+                componentList = new Component*[denseCapacity];
 
+                sparse = new size_t[sparseCapacity];
+            }
+
+            /**
+             * @brief Destroy the Sparse Set object
+             * 
+             * Clear all the component in the component list
+             * and destroy the internal arrays
+             */
+            ~SparseSet()
+            {
+                clear();
+
+                delete[] dense;
+                delete[] componentList;
+
+                delete[] sparse;
+            }
+        
+            // Public interface
+        public:
+            /**
+             * @brief A check function to know if an entity as a component in this sparse set
+             * 
+             * @param id The id of the entity to check if it has a component
+             * @return true if the entity id has a component in the list
+             * @return false otherwise
+             * 
+             * This function uses one of the main properties of the sparse set, the reciprocity of the component id in the dense and sparse array
+             * This operation is O(1) as it only need 2 indirections and 3 checks to know if an id is in the list and this is true whatever the size of the array
+             */
+            bool has(const uint64& id) const { return id < sparseCapacity && sparse[id] < denseCapacity && dense[sparse[id]] == id; };
+
+            /**
+             * @brief Get the id of the entity at a given index of the component list
+             * 
+             * @param index The index of the component
+             * @return uint64 The id of the entity or 0 if the index is not inside of the list
+             */
             uint64 at(const size_t& index) const
             {
                 if(index >= size) 
@@ -93,37 +241,58 @@ namespace pg
                 return dense[index];
             }
 
-            uint64 find(const uint64& value) const
+            /**
+             * @brief Get the id of the component of a given entity id if it is present in the component list
+             * 
+             * @param id The id of the entity to find in the component list
+             * @return size_t The index of the component or 0 if the index is not inside of the list
+             */
+            size_t find(const uint64& id) const
             {
-                if(has(value))
-                    return sparse[value];
+                if(has(id))
+                    return sparse[id];
 
                 return 0;
             }
 
+            /**
+             * @brief Add an entity and it's component inside of the list
+             * 
+             * @param entityId The id of the entity to add to the list
+             * @param component The data of the component to add to the list
+             * 
+             * @return Component* The pointer of the component added inside of the list
+             * 
+             * This function add the component to the list and link the id to the entity id
+             * It also allocate new memory if one the list is too small 
+             */
             Component* add(const uint64& entityId, Component* component)
             {
-                std::cout << size << std::endl;
+                // All the entity should always be greater than 0 as 0 is the value of empty in the system
                 if(entityId < 1)
                 {
                     // LOG_ERROR
                     return nullptr;
                 }
 
-                if(size >= dense.capacity())
+                // If the size of the list is too small allocate more space
+                if(size >= denseCapacity)
                 {
-                    dense.reserve(size * 2);
-                    componentList.reserve(size * 2);
+                    addDenseCapacity();
                 }
 
-                if(entityId >= sparse.capacity())
-                    sparse.reserve(entityId * 2);
+                if(entityId >= sparseCapacity)
+                    addSparseCapacity();
 
+
+                // Link the entity id with the component id through the dense <-> sparse mechanism
                 dense[size] = entityId;
                 sparse[entityId] = size;
 
+                // Store the component inside of the list
                 componentList[size] = component;
 
+                // Increase the side of the list
                 size++;
 
                 return component;
@@ -192,23 +361,103 @@ namespace pg
              */
             void clear()
             {
-                size = 1;
+                for(size_t i = 1; i < size; i++)
+                    delete componentList[i];
 
-                for(auto component : componentList)
-                    delete component;
+                size = 1;
             }
 
-            constexpr size_t nbElements() const { return size - 1; }
+            /**
+             * @brief Get the current size of the list
+             * 
+             * @return constexpr size_t The current size of the list
+             * 
+             * The list start at index 1 to nbElement()
+             * This function is used to ensure that the bound of the set are respected
+             */
+            constexpr size_t nbElements() const { return size; }
 
+            /**
+             * @brief Expose a view of the component list to another system
+             * 
+             * @tparam Comp The type of the component to cast the component stored in this list
+             * @return SparseSetList<Comp> A view of the component list
+             */
             template<typename Comp>
-            SparseSetList<Comp> view() { return SparseSetList<Comp>(nbElements(), &componentList); }
+            SparseSetList<Comp> view()
+            {
+                return SparseSetList<Comp>(nbElements(), componentList);
+            }
 
+            // Private interface
         private:
-            std::vector<uint64> dense;
-            std::vector<uint64> sparse;
-            std::vector<Component*> componentList;
+            /**
+             * @brief Internal helper function used to expend the dense and the component list
+             * 
+             * This helper function double both the size of the dense and the component list to store up to size_t amount of data 
+             */
+            void addDenseCapacity()
+            {
+                // Create the doubled size containers
+                uint64* tempDense = new uint64[denseCapacity * 2];
+                Component** tempComponentList = new Component*[denseCapacity * 2];
 
+                // Copy the current data inside of the newly created containers
+                memcpy(tempDense, dense, denseCapacity * sizeof(uint64));
+                memcpy(tempComponentList, componentList, denseCapacity * sizeof(Component*));
+
+                // Delete old data to not leak memory
+                delete[] dense;
+                delete[] componentList;
+
+                // Set the new containers as the list container
+                dense = tempDense;
+                componentList = tempComponentList;
+
+                // Update the capacity of the list
+                denseCapacity *= 2;
+            }
+
+            /**
+             * @brief Internal helper function used to expend the sparse list
+             * 
+             * This helper function double the size of the sparse to store up to size_t amount of data 
+             */
+            void addSparseCapacity()
+            {
+                // Create the doubled size container
+                size_t* tempSparse = new size_t[sparseCapacity * 2];
+
+                // Copy the current data inside of the newly created container
+                memcpy(tempSparse, sparse, sparseCapacity * sizeof(size_t));
+
+                // Delete old data to not leak memory
+                delete[] sparse;
+
+                // Set the new container as the list container
+                sparse = tempSparse;
+
+                // Update the capacity of the list
+                sparseCapacity *= 2;
+            }
+
+            // Private variables
+        private:
+            /** The current size of the sparse set */
             std::size_t size = 1;
+
+            /** An interal array to hold the link componend id -> entity id */
+            uint64* dense;
+            /** The component list holding the data of all the component of this sparse set */
+            Component** componentList;
+
+            /** An interal array to hold the link entity id -> component id */
+            size_t* sparse;
+
+            /** The capacity of the dense array */
+            size_t denseCapacity = 2;
+            /** The capacity of the sparse array */
+            size_t sparseCapacity = 2;
         };
     }    
 }

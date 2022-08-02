@@ -11,9 +11,12 @@
 #include <vector>
 #include <typeinfo>
 
-#include "component.h"
 #include "Memory/memorypool.h"
 
+
+//TODO remove this they are included here just to compile those files
+#include "component.h"
+#include "sparseset.h"
 namespace pg
 {
     template <typename View>

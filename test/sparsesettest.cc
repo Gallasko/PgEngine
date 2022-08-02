@@ -27,7 +27,6 @@ namespace pg
 
         TEST(sparse_test, iterate)
         {
-            /*
             ecs::SparseSet set;
 
             for (int i = 1; i < 1000; i++)
@@ -37,11 +36,13 @@ namespace pg
 
             std::cout << set.nbElements() << std::endl;
 
-            for(auto component : set.view<A>())
+            auto view = set.view<A>();
+
+            for(size_t i = 1; i < set.nbElements(); i++)
             {
-                std::cout << component->data << std::endl;
+                std::cout << view[i]->data << std::endl;
+                EXPECT_EQ(view[i]->data, i);
             }
-            */
         }
 
     }
