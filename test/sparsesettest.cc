@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 
-#include "Memory/sparset.h"
+#include "ECS/sparset.h"
 
 namespace pg
 {
@@ -11,9 +11,9 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(sparse_test, initialization)
         {
-            SparseSet set;
+            ecs::SparseSet set;
             
-            set.push
+            set.insert(1);
         }
     }
 }
