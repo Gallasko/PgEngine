@@ -15,12 +15,11 @@
 
 #include "component.h"
 
-#include <iostream>
-
 namespace pg
 {
     namespace ecs
     {
+        // TODO set those typedef elsewhere and update this class accordingly
         typedef uint_fast64_t uint64;
         typedef uint_fast32_t entityId;
 
@@ -183,35 +182,11 @@ namespace pg
             
             // Publiv constructors
         public:
-            /**
-             * @brief Construct a new Sparse Set object
-             * 
-             * Initialize all the internal arrays
-             * Component list should always strictly match the dense array
-             */
-            SparseSet()
-            {
-                dense = new uint64[denseCapacity];
-                componentList = new Component*[denseCapacity];
+            /** Construct a new Sparse Set object */
+            SparseSet();
 
-                sparse = new size_t[sparseCapacity];
-            }
-
-            /**
-             * @brief Destroy the Sparse Set object
-             * 
-             * Clear all the component in the component list
-             * and destroy the internal arrays
-             */
-            ~SparseSet()
-            {
-                clear();
-
-                delete[] dense;
-                delete[] componentList;
-
-                delete[] sparse;
-            }
+            /** Destroy the Sparse Set object */
+            ~SparseSet();
         
             // Public interface
         public:
@@ -255,117 +230,17 @@ namespace pg
                 return 0;
             }
 
-            /**
-             * @brief Add an entity and it's component inside of the list
-             * 
-             * @param entityId The id of the entity to add to the list
-             * @param component The data of the component to add to the list
-             * 
-             * @return Component* The pointer of the component added inside of the list
-             * 
-             * This function add the component to the list and link the id to the entity id
-             * It also allocate new memory if one the list is too small 
-             */
-            Component* add(const uint64& entityId, Component* component)
-            {
-                // All the entity should always be greater than 0 as 0 is the value of empty in the system
-                if(entityId < 1)
-                {
-                    // LOG_ERROR
-                    return nullptr;
-                }
+            /** Add an entity and it's component inside of the list */
+            Component* add(const uint64& entityId, Component* component);
 
-                // If the size of the list is too small allocate more space
-                if(size >= denseCapacity)
-                {
-                    addDenseCapacity();
-                }
+            /** Remove a component by entity id */
+            void remove(const uint64& id);
 
-                if(entityId >= sparseCapacity)
-                    addSparseCapacity();
+            /** Remove a component by component index*/
+            void removeAt(const size_t& index);
 
-
-                // Link the entity id with the component id through the dense <-> sparse mechanism
-                dense[size] = entityId;
-                sparse[entityId] = size;
-
-                // Store the component inside of the list
-                componentList[size] = component;
-
-                // Increase the side of the list
-                size++;
-
-                return component;
-            }
-
-            /**
-             * @brief Remove a component by entity id
-             * 
-             * @param id The id of the entity to remove the component from.
-             */
-            void remove(const uint64& id)
-            {
-                // Check if the id has a component
-                if(size < 1 && !has(id))
-                    return;
-
-                // TODO make a sparse set implementation that doesn't delete components on remove but instead reuse dead memory
-                // Delete the component
-                delete componentList[sparse[id]];
-                
-                // Swap the last component in the place of the component to be removed
-                componentList[sparse[id]] = componentList[sparse[size - 1]];
-
-                // Update the index of the vector accordingly.
-                dense[sparse[id]] = dense[sparse[size - 1]];
-                sparse[id] = sparse[size - 1];
-
-                // Decrease the size of the list
-                size--;
-            }
-
-            /**
-             * @brief Remove a component by component index
-             * 
-             * @param index The index of the component to remove.
-             */
-            void removeAt(const size_t& index)
-            {
-                if(size < 1 && index >= size) 
-                    return;
-
-                // TODO make a sparse set implementation that doesn't delete components on remove but instead reuse dead memory
-                // Delete the component
-                delete componentList[dense[index]];
-                
-                // Swap the last component in the place of the component to be removed
-                componentList[dense[index]] = componentList[dense[size - 1]];
-
-                // Put the last value where the removed value is, to keep a contiguous dense array
-                // and update the sparse array accordingly.  
-                sparse[dense[index]] = sparse[dense[size -1]];
-                dense[index] = dense[size - 1];
-
-                // Decrease the size of the list
-                size--;
-
-                // TODO Tell the management system that this entity (dense[index]) as lost this component
-                // to update all the other "archtype" using it
-                // Must implement a mutex for each component and entity for multithreaded use !
-            }
-
-            /**
-             * @brief Clear the entire list
-             * 
-             * TODO make a sparse set implementation that doesn't delete components on remove but instead reuse dead memory
-             */
-            void clear()
-            {
-                for(size_t i = 1; i < size; i++)
-                    delete componentList[i];
-
-                size = 1;
-            }
+            /** Clear the entire list */
+            void clear();
 
             /**
              * @brief Get the current size of the list
@@ -391,55 +266,11 @@ namespace pg
 
             // Private interface
         private:
-            /**
-             * @brief Internal helper function used to expend the dense and the component list
-             * 
-             * This helper function double both the size of the dense and the component list to store up to size_t amount of data 
-             */
-            void addDenseCapacity()
-            {
-                // Create the doubled size containers
-                uint64* tempDense = new uint64[denseCapacity * 2];
-                Component** tempComponentList = new Component*[denseCapacity * 2];
+            /** Internal helper function used to expend the dense and the component list */
+            void addDenseCapacity();
 
-                // Copy the current data inside of the newly created containers
-                memcpy(tempDense, dense, denseCapacity * sizeof(uint64));
-                memcpy(tempComponentList, componentList, denseCapacity * sizeof(Component*));
-
-                // Delete old data to not leak memory
-                delete[] dense;
-                delete[] componentList;
-
-                // Set the new containers as the list container
-                dense = tempDense;
-                componentList = tempComponentList;
-
-                // Update the capacity of the list
-                denseCapacity *= 2;
-            }
-
-            /**
-             * @brief Internal helper function used to expend the sparse list
-             * 
-             * This helper function double the size of the sparse to store up to size_t amount of data 
-             */
-            void addSparseCapacity()
-            {
-                // Create the doubled size container
-                size_t* tempSparse = new size_t[sparseCapacity * 2];
-
-                // Copy the current data inside of the newly created container
-                memcpy(tempSparse, sparse, sparseCapacity * sizeof(size_t));
-
-                // Delete old data to not leak memory
-                delete[] sparse;
-
-                // Set the new container as the list container
-                sparse = tempSparse;
-
-                // Update the capacity of the list
-                sparseCapacity *= 2;
-            }
+            /** Internal helper function used to expend the sparse list */
+            void addSparseCapacity(const uint64& entityId);
 
             // Private variables
         private:
@@ -448,6 +279,7 @@ namespace pg
 
             /** An interal array to hold the link componend id -> entity id */
             uint64* dense;
+
             /** The component list holding the data of all the component of this sparse set */
             Component** componentList;
 
@@ -456,6 +288,7 @@ namespace pg
 
             /** The capacity of the dense array */
             size_t denseCapacity = 2;
+
             /** The capacity of the sparse array */
             size_t sparseCapacity = 2;
         };

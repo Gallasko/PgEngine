@@ -40,7 +40,6 @@ namespace pg
 
             for(size_t i = 1; i < set.nbElements(); i++)
             {
-                std::cout << view[i]->data << std::endl;
                 EXPECT_EQ(view[i]->data, i);
             }
         }
