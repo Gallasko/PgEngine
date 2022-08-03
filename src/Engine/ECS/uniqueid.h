@@ -8,8 +8,8 @@ namespace pg
     {
         typedef uint_fast64_t _unique_id;
 
-        const _unique_id generateId();
+        _unique_id generateId();
 
-        const _unique_id generateSystemId();
+        _unique_id generateSystemId();
     }
 }

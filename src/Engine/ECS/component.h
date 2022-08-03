@@ -18,6 +18,8 @@ namespace pg
             Component(const tag<Comp>&) : Component(typeid(Comp).name()) { }
 
             virtual ~Component() {}
+
+            std::string name;
         };
 
         struct NamedComponent : public Component
