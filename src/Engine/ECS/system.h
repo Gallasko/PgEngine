@@ -1,101 +1,98 @@
 #pragma once
 
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 #include "component.h"
 #include "uniqueid.h"
-
+#include "componentregistry.h"
 
 namespace pg
 {
     namespace ecs
     {
-
-        struct OwnedComponent
-        {
-            template <typename Comp, typename... Args>
-            Component* create(const Args&... args);
-
-            void remove(Component* component);
-
-            std::vector<Component* > components;
-        };
-
-        template<typename Type>
-        struct Own
-        {
-            template <typename... Args>
-            Type* internalCreateComponent(const Args&... args)
-            {
-                return new Type(args...);
-            }
-        };
-
-        /**
-        struct ComponentHolder
-        {
-
-        };
-
-        template <typename Type>
-        struct Ref : public ComponentHolder
-        {
-
-        };
-        */
-
-        typedef Component*(*componentCreateFunction)(const std::string&, ...);
+        // typedef Component*(*componentCreateFunction)(const std::string&, ...);
 
         struct AbstractSystem
         {
             virtual ~AbstractSystem() {}
 
-            //template<typename... Args>
-            //Component* createComponent(const std::string& name, const Args&... args) const { return creationMap.at(name)(name, args...); }
-
             virtual void execute() = 0;
-
-        protected:
-            //std::unordered_map<std::string, componentCreateFunction> creationMap;
         };
 
-        /*
-        template <typename... Comps>
+        enum class Ownership
+        {
+            NONE = 0,
+            OWNED,
+            REFFERED
+        };
+
+        typedef std::unordered_map<std::string, Ownership> OwnershipMap;
+
+        template <typename Comp, typename... Comps>
         struct System;
 
-        void addCreationFunction(System<> *system, std::unordered_map<std::string, componentCreateFunction> *cTorLookupTable)
+        template <class Owner, class B, typename... Comps>
+        void addOwnershipMap(System<Comps...> *system, tag<Owner>, OwnershipMap *ownershipMap);
+
+        template <class A, typename... Comps>
+        void addOwnershipMap(System<Comps...> *system, tag<Own<A>>, OwnershipMap *ownershipMap)
         {
-            // Does nothing, terminator class for addCreationFunction
+            (*ownershipMap)[typeid(A).name()] = Ownership::OWNED;
         }
 
-        template <class... B, typename... Comps>
-        typename std::enable_if<sizeof...(B) == 0>::type addCreationFunction(System<Comps...> *system, std::unordered_map<std::string, componentCreateFunction> *cTorLookupTable)
+        template <class A, typename... Comps>
+        void addOwnershipMap(System<Comps...> *system, tag<Ref<A>>, OwnershipMap *ownershipMap)
         {
-            // Does nothing, terminator class for addCreationFunction
+            (*ownershipMap)[typeid(A).name()] = Ownership::REFFERED;
         }
 
-        template <class A, class... B, typename... Comps>
-        void addCreationFunction(System<Comps...> *system, std::unordered_map<std::string, componentCreateFunction> *cTorLookupTable)
+        template <class Owner, class A, class B, class... C, typename... Comps>
+        void addOwnershipMap(System<Comps...> *system, tag<Owner>, OwnershipMap *ownershipMap);
+
+        template <class A, class B, class... C,  typename... Comps>
+        void addOwnershipMap(System<Comps...> *system, tag<Own<A>>, OwnershipMap *ownershipMap)
         {
             // TODO: lookup for A name in ECS name system
-            (*cTorLookupTable)["temp"] = [system](const std::string &name, ...){ return static_cast<A*>(system)->internalCreateComponent(name); };
-            addCreationFunction<B... >(system, cTorLookupTable);
+            (*ownershipMap)[typeid(A).name()] = Ownership::OWNED;
+            addOwnershipMap<B, C...>(system, tag<B>{}, ownershipMap);
         }
-        */
 
-        template <typename... Comps>
-        struct System : public AbstractSystem, public Comps...
+        template <class A, class B, class... C,  typename... Comps>
+        void addOwnershipMap(System<Comps...> *system, tag<Ref<A>>, OwnershipMap *ownershipMap)
         {
-            template <typename Type, typename... Args>
-            Type* createComponent(const Args&... args) { return static_cast<Own<Type>*>(this)->internalCreateComponent(args...); }
-            /*
+            // TODO: lookup for A name in ECS name system
+            (*ownershipMap)[typeid(A).name()] = Ownership::REFFERED;
+            addOwnershipMap<B, C...>(system, tag<B>{}, ownershipMap);
+        }
+
+        template <typename Comp, typename... Comps>
+        struct System : public AbstractSystem, public Comp, public Comps...
+        {
             System()
             {
-                addCreationFunction<Comps...>(this, &(this->creationMap));
+                addOwnershipMap<Comp, Comps...>(this, tag<Comp>{}, &(this->ownershipMap));
             }
-            */
+
+            template <typename Type, typename... Args>
+            Type* createComponent(_entityId id, const Args&... args)
+            {
+                switch(ownershipMap[typeid(Type).name()])
+                {
+                    case Ownership::OWNED:
+                        return static_cast<Own<Type>*>(this)->internalCreateComponent(id, args...);
+                        break;
+                    case Ownership::REFFERED:
+                        return static_cast<Ref<Type>*>(this)->internalCreateComponent(id, args...);
+                        break;
+                    
+                    default:
+                        // LOG_ERROR;
+                        return nullptr;
+                }
+            }
+
+            OwnershipMap ownershipMap;
         };
     }
 }

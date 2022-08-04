@@ -21,7 +21,6 @@ namespace pg
     {
         // TODO set those typedef elsewhere and update this class accordingly
         typedef uint_fast64_t uint64;
-        typedef uint_fast32_t entityId;
 
         /**
          * @brief A container object used to store components
