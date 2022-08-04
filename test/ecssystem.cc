@@ -57,14 +57,14 @@ namespace pg
 
             ABSystem system2;
             system2.setRegistry(&registry);
-            
+
             ecs::_entityId id = 15;
             ecs::_entityId id1 = 16;
             ecs::_entityId id2 = 17;
 
             auto comp = system.createComponent<A>(id, 2, 5);
-            auto comp1 = system2.createRefferedComponent<A>(id1, 2, 5);
-            auto comp2 = system2.createOwnedComponent<B>(id2, 2, 5);
+            auto comp1 = system2.createRefferedComponent<A>(id1, 10, 5);
+            auto comp2 = system2.createOwnedComponent<B>(id2, 12, 4);
 
             std::cout << "Value of comp: " << comp->value << " " << comp1->value << " " << comp2->value << std::endl; 
         }

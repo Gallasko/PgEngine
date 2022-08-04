@@ -44,12 +44,11 @@ namespace pg
             {
             }
 
-            Ref(Own<Type> *ref) : ref(ref), needRetriving(false) {}
+            Ref(Own<Type> *ref) : ref(ref) {}
 
             void setRegistry(ComponentRegistry* registry)
             {
-                if(needRetriving)
-                    ref = registry->retrieve<Type>();
+                ref = registry->retrieve<Type>();
             }
 
             template <typename... Args>
@@ -59,7 +58,6 @@ namespace pg
             }
 
             Own<Type> *ref;
-            bool needRetriving = true;
         };
 
         template<typename Type>
