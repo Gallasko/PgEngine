@@ -13,13 +13,6 @@ namespace pg
     {
         // typedef Component*(*componentCreateFunction)(const std::string&, ...);
 
-        struct AbstractSystem
-        {
-            virtual ~AbstractSystem() {}
-
-            virtual void execute() = 0;
-        };
-
         enum class Ownership
         {
             NONE = 0,
@@ -28,6 +21,15 @@ namespace pg
         };
 
         typedef std::unordered_map<std::string, Ownership> OwnershipMap;
+
+        struct AbstractSystem
+        {
+            virtual ~AbstractSystem() {}
+
+            virtual void execute() = 0;
+
+            OwnershipMap ownershipMap;
+        };
 
         template <typename Comp, typename... Comps>
         struct System;
@@ -80,10 +82,10 @@ namespace pg
                 switch(ownershipMap[typeid(Type).name()])
                 {
                     case Ownership::OWNED:
-                        return static_cast<Own<Type>*>(this)->internalCreateComponent(id, args...);
+                        return createOwnedComponent(id, args...);
                         break;
                     case Ownership::REFFERED:
-                        return static_cast<Ref<Type>*>(this)->internalCreateComponent(id, args...);
+                        return createRefferedComponent(id, args...);
                         break;
                     
                     default:
@@ -92,7 +94,18 @@ namespace pg
                 }
             }
 
-            OwnershipMap ownershipMap;
+            template <typename Type, typename... Args>
+            Type* createOwnedComponent(_entityId id, const Args&... args)
+            {
+                return static_cast<Own<Type>*>(this)->internalCreateComponent(id, args...);
+            }
+
+            template <typename Type, typename... Args>
+            Type* createRefferedComponent(_entityId id, const Args&... args)
+            {
+                return static_cast<Ref<Type>*>(this)->internalCreateComponent(id, args...);
+            }
+
         };
     }
 }
