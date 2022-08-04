@@ -17,34 +17,61 @@ namespace pg
             struct Storage {};
 
         public:
-            static const std::unique_ptr<ComponentRegistry>& instance() { static std::unique_ptr<ComponentRegistry> ins(new ComponentRegistry()); return ins; }
-
             template <typename Type>
-            static void store(Own<Type>* owner)
+            void store(Own<Type>* owner)
             {
                 struct Delegate : public Storage, public Own<Type> { };
 
-                ComponentRegistry::instance()->storageMap[typeid(Type).name()] = static_cast<Storage*>(static_cast<Delegate*>(owner));
+                storageMap[typeid(Type).name()] = static_cast<Storage*>(static_cast<Delegate*>(owner));
             }
 
             template <typename Type>
-            static Own<Type>* retrieve()
+            Own<Type>* retrieve() const
             {
                 struct Delegate : public Storage, public Own<Type> { };
 
-                return static_cast<Own<Type>*>(static_cast<Delegate*>(ComponentRegistry::instance()->storageMap[typeid(Type).name()]));
+                return static_cast<Own<Type>*>(static_cast<Delegate*>(storageMap.at(typeid(Type).name())));
             }
 
         private:
             std::unordered_map<std::string, Storage*> storageMap;
         };
 
-        template<typename Type>
-        struct Own
+        template <typename Type>
+        struct Ref 
         {
-            Own()
+            Ref()
             {
-                ComponentRegistry::store<Type>(this);
+            }
+
+            Ref(Own<Type> *ref) : ref(ref), needRetriving(false) {}
+
+            void setRegistry(ComponentRegistry* registry)
+            {
+                if(needRetriving)
+                    ref = registry->retrieve<Type>();
+            }
+
+            template <typename... Args>
+            Type* internalCreateComponent(_entityId id, const Args&... args)
+            {
+                return ref->internalCreateComponent(id, args...);
+            }
+
+            Own<Type> *ref;
+            bool needRetriving = true;
+        };
+
+        template<typename Type>
+        struct Own : public Ref<Type>
+        {
+            Own() : Ref<Type>(this)
+            {
+            }
+
+            void setRegistry(ComponentRegistry* registry)
+            {
+                registry->store<Type>(this);
             }
 
             template <typename... Args>
@@ -55,23 +82,6 @@ namespace pg
             }
 
             SparseSet components;
-        };
-
-        template <typename Type>
-        struct Ref 
-        {
-            Ref()
-            {
-                ref = ComponentRegistry::retrieve<Type>();
-            }
-
-            template <typename... Args>
-            Type* internalCreateComponent(_entityId id, const Args&... args)
-            {
-                return ref->internalCreateComponent(id, args...);
-            }
-
-            Own<Type> *ref;
         };
     }
 }

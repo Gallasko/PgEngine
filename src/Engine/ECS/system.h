@@ -35,115 +35,55 @@ namespace pg
 
         template <typename... Comps>
         struct System;
-/*
-        template <class Owner, class B, typename... Comps>
-        void addOwnershipMap(System<Comps...> *system, tag<Owner>, OwnershipMap *ownershipMap);
-
-        template <class A, typename... Comps>
-        void addOwnershipMap(System<Comps...> *system, tag<Own<A>>, OwnershipMap *ownershipMap)
-        {
-            (*ownershipMap)[typeid(A).name()] = Ownership::OWNED;
-        }
-
-        template <class A, typename... Comps>
-        void addOwnershipMap(System<Comps...> *system, tag<Ref<A>>, OwnershipMap *ownershipMap)
-        {
-            (*ownershipMap)[typeid(A).name()] = Ownership::REFFERED;
-        }
-
-        template <class Owner, class A, class B, class... C, typename... Comps>
-        void addOwnershipMap(System<Comps...> *system, tag<Owner>, OwnershipMap *ownershipMap);
-
-        template <class A, class B, class... C,  typename... Comps>
-        void addOwnershipMap(System<Comps...> *system, tag<Own<A>>, OwnershipMap *ownershipMap)
-        {
-            // TODO: lookup for A name in ECS name system
-            (*ownershipMap)[typeid(A).name()] = Ownership::OWNED;
-            addOwnershipMap<B, C...>(system, tag<B>{}, ownershipMap);
-        }
-
-        template <class A, class B, class... C,  typename... Comps>
-        void addOwnershipMap(System<Comps...> *system, tag<Ref<A>>, OwnershipMap *ownershipMap)
-        {
-            // TODO: lookup for A name in ECS name system
-            (*ownershipMap)[typeid(A).name()] = Ownership::REFFERED;
-            addOwnershipMap<B, C...>(system, tag<B>{}, ownershipMap);
-        }
-*/
-
-        template <typename Comp>
-        using Owned = Own<Comp>;
-
-        template <typename Comp>
-        using Reffered = Ref<Comp>;
 
         template <typename Sys>
-        void test(Sys *system, OwnershipMap *ownershipMap)
+        void setOwnershipMap(Sys*, ComponentRegistry*, OwnershipMap*)
         {
             std::cout << "Nothing to see here." << std::endl;
         }
 
-        template <template<class> class Owner, typename Comp, typename Sys>
-        void test_test(Sys *system, OwnershipMap *ownershipMap)
+        template <typename Comp, typename... Comps, typename Sys>
+        void setOwnershipMap(Sys *system, ComponentRegistry *registry, OwnershipMap *ownershipMap, const tag<Own<Comp>>&, const Comps&... comps)
         {
-            std::cout << typeid(Owner<Comp>).name() << std::endl;
-            std::cout << "End" << std::endl;
+            static_cast<Own<Comp>*>(system)->setRegistry(registry);
+            setOwnershipMap(system, registry, ownershipMap, comps...);
         }
 
         template <typename Comp, typename... Comps, typename Sys>
-        void test(Sys *system, OwnershipMap *ownershipMap)
+        void setOwnershipMap(Sys *system, ComponentRegistry *registry, OwnershipMap *ownershipMap, const tag<Ref<Comp>>&, const Comps&... comps)
         {
-            std::cout << typeid(Owned<Comp>).name() << std::endl;
-            test<Comps...>(system, ownershipMap);
+            static_cast<Ref<Comp>*>(system)->setRegistry(registry);
+            setOwnershipMap(system, registry, ownershipMap, comps...);
         }
-
-        /*
-        template <typename Comp, typename... Comps, typename Sys>
-        void test(Sys *system, OwnershipMap *ownershipMap)
-        {
-            std::cout << typeid(Referred<Comp>).name() << std::endl;
-            test<Comps...>(system, ownershipMap);
-        }
-        */
 
         template <typename... Comps>
         struct System : public AbstractSystem, public Comps...
         {
-            System()
+            System() : AbstractSystem(), Comps()...
             {
-                test<Comps...>(this, &(this->ownershipMap));
             }
 
-/*
+            void setRegistry(ComponentRegistry *registry)
+            {
+                setOwnershipMap(this, registry, &(this->ownershipMap), tag<Comps>{}...);
+            }
+
             template <typename Type, typename... Args>
             Type* createComponent(_entityId id, const Args&... args)
             {
-                switch(ownershipMap[typeid(Type).name()])
-                {
-                    case Ownership::OWNED:
-                        return createOwnedComponent(id, args...);
-                        break;
-                    case Ownership::REFFERED:
-                        return createRefferedComponent(id, args...);
-                        break;
-                    
-                    default:
-                        // LOG_ERROR;
-                        return nullptr;
-                }
+                return this->Ref<Type>::internalCreateComponent(id, args...);
             }
-*/
 
             template <typename Type, typename... Args>
             Type* createOwnedComponent(_entityId id, const Args&... args)
             {
-                return static_cast<Own<Type>*>(this)->internalCreateComponent(id, args...);
+                return this->Own<Type>::internalCreateComponent(id, args...);
             }
 
             template <typename Type, typename... Args>
             Type* createRefferedComponent(_entityId id, const Args&... args)
             {
-                return static_cast<Ref<Type>*>(this)->internalCreateComponent(id, args...);
+                return this->Ref<Type>::internalCreateComponent(id, args...);
             }
 
         };

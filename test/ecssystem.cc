@@ -2,7 +2,8 @@
 
 #include "ECS/component.h"
 #include "ECS/system.h"
-#include "uniqueid.h"
+#include "ECS/uniqueid.h"
+#include "Ecs/componentregistry.h"
 
 #include <iostream>
 #include <string>
@@ -49,14 +50,19 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(system_test, initialization)
         {
-            ASystem system;
-            ABSystem system2;
+            ecs::ComponentRegistry registry;
 
+            ASystem system;
+            system.setRegistry(&registry);
+
+            ABSystem system2;
+            system2.setRegistry(&registry);
+            
             ecs::_entityId id = 15;
             ecs::_entityId id1 = 16;
             ecs::_entityId id2 = 17;
 
-            auto comp = system.createOwnedComponent<A>(id, 2, 5);
+            auto comp = system.createComponent<A>(id, 2, 5);
             auto comp1 = system2.createRefferedComponent<A>(id1, 2, 5);
             auto comp2 = system2.createOwnedComponent<B>(id2, 2, 5);
 
