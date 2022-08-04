@@ -7,6 +7,8 @@
 #include "uniqueid.h"
 #include "componentregistry.h"
 
+#include <iostream>
+
 namespace pg
 {
     namespace ecs
@@ -31,9 +33,9 @@ namespace pg
             OwnershipMap ownershipMap;
         };
 
-        template <typename Comp, typename... Comps>
+        template <typename... Comps>
         struct System;
-
+/*
         template <class Owner, class B, typename... Comps>
         void addOwnershipMap(System<Comps...> *system, tag<Owner>, OwnershipMap *ownershipMap);
 
@@ -67,15 +69,52 @@ namespace pg
             (*ownershipMap)[typeid(A).name()] = Ownership::REFFERED;
             addOwnershipMap<B, C...>(system, tag<B>{}, ownershipMap);
         }
+*/
 
-        template <typename Comp, typename... Comps>
-        struct System : public AbstractSystem, public Comp, public Comps...
+        template <typename Comp>
+        using Owned = Own<Comp>;
+
+        template <typename Comp>
+        using Reffered = Ref<Comp>;
+
+        template <typename Sys>
+        void test(Sys *system, OwnershipMap *ownershipMap)
+        {
+            std::cout << "Nothing to see here." << std::endl;
+        }
+
+        template <template<class> class Owner, typename Comp, typename Sys>
+        void test_test(Sys *system, OwnershipMap *ownershipMap)
+        {
+            std::cout << typeid(Owner<Comp>).name() << std::endl;
+            std::cout << "End" << std::endl;
+        }
+
+        template <typename Comp, typename... Comps, typename Sys>
+        void test(Sys *system, OwnershipMap *ownershipMap)
+        {
+            std::cout << typeid(Owned<Comp>).name() << std::endl;
+            test<Comps...>(system, ownershipMap);
+        }
+
+        /*
+        template <typename Comp, typename... Comps, typename Sys>
+        void test(Sys *system, OwnershipMap *ownershipMap)
+        {
+            std::cout << typeid(Referred<Comp>).name() << std::endl;
+            test<Comps...>(system, ownershipMap);
+        }
+        */
+
+        template <typename... Comps>
+        struct System : public AbstractSystem, public Comps...
         {
             System()
             {
-                addOwnershipMap<Comp, Comps...>(this, tag<Comp>{}, &(this->ownershipMap));
+                test<Comps...>(this, &(this->ownershipMap));
             }
 
+/*
             template <typename Type, typename... Args>
             Type* createComponent(_entityId id, const Args&... args)
             {
@@ -93,6 +132,7 @@ namespace pg
                         return nullptr;
                 }
             }
+*/
 
             template <typename Type, typename... Args>
             Type* createOwnedComponent(_entityId id, const Args&... args)
