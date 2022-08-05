@@ -54,7 +54,7 @@ namespace pg
 
         TEST(ecs_test, test_lots_of_entities)
         {
-            const unsigned int n = 1000;
+            const unsigned int n = 10000000;
             EntitySystem ecs;
 
             std::vector<EntitySystem::Entity*> entityList;
@@ -67,11 +67,11 @@ namespace pg
 
                 ecs.attach<B>(entity, "Entity " + std::to_string(i), i , i * 5.5f );
 
-                if(i % 2 == 0)
-                    ecs.attach<C>(entity, i, -i, 0 );
-                
-                if(i % 3 == 0)
-                    ecs.attach<D>(entity, "Guess i got pattern " + std::to_string(i % 2) );
+                //if(i % 2 == 0)
+                //    ecs.attach<C>(entity, i, -i, 0 );
+                //
+                //if(i % 3 == 0)
+                //    ecs.attach<D>(entity, "Guess i got pattern " + std::to_string(i % 2) );
 
                 entityList[i] = entity;
             }

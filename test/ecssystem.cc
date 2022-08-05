@@ -3,7 +3,8 @@
 #include "ECS/component.h"
 #include "ECS/system.h"
 #include "ECS/uniqueid.h"
-#include "Ecs/componentregistry.h"
+#include "ECS/componentregistry.h"
+#include "ECS/entitysystem2.h"
 
 #include <iostream>
 #include <string>
@@ -50,21 +51,24 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(system_test, initialization)
         {
-            ecs::ComponentRegistry registry;
+            ecs::EntitySystem ecs;
 
-            ASystem system;
-            system.setRegistry(&registry);
-
-            ABSystem system2;
-            system2.setRegistry(&registry);
+            auto system = ecs.createSystem<ASystem>();
+            auto system2 = ecs.createSystem<ABSystem>();
 
             ecs::_entityId id = 15;
             ecs::_entityId id1 = 16;
             ecs::_entityId id2 = 17;
 
-            auto comp = system.createComponent<A>(id, 2, 5);
-            auto comp1 = system2.createRefferedComponent<A>(id1, 10, 5);
-            auto comp2 = system2.createOwnedComponent<B>(id2, 12, 4);
+            auto comp = system->createComponent<A>(id, 2, 5);
+            auto comp1 = system2->createRefferedComponent<A>(id1, 10, 5);
+            auto comp2 = system2->createOwnedComponent<B>(id2, 12, 4);
+
+            for(size_t i = 20; i < 10000000; i++)
+            {
+                system->createComponent<A>(i, 15, i);
+                system2->createComponent<B>(i, i, 15);
+            }
 
             std::cout << "Value of comp: " << comp->value << " " << comp1->value << " " << comp2->value << std::endl; 
         }

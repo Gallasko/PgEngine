@@ -1,6 +1,5 @@
 #pragma once
 
-/*
 #include "componentregistry.h"
 #include "system.h"
 
@@ -11,18 +10,21 @@ namespace pg
         class EntitySystem
         {
         public:
-
-            template<class Sys, template<typename> class... Owner, typename... Args, typename Comp>
-            void createSystem(const Args&... args)
+            template<class Sys, typename... Args>
+            Sys* createSystem(const Args&... args)
             {
                 auto system = new Sys(args...);
+                system->setRegistry(&registry);
 
-                system->registerComponents<Owner<Comp>...>(&registry);
+                systems.push_back(system);
+
+                return system;
             }
 
         private:
             ComponentRegistry registry;
+
+            std::vector<AbstractSystem*> systems;
         };
     }
 }
-*/
