@@ -54,7 +54,7 @@ namespace pg
 
         TEST(ecs_test, test_lots_of_entities)
         {
-            const unsigned int n = 10000000;
+            const unsigned int n = 1000;
             EntitySystem ecs;
 
             std::vector<EntitySystem::Entity*> entityList;

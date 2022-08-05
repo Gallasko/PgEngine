@@ -66,8 +66,8 @@ namespace pg
 
             for(size_t i = 20; i < 10000000; i++)
             {
-                system->createComponent<A>(i, 15, i);
-                system2->createComponent<B>(i, i, 15);
+                auto entity = ecs.createEntity();
+                ecs.attach<A>(entity, i, 10);
             }
 
             std::cout << "Value of comp: " << comp->value << " " << comp1->value << " " << comp2->value << std::endl; 

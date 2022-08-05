@@ -1,59 +1,43 @@
 #pragma once
 
 #include <string>
-#include <vector>
+#include <unordered_map>
 
 #include "component.h"
-#include "uniqueid.h"
 #include "componentregistry.h"
-
-#include <iostream>
 
 namespace pg
 {
     namespace ecs
     {
-        // typedef Component*(*componentCreateFunction)(const std::string&, ...);
-
-        enum class Ownership
-        {
-            NONE = 0,
-            OWNED,
-            REFFERED
-        };
-
-        typedef std::unordered_map<std::string, Ownership> OwnershipMap;
-
+        /**
+         * @brief Abstract representation of a system
+         */
         struct AbstractSystem
         {
             virtual ~AbstractSystem() {}
 
             virtual void execute() = 0;
-
-            OwnershipMap ownershipMap;
         };
 
         template <typename... Comps>
         struct System;
 
         template <typename Sys>
-        void setOwnershipMap(Sys*, ComponentRegistry*, OwnershipMap*)
-        {
-            std::cout << "Nothing to see here." << std::endl;
-        }
+        void setOwnershipMap(Sys*, ComponentRegistry*) {}
 
         template <typename Comp, typename... Comps, typename Sys>
-        void setOwnershipMap(Sys *system, ComponentRegistry *registry, OwnershipMap *ownershipMap, const tag<Own<Comp>>&, const Comps&... comps)
+        void setOwnershipMap(Sys *system, ComponentRegistry *registry, const tag<Own<Comp>>&, const Comps&... comps)
         {
             static_cast<Own<Comp>*>(system)->setRegistry(registry);
-            setOwnershipMap(system, registry, ownershipMap, comps...);
+            setOwnershipMap(system, registry, comps...);
         }
 
         template <typename Comp, typename... Comps, typename Sys>
-        void setOwnershipMap(Sys *system, ComponentRegistry *registry, OwnershipMap *ownershipMap, const tag<Ref<Comp>>&, const Comps&... comps)
+        void setOwnershipMap(Sys *system, ComponentRegistry *registry, const tag<Ref<Comp>>&, const Comps&... comps)
         {
             static_cast<Ref<Comp>*>(system)->setRegistry(registry);
-            setOwnershipMap(system, registry, ownershipMap, comps...);
+            setOwnershipMap(system, registry, comps...);
         }
 
         template <typename... Comps>
@@ -65,13 +49,13 @@ namespace pg
 
             void setRegistry(ComponentRegistry *registry)
             {
-                setOwnershipMap(this, registry, &(this->ownershipMap), tag<Comps>{}...);
+                setOwnershipMap(this, registry, tag<Comps>{}...);
             }
 
             template <typename Type, typename... Args>
             Type* createComponent(_entityId id, const Args&... args)
             {
-                return this->Ref<Type>::internalCreateComponent(id, args...);
+                return this->createRefferedComponent<Type>(id, args...);
             }
 
             template <typename Type, typename... Args>
@@ -85,7 +69,6 @@ namespace pg
             {
                 return this->Ref<Type>::internalCreateComponent(id, args...);
             }
-
         };
     }
 }
