@@ -10,21 +10,35 @@ namespace pg
     {
         template<class T>struct tag{using type=T;};
 
-        struct Component
+        struct AbstractComponent
         {
-            Component(const std::string& name);
+            // Todo remove
+            std::string name;
 
-            template<typename Comp>
-            Component(const tag<Comp>&) : Component(typeid(Comp).name()) { }
+            virtual const _unique_id& getComponentId() const = 0;
+        };
+
+        template<typename Comp>
+        struct Component : public AbstractComponent
+        {
+            Component(const std::string& name) : AbstractComponent() { this->name = name; }
+
+            Component() : Component(typeid(Comp).name()) { }
 
             virtual ~Component() {}
 
-            std::string name;
+            virtual const _unique_id& getComponentId() const override { return Component::componentId; }
+
+            static _unique_id componentId;   
         };
 
-        struct NamedComponent : public Component
+        template<typename Comp>
+        _unique_id Component<Comp>::componentId = 0;
+
+        template<typename Comp>
+        struct NamedComponent : public Component<Comp>
         {
-            NamedComponent(const std::string& name) : Component(name) {}
+            NamedComponent(const std::string& name) : Component<Comp>(name) {}
 
             virtual ~NamedComponent() {}
         };

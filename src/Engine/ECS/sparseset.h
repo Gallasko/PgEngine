@@ -118,14 +118,14 @@ namespace pg
                      * 
                      * This object can only be created from a SparseSet List inside of a SparseSet Object
                      */
-                    Iterator(const size_t& pos, Component **componentList) : index(pos), componentList(componentList) {}
+                    Iterator(const size_t& pos, AbstractComponent **componentList) : index(pos), componentList(componentList) {}
 
                     // Private variables
                 private:
                     /** Index of the current position in the componentList */
                     size_t index = 1;
                     /** An array of component pointers */
-                    Component **componentList;
+                    AbstractComponent **componentList;
                 };
 
                 // Public interface
@@ -175,7 +175,7 @@ namespace pg
                  * 
                  * This object can only be created from a SparseSet Object
                  */
-                SparseSetList(const size_t& size, Component **componentList) : head(1, componentList), tail(size, componentList), componentList(componentList) {}
+                SparseSetList(const size_t& size, AbstractComponent **componentList) : head(1, componentList), tail(size, componentList), componentList(componentList) {}
 
                 // Private variables
             private:
@@ -185,7 +185,7 @@ namespace pg
                 const Iterator tail;
 
                 /** The component list to iterate over */
-                Component **componentList;      
+                AbstractComponent **componentList;      
             };
             
             // Publiv constructors
@@ -239,7 +239,7 @@ namespace pg
             }
 
             /** Add an entity and it's component inside of the list */
-            Component* add(const uint64& entityId, Component* component);
+            AbstractComponent* add(const uint64& entityId, AbstractComponent* component);
 
             /** Remove a component by entity id */
             void remove(const uint64& id);
@@ -289,7 +289,7 @@ namespace pg
             uint64* dense;
 
             /** The component list holding the data of all the component of this sparse set */
-            Component** componentList;
+            AbstractComponent** componentList;
 
             /** An interal array to hold the link entity id -> component id */
             size_t* sparse;

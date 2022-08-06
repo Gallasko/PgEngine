@@ -10,7 +10,5 @@ namespace pg
         typedef uint_fast64_t _entityId;
 
         _unique_id generateId();
-
-        _unique_id generateSystemId();
     }
 }

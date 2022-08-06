@@ -22,7 +22,7 @@ namespace pg
             LOG_THIS_MEMBER(DOM);
 
             dense = new uint64[denseCapacity];
-            componentList = new Component*[denseCapacity];
+            componentList = new AbstractComponent*[denseCapacity];
 
             sparse = new size_t[sparseCapacity];
         }
@@ -58,7 +58,7 @@ namespace pg
          * 
          * @todo Tell the management system that this entity (dense[index]) as created this component to update all the other "archtype" using it
          */
-        Component* SparseSet::add(const uint64& entityId, Component* component)
+        AbstractComponent* SparseSet::add(const uint64& entityId, AbstractComponent* component)
         {
             LOG_THIS_MEMBER(DOM);
 
@@ -183,11 +183,11 @@ namespace pg
 
             // Create the doubled size containers
             uint64* tempDense = new uint64[denseCapacity * 2];
-            Component** tempComponentList = new Component*[denseCapacity * 2];
+            AbstractComponent** tempComponentList = new AbstractComponent*[denseCapacity * 2];
 
             // Copy the current data inside of the newly created containers
             memcpy(tempDense, dense, denseCapacity * sizeof(uint64));
-            memcpy(tempComponentList, componentList, denseCapacity * sizeof(Component*));
+            memcpy(tempComponentList, componentList, denseCapacity * sizeof(AbstractComponent*));
 
             // Delete old data to not leak memory
             delete[] dense;

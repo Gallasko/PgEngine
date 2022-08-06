@@ -15,9 +15,9 @@ namespace pg
     {
         namespace
         {
-            struct A : public ecs::NamedComponent
+            struct A : public ecs::NamedComponent<A>
             {
-                A(int arg1, int arg2) : ecs::NamedComponent("A")
+                A(int arg1, int arg2) : ecs::NamedComponent<A>("A")
                 {
                     value = arg1 + arg2;
                 }
@@ -25,9 +25,9 @@ namespace pg
                 int value;
             };
 
-            struct B : public ecs::NamedComponent
+            struct B : public ecs::NamedComponent<B>
             {
-                B(int arg1, int arg2) : ecs::NamedComponent("B")
+                B(int arg1, int arg2) : ecs::NamedComponent<B>("B")
                 {
                     value = arg1 - arg2;
                 }
@@ -45,9 +45,9 @@ namespace pg
                 virtual void execute() { std::cout << "Execute B System" << std::endl; }
             };
 
-            struct C : public ecs::NamedComponent
+            struct C : public ecs::NamedComponent<C>
             {
-                C(const std::string& text) : ecs::NamedComponent("C"), text(text) {}
+                C(const std::string& text) : ecs::NamedComponent<C>("C"), text(text) {}
 
                 std::string text;
             };
@@ -78,9 +78,16 @@ namespace pg
         {
             ecs::EntitySystem ecs;
 
+            std::cout << A::componentId << " " << B::componentId << " " << C::componentId << std::endl;
+
             auto system = ecs.createSystem<ASystem>();
+
+            std::cout << A::componentId << " " << B::componentId << " " << C::componentId << std::endl;
+
             auto system2 = ecs.createSystem<ABSystem>();
-            auto system3 = ecs.createSystem<CSystem>(100000);
+            auto system3 = ecs.createSystem<CSystem>(1000000);
+
+            std::cout << A::componentId << " " << B::componentId << " " << C::componentId << std::endl;
 
             ecs::_entityId id = 15;
             ecs::_entityId id1 = 16;
@@ -90,6 +97,8 @@ namespace pg
             auto comp1 = system2->createRefferedComponent<A>(id1, 10, 5);
             auto comp2 = system2->createOwnedComponent<B>(id2, 12, 4);
 
+            std::cout << A::componentId << " " << B::componentId << " " << C::componentId << std::endl;
+
             auto entity = ecs.createEntity();
 
             for(size_t i = 20; i < 1000000; i++)
@@ -97,8 +106,9 @@ namespace pg
                 system->createOwnedComponent<A>(entity.id, i, 15);
             }
 
-            for(size_t i = 20; i < 1000001; i++)
+            for(size_t i = 20; i < 10000001; i++)
             {
+                //ecs.attach<C>(entity.id, "Value of: " + std::to_string(i));
                 system3->createOwnedComponent<C>(entity.id, "Value of: " + std::to_string(i));
             }
 

@@ -22,7 +22,7 @@ namespace pg
             {
                 struct Delegate : public Storage, public Own<Type> { };
 
-                storageMap[typeid(Type).name()] = static_cast<Storage*>(static_cast<Delegate*>(owner));
+                storageMap[Type::componentId] = static_cast<Storage*>(static_cast<Delegate*>(owner));
             }
 
             template <typename Type>
@@ -30,17 +30,18 @@ namespace pg
             {
                 struct Delegate : public Storage, public Own<Type> { };
 
-                return static_cast<Own<Type>*>(static_cast<Delegate*>(storageMap.at(typeid(Type).name())));
+                return static_cast<Own<Type>*>(static_cast<Delegate*>(storageMap.at(Type::componentId)));
             }
 
         private:
-            std::unordered_map<std::string, Storage*> storageMap;
+            std::unordered_map<_unique_id, Storage*> storageMap;
         };
 
         template <typename Type>
         struct Ref 
         {
-            Ref()
+            // Take an unique id only to have the same signature as Own object
+            Ref(_unique_id)
             {
             }
 
@@ -62,14 +63,17 @@ namespace pg
                 return ref->view();
             }
 
+            const _unique_id& getComponentId() const { return Type::componentId; }
+
             Own<Type> *ref;
         };
 
         template<typename Type>
         struct Own : public Ref<Type>
         {
-            Own() : Ref<Type>(this)
+            Own(_unique_id id) : Ref<Type>(this)
             {
+                Type::componentId = id;
             }
 
             void setRegistry(ComponentRegistry* registry)
@@ -89,6 +93,8 @@ namespace pg
             {
                 return components.view<Type>();
             }
+
+            const _unique_id& getComponentId() const { return Type::componentId; }
 
             SparseSet components;
         };

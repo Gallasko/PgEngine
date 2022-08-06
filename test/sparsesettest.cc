@@ -8,9 +8,9 @@ namespace pg
 {
     namespace test
     {
-        struct A : public ecs::Component
+        struct A : public ecs::Component<A>
         {
-            A(int data) : ecs::Component(ecs::tag<A>{}), data(data) {}
+            A(int data) : data(data) {}
 
             int data = 0;
         };

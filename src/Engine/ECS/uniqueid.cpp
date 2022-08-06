@@ -25,14 +25,5 @@ namespace pg
             std::lock_guard<std::mutex> lock(mutex);
             return uniqueId++;
         }
-
-        _unique_id generateSystemId()
-        {
-            static _unique_id uniqueId = 3;
-            static std::mutex mutex;
-
-            std::lock_guard<std::mutex> lock(mutex);
-            return uniqueId++;
-        }
     }
 }

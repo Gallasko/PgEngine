@@ -45,8 +45,9 @@ namespace pg
         template <typename... Comps>
         struct System : public AbstractSystem, public Comps...
         {
-            System() : AbstractSystem(), Comps()...
+            System() : AbstractSystem(), Comps(generateId())...
             {
+                System<Comps...>::systemid = generateId();
             }
 
             void setRegistry(ComponentRegistry *registry)
@@ -78,7 +79,10 @@ namespace pg
                 return this->Ref<Type>::view();
             }
 
-        // Todo have access to a view of the component
+            static _unique_id systemid;
         };
+
+        template <typename... Comps>
+        _unique_id System<Comps...>::systemid = 0;
     }
 }
