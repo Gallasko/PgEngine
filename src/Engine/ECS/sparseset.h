@@ -156,6 +156,15 @@ namespace pg
                  */
                 constexpr inline Iterator end() const { return tail; }
 
+                // Public constructor
+            public:
+                /**
+                 * @brief Construct a copy of a Sparse Set List object
+                 * 
+                 * @param other The Sparse Set List to copy
+                 */
+                SparseSetList(const SparseSetList& other) : head(other.head), tail(other.head), componentList(other.componentList) {}
+
                 // Protected constructor
             protected:
                 /**
@@ -258,7 +267,7 @@ namespace pg
              * @return SparseSetList<Comp> A view of the component list
              */
             template<typename Comp>
-            SparseSetList<Comp> view()
+            SparseSetList<Comp> view() const
             {
                 return SparseSetList<Comp>(nbElements(), componentList);
             }

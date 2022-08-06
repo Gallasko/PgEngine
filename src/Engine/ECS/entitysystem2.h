@@ -37,7 +37,7 @@ namespace pg
             }
 
             template<typename Type, typename... Args>
-            Type* attach(const Entity& entity, const Args&... args)
+            Type* attach(const Entity& entity, const Args&... args) const
             {
                 return registry.retrieve<Type>()->internalCreateComponent(entity.id, args...);
             }

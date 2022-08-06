@@ -18,6 +18,8 @@ namespace pg
             virtual ~AbstractSystem() {}
 
             virtual void execute() = 0;
+            
+            // Todo make function onAdd and onDelete of a component that default to nothing if not used
         };
 
         template <typename... Comps>
@@ -69,6 +71,14 @@ namespace pg
             {
                 return this->Ref<Type>::internalCreateComponent(id, args...);
             }
+
+            template <typename Type>
+            SparseSet::SparseSetList<Type> view() const
+            {
+                return this->Ref<Type>::view();
+            }
+
+        // Todo have access to a view of the component
         };
     }
 }

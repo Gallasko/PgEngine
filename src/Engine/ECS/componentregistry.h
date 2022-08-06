@@ -57,6 +57,11 @@ namespace pg
                 return ref->internalCreateComponent(id, args...);
             }
 
+            SparseSet::SparseSetList<Type> view() const
+            {
+                return ref->view();
+            }
+
             Own<Type> *ref;
         };
 
@@ -76,7 +81,13 @@ namespace pg
             Type* internalCreateComponent(_entityId id, const Args&... args)
             {
                 auto comp = new Type(args...);
-                return static_cast<Type*>(components.add(id, comp));
+                components.add(id, comp);
+                return comp;
+            }
+
+            SparseSet::SparseSetList<Type> view() const
+            {
+                return components.view<Type>();
             }
 
             SparseSet components;
