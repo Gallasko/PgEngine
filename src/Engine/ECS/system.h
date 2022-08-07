@@ -3,8 +3,11 @@
 #include <string>
 #include <unordered_map>
 
+#include "entity.h"
 #include "component.h"
 #include "componentregistry.h"
+
+#include "logger.h"
 
 namespace pg
 {
@@ -26,20 +29,20 @@ namespace pg
         struct System;
 
         template <typename Sys>
-        void setOwnershipMap(Sys*, ComponentRegistry*) {}
+        void registerComponents(Sys*, ComponentRegistry*) {}
 
         template <typename Comp, typename... Comps, typename Sys>
-        void setOwnershipMap(Sys *system, ComponentRegistry *registry, const tag<Own<Comp>>&, const Comps&... comps)
+        void registerComponents(Sys *system, ComponentRegistry *registry, const tag<Own<Comp>>&, const Comps&... comps)
         {
             static_cast<Own<Comp>*>(system)->setRegistry(registry);
-            setOwnershipMap(system, registry, comps...);
+            registerComponents(system, registry, comps...);
         }
 
         template <typename Comp, typename... Comps, typename Sys>
-        void setOwnershipMap(Sys *system, ComponentRegistry *registry, const tag<Ref<Comp>>&, const Comps&... comps)
+        void registerComponents(Sys *system, ComponentRegistry *registry, const tag<Ref<Comp>>&, const Comps&... comps)
         {
             static_cast<Ref<Comp>*>(system)->setRegistry(registry);
-            setOwnershipMap(system, registry, comps...);
+            registerComponents(system, registry, comps...);
         }
 
         template <typename... Comps>
@@ -47,35 +50,51 @@ namespace pg
         {
             System() : AbstractSystem(), Comps(generateId())...
             {
+                LOG_THIS_MEMBER("System");
                 System<Comps...>::systemid = generateId();
+            }
+
+            ~System()
+            {
+                LOG_THIS_MEMBER("System");
             }
 
             void setRegistry(ComponentRegistry *registry)
             {
-                setOwnershipMap(this, registry, tag<Comps>{}...);
+                LOG_THIS_MEMBER("System");
+
+                registerComponents(this, registry, tag<Comps>{}...);
             }
 
             template <typename Type, typename... Args>
-            Type* createComponent(_entityId id, const Args&... args)
+            Type* createComponent(const Entity& entity, const Args&... args)
             {
-                return this->createRefferedComponent<Type>(id, args...);
+                LOG_THIS_MEMBER("System");
+
+                return this->createRefferedComponent<Type>(entity, args...);
             }
 
             template <typename Type, typename... Args>
-            Type* createOwnedComponent(_entityId id, const Args&... args)
+            Type* createOwnedComponent(const Entity& entity, const Args&... args)
             {
-                return this->Own<Type>::internalCreateComponent(id, args...);
+                LOG_THIS_MEMBER("System");
+
+                return this->Own<Type>::internalCreateComponent(entity, args...);
             }
 
             template <typename Type, typename... Args>
-            Type* createRefferedComponent(_entityId id, const Args&... args)
+            Type* createRefferedComponent(const Entity& entity, const Args&... args)
             {
-                return this->Ref<Type>::internalCreateComponent(id, args...);
+                LOG_THIS_MEMBER("System");
+
+                return this->Ref<Type>::internalCreateComponent(entity, args...);
             }
 
             template <typename Type>
             SparseSet::SparseSetList<Type> view() const
             {
+                LOG_THIS_MEMBER("System");
+
                 return this->Ref<Type>::view();
             }
 

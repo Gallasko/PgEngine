@@ -13,15 +13,13 @@
 #include <cstdint>
 #include <vector>
 
+#include "entity.h"
 #include "component.h"
 
 namespace pg
 {
     namespace ecs
     {
-        // TODO set those typedef elsewhere and update this class accordingly
-        typedef uint_fast64_t uint64;
-
         /**
          * @brief A container object used to store components
          * 
@@ -201,22 +199,22 @@ namespace pg
             /**
              * @brief A check function to know if an entity as a component in this sparse set
              * 
-             * @param id The id of the entity to check if it has a component
+             * @param entity The entity to check if it has a component
              * @return true if the entity id has a component in the list
              * @return false otherwise
              * 
              * This function uses one of the main properties of the sparse set, the reciprocity of the component id in the dense and sparse array
              * This operation is O(1) as it only need 2 indirections and 3 checks to know if an id is in the list and this is true whatever the size of the array
              */
-            bool has(const uint64& id) const { return id < sparseCapacity && sparse[id] < denseCapacity && dense[sparse[id]] == id; };
+            bool has(const Entity& entity) const { const auto id = entity.id; return id < sparseCapacity && sparse[id] < denseCapacity && dense[sparse[id]] == id; };
 
             /**
              * @brief Get the id of the entity at a given index of the component list
              * 
              * @param index The index of the component
-             * @return uint64 The id of the entity or 0 if the index is not inside of the list
+             * @return _unique_id The id of the entity or 0 if the index is not inside of the list
              */
-            uint64 at(const size_t& index) const
+            _unique_id at(const size_t& index) const
             {
                 if(index >= size) 
                     return 0;
@@ -227,22 +225,24 @@ namespace pg
             /**
              * @brief Get the id of the component of a given entity id if it is present in the component list
              * 
-             * @param id The id of the entity to find in the component list
+             * @param entity The id of the entity to find in the component list
              * @return size_t The index of the component or 0 if the index is not inside of the list
              */
-            size_t find(const uint64& id) const
+            size_t find(const Entity& entity) const
             {
-                if(has(id))
+                const auto id = entity.id;
+
+                if(has(entity))
                     return sparse[id];
 
                 return 0;
             }
 
             /** Add an entity and it's component inside of the list */
-            AbstractComponent* add(const uint64& entityId, AbstractComponent* component);
+            AbstractComponent* add(const Entity& entity, AbstractComponent* component);
 
             /** Remove a component by entity id */
-            void remove(const uint64& id);
+            void remove(const Entity& entity);
 
             /** Remove a component by component index*/
             void removeAt(const size_t& index);
@@ -278,7 +278,7 @@ namespace pg
             void addDenseCapacity();
 
             /** Internal helper function used to expend the sparse list */
-            void addSparseCapacity(const uint64& entityId);
+            void addSparseCapacity(const _unique_id& id);
 
             // Private variables
         private:
@@ -286,7 +286,7 @@ namespace pg
             std::size_t size = 1;
 
             /** An interal array to hold the link componend id -> entity id */
-            uint64* dense;
+            _unique_id* dense;
 
             /** The component list holding the data of all the component of this sparse set */
             AbstractComponent** componentList;

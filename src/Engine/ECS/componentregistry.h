@@ -4,6 +4,9 @@
 #include <unordered_map>
 
 #include "sparseset.h"
+#include "entity.h"
+
+#include "logger.h"
 
 namespace pg
 {
@@ -20,6 +23,8 @@ namespace pg
             template <typename Type>
             void store(Own<Type>* owner)
             {
+                LOG_THIS_MEMBER("Component Registry");
+
                 struct Delegate : public Storage, public Own<Type> { };
 
                 storageMap[Type::componentId] = static_cast<Storage*>(static_cast<Delegate*>(owner));
@@ -28,6 +33,8 @@ namespace pg
             template <typename Type>
             Own<Type>* retrieve() const
             {
+                LOG_THIS_MEMBER("Component Registry");
+
                 struct Delegate : public Storage, public Own<Type> { };
 
                 return static_cast<Own<Type>*>(static_cast<Delegate*>(storageMap.at(Type::componentId)));
@@ -41,11 +48,11 @@ namespace pg
         struct Ref 
         {
             // Take an unique id only to have the same signature as Own object
-            Ref(_unique_id)
-            {
-            }
+            Ref(_unique_id) { LOG_THIS_MEMBER("Ref"); }
 
-            Ref(Own<Type> *ref) : ref(ref) {}
+            Ref(Own<Type> *ref) : ref(ref) { LOG_THIS_MEMBER("Ref"); }
+
+            virtual ~Ref() { LOG_THIS_MEMBER("Ref"); }
 
             void setRegistry(ComponentRegistry* registry)
             {
@@ -53,9 +60,9 @@ namespace pg
             }
 
             template <typename... Args>
-            Type* internalCreateComponent(_entityId id, const Args&... args)
+            Type* internalCreateComponent(const Entity& entity, const Args&... args)
             {
-                return ref->internalCreateComponent(id, args...);
+                return ref->internalCreateComponent(entity, args...);
             }
 
             SparseSet::SparseSetList<Type> view() const
@@ -73,8 +80,12 @@ namespace pg
         {
             Own(_unique_id id) : Ref<Type>(this)
             {
+                LOG_THIS_MEMBER("Own");
                 Type::componentId = id;
             }
+
+            virtual ~Own() { LOG_THIS_MEMBER("Own"); }
+
 
             void setRegistry(ComponentRegistry* registry)
             {
@@ -82,10 +93,10 @@ namespace pg
             }
 
             template <typename... Args>
-            Type* internalCreateComponent(_entityId id, const Args&... args)
+            Type* internalCreateComponent(const Entity& entity, const Args&... args)
             {
                 auto comp = new Type(args...);
-                components.add(id, comp);
+                components.add(entity, comp);
                 return comp;
             }
 

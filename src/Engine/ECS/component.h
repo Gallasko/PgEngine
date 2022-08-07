@@ -15,7 +15,9 @@ namespace pg
             // Todo remove
             std::string name;
 
-            virtual const _unique_id& getComponentId() const = 0;
+            // Todo is this really necessary
+            virtual ~AbstractComponent() {}
+            // virtual const _unique_id& getComponentId() const = 0;
         };
 
         template<typename Comp>
@@ -27,7 +29,7 @@ namespace pg
 
             virtual ~Component() {}
 
-            virtual const _unique_id& getComponentId() const override { return Component::componentId; }
+            // virtual const _unique_id& getComponentId() const override { return Component::componentId; }
 
             static _unique_id componentId;   
         };

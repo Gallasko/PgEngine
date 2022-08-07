@@ -21,7 +21,7 @@ namespace pg
         {
             LOG_THIS_MEMBER(DOM);
 
-            dense = new uint64[denseCapacity];
+            dense = new _unique_id[denseCapacity];
             componentList = new AbstractComponent*[denseCapacity];
 
             sparse = new size_t[sparseCapacity];
@@ -48,7 +48,7 @@ namespace pg
         /**
          * @brief Add an entity and it's component inside of the list
          * 
-         * @param entityId The id of the entity to add to the list
+         * @param entity The entity to add to the list
          * @param component The data of the component to add to the list
          * 
          * @return Component* The pointer of the component added inside of the list
@@ -58,12 +58,14 @@ namespace pg
          * 
          * @todo Tell the management system that this entity (dense[index]) as created this component to update all the other "archtype" using it
          */
-        AbstractComponent* SparseSet::add(const uint64& entityId, AbstractComponent* component)
+        AbstractComponent* SparseSet::add(const Entity& entity, AbstractComponent* component)
         {
             LOG_THIS_MEMBER(DOM);
 
+            const auto id = entity.id;
+
             // All the entity should always be greater than 0 as 0 is the value of empty in the system
-            if(entityId < 1)
+            if(id < 1)
             {
                 LOG_ERROR(DOM, "Invalid entity id, must be greater than 0");
                 return nullptr;
@@ -76,15 +78,15 @@ namespace pg
                 addDenseCapacity();
             }
 
-            if(entityId >= sparseCapacity)
+            if(id >= sparseCapacity)
             {
                 LOG_INFO(DOM, "Dense array is too small (" + std::to_string(denseCapacity) + ") to fit the element: " + std::to_string(size) + ", proceed to increase the capacity");
-                addSparseCapacity(entityId);
+                addSparseCapacity(id);
             }
 
             // Link the entity id with the component id through the dense <-> sparse mechanism
-            dense[size] = entityId;
-            sparse[entityId] = size;
+            dense[size] = id;
+            sparse[id] = size;
 
             // Store the component inside of the list
             componentList[size] = component;
@@ -98,17 +100,19 @@ namespace pg
         /**
          * @brief Remove a component by entity id
          * 
-         * @param id The id of the entity to remove the component from.
+         * @param entity The entity to remove the component from.
          * 
          * @todo Tell the management system that this entity (dense[index]) as lost this component to update all the other "archtype" using it
          * @todo Must implement a mutex for each component and entity for multithreaded use !
          */
-        void SparseSet::remove(const uint64& id)
+        void SparseSet::remove(const Entity& entity)
         {
             LOG_THIS_MEMBER(DOM);
 
+            const auto id = entity.id;
+
             // Check if the id has a component
-            if(size < 1 && !has(id))
+            if(size < 1 && !has(entity))
                 return;
 
             // TODO make a sparse set implementation that doesn't delete components on remove but instead reuse dead memory
@@ -182,11 +186,11 @@ namespace pg
             LOG_THIS_MEMBER(DOM);
 
             // Create the doubled size containers
-            uint64* tempDense = new uint64[denseCapacity * 2];
+            _unique_id* tempDense = new _unique_id[denseCapacity * 2];
             AbstractComponent** tempComponentList = new AbstractComponent*[denseCapacity * 2];
 
             // Copy the current data inside of the newly created containers
-            memcpy(tempDense, dense, denseCapacity * sizeof(uint64));
+            memcpy(tempDense, dense, denseCapacity * sizeof(_unique_id));
             memcpy(tempComponentList, componentList, denseCapacity * sizeof(AbstractComponent*));
 
             // Delete old data to not leak memory
@@ -204,16 +208,16 @@ namespace pg
         /**
          * @brief Internal helper function used to expend the sparse list
          * 
-         * @param[in] entityId The id to fit inside of the sparse array
+         * @param[in] id The id to fit inside of the sparse array
          * 
          * This helper function double the size of the sparse to store up to size_t amount of data 
          */
-        void SparseSet::addSparseCapacity(const uint64& entityId)
+        void SparseSet::addSparseCapacity(const _unique_id& id)
         {
             LOG_THIS_MEMBER(DOM);
 
             // If the entity is bigger than SIZE_MAX then it can't be expressed as a size_t and so it can't be stored in the array.
-            if(entityId > SIZE_MAX)
+            if(id > SIZE_MAX)
             {
                 LOG_ERROR(DOM, "Entity id is too large to fit into sparse set");
                 return;
@@ -222,7 +226,7 @@ namespace pg
             size_t targetCapacity = sparseCapacity;
 
             // This small loop make it so sparseCapacity stays as a multiple of 2
-            while(targetCapacity < entityId)
+            while(targetCapacity < id)
             {
                 targetCapacity *= 2;
             }

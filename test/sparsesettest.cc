@@ -3,6 +3,7 @@
 #include "gtest/gtest.h"
 
 #include "ECS/sparseset.h"
+#include "ECS/entitysystem2.h"
 
 namespace pg
 {
@@ -28,10 +29,12 @@ namespace pg
         TEST(sparse_test, iterate)
         {
             ecs::SparseSet set;
+            ecs::EntitySystem ecs;
 
             for (int i = 1; i < 1000; i++)
             {
-                set.add(i, new A(i));
+                auto entity = ecs.createEntity();
+                set.add(entity, new A(i));
             }
 
             std::cout << set.nbElements() << std::endl;

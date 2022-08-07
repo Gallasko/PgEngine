@@ -1,24 +1,32 @@
 #pragma once
 
+#include <vector>
+#include <unordered_map>
+
 #include "uniqueid.h"
+#include "component.h"
 #include "componentregistry.h"
-#include "system.h"
+#include "entity.h"
+
+#include "Memory/memorypool.h"
 
 namespace pg
 {
     namespace ecs
     {
+        // Todo create a queue that hold all entity id that got deleted to reattribute them later on
+        
+        // Forward declarations
+        class ComponentRegistry;
+        class AbstractSystem;
+        
         class EntitySystem
         {
-        private:
-            struct Entity
-            {
-                Entity(_entityId id) : id(id) {}
-
-                _entityId id;
-            };
         public:
-            Entity createEntity() const
+            EntitySystem();
+            ~EntitySystem();
+
+            Entity createEntity()
             {
                 Entity entity(generateId());
 
@@ -39,7 +47,7 @@ namespace pg
             template<typename Type, typename... Args>
             Type* attach(const Entity& entity, const Args&... args) const
             {
-                return registry.retrieve<Type>()->internalCreateComponent(entity.id, args...);
+                return registry.retrieve<Type>()->internalCreateComponent(entity, args...);
             }
 
         private:

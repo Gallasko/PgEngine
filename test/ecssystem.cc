@@ -69,6 +69,26 @@ namespace pg
 
                 size_t count = 1;
             };
+
+            struct D : ecs::Component<D>
+            {
+                std::string text;
+            };
+
+/*
+            struct CDSystem : public ecs::System<ecs::Ref<C>, ecs::Own<D>>
+            {
+                virtual void execute() override
+                {
+                    std::cout << "Execute CD System" << std::endl;
+
+                    for(auto entity : view<C, D>())
+                    {
+
+                    }
+                }
+            }
+*/
         }
 
         // ----------------------------------------------------------------------------------------
@@ -89,13 +109,13 @@ namespace pg
 
             std::cout << A::componentId << " " << B::componentId << " " << C::componentId << std::endl;
 
-            ecs::_entityId id = 15;
-            ecs::_entityId id1 = 16;
-            ecs::_entityId id2 = 17;
+            auto entity1 = ecs.createEntity();
+            auto entity2 = ecs.createEntity();
+            auto entity3 = ecs.createEntity();
 
-            auto comp = system->createComponent<A>(id, 2, 5);
-            auto comp1 = system2->createRefferedComponent<A>(id1, 10, 5);
-            auto comp2 = system2->createOwnedComponent<B>(id2, 12, 4);
+            auto comp = system->createComponent<A>(entity1, 2, 5);
+            auto comp1 = system2->createRefferedComponent<A>(entity2, 10, 5);
+            auto comp2 = system2->createOwnedComponent<B>(entity3, 12, 4);
 
             std::cout << A::componentId << " " << B::componentId << " " << C::componentId << std::endl;
 
@@ -103,16 +123,18 @@ namespace pg
 
             for(size_t i = 20; i < 1000000; i++)
             {
-                system->createOwnedComponent<A>(entity.id, i, 15);
+                system->createOwnedComponent<A>(entity, i, 15);
             }
 
             for(size_t i = 20; i < 10000001; i++)
             {
                 //ecs.attach<C>(entity.id, "Value of: " + std::to_string(i));
-                system3->createOwnedComponent<C>(entity.id, "Value of: " + std::to_string(i));
+                system3->createOwnedComponent<C>(entity, "Value of: " + std::to_string(i));
             }
 
             system3->execute();
+
+            std::cout << "End" << std::endl;
         }
 
         /*
