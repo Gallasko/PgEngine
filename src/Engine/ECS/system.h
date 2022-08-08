@@ -63,6 +63,8 @@ namespace pg
             {
                 LOG_THIS_MEMBER("System");
 
+                this->registry = registry;
+
                 registerComponents(this, registry, tag<Comps>{}...);
             }
 
@@ -122,15 +124,30 @@ namespace pg
                 return this->Ref<Type>::view();
             }
 
-/*
             template <typename Type, typename... Types>
-            Group group() const
+            Group<Type, Types...> group() const
             {
                 LOG_THIS_MEMBER("System");
 
+                if(registry == nullptr)
+                {
+                    LOG_ERROR("System", "No registry specified, can't create a group");
+                    return Group<Type, Types...>();
+                }
+
+                if(Group<Type, Types...>::groupId != 0)
+                    return *(registry->retrieve<Type, Types...>());
+                else
+                {
+                    auto group = new Group<Type, Types...>(generateId());
+                    
+                    group->setRegistry(registry);
+                }
 
             }
-*/
+
+            ComponentRegistry *registry = nullptr;
+
             static _unique_id systemid;
         };
 

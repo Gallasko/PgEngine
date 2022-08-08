@@ -15,6 +15,9 @@ namespace pg
         template <typename Type>
         struct Own;
 
+        template <typename... Types>
+        struct Group;
+
         class ComponentRegistry
         {
             struct Storage {};
@@ -27,7 +30,7 @@ namespace pg
 
                 struct Delegate : public Storage, public Own<Type> { };
 
-                storageMap[Type::componentId] = static_cast<Storage*>(static_cast<Delegate*>(owner));
+                componentStorageMap.emplace(Type::componentId, static_cast<Storage*>(static_cast<Delegate*>(owner)));
             }
 
             template <typename Type>
@@ -37,11 +40,32 @@ namespace pg
 
                 struct Delegate : public Storage, public Own<Type> { };
 
-                return static_cast<Own<Type>*>(static_cast<Delegate*>(storageMap.at(Type::componentId)));
+                return static_cast<Own<Type>*>(static_cast<Delegate*>(componentStorageMap.at(Type::componentId)));
+            }
+
+            template <typename Type, typename... Types>
+            void store(Group<Type, Types...>* group)
+            {
+                LOG_THIS_MEMBER("Component Registry");
+
+                struct Delegate : public Storage, public Group<Type, Types...> { };
+
+                groupStorageMap.emplace(Group<Type, Types...>::groupId, static_cast<Storage*>(static_cast<Delegate*>(owner)));
+            }
+
+            template <typename Type, typename... Types>
+            Group<Type, Types...>* retrieve() const
+            {
+                LOG_THIS_MEMBER("Component Registry");
+
+                struct Delegate : public Storage, public Group<Type, Types...> { };
+
+                return static_cast<Group<Type, Types...>*>(static_cast<Delegate*>(groupStorageMap.at(Group<Type, Types...>::groupId)));
             }
 
         private:
-            std::unordered_map<_unique_id, Storage*> storageMap;
+            std::unordered_map<_unique_id, Storage*> componentStorageMap;
+            std::unordered_map<_unique_id, Storage*> groupStorageMap;
         };
 
         template <typename Type>
