@@ -1,8 +1,9 @@
 #include "gtest/gtest.h"
 
+#include "ECS/uniqueid.h"
+#include "ECS/entity.h"
 #include "ECS/component.h"
 #include "ECS/system.h"
-#include "ECS/uniqueid.h"
 #include "ECS/componentregistry.h"
 #include "ECS/entitysystem2.h"
 
@@ -105,7 +106,7 @@ namespace pg
             std::cout << A::componentId << " " << B::componentId << " " << C::componentId << std::endl;
 
             auto system2 = ecs.createSystem<ABSystem>();
-            auto system3 = ecs.createSystem<CSystem>(1000000);
+            auto system3 = ecs.createSystem<CSystem>(50);
 
             std::cout << A::componentId << " " << B::componentId << " " << C::componentId << std::endl;
 
@@ -119,26 +120,27 @@ namespace pg
 
             std::cout << A::componentId << " " << B::componentId << " " << C::componentId << std::endl;
 
-            auto entity = ecs.createEntity();
-
-            for(size_t i = 20; i < 1000000; i++)
+            ecs::Entity entity[1000];
+            
+            for(size_t i = 20; i < 1000; i++)
             {
-                entity = ecs.createEntity();
-                system->createOwnedComponent<A>(entity, i, 15);
+                entity[i] = ecs.createEntity();
+                system->createOwnedComponent<A>(entity[i], i, 15);
             }
 
-            for(size_t i = 20; i < 10000001; i++)
+            for(size_t i = 20; i < 1000; i++)
             {
-                entity = ecs.createEntity();
-
                 //ecs.attach<C>(entity.id, "Value of: " + std::to_string(i));
-                system3->createOwnedComponent<C>(entity, "Value of: " + std::to_string(i));
+                system3->createOwnedComponent<C>(entity[i], "Value of: " + std::to_string(i));
             }
 
-            for (auto& comp : entity.componentList)
+            std::cout << "Entity " << entity[555].id << " has: [";
+            for (auto& comp : entity[555].componentList)
             {
-                std::cout << "Entity [" << entity.id << "] has: " << std::to_string(comp.first) << std::endl;
+                std::cout << std::to_string(comp.first) << ", ";
             }
+
+            std::cout << "]" << std::endl;
 
             system3->execute();
 

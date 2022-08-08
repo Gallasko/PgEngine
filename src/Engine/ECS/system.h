@@ -67,7 +67,7 @@ namespace pg
             }
 
             template <typename Type, typename... Args>
-            Type* createComponent(Entity& entity, const Args&... args)
+            inline Type* createComponent(Entity& entity, const Args&... args)
             {
                 LOG_THIS_MEMBER("System");
 
@@ -75,7 +75,7 @@ namespace pg
             }
 
             template <typename Type, typename... Args>
-            Type* createOwnedComponent(Entity& entity, const Args&... args)
+            inline Type* createOwnedComponent(Entity& entity, const Args&... args)
             {
                 LOG_THIS_MEMBER("System");
 
@@ -83,7 +83,7 @@ namespace pg
             }
 
             template <typename Type, typename... Args>
-            Type* createRefferedComponent(Entity& entity, const Args&... args)
+            inline Type* createRefferedComponent(Entity& entity, const Args&... args)
             {
                 LOG_THIS_MEMBER("System");
 
@@ -91,7 +91,7 @@ namespace pg
             }
 
             template <typename Type>
-            void removeComponent(Entity& entity)
+            inline void removeComponent(Entity& entity)
             {
                 LOG_THIS_MEMBER("System");
 
@@ -107,7 +107,7 @@ namespace pg
             }
 
             template <typename Type>
-            void removeOwnedComponent(Entity& entity)
+            inline void removeOwnedComponent(Entity& entity)
             {
                 LOG_THIS_MEMBER("System");
 
@@ -115,13 +115,22 @@ namespace pg
             }
 
             template <typename Type>
-            SparseSet::SparseSetList<Type> view() const
+            inline SparseSet::SparseSetList<Type> view() const
             {
                 LOG_THIS_MEMBER("System");
 
                 return this->Ref<Type>::view();
             }
 
+/*
+            template <typename Type, typename... Types>
+            Group group() const
+            {
+                LOG_THIS_MEMBER("System");
+
+
+            }
+*/
             static _unique_id systemid;
         };
 

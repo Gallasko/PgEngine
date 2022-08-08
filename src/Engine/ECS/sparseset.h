@@ -207,7 +207,7 @@ namespace pg
              * This function uses one of the main properties of the sparse set, the reciprocity of the component id in the dense and sparse array
              * This operation is O(1) as it only need 2 indirections and 3 checks to know if an id is in the list and this is true whatever the size of the array
              */
-            bool has(const Entity& entity) const { const auto id = entity.id; return id < sparseCapacity && sparse[id] < denseCapacity && dense[sparse[id]] == id; };
+            inline bool has(const Entity& entity) const { const auto id = entity.id; return id < sparseCapacity && sparse[id] < denseCapacity && dense[sparse[id]] == id; };
 
             /**
              * @brief Get the id of the entity at a given index of the component list
@@ -215,7 +215,7 @@ namespace pg
              * @param index The index of the component
              * @return _unique_id The id of the entity or 0 if the index is not inside of the list
              */
-            _unique_id at(const size_t& index) const
+            inline _unique_id at(const size_t& index) const
             {
                 if(index >= size) 
                     return 0;
@@ -229,7 +229,7 @@ namespace pg
              * @param entity The id of the entity to find in the component list
              * @return size_t The index of the component or 0 if the index is not inside of the list
              */
-            size_t find(const Entity& entity) const
+            inline size_t find(const Entity& entity) const
             {
                 const auto id = entity.id;
 
@@ -249,7 +249,7 @@ namespace pg
             void removeAt(const size_t& index);
 
             /** Clear the entire list */
-            void clear();
+            inline void clear();
 
             /**
              * @brief Get the current size of the list
@@ -259,7 +259,7 @@ namespace pg
              * The list start at index 1 to nbElement()
              * This function is used to ensure that the bound of the set are respected
              */
-            constexpr size_t nbElements() const { return size; }
+            inline constexpr size_t nbElements() const { return size; }
 
             /**
              * @brief Expose a view of the component list to another system
@@ -268,7 +268,7 @@ namespace pg
              * @return SparseSetList<Comp> A view of the component list
              */
             template<typename Comp>
-            SparseSetList<Comp> view() const
+            inline SparseSetList<Comp> view() const
             {
                 return SparseSetList<Comp>(nbElements(), componentList);
             }

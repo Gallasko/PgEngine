@@ -52,6 +52,8 @@ namespace pg
 
             Ref(Own<Type> *ref) : ref(ref) { LOG_THIS_MEMBER("Ref"); }
 
+            // Todo maybe remove the virtual destructor as the only thing that inherit Ref is Own
+            // And it only inherits it to be stored in the registry.
             virtual ~Ref() { LOG_THIS_MEMBER("Ref"); }
 
             void setRegistry(ComponentRegistry* registry)
@@ -62,28 +64,28 @@ namespace pg
             }
 
             template <typename... Args>
-            Type* internalCreateComponent(Entity& entity, const Args&... args)
+            inline Type* internalCreateComponent(Entity& entity, const Args&... args)
             {
                 LOG_THIS_MEMBER("Ref");
 
                 return ref->internalCreateComponent(entity, args...);
             }
 
-            void internalRemoveComponent(Entity& entity)
+            inline void internalRemoveComponent(Entity& entity)
             {
                 LOG_THIS_MEMBER("Ref");
 
                 ref->internalRemoveComponent(entity);
             }
 
-            SparseSet::SparseSetList<Type> view() const
+            inline SparseSet::SparseSetList<Type> view() const
             {
                 LOG_THIS_MEMBER("Ref");
 
                 return ref->view();
             }
 
-            const _unique_id& getComponentId() const { return Type::componentId; }
+            inline const _unique_id& getComponentId() const { return Type::componentId; }
 
             Own<Type> *ref;
         };
@@ -109,7 +111,7 @@ namespace pg
             }
 
             template <typename... Args>
-            Type* internalCreateComponent(Entity& entity, const Args&... args)
+            inline Type* internalCreateComponent(Entity& entity, const Args&... args)
             {
                 LOG_THIS_MEMBER("Own");
 
@@ -126,7 +128,7 @@ namespace pg
                 return comp;
             }
 
-            void internalRemoveComponent(Entity& entity)
+            inline void internalRemoveComponent(Entity& entity)
             {
                 LOG_THIS_MEMBER("Own");
 
@@ -135,14 +137,14 @@ namespace pg
                 entity.componentList.erase(Type::componentId);
             }
 
-            SparseSet::SparseSetList<Type> view() const
+            inline SparseSet::SparseSetList<Type> view() const
             {
                 LOG_THIS_MEMBER("Own");
 
                 return components.view<Type>();
             }
 
-            const _unique_id& getComponentId() const { return Type::componentId; }
+            inline const _unique_id& getComponentId() const { return Type::componentId; }
 
             SparseSet components;
         };
