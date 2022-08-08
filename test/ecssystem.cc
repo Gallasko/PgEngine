@@ -123,13 +123,21 @@ namespace pg
 
             for(size_t i = 20; i < 1000000; i++)
             {
+                entity = ecs.createEntity();
                 system->createOwnedComponent<A>(entity, i, 15);
             }
 
             for(size_t i = 20; i < 10000001; i++)
             {
+                entity = ecs.createEntity();
+
                 //ecs.attach<C>(entity.id, "Value of: " + std::to_string(i));
                 system3->createOwnedComponent<C>(entity, "Value of: " + std::to_string(i));
+            }
+
+            for (auto& comp : entity.componentList)
+            {
+                std::cout << "Entity [" << entity.id << "] has: " << std::to_string(comp.first) << std::endl;
             }
 
             system3->execute();

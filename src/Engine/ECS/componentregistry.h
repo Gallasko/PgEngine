@@ -56,17 +56,30 @@ namespace pg
 
             void setRegistry(ComponentRegistry* registry)
             {
+                LOG_THIS_MEMBER("Ref");
+
                 ref = registry->retrieve<Type>();
             }
 
             template <typename... Args>
-            Type* internalCreateComponent(const Entity& entity, const Args&... args)
+            Type* internalCreateComponent(Entity& entity, const Args&... args)
             {
+                LOG_THIS_MEMBER("Ref");
+
                 return ref->internalCreateComponent(entity, args...);
+            }
+
+            void internalRemoveComponent(Entity& entity)
+            {
+                LOG_THIS_MEMBER("Ref");
+
+                ref->internalRemoveComponent(entity);
             }
 
             SparseSet::SparseSetList<Type> view() const
             {
+                LOG_THIS_MEMBER("Ref");
+
                 return ref->view();
             }
 
@@ -81,27 +94,51 @@ namespace pg
             Own(_unique_id id) : Ref<Type>(this)
             {
                 LOG_THIS_MEMBER("Own");
+
+                // Todo check if Type::componentId is not != 0 but it should never happen
                 Type::componentId = id;
             }
 
             virtual ~Own() { LOG_THIS_MEMBER("Own"); }
 
-
             void setRegistry(ComponentRegistry* registry)
             {
+                LOG_THIS_MEMBER("Own");
+
                 registry->store<Type>(this);
             }
 
             template <typename... Args>
-            Type* internalCreateComponent(const Entity& entity, const Args&... args)
+            Type* internalCreateComponent(Entity& entity, const Args&... args)
             {
+                LOG_THIS_MEMBER("Own");
+
+                // Create a new component
                 auto comp = new Type(args...);
+
+                // Store it in a sparse set along with the entity id using it
                 components.add(entity, comp);
+
+                // Add the component to the entity component list for fast 
+                entity.componentList[Type::componentId] = comp;
+
+                // Return the component for possible modification
                 return comp;
+            }
+
+            void internalRemoveComponent(Entity& entity)
+            {
+                LOG_THIS_MEMBER("Own");
+
+                components.remove(entity);
+
+                entity.componentList.erase(Type::componentId);
             }
 
             SparseSet::SparseSetList<Type> view() const
             {
+                LOG_THIS_MEMBER("Own");
+
                 return components.view<Type>();
             }
 

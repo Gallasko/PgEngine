@@ -7,6 +7,7 @@ namespace pg
 {
     namespace ecs
     {
+        /*
         class EcsId : public NamedComponent
         {
             
@@ -16,5 +17,6 @@ namespace pg
         {
 
         };
+        */
     }
 }

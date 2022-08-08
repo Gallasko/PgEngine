@@ -35,6 +35,7 @@ namespace pg
          * 
          * It also stores in memory the list of components of a given type
          * 
+         * @todo Make sparse set not component specific but create a templated child specialy made for ecs use
          * @todo Make a sparse set implementation that doesn't delete components on remove but instead reuse dead memory
          */
         class SparseSet

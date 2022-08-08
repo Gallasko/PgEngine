@@ -67,7 +67,7 @@ namespace pg
             }
 
             template <typename Type, typename... Args>
-            Type* createComponent(const Entity& entity, const Args&... args)
+            Type* createComponent(Entity& entity, const Args&... args)
             {
                 LOG_THIS_MEMBER("System");
 
@@ -75,7 +75,7 @@ namespace pg
             }
 
             template <typename Type, typename... Args>
-            Type* createOwnedComponent(const Entity& entity, const Args&... args)
+            Type* createOwnedComponent(Entity& entity, const Args&... args)
             {
                 LOG_THIS_MEMBER("System");
 
@@ -83,11 +83,35 @@ namespace pg
             }
 
             template <typename Type, typename... Args>
-            Type* createRefferedComponent(const Entity& entity, const Args&... args)
+            Type* createRefferedComponent(Entity& entity, const Args&... args)
             {
                 LOG_THIS_MEMBER("System");
 
                 return this->Ref<Type>::internalCreateComponent(entity, args...);
+            }
+
+            template <typename Type>
+            void removeComponent(Entity& entity)
+            {
+                LOG_THIS_MEMBER("System");
+
+                this->removeRefferedComponent(entity);
+            }
+
+            template <typename Type>
+            void removeRefferedComponent(Entity& entity)
+            {
+                LOG_THIS_MEMBER("System");
+
+                this->Ref<Type>::internalRemoveComponent(entity);
+            }
+
+            template <typename Type>
+            void removeOwnedComponent(Entity& entity)
+            {
+                LOG_THIS_MEMBER("System");
+
+                this->Own<Type>::internalRemoveComponent(entity);
             }
 
             template <typename Type>
