@@ -16,7 +16,7 @@ namespace pg
     {
     friend class Logger;
     public:
-        TestSink();
+        TestSink(bool verbose = false);
 
         void resetSink();
 
@@ -32,12 +32,14 @@ namespace pg
         std::unordered_map<Logger::InfoLevel, unsigned int> nbMessages;
 
         LogMessage lastMessage = {"", Logger::InfoLevel::log};
+
+        bool verbose;
     };
 
     class MockLogger
     {
     public:
-        MockLogger();
+        MockLogger(bool verbose = false);
         ~MockLogger();
 
         void reset();

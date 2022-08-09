@@ -117,7 +117,7 @@ namespace pg
             }
 
             template <typename Type>
-            inline const typename ComponentSet<Type>::ComponentSetList& view() const
+            inline typename ComponentSet<Type>::ComponentSetList view() const
             {
                 LOG_THIS_MEMBER("System");
 

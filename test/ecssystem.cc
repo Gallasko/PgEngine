@@ -7,6 +7,8 @@
 #include "ECS/componentregistry.h"
 #include "ECS/entitysystem2.h"
 
+#include "mocklogger.h"
+
 #include <iostream>
 #include <string>
 
@@ -48,8 +50,9 @@ namespace pg
 
             struct C : public ecs::NamedComponent<C>
             {
-                C(const std::string& text) : ecs::NamedComponent<C>("C"), text(text) {}
+                C(ecs::_unique_id, const std::string& text) : ecs::NamedComponent<C>("C"), id(id), text(text) {}
 
+                ecs::_unique_id id;
                 std::string text;
             };
 
@@ -59,6 +62,9 @@ namespace pg
 
                 virtual void execute()
                 {
+                    // for(auto comp : view<C>())
+                        // std::cout << comp->id << " " << comp->text << std::endl;
+
                     auto list = view<C>();
                     auto it = list.begin();
                     for(size_t i = 0; it != list.end(); it++, i++)
@@ -97,6 +103,10 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(system_test, initialization)
         {
+            constexpr size_t nbComps = 1000;
+
+            // MockLogger logger(true);
+
             ecs::EntitySystem ecs;
 
             std::cout << A::componentId << " " << B::componentId << " " << C::componentId << std::endl;
@@ -106,7 +116,7 @@ namespace pg
             std::cout << A::componentId << " " << B::componentId << " " << C::componentId << std::endl;
 
             auto system2 = ecs.createSystem<ABSystem>();
-            auto system3 = ecs.createSystem<CSystem>(50);
+            auto system3 = ecs.createSystem<CSystem>(nbComps / 20);
 
             std::cout << A::componentId << " " << B::componentId << " " << C::componentId << std::endl;
 
@@ -118,20 +128,18 @@ namespace pg
             auto comp1 = system2->createRefferedComponent<A>(entity2, 10, 5);
             auto comp2 = system2->createOwnedComponent<B>(entity3, 12, 4);
 
-            std::cout << A::componentId << " " << B::componentId << " " << C::componentId << std::endl;
-
-            ecs::Entity entity[1000];
+            ecs::Entity *entity = new ecs::Entity[nbComps + 1];
             
-            for(size_t i = 20; i < 1000; i++)
+            for(size_t i = 20; i < nbComps + 1; i++)
             {
                 entity[i] = ecs.createEntity();
                 system->createOwnedComponent<A>(entity[i], i, 15);
             }
 
-            for(size_t i = 20; i < 1000; i++)
+            for(size_t i = 20; i < nbComps + 1; i++)
             {
                 //ecs.attach<C>(entity.id, "Value of: " + std::to_string(i));
-                system3->createOwnedComponent<C>(entity[i], "Value of: " + std::to_string(i));
+                system3->createOwnedComponent<C>(entity[i], entity[i].id, "Value of: " + std::to_string(i));
             }
 
             std::cout << "Entity " << entity[555].id << " has: [";
@@ -145,6 +153,8 @@ namespace pg
             system3->execute();
 
             std::cout << "End" << std::endl;
+
+            delete[] entity;
         }
 
         /*

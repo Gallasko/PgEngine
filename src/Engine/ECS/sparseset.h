@@ -363,14 +363,14 @@ namespace pg
                  * 
                  * @return constexpr Iterator An iterator at the head of the component list
                  */
-                constexpr inline Iterator begin() const { return head; }
+                inline Iterator begin() const { return head; }
 
                 /**
                  * @brief Get the tail iterator
                  * 
                  * @return constexpr Iterator An iterator at the tail of the component list
                  */
-                constexpr inline Iterator end() const { return tail; }
+                inline Iterator end() const { return tail; }
 
                 // Public constructor
             public:
@@ -379,7 +379,7 @@ namespace pg
                  * 
                  * @param other The Sparse Set List to copy
                  */
-                ComponentSetList(const ComponentSetList& other) : size(other.size), head(other.head), tail(other.head), componentList(other.componentList) {}
+                ComponentSetList(const ComponentSetList& other) : head(other.head), tail(other.head), componentList(other.componentList) {}
 
                 // Protected constructor
             protected:
@@ -391,23 +391,21 @@ namespace pg
                  * 
                  * This object can only be created from a SparseSet Object
                  */
-                ComponentSetList(const size_t* size, Comp **componentList) : size(size), head(1, componentList), tail((*this->size), componentList), componentList(componentList) {}
+                ComponentSetList(const size_t& size, Comp **componentList) : head(1, componentList), tail(size, componentList), componentList(componentList) {}
 
                 // Private variables
             private:
-                const size_t* size;
-
                 /** An iterator at the beginning of the list */
-                const Iterator head;
+                Iterator head;
                 /** An iterator at the end of the list */
-                const Iterator tail;
+                Iterator tail;
 
                 /** The component list to iterate over */
                 Comp **componentList;      
             };
 
         public:
-            ComponentSet() : SparseSet(), list(&size, componentList)
+            ComponentSet() : SparseSet()
             {
                 componentList = new Comp*[componentCapacity];
             };
@@ -465,9 +463,9 @@ namespace pg
              * @tparam Comp The type of the component to cast the component stored in this list
              * @return ComponentSetList A view of the component list
              */
-            inline const ComponentSetList& viewComponents() const
+            inline ComponentSetList viewComponents() const
             {
-                return list;
+                return ComponentSetList(size, componentList);
             }
 
         private:
@@ -479,8 +477,6 @@ namespace pg
             size_t componentCapacity = 2;
 
             size_t lastEntityIndex = 0;
-
-            const ComponentSetList list;
         };
     }    
 }

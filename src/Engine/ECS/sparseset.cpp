@@ -78,7 +78,7 @@ namespace pg
 
             if(id >= sparseCapacity)
             {
-                LOG_INFO(DOM, "Dense array is too small (" + std::to_string(denseCapacity) + ") to fit the element: " + std::to_string(size) + ", proceed to increase the capacity");
+                LOG_INFO(DOM, "Sparse array is too small (" + std::to_string(sparseCapacity) + ") to fit the element: " + std::to_string(id) + ", proceed to increase the capacity");
                 addSparseCapacity(id);
             }
 
@@ -219,7 +219,7 @@ namespace pg
             size_t targetCapacity = sparseCapacity;
 
             // This small loop make it so sparseCapacity stays as a multiple of 2
-            while(targetCapacity < id)
+            while(targetCapacity <= id)
             {
                 targetCapacity *= 2;
             }

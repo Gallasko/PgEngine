@@ -104,7 +104,7 @@ namespace pg
                 ref->internalRemoveComponent(entity);
             }
 
-            inline const typename ComponentSet<Type>::ComponentSetList& view() const
+            inline typename ComponentSet<Type>::ComponentSetList view() const
             {
                 LOG_THIS_MEMBER("Ref");
 
@@ -165,7 +165,7 @@ namespace pg
                 // entity.componentList.erase(Type::componentId);
             }
 
-            inline const typename ComponentSet<Type>::ComponentSetList& view() const
+            inline typename ComponentSet<Type>::ComponentSetList view() const
             {
                 LOG_THIS_MEMBER("Own");
 
