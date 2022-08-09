@@ -1,6 +1,6 @@
 #include "uniqueid.h"
 
-#include <mutex>
+#include <atomic>
 
 namespace pg
 {
@@ -19,10 +19,8 @@ namespace pg
          */
         _unique_id generateId()
         {
-            static _unique_id uniqueId = 3;
-            static std::mutex mutex;
+            static std::atomic<_unique_id> uniqueId{3};
 
-            std::lock_guard<std::mutex> lock(mutex);
             return uniqueId++;
         }
     }

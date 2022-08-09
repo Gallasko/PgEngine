@@ -43,6 +43,7 @@ namespace pg
                 return static_cast<Own<Type>*>(static_cast<Delegate*>(componentStorageMap.at(Type::componentId)));
             }
 
+/*
             template <typename Type, typename... Types>
             void store(Group<Type, Types...>* group)
             {
@@ -50,7 +51,7 @@ namespace pg
 
                 struct Delegate : public Storage, public Group<Type, Types...> { };
 
-                groupStorageMap.emplace(Group<Type, Types...>::groupId, static_cast<Storage*>(static_cast<Delegate*>(owner)));
+                groupStorageMap.emplace(Group<Type, Types...>::groupId, static_cast<Storage*>(static_cast<Delegate*>(group)));
             }
 
             template <typename Type, typename... Types>
@@ -62,13 +63,14 @@ namespace pg
 
                 return static_cast<Group<Type, Types...>*>(static_cast<Delegate*>(groupStorageMap.at(Group<Type, Types...>::groupId)));
             }
+*/
 
         private:
             std::unordered_map<_unique_id, Storage*> componentStorageMap;
             std::unordered_map<_unique_id, Storage*> groupStorageMap;
         };
 
-        template <typename Type>
+        template <class Type>
         struct Ref 
         {
             // Take an unique id only to have the same signature as Own object
@@ -102,7 +104,7 @@ namespace pg
                 ref->internalRemoveComponent(entity);
             }
 
-            inline SparseSet::SparseSetList<Type> view() const
+            inline const typename ComponentSet<Type>::ComponentSetList& view() const
             {
                 LOG_THIS_MEMBER("Ref");
 
@@ -114,7 +116,7 @@ namespace pg
             Own<Type> *ref;
         };
 
-        template<typename Type>
+        template<class Type>
         struct Own : public Ref<Type>
         {
             Own(_unique_id id) : Ref<Type>(this)
@@ -143,10 +145,11 @@ namespace pg
                 auto comp = new Type(args...);
 
                 // Store it in a sparse set along with the entity id using it
-                components.add(entity, comp);
+                components.addComponent(entity, comp);
 
+                // Todo
                 // Add the component to the entity component list for fast 
-                entity.componentList[Type::componentId] = comp;
+                // entity.componentList[Type::componentId] = comp;
 
                 // Return the component for possible modification
                 return comp;
@@ -156,21 +159,22 @@ namespace pg
             {
                 LOG_THIS_MEMBER("Own");
 
-                components.remove(entity);
+                components.removeComponent(entity);
 
-                entity.componentList.erase(Type::componentId);
+                // TODO
+                // entity.componentList.erase(Type::componentId);
             }
 
-            inline SparseSet::SparseSetList<Type> view() const
+            inline const typename ComponentSet<Type>::ComponentSetList& view() const
             {
                 LOG_THIS_MEMBER("Own");
 
-                return components.view<Type>();
+                return components.viewComponents();
             }
 
             inline const _unique_id& getComponentId() const { return Type::componentId; }
 
-            SparseSet components;
+            ComponentSet<Type> components;
         };
     }
 }

@@ -33,17 +33,16 @@ namespace pg
 
             for (int i = 1; i < 1000; i++)
             {
-                auto entity = ecs.createEntity();
-                set.add(entity, new A(i));
+                set.add(i);
             }
 
             std::cout << set.nbElements() << std::endl;
 
-            auto view = set.view<A>();
+            auto view = set.view();
 
             for(size_t i = 1; i < set.nbElements(); i++)
             {
-                EXPECT_EQ(view[i]->data, i);
+                EXPECT_EQ(view[i], i);
             }
         }
 

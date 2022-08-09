@@ -22,7 +22,6 @@ namespace pg
             LOG_THIS_MEMBER(DOM);
 
             dense = new _unique_id[denseCapacity];
-            componentList = new AbstractComponent*[denseCapacity];
 
             sparse = new size_t[sparseCapacity];
         }
@@ -32,6 +31,8 @@ namespace pg
          * 
          * Clear all the component in the component list
          * and destroy the internal arrays
+         * 
+         * @todo Check the cost of this virtual function
          */
         SparseSet::~SparseSet()
         {
@@ -40,7 +41,6 @@ namespace pg
             clear();
 
             delete[] dense;
-            delete[] componentList;
 
             delete[] sparse;
         }
@@ -58,17 +58,15 @@ namespace pg
          * 
          * @todo Tell the management system that this entity (dense[index]) as created this component to update all the other "archtype" using it
          */
-        AbstractComponent* SparseSet::add(const Entity& entity, AbstractComponent* component)
+        size_t SparseSet::add(const _unique_id& id)
         {
             LOG_THIS_MEMBER(DOM);
-
-            const auto id = entity.id;
 
             // All the entity should always be greater than 0 as 0 is the value of empty in the system
             if(id < 1)
             {
                 LOG_ERROR(DOM, "Invalid entity id, must be greater than 0");
-                return nullptr;
+                return 0;
             }
 
             // If the size of the list is too small allocate more space
@@ -89,12 +87,12 @@ namespace pg
             sparse[id] = size;
 
             // Store the component inside of the list
-            componentList[size] = component;
+            // componentList[size] = component;
 
             // Increase the side of the list
-            size++;
+            return size++;
 
-            return component;
+            //return component;
         }
 
         /**
@@ -105,61 +103,57 @@ namespace pg
          * @todo Tell the management system that this entity (dense[index]) as lost this component to update all the other "archtype" using it
          * @todo Must implement a mutex for each component and entity for multithreaded use !
          */
-        void SparseSet::remove(const Entity& entity)
+        size_t SparseSet::remove(const _unique_id& id)
         {
             LOG_THIS_MEMBER(DOM);
 
-            const auto id = entity.id;
-
             // Check if the id has a component
-            if(size < 1 && !has(entity))
-                return;
-
-            // TODO make a sparse set implementation that doesn't delete components on remove but instead reuse dead memory
-            // Delete the component
-            delete componentList[sparse[id]];
+            if(size < 1 && !has(id))
+                return 0;
             
-            // Swap the last component in the place of the component to be removed
-            componentList[sparse[id]] = componentList[sparse[size - 1]];
+            const auto index = sparse[id];
 
             // Update the index of the vector accordingly.
-            dense[sparse[id]] = dense[sparse[size - 1]];
+            dense[index] = dense[sparse[size - 1]];
             sparse[id] = sparse[size - 1];
 
             // Decrease the size of the list
             size--;
+
+            return index;
         }
 
-        /**
-         * @brief Remove a component by component index
-         * 
-         * @param index The index of the component to remove.
-         * 
-         * @todo Tell the management system that this entity (dense[index]) as lost this component to update all the other "archtype" using it
-         * @todo Must implement a mutex for each component and entity for multithreaded use !
-         */
-        void SparseSet::removeAt(const size_t& index)
-        {
-            LOG_THIS_MEMBER(DOM);
 
-            if(size < 1 && index >= size) 
-                return;
+        // /**
+        //  * @brief Remove a component by component index
+        //  * 
+        //  * @param index The index of the component to remove.
+        //  * 
+        //  * @todo Tell the management system that this entity (dense[index]) as lost this component to update all the other "archtype" using it
+        //  * @todo Must implement a mutex for each component and entity for multithreaded use !
+        //  */
+        // void SparseSet::removeAt(const size_t& index)
+        // {
+        //     LOG_THIS_MEMBER(DOM);
 
-            // TODO make a sparse set implementation that doesn't delete components on remove but instead reuse dead memory
-            // Delete the component
-            delete componentList[dense[index]];
+        //     if(size < 1 && index >= size) 
+        //         return;
+
+        //     // TODO make a sparse set implementation that doesn't delete components on remove but instead reuse dead memory
+        //     // Delete the component
+        //     delete componentList[dense[index]];
             
-            // Swap the last component in the place of the component to be removed
-            componentList[dense[index]] = componentList[dense[size - 1]];
+        //     // Swap the last component in the place of the component to be removed
+        //     componentList[dense[index]] = componentList[dense[size - 1]];
 
-            // Put the last value where the removed value is, to keep a contiguous dense array
-            // and update the sparse array accordingly.  
-            sparse[dense[index]] = sparse[dense[size -1]];
-            dense[index] = dense[size - 1];
+        //     // Put the last value where the removed value is, to keep a contiguous dense array
+        //     // and update the sparse array accordingly.  
+        //     sparse[dense[index]] = sparse[dense[size -1]];
+        //     dense[index] = dense[size - 1];
 
-            // Decrease the size of the list
-            size--;
-        }
+        //     // Decrease the size of the list
+        //     size--;
+        // }
 
         /**
          * @brief Clear the entire list
@@ -169,9 +163,6 @@ namespace pg
         void SparseSet::clear()
         {
             LOG_THIS_MEMBER(DOM);
-
-            for(size_t i = 1; i < size; i++)
-                delete componentList[i];
 
             size = 1;
         }
@@ -185,21 +176,23 @@ namespace pg
         {
             LOG_THIS_MEMBER(DOM);
 
+            if(size * 2 > SIZE_MAX)
+            {
+                LOG_ERROR(DOM, "Entity id is too large to fit into sparse set");
+                return;
+            }
+
             // Create the doubled size containers
             _unique_id* tempDense = new _unique_id[denseCapacity * 2];
-            AbstractComponent** tempComponentList = new AbstractComponent*[denseCapacity * 2];
-
+            
             // Copy the current data inside of the newly created containers
             memcpy(tempDense, dense, denseCapacity * sizeof(_unique_id));
-            memcpy(tempComponentList, componentList, denseCapacity * sizeof(AbstractComponent*));
-
+            
             // Delete old data to not leak memory
             delete[] dense;
-            delete[] componentList;
-
+            
             // Set the new containers as the list container
             dense = tempDense;
-            componentList = tempComponentList;
 
             // Update the capacity of the list
             denseCapacity *= 2;

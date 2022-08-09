@@ -117,7 +117,7 @@ namespace pg
             }
 
             template <typename Type>
-            inline SparseSet::SparseSetList<Type> view() const
+            inline const typename ComponentSet<Type>::ComponentSetList& view() const
             {
                 LOG_THIS_MEMBER("System");
 
