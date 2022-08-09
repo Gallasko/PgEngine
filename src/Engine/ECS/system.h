@@ -69,27 +69,27 @@ namespace pg
             }
 
             template <typename Type, typename... Args>
-            inline Type* createComponent(Entity& entity, const Args&... args)
+            inline Type* createComponent(Entity& entity, Args&&... args)
             {
                 LOG_THIS_MEMBER("System");
 
-                return this->createRefferedComponent<Type>(entity, args...);
+                return this->createRefferedComponent<Type>(entity, std::forward<Args>(args)...);
             }
 
             template <typename Type, typename... Args>
-            inline Type* createOwnedComponent(Entity& entity, const Args&... args)
+            inline Type* createOwnedComponent(Entity& entity, Args&&... args)
             {
                 LOG_THIS_MEMBER("System");
 
-                return this->Own<Type>::internalCreateComponent(entity, args...);
+                return this->Own<Type>::internalCreateComponent(entity, std::forward<Args>(args)...);
             }
 
             template <typename Type, typename... Args>
-            inline Type* createRefferedComponent(Entity& entity, const Args&... args)
+            inline Type* createRefferedComponent(Entity& entity, Args&&... args)
             {
                 LOG_THIS_MEMBER("System");
 
-                return this->Ref<Type>::internalCreateComponent(entity, args...);
+                return this->Ref<Type>::internalCreateComponent(entity, std::forward<Args>(args)...);
             }
 
             template <typename Type>

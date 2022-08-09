@@ -50,9 +50,9 @@ namespace pg
 
             struct C : public ecs::NamedComponent<C>
             {
-                C(ecs::_unique_id, const std::string& text) : ecs::NamedComponent<C>("C"), id(id), text(text) {}
+                C(ecs::_unique_id value, const std::string& text) : ecs::NamedComponent<C>("C"), value(value), text(text) {}
 
-                ecs::_unique_id id;
+                ecs::_unique_id value;
                 std::string text;
             };
 
@@ -69,7 +69,7 @@ namespace pg
                     auto it = list.begin();
                     for(size_t i = 0; it != list.end(); it++, i++)
                     {
-                        if(i % count == 0)
+                        // if(i % count == 0)
                             std::cout << (*it)->text << std::endl;
                     }
                 }
@@ -116,7 +116,7 @@ namespace pg
             std::cout << A::componentId << " " << B::componentId << " " << C::componentId << std::endl;
 
             auto system2 = ecs.createSystem<ABSystem>();
-            auto system3 = ecs.createSystem<CSystem>(nbComps / 20);
+            auto system3 = ecs.createSystem<CSystem>(nbComps / 50);
 
             std::cout << A::componentId << " " << B::componentId << " " << C::componentId << std::endl;
 

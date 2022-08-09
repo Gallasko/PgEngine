@@ -90,11 +90,11 @@ namespace pg
             }
 
             template <typename... Args>
-            inline Type* internalCreateComponent(Entity& entity, const Args&... args)
+            inline Type* internalCreateComponent(Entity& entity, Args&&... args)
             {
                 LOG_THIS_MEMBER("Ref");
 
-                return ref->internalCreateComponent(entity, args...);
+                return ref->internalCreateComponent(entity, std::forward<Args>(args)...);
             }
 
             inline void internalRemoveComponent(Entity& entity)
@@ -137,22 +137,12 @@ namespace pg
             }
 
             template <typename... Args>
-            inline Type* internalCreateComponent(Entity& entity, const Args&... args)
+            inline Type* internalCreateComponent(Entity& entity, Args&&... args)
             {
                 LOG_THIS_MEMBER("Own");
 
-                // Create a new component
-                auto comp = new Type(args...);
-
-                // Store it in a sparse set along with the entity id using it
-                components.addComponent(entity, comp);
-
-                // Todo
-                // Add the component to the entity component list for fast 
-                // entity.componentList[Type::componentId] = comp;
-
-                // Return the component for possible modification
-                return comp;
+                // Create a new component and store it in a sparse set along with the entity id using it
+                return components.addComponent(entity, std::forward<Args>(args)...);
             }
 
             inline void internalRemoveComponent(Entity& entity)
