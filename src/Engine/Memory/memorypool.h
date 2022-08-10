@@ -37,29 +37,31 @@ namespace pg
      * @brief A helper struct to create a block of memory
      * 
      * @tparam T Type of the object to be created
-     * @tparam N Number of object to allocate at once
+     * @tparam N 
      */
-    template<typename T, size_t N>
+    template<typename T>
     struct Block
     {
         /**
          * @brief Construct a new Block object
          * 
+         * @param size Number of object to allocate at once
+         * 
          * Create N free object and then passed the ownership of those element to the pool
          */
-        Block()
+        Block(const size_t& size)
         {
             // Allocate at once enough space for N objects
-            chunks = new Chunk<T>[N];
+            chunks = new Chunk<T>[size];
 
             // Construct the free list of objects
-            for(unsigned int i = 0; i < N - 1; i++)
+            for(unsigned int i = 0; i < size - 1; i++)
             {
                 chunks[i].next = &chunks[i + 1];
             }
 
             // End the free list
-            chunks[N - 1].next = nullptr;
+            chunks[size - 1].next = nullptr;
         }
 
         /** The first free space of the newly created block */
@@ -103,11 +105,13 @@ namespace pg
          * @see release
          */
         template<typename... Args>
-        T* allocate(const Args&... args)
+        T* allocate(Args&&... args)
         {
             if(freeList == nullptr)
             {
-                auto newBlock = Block<T, N>();
+                size *= 2;
+
+                auto newBlock = Block<T>(size);
                 freeList = newBlock.chunks;
 
                 chunkList.push_back(newBlock.chunks);
@@ -116,7 +120,7 @@ namespace pg
             auto chunk = freeList;
             freeList = chunk->next;
 
-            ::new(&(chunk->element)) T(args...);
+            ::new(&(chunk->element)) T(std::forward<Args>(args)...);
 
             return reinterpret_cast<T*>(chunk);
         }
@@ -142,6 +146,8 @@ namespace pg
         }
 
     private:
+        size_t size = N;
+
         /** Pointer to the next free object in the pool */
         Chunk<T>* freeList = nullptr;
 

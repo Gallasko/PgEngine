@@ -16,6 +16,8 @@
 #include "entity.h"
 #include "component.h"
 
+#include "Memory/memorypool.h"
+
 namespace pg
 {
     namespace ecs
@@ -325,7 +327,7 @@ namespace pg
                      * 
                      * @return Comp* A pointer to the component stored recasted into the actual component
                      */
-                    inline Comp* operator*() { return reinterpret_cast<Comp*>(&(componentList[index]));}
+                    inline Comp* operator*() { return componentList[index];}
 
                     // Protected constructor
                 protected:
@@ -337,14 +339,14 @@ namespace pg
                      * 
                      * This object can only be created from a ComponentSet List inside of a ComponentSet Object
                      */
-                    Iterator(const size_t& pos, CompStorage *componentList) : index(pos), componentList(componentList) {}
+                    Iterator(const size_t& pos, Comp **componentList) : index(pos), componentList(componentList) {}
 
                     // Private variables
                 private:
                     /** Index of the current position in the componentList */
                     size_t index = 1;
                     /** An array of component pointers */
-                    CompStorage *componentList;
+                    Comp **componentList;
                 };
 
                 // Public interface
@@ -359,7 +361,7 @@ namespace pg
                  * Be careful as the operator doesn't not check the bound of the list, this can throw an out of bound exception
                  * Use with nbElement of the sparse set to be in bound
                  */
-                Comp* operator[](const size_t& index) { return reinterpret_cast<Comp*>(&(componentList[index])); }
+                Comp* operator[](const size_t& index) { return componentList[index]; }
 
                 /**
                  * @brief Get the head iterator
@@ -394,7 +396,7 @@ namespace pg
                  * 
                  * This object can only be created from a SparseSet Object
                  */
-                ComponentSetList(const size_t& size, CompStorage *componentList) : head(1, componentList), tail(size, componentList), componentList(componentList) {}
+                ComponentSetList(const size_t& size, Comp **componentList) : head(1, componentList), tail(size, componentList), componentList(componentList) {}
 
                 // Private variables
             private:
@@ -404,19 +406,19 @@ namespace pg
                 Iterator tail;
 
                 /** The component list to iterate over */
-                CompStorage *componentList;      
+                Comp **componentList;      
             };
 
         public:
             ComponentSet() : SparseSet()
             {
-                componentList = new CompStorage[componentCapacity];
+                componentList = new Comp*[componentCapacity];
             };
 
             ~ComponentSet()
             {
-                // for(size_t i = 1; i < maxAchievedComponents; i++)
-                //     delete componentList[i];
+                for(size_t i = 1; i < nbComponents; i++)
+                    pool.release(componentList[i]);
 
                 delete[] componentList;
             }
@@ -424,6 +426,7 @@ namespace pg
             template <typename... Args>
             Comp* addComponent(const Entity& entity, Args&&... args)
             {
+                // const auto index = add(entity.id);
                 const auto index = add(entity.id);
 
                 if(index == 0)
@@ -431,33 +434,30 @@ namespace pg
 
                 if(index >= componentCapacity)
                 {
-                    CompStorage* tempComponentList = new CompStorage[componentCapacity * 2];
+                    Comp** tempComponentList = new Comp*[componentCapacity * 2];
                     
                     // Todo check if this doens't create memory leaks
 
                     // std::uninitialized_copy_n(tempComponentList, componentCapacity);
                     // std::uninitialized_copy_n(componentList, componentCapacity, tempComponentList);
 
-                    memcpy(tempComponentList, componentList, componentCapacity * sizeof(CompStorage));
-                    //delete[] componentList;
+                    memcpy(tempComponentList, componentList, componentCapacity * sizeof(Comp*));
+                    delete[] componentList;
                     componentList = tempComponentList;
                     componentCapacity *= 2;
                 }
 
-                if(index > maxAchievedComponents)
-                    maxAchievedComponents = index;
-                //else if(index < maxAchievedComponents)
-                //    delete componentList[index];
-
                 lastEntityIndex = index;
                 
-                Comp* ptr = ::new (&(componentList[index])) Comp(std::forward<Args>(args)...);
+                auto component = pool.allocate(std::forward<Args>(args)...);
+
+                componentList[nbComponents++] = component;
 
                 // Todo
                 // Add the component to the entity component list for fast 
                 // entity.componentList[Type::componentId] = comp;
 
-                return ptr;
+                return component;
             }
 
             // TODO make a sparse set implementation that doesn't delete components on remove but instead reuse dead memory
@@ -468,11 +468,12 @@ namespace pg
                 if(index == 0)
                     return;
 
-                reinterpret_cast<Comp*>(&(componentList[index]))->~Comp();
+                pool.release(componentList[index]);
 
                 // Swap the last component in the place of the component to be removed
-                componentList[index] = componentList[lastEntityIndex];
-                lastEntityIndex--;
+                componentList[index] = componentList[nbComponents];
+
+                nbComponents > 1 ? nbComponents-- : nbComponents; 
             }
 
             /**
@@ -483,14 +484,16 @@ namespace pg
              */
             inline ComponentSetList viewComponents() const
             {
-                return ComponentSetList(size, componentList);
+                return ComponentSetList(nbComponents, componentList);
             }
 
         private:
             /** The component list holding the data of all the component of this sparse set */
-            CompStorage* componentList;
+            Comp** componentList;
 
-            size_t maxAchievedComponents = 1;
+            AllocatorPool<Comp> pool;
+
+            size_t nbComponents = 1;
 
             size_t componentCapacity = 2;
 

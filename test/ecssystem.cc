@@ -69,7 +69,7 @@ namespace pg
                     auto it = list.begin();
                     for(size_t i = 0; it != list.end(); it++, i++)
                     {
-                        // if(i % count == 0)
+                         if(i % count == 0)
                             std::cout << (*it)->text << std::endl;
                     }
                 }
@@ -103,7 +103,7 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(system_test, initialization)
         {
-            constexpr size_t nbComps = 1000;
+            constexpr size_t nbComps = 10000000;
 
             // MockLogger logger(true);
 
@@ -150,6 +150,9 @@ namespace pg
 
             std::cout << "]" << std::endl;
 
+            system3->execute();
+            system3->execute();
+            system3->execute();
             system3->execute();
 
             std::cout << "End" << std::endl;
