@@ -432,6 +432,12 @@ namespace pg
                 if(index >= componentCapacity)
                 {
                     CompStorage* tempComponentList = new CompStorage[componentCapacity * 2];
+                    
+                    // Todo check if this doens't create memory leaks
+
+                    // std::uninitialized_copy_n(tempComponentList, componentCapacity);
+                    // std::uninitialized_copy_n(componentList, componentCapacity, tempComponentList);
+
                     memcpy(tempComponentList, componentList, componentCapacity * sizeof(CompStorage));
                     //delete[] componentList;
                     componentList = tempComponentList;
