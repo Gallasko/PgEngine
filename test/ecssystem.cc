@@ -201,6 +201,8 @@ namespace pg
 
         TEST(system_test, group)
         {
+            MockLogger logger(true);
+            
             ecs::EntitySystem ecs;
 
             auto system = ecs.createSystem<ASystem>();

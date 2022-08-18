@@ -3,6 +3,10 @@
 #include "uniqueid.h"
 #include "sparseset.h"
 
+#include "componentregistry.h"
+
+#include <iostream>
+
 namespace pg
 {
     namespace ecs
@@ -34,12 +38,21 @@ namespace pg
         template <typename Type, typename... Types>
         struct Group
         {
-            // Group(){}
+            Group(){}
             Group(_unique_id id) { Group<Type, Types...>::groupId = id; }
 
-            void setRegistry(ComponentRegistry* registry);
+            void setRegistry(ComponentRegistry* registry)
+            {
+                this->registry = registry;
+                registry->storeGroup<Type, Types...>(this);
+            }
 
-            void process();
+            void process()
+            {
+                auto set = smallestSet(registry->retrieve<Type>()->components, registry->retrieve<Types...>()->components);
+
+                std::cout << "Smallest set has: " << set.nbElements() << " elements" << std::endl;
+            }
 
             inline const SparseSet& smallestSet(const SparseSet& set1, const SparseSet& set2) const
             {

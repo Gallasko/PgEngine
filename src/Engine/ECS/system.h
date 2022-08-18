@@ -126,7 +126,7 @@ namespace pg
             }
 
             template <typename Type, typename... Types>
-            Group<Type, Types...>& group() const
+            Group<Type, Types...> group() const
             {
                 LOG_THIS_MEMBER("System");
 
