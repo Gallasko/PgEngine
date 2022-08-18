@@ -43,7 +43,6 @@ namespace pg
                 return static_cast<Own<Type>*>(static_cast<Delegate*>(componentStorageMap.at(Type::componentId)));
             }
 
-/*
             template <typename Type, typename... Types>
             void store(Group<Type, Types...>* group)
             {
@@ -63,7 +62,6 @@ namespace pg
 
                 return static_cast<Group<Type, Types...>*>(static_cast<Delegate*>(groupStorageMap.at(Group<Type, Types...>::groupId)));
             }
-*/
 
         private:
             std::unordered_map<_unique_id, Storage*> componentStorageMap;

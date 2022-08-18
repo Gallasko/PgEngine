@@ -105,7 +105,7 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(system_test, initialization)
         {
-            constexpr size_t nbComps = 10000000;
+            constexpr size_t nbComps = 100000;
 
             // MockLogger logger(true);
 
@@ -197,6 +197,24 @@ namespace pg
             std::cout << "End" << std::endl;
 
             delete[] entity;
+        }
+
+        TEST(system_test, group)
+        {
+            ecs::EntitySystem ecs;
+
+            auto system = ecs.createSystem<ASystem>();
+            
+            auto absys = ecs.createSystem<ABSystem>();
+
+            auto group = absys->group<A, B>();
+
+            for(auto& element : group)
+            {
+                // element.entity;
+                // element.get<A>();
+                // element.get<B>();
+            }
         }
 
         /*

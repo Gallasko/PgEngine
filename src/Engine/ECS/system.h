@@ -139,9 +139,13 @@ namespace pg
                     return *(registry->retrieve<Type, Types...>());
                 else
                 {
+                    LOG_INFO("System", "Creating new group");
                     auto group = new Group<Type, Types...>(generateId());
                     
                     group->setRegistry(registry);
+                    group->process();
+
+                    return *group;
                 }
 
             }

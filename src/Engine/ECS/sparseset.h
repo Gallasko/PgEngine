@@ -449,6 +449,7 @@ namespace pg
 
                 lastEntityIndex = index;
                 
+                // Todo: Test if allocating memory in a pool is faster than direct memory allocation with new
                 auto component = pool.allocate(std::forward<Args>(args)...);
 
                 componentList[nbComponents++] = component;
