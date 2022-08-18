@@ -15,7 +15,7 @@ namespace pg
         template <typename Type>
         struct Own;
 
-        template <typename... Types>
+        template <typename Type, typename... Types>
         struct Group;
 
         class ComponentRegistry
@@ -44,7 +44,7 @@ namespace pg
             }
 
             template <typename Type, typename... Types>
-            void store(Group<Type, Types...>* group)
+            void storeGroup(Group<Type, Types...>* group)
             {
                 LOG_THIS_MEMBER("Component Registry");
 
@@ -54,7 +54,7 @@ namespace pg
             }
 
             template <typename Type, typename... Types>
-            Group<Type, Types...>* retrieve() const
+            Group<Type, Types...>* retrieveGroup() const
             {
                 LOG_THIS_MEMBER("Component Registry");
 

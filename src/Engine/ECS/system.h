@@ -6,6 +6,7 @@
 #include "entity.h"
 #include "component.h"
 #include "componentregistry.h"
+#include "group.h"
 
 #include "logger.h"
 
@@ -125,7 +126,7 @@ namespace pg
             }
 
             template <typename Type, typename... Types>
-            Group<Type, Types...> group() const
+            Group<Type, Types...>& group() const
             {
                 LOG_THIS_MEMBER("System");
 
@@ -136,7 +137,7 @@ namespace pg
                 }
 
                 if(Group<Type, Types...>::groupId != 0)
-                    return *(registry->retrieve<Type, Types...>());
+                    return *(registry->retrieveGroup<Type, Types...>());
                 else
                 {
                     LOG_INFO("System", "Creating new group");

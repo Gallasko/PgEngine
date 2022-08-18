@@ -209,12 +209,14 @@ namespace pg
 
             auto group = absys->group<A, B>();
 
+/*
             for(auto& element : group)
             {
                 // element.entity;
                 // element.get<A>();
                 // element.get<B>();
             }
+*/
         }
 
         /*

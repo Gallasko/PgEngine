@@ -10,17 +10,6 @@ namespace pg
         // Type forwarding
         class ComponentRegistry;
 
-        SparseSet* smallestSet(SparseSet* set1, SparseSet* set2)
-        {
-            return set1->nbElements() < set2->nbElements() ? set1 : set2;
-        }
-
-        template <class... Sets>
-        SparseSet* smallestSet(SparseSet* set1, SparseSet* set2, Sets*... setN)
-        {
-            return set1->nbElements() < set2->nbElements() ? smallestSet(set1, setN...) : smallestSet(set2, setN...);
-        }
-
         template <typename Type>
         struct Getter
         {
@@ -45,19 +34,25 @@ namespace pg
         template <typename Type, typename... Types>
         struct Group
         {
-            Group(){}
+            // Group(){}
             Group(_unique_id id) { Group<Type, Types...>::groupId = id; }
 
-            void setRegistry(ComponentRegistry* registry)
+            void setRegistry(ComponentRegistry* registry);
+
+            void process();
+
+            inline const SparseSet& smallestSet(const SparseSet& set1, const SparseSet& set2) const
             {
-                registry->store<Type, Types...>(this);
+                return set1.nbElements() < set2.nbElements() ? set1 : set2;
             }
 
-            void process()
+            template <typename Set, typename... Sets>
+            inline const SparseSet& smallestSet(const SparseSet& set1, const SparseSet& set2, const Set& setN, const Sets&... sets) const
             {
-                auto set = smallestSet(registry->retrieve<Type>()->view<Type>(), registry->retrieve<Types>...()->view<Types>...());
+                return set1.nbElements() < set2.nbElements() ? smallestSet(set1, setN, sets...) : smallestSet(set2, setN, sets...);
             }
-            
+
+            ComponentRegistry* registry;
             ComponentSet<GroupElement<Type, Types...>> elements;
 
             static _unique_id groupId;
