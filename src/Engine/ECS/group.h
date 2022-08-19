@@ -40,8 +40,8 @@ namespace pg
         template <typename Type, typename... Types>
         struct Group
         {
-            Group(){ LOG_THIS_MEMBER("Ecs Group"); }
             Group(_unique_id id) { LOG_THIS_MEMBER("Ecs Group"); Group<Type, Types...>::groupId = id; }
+            virtual ~Group() { LOG_THIS_MEMBER("Ecs Group"); }
 
             void setRegistry(ComponentRegistry* registry)
             {
@@ -55,7 +55,7 @@ namespace pg
             {
                 LOG_THIS_MEMBER("Ecs Group");
 
-                auto set = smallestSet(registry->retrieve<Type>()->components, registry->retrieve<Types...>()->components);
+                const SparseSet& set = smallestSet(registry->retrieve<Type>()->components, registry->retrieve<Types...>()->components);
 
                 LOG_INFO("Ecs Group", "Smallest set has: " + std::to_string(set.nbElements()) + " elements");
             }

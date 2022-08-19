@@ -19,7 +19,7 @@ namespace pg
          */
         struct AbstractSystem
         {
-            virtual ~AbstractSystem() {}
+            virtual ~AbstractSystem() { LOG_THIS_MEMBER("System"); }
 
             virtual void execute() = 0;
             
@@ -30,11 +30,15 @@ namespace pg
         struct System;
 
         template <typename Sys>
-        void registerComponents(Sys*, ComponentRegistry*) {}
+        void registerComponents(Sys*, ComponentRegistry*) { LOG_THIS("System"); }
 
         template <typename Comp, typename... Comps, typename Sys>
         void registerComponents(Sys *system, ComponentRegistry *registry, const tag<Own<Comp>>&, const Comps&... comps)
         {
+            LOG_THIS("System");
+
+            LOG_INFO("System", "Registering an own to '" + std::string(typeid(Comp).name()) + "' to the system.");
+
             static_cast<Own<Comp>*>(system)->setRegistry(registry);
             registerComponents(system, registry, comps...);
         }
@@ -42,6 +46,10 @@ namespace pg
         template <typename Comp, typename... Comps, typename Sys>
         void registerComponents(Sys *system, ComponentRegistry *registry, const tag<Ref<Comp>>&, const Comps&... comps)
         {
+            LOG_THIS("System");
+            
+            LOG_INFO("System", "Registering a ref to '" + std::string(typeid(Comp).name()) + "' to the system.");
+            
             static_cast<Ref<Comp>*>(system)->setRegistry(registry);
             registerComponents(system, registry, comps...);
         }
@@ -126,18 +134,18 @@ namespace pg
             }
 
             template <typename Type, typename... Types>
-            Group<Type, Types...> group() const
+            const Group<Type, Types...>* group() const
             {
                 LOG_THIS_MEMBER("System");
 
                 if(registry == nullptr)
                 {
                     LOG_ERROR("System", "No registry specified, can't create a group");
-                    return Group<Type, Types...>();
+                    return nullptr;
                 }
 
                 if(Group<Type, Types...>::groupId != 0)
-                    return *(registry->retrieveGroup<Type, Types...>());
+                    return registry->retrieveGroup<Type, Types...>();
                 else
                 {
                     LOG_INFO("System", "Creating new group");
@@ -146,7 +154,7 @@ namespace pg
                     group->setRegistry(registry);
                     group->process();
 
-                    return *group;
+                    return group;
                 }
 
             }

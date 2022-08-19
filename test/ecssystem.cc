@@ -209,7 +209,9 @@ namespace pg
             
             auto absys = ecs.createSystem<ABSystem>();
 
-            auto group = absys->group<A, B>();
+            {
+                auto group = absys->group<A, B>();
+            }
 
 /*
             for(auto& element : group)

@@ -281,6 +281,30 @@ namespace pg
         static void removeSink(std::shared_ptr<Logger::LogSink> sink);
 
         /**
+         * @brief Main function used to register a single log message
+         * 
+         * @param line          Line where the log message happened
+         * @param file          File where the log message happened
+         * @param function      Function where the log message happened
+         * @param object        A reference to the object where the log message happened
+         * @param objectName    Name of the object where the log message happened
+         * @param scope         Scope of the message for filtering and priority
+         * @param msg           Message to be logged
+         * @param level         Level of emergency of the message
+         */
+        inline static void _single_log(const int line, const char* file, const char* function, const void* object, const char* objectName, const char* scope, const char* msg, const Logger::InfoLevel& level)
+        {
+            // Fonctor to use C++ scope initialisation to easely lock log pushback
+            std::lock_guard<std::mutex> lock(_lock);
+
+            const auto log = Logger::Info{line, file, ("In function: '" + std::string(function) + "'").c_str(), object, objectName, scope, msg, level};
+
+            // Call all the sink registered and push the received message to them
+            for(const auto& sink : sinks)
+                *sink << log;
+        }
+
+        /**
          * @brief Main function used to register a log message
          * 
          * @param line          Line where the log message happened

@@ -2,6 +2,8 @@
 
 #include "logger.h"
 
+#include <iostream>
+
 namespace pg
 {
     namespace ecs
@@ -24,6 +26,9 @@ namespace pg
             dense = new _unique_id[denseCapacity];
 
             sparse = new size_t[sparseCapacity];
+
+            std::cout << "Create Dense table at addr: "  << std::hex << dense << std::endl;
+            std::cout << "Create Sparse table at addr: "  << std::hex << sparse << std::endl;
         }
 
         /**
@@ -37,6 +42,9 @@ namespace pg
         SparseSet::~SparseSet()
         {
             LOG_THIS_MEMBER(DOM);
+
+            std::cout << "Delete Dense table at addr: "  << std::hex << dense << std::endl;
+            std::cout << "Delete Sparse table at addr: "  << std::hex << sparse << std::endl;
 
             clear();
 

@@ -18,11 +18,19 @@ namespace pg
         template <typename Type, typename... Types>
         struct Group;
 
+        // TODO in destructor delete all groups !
         class ComponentRegistry
         {
             struct Storage {};
 
         public:
+            ~ComponentRegistry()
+            {
+                LOG_THIS_MEMBER("Component Registry");
+
+                for(auto group : groupStorageMap)
+                    delete group.second;
+            }
             template <typename Type>
             void store(Own<Type>* owner)
             {
@@ -48,7 +56,7 @@ namespace pg
             {
                 LOG_THIS_MEMBER("Component Registry");
 
-                struct Delegate : public Storage, public Group<Type, Types...> { };
+                struct Delegate : public Storage, public Group<Type, Types...> { virtual ~Delegate() {} };
 
                 groupStorageMap.emplace(Group<Type, Types...>::groupId, static_cast<Storage*>(static_cast<Delegate*>(group)));
             }
@@ -58,7 +66,7 @@ namespace pg
             {
                 LOG_THIS_MEMBER("Component Registry");
 
-                struct Delegate : public Storage, public Group<Type, Types...> { };
+                struct Delegate : public Storage, public Group<Type, Types...> { virtual ~Delegate() {} };
 
                 return static_cast<Group<Type, Types...>*>(static_cast<Delegate*>(groupStorageMap.at(Group<Type, Types...>::groupId)));
             }

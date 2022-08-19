@@ -18,6 +18,8 @@
 
 #include "Memory/memorypool.h"
 
+#include "logger.h"
+
 namespace pg
 {
     namespace ecs
@@ -43,14 +45,14 @@ namespace pg
                      * 
                      * @return The current iterator with the next indice
                      */
-                    inline Iterator& operator++() { index++; return *this; }
+                    inline Iterator& operator++() { LOG_THIS_MEMBER("Sparse Set List Iterator"); index++; return *this; }
                     
                     /**
                      * @brief Overload of the post increment operator
                      * 
                      * @return A new iterator with the next indice
                      */
-                    inline Iterator operator++(int) { Iterator old = *this; index++; return old; }
+                    inline Iterator operator++(int) { LOG_THIS_MEMBER("Sparse Set List Iterator"); Iterator old = *this; index++; return old; }
 
                     /**
                      * @brief Overload of the equal operator
@@ -60,7 +62,7 @@ namespace pg
                      * @return true if the value are equal
                      * @return false otherwise
                      */
-                    inline bool operator==(const Iterator& rhs) const { return index == rhs.index; } 
+                    inline bool operator==(const Iterator& rhs) const { LOG_THIS_MEMBER("Sparse Set List Iterator"); return index == rhs.index; } 
                     
                     /**
                      * @brief Overload of the not equal operator
@@ -70,18 +72,18 @@ namespace pg
                      * @return true if the value are not equal
                      * @return false otherwise
                      */
-                    inline bool operator!=(const Iterator& rhs) const { return index != rhs.index; } 
+                    inline bool operator!=(const Iterator& rhs) const { LOG_THIS_MEMBER("Sparse Set List Iterator"); return index != rhs.index; } 
 
                     /**
                      * @brief Overload of the * operator
                      * 
                      * @return _unique_id A unique identifier in the list
                      */
-                    inline _unique_id operator*() const { return dense[index]; }
+                    inline _unique_id operator*() const { LOG_THIS_MEMBER("Sparse Set List Iterator"); return dense[index]; }
 
                     // Protected constructor
                 protected:
-                    Iterator(const size_t& pos, _unique_id *dense) : index(pos), dense(dense) {}
+                    Iterator(const size_t& pos, _unique_id *dense) : index(pos), dense(dense) { LOG_THIS_MEMBER("Sparse Set List Iterator"); }
 
                     // Private variables
                 private:
@@ -93,21 +95,21 @@ namespace pg
                 // Public interface
             public:
                 // Todo make doc
-                _unique_id operator[](const size_t& index) { return dense[index]; }
+                _unique_id operator[](const size_t& index) { LOG_THIS_MEMBER("Sparse Set List"); return dense[index]; }
 
                 /**
                  * @brief Get the head iterator
                  * 
                  * @return constexpr Iterator An iterator at the head of the dense list
                  */
-                inline Iterator begin() const { return head; }
+                inline Iterator begin() const { LOG_THIS_MEMBER("Sparse Set List"); return head; }
 
                 /**
                  * @brief Get the tail iterator
                  * 
                  * @return constexpr Iterator An iterator at the tail of the dense list
                  */
-                inline Iterator end() const { return tail; }
+                inline Iterator end() const { LOG_THIS_MEMBER("Sparse Set List"); return tail; }
 
                 // Public constructor
             public:
@@ -116,12 +118,12 @@ namespace pg
                  * 
                  * @param other The Sparse Set List to copy
                  */
-                SparseSetList(const SparseSetList& other) : head(other.head), tail(other.head), dense(other.dense) {}
+                SparseSetList(const SparseSetList& other) : head(other.head), tail(other.head), dense(other.dense) { LOG_THIS_MEMBER("Sparse Set List"); }
 
                 // Protected constructor
             protected:
                 // Todo make doc
-                SparseSetList(const size_t& size, _unique_id *dense) : head(1, dense), tail(size, dense), dense(dense) {}
+                SparseSetList(const size_t& size, _unique_id *dense) : head(1, dense), tail(size, dense), dense(dense) { LOG_THIS_MEMBER("Sparse Set List"); }
 
                 // Private variables
             private:
@@ -139,6 +141,9 @@ namespace pg
             /** Construct a new Sparse Set object */
             SparseSet();
 
+            /** Sets can't be copied as they own data */
+            SparseSet(const SparseSet&) = delete;
+
             /** Destroy the Sparse Set object */
             virtual ~SparseSet();
         
@@ -154,7 +159,7 @@ namespace pg
              * This function uses one of the main properties of the sparse set, the reciprocity of the id in the dense and sparse array
              * This operation is O(1) as it only need 2 indirections and 3 checks to know if an id is in the list and this is true whatever the size of the array
              */
-            inline bool has(const _unique_id& id) const { return id < sparseCapacity && sparse[id] < denseCapacity && dense[sparse[id]] == id; };
+            inline bool has(const _unique_id& id) const { LOG_THIS_MEMBER("Sparse Set"); return id < sparseCapacity && sparse[id] < denseCapacity && dense[sparse[id]] == id; };
 
             /**
              * @brief Get the id at a given index of the set
@@ -164,6 +169,8 @@ namespace pg
              */
             inline _unique_id at(const size_t& index) const
             {
+                LOG_THIS_MEMBER("Sparse Set");
+
                 if(index >= size) 
                     return 0;
                 
@@ -178,6 +185,8 @@ namespace pg
              */
             inline size_t find(const _unique_id& id) const
             {
+                LOG_THIS_MEMBER("Sparse Set");
+
                 if(has(id))
                     return sparse[id];
 
@@ -204,10 +213,12 @@ namespace pg
              * The list start at index 1 to nbElement()
              * This function is used to ensure that the bound of the set are respected
              */
-            inline constexpr size_t nbElements() const { return size; }
+            inline constexpr size_t nbElements() const { LOG_THIS_MEMBER("Sparse Set"); return size; }
 
             inline SparseSetList view() const
             {
+                LOG_THIS_MEMBER("Sparse Set");
+                
                 return SparseSetList(nbElements(), dense);
             }
 
@@ -293,14 +304,14 @@ namespace pg
                      * 
                      * @return The current iterator with the next indice
                      */
-                    inline Iterator& operator++() { index++; return *this; }
+                    inline Iterator& operator++() { LOG_THIS_MEMBER("Component Set List Iterator"); index++; return *this; }
                     
                     /**
                      * @brief Overload of the post increment operator
                      * 
                      * @return A new iterator with the next indice
                      */
-                    inline Iterator operator++(int) { Iterator old = *this; index++; return old; }
+                    inline Iterator operator++(int) { LOG_THIS_MEMBER("Component Set List Iterator"); Iterator old = *this; index++; return old; }
 
                     /**
                      * @brief Overload of the equal operator
@@ -310,7 +321,7 @@ namespace pg
                      * @return true if the value are equal
                      * @return false otherwise
                      */
-                    inline bool operator==(const Iterator& rhs) const { return index == rhs.index; } 
+                    inline bool operator==(const Iterator& rhs) const { LOG_THIS_MEMBER("Component Set List Iterator"); return index == rhs.index; } 
                     
                     /**
                      * @brief Overload of the not equal operator
@@ -320,14 +331,14 @@ namespace pg
                      * @return true if the value are not equal
                      * @return false otherwise
                      */
-                    inline bool operator!=(const Iterator& rhs) const { return index != rhs.index; } 
+                    inline bool operator!=(const Iterator& rhs) const { LOG_THIS_MEMBER("Component Set List Iterator"); return index != rhs.index; } 
 
                     /**
                      * @brief Overload of the * operator
                      * 
                      * @return Comp* A pointer to the component stored recasted into the actual component
                      */
-                    inline Comp* operator*() { return componentList[index];}
+                    inline Comp* operator*() { LOG_THIS_MEMBER("Component Set List Iterator"); return componentList[index];}
 
                     // Protected constructor
                 protected:
@@ -339,7 +350,7 @@ namespace pg
                      * 
                      * This object can only be created from a ComponentSet List inside of a ComponentSet Object
                      */
-                    Iterator(const size_t& pos, Comp **componentList) : index(pos), componentList(componentList) {}
+                    Iterator(const size_t& pos, Comp **componentList) : index(pos), componentList(componentList) { LOG_THIS_MEMBER("Component Set List Iterator"); }
 
                     // Private variables
                 private:
@@ -361,21 +372,21 @@ namespace pg
                  * Be careful as the operator doesn't not check the bound of the list, this can throw an out of bound exception
                  * Use with nbElement of the sparse set to be in bound
                  */
-                Comp* operator[](const size_t& index) { return componentList[index]; }
+                Comp* operator[](const size_t& index) { LOG_THIS_MEMBER("Component Set List"); return componentList[index]; }
 
                 /**
                  * @brief Get the head iterator
                  * 
                  * @return constexpr Iterator An iterator at the head of the component list
                  */
-                inline Iterator begin() const { return head; }
+                inline Iterator begin() const { LOG_THIS_MEMBER("Component Set List"); return head; }
 
                 /**
                  * @brief Get the tail iterator
                  * 
                  * @return constexpr Iterator An iterator at the tail of the component list
                  */
-                inline Iterator end() const { return tail; }
+                inline Iterator end() const { LOG_THIS_MEMBER("Component Set List"); return tail; }
 
                 // Public constructor
             public:
@@ -384,7 +395,7 @@ namespace pg
                  * 
                  * @param other The Sparse Set List to copy
                  */
-                ComponentSetList(const ComponentSetList& other) : head(other.head), tail(other.head), componentList(other.componentList) {}
+                ComponentSetList(const ComponentSetList& other) : head(other.head), tail(other.head), componentList(other.componentList) { LOG_THIS_MEMBER("Component Set List"); }
 
                 // Protected constructor
             protected:
@@ -396,7 +407,7 @@ namespace pg
                  * 
                  * This object can only be created from a SparseSet Object
                  */
-                ComponentSetList(const size_t& size, Comp **componentList) : head(1, componentList), tail(size, componentList), componentList(componentList) {}
+                ComponentSetList(const size_t& size, Comp **componentList) : head(1, componentList), tail(size, componentList), componentList(componentList) { LOG_THIS_MEMBER("Component Set List"); }
 
                 // Private variables
             private:
@@ -412,11 +423,15 @@ namespace pg
         public:
             ComponentSet() : SparseSet()
             {
+                LOG_THIS_MEMBER("Component Set");
+
                 componentList = new Comp*[componentCapacity];
             };
 
-            ~ComponentSet()
+            virtual ~ComponentSet()
             {
+                LOG_THIS_MEMBER("Component Set");
+
                 for(size_t i = 1; i < nbComponents; i++)
                     pool.release(componentList[i]);
 
@@ -426,14 +441,20 @@ namespace pg
             template <typename... Args>
             Comp* addComponent(const Entity& entity, Args&&... args)
             {
+                LOG_THIS_MEMBER("Component Set");
+
                 // const auto index = add(entity.id);
                 const auto index = add(entity.id);
 
                 if(index == 0)
+                {
+                    LOG_ERROR("Component Set", "Invalid index, entity was not added");
                     return nullptr;
+                }
 
                 if(index >= componentCapacity)
                 {
+                    LOG_INFO("Component Set", "Increasing size of the component set");
                     Comp** tempComponentList = new Comp*[componentCapacity * 2];
                     
                     // Todo check if this doens't create memory leaks
@@ -464,10 +485,15 @@ namespace pg
             // TODO make a sparse set implementation that doesn't delete components on remove but instead reuse dead memory
             void removeComponent(const Entity& entity)
             {
+                LOG_THIS_MEMBER("Component Set");
+
                 const auto index = remove(entity.id);
 
                 if(index == 0)
+                {
+                    LOG_ERROR("Component Set", "Invalid index, entity was not removed");
                     return;
+                }
 
                 pool.release(componentList[index]);
 
@@ -485,6 +511,8 @@ namespace pg
              */
             inline ComponentSetList viewComponents() const
             {
+                LOG_THIS_MEMBER("Component Set");
+
                 return ComponentSetList(nbComponents, componentList);
             }
 
