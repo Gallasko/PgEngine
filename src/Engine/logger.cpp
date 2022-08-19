@@ -57,15 +57,14 @@ namespace pg
 
         std::string logPositionString(const char* filename, const char* objectName, const char* function, const int line)
         {
-            std::string logPositionStringBuffer = " in " + std::string(filename);
-
-            if(objectName)
-            logPositionStringBuffer += " for object: " + std::string(objectName);
+            std::string logPositionStringBuffer = "line " + std::to_string(line);
+            logPositionStringBuffer += " in " + std::string(filename);
 
             if(function)
-                logPositionStringBuffer += " in function: " + std::string(function);
+                logPositionStringBuffer += ", " + std::string(function);
 
-            logPositionStringBuffer += ", line " + std::to_string(line);
+            if(objectName)
+                logPositionStringBuffer += " for object: " + std::string(objectName);
 
             return logPositionStringBuffer;
         }
@@ -98,7 +97,7 @@ namespace pg
 
     void TerminalSink::processLog(const Logger::Info& log)
     {
-        std::cout << logLevelString(log.level) << log.scope << " " << log.message  << logPositionString(log.filename, log.objectName, log.function, log.line) << "\n";
+        std::cout << logLevelString(log.level) << "'" << log.scope << "' " << logPositionString(log.filename, log.objectName, log.function, log.line) << log.message << "\n";
         //if(not ignoreNonErrors and log.level == Logger::InfoLevel::log)
         //    std::cout << log.line << ", " << log.filename << ", " << log.function << ", " << log.objectName << "," << log.scope << ", " << log.message << ", " << static_cast<int>(log.level) << std::endl;
     }

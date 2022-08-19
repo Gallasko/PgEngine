@@ -42,15 +42,14 @@ namespace pg
 
         std::string logPositionString(const char* filename, const char* objectName, const char* function, const int line)
         {
-            std::string logPositionStringBuffer = " in " + std::string(filename);
-
-            if(objectName)
-            logPositionStringBuffer += " for object: " + std::string(objectName);
+            std::string logPositionStringBuffer = "line " + std::to_string(line);
+            logPositionStringBuffer += " in " + std::string(filename);
 
             if(function)
-                logPositionStringBuffer += " in function: " + std::string(function);
+                logPositionStringBuffer += ", " + std::string(function);
 
-            logPositionStringBuffer += ", line " + std::to_string(line);
+            if(objectName)
+                logPositionStringBuffer += " for object: " + std::string(objectName);
 
             return logPositionStringBuffer;
         }
@@ -76,7 +75,7 @@ namespace pg
     void TestSink::processLog(const Logger::Info& log)
     {
         if(verbose)
-            std::cout << logLevelString(log.level) << log.scope << " " << log.message  << logPositionString(log.filename, log.objectName, log.function, log.line) << "\n";
+            std::cout << logLevelString(log.level) << "'" << log.scope << "' " << logPositionString(log.filename, log.objectName, log.function, log.line) << log.message << "\n";
 
         nbMessages[log.level]++;
 
