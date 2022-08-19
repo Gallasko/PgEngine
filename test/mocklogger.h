@@ -16,7 +16,7 @@ namespace pg
     {
     friend class Logger;
     public:
-        TestSink(bool verbose = false);
+        TestSink(bool verbose = false, bool showObject = false);
 
         void resetSink();
 
@@ -34,12 +34,13 @@ namespace pg
         LogMessage lastMessage = {"", Logger::InfoLevel::log};
 
         bool verbose;
+        bool showObject;
     };
 
     class MockLogger
     {
     public:
-        MockLogger(bool verbose = false);
+        MockLogger(bool verbose = true, bool showObject = false);
         ~MockLogger();
 
         void reset();

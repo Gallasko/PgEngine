@@ -109,7 +109,7 @@ namespace pg
                 return ref->view();
             }
 
-            inline const _unique_id& getComponentId() const { return Type::componentId; }
+            inline const _unique_id& getComponentId() const { LOG_THIS_MEMBER("Ref"); return Type::componentId; }
 
             Own<Type> *ref;
         };
@@ -120,6 +120,8 @@ namespace pg
             Own(_unique_id id) : Ref<Type>(this)
             {
                 LOG_THIS_MEMBER("Own");
+
+                LOG_INFO("Own", "Type: " + std::string(typeid(Type).name()) + " get the id: " + std::to_string(id));
 
                 // Todo check if Type::componentId is not != 0 but it should never happen
                 Type::componentId = id;
@@ -160,7 +162,7 @@ namespace pg
                 return components.viewComponents();
             }
 
-            inline const _unique_id& getComponentId() const { return Type::componentId; }
+            inline const _unique_id& getComponentId() const { LOG_THIS_MEMBER("Own"); return Type::componentId; }
 
             ComponentSet<Type> components;
         };

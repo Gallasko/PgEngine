@@ -42,20 +42,19 @@ namespace pg
 
         std::string logPositionString(const char* filename, const char* objectName, const char* function, const int line)
         {
-            std::string logPositionStringBuffer = "line " + std::to_string(line);
-            logPositionStringBuffer += " in " + std::string(filename);
+            std::string logPositionStringBuffer = std::string(filename) + ":" + std::to_string(line) + ": ";
 
             if(function)
-                logPositionStringBuffer += ", " + std::string(function);
+                logPositionStringBuffer += std::string(function);
 
             if(objectName)
-                logPositionStringBuffer += " for object: " + std::string(objectName);
+                logPositionStringBuffer += " Object: " + std::string(objectName);
 
             return logPositionStringBuffer;
         }
     }
 
-    TestSink::TestSink(bool verbose) : Logger::LogSink(), verbose(verbose)
+    TestSink::TestSink(bool verbose, bool showObject) : Logger::LogSink(), verbose(verbose), showObject(showObject)
     {
         resetSink();
     }
@@ -74,17 +73,19 @@ namespace pg
 
     void TestSink::processLog(const Logger::Info& log)
     {
+        const char* objectName = showObject ? log.objectName : nullptr;
+
         if(verbose)
-            std::cout << logLevelString(log.level) << "'" << log.scope << "' " << logPositionString(log.filename, log.objectName, log.function, log.line) << log.message << "\n";
+            std::cout << logLevelString(log.level) << "'" << log.scope << "' " << logPositionString(log.filename, objectName, log.function, log.line) << " " << log.message << "\n";
 
         nbMessages[log.level]++;
 
         lastMessage = {log.message, log.level};
     }
 
-    MockLogger::MockLogger(bool verbose)
+    MockLogger::MockLogger(bool verbose, bool showObject)
     {
-        sink = Logger::registerSink<TestSink>(verbose);
+        sink = Logger::registerSink<TestSink>(verbose, showObject);
     }
 
     MockLogger::~MockLogger()

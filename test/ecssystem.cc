@@ -201,7 +201,7 @@ namespace pg
 
         TEST(system_test, group)
         {
-            MockLogger logger(true);
+            MockLogger logger;
             
             ecs::EntitySystem ecs;
 

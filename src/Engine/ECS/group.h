@@ -5,6 +5,8 @@
 
 #include "componentregistry.h"
 
+#include "logger.h"
+
 #include <iostream>
 
 namespace pg
@@ -17,9 +19,9 @@ namespace pg
         template <typename Type>
         struct Getter
         {
-            Getter(Type* value) : value(value) {}
+            Getter(Type* value) : value(value) { LOG_THIS_MEMBER("Ecs Group"); }
 
-            Type* get() const { return value; }
+            Type* get() const { LOG_THIS_MEMBER("Ecs Group"); return value; }
 
             Type* value; 
         };
@@ -27,10 +29,10 @@ namespace pg
         template <typename... Types>
         struct GroupElement : public Getter<Types>...
         {
-            GroupElement(Types*... values) : Getter<Types>(values)... {}
+            GroupElement(Types*... values) : Getter<Types>(values)... { LOG_THIS_MEMBER("Ecs Group"); }
 
             template <typename Type>
-            Type* get() const { return static_cast<Getter<Type>*>(this)->get(); }
+            Type* get() const { LOG_THIS_MEMBER("Ecs Group"); return static_cast<Getter<Type>*>(this)->get(); }
 
             Entity* entity;
         };
@@ -38,30 +40,38 @@ namespace pg
         template <typename Type, typename... Types>
         struct Group
         {
-            Group(){}
-            Group(_unique_id id) { Group<Type, Types...>::groupId = id; }
+            Group(){ LOG_THIS_MEMBER("Ecs Group"); }
+            Group(_unique_id id) { LOG_THIS_MEMBER("Ecs Group"); Group<Type, Types...>::groupId = id; }
 
             void setRegistry(ComponentRegistry* registry)
             {
+                LOG_THIS_MEMBER("Ecs Group");
+
                 this->registry = registry;
                 registry->storeGroup<Type, Types...>(this);
             }
 
             void process()
             {
+                LOG_THIS_MEMBER("Ecs Group");
+
                 auto set = smallestSet(registry->retrieve<Type>()->components, registry->retrieve<Types...>()->components);
 
-                std::cout << "Smallest set has: " << set.nbElements() << " elements" << std::endl;
+                LOG_INFO("Ecs Group", "Smallest set has: " + std::to_string(set.nbElements()) + " elements");
             }
 
             inline const SparseSet& smallestSet(const SparseSet& set1, const SparseSet& set2) const
             {
+                LOG_THIS_MEMBER("Ecs Group");
+
                 return set1.nbElements() < set2.nbElements() ? set1 : set2;
             }
 
             template <typename Set, typename... Sets>
             inline const SparseSet& smallestSet(const SparseSet& set1, const SparseSet& set2, const Set& setN, const Sets&... sets) const
             {
+                LOG_THIS_MEMBER("Ecs Group");
+
                 return set1.nbElements() < set2.nbElements() ? smallestSet(set1, setN, sets...) : smallestSet(set2, setN, sets...);
             }
 

@@ -4,6 +4,8 @@
 
 #include "uniqueid.h"
 
+#include "logger.h"
+
 namespace pg
 {
     namespace ecs
@@ -16,18 +18,18 @@ namespace pg
             std::string name;
 
             // Todo is this really necessary
-            virtual ~AbstractComponent() {}
+            virtual ~AbstractComponent() { LOG_THIS_MEMBER("Component"); }
             // virtual const _unique_id& getComponentId() const = 0;
         };
 
         template<typename Comp>
         struct Component : public AbstractComponent
         {
-            Component(const std::string& name) : AbstractComponent() { this->name = name; }
+            Component(const std::string& name) : AbstractComponent() { LOG_THIS_MEMBER("Component"); this->name = name; }
 
-            Component() : Component(typeid(Comp).name()) { }
+            Component() : Component(typeid(Comp).name()) { LOG_THIS_MEMBER("Component"); }
 
-            virtual ~Component() {}
+            virtual ~Component() { LOG_THIS_MEMBER("Component"); }
 
             // virtual const _unique_id& getComponentId() const override { return Component::componentId; }
 
@@ -40,9 +42,9 @@ namespace pg
         template<typename Comp>
         struct NamedComponent : public Component<Comp>
         {
-            NamedComponent(const std::string& name) : Component<Comp>(name) {}
+            NamedComponent(const std::string& name) : Component<Comp>(name) { LOG_THIS_MEMBER("Component"); }
 
-            virtual ~NamedComponent() {}
+            virtual ~NamedComponent() { LOG_THIS_MEMBER("Component"); }
         };
     }
 }
