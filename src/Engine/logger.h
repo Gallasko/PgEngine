@@ -19,8 +19,8 @@
 #ifdef DEBUG
 #define LOG_THIS(scope) _LOG(pg::Logger::_log(__LINE__, __FILE__, __func__, 0, 0, scope, "", pg::Logger::InfoLevel::log))
 #define LOG_THIS_MEMBER(scope) _LOG(pg::Logger::_log(__LINE__, __FILE__, __func__, this, typeid(*this).name(), scope, "", pg::Logger::InfoLevel::log))
-#define LOG_INFO(scope, msg) pg::Logger::_log(__LINE__, __FILE__, __func__, 0, 0, scope, msg, pg::Logger::InfoLevel::info)
-#define LOG_ERROR(scope, msg) pg::Logger::_log(__LINE__, __FILE__, __func__, 0, 0, scope, msg, pg::Logger::InfoLevel::error)
+#define LOG_INFO(scope, msg) pg::Logger::_single_log(__LINE__, __FILE__, __func__, 0, 0, scope, msg, pg::Logger::InfoLevel::info)
+#define LOG_ERROR(scope, msg) pg::Logger::_single_log(__LINE__, __FILE__, __func__, 0, 0, scope, msg, pg::Logger::InfoLevel::error)
 #else
 #define LOG_THIS(scope) 
 #define LOG_THIS_MEMBER(scope)
@@ -302,6 +302,23 @@ namespace pg
             // Call all the sink registered and push the received message to them
             for(const auto& sink : sinks)
                 *sink << log;
+        }
+
+         /**
+         * @brief Overload function used to register a single log message
+         * 
+         * @param line          Line where the log message happened
+         * @param file          File where the log message happened
+         * @param function      Function where the log message happened
+         * @param object        A reference to the object where the log message happened
+         * @param objectName    Name of the object where the log message happened
+         * @param scope         Scope of the message for filtering and priority
+         * @param msg           Message to be logged
+         * @param level         Level of emergency of the message
+         */
+        inline static void _single_log(const int line, const char* file, const char* function, const void* object, const char* objectName, const char* scope, const std::string& msg, const Logger::InfoLevel& level)
+        {
+            _single_log(line, file, function, object, objectName, scope, msg.c_str(), level);
         }
 
         /**
