@@ -95,7 +95,7 @@ namespace pg
                 // Public interface
             public:
                 // Todo make doc
-                _unique_id operator[](const size_t& index) { LOG_THIS_MEMBER("Sparse Set List"); return dense[index]; }
+                _unique_id operator[](const size_t& index) const { LOG_THIS_MEMBER("Sparse Set List"); return dense[index]; }
 
                 /**
                  * @brief Get the head iterator
@@ -340,6 +340,27 @@ namespace pg
                      */
                     inline Comp* operator*() { LOG_THIS_MEMBER("Component Set List Iterator"); return componentList[index];}
 
+                    /**
+                     * @brief Overload of the * operator
+                     * 
+                     * @return Comp* A pointer to the component stored recasted into the actual component
+                     */
+                    inline const Comp* operator*() const { LOG_THIS_MEMBER("Component Set List Iterator"); return componentList[index];}
+
+                    /**
+                     * @brief Overload of the * operator
+                     * 
+                     * @return Comp* A pointer to the component stored recasted into the actual component
+                     */
+                    inline Comp* operator[](size_t i) { LOG_THIS_MEMBER("Component Set List Iterator"); return componentList[i];}
+
+                    /**
+                     * @brief Overload of the * operator
+                     * 
+                     * @return Comp* A pointer to the component stored recasted into the actual component
+                     */
+                    inline const Comp* operator[](size_t i) const { LOG_THIS_MEMBER("Component Set List Iterator"); return componentList[i];}
+
                     // Protected constructor
                 protected:
                     /**
@@ -372,7 +393,7 @@ namespace pg
                  * Be careful as the operator doesn't not check the bound of the list, this can throw an out of bound exception
                  * Use with nbElement of the sparse set to be in bound
                  */
-                Comp* operator[](const size_t& index) { LOG_THIS_MEMBER("Component Set List"); return componentList[index]; }
+                Comp* operator[](const size_t& index) const { LOG_THIS_MEMBER("Component Set List"); return componentList[index]; }
 
                 /**
                  * @brief Get the head iterator
@@ -438,13 +459,25 @@ namespace pg
                 delete[] componentList;
             }
 
+            /**
+             * @brief Overload of the [] operator
+             * 
+             * @param index Position in the component list
+             * @return Comp* The pointer requested from the component list
+             * 
+             * This helper operator is used to provide access to a component inside of the component list.
+             * Be careful as the operator doesn't not check the bound of the list, this can throw an out of bound exception
+             * Use with nbElement of the sparse set to be in bound
+             */
+            Comp* operator[](const size_t& index) const { LOG_THIS_MEMBER("Component Set "); return componentList[index]; }
+
             template <typename... Args>
-            Comp* addComponent(const Entity& entity, Args&&... args)
+            Comp* addComponent(const _unique_id& id, Args&&... args)
             {
                 LOG_THIS_MEMBER("Component Set");
 
                 // const auto index = add(entity.id);
-                const auto index = add(entity.id);
+                const auto index = add(id);
 
                 if(index == 0)
                 {
@@ -481,14 +514,21 @@ namespace pg
 
                 return component;
             }
-
-            // TODO make a sparse set implementation that doesn't delete components on remove but instead reuse dead memory
-            void removeComponent(const Entity& entity)
+            
+            template <typename... Args>
+            Comp* addComponent(const Entity& entity, Args&&... args)
             {
                 LOG_THIS_MEMBER("Component Set");
 
-                const auto index = remove(entity.id);
+                return addComponent(entity.id, std::forward<Args>(args)...);
+            }
 
+            void removeComponent(const _unique_id& id)
+            {
+                LOG_THIS_MEMBER("Component Set");
+
+                const auto index = remove(id);
+                
                 if(index == 0)
                 {
                     LOG_ERROR("Component Set", "Invalid index, entity was not removed");
@@ -501,6 +541,14 @@ namespace pg
                 componentList[index] = componentList[nbComponents];
 
                 nbComponents > 1 ? nbComponents-- : nbComponents; 
+            }
+
+            // TODO make a sparse set implementation that doesn't delete components on remove but instead reuse dead memory
+            void removeComponent(const Entity& entity)
+            {
+                LOG_THIS_MEMBER("Component Set");
+
+                removeComponent(entity.id);
             }
 
             /**

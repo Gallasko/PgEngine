@@ -7,6 +7,11 @@
 
 #include "logger.h"
 
+#include <algorithm>
+
+// Todo to replace with the thread pool manager
+#include <functional>
+
 #include <iostream>
 
 namespace pg
@@ -19,9 +24,11 @@ namespace pg
         template <typename Type>
         struct Getter
         {
+            Getter() : value(nullptr) {}
             Getter(Type* value) : value(value) { LOG_THIS_MEMBER("Ecs Group"); }
 
             Type* get() const { LOG_THIS_MEMBER("Ecs Group"); return value; }
+            void set(Type* value) { LOG_THIS_MEMBER("Ecs Group"); this->value = value; }
 
             Type* value; 
         };
@@ -29,12 +36,17 @@ namespace pg
         template <typename... Types>
         struct GroupElement : public Getter<Types>...
         {
-            GroupElement(Types*... values) : Getter<Types>(values)... { LOG_THIS_MEMBER("Ecs Group"); }
+            GroupElement(const _unique_id& entityId) : entityId(entityId), Getter<Types>()... {}
+            GroupElement(const _unique_id& entityId, Types*... values) : entityId(entityId), Getter<Types>(values)... { LOG_THIS_MEMBER("Ecs Group"); }
 
             template <typename Type>
-            Type* get() const { LOG_THIS_MEMBER("Ecs Group"); return static_cast<Getter<Type>*>(this)->get(); }
+            Type* get() const { LOG_THIS_MEMBER("Ecs Group"); return static_cast<const Getter<Type>*>(this)->get(); }
 
-            Entity* entity;
+            template <typename Type>
+            void set(Type *value) { LOG_THIS_MEMBER("Ecs Group"); return static_cast<Getter<Type>*>(this)->set(value); }
+
+            const _unique_id entityId;
+            bool toBeDeleted = false;
         };
 
         template <typename Type, typename... Types>
@@ -54,10 +66,39 @@ namespace pg
             void process()
             {
                 LOG_THIS_MEMBER("Ecs Group");
+                
+                // const auto& elements = {registry->retrieve<Type>()->components, registry->retrieve<Types>()->components...};
 
-                const SparseSet& set = smallestSet(registry->retrieve<Type>()->components, registry->retrieve<Types...>()->components);
+                const SparseSet& set = smallestSet(registry->retrieve<Type>()->components, registry->retrieve<Types>()->components...);
 
                 LOG_INFO("Ecs Group", "Smallest set has: " + std::to_string(set.nbElements()) + " elements");
+
+                // Todo add reserve and multiple emplace back in the component/sparse set
+                // elements.reserve(set.nbElements() - 1);
+
+                for(size_t i = 1; i < set.nbElements(); i++)
+                {
+                    const auto& id = set.at(i);
+                    // Add all possible elements that can be a part of the group
+                    elements.addComponent(id, id);
+                }
+
+                // Add support for thread pools by passing a pool in this function and add the task inside of this pool
+                checkEntityInGroup<Type, Types...>(elements);
+
+                const auto& it = elements.viewComponents();
+
+                // Remove all elements that miss at least one component from the group
+                // Todo Do not delete the component but make the iterator skip element to be deleted !
+                for(size_t i = 1; i < elements.nbElements(); i++)
+                {
+                    const auto& element = elements[i];
+                    if(element->toBeDeleted)
+                        elements.removeComponent(element->entityId);
+                }
+                //std::remove_if(it.begin(), it.end(), [](const GroupElement<Type, Types...>& element) { return element.toBeDeleted; });
+            
+                // Todo sort the group
             }
 
             inline const SparseSet& smallestSet(const SparseSet& set1, const SparseSet& set2) const
@@ -73,6 +114,62 @@ namespace pg
                 LOG_THIS_MEMBER("Ecs Group");
 
                 return set1.nbElements() < set2.nbElements() ? smallestSet(set1, setN, sets...) : smallestSet(set2, setN, sets...);
+            }
+
+            // End case of the recursion
+            template <typename Value>
+            inline void checkEntityInGroup(ComponentSet<GroupElement<Type, Types...>>& elements)
+            {
+                LOG_THIS_MEMBER("Ecs Group");
+
+                const auto& components = registry->retrieve<Value>()->components;
+
+                // Create Task
+                std::function<void()> task = [&elements, &components]() -> void {
+                    for (const auto& element : elements.viewComponents())
+                    {
+                        const auto& pos = components.find(element->entityId);
+                        if(pos != 0)
+                            element->set(components[pos]);
+                        else
+                            element->toBeDeleted = true;
+                    }  
+                  };
+
+                // TODO
+                // Send task to the thread pool ( pool->addTask(task); )
+                task();
+
+                // Todo join the task here !
+            }
+
+            template <typename Value, typename Other, typename... Values>
+            inline void checkEntityInGroup(ComponentSet<GroupElement<Type, Types...>>& elements)
+            {
+                LOG_THIS_MEMBER("Ecs Group");
+
+                const auto& components = registry->retrieve<Value>()->components;
+
+                // Create Task
+                std::function<void()> task = [&elements, &components]() -> void {
+                    for (const auto& element : elements.viewComponents())
+                    {
+                        const auto& pos = components.find(element->entityId);
+                        if(pos != 0)
+                            element->set(components[pos]);
+                        else
+                            element->toBeDeleted = true;
+                    }  
+                  };
+
+                // TODO
+                // Send task to the thread pool ( pool->addTask(task); )
+                task();
+
+                // Recursive call to add all the different components to the group
+                checkEntityInGroup<Other, Values...>(elements);
+
+                // Todo join the task here !
             }
 
             ComponentRegistry* registry;

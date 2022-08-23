@@ -71,8 +71,8 @@ namespace pg
                     auto it = list.begin();
                     for(size_t i = 0; it != list.end(); it++, i++)
                     {
-                         if(i % count == 0)
-                            std::cout << (*it)->text << std::endl;
+                        //  if(i % count == 0)
+                            // std::cout << (*it)->text << std::endl;
                     }
                 }
 
@@ -105,9 +105,9 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(system_test, initialization)
         {
-            constexpr size_t nbComps = 100000;
+            constexpr size_t nbComps = 1000;
 
-            // MockLogger logger(true);
+            // MockLogger logger;
 
             auto start = std::chrono::steady_clock::now();
 
@@ -201,26 +201,60 @@ namespace pg
 
         TEST(system_test, group)
         {
-            MockLogger logger;
-            
+            // MockLogger logger;
+            constexpr size_t nbComps = 100000;
+
+            // MockLogger logger;
+
+            auto start = std::chrono::steady_clock::now();
+
             ecs::EntitySystem ecs;
 
-            auto system = ecs.createSystem<ASystem>();
+            auto end = std::chrono::steady_clock::now();
+
+            std::cout << "Ecs creation took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
+
+
+            auto asys  = ecs.createSystem<ASystem>();
             
             auto absys = ecs.createSystem<ABSystem>();
 
+            auto entity = new ecs::Entity[nbComps];
+
+            for(size_t i = 0; i < nbComps; i++)
             {
-                auto group = absys->group<A, B>();
+                entity[i] = ecs.createEntity();
+                asys->createComponent<A>(entity[i], i, 5);
+
+                if(i % 2 == 0)
+                    absys->createOwnedComponent<B>(entity[i], i, 5);
             }
 
-/*
-            for(auto& element : group)
+            start = std::chrono::steady_clock::now();
+
+            auto group = absys->group<A, B>();
+
+            end = std::chrono::steady_clock::now();
+
+            std::cout << "Grouping took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
+
+            start = std::chrono::steady_clock::now();
+
+            for(const auto& element : group->elements.viewComponents())
             {
-                // element.entity;
+                element->get<A>()->value++;
+                // std::cout << element->entityId << std::endl;
+                // std::cout << element->get<A>()->value << std::endl;
+                // std::cout << element->get<B>()->value << std::endl;
+                
                 // element.get<A>();
                 // element.get<B>();
             }
-*/
+
+            end = std::chrono::steady_clock::now();
+
+            std::cout << "Iteration on group took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
+
         }
 
         /*
