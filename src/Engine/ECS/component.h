@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "entity.h"
 #include "uniqueid.h"
 
 #include "logger.h"
@@ -12,14 +13,16 @@ namespace pg
     {
         template<class T>struct tag{using type=T;};
 
-        struct AbstractComponent
+        struct AbstractComponent : public Entity
         {
-            // Todo remove
-            std::string name;
+            AbstractComponent() : Entity(generateId()) { LOG_THIS_MEMBER("Abstract Component"); }
 
             // Todo is this really necessary
-            virtual ~AbstractComponent() { LOG_THIS_MEMBER("Component"); }
+            virtual ~AbstractComponent() { LOG_THIS_MEMBER("Abstract Component"); }
             // virtual const _unique_id& getComponentId() const = 0;
+        
+            // Todo remove
+            std::string name;
         };
 
         template<typename Comp>

@@ -44,9 +44,13 @@ namespace pg
                 return system;
             }
 
+            //TODO make a template specialization capable of attaching an entity to an entity
+
             template<typename Type, typename... Args>
-            Type* attach(const Entity& entity, const Args&... args) const
+            Type* attach(Entity& entity, const Args&... args) const
             {
+                entity.ecsRef = this;
+
                 return registry.retrieve<Type>()->internalCreateComponent(entity, args...);
             }
 

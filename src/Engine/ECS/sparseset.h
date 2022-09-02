@@ -469,7 +469,7 @@ namespace pg
              * Be careful as the operator doesn't not check the bound of the list, this can throw an out of bound exception
              * Use with nbElement of the sparse set to be in bound
              */
-            Comp* operator[](const size_t& index) const { LOG_THIS_MEMBER("Component Set "); return componentList[index]; }
+            Comp* operator[](const size_t& index) const { LOG_THIS_MEMBER("Component Set"); return componentList[index]; }
 
             template <typename... Args>
             Comp* addComponent(const _unique_id& id, Args&&... args)
@@ -575,6 +575,31 @@ namespace pg
             size_t componentCapacity = 2;
 
             size_t lastEntityIndex = 0;
+        };
+
+        /**
+         * @brief A container object used to store components
+         * 
+         * This container is used to store components and the entity id they are associated with.
+         * As entities ids as well as components id are unsigned value. The indice start at 1,
+         * so that 0 indicates that the component doesn't exist or no entity was found.
+         * 
+         * This container as:
+         * - O(1) time complexity for both inserting and removing components
+         * - O(1) time complexity for lookup
+         * - O(n) time complexity for clear (as it delete all the components in memory)
+         * - O(n) time complexity for iteration over components
+         * 
+         * It also stores in memory the list of components of a given type
+         * 
+         * @warning Never delete a ComponentSet through a SparseSet pointer
+         * 
+         * @todo Make a sparse set implementation that doesn't delete components on remove but instead reuse dead memory
+         */
+        template <typename Comp>
+        class GroupSet : public ComponentSet
+        {
+
         };
     }    
 }

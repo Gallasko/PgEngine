@@ -19,20 +19,24 @@ namespace pg
             // 0 means that it can't be a valid entity !
             Entity() : id(0) {}
 
-/*
             template <typename Component>
             inline bool has() const { return has(Component::componentId); }
 
             template <typename Component>
             inline Component* get() { return has<Component>() ? static_cast<Component* >(componentList[Component::componentId]) : nullptr; }
-*/        
+        
+            inline EntitySystem* world() const { return ecsRef; }
+
             _unique_id id;
 
-            std::unordered_map<_unique_id, AbstractComponent*> componentList;
+            std::unordered_map<_unique_id, Entity*> componentList;
 
-        private:
+        protected:
             Entity(_unique_id id) : id(id) {}
 
+            void setEcsRef(EntitySystem* ref) { ecsRef = ref; }
+
+            EntitySystem *ecsRef = nullptr;
         };
     }
 }
