@@ -242,7 +242,8 @@ namespace pg
 
             for(const auto& element : group->elements.viewComponents())
             {
-                element->get<A>()->value++;
+                if(!element->toBeDeleted)
+                    element->get<A>()->value++;
                 // std::cout << element->entityId << std::endl;
                 // std::cout << element->get<A>()->value << std::endl;
                 // std::cout << element->get<B>()->value << std::endl;

@@ -37,6 +37,8 @@
 
 #include <iostream>
 
+#include "Memory/threadpool.h"
+
 namespace pg
 {
     namespace ecs
@@ -59,8 +61,8 @@ namespace pg
         template <typename... Types>
         struct GroupElement : public Getter<Types>...
         {
-            GroupElement(const _unique_id& entityId) : entityId(entityId), Getter<Types>()... {}
-            GroupElement(const _unique_id& entityId, Types*... values) : entityId(entityId), Getter<Types>(values)... { LOG_THIS_MEMBER("Ecs Group"); }
+            GroupElement(const _unique_id& entityId) : Getter<Types>()..., entityId(entityId) {}
+            GroupElement(const _unique_id& entityId, Types*... values) : Getter<Types>(values)..., entityId(entityId) { LOG_THIS_MEMBER("Ecs Group"); }
 
             template <typename Type>
             Type* get() const { LOG_THIS_MEMBER("Ecs Group"); return static_cast<const Getter<Type>*>(this)->get(); }
@@ -107,18 +109,18 @@ namespace pg
                 }
 
                 // Add support for thread pools by passing a pool in this function and add the task inside of this pool
-                checkEntityInGroup<Type, Types...>(elements);
+                checkEntityInGroup<Type, Types...>(this->registry->getThreadPool(), elements);
 
-                const auto& it = elements.viewComponents();
+                // const auto& it = elements.viewComponents();
 
                 // Remove all elements that miss at least one component from the group
                 // Todo Do not delete the component but make the iterator skip element to be deleted !
-                for(size_t i = 1; i < elements.nbElements(); i++)
-                {
-                    const auto& element = elements[i];
-                    if(element->toBeDeleted)
-                        elements.removeComponent(element->entityId);
-                }
+                // for(size_t i = 1; i < elements.nbElements(); i++)
+                // {
+                    // const auto& element = elements[i];
+                    // if(element->toBeDeleted)
+                        // elements.removeComponent(element->entityId);
+                // }
                 //std::remove_if(it.begin(), it.end(), [](const GroupElement<Type, Types...>& element) { return element.toBeDeleted; });
             
                 // Todo sort the group
@@ -141,7 +143,7 @@ namespace pg
 
             // End case of the recursion
             template <typename Value>
-            inline void checkEntityInGroup(ComponentSet<GroupElement<Type, Types...>>& elements)
+            inline void checkEntityInGroup(ThreadPool* pool, ComponentSet<GroupElement<Type, Types...>>& elements)
             {
                 LOG_THIS_MEMBER("Ecs Group");
 
@@ -159,15 +161,19 @@ namespace pg
                     }  
                   };
 
+                auto result = pool->enqueue(task);
+
                 // TODO
                 // Send task to the thread pool ( pool->addTask(task); )
-                task();
+                //task();
+
+                result.get();
 
                 // Todo join the task here !
             }
 
             template <typename Value, typename Other, typename... Values>
-            inline void checkEntityInGroup(ComponentSet<GroupElement<Type, Types...>>& elements)
+            inline void checkEntityInGroup(ThreadPool* pool, ComponentSet<GroupElement<Type, Types...>>& elements)
             {
                 LOG_THIS_MEMBER("Ecs Group");
 
@@ -185,12 +191,16 @@ namespace pg
                     }  
                   };
 
+                auto result = pool->enqueue(task);
+
                 // TODO
                 // Send task to the thread pool ( pool->addTask(task); )
-                task();
+                // task();
 
                 // Recursive call to add all the different components to the group
-                checkEntityInGroup<Other, Values...>(elements);
+                checkEntityInGroup<Other, Values...>(pool, elements);
+
+                result.get();
 
                 // Todo join the task here !
             }

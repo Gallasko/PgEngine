@@ -17,7 +17,7 @@ namespace pg
 {
     namespace ecs
     {
-        EntitySystem::EntitySystem()
+        EntitySystem::EntitySystem() : pool(std::thread::hardware_concurrency()), registry(&pool)
         {
         }
 

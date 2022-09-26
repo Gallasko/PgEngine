@@ -8,7 +8,7 @@
 #include "componentregistry.h"
 #include "entity.h"
 
-#include "Memory/memorypool.h"
+#include "Memory/threadpool.h"
 
 namespace pg
 {
@@ -58,6 +58,7 @@ namespace pg
             ComponentRegistry registry;
 
             std::vector<AbstractSystem*> systems;
+            ThreadPool pool;
         };
     }
 }

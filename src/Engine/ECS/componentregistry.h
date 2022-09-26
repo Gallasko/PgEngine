@@ -8,6 +8,8 @@
 
 #include "logger.h"
 
+#include "Memory/threadpool.h"
+
 namespace pg
 {
     namespace ecs
@@ -24,6 +26,8 @@ namespace pg
             struct Storage {};
 
         public:
+            ComponentRegistry(ThreadPool *pool) : threadPool(pool) {} 
+
             ~ComponentRegistry()
             {
                 LOG_THIS_MEMBER("Component Registry");
@@ -71,9 +75,12 @@ namespace pg
                 return static_cast<Group<Type, Types...>*>(static_cast<Delegate*>(groupStorageMap.at(Group<Type, Types...>::groupId)));
             }
 
+            ThreadPool* getThreadPool() { return threadPool; }
+
         private:
             std::unordered_map<_unique_id, Storage*> componentStorageMap;
             std::unordered_map<_unique_id, Storage*> groupStorageMap;
+            ThreadPool *threadPool;
         };
 
         template <class Type>
