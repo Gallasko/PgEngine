@@ -471,6 +471,27 @@ namespace pg
              */
             Comp* operator[](const size_t& index) const { LOG_THIS_MEMBER("Component Set"); return componentList[index]; }
 
+            void reserve(const size_t& size)
+            {
+                if(size < componentCapacity)
+                {
+                    LOG_ERROR("Component Set", "Reserve failed, capacity is already bigger");
+                    return;
+                }
+
+                Comp** tempComponentList = new Comp*[size];
+                    
+                // Todo check if this doens't create memory leaks
+
+                // std::uninitialized_copy_n(tempComponentList, componentCapacity);
+                // std::uninitialized_copy_n(componentList, componentCapacity, tempComponentList);
+
+                memcpy(tempComponentList, componentList, componentCapacity * sizeof(Comp*));
+                delete[] componentList;
+                componentList = tempComponentList;
+                componentCapacity = size;
+            }
+
             template <typename... Args>
             Comp* addComponent(const _unique_id& id, Args&&... args)
             {
@@ -597,7 +618,7 @@ namespace pg
          * @todo Make a sparse set implementation that doesn't delete components on remove but instead reuse dead memory
          */
         template <typename Comp>
-        class GroupSet : public ComponentSet
+        class GroupSet : public ComponentSet<Comp>
         {
 
         };

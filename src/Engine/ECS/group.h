@@ -97,7 +97,7 @@ namespace pg
                 LOG_INFO("Ecs Group", "Smallest set has: " + std::to_string(set.nbElements()) + " elements");
 
                 // Todo add reserve and multiple emplace back in the component/sparse set
-                // elements.reserve(set.nbElements() - 1);
+                elements.reserve(set.nbElements()); // May need a -1
 
                 for(size_t i = 1; i < set.nbElements(); i++)
                 {
