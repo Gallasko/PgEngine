@@ -214,7 +214,6 @@ namespace pg
 
             std::cout << "Ecs creation took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
 
-
             auto asys  = ecs.createSystem<ASystem>();
             
             auto absys = ecs.createSystem<ABSystem>();
@@ -235,6 +234,8 @@ namespace pg
             auto group = absys->group<A, B>();
 
             end = std::chrono::steady_clock::now();
+
+            MockLogger logger;
 
             std::cout << "Grouping took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
 

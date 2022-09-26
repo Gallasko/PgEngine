@@ -11,6 +11,8 @@
 #include <functional>
 #include <stdexcept>
 
+#include "logger.h"
+
 class ThreadPool {
 public:
     ThreadPool(size_t);
@@ -34,6 +36,10 @@ private:
 inline ThreadPool::ThreadPool(size_t threads)
     :   stop(false)
 {
+    LOG_THIS_MEMBER("ThreadPool");
+    
+    LOG_INFO("ThreadPool", "Creating new thread pool with: " + std::to_string(threads) + " threads.");
+
     for(size_t i = 0;i<threads;++i)
         workers.emplace_back(
             [this]
@@ -63,6 +69,8 @@ template<class F, class... Args>
 auto ThreadPool::enqueue(F&& f, Args&&... args) 
     -> std::future<typename std::result_of<F(Args...)>::type>
 {
+    LOG_THIS_MEMBER("ThreadPool");
+
     using return_type = typename std::result_of<F(Args...)>::type;
 
     auto task = std::make_shared< std::packaged_task<return_type()> >(
@@ -86,6 +94,8 @@ auto ThreadPool::enqueue(F&& f, Args&&... args)
 // the destructor joins all threads
 inline ThreadPool::~ThreadPool()
 {
+    LOG_THIS_MEMBER("ThreadPool");
+    
     {
         std::unique_lock<std::mutex> lock(queue_mutex);
         stop = true;

@@ -26,14 +26,15 @@ DebugActive ?= $(DEBUG)
 
 # define any compile-time flags -mwindows to make the app launch without a command prompt
 
+CXXFLAGS	:= -std=c++11 -Wall -Wextra -g -pthread
+
 ifeq ($(DebugActive),True)
-CXXFLAGS	:= -std=c++11 -Wall -Wextra -g -DDEBUG
+CXXFLAGS    += -DDEBUG
 else
-CXXFLAGS	:= -std=c++11 -Wall -Wextra -g -mwindows -O2 -DNDEBUG
+CXXFLAGS	+= -mwindows -O2 -DNDEBUG
 endif
 
 TESTFLAGS := $(CXXFLAGS)
-TESTFLAGS += -pthread
 
 # define library paths in addition to /usr/lib
 #   if I wanted to include libraries not in /usr/lib I'd specify

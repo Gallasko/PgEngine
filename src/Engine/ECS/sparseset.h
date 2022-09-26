@@ -338,14 +338,14 @@ namespace pg
                      * 
                      * @return Comp* A pointer to the component stored recasted into the actual component
                      */
-                    inline Comp* operator*() { LOG_THIS_MEMBER("Component Set List Iterator"); return componentList[index];}
+                    inline Comp* operator*() { LOG_THIS_MEMBER("Component Set List Iterator"); return componentList[index]; }
 
                     /**
                      * @brief Overload of the * operator
                      * 
                      * @return Comp* A pointer to the component stored recasted into the actual component
                      */
-                    inline const Comp* operator*() const { LOG_THIS_MEMBER("Component Set List Iterator"); return componentList[index];}
+                    inline const Comp* operator*() const { LOG_THIS_MEMBER("Component Set List Iterator"); return componentList[index]; }
 
                     /**
                      * @brief Overload of the * operator
@@ -509,17 +509,8 @@ namespace pg
                 if(index >= componentCapacity)
                 {
                     LOG_INFO("Component Set", "Increasing size of the component set");
-                    Comp** tempComponentList = new Comp*[componentCapacity * 2];
-                    
-                    // Todo check if this doens't create memory leaks
 
-                    // std::uninitialized_copy_n(tempComponentList, componentCapacity);
-                    // std::uninitialized_copy_n(componentList, componentCapacity, tempComponentList);
-
-                    memcpy(tempComponentList, componentList, componentCapacity * sizeof(Comp*));
-                    delete[] componentList;
-                    componentList = tempComponentList;
-                    componentCapacity *= 2;
+                    this->reserve(componentCapacity * 2);
                 }
 
                 lastEntityIndex = index;
