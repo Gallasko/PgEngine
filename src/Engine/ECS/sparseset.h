@@ -171,7 +171,7 @@ namespace pg
             {
                 LOG_THIS_MEMBER("Sparse Set");
 
-                if(index >= size) 
+                if(index >= size)
                     return 0;
                 
                 return dense[index];

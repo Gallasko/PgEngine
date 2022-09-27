@@ -143,14 +143,17 @@ namespace pg
 
             // End case of the recursion
             template <typename Value>
-            inline void checkEntityInGroup(ThreadPool* pool, ComponentSet<GroupElement<Type, Types...>>& elements)
+            inline void checkEntityInGroup(ThreadPool* pool, GroupSet<GroupElement<Type, Types...>>& elements)
             {
                 LOG_THIS_MEMBER("Ecs Group");
 
                 const auto& components = registry->retrieve<Value>()->components;
 
+                auto& elements = this->elements;
+
                 // Create Task
-                std::function<void()> task = [&elements, &components]() -> void {
+                auto result = pool->enqueue( [&elements, &components]() -> void
+                {
                     for (const auto& element : elements.viewComponents())
                     {
                         const auto& pos = components.find(element->entityId);
@@ -159,9 +162,7 @@ namespace pg
                         else
                             element->toBeDeleted = true;
                     }  
-                  };
-
-                auto result = pool->enqueue(task);
+                });
 
                 // TODO
                 // Send task to the thread pool ( pool->addTask(task); )
@@ -173,14 +174,15 @@ namespace pg
             }
 
             template <typename Value, typename Other, typename... Values>
-            inline void checkEntityInGroup(ThreadPool* pool, ComponentSet<GroupElement<Type, Types...>>& elements)
+            inline void checkEntityInGroup(ThreadPool* pool, GroupSet<GroupElement<Type, Types...>>& elements)
             {
                 LOG_THIS_MEMBER("Ecs Group");
 
                 const auto& components = registry->retrieve<Value>()->components;
 
                 // Create Task
-                std::function<void()> task = [&elements, &components]() -> void {
+                auto result = pool->enqueue( [&elements, &components]() -> void
+                {
                     for (const auto& element : elements.viewComponents())
                     {
                         const auto& pos = components.find(element->entityId);
@@ -189,9 +191,7 @@ namespace pg
                         else
                             element->toBeDeleted = true;
                     }  
-                  };
-
-                auto result = pool->enqueue(task);
+                });
 
                 // TODO
                 // Send task to the thread pool ( pool->addTask(task); )
@@ -206,7 +206,7 @@ namespace pg
             }
 
             ComponentRegistry* registry;
-            ComponentSet<GroupElement<Type, Types...>> elements;
+            GroupSet<GroupElement<Type, Types...>> elements;
 
             static _unique_id groupId;
         };
