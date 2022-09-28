@@ -202,7 +202,7 @@ namespace pg
         TEST(system_test, group)
         {
             // MockLogger logger;
-            constexpr size_t nbComps = 100000;
+            constexpr size_t nbComps = 10;
 
             // MockLogger logger;
 
@@ -227,6 +227,8 @@ namespace pg
 
                 if(i % 2 == 0)
                     absys->createOwnedComponent<B>(entity[i], i, 5);
+
+                std::cout << entity[i].id << std::endl;
             }
 
             start = std::chrono::steady_clock::now();
@@ -235,7 +237,7 @@ namespace pg
 
             end = std::chrono::steady_clock::now();
 
-            MockLogger logger;
+            // MockLogger logger;
 
             std::cout << "Grouping took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
 
@@ -243,8 +245,8 @@ namespace pg
 
             for(const auto& element : group->elements.viewComponents())
             {
-                if(!element->toBeDeleted)
-                    element->get<A>()->value++;
+                // if(!element->toBeDeleted)
+                element->get<A>()->value++;
                 // std::cout << element->entityId << std::endl;
                 // std::cout << element->get<A>()->value << std::endl;
                 // std::cout << element->get<B>()->value << std::endl;

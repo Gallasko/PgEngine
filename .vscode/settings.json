@@ -104,7 +104,9 @@
         "xloctime": "cpp",
         "qstring": "cpp",
         "*.rh": "cpp",
-        "any": "cpp"
+        "any": "cpp",
+        "coroutine": "cpp",
+        "resumable": "cpp"
     },
     "files.exclude": {
         "**/*.o": true,

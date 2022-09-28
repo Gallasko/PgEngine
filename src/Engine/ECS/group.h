@@ -117,20 +117,25 @@ namespace pg
                 LOG_INFO("Ecs Group", "Smallest set has: " + std::to_string(smallestSet->nbElements()) + " elements");
 
                 // Todo add reserve and multiple emplace back in the component/sparse set
-                elements.reserve(smallestSet->nbElements()); // May need a -1
+                // elements.reserve(smallestSet->nbElements()); // May need a -1
 
                 for(size_t i = 1; i < smallestSet->nbElements(); i++)
                 {
                     const auto& id = smallestSet->at(i);
+
+                    std::cout << "Element id: " << id;
 
                     for(size_t j = 0; j < nbOfSets - 1; j++)
                     {
                         if(not setList[j]->has(id))
                             goto notingroup;
                     }
+                    std::cout << "is in group";
                     // Add all possible elements that can be a part of the group
                     elements.addComponent(id, id);
+
                     notingroup:;
+                    std::cout << "is not in group" << std::endl;
                 }
 
                 // Add support for thread pools by passing a pool in this function and add the task inside of this pool
