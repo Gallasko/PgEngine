@@ -68,11 +68,30 @@ namespace pg
             Type* get() const { LOG_THIS_MEMBER("Ecs Group"); return static_cast<const Getter<Type>*>(this)->get(); }
 
             template <typename Type>
-            void set(Type *value) { LOG_THIS_MEMBER("Ecs Group"); return static_cast<Getter<Type>*>(this)->set(value); }
+            void set(Type *value) { LOG_THIS_MEMBER("Ecs Group"); static_cast<Getter<Type>*>(this)->set(value); }
 
             const _unique_id entityId;
             bool toBeDeleted = false;
         };
+
+        template <typename Type, typename... Types>
+        struct SetHolder
+        {
+            SetHolder(const SparseSet* set, void(*f)(const SparseSet*, GroupElement<Type, Types...>&, size_t)) : set(set), setElement(f) {}
+
+            const SparseSet* set;
+            void (*setElement) (const SparseSet*, GroupElement<Type, Types...>&, size_t);
+        };
+
+        template <typename Set, typename Type, typename... Types>
+        void getFromSet(const SparseSet* set, GroupElement<Type, Types...>& element, size_t id)
+        {
+            const auto& pos = static_cast<const Set*>(set)->find(id);
+            if(pos != 0)
+                element.set((*static_cast<const Set*>(set))[pos]);
+            else
+                element.toBeDeleted = true;
+        }
 
         template <typename Type, typename... Types>
         struct Group
@@ -94,7 +113,7 @@ namespace pg
 
                 constexpr size_t nbOfSets = sizeof...(Types) + 1;
 
-                const SparseSet* setList[nbOfSets];
+                SetHolder<Type, Types...> *setList[nbOfSets];
 
                 populateList(setList, 0, registry->retrieve<Type>()->components, registry->retrieve<Types>()->components...);
 
@@ -102,11 +121,11 @@ namespace pg
 
                 for(size_t i = 0; i < nbOfSets; ++i)
                 {
-                    if(setList[i]->nbElements() < setList[smallestSetIndex]->nbElements())
+                    if(setList[i]->set->nbElements() < setList[smallestSetIndex]->set->nbElements())
                         smallestSetIndex = i;
                 }
 
-                const SparseSet* smallestSet = setList[smallestSetIndex];
+                const SparseSet* smallestSet = setList[smallestSetIndex]->set;
 
                 setList[smallestSetIndex] = setList[nbOfSets - 1];
 
@@ -122,21 +141,19 @@ namespace pg
                 for(size_t i = 1; i < smallestSet->nbElements(); i++)
                 {
                     const auto& id = smallestSet->at(i);
-
-                    std::cout << "Element id: " << id;
+                    GroupElement<Type, Types...> element(id);
 
                     for(size_t j = 0; j < nbOfSets - 1; j++)
                     {
-                        if(not setList[j]->has(id))
-                            goto notingroup;
+                        setList[j]->setElement(setList[j]->set, element, id);    
                     }
-                    std::cout << "is in group";
-                    // Add all possible elements that can be a part of the group
-                    elements.addComponent(id, id);
 
-                    notingroup:;
-                    std::cout << "is not in group" << std::endl;
+                    if(not element.toBeDeleted)
+                        elements.addComponent(id, element);
                 }
+
+                for(size_t i = 0; i < nbOfSets; i++)
+                    delete setList[i];
 
                 // Add support for thread pools by passing a pool in this function and add the task inside of this pool
                 // checkEntityInGroup<Type, Types...>(this->registry->getThreadPool(), elements);
@@ -157,19 +174,19 @@ namespace pg
             }
 
             template <typename Set>
-            inline void populateList(const SparseSet **list, size_t index, const Set& setN)
+            inline void populateList(SetHolder<Type, Types...> **list, size_t index, const Set& setN)
             {
                 LOG_THIS_MEMBER("Ecs Group");
 
-                list[index] = &setN;
+                list[index] = new SetHolder<Type, Types...> ( &setN, &getFromSet<Set, Type, Types...> );
             }
 
             template <typename Set, typename... Sets>
-            inline void populateList(const SparseSet **list, size_t index, const Set& setN, const Sets&... sets)
+            inline void populateList(SetHolder<Type, Types...> **list, size_t index, const Set& setN, const Sets&... sets)
             {
                 LOG_THIS_MEMBER("Ecs Group");
 
-                list[index] = &setN;
+                list[index] = new SetHolder<Type, Types...> ( &setN, &getFromSet<Set, Type, Types...> );
 
                 populateList(list, index + 1, sets...);
             }

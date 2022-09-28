@@ -31,7 +31,7 @@ CXXFLAGS	:= -std=c++11 -Wall -Wextra -g -pthread
 ifeq ($(DebugActive),True)
 CXXFLAGS    += -DDEBUG
 else
-CXXFLAGS	+= -mwindows -O2 -DNDEBUG
+CXXFLAGS	+=  -O2 -DNDEBUG
 endif
 
 TESTFLAGS := $(CXXFLAGS)

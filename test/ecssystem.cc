@@ -202,7 +202,7 @@ namespace pg
         TEST(system_test, group)
         {
             // MockLogger logger;
-            constexpr size_t nbComps = 10;
+            constexpr size_t nbComps = 10000000;
 
             // MockLogger logger;
 
@@ -227,8 +227,6 @@ namespace pg
 
                 if(i % 2 == 0)
                     absys->createOwnedComponent<B>(entity[i], i, 5);
-
-                std::cout << entity[i].id << std::endl;
             }
 
             start = std::chrono::steady_clock::now();
