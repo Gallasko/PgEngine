@@ -21,7 +21,7 @@ namespace pg
         {
             virtual ~AbstractSystem() { LOG_THIS_MEMBER("System"); }
 
-            virtual void execute() = 0;
+            virtual void execute() { LOG_THIS_MEMBER("System"); }
             
             // Todo make function onAdd and onDelete of a component that default to nothing if not used
         };

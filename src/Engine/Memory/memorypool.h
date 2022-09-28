@@ -72,9 +72,9 @@ namespace pg
      * @brief An implementation of an allocator pool
      * 
      * @tparam T Type of the object to be created
-     * @tparam N Number of object to be created at once when running out of empty element (default at 64)
+     * @tparam N if N > 1, Number of object to be created at once when running out of empty element else the pool expand exponentially (default at 1)
      */
-    template<typename T, size_t N = 64>
+    template<typename T, size_t N = 1>
     class AllocatorPool
     {
     public:
@@ -109,7 +109,7 @@ namespace pg
         {
             if(freeList == nullptr)
             {
-                size *= 2;
+                size = N >= 2 ? size + N : size * 2;
 
                 auto newBlock = Block<T>(size);
                 freeList = newBlock.chunks;
@@ -146,7 +146,7 @@ namespace pg
         }
 
     private:
-        size_t size = N;
+        size_t size = N >= 2 ? N : 1;
 
         /** Pointer to the next free object in the pool */
         Chunk<T>* freeList = nullptr;
@@ -155,6 +155,6 @@ namespace pg
         std::vector<Chunk<T>*> chunkList;
 
         /** Static assertion to ensure that the pool must created block of at least two free object */
-        static_assert(N >= 2, "BlockSize too small.");
+        // static_assert(N >= 2, "BlockSize too small.");
     };
 }

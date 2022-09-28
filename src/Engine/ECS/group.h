@@ -149,8 +149,6 @@ namespace pg
 
                 const auto& components = registry->retrieve<Value>()->components;
 
-                auto& elements = this->elements;
-
                 // Create Task
                 auto result = pool->enqueue( [&elements, &components]() -> void
                 {
