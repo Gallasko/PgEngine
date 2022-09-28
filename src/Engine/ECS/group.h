@@ -91,25 +91,50 @@ namespace pg
             void process()
             {
                 LOG_THIS_MEMBER("Ecs Group");
-                
+
+                constexpr size_t nbOfSets = sizeof...(Types) + 1;
+
+                const SparseSet* setList[nbOfSets];
+
+                populateList(setList, 0, registry->retrieve<Type>()->components, registry->retrieve<Types>()->components...);
+
+                size_t smallestSetIndex = 0;
+
+                for(size_t i = 0; i < nbOfSets; ++i)
+                {
+                    if(setList[i]->nbElements() < setList[smallestSetIndex]->nbElements())
+                        smallestSetIndex = i;
+                }
+
+                const SparseSet* smallestSet = setList[smallestSetIndex];
+
+                setList[smallestSetIndex] = setList[nbOfSets - 1];
+
                 // const auto& elements = {registry->retrieve<Type>()->components, registry->retrieve<Types>()->components...};
 
-                const SparseSet& set = smallestSet(registry->retrieve<Type>()->components, registry->retrieve<Types>()->components...);
+                // const SparseSet& set = smallestSet(registry->retrieve<Type>()->components, registry->retrieve<Types>()->components...);
 
-                LOG_INFO("Ecs Group", "Smallest set has: " + std::to_string(set.nbElements()) + " elements");
+                LOG_INFO("Ecs Group", "Smallest set has: " + std::to_string(smallestSet->nbElements()) + " elements");
 
                 // Todo add reserve and multiple emplace back in the component/sparse set
-                elements.reserve(set.nbElements()); // May need a -1
+                elements.reserve(smallestSet->nbElements()); // May need a -1
 
-                for(size_t i = 1; i < set.nbElements(); i++)
+                for(size_t i = 1; i < smallestSet->nbElements(); i++)
                 {
-                    const auto& id = set.at(i);
+                    const auto& id = smallestSet->at(i);
+
+                    for(size_t j = 0; j < nbOfSets - 1; j++)
+                    {
+                        if(not setList[j]->has(id))
+                            goto notingroup;
+                    }
                     // Add all possible elements that can be a part of the group
                     elements.addComponent(id, id);
+                    notingroup:;
                 }
 
                 // Add support for thread pools by passing a pool in this function and add the task inside of this pool
-                checkEntityInGroup<Type, Types...>(this->registry->getThreadPool(), elements);
+                // checkEntityInGroup<Type, Types...>(this->registry->getThreadPool(), elements);
 
                 // const auto& it = elements.viewComponents();
 
@@ -124,6 +149,24 @@ namespace pg
                 //std::remove_if(it.begin(), it.end(), [](const GroupElement<Type, Types...>& element) { return element.toBeDeleted; });
             
                 // Todo sort the group
+            }
+
+            template <typename Set>
+            inline void populateList(const SparseSet **list, size_t index, const Set& setN)
+            {
+                LOG_THIS_MEMBER("Ecs Group");
+
+                list[index] = &setN;
+            }
+
+            template <typename Set, typename... Sets>
+            inline void populateList(const SparseSet **list, size_t index, const Set& setN, const Sets&... sets)
+            {
+                LOG_THIS_MEMBER("Ecs Group");
+
+                list[index] = &setN;
+
+                populateList(list, index + 1, sets...);
             }
 
             inline const SparseSet& smallestSet(const SparseSet& set1, const SparseSet& set2) const
