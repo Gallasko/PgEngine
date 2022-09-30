@@ -52,6 +52,8 @@ namespace pg
         unsigned int getNbError() const;
         unsigned int getNbCritical() const;
 
+        void addFilter(const std::string& filterName, Logger::LogSink::Filter* filter) { sink->addFilter(filterName, filter); }
+
         const LogMessage& getLastMessage() const;
 
     private:

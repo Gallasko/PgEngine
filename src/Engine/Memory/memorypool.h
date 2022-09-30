@@ -14,6 +14,7 @@
 #include <type_traits>
 #include <vector>
 #include <memory>
+#include <mutex>
 
 namespace pg
 {
@@ -92,6 +93,23 @@ namespace pg
                 delete chunk;
         }
 
+        void reserve(size_t reserveSize)
+        {
+            std::lock_guard<std::mutex> lock(mutex);
+
+            if(reserveSize < size)
+                return;
+
+            size_t blockSize = reserveSize - size;
+
+            auto newBlock = Block<T>(blockSize);
+            freeList = newBlock.chunks;
+
+            chunkList.push_back(newBlock.chunks);
+
+            size = reserveSize;
+        }
+
         /**
          * @brief Function used to allocate a new T object
          * 
@@ -109,16 +127,18 @@ namespace pg
         {
             if(freeList == nullptr)
             {
-                size = N >= 2 ? size + N : size * 2;
+                size_t reserveSize = N >= 2 ? size + N : size * 2;
 
-                auto newBlock = Block<T>(size);
-                freeList = newBlock.chunks;
-
-                chunkList.push_back(newBlock.chunks);
+                reserve(reserveSize);
             }
 
-            auto chunk = freeList;
-            freeList = chunk->next;
+            Chunk<T>* chunk;
+
+            {
+                std::lock_guard<std::mutex> lock(mutex);
+                chunk = freeList;
+                freeList = chunk->next;
+            }
 
             ::new(&(chunk->element)) T(std::forward<Args>(args)...);
 
@@ -153,6 +173,8 @@ namespace pg
 
         /** Chunk Lists used in the pool (used to free the memory) */
         std::vector<Chunk<T>*> chunkList;
+
+        std::mutex mutex;
 
         /** Static assertion to ensure that the pool must created block of at least two free object */
         // static_assert(N >= 2, "BlockSize too small.");

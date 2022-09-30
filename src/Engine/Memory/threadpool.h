@@ -39,7 +39,7 @@ inline ThreadPool::ThreadPool(size_t threads)
     LOG_THIS_MEMBER("ThreadPool");
     
     LOG_INFO("ThreadPool", "Creating new thread pool with: " + std::to_string(threads) + " threads.");
-
+/*
     for(size_t i = 0;i<threads;++i)
         workers.emplace_back(
             [this]
@@ -62,6 +62,7 @@ inline ThreadPool::ThreadPool(size_t threads)
                 }
             }
         );
+*/
 }
 
 // add new work item to the pool
@@ -95,7 +96,7 @@ auto ThreadPool::enqueue(F&& f, Args&&... args)
 inline ThreadPool::~ThreadPool()
 {
     LOG_THIS_MEMBER("ThreadPool");
-    
+    /*
     {
         std::unique_lock<std::mutex> lock(queue_mutex);
         stop = true;
@@ -103,6 +104,7 @@ inline ThreadPool::~ThreadPool()
     condition.notify_all();
     for(std::thread &worker: workers)
         worker.join();
+    */
 }
 
 #endif

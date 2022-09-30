@@ -201,8 +201,10 @@ namespace pg
 
         TEST(system_test, group)
         {
-            // MockLogger logger;
-            constexpr size_t nbComps = 10000000;
+            MockLogger logger;
+            logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
+
+            constexpr size_t nbComps = 100000;
 
             // MockLogger logger;
 
@@ -243,6 +245,7 @@ namespace pg
 
             for(const auto& element : group->elements.viewComponents())
             {
+                // std::cout << "Showing element: " << element->entityId << std::endl;
                 // if(!element->toBeDeleted)
                 element->get<A>()->value++;
                 // std::cout << element->entityId << std::endl;

@@ -33,6 +33,9 @@
 
 namespace pg
 {
+    // Forward declarations
+    class MockLogger;
+
     /**
      * @class Logger
      * 
@@ -130,6 +133,7 @@ namespace pg
         class LogSink
         {
         friend class Logger;
+        friend class MockLogger;
             class Filter
             {
             public:

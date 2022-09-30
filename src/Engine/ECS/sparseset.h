@@ -12,6 +12,9 @@
 
 #include <cstdint>
 #include <vector>
+#include <memory>
+#include <mutex>
+#include <atomic>
 
 #include "entity.h"
 #include "component.h"
@@ -171,7 +174,7 @@ namespace pg
             {
                 LOG_THIS_MEMBER("Sparse Set");
 
-                if(index >= size)
+                if(index >= size.load())
                     return 0;
                 
                 return dense[index];
@@ -213,7 +216,7 @@ namespace pg
              * The list start at index 1 to nbElement()
              * This function is used to ensure that the bound of the set are respected
              */
-            inline constexpr size_t nbElements() const { LOG_THIS_MEMBER("Sparse Set"); return size; }
+            inline constexpr size_t nbElements() const { LOG_THIS_MEMBER("Sparse Set"); return size.load(); }
 
             inline SparseSetList view() const
             {
@@ -225,7 +228,7 @@ namespace pg
             // Protected variables
         protected:
             /** The current size of the sparse set */
-            size_t size = 1;
+            std::atomic<size_t> size{1};
 
             // Private interface
         private:
@@ -248,6 +251,9 @@ namespace pg
 
             /** The capacity of the sparse array */
             size_t sparseCapacity = 2;
+
+            std::mutex denseMutex;
+            std::mutex sparseMutex;
         };
 
         // 
@@ -453,7 +459,7 @@ namespace pg
             {
                 LOG_THIS_MEMBER("Component Set");
 
-                for(size_t i = 1; i < nbComponents; i++)
+                for(size_t i = 1; i < nbComponents.load(); i++)
                     pool.release(componentList[i]);
 
                 delete[] componentList;
@@ -473,23 +479,29 @@ namespace pg
 
             void reserve(const size_t& size)
             {
-                if(size < componentCapacity)
                 {
-                    LOG_ERROR("Component Set", "Reserve failed, capacity is already bigger");
-                    return;
+                    std::lock_guard<std::mutex> lock(mutex);
+
+                    if(size < componentCapacity)
+                    {
+                        LOG_ERROR("Component Set", "Reserve failed, capacity is already bigger");
+                        return;
+                    }
+
+                    Comp** tempComponentList = new Comp*[size];
+                        
+                    // Todo check if this doens't create memory leaks
+
+                    // std::uninitialized_copy_n(tempComponentList, componentCapacity);
+                    // std::uninitialized_copy_n(componentList, componentCapacity, tempComponentList);
+
+                    memcpy(tempComponentList, componentList, componentCapacity * sizeof(Comp*));
+                    delete[] componentList;
+                    componentList = tempComponentList;
+                    componentCapacity = size;
                 }
-
-                Comp** tempComponentList = new Comp*[size];
-                    
-                // Todo check if this doens't create memory leaks
-
-                // std::uninitialized_copy_n(tempComponentList, componentCapacity);
-                // std::uninitialized_copy_n(componentList, componentCapacity, tempComponentList);
-
-                memcpy(tempComponentList, componentList, componentCapacity * sizeof(Comp*));
-                delete[] componentList;
-                componentList = tempComponentList;
-                componentCapacity = size;
+                
+                pool.reserve(size);
             }
 
             template <typename... Args>
@@ -518,7 +530,8 @@ namespace pg
                 // Todo: Test if allocating memory in a pool is faster than direct memory allocation with new
                 auto component = pool.allocate(std::forward<Args>(args)...);
 
-                componentList[nbComponents++] = component;
+                componentList[nbComponents.load()] = component;
+                nbComponents++;
 
                 // Todo
                 // Add the component to the entity component list for fast 
@@ -550,9 +563,10 @@ namespace pg
                 pool.release(componentList[index]);
 
                 // Swap the last component in the place of the component to be removed
-                componentList[index] = componentList[nbComponents];
+                componentList[index] = componentList[nbComponents.load()];
 
-                nbComponents > 1 ? nbComponents-- : nbComponents; 
+                if(nbComponents > 1)
+                    nbComponents--; 
             }
 
             // TODO make a sparse set implementation that doesn't delete components on remove but instead reuse dead memory
@@ -568,12 +582,14 @@ namespace pg
              * 
              * @tparam Comp The type of the component to cast the component stored in this list
              * @return ComponentSetList A view of the component list
+             * 
+             * Any operation on this view is invalid if the component list is updated
              */
             inline ComponentSetList viewComponents() const
             {
                 LOG_THIS_MEMBER("Component Set");
 
-                return ComponentSetList(nbComponents, componentList);
+                return ComponentSetList(nbComponents.load(), componentList);
             }
 
         private:
@@ -582,11 +598,13 @@ namespace pg
 
             AllocatorPool<Comp> pool;
 
-            size_t nbComponents = 1;
+            std::atomic<size_t> nbComponents{1};
 
             size_t componentCapacity = 2;
 
             size_t lastEntityIndex = 0;
+
+            std::mutex mutex;
         };
 
         /**
