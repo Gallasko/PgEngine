@@ -95,7 +95,7 @@ namespace pg
 
         void reserve(size_t reserveSize)
         {
-            std::lock_guard<std::mutex> lock(mutex);
+            std::lock_guard<std::recursive_mutex> lock(mutex);
 
             if(reserveSize < size)
                 return;
@@ -125,17 +125,18 @@ namespace pg
         template<typename... Args>
         T* allocate(Args&&... args)
         {
-            if(freeList == nullptr)
-            {
-                size_t reserveSize = N >= 2 ? size + N : size * 2;
-
-                reserve(reserveSize);
-            }
-
             Chunk<T>* chunk;
 
             {
-                std::lock_guard<std::mutex> lock(mutex);
+                std::lock_guard<std::recursive_mutex> lock(mutex);
+
+                if(freeList == nullptr)
+                {
+                    size_t reserveSize = N >= 2 ? size + N : size * 2;
+
+                    reserve(reserveSize);
+                }
+
                 chunk = freeList;
                 freeList = chunk->next;
             }
@@ -160,8 +161,12 @@ namespace pg
             {
                 pointer->~T();
 
-                reinterpret_cast<Chunk<T>*>(pointer)->next = freeList;
-                freeList = reinterpret_cast<Chunk<T>*>(pointer);
+                {
+                    std::lock_guard<std::recursive_mutex> lock(mutex);
+
+                    reinterpret_cast<Chunk<T>*>(pointer)->next = freeList;
+                    freeList = reinterpret_cast<Chunk<T>*>(pointer);
+                }
             }
         }
 
@@ -174,9 +179,6 @@ namespace pg
         /** Chunk Lists used in the pool (used to free the memory) */
         std::vector<Chunk<T>*> chunkList;
 
-        std::mutex mutex;
-
-        /** Static assertion to ensure that the pool must created block of at least two free object */
-        // static_assert(N >= 2, "BlockSize too small.");
+        std::recursive_mutex mutex;
     };
 }

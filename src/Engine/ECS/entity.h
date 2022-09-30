@@ -34,8 +34,6 @@ namespace pg
         protected:
             Entity(_unique_id id) : id(id) {}
 
-            void setEcsRef(EntitySystem* ref) { ecsRef = ref; }
-
             EntitySystem *ecsRef = nullptr;
         };
     }

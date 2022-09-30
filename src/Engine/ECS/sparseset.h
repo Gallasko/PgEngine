@@ -528,8 +528,7 @@ namespace pg
                 // Todo: Test if allocating memory in a pool is faster than direct memory allocation with new
                 auto component = pool.allocate(std::forward<Args>(args)...);
 
-                componentList[nbComponents.load()] = component;
-                nbComponents++;
+                componentList[nbComponents++] = component;
 
                 // Todo
                 // Add the component to the entity component list for fast 
@@ -561,10 +560,10 @@ namespace pg
                 pool.release(componentList[index]);
 
                 // Swap the last component in the place of the component to be removed
-                componentList[index] = componentList[nbComponents.load()];
+                componentList[index] = componentList[nbComponents--];
 
-                if(nbComponents > 1)
-                    nbComponents--; 
+                if(nbComponents <= 1)
+                    nbComponents.store(1); 
             }
 
             // TODO make a sparse set implementation that doesn't delete components on remove but instead reuse dead memory
