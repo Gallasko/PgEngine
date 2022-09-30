@@ -225,11 +225,6 @@ namespace pg
                 return SparseSetList(nbElements(), dense);
             }
 
-            // Protected variables
-        protected:
-            /** The current size of the sparse set */
-            std::atomic<size_t> size{1};
-
             // Private interface
         private:
             /** Internal helper function used to expend the dense and the component list */
@@ -240,6 +235,9 @@ namespace pg
 
             // Private variables
         private:
+            /** The current size of the sparse set */
+            std::atomic<size_t> size{1};
+
             /** An interal array to hold the link componend id -> entity id */
             _unique_id* dense;
 

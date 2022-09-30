@@ -72,8 +72,8 @@ namespace pg
                 return 0;
             }
 
-            auto currentSize = size.load();
-
+            const size_t currentSize = size++;
+            
             {
                 std::lock_guard<std::mutex> lock(denseMutex);
 
@@ -104,8 +104,7 @@ namespace pg
             // Store the component inside of the list
             // componentList[size] = component;
 
-            // Increase the side of the list
-            return size++;
+            return currentSize;
 
             //return component;
         }
@@ -122,7 +121,7 @@ namespace pg
         {
             LOG_THIS_MEMBER(DOM);
 
-            auto currentSize = size.load();
+            const size_t currentSize = size--;
 
             // Check if the id has a component
             if(currentSize < 1 && !has(id))
@@ -136,9 +135,6 @@ namespace pg
             // Update the index of the vector accordingly.
             dense[index] = dense[sparse[currentSize - 1]];
             sparse[id] = sparse[currentSize - 1];
-
-            // Decrease the size of the list
-            size--;
 
             return index;
         }

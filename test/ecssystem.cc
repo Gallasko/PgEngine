@@ -204,7 +204,7 @@ namespace pg
             MockLogger logger;
             logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
 
-            constexpr size_t nbComps = 100000;
+            constexpr size_t nbComps = 1000000;
 
             // MockLogger logger;
 
