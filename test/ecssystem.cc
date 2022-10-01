@@ -206,8 +206,8 @@ namespace pg
 
         TEST(system_test, group)
         {
-            MockLogger logger;
-            logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
+            // MockLogger logger;
+            // logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
 
             constexpr size_t nbComps = 10000000;
 

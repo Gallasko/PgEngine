@@ -501,7 +501,7 @@ namespace pg
                     componentCapacity = size;
                 }
                 
-                pool.reserve(size);
+                // pool.reserve(size);
             }
 
             template <typename... Args>

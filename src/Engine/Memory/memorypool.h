@@ -19,9 +19,30 @@
 #include <atomic>
 
 #include "logger.h"
-
 namespace pg
 {
+    static const unsigned int tab64[64] = {
+        63,  0, 58,  1, 59, 47, 53,  2,
+        60, 39, 48, 27, 54, 33, 42,  3,
+        61, 51, 37, 40, 49, 18, 28, 20,
+        55, 30, 34, 11, 43, 14, 22,  4,
+        62, 57, 46, 52, 38, 26, 32, 41,
+        50, 36, 17, 19, 29, 10, 13, 21,
+        56, 45, 25, 31, 35, 16,  9, 12,
+        44, 24, 15,  8, 23,  7,  6,  5};
+
+    static int log2_64 (size_t value)
+    {
+        value |= value >> 1;
+        value |= value >> 2;
+        value |= value >> 4;
+        value |= value >> 8;
+        value |= value >> 16;
+        value |= value >> 32;
+
+        return tab64[((size_t)((value - (value >> 1))*0x07EDD5E59A4E28C2)) >> 58];
+    }
+
     /**
      * @tparam T Type of the underlying object
      * 
@@ -60,7 +81,7 @@ namespace pg
 
             // Allocate at once enough space for N objects
             chunks = new Chunk<T>[size];
-
+/*
             // Construct the free list of objects
             for(unsigned int i = 0; i < size - 1; i++)
             {
@@ -69,6 +90,7 @@ namespace pg
 
             // End the free list
             chunks[size - 1].next = nullptr;
+*/
         }
 
         /** The first free space of the newly created block */
@@ -127,7 +149,7 @@ namespace pg
 
             while (reserveSize >= size)
             {
-                const size_t blockSize = N >= 2 ? N : size == 0 ? 1 : size;
+                const size_t blockSize = N >= 2 ? N : size == 0 ? 1 : size + 1;
 
                 LOG_INFO("Memory Pool", "Current size: " + std::to_string(size) + ", target: " +std::to_string(reserveSize) + ", blockSize: " + std::to_string(blockSize));
 
@@ -157,15 +179,22 @@ namespace pg
         {
             LOG_THIS_MEMBER("Memory Pool");
 
-            const auto index = nbElements++;
+            const size_t index = nbElements++;
 
             if(index >= size) reserve<true>(index);
 
-            const size_t n = std::log2(index);
-            const size_t containerSize = N >= 2 ? N : 2 << n;
+            const unsigned int n = log2_64(index + 1);
+            const size_t containerSize = N >= 2 ? N : n == 0 ? 0 : 1 << n;
 
             const size_t listPos = N >= 2 ? index / containerSize : n;
-            const size_t vectorPos = N >= 2 ? index % containerSize : index - containerSize; 
+            const size_t vectorPos = N >= 2 ? index % containerSize : n == 0 ? 0 : index + 1 - containerSize;
+
+            // Todo make it a log mile
+            LOG_INFO("Memory Pool",
+                "Allocating new element: " + std::to_string(index) +
+                " in chunk: " + std::to_string(listPos) +
+                " at pos: " + std::to_string(vectorPos) +
+                " with current pool size: " + std::to_string(size));
 
             Chunk<T>* chunk = &chunkList[listPos][vectorPos];
 
@@ -193,12 +222,12 @@ namespace pg
             {
                 pointer->~T();
 
-                {
-                    std::lock_guard<std::recursive_mutex> lock(mutex);
+                // {
+                //     std::lock_guard<std::recursive_mutex> lock(mutex);
 
-                    reinterpret_cast<Chunk<T>*>(pointer)->next = freeList;
-                    freeList = reinterpret_cast<Chunk<T>*>(pointer);
-                }
+                //     reinterpret_cast<Chunk<T>*>(pointer)->next = freeList;
+                //     freeList = reinterpret_cast<Chunk<T>*>(pointer);
+                // }
             }
         }
 

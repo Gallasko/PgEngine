@@ -175,7 +175,11 @@ test: $(TEST_OBJECTS) gtest-all.o
 	@echo Building Test ...
 	$(CXX) $(TESTFLAGS) $(INCLUDES) $(TEST_INCLUDE) -o $(TESTMAIN) $(TEST_OBJECTS) gtest-all.o $(LFLAGS) $(LIBS)
 
-	./debug_build/test.exe
+# ifeq ($(DebugActive),True)
+# ./debug_build/test.exe
+# else
+# ./release_build/test.exe
+# endif
 
 # Create the output hierarchy
 $(OUTPUT):
