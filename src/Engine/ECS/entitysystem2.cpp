@@ -19,10 +19,13 @@ namespace pg
     {
         EntitySystem::EntitySystem() : pool(std::thread::hardware_concurrency()), registry(&pool)
         {
+            LOG_THIS_MEMBER("ECS");
         }
 
         EntitySystem::~EntitySystem()
         {        
+            LOG_THIS_MEMBER("ECS");
+
             for(size_t i = 0; i < systems.size(); i++)
             {
                 delete systems[i];

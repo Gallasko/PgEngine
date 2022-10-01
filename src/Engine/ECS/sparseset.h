@@ -477,6 +477,8 @@ namespace pg
 
             void reserve(const size_t& size)
             {
+                LOG_THIS_MEMBER("Component Set");
+                
                 {
                     std::lock_guard<std::mutex> lock(mutex);
 

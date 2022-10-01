@@ -107,7 +107,8 @@ namespace pg
         {
             constexpr size_t nbComps = 1000;
 
-            // MockLogger logger;
+            MockLogger logger;
+            // logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
 
             auto start = std::chrono::steady_clock::now();
 
@@ -140,27 +141,31 @@ namespace pg
             auto comp1 = system2->createRefferedComponent<A>(entity2, 10, 5);
             auto comp2 = system2->createOwnedComponent<B>(entity3, 12, 4);
 
+            std::cout << "Creating entities..." << std::endl;
+
             ecs::Entity *entity = new ecs::Entity[nbComps + 1];
             
             start = std::chrono::steady_clock::now();
-            for(size_t i = 20; i < nbComps + 1; i++)
+            for(size_t i = 0; i < nbComps + 1; i++)
             {
+                std::cout << "Creating entity: " << i << std::endl;
                 entity[i] = ecs.createEntity();
                 system->createOwnedComponent<A>(entity[i], i, 15);
+                std::cout << "Created entity: " << i << std::endl;
             }
             end = std::chrono::steady_clock::now();
 
             std::cout << "Creating " << nbComps - 19 << " entities, and adding A took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
 
             start = std::chrono::steady_clock::now();
-            for(size_t i = 20; i < nbComps + 1; i++)
+            for(size_t i = 0; i < nbComps + 1; i++)
             {
                 //ecs.attach<C>(entity.id, "Value of: " + std::to_string(i));
                 system3->createOwnedComponent<C>(entity[i], entity[i].id, "Value of: " + std::to_string(i));
             }
             end = std::chrono::steady_clock::now();
 
-            std::cout << "Adding C to " << nbComps - 19 << " entities took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
+            std::cout << "Adding C to " << nbComps + 1 << " entities took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
 
             std::cout << "Entity " << entity[555].id << " has: [";
             for (auto& comp : entity[555].componentList)
@@ -204,7 +209,9 @@ namespace pg
             MockLogger logger;
             logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
 
-            constexpr size_t nbComps = 1000000;
+            constexpr size_t nbComps = 10000000;
+
+            std::cout << "Number of entities: " << nbComps << std::endl;
 
             // MockLogger logger;
 
@@ -239,7 +246,7 @@ namespace pg
 
             // MockLogger logger;
 
-            std::cout << "Grouping took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
+            std::cout << "Grouping [" << group->elements.nbElements() << "] entities took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
 
             start = std::chrono::steady_clock::now();
 

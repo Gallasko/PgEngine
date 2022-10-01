@@ -29,7 +29,7 @@ DebugActive ?= $(DEBUG)
 CXXFLAGS	:= -std=c++11 -Wall -Wextra -g -pthread
 
 ifeq ($(DebugActive),True)
-CXXFLAGS    += -DDEBUG
+CXXFLAGS    += -DDEBUG # --coverage
 else
 CXXFLAGS	+= -O2 -DNDEBUG # -mwindows
 endif

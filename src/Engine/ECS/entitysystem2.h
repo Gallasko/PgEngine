@@ -8,6 +8,7 @@
 #include "componentregistry.h"
 #include "entity.h"
 
+#include "logger.h"
 #include "Memory/threadpool.h"
 
 namespace pg
@@ -28,6 +29,8 @@ namespace pg
 
             Entity createEntity()
             {
+                LOG_THIS_MEMBER("ECS");
+
                 Entity entity(generateId());
 
                 return entity;
@@ -36,6 +39,8 @@ namespace pg
             template<class Sys, typename... Args>
             Sys* createSystem(const Args&... args)
             {
+                LOG_THIS_MEMBER("ECS");
+
                 auto system = new Sys(args...);
                 system->setRegistry(&registry);
 
@@ -49,6 +54,8 @@ namespace pg
             template<typename Type, typename... Args>
             Type* attach(Entity& entity, const Args&... args) const
             {
+                LOG_THIS_MEMBER("ECS");
+
                 entity.ecsRef = this;
 
                 return registry.retrieve<Type>()->internalCreateComponent(entity, args...);
