@@ -21,7 +21,7 @@
 #include "logger.h"
 namespace pg
 {
-    static const unsigned int tab64[64] = {
+    static constexpr unsigned int tab64[64] = {
         63,  0, 58,  1, 59, 47, 53,  2,
         60, 39, 48, 27, 54, 33, 42,  3,
         61, 51, 37, 40, 49, 18, 28, 20,
@@ -128,7 +128,7 @@ namespace pg
         {
             LOG_THIS_MEMBER("Memory Pool");
 
-            LOG_INFO("Memory Pool", "Trying to reserve: " + std::to_string(reserveSize) +  ", currentPoolSize = " +
+            LOG_MILE("Memory Pool", "Trying to reserve: " + std::to_string(reserveSize) +  ", currentPoolSize = " +
                 std::to_string(size) + " " +
                 std::to_string(currentSize) + " " +
                 std::to_string(nbElements));
@@ -151,7 +151,7 @@ namespace pg
             {
                 const size_t blockSize = N >= 2 ? N : size == 0 ? 1 : size + 1;
 
-                LOG_INFO("Memory Pool", "Current size: " + std::to_string(size) + ", target: " +std::to_string(reserveSize) + ", blockSize: " + std::to_string(blockSize));
+                LOG_MILE("Memory Pool", "Current size: " + std::to_string(size) + ", target: " +std::to_string(reserveSize) + ", blockSize: " + std::to_string(blockSize));
 
                 auto newBlock = Block<T>(blockSize);
                 freeList = newBlock.chunks;
@@ -189,12 +189,11 @@ namespace pg
             const size_t listPos = N >= 2 ? index / containerSize : n;
             const size_t vectorPos = N >= 2 ? index % containerSize : n == 0 ? 0 : index + 1 - containerSize;
 
-            // Todo make it a log mile
-            LOG_INFO("Memory Pool",
-                "Allocating new element: " + std::to_string(index) +
-                " in chunk: " + std::to_string(listPos) +
-                " at pos: " + std::to_string(vectorPos) +
-                " with current pool size: " + std::to_string(size));
+            LOG_MILE("Memory Pool", Strfy() <<
+                "Allocating new element: " << index <<
+                " in chunk: "  << listPos <<
+                " at pos: " << vectorPos <<
+                " with current pool size: " << size);
 
             Chunk<T>* chunk = &chunkList[listPos][vectorPos];
 
