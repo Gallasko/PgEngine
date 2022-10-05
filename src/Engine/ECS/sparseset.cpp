@@ -2,6 +2,8 @@
 
 #include "logger.h"
 
+#include <iostream>
+
 namespace pg
 {
     namespace ecs
@@ -74,32 +76,26 @@ namespace pg
 
             const size_t currentSize = size++;
             
+            // If the size of the list is too small allocate more space
+            if(denseCapacity <= currentSize)
             {
-                std::lock_guard<std::mutex> lock(denseMutex);
-
-                // If the size of the list is too small allocate more space
-                if(currentSize >= denseCapacity)
-                {
-                    LOG_INFO(DOM, "Dense array is too small (" + std::to_string(denseCapacity) + ") to fit the element: " + std::to_string(currentSize) + ", proceed to double the capacity");
-                    addDenseCapacity();
-                }
-
-                // Link the entity id with the component id through the dense <-> sparse mechanism
-                dense[currentSize] = id;
+                LOG_INFO(DOM, "Dense array is too small (" + std::to_string(denseCapacity) + ") to fit the element: " + std::to_string(currentSize) + ", proceed to double the capacity");
+                addDenseCapacity(currentSize);
             }
 
+            // Link the entity id with the component id through the dense <-> sparse mechanism
+            dense[currentSize] = id;
+            denseNb++;
+
+            if(sparseCapacity <= id)
             {
-                std::lock_guard<std::mutex> lock(sparseMutex);
-
-                if(id >= sparseCapacity)
-                {
-                    LOG_INFO(DOM, "Sparse array is too small (" + std::to_string(sparseCapacity) + ") to fit the element: " + std::to_string(id) + ", proceed to increase the capacity");
-                    addSparseCapacity(id);
-                }
-
-                // Link the entity id with the component id through the dense <-> sparse mechanism
-                sparse[id] = currentSize;
+                LOG_INFO(DOM, "Sparse array is too small (" + std::to_string(sparseCapacity) + ") to fit the element: " + std::to_string(id) + ", proceed to increase the capacity");
+                addSparseCapacity(id);
             }
+
+            // Link the entity id with the component id through the dense <-> sparse mechanism
+            sparse[id] = currentSize;
+            sparseNb++;
 
             // Store the component inside of the list
             // componentList[size] = component;
@@ -116,6 +112,7 @@ namespace pg
          * 
          * @todo Tell the management system that this entity (dense[index]) as lost this component to update all the other "archtype" using it
          * @todo Must implement a mutex for each component and entity for multithreaded use !
+         * @todo check that it still work in a multithreaded environment
          */
         size_t SparseSet::remove(const _unique_id& id)
         {
@@ -134,8 +131,9 @@ namespace pg
 
             // Update the index of the vector accordingly.
             dense[index] = dense[sparse[currentSize - 1]];
+            denseNb--;
             sparse[id] = sparse[currentSize - 1];
-
+            sparseNb--;
             return index;
         }
 
@@ -188,18 +186,36 @@ namespace pg
          * 
          * This helper function double both the size of the dense and the component list to store up to size_t amount of data 
          */
-        void SparseSet::addDenseCapacity()
+        void SparseSet::addDenseCapacity(size_t size)
         {
             LOG_THIS_MEMBER(DOM);
 
-            if(denseCapacity * 2 > SIZE_MAX)
+            if(denseCapacity > size)
+                return;
+            
+            if(size > SIZE_MAX)
             {
                 LOG_ERROR(DOM, "Entity id is too large to fit into sparse set");
                 return;
             }
 
+            while(denseNb < size);
+
+            std::lock_guard<std::mutex> lock(denseMutex);
+
+            if(denseCapacity > size)
+                return;
+
+            size_t targetCapacity = denseCapacity;
+
+            // This small loop make it so denseCapacity stays as a multiple of 2
+            while(targetCapacity <= size)
+            {
+                targetCapacity *= 2;
+            }
+
             // Create the doubled size containers
-            _unique_id* tempDense = new _unique_id[denseCapacity * 2];
+            _unique_id* tempDense = new _unique_id[targetCapacity];
             
             // Copy the current data inside of the newly created containers
             memcpy(tempDense, dense, denseCapacity * sizeof(_unique_id));
@@ -211,7 +227,7 @@ namespace pg
             dense = tempDense;
 
             // Update the capacity of the list
-            denseCapacity *= 2;
+            denseCapacity = targetCapacity;
         }
 
         /**
@@ -225,12 +241,22 @@ namespace pg
         {
             LOG_THIS_MEMBER(DOM);
 
+            if(sparseCapacity > id)
+                return;
+
             // If the entity is bigger than SIZE_MAX then it can't be expressed as a size_t and so it can't be stored in the array.
             if(id > SIZE_MAX)
             {
                 LOG_ERROR(DOM, "Entity id is too large to fit into sparse set");
                 return;
             }
+
+            // while(sparseNb != denseNb.load() - 1) std::cout << sparseNb.load() << " " << denseNb.load() << " " << this->size << std::endl;
+
+            std::lock_guard<std::mutex> lock(sparseMutex);
+
+            if(sparseCapacity > id)
+                return;
 
             size_t targetCapacity = sparseCapacity;
 

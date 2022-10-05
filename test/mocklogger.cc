@@ -16,6 +16,10 @@ namespace pg
                     logLevelStringBuffer = "[Log]: ";
                     break;
 
+                case Logger::InfoLevel::mile:
+                    logLevelStringBuffer = "[Mile]: ";
+                    break;
+
                 case Logger::InfoLevel::info:
                     logLevelStringBuffer = "[Info]: ";
                     break;
@@ -62,6 +66,7 @@ namespace pg
     void TestSink::resetSink()
     {
         nbMessages[Logger::InfoLevel::log]      = 0;
+        nbMessages[Logger::InfoLevel::mile]     = 0;
         nbMessages[Logger::InfoLevel::info]     = 0;
         nbMessages[Logger::InfoLevel::alert]    = 0;
         nbMessages[Logger::InfoLevel::warning]  = 0;
@@ -106,6 +111,14 @@ namespace pg
 
         return pointer->getNbMessages().at(Logger::InfoLevel::log);
     }
+
+    unsigned int MockLogger::getNbMile() const
+    {
+        auto pointer = std::static_pointer_cast<TestSink>(sink);
+
+        return pointer->getNbMessages().at(Logger::InfoLevel::mile);
+    }
+
 
     unsigned int MockLogger::getNbInfo() const
     {

@@ -156,7 +156,7 @@ namespace pg
                         if(not element.toBeDeleted)
                             elements.addComponent(id, element);
                     }
-                }, false);
+                });
 
                 std::cout << "Parallel Task ended successfully" << std::endl;
 

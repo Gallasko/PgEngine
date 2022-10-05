@@ -31,6 +31,10 @@ namespace pg
                     logLevelStringBuffer = "[Log]: ";
                     break;
 
+                case Logger::InfoLevel::mile:
+                    logLevelStringBuffer = "[Mile]: ";
+                    break;
+
                 case Logger::InfoLevel::info:
                     logLevelStringBuffer = "[Info]: ";
                     break;

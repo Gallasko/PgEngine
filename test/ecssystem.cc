@@ -148,10 +148,10 @@ namespace pg
             start = std::chrono::steady_clock::now();
             for(size_t i = 0; i < nbComps + 1; i++)
             {
-                std::cout << "Creating entity: " << i << std::endl;
+                // std::cout << "Creating entity: " << i << std::endl;
                 entity[i] = ecs.createEntity();
                 system->createOwnedComponent<A>(entity[i], i, 15);
-                std::cout << "Created entity: " << i << std::endl;
+                // std::cout << "Created entity: " << i << std::endl;
             }
             end = std::chrono::steady_clock::now();
 
@@ -208,6 +208,7 @@ namespace pg
         {
             // MockLogger logger;
             // logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
+            // logger.addFilter("Mile Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::mile));
 
             constexpr size_t nbComps = 10000000;
 
@@ -237,6 +238,8 @@ namespace pg
                 if(i % 2 == 0)
                     absys->createOwnedComponent<B>(entity[i], i, 5);
             }
+
+            MockLogger logger;
 
             start = std::chrono::steady_clock::now();
 

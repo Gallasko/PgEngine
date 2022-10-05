@@ -46,6 +46,7 @@ namespace pg
         void reset();
 
         unsigned int getNbLog() const;
+        unsigned int getNbMile() const;
         unsigned int getNbInfo() const;
         unsigned int getNbAlert() const;
         unsigned int getNbWarning() const;

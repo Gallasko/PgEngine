@@ -186,6 +186,10 @@ namespace pg
             const unsigned int n = log2_64(index + 1);
             const size_t containerSize = N >= 2 ? N : n == 0 ? 0 : 1 << n;
 
+            LOG_MILE("Memory Pool", Strfy() <<
+                "Allocate internal, n: " << n <<
+                " container size: "  << containerSize);
+
             const size_t listPos = N >= 2 ? index / containerSize : n;
             const size_t vectorPos = N >= 2 ? index % containerSize : n == 0 ? 0 : index + 1 - containerSize;
 

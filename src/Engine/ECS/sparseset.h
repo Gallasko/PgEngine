@@ -174,7 +174,7 @@ namespace pg
             {
                 LOG_THIS_MEMBER("Sparse Set");
 
-                if(index >= size.load())
+                if(index >= size)
                     return 0;
                 
                 return dense[index];
@@ -216,7 +216,7 @@ namespace pg
              * The list start at index 1 to nbElement()
              * This function is used to ensure that the bound of the set are respected
              */
-            inline constexpr size_t nbElements() const { LOG_THIS_MEMBER("Sparse Set"); return size.load(); }
+            inline constexpr size_t nbElements() const { LOG_THIS_MEMBER("Sparse Set"); return size; }
 
             inline SparseSetList view() const
             {
@@ -228,7 +228,7 @@ namespace pg
             // Private interface
         private:
             /** Internal helper function used to expend the dense and the component list */
-            void addDenseCapacity();
+            void addDenseCapacity(size_t size);
 
             /** Internal helper function used to expend the sparse list */
             void addSparseCapacity(const _unique_id& id);
@@ -236,7 +236,10 @@ namespace pg
             // Private variables
         private:
             /** The current size of the sparse set */
-            std::atomic<size_t> size{1};
+            size_t size = 1;
+
+            std::atomic<size_t> denseNb{1};
+            std::atomic<size_t> sparseNb{1};
 
             /** An interal array to hold the link componend id -> entity id */
             _unique_id* dense;
@@ -475,20 +478,33 @@ namespace pg
              */
             Comp* operator[](const size_t& index) const { LOG_THIS_MEMBER("Component Set"); return componentList[index]; }
 
+            template<bool isInternal = false>
             void reserve(const size_t& size)
             {
                 LOG_THIS_MEMBER("Component Set");
                 
                 {
+                    if(size < componentCapacity)
+                        return;
+
+
+                    if(isInternal)
+                        while(nbComponents != componentCapacity);
+
                     std::lock_guard<std::mutex> lock(mutex);
 
                     if(size < componentCapacity)
-                    {
-                        LOG_ERROR("Component Set", "Reserve failed, capacity is already bigger");
                         return;
+
+                    size_t targetCapacity = componentCapacity;
+
+                    // This small loop make it so sparseCapacity stays as a multiple of 2
+                    while(targetCapacity <= size)
+                    {
+                        targetCapacity *= 2;
                     }
 
-                    Comp** tempComponentList = new Comp*[size];
+                    Comp** tempComponentList = new Comp*[targetCapacity];
                         
                     // Todo check if this doens't create memory leaks
 
@@ -498,7 +514,7 @@ namespace pg
                     memcpy(tempComponentList, componentList, componentCapacity * sizeof(Comp*));
                     delete[] componentList;
                     componentList = tempComponentList;
-                    componentCapacity = size;
+                    componentCapacity = targetCapacity;
                 }
                 
                 // pool.reserve(size);
@@ -522,7 +538,7 @@ namespace pg
                 {
                     LOG_INFO("Component Set", "Increasing size of the component set");
 
-                    this->reserve(componentCapacity * 2);
+                    this->reserve<true>(index);
                 }
 
                 lastEntityIndex = index;
