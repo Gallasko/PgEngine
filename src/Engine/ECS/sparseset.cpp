@@ -80,7 +80,7 @@ namespace pg
             nbWorkingThread++;
             
             // If the size of the list is too small allocate more space
-            while(denseCapacity <= currentSize)
+            if(denseCapacity <= currentSize)
             {
                 LOG_INFO(DOM, "Dense array is too small (" + std::to_string(denseCapacity) + ") to fit the element: " + std::to_string(currentSize) + ", proceed to double the capacity");
                 addDenseCapacity(currentSize);
@@ -90,7 +90,7 @@ namespace pg
             dense[currentSize] = id;
             denseNb++;
 
-            while(resizingSparse != false || sparseCapacity <= id)
+            if(resizingSparse != false || sparseCapacity <= id)
             {
                 LOG_INFO(DOM, "Sparse array is too small (" + std::to_string(sparseCapacity) + ") to fit the element: " + std::to_string(id) + ", proceed to increase the capacity");
                 addSparseCapacity(id, currentSize);
