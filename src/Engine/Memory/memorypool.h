@@ -136,9 +136,9 @@ namespace pg
             if(reserveSize < size) return;
 
             if(internalCall)
-                while(currentSize != size);
+                while(currentSize < size);
             else
-                while(currentSize != nbElements.load());
+                while(currentSize < nbElements.load());
 
             std::lock_guard<std::recursive_mutex> lock(mutex);
 

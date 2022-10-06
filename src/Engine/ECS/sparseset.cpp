@@ -25,9 +25,9 @@ namespace pg
 
             dense = new _unique_id[denseCapacity];
 
-            sparse.reserve(sparseCapacity);
+            // sparse.reserve(sparseCapacity);
 
-            // sparse = new size_t[sparseCapacity];
+            sparse = new size_t[sparseCapacity];
         }
 
         /**
@@ -49,7 +49,7 @@ namespace pg
 
             delete[] dense;
 
-            // delete[] sparse;
+            delete[] sparse;
         }
 
         /**
@@ -92,7 +92,7 @@ namespace pg
             if(sparseCapacity <= id)
             {
                 LOG_INFO(DOM, "Sparse array is too small (" + std::to_string(sparseCapacity) + ") to fit the element: " + std::to_string(id) + ", proceed to increase the capacity");
-                addSparseCapacity(id);
+                addSparseCapacity(id, currentSize);
             }
 
             // Link the entity id with the component id through the dense <-> sparse mechanism
@@ -188,7 +188,7 @@ namespace pg
          * 
          * This helper function double both the size of the dense and the component list to store up to size_t amount of data 
          */
-        void SparseSet::addDenseCapacity(size_t size)
+        void SparseSet::addDenseCapacity(const size_t& size)
         {
             LOG_THIS_MEMBER(DOM);
 
@@ -239,7 +239,7 @@ namespace pg
          * 
          * This helper function double the size of the sparse to store up to size_t amount of data 
          */
-        void SparseSet::addSparseCapacity(const _unique_id& id)
+        void SparseSet::addSparseCapacity(const _unique_id& id, const size_t& size)
         {
             LOG_THIS_MEMBER(DOM);
 
@@ -253,7 +253,11 @@ namespace pg
                 return;
             }
 
-            while(sparseNb < sparse.size()) std::cout << sparseNb.load() << " " << denseNb.load() << " " << this->size << " " << sparse.size() << std::endl;
+            waitingSparseNb++;
+
+            while(sparseNb.load() + waitingSparseNb.load() < size) std::cout << sparseNb.load() << " " << denseNb.load() << " " << this->size  << std::endl;
+
+            waitingSparseNb--;
 
             std::lock_guard<std::mutex> lock(sparseMutex);
 
@@ -268,19 +272,19 @@ namespace pg
                 targetCapacity *= 2;
             }
 
-            sparse.reserve(targetCapacity);
+            // sparse.reserve(targetCapacity);
 
-//            // Create a bigger size container
-//            size_t* tempSparse = new size_t[targetCapacity];
-//
-//            // Copy the current data inside of the newly created container
-//            memcpy(tempSparse, sparse, sparseCapacity * sizeof(size_t));
-//
-//            // Delete old data to not leak memory
-//            delete[] sparse;
-//
-//            // Set the new container as the list container
-//            sparse = tempSparse;
+            // Create a bigger size container
+            size_t* tempSparse = new size_t[targetCapacity];
+
+            // Copy the current data inside of the newly created container
+            memcpy(tempSparse, sparse, sparseCapacity * sizeof(size_t));
+
+            // Delete old data to not leak memory
+            delete[] sparse;
+
+            // Set the new container as the list container
+            sparse = tempSparse;
 
             // Update the capacity of the list
             sparseCapacity = targetCapacity;

@@ -162,7 +162,7 @@ namespace pg
              * This function uses one of the main properties of the sparse set, the reciprocity of the id in the dense and sparse array
              * This operation is O(1) as it only need 2 indirections and 3 checks to know if an id is in the list and this is true whatever the size of the array
              */
-            inline bool has(const _unique_id& id) const { LOG_THIS_MEMBER("Sparse Set"); return id < sparseCapacity && sparse.at(id) < denseCapacity && dense[sparse.at(id)] == id; };
+            inline bool has(const _unique_id& id) const { LOG_THIS_MEMBER("Sparse Set"); return id < sparseCapacity && sparse[id] < denseCapacity && dense[sparse[id]] == id; };
 
             /**
              * @brief Get the id at a given index of the set
@@ -191,7 +191,7 @@ namespace pg
                 LOG_THIS_MEMBER("Sparse Set");
 
                 if(has(id))
-                    return sparse.at(id);
+                    return sparse[id];
 
                 return 0;
             }
@@ -228,10 +228,10 @@ namespace pg
             // Private interface
         private:
             /** Internal helper function used to expend the dense and the component list */
-            void addDenseCapacity(size_t size);
+            void addDenseCapacity(const size_t& size);
 
             /** Internal helper function used to expend the sparse list */
-            void addSparseCapacity(const _unique_id& id);
+            void addSparseCapacity(const _unique_id& id, const size_t& size);
 
             // Private variables
         private:
@@ -240,13 +240,14 @@ namespace pg
 
             std::atomic<size_t> denseNb{1};
             std::atomic<size_t> sparseNb{1};
+            std::atomic<size_t> waitingSparseNb{0};
 
             /** An interal array to hold the link componend id -> entity id */
             _unique_id* dense;
 
             /** An interal array to hold the link entity id -> component id */
             // size_t* sparse;
-            std::unordered_map<size_t, size_t> sparse;
+            size_t* sparse;
 
             /** The capacity of the dense array */
             size_t denseCapacity = 2;
@@ -490,7 +491,7 @@ namespace pg
 
 
                     if(isInternal)
-                        while(nbComponents != componentCapacity);
+                        while(nbComponents < componentCapacity);
 
                     std::lock_guard<std::mutex> lock(mutex);
 
