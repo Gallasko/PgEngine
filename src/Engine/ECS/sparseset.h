@@ -237,13 +237,6 @@ namespace pg
         private:
             /** The current size of the sparse set */
             size_t size = 1;
-
-            std::atomic<size_t> denseNb{1};
-            std::atomic<size_t> sparseNb{1};
-
-            std::atomic<size_t> nbWorkingThread{0};
-            std::atomic<size_t> inResize{0};
-            std::atomic<bool> resizingSparse{false};
             
             /** An interal array to hold the link componend id -> entity id */
             _unique_id* dense;
@@ -257,9 +250,6 @@ namespace pg
 
             /** The capacity of the sparse array */
             size_t sparseCapacity = 2;
-
-            std::mutex denseMutex;
-            std::mutex sparseMutex;
         };
 
         // 
@@ -465,7 +455,7 @@ namespace pg
             {
                 LOG_THIS_MEMBER("Component Set");
 
-                for(size_t i = 1; i < nbComponents.load(); i++)
+                for(size_t i = 1; i < nbComponents; i++)
                     pool.release(componentList[i]);
 
                 delete[] componentList;
@@ -483,21 +473,11 @@ namespace pg
              */
             Comp* operator[](const size_t& index) const { LOG_THIS_MEMBER("Component Set"); return componentList[index]; }
 
-            template<bool isInternal = false>
             void reserve(const size_t& size)
             {
                 LOG_THIS_MEMBER("Component Set");
                 
                 {
-                    if(size < componentCapacity)
-                        return;
-
-
-                    if(isInternal)
-                        while(nbComponents < componentCapacity);
-
-                    std::lock_guard<std::mutex> lock(mutex);
-
                     if(size < componentCapacity)
                         return;
 
@@ -543,7 +523,7 @@ namespace pg
                 {
                     LOG_INFO("Component Set", "Increasing size of the component set");
 
-                    this->reserve<true>(index);
+                    this->reserve(index);
                 }
 
                 lastEntityIndex = index;
@@ -586,7 +566,7 @@ namespace pg
                 componentList[index] = componentList[nbComponents--];
 
                 if(nbComponents <= 1)
-                    nbComponents.store(1); 
+                    nbComponents = 1; 
             }
 
             // TODO make a sparse set implementation that doesn't delete components on remove but instead reuse dead memory
@@ -609,7 +589,7 @@ namespace pg
             {
                 LOG_THIS_MEMBER("Component Set");
 
-                return ComponentSetList(nbComponents.load(), componentList);
+                return ComponentSetList(nbComponents, componentList);
             }
 
         private:
@@ -618,13 +598,11 @@ namespace pg
 
             AllocatorPool<Comp> pool;
 
-            std::atomic<size_t> nbComponents{1};
+            size_t nbComponents = 1;
 
             size_t componentCapacity = 2;
 
             size_t lastEntityIndex = 0;
-
-            std::mutex mutex;
         };
 
         /**

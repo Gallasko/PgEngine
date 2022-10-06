@@ -123,24 +123,11 @@ namespace pg
                 delete chunk;
         }
 
-        template<bool internalCall = false>
         void reserve(size_t reserveSize)
         {
             LOG_THIS_MEMBER("Memory Pool");
 
-            LOG_MILE("Memory Pool", "Trying to reserve: " + std::to_string(reserveSize) +  ", currentPoolSize = " +
-                std::to_string(size) + " " +
-                std::to_string(currentSize) + " " +
-                std::to_string(nbElements));
-
             if(reserveSize < size) return;
-
-            if(internalCall)
-                while(currentSize < size);
-            else
-                while(currentSize < nbElements.load());
-
-            std::lock_guard<std::recursive_mutex> lock(mutex);
 
             LOG_INFO("Memory Pool", "Reserving: " + std::to_string(reserveSize) +  ", currentPoolSize = " +
                 std::to_string(size) + " " +
@@ -154,7 +141,7 @@ namespace pg
                 LOG_MILE("Memory Pool", "Current size: " + std::to_string(size) + ", target: " +std::to_string(reserveSize) + ", blockSize: " + std::to_string(blockSize));
 
                 auto newBlock = Block<T>(blockSize);
-                freeList = newBlock.chunks;
+                // freeList = newBlock.chunks;
 
                 chunkList.push_back(newBlock.chunks);
 
@@ -178,10 +165,20 @@ namespace pg
         T* allocate(Args&&... args)
         {
             LOG_THIS_MEMBER("Memory Pool");
+            
+            if(freeList)
+            {
+                auto chunk = freeList;
+                freeList = chunk->next;
+
+                ::new(&(chunk->element)) T(std::forward<Args>(args)...);
+
+                return reinterpret_cast<T*>(chunk);
+            }
 
             const size_t index = nbElements++;
 
-            while(index >= size) reserve<true>(index);
+            if(index >= size) reserve(index);
 
             const unsigned int n = log2_64(index + 1);
             const size_t containerSize = N >= 2 ? N : n == 0 ? 0 : 1 << n;
@@ -200,8 +197,6 @@ namespace pg
                 " with current pool size: " << size);
 
             Chunk<T>* chunk = &chunkList[listPos][vectorPos];
-
-            currentSize++;
 
             ::new(&(chunk->element)) T(std::forward<Args>(args)...);
 
@@ -228,17 +223,15 @@ namespace pg
                 // {
                 //     std::lock_guard<std::recursive_mutex> lock(mutex);
 
-                //     reinterpret_cast<Chunk<T>*>(pointer)->next = freeList;
-                //     freeList = reinterpret_cast<Chunk<T>*>(pointer);
+                reinterpret_cast<Chunk<T>*>(pointer)->next = freeList;
+                freeList = reinterpret_cast<Chunk<T>*>(pointer);
                 // }
             }
         }
 
     private:
         size_t size = 0;
-
-        std::atomic<size_t> nbElements{0};
-        std::atomic<size_t> currentSize{0};
+        size_t nbElements = 0;
 
         // Todo implement back the freelist and used it only on deleted free space
         /** Pointer to the next free object in the pool */
@@ -246,7 +239,5 @@ namespace pg
 
         /** Chunk Lists used in the pool (used to free the memory) */
         std::vector<Chunk<T>*> chunkList;
-
-        std::recursive_mutex mutex;
     };
 }

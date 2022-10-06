@@ -137,28 +137,21 @@ namespace pg
                 LOG_INFO("Ecs Group", "Smallest set has: " + std::to_string(smallestSet->nbElements()) + " elements");
 
                 // Todo add reserve and multiple emplace back in the component/sparse set
-                elements.reserve(smallestSet->nbElements()); // May need a -1
+                // elements.reserve(smallestSet->nbElements()); // May need a -1
 
-                parallelFor(smallestSet->nbElements() - 1, [&](size_t start, size_t end) { 
-                    for(size_t i = start; i < end; i++)
+                // Todo check Branch: Parallel-Ecs to create a parallal implementation of grouping
+                for(const auto& id : smallestSet->view())
+                {
+                    GroupElement<Type, Types...> element(id);
+
+                    for(size_t j = 0; j < nbOfSets - 1; j++)
                     {
-                        // std::cout << "Working on element: " << i << std::endl;
-                        if(i == 0) continue;
-
-                        const auto& id = smallestSet->at(i);
-                        GroupElement<Type, Types...> element(id);
-
-                        for(size_t j = 0; j < nbOfSets - 1; j++)
-                        {
-                            setList[j]->setElement(setList[j]->set, element, id);    
-                        }
-
-                        if(not element.toBeDeleted)
-                            elements.addComponent(id, element);
+                        setList[j]->setElement(setList[j]->set, element, id);    
                     }
-                });
 
-                std::cout << "Parallel Task ended successfully" << std::endl;
+                    if(not element.toBeDeleted)
+                        elements.addComponent(id, element);
+                }
 
                 for(size_t i = 0; i < nbOfSets; i++)
                     delete setList[i];
