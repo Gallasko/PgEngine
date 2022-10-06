@@ -253,6 +253,8 @@ namespace pg
 
             start = std::chrono::steady_clock::now();
 
+            std::atomic<size_t> nbTestElements {0};
+
             for(const auto& element : group->elements.viewComponents())
             {
                 // std::cout << "Showing element: " << element->entityId << std::endl;
@@ -264,7 +266,11 @@ namespace pg
                 
                 // element.get<A>();
                 // element.get<B>();
+
+                nbTestElements++;
             }
+
+            std::cout << "Iteration over " << nbTestElements << " elements" << std::endl;
 
             end = std::chrono::steady_clock::now();
 
