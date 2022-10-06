@@ -240,8 +240,11 @@ namespace pg
 
             std::atomic<size_t> denseNb{1};
             std::atomic<size_t> sparseNb{1};
-            std::atomic<size_t> waitingSparseNb{0};
 
+            std::atomic<size_t> nbWorkingThread{0};
+            std::atomic<size_t> inResize{0};
+            std::atomic<bool> resizingSparse{false};
+            
             /** An interal array to hold the link componend id -> entity id */
             _unique_id* dense;
 

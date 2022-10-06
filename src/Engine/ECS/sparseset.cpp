@@ -77,9 +77,10 @@ namespace pg
             }
 
             const size_t currentSize = size++;
+            nbWorkingThread++;
             
             // If the size of the list is too small allocate more space
-            if(denseCapacity <= currentSize)
+            while(denseCapacity <= currentSize)
             {
                 LOG_INFO(DOM, "Dense array is too small (" + std::to_string(denseCapacity) + ") to fit the element: " + std::to_string(currentSize) + ", proceed to double the capacity");
                 addDenseCapacity(currentSize);
@@ -89,7 +90,7 @@ namespace pg
             dense[currentSize] = id;
             denseNb++;
 
-            if(sparseCapacity <= id)
+            while(resizingSparse != false || sparseCapacity <= id)
             {
                 LOG_INFO(DOM, "Sparse array is too small (" + std::to_string(sparseCapacity) + ") to fit the element: " + std::to_string(id) + ", proceed to increase the capacity");
                 addSparseCapacity(id, currentSize);
@@ -98,6 +99,8 @@ namespace pg
             // Link the entity id with the component id through the dense <-> sparse mechanism
             sparse[id] = currentSize;
             sparseNb++;
+
+            nbWorkingThread--;
 
             // Store the component inside of the list
             // componentList[size] = component;
@@ -243,26 +246,38 @@ namespace pg
         {
             LOG_THIS_MEMBER(DOM);
 
-            if(sparseCapacity > id)
+            resizingSparse = true;
+            inResize++;
+
+            if(resizingSparse == false && sparseCapacity > id)
                 return;
 
             // If the entity is bigger than SIZE_MAX then it can't be expressed as a size_t and so it can't be stored in the array.
-            if(id > SIZE_MAX)
+            if(resizingSparse == false && id > SIZE_MAX)
             {
                 LOG_ERROR(DOM, "Entity id is too large to fit into sparse set");
                 return;
             }
 
-            waitingSparseNb++;
+            // waitingSparseNb++;
 
-            while(sparseNb.load() + waitingSparseNb.load() < size) std::cout << sparseNb.load() << " " << denseNb.load() << " " << this->size  << std::endl;
+            while(resizingSparse == true && inResize != nbWorkingThread.load()) std::cout << resizingSparse.load() << " " << sparseNb.load() << " " << inResize.load() << " " << nbWorkingThread.load() << " " << sparseCapacity << std::endl;
 
-            waitingSparseNb--;
+            // waitingSparseNb--;
 
             std::lock_guard<std::mutex> lock(sparseMutex);
 
-            if(sparseCapacity > id)
+            if(resizingSparse != true || inResize != nbWorkingThread.load())
+            {
+                inResize--;
                 return;
+            }
+
+            if(sparseCapacity > id)
+            {
+                inResize--;
+                return;
+            }
 
             size_t targetCapacity = sparseCapacity;
 
@@ -288,6 +303,9 @@ namespace pg
 
             // Update the capacity of the list
             sparseCapacity = targetCapacity;
+
+            inResize--;
+            resizingSparse = false;
         }
     }
 }

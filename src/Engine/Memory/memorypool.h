@@ -181,7 +181,7 @@ namespace pg
 
             const size_t index = nbElements++;
 
-            if(index >= size) reserve<true>(index);
+            while(index >= size) reserve<true>(index);
 
             const unsigned int n = log2_64(index + 1);
             const size_t containerSize = N >= 2 ? N : n == 0 ? 0 : 1 << n;
