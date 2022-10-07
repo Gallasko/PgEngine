@@ -253,24 +253,28 @@ namespace pg
 
             start = std::chrono::steady_clock::now();
 
-            std::atomic<size_t> nbTestElements {0};
-
-            for(const auto& element : group->elements.viewComponents())
             {
-                // std::cout << "Showing element: " << element->entityId << std::endl;
-                // if(!element->toBeDeleted)
-                element->get<A>()->value++;
-                // std::cout << element->entityId << std::endl;
-                // std::cout << element->get<A>()->value << std::endl;
-                // std::cout << element->get<B>()->value << std::endl;
-                
-                // element.get<A>();
-                // element.get<B>();
+                parallelFor(group->elements.nbElements(), [&group](size_t start, size_t end) { 
+                    for(size_t i = start; i < end; i++)
+                    {
+                        // std::cout << "Working on element: " << i << std::endl;
+                        if(i == 0) continue;
 
-                nbTestElements++;
+                        const auto& element = group->elements[i];
+                        // std::cout << "Showing element: " << element->entityId << std::endl;
+                        // if(!element->toBeDeleted)
+                        element->get<A>()->value++;
+                        // std0::cout << element->entityId << std::endl;
+                        // std::cout << element->get<A>()->value << std::endl;
+                        // std::cout << element->get<B>()->value << std::endl;
+                        
+                        // element.get<A>();
+                        // element.get<B>();
+
+                        // nbTestElements++;
+                    }
+                });
             }
-
-            std::cout << "Iteration over " << nbTestElements << " elements" << std::endl;
 
             end = std::chrono::steady_clock::now();
 
