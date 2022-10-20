@@ -24,7 +24,7 @@ namespace pg
 
 namespace editor
 {
-    ContextMenu::ContextMenu(EntitySystem &ecs, FontLoader *fontLoader, const std::string& textureName, const std::function<void(const UiComponentType&)>& callback) : UiComponent(), callback(callback)
+    ContextMenu::ContextMenu(ecs::EntitySystem &ecs, FontLoader *fontLoader, const std::string& textureName, const std::function<void(const UiComponentType&)>& callback) : UiComponent(), callback(callback)
     {
         this->width = 0;
         this->height = 0;

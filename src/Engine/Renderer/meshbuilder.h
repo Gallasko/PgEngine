@@ -7,7 +7,7 @@
 #include <memory>
 
 #include "ECS/system.h"
-#include "ECS/entitysystem2.h"
+#include "ECS/entitysystem.h"
 
 namespace pg
 {

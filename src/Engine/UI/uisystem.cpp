@@ -219,7 +219,7 @@ namespace pg
         return component;
     }
 
-    UiComponent::UiComponent(const UiComponent& rhs)
+    UiComponent::UiComponent(const UiComponent& rhs) : ecs::NamedComponent<UiComponent>("UiComponent")
     {
         LOG_THIS_MEMBER(DOM);
 

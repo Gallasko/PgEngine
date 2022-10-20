@@ -14,6 +14,16 @@ namespace pg
 {
     namespace ecs
     {
+        enum class ExecutionPolicy
+        {
+            Manual      = 0,
+            Sequential  = 1,
+            Parallel    = 2,
+            Independent = 3,
+            OnEvent     = 4,
+            Storage     = 5
+        };
+
         /**
          * @brief Abstract representation of a system
          */
@@ -22,7 +32,13 @@ namespace pg
             virtual ~AbstractSystem() { LOG_THIS_MEMBER("System"); }
 
             virtual void execute() { LOG_THIS_MEMBER("System"); }
-            
+
+            virtual void parallelExecute(size_t start, size_t end) { LOG_THIS_MEMBER("System"); }
+
+            inline void setPolicy(const ExecutionPolicy& policy) { executionPolicy = policy; }
+
+            ExecutionPolicy executionPolicy = ExecutionPolicy::Sequential;
+
             // Todo make function onAdd and onDelete of a component that default to nothing if not used
         };
 
@@ -78,7 +94,7 @@ namespace pg
             }
 
             template <typename Type, typename... Args>
-            inline Type* createComponent(Entity& entity, Args&&... args)
+            inline Type* createComponent(Entity* entity, Args&&... args)
             {
                 LOG_THIS_MEMBER("System");
 
@@ -86,7 +102,7 @@ namespace pg
             }
 
             template <typename Type, typename... Args>
-            inline Type* createOwnedComponent(Entity& entity, Args&&... args)
+            inline Type* createOwnedComponent(Entity* entity, Args&&... args)
             {
                 LOG_THIS_MEMBER("System");
 
@@ -94,7 +110,7 @@ namespace pg
             }
 
             template <typename Type, typename... Args>
-            inline Type* createRefferedComponent(Entity& entity, Args&&... args)
+            inline Type* createRefferedComponent(Entity* entity, Args&&... args)
             {
                 LOG_THIS_MEMBER("System");
 
@@ -102,7 +118,7 @@ namespace pg
             }
 
             template <typename Type>
-            inline void removeComponent(Entity& entity)
+            inline void removeComponent(Entity* entity)
             {
                 LOG_THIS_MEMBER("System");
 
@@ -110,7 +126,7 @@ namespace pg
             }
 
             template <typename Type>
-            void removeRefferedComponent(Entity& entity)
+            void removeRefferedComponent(Entity* entity)
             {
                 LOG_THIS_MEMBER("System");
 
@@ -118,7 +134,7 @@ namespace pg
             }
 
             template <typename Type>
-            inline void removeOwnedComponent(Entity& entity)
+            inline void removeOwnedComponent(Entity* entity)
             {
                 LOG_THIS_MEMBER("System");
 

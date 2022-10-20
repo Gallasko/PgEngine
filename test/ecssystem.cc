@@ -5,7 +5,7 @@
 #include "ECS/component.h"
 #include "ECS/system.h"
 #include "ECS/componentregistry.h"
-#include "ECS/entitysystem2.h"
+#include "ECS/entitysystem.h"
 
 #include "mocklogger.h"
 
@@ -143,7 +143,7 @@ namespace pg
 
             std::cout << "Creating entities..." << std::endl;
 
-            ecs::Entity *entity = new ecs::Entity[nbComps + 1];
+            ecs::Entity **entity = new ecs::Entity*[nbComps + 1];
             
             start = std::chrono::steady_clock::now();
             for(size_t i = 0; i < nbComps + 1; i++)
@@ -161,14 +161,14 @@ namespace pg
             for(size_t i = 0; i < nbComps + 1; i++)
             {
                 //ecs.attach<C>(entity.id, "Value of: " + std::to_string(i));
-                system3->createOwnedComponent<C>(entity[i], entity[i].id, "Value of: " + std::to_string(i));
+                system3->createOwnedComponent<C>(entity[i], entity[i]->id, "Value of: " + std::to_string(i));
             }
             end = std::chrono::steady_clock::now();
 
             std::cout << "Adding C to " << nbComps + 1 << " entities took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
 
-            std::cout << "Entity " << entity[555].id << " has: [";
-            for (auto& comp : entity[555].componentList)
+            std::cout << "Entity " << entity[555]->id << " has: [";
+            for (auto& comp : entity[555]->componentList)
             {
                 std::cout << std::to_string(comp.first) << ", ";
             }
@@ -228,7 +228,7 @@ namespace pg
             
             auto absys = ecs.createSystem<ABSystem>();
 
-            auto entity = new ecs::Entity[nbComps];
+            auto entity = new ecs::Entity*[nbComps];
 
             for(size_t i = 0; i < nbComps; i++)
             {

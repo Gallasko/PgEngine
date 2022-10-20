@@ -16,11 +16,13 @@
 
 // TODO create a find function in ECS
 
+using namespace pg::ecs;
+
 namespace
 {
     const char * DOM = "Editor window";
 
-    struct SceneElement
+    struct SceneElement : public Component<SceneElement>
     {
         SceneElement(int id, UiComponent *component, Button *mouseArea) : id(id), component(component), mouseArea(mouseArea) {}
 
@@ -31,6 +33,35 @@ namespace
         /** Store a reference to the mouse area for delete purpose */
         Button *mouseArea;
     };
+
+    inline void executeSceneElement(const SceneElement& element, MasterRenderer* masterRenderer)
+    {
+        if(element.component != nullptr)
+            element.component->render(masterRenderer);
+    }
+
+    struct SceneElementSystem : public System<Own<SceneElement>>
+    {
+        SceneElementSystem(MasterRenderer* masterRenderer) : masterRenderer(masterRenderer)
+        {
+            setPolicy(ExecutionPolicy::Parallel);
+        }
+
+        virtual void execute()
+        {
+            // parallelExecute(view<SceneElement>(), executeSceneElement, masterRenderer);
+        }
+
+        MasterRenderer *masterRenderer;
+    };
+
+    struct UiComponentSystem : public System<Own<UiComponent>>
+    {
+        UiComponentSystem()
+        {
+            setPolicy(ExecutionPolicy::Storage);
+        }
+    };
 }
 
 EditorWindow::EditorWindow(QWindow *parent) : QWindow(parent)
@@ -39,9 +70,9 @@ EditorWindow::EditorWindow(QWindow *parent) : QWindow(parent)
     auto terminalSink = pg::Logger::registerSink<pg::TerminalSink>(true);
     //TODO fix FilterFile
     //terminalSink->addFilter("Input Filter", new Logger::LogSink::FilterScope("Input"));
-    terminalSink->addFilter("Serializer Filter", new Logger::LogSink::FilterFile("src/Engine/serialization.cpp"));
-    terminalSink->addFilter("Configuration Filter", new Logger::LogSink::FilterFile("src/Engine/configuration.cpp"));
-    terminalSink->addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
+    // terminalSink->addFilter("Serializer Filter", new Logger::LogSink::FilterFile("src/Engine/serialization.cpp"));
+    // terminalSink->addFilter("Configuration Filter", new Logger::LogSink::FilterFile("src/Engine/configuration.cpp"));
+    // terminalSink->addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
 
     setSurfaceType(QWindow::OpenGLSurface);
 
@@ -457,12 +488,15 @@ void EditorWindow::renderUi()
 {
     masterRenderer.render(optionTab);
 
+/*
     for(auto& child : sceneEcs.view<SceneElement>())
     {
         if(child.component != nullptr)
             child.component->render(&masterRenderer);
     }
+*/
 
+/*
     // Todo use the master renderer to render all the texture component but using only one shader binding 
     for(auto& texture : ecs.view<TextureComponent>())
     {
@@ -478,6 +512,7 @@ void EditorWindow::renderUi()
     {
         masterRenderer.render(&sentence);
     }
+*/
 }
 
 //TODO make a tick object that take tick function and run in background when you start up the engine

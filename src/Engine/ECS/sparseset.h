@@ -420,6 +420,13 @@ namespace pg
                  */
                 ComponentSetList(const ComponentSetList& other) : head(other.head), tail(other.head), componentList(other.componentList) { LOG_THIS_MEMBER("Component Set List"); }
 
+                /**
+                 * @brief Get the number of components in the list
+                 * 
+                 * @return size_t the number of components in the list
+                 */
+                size_t nbComponents() const { LOG_THIS_MEMBER("Component Set List"); return tail.index; }
+
                 // Protected constructor
             protected:
                 /**
@@ -541,11 +548,11 @@ namespace pg
             }
             
             template <typename... Args>
-            Comp* addComponent(const Entity& entity, Args&&... args)
+            Comp* addComponent(const Entity* entity, Args&&... args)
             {
                 LOG_THIS_MEMBER("Component Set");
 
-                return addComponent(entity.id, std::forward<Args>(args)...);
+                return addComponent(entity->id, std::forward<Args>(args)...);
             }
 
             void removeComponent(const _unique_id& id)
@@ -570,11 +577,11 @@ namespace pg
             }
 
             // TODO make a sparse set implementation that doesn't delete components on remove but instead reuse dead memory
-            void removeComponent(const Entity& entity)
+            void removeComponent(const Entity* entity)
             {
                 LOG_THIS_MEMBER("Component Set");
 
-                removeComponent(entity.id);
+                removeComponent(entity->id);
             }
 
             /**

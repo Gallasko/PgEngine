@@ -49,5 +49,18 @@ namespace pg
 
             virtual ~NamedComponent() { LOG_THIS_MEMBER("Component"); }
         };
+
+        template<typename Derived, typename Base>
+        struct IsA : public Base, public Component<Derived>
+        {
+            using Component<Derived>::componentId;
+
+            IsA() : Component<Derived>() { LOG_THIS_MEMBER("Component"); }
+            
+            template<typename... Args>
+            IsA(const Args&... args) : Base(args...), Component<Derived>() { LOG_THIS_MEMBER("Component"); }
+
+            virtual ~IsA() { LOG_THIS_MEMBER("Component"); }
+        };
     }
 }

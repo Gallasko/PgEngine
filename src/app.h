@@ -107,15 +107,15 @@ private:
     QOpenGLContext *m_context = nullptr;
     QOpenGLPaintDevice *m_device = nullptr;
 
-    EntitySystem ecs;
+    ecs::EntitySystem ecs;
     MasterRenderer masterRenderer;
 
-    EntitySystem sceneEcs;
+    ecs::EntitySystem sceneEcs;
 
     Input *inputHandler = nullptr;
     FontLoader *fontLoader = nullptr;
 
-    EntitySystem::Entity *screenEntity;
+    ecs::Entity* screenEntity;
     UiComponent *screenUi;
 
     float xSensitivity = 1.0f;

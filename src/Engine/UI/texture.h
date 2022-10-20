@@ -10,7 +10,10 @@
 
 namespace pg
 {
-    struct TextureComponent : public UiComponent, private QOpenGLFunctions
+
+    // Todo make a is relationship instead of inherit from UiComponent as it is like that with the new ECS
+    // Todo make it a named component instead of an unamed one
+    struct TextureComponent : public ecs::IsA<TextureComponent, UiComponent>, private QOpenGLFunctions
     {
         TextureComponent(const UiSize& width, const UiSize& height, const std::string& textureName);
         TextureComponent(const UiComponent& component, const std::string& textureName);

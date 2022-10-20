@@ -3,7 +3,7 @@
 #include "gtest/gtest.h"
 
 #include "ECS/sparseset.h"
-#include "ECS/entitysystem2.h"
+#include "ECS/entitysystem.h"
 
 namespace pg
 {

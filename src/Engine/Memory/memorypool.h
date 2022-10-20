@@ -119,6 +119,8 @@ namespace pg
         {
             LOG_THIS_MEMBER("Memory Pool");
 
+            // TODO delete the pool better
+
             for(Chunk<T>* chunk : chunkList)
                 delete chunk;
         }
@@ -131,7 +133,7 @@ namespace pg
 
             LOG_INFO("Memory Pool", "Reserving: " + std::to_string(reserveSize) +  ", currentPoolSize = " +
                 std::to_string(size) + " " +
-                std::to_string(currentSize) + " " +
+//                std::to_string(currentSize) + " " +
                 std::to_string(nbElements));
 
             while (reserveSize >= size)

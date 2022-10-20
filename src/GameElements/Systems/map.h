@@ -226,7 +226,7 @@ namespace pg
             NoiseParameters noiseParam = {3, 5, 50, -1, 0.70};
         };
 
-        Map(EntitySystem *ecs, TilesLoader *tilesLoader, const Map::MapConstraint& constraint);
+        Map(ecs::EntitySystem *ecs, TilesLoader *tilesLoader, const Map::MapConstraint& constraint);
         ~Map();
 
         void generateMesh();
@@ -253,7 +253,7 @@ namespace pg
         void roadTiling();
         void drawPath();
 
-        EntitySystem *ecs;
+        ecs::EntitySystem *ecs;
         TilesLoader *tilesLoader; 
         Map::MapConstraint constraint;
         NoiseGenerator *noiseGenerator;

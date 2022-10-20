@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <Memory/memorypool.h>
 
 #include "uniqueid.h"
 
@@ -14,10 +15,13 @@ namespace pg
         class Entity
         {
         friend class EntitySystem;
+        friend class AllocatorPool<Entity>;
         public:
             // Todo remove this as it is only for testing purposes
             // 0 means that it can't be a valid entity !
             Entity() : id(0) {}
+
+            inline bool has(const _unique_id& otherId) const { return componentList.find(otherId) != componentList.end(); }
 
             template <typename Component>
             inline bool has() const { return has(Component::componentId); }
@@ -25,16 +29,18 @@ namespace pg
             template <typename Component>
             inline Component* get() { return has<Component>() ? static_cast<Component* >(componentList[Component::componentId]) : nullptr; }
         
-            inline EntitySystem* world() const { return ecsRef; }
+            inline const EntitySystem* world() const { return ecsRef; }
 
             _unique_id id;
 
             std::unordered_map<_unique_id, Entity*> componentList;
 
+            //Todo overload operator delete to call ecsRef->deleteEntity(this);
+
         protected:
             Entity(_unique_id id) : id(id) {}
 
-            EntitySystem *ecsRef = nullptr;
+            const EntitySystem *ecsRef = nullptr;
         };
     }
 }

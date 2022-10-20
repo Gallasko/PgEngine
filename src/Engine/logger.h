@@ -433,6 +433,7 @@ namespace pg
         static std::mutex _lock;
     };
 
+    // Todo test and change with Args&&
     template <typename Sink, typename... Args>
     std::shared_ptr<Logger::LogSink> Logger::registerSink(Args... args)
     {

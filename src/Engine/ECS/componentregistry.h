@@ -34,7 +34,9 @@ namespace pg
 
                 for(auto group : groupStorageMap)
                     delete group.second;
+
             }
+
             template <typename Type>
             void store(Own<Type>* owner)
             {
@@ -103,14 +105,14 @@ namespace pg
             }
 
             template <typename... Args>
-            inline Type* internalCreateComponent(Entity& entity, Args&&... args)
+            inline Type* internalCreateComponent(Entity* entity, Args&&... args)
             {
                 LOG_THIS_MEMBER("Ref");
 
                 return ref->internalCreateComponent(entity, std::forward<Args>(args)...);
             }
 
-            inline void internalRemoveComponent(Entity& entity)
+            inline void internalRemoveComponent(Entity* entity)
             {
                 LOG_THIS_MEMBER("Ref");
 
@@ -152,7 +154,7 @@ namespace pg
             }
 
             template <typename... Args>
-            inline Type* internalCreateComponent(Entity& entity, Args&&... args)
+            inline Type* internalCreateComponent(Entity* entity, Args&&... args)
             {
                 LOG_THIS_MEMBER("Own");
 
@@ -160,7 +162,7 @@ namespace pg
                 return components.addComponent(entity, std::forward<Args>(args)...);
             }
 
-            inline void internalRemoveComponent(Entity& entity)
+            inline void internalRemoveComponent(Entity* entity)
             {
                 LOG_THIS_MEMBER("Own");
 

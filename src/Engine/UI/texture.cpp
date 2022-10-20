@@ -109,7 +109,7 @@ namespace pg
         this->height = height;
     }
 
-    TextureComponent::TextureComponent(const UiComponent& component, const std::string& textureName) : UiComponent(component), QOpenGLFunctions(), textureName(textureName)
+    TextureComponent::TextureComponent(const UiComponent& component, const std::string& textureName) : ecs::IsA<TextureComponent, UiComponent>(component), QOpenGLFunctions(), textureName(textureName)
     {
         initializeOpenGLFunctions(); 
 
@@ -124,7 +124,7 @@ namespace pg
         update();
     }
 
-    TextureComponent::TextureComponent(const TextureComponent &rhs) : UiComponent(rhs), QOpenGLFunctions(), textureName(rhs.textureName)
+    TextureComponent::TextureComponent(const TextureComponent &rhs) : ecs::IsA<TextureComponent, UiComponent>(rhs), QOpenGLFunctions(), textureName(rhs.textureName)
     {
         initializeOpenGLFunctions(); 
 
