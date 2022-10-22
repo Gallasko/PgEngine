@@ -2,50 +2,54 @@
 
 #include "logger.h"
 
-namespace
+namespace pg
 {
-    const char * DOM = "System function";
-}
 
-void ToString::setUp()
-{
-    setArity(1, 1);
-}
+    namespace
+    {
+        const char * DOM = "System function";
+    }
 
-ValuablePtr ToString::call(ValuableQueue& args) const
-{
-    auto v = args.front()->getElement();
-    args.pop();
+    void ToString::setUp()
+    {
+        setArity(1, 1);
+    }
 
-    return std::make_shared<Variable>(ElementType { v.toString() });
-}
+    ValuablePtr ToString::call(ValuableQueue& args) const
+    {
+        auto v = args.front()->getElement();
+        args.pop();
 
-void LogInfo::setUp()
-{
-    setArity(1, 1);
-}
+        return std::make_shared<Variable>(ElementType { v.toString() });
+    }
 
-ValuablePtr LogInfo::call(ValuableQueue& args) const
-{
-    auto v = args.front()->getElement();
-    args.pop();
+    void LogInfo::setUp()
+    {
+        setArity(1, 1);
+    }
 
-    LOG_INFO(DOM, v.toString());
+    ValuablePtr LogInfo::call(ValuableQueue& args) const
+    {
+        auto v = args.front()->getElement();
+        args.pop();
 
-    return nullptr;
-}
+        LOG_INFO(DOM, v.toString());
 
-void HRClock::setUp()
-{
-    setArity(0, 0);
-}
+        return nullptr;
+    }
 
-#include <chrono>
-ValuablePtr HRClock::call(ValuableQueue&) const
-{
-    const auto p1 = std::chrono::system_clock::now();
+    void HRClock::setUp()
+    {
+        setArity(0, 0);
+    }
 
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(p1.time_since_epoch()).count();
+    #include <chrono>
+    ValuablePtr HRClock::call(ValuableQueue&) const
+    {
+        const auto p1 = std::chrono::system_clock::now();
 
-    return std::make_shared<Variable>(ElementType { static_cast<int>(elapsed) });
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(p1.time_since_epoch()).count();
+
+        return std::make_shared<Variable>(ElementType { static_cast<int>(elapsed) });
+    }
 }

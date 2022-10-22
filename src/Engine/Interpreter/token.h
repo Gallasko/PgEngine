@@ -2,101 +2,106 @@
 
 #include <string>
 
-enum class TokenType : int
+namespace pg
 {
-    // Single character Operators
 
-    EQUAL  = '=',
-    PLUS   = '+',
-    MINUS  = '-',
-    STAR   = '*',
-    MOD    = '%',
-    POW    = '^',
-    PENTER = '(',
-    PCLOSE = ')',
-    BENTER = '{',
-    BCLOSE = '}',
-    CENTER = '[',
-    CCLOSE = ']',
-    SUP    = '>',
-    INF    = '<',
-    NOT    = '!',
-    QMARK  = '?',
-    TILDE  = '~',
-    AMPER  = '&',
-    COMMA  = ',',
-    POINT  = '.',
-    SMARK  = '\'',
-    DMARK  = '"',
-    SLASH  = '/',
-    BSLASH = '\\',
-    SSLASH = '|',
-    HTAG   = '#',
-    DPOINT = ':',
-    END    = ';',
-    EOL    = '\n',
+    enum class TokenType : int
+    {
+        // Single character Operators
 
-    //Two characters Operators
+        EQUAL  = '=',
+        PLUS   = '+',
+        MINUS  = '-',
+        STAR   = '*',
+        MOD    = '%',
+        POW    = '^',
+        PENTER = '(',
+        PCLOSE = ')',
+        BENTER = '{',
+        BCLOSE = '}',
+        CENTER = '[',
+        CCLOSE = ']',
+        SUP    = '>',
+        INF    = '<',
+        NOT    = '!',
+        QMARK  = '?',
+        TILDE  = '~',
+        AMPER  = '&',
+        COMMA  = ',',
+        POINT  = '.',
+        SMARK  = '\'',
+        DMARK  = '"',
+        SLASH  = '/',
+        BSLASH = '\\',
+        SSLASH = '|',
+        HTAG   = '#',
+        DPOINT = ':',
+        END    = ';',
+        EOL    = '\n',
 
-    PLUSEQUAL  = 270,
-    MINUSEQUAL = 271,
-    STAREQUAL  = 272,
-    DIVIDEQUAL = 273,
-    MODEQUAL   = 274,
-    SUPEQUAL   = 275,
-    INFEQUAL   = 276,
-    INCREMENT  = 277,
-    DECREMENT  = 278,
+        //Two characters Operators
 
-    LOGICAND   = 280,
-    LOGICOR    = 281,
-    SHIFTLEFT  = 282,
-    SHIFTRIGHT = 283,
-    EQUALEQUAL = 284,
-    NOTEQUAL   = 285,
+        PLUSEQUAL  = 270,
+        MINUSEQUAL = 271,
+        STAREQUAL  = 272,
+        DIVIDEQUAL = 273,
+        MODEQUAL   = 274,
+        SUPEQUAL   = 275,
+        INFEQUAL   = 276,
+        INCREMENT  = 277,
+        DECREMENT  = 278,
 
-    ARROW      = 290,
-    SCOPE      = 291,
+        LOGICAND   = 280,
+        LOGICOR    = 281,
+        SHIFTLEFT  = 282,
+        SHIFTRIGHT = 283,
+        EQUALEQUAL = 284,
+        NOTEQUAL   = 285,
 
-    // Two characters Operators range from 270 through 299 the rest are reserved keywords
+        ARROW      = 290,
+        SCOPE      = 291,
 
-    // Keywords
-    ENDOFFILE  = 300,
+        // Two characters Operators range from 270 through 299 the rest are reserved keywords
 
-    EXPRESSION,
-    STRING,
-    NUMBER,
-    FLOAT,
-    TRUE,
-    FALSE,
-    NOOP,
-    INVALID,
-    
-    CONST,
-    INCLUDE,
-    IF,
-    ELSE,
-    VAR,
-    WHILE,
-    FUN,
-    RETURN,
-    CLASS,
-    THIS,
-    FOR
+        // Keywords
+        ENDOFFILE  = 300,
 
-};
+        EXPRESSION,
+        STRING,
+        NUMBER,
+        FLOAT,
+        TRUE,
+        FALSE,
+        NOOP,
+        INVALID,
+        
+        CONST,
+        INCLUDE,
+        IF,
+        ELSE,
+        VAR,
+        WHILE,
+        FUN,
+        RETURN,
+        CLASS,
+        THIS,
+        FOR
 
-struct Token
-{
-    Token(const TokenType& type, const std::string& text, int line, int column) : type(type), text(text), line(line), column(column) { }
-    Token(const Token& other) : type(other.type), text(other.text), line(other.line), column(other.column) { }
+    };
 
-    Token() : Token(TokenType::INVALID, "", 0, 0) { }
+    struct Token
+    {
+        Token(const TokenType& type, const std::string& text, int line, int column) : type(type), text(text), line(line), column(column) { }
+        Token(const Token& other) : type(other.type), text(other.text), line(other.line), column(other.column) { }
 
-    void operator=(const Token& other) { type = other.type; text = other.text; line = other.line; column = other.column; }
+        Token() : Token(TokenType::INVALID, "", 0, 0) { }
 
-    TokenType type;
-    std::string text;
-    int line;
-    int column;
-};
+        void operator=(const Token& other) { type = other.type; text = other.text; line = other.line; column = other.column; }
+
+        TokenType type;
+        std::string text;
+        int line;
+        int column;
+    };
+
+}

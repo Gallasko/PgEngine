@@ -2,29 +2,34 @@
 
 #include "environment.h"
 
-class ToString : public Function
+namespace pg
 {
-    using Function::Function;
-public:
-    virtual void setUp() override;
 
-    virtual ValuablePtr call(ValuableQueue& args) const override;
-};
+    class ToString : public Function
+    {
+        using Function::Function;
+    public:
+        virtual void setUp() override;
 
-class LogInfo : public Function
-{
-    using Function::Function;
-public:
-    virtual void setUp() override;
+        virtual ValuablePtr call(ValuableQueue& args) const override;
+    };
 
-    virtual ValuablePtr call(ValuableQueue& args) const override;
-};
+    class LogInfo : public Function
+    {
+        using Function::Function;
+    public:
+        virtual void setUp() override;
 
-class HRClock : public Function
-{
-    using Function::Function;
-public:
-    virtual void setUp() override;
+        virtual ValuablePtr call(ValuableQueue& args) const override;
+    };
 
-    virtual ValuablePtr call(ValuableQueue& args) const override;
-};
+    class HRClock : public Function
+    {
+        using Function::Function;
+    public:
+        virtual void setUp() override;
+
+        virtual ValuablePtr call(ValuableQueue& args) const override;
+    };
+
+}

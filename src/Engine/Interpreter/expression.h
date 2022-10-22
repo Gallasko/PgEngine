@@ -4,203 +4,206 @@
 #include <queue>
 
 #include "token.h"
-#include "elementtype.h"
+#include "Memory/elementtype.h"
 
-// Forward declarations
-class Visitor;
-class Valuable;
-
-/**
- * @class Expression
- * 
- * 
- */
-class Expression
+namespace pg
 {
-public:
-    Expression() {}
-    virtual ~Expression() {}
+    // Forward declarations
+    class Visitor;
+    class Valuable;
 
-    virtual std::shared_ptr<Valuable> accept(Visitor* visitor) = 0;
-    virtual std::string prettyPrint() const = 0;
-    virtual std::string getName() const = 0;
-    virtual std::string getType() const = 0;
-};
+    /**
+     * @class Expression
+     * 
+     * 
+     */
+    class Expression
+    {
+    public:
+        Expression() {}
+        virtual ~Expression() {}
 
-typedef std::shared_ptr<Expression> ExprPtr;
+        virtual std::shared_ptr<Valuable> accept(Visitor* visitor) = 0;
+        virtual std::string prettyPrint() const = 0;
+        virtual std::string getName() const = 0;
+        virtual std::string getType() const = 0;
+    };
 
-struct ListElement
-{
-    ExprPtr key;
-    ExprPtr value;
-};
+    typedef std::shared_ptr<Expression> ExprPtr;
 
-struct BinaryExpression : public Expression
-{
-    BinaryExpression(ExprPtr leftExpr, const Token& token, ExprPtr rightExpr) : Expression(), leftExpr(leftExpr), op(token), rightExpr(rightExpr) {}
-    ~BinaryExpression() {}
+    struct ListElement
+    {
+        ExprPtr key;
+        ExprPtr value;
+    };
 
-    virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-    virtual std::string prettyPrint() const { return leftExpr->prettyPrint() + " " + op.text + " " + rightExpr->prettyPrint(); }
-    virtual std::string getName() const { return op.text; }
-    virtual std::string getType() const { return "BinaryExpression"; }
+    struct BinaryExpression : public Expression
+    {
+        BinaryExpression(ExprPtr leftExpr, const Token& token, ExprPtr rightExpr) : Expression(), leftExpr(leftExpr), op(token), rightExpr(rightExpr) {}
+        ~BinaryExpression() {}
 
-    ExprPtr leftExpr;
-    Token op;
-    ExprPtr rightExpr;    
-};
+        virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
+        virtual std::string prettyPrint() const { return leftExpr->prettyPrint() + " " + op.text + " " + rightExpr->prettyPrint(); }
+        virtual std::string getName() const { return op.text; }
+        virtual std::string getType() const { return "BinaryExpression"; }
 
-struct LogicExpression : public Expression
-{
-    LogicExpression(ExprPtr leftExpr, const Token& token, ExprPtr rightExpr) : Expression(), leftExpr(leftExpr), op(token), rightExpr(rightExpr) {}
-    ~LogicExpression() {}
+        ExprPtr leftExpr;
+        Token op;
+        ExprPtr rightExpr;    
+    };
 
-    virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-    virtual std::string prettyPrint() const { return leftExpr->prettyPrint() + " " + op.text + " " + rightExpr->prettyPrint(); }
-    virtual std::string getName() const { return op.text; }
-    virtual std::string getType() const { return "LogicExpression"; }
+    struct LogicExpression : public Expression
+    {
+        LogicExpression(ExprPtr leftExpr, const Token& token, ExprPtr rightExpr) : Expression(), leftExpr(leftExpr), op(token), rightExpr(rightExpr) {}
+        ~LogicExpression() {}
 
-    ExprPtr leftExpr;
-    Token op;
-    ExprPtr rightExpr;    
-};
+        virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
+        virtual std::string prettyPrint() const { return leftExpr->prettyPrint() + " " + op.text + " " + rightExpr->prettyPrint(); }
+        virtual std::string getName() const { return op.text; }
+        virtual std::string getType() const { return "LogicExpression"; }
 
-struct UnaryExpression : public Expression
-{
-    UnaryExpression(ExprPtr expr, const Token& token) : Expression(), op(token), expr(expr) {}
-    ~UnaryExpression() {}
+        ExprPtr leftExpr;
+        Token op;
+        ExprPtr rightExpr;    
+    };
 
-    virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-    virtual std::string prettyPrint() const { return op.text + " " + expr->prettyPrint(); }
-    virtual std::string getName() const { return op.text; }
-    virtual std::string getType() const { return "UnaryExpression"; }
+    struct UnaryExpression : public Expression
+    {
+        UnaryExpression(ExprPtr expr, const Token& token) : Expression(), op(token), expr(expr) {}
+        ~UnaryExpression() {}
 
-    Token op;
-    ExprPtr expr;
-};
+        virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
+        virtual std::string prettyPrint() const { return op.text + " " + expr->prettyPrint(); }
+        virtual std::string getName() const { return op.text; }
+        virtual std::string getType() const { return "UnaryExpression"; }
 
-struct CompoundAtom : public Expression
-{
-    CompoundAtom(ExprPtr expr) : Expression(), expr(expr) {}
-    ~CompoundAtom() {}
+        Token op;
+        ExprPtr expr;
+    };
 
-    virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-    virtual std::string prettyPrint() const { return expr->prettyPrint(); }
-    virtual std::string getName() const { return expr->getName(); }
-    virtual std::string getType() const { return "CompoundAtom"; }
+    struct CompoundAtom : public Expression
+    {
+        CompoundAtom(ExprPtr expr) : Expression(), expr(expr) {}
+        ~CompoundAtom() {}
 
-    ExprPtr expr;
-};
+        virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
+        virtual std::string prettyPrint() const { return expr->prettyPrint(); }
+        virtual std::string getName() const { return expr->getName(); }
+        virtual std::string getType() const { return "CompoundAtom"; }
 
-struct Atom : public Expression
-{
-    template <typename Type>
-    explicit Atom(const Type& value) : Expression(), value(value) { }
-    ~Atom() {}
+        ExprPtr expr;
+    };
 
-    virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-    virtual std::string prettyPrint() const { return value.toString(); }
-    virtual std::string getName() const { return value.toString(); }
-    virtual std::string getType() const { return "Atom"; }
+    struct Atom : public Expression
+    {
+        template <typename Type>
+        explicit Atom(const Type& value) : Expression(), value(value) { }
+        ~Atom() {}
 
-    ElementType value;
-};
+        virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
+        virtual std::string prettyPrint() const { return value.toString(); }
+        virtual std::string getName() const { return value.toString(); }
+        virtual std::string getType() const { return "Atom"; }
 
-struct List : public Expression
-{
-    List(ExprPtr self, const Token& token, const std::queue<ListElement>& elements) : Expression(), self(self), squareBracket(token), entries(elements) { }
-    ~List() {}
+        ElementType value;
+    };
 
-    virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-    virtual std::string prettyPrint() const { auto a = entries; std::string res = ""; while(a.size() > 0) { res += "[" + a.front().key->prettyPrint() + "]: " + a.front().value->prettyPrint() + ", "; a.pop();}  return "List Node with values: " + res; }
-    virtual std::string getName() const { return "List"; }
-    virtual std::string getType() const { return "List"; }
+    struct List : public Expression
+    {
+        List(ExprPtr self, const Token& token, const std::queue<ListElement>& elements) : Expression(), self(self), squareBracket(token), entries(elements) { }
+        ~List() {}
 
-    ExprPtr self;
-    Token squareBracket;
-    std::queue<ListElement> entries;
-};
+        virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
+        virtual std::string prettyPrint() const { auto a = entries; std::string res = ""; while(a.size() > 0) { res += "[" + a.front().key->prettyPrint() + "]: " + a.front().value->prettyPrint() + ", "; a.pop();}  return "List Node with values: " + res; }
+        virtual std::string getName() const { return "List"; }
+        virtual std::string getType() const { return "List"; }
 
-struct This : public Expression
-{
-    explicit This(const Token& token) : Expression(), name(token) { }
-    ~This() {}
+        ExprPtr self;
+        Token squareBracket;
+        std::queue<ListElement> entries;
+    };
 
-    virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-    virtual std::string prettyPrint() const { return "This."; }
-    virtual std::string getName() const { return name.text; }
-    virtual std::string getType() const { return "This"; }
+    struct This : public Expression
+    {
+        explicit This(const Token& token) : Expression(), name(token) { }
+        ~This() {}
 
-    Token name;
-};
+        virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
+        virtual std::string prettyPrint() const { return "This."; }
+        virtual std::string getName() const { return name.text; }
+        virtual std::string getType() const { return "This"; }
 
-struct Var : public Expression
-{
-    explicit Var(const Token& token) : Expression(), name(token) { }
-    ~Var() {}
+        Token name;
+    };
 
-    virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-    virtual std::string prettyPrint() const { return "Variable '" + name.text + "'."; }
-    virtual std::string getName() const { return name.text; }
-    virtual std::string getType() const { return "Var"; }
+    struct Var : public Expression
+    {
+        explicit Var(const Token& token) : Expression(), name(token) { }
+        ~Var() {}
 
-    Token name;
-};
+        virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
+        virtual std::string prettyPrint() const { return "Variable '" + name.text + "'."; }
+        virtual std::string getName() const { return name.text; }
+        virtual std::string getType() const { return "Var"; }
 
-struct Assign : public Expression
-{
-    explicit Assign(const Token& token, ExprPtr expr) : Expression(), name(token), expr(expr) { }
-    ~Assign() {}
+        Token name;
+    };
 
-    virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-    virtual std::string prettyPrint() const { return "Assign: " + expr->prettyPrint() + " to variable '" + name.text + "'."; }
-    virtual std::string getName() const { return name.text; }
-    virtual std::string getType() const { return "Assign"; }
+    struct Assign : public Expression
+    {
+        explicit Assign(const Token& token, ExprPtr expr) : Expression(), name(token), expr(expr) { }
+        ~Assign() {}
 
-    Token name;
-    ExprPtr expr;
-};
+        virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
+        virtual std::string prettyPrint() const { return "Assign: " + expr->prettyPrint() + " to variable '" + name.text + "'."; }
+        virtual std::string getName() const { return name.text; }
+        virtual std::string getType() const { return "Assign"; }
 
-struct CallExpression : public Expression
-{
-    CallExpression(ExprPtr caller, const Token& paren, const std::queue<ExprPtr>& args) : Expression(), caller(caller), paren(paren), args(args) {}
-    ~CallExpression() {}
+        Token name;
+        ExprPtr expr;
+    };
 
-    virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-    virtual std::string prettyPrint() const { auto a = args; std::string res = ""; while(a.size() > 0) { res += a.front()->prettyPrint() + ", "; a.pop();}  return "Function call: " + caller->prettyPrint() + " with arguments: " + res; }
-    virtual std::string getName() const { return caller->getName(); }
-    virtual std::string getType() const { return "CallExpression"; }
+    struct CallExpression : public Expression
+    {
+        CallExpression(ExprPtr caller, const Token& paren, const std::queue<ExprPtr>& args) : Expression(), caller(caller), paren(paren), args(args) {}
+        ~CallExpression() {}
 
-    ExprPtr caller;
-    Token paren;
-    std::queue<ExprPtr> args;
-};
+        virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
+        virtual std::string prettyPrint() const { auto a = args; std::string res = ""; while(a.size() > 0) { res += a.front()->prettyPrint() + ", "; a.pop();}  return "Function call: " + caller->prettyPrint() + " with arguments: " + res; }
+        virtual std::string getName() const { return caller->getName(); }
+        virtual std::string getType() const { return "CallExpression"; }
 
-struct Get : public Expression
-{
-    Get(ExprPtr object, const Token& name) : Expression(), object(object), name(name) {}
-    ~Get() {}
+        ExprPtr caller;
+        Token paren;
+        std::queue<ExprPtr> args;
+    };
 
-    virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-    virtual std::string prettyPrint() const { return "Get property: " + name.text + " of object: " + object->prettyPrint(); }
-    virtual std::string getName() const { return name.text; }
-    virtual std::string getType() const { return "Get"; }
+    struct Get : public Expression
+    {
+        Get(ExprPtr object, const Token& name) : Expression(), object(object), name(name) {}
+        ~Get() {}
 
-    ExprPtr object;
-    Token name;
-};
+        virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
+        virtual std::string prettyPrint() const { return "Get property: " + name.text + " of object: " + object->prettyPrint(); }
+        virtual std::string getName() const { return name.text; }
+        virtual std::string getType() const { return "Get"; }
 
-struct Set : public Expression
-{
-    Set(ExprPtr object, const Token& name, ExprPtr value) : Expression(), object(object), name(name), value(value) {}
-    ~Set() {}
+        ExprPtr object;
+        Token name;
+    };
 
-    virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-    virtual std::string prettyPrint() const { return "Set property: " + name.text + " of object: " + object->prettyPrint(); }
-    virtual std::string getName() const { return name.text; }
-    virtual std::string getType() const { return "Set"; }
+    struct Set : public Expression
+    {
+        Set(ExprPtr object, const Token& name, ExprPtr value) : Expression(), object(object), name(name), value(value) {}
+        ~Set() {}
 
-    ExprPtr object;
-    Token name;
-    ExprPtr value;
-};
+        virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
+        virtual std::string prettyPrint() const { return "Set property: " + name.text + " of object: " + object->prettyPrint(); }
+        virtual std::string getName() const { return name.text; }
+        virtual std::string getType() const { return "Set"; }
+
+        ExprPtr object;
+        Token name;
+        ExprPtr value;
+    };
+}

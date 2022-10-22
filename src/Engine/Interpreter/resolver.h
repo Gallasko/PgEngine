@@ -5,80 +5,85 @@
 
 #include "interpreter.h"
 
-class ScopeStack : public std::stack<std::unordered_map<std::string, bool>>
+namespace pg
 {
-public:
-    const std::unordered_map<std::string, bool>& at(unsigned int index) const { return c.at(index); }
-};
 
-// Forward declaration
-class Valuable;
-
-class VisitorResolver : public Visitor
-{
-    enum class FunctionType
+    class ScopeStack : public std::stack<std::unordered_map<std::string, bool>>
     {
-        NONE,
-        FUNCTION,
-        METHOD
+    public:
+        const std::unordered_map<std::string, bool>& at(unsigned int index) const { return c.at(index); }
     };
 
-    enum class ClassType
+    // Forward declaration
+    class Valuable;
+
+    class VisitorResolver : public Visitor
     {
-        NONE,
-        CLASS
+        enum class FunctionType
+        {
+            NONE,
+            FUNCTION,
+            METHOD
+        };
+
+        enum class ClassType
+        {
+            NONE,
+            CLASS
+        };
+
+    public:
+        virtual std::shared_ptr<Valuable> visit(BinaryExpression *expr) override;
+        virtual std::shared_ptr<Valuable> visit(LogicExpression *expr) override;
+        virtual std::shared_ptr<Valuable> visit(UnaryExpression *expr) override;
+        virtual std::shared_ptr<Valuable> visit(CompoundAtom *expr) override;
+        virtual std::shared_ptr<Valuable> visit(Atom *expr) override;
+        virtual std::shared_ptr<Valuable> visit(List *expr) override;
+        virtual std::shared_ptr<Valuable> visit(This *expr) override;
+        virtual std::shared_ptr<Valuable> visit(Var *expr) override;
+        virtual std::shared_ptr<Valuable> visit(Assign *expr) override;
+        virtual std::shared_ptr<Valuable> visit(CallExpression *expr) override;
+        virtual std::shared_ptr<Valuable> visit(Get *expr) override;
+        virtual std::shared_ptr<Valuable> visit(Set *expr) override;
+
+        virtual void visitStatement(ExpressionStatement *stmt) override;
+        virtual void visitStatement(VariableStatement *stmt) override;
+        virtual void visitStatement(FunctionStatement *stmt) override;
+        virtual void visitStatement(ClassStatement *stmt) override;
+        virtual void visitStatement(BlockStatement *stmt) override;
+        virtual void visitStatement(IfStatement *stmt) override;
+        virtual void visitStatement(WhileStatement *stmt) override;
+        virtual void visitStatement(ReturnStatement *stmt) override;
+
+        inline const std::unordered_map<Expression*, unsigned int>& getLocals() const noexcept { return locals; }
+
+    private:
+        ScopeStack scopes;
+        std::unordered_map<Expression*, unsigned int> locals;
+        FunctionType currentFunction = FunctionType::NONE;
+        ClassType currentClass = ClassType::NONE;
+
+        void declare(const std::string& name);
+        void define(const std::string& name);
+        void resolveLocal(Expression* expression, const std::string& name);
+        void resolveFunction(FunctionStatement* statement, const FunctionType& type);
     };
 
-public:
-    virtual std::shared_ptr<Valuable> visit(BinaryExpression *expr) override;
-    virtual std::shared_ptr<Valuable> visit(LogicExpression *expr) override;
-    virtual std::shared_ptr<Valuable> visit(UnaryExpression *expr) override;
-    virtual std::shared_ptr<Valuable> visit(CompoundAtom *expr) override;
-    virtual std::shared_ptr<Valuable> visit(Atom *expr) override;
-    virtual std::shared_ptr<Valuable> visit(List *expr) override;
-    virtual std::shared_ptr<Valuable> visit(This *expr) override;
-    virtual std::shared_ptr<Valuable> visit(Var *expr) override;
-    virtual std::shared_ptr<Valuable> visit(Assign *expr) override;
-    virtual std::shared_ptr<Valuable> visit(CallExpression *expr) override;
-    virtual std::shared_ptr<Valuable> visit(Get *expr) override;
-    virtual std::shared_ptr<Valuable> visit(Set *expr) override;
+    class Resolver
+    {
+    public:
+        Resolver(const std::queue<StatementPtr>& statements) : statements(statements) {}
 
-    virtual void visitStatement(ExpressionStatement *stmt) override;
-    virtual void visitStatement(VariableStatement *stmt) override;
-    virtual void visitStatement(FunctionStatement *stmt) override;
-    virtual void visitStatement(ClassStatement *stmt) override;
-    virtual void visitStatement(BlockStatement *stmt) override;
-    virtual void visitStatement(IfStatement *stmt) override;
-    virtual void visitStatement(WhileStatement *stmt) override;
-    virtual void visitStatement(ReturnStatement *stmt) override;
+        const std::unordered_map<Expression*, unsigned int>& resolve();
+        const std::queue<StatementPtr>& getStatementsList() const { return statements; }
 
-    inline const std::unordered_map<Expression*, unsigned int>& getLocals() const noexcept { return locals; }
+        inline bool hasError() const { return errorEncountered; }
 
-private:
-    ScopeStack scopes;
-    std::unordered_map<Expression*, unsigned int> locals;
-    FunctionType currentFunction = FunctionType::NONE;
-    ClassType currentClass = ClassType::NONE;
+    private:
+        std::queue<StatementPtr> statements;
+        VisitorResolver rVisitor;
 
-    void declare(const std::string& name);
-    void define(const std::string& name);
-    void resolveLocal(Expression* expression, const std::string& name);
-    void resolveFunction(FunctionStatement* statement, const FunctionType& type);
-};
+        bool errorEncountered = false;
+    };
 
-class Resolver
-{
-public:
-    Resolver(const std::queue<StatementPtr>& statements) : statements(statements) {}
-
-    const std::unordered_map<Expression*, unsigned int>& resolve();
-    const std::queue<StatementPtr>& getStatementsList() const { return statements; }
-
-    inline bool hasError() const { return errorEncountered; }
-
-private:
-    std::queue<StatementPtr> statements;
-    VisitorResolver rVisitor;
-
-    bool errorEncountered = false;
-};
+}

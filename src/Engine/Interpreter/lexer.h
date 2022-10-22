@@ -17,24 +17,29 @@
 
 #include "token.h"
 
-class LexerException : public std::runtime_error
+namespace pg
 {
-public: 
-    LexerException(const std::string& message, int line, int column) noexcept : std::runtime_error(createErrorMessage(message, line, column)) {}
-    virtual ~LexerException() = default;
 
-    std::string createErrorMessage(const std::string& message, int line, int column) const noexcept;
-};
+    class LexerException : public std::runtime_error
+    {
+    public: 
+        LexerException(const std::string& message, int line, int column) noexcept : std::runtime_error(createErrorMessage(message, line, column)) {}
+        virtual ~LexerException() = default;
 
-class Lexer
-{
-public:
-    Lexer() { }
+        std::string createErrorMessage(const std::string& message, int line, int column) const noexcept;
+    };
 
-    void readFile(const std::string& filename);
+    class Lexer
+    {
+    public:
+        Lexer() { }
 
-    const std::queue<Token>& getTokens() const { return tokens; }
+        void readFile(const std::string& filename);
 
-private:
-    std::queue<Token> tokens;
-};
+        const std::queue<Token>& getTokens() const { return tokens; }
+
+    private:
+        std::queue<Token> tokens;
+    };
+
+}
