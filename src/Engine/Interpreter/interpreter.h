@@ -40,6 +40,7 @@ namespace pg
         virtual void visitStatement(IfStatement *stmt) = 0;
         virtual void visitStatement(WhileStatement *stmt) = 0;
         virtual void visitStatement(ReturnStatement *stmt) = 0;
+        virtual void visitStatement(ImportStatement *stmt) = 0;
 
     protected:
         std::shared_ptr<Environment> env;
@@ -75,6 +76,7 @@ namespace pg
         virtual void visitStatement(IfStatement *stmt) override;
         virtual void visitStatement(WhileStatement *stmt) override;
         virtual void visitStatement(ReturnStatement *stmt) override;
+        virtual void visitStatement(ImportStatement *stmt) override;
 
         inline void resetReturnFlags() { returnTriggered = false; }
 

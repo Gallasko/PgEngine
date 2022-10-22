@@ -44,4 +44,9 @@ namespace pg
         visitor->visitStatement(this);
     }
 
+    void ImportStatement::accept(Visitor* visitor)
+    {
+        visitor->visitStatement(this);
+    }
+
 }

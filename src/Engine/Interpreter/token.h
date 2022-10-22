@@ -85,7 +85,10 @@ namespace pg
         RETURN,
         CLASS,
         THIS,
-        FOR
+        FOR,
+        IMPORT,
+        FROM,
+        AS
 
     };
 

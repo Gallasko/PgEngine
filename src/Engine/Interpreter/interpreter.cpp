@@ -402,6 +402,11 @@ namespace pg
         returnTriggered = true;
     }
 
+    void VisitorInterpreter::visitStatement(ImportStatement *stmt)
+    {
+        
+    }
+
     std::shared_ptr<Environment> VisitorInterpreter::ancestor(int distance) const
     {
         auto currentEnv = env;

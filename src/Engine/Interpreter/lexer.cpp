@@ -37,7 +37,10 @@ namespace pg
             {"fun",     TokenType::FUN},
             {"return",  TokenType::RETURN},
             {"class",   TokenType::CLASS},
-            {"this",    TokenType::THIS}
+            {"this",    TokenType::THIS},
+            {"import",  TokenType::IMPORT},
+            {"from",    TokenType::FROM},
+            {"as",      TokenType::AS}
             
         };
 
@@ -266,7 +269,7 @@ namespace pg
         {
             std::string token = "";
 
-            for(int i = 0; i < line.length(); i++)
+            for(size_t i = 0; i < line.length(); i++)
             {
                 if((not isTokenString) and (line[i] == ' '  || line[i] == '\t' || line[i] == '\r'))
                 {

@@ -153,6 +153,7 @@ namespace pg
         StatementPtr whileStatement();
         StatementPtr returnStatement();    
         StatementPtr blockDeclaration();
+        StatementPtr importStatement();
         StatementPtr expressionStatement();
         
         std::queue<Token> tokenList;

@@ -406,11 +406,12 @@ namespace pg
 
     StatementPtr Parser::statement()
     {
-        if(match(TokenType::RETURN)) return returnStatement();
-        if(match(TokenType::FOR)) return forStatement();
-        if(match(TokenType::IF)) return ifStatement();
-        if(match(TokenType::WHILE)) return whileStatement();
-        if(match(TokenType::BENTER)) return blockDeclaration();
+        if(match(TokenType::RETURN))    return returnStatement();
+        if(match(TokenType::FOR))       return forStatement();
+        if(match(TokenType::IF))        return ifStatement();
+        if(match(TokenType::WHILE))     return whileStatement();
+        if(match(TokenType::BENTER))    return blockDeclaration();
+        if(match(TokenType::IMPORT))    return importStatement();
 
         return expressionStatement();
     }
@@ -628,6 +629,39 @@ namespace pg
     StatementPtr Parser::blockDeclaration()
     {
         return std::make_shared<BlockStatement>(block());
+    }
+
+    StatementPtr Parser::importStatement()
+    {
+        auto token = previousToken;
+
+        ExprPtr importName = nullptr;
+
+        std::queue<ExprPtr> imports;
+
+        imports.push(expression());
+
+        if(not check(TokenType::END, TokenType::EOL))
+        {
+            bool multipleImport = false;
+
+            while(match(TokenType::COMMA))
+            {
+                multipleImport = true;
+
+                skipEOL();
+                imports.push(expression());
+                // lExpr = expression();
+            }
+
+            if(not multipleImport and match(TokenType::AS))
+            {
+                importName = expression();
+            }
+        }
+
+        consume("Expected ; or end of line after an import statement.", TokenType::END, TokenType::EOL);
+        return std::make_shared<ImportStatement>(token, imports, importName);
     }
 
     StatementPtr Parser::expressionStatement()

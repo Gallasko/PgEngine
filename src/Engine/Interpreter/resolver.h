@@ -54,6 +54,7 @@ namespace pg
         virtual void visitStatement(IfStatement *stmt) override;
         virtual void visitStatement(WhileStatement *stmt) override;
         virtual void visitStatement(ReturnStatement *stmt) override;
+        virtual void visitStatement(ImportStatement *stmt) override;
 
         inline const std::unordered_map<Expression*, unsigned int>& getLocals() const noexcept { return locals; }
 

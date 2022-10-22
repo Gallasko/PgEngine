@@ -125,4 +125,18 @@ namespace pg
         ExprPtr value;
     };
 
+    struct ImportStatement : public Statement
+    {
+        ImportStatement(const Token& name, const std::queue<ExprPtr>& imports, ExprPtr importName) : Statement(), name(name), imports(imports), importName(importName) {}
+        ~ImportStatement() {}
+
+        virtual void accept(Visitor* visitor);
+        virtual std::string prettyPrint() const {auto p = imports; std::string res = ""; while(p.size() > 0) { res += "[" + p.front()->prettyPrint() + "], "; p.pop();} return "Importing: " + res + (importName != nullptr ? "as" + importName->prettyPrint() : ""); }
+        virtual std::string getType() const { return "ImportStatement"; }
+
+        Token name;
+        std::queue<ExprPtr> imports;
+        ExprPtr importName;
+    };
+
 }
