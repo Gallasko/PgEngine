@@ -57,7 +57,16 @@ namespace pg
 
                 entity->ecsRef = this;
 
-                return registry.retrieve<Type>()->internalCreateComponent(entity, args...);
+                try
+                {
+                    return registry.retrieve<Type>()->internalCreateComponent(entity, args...);                
+                }
+                catch (const std::exception& e)
+                {
+                    LOG_ERROR("ECS", Strfy() << "Can't attach component [" << typeid(Type).name() << "]: " << e.what());
+                }
+
+                return nullptr;
             }
 
             template<typename Type>
@@ -65,8 +74,17 @@ namespace pg
             {
                 LOG_THIS_MEMBER("ECS");
 
-                registry.retrieve<Type>()->internalRemoveComponent(entity);
+                try
+                {
+                    registry.retrieve<Type>()->internalRemoveComponent(entity);            
+                }
+                catch (const std::exception& e)
+                {
+                    LOG_ERROR("ECS", e.what());
+                }
             }
+
+            void executeAll();
 
         private:
             ComponentRegistry registry;

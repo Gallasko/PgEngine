@@ -10,10 +10,15 @@
 
 namespace pg
 {
+    namespace
+    {
+        static const char * DOM = "Context Menu";
+    }
+    
     template<>
     void renderer(MasterRenderer *masterRenderer, pg::editor::ContextMenu *contextMenu)
     {
-        contextMenu->backgroundTextureC->render(masterRenderer);
+        // contextMenu->backgroundTextureC->render(masterRenderer);
 
         contextMenu->addButtonButtonC->render(masterRenderer);
         contextMenu->addTextureButtonC->render(masterRenderer);
@@ -139,17 +144,17 @@ namespace editor
 
         // [Start] Create background texture
 
-        auto backgroundTexture = ecs.createEntity();
-        backgroundTextureC = ecs.attach<TextureComponent>(backgroundTexture,
-            this->width,
-            this->height,
-            textureName
-            );
+        // auto backgroundTexture = ecs.createEntity();
+        // backgroundTextureC = ecs.attach<TextureComponent>(backgroundTexture,
+        //     this->width,
+        //     this->height,
+        //     textureName
+        //     );
 
-        backgroundTextureC->setTopAnchor(this->top);
-        backgroundTextureC->setLeftAnchor(this->left);
+        // backgroundTextureC->setTopAnchor(this->top);
+        // backgroundTextureC->setLeftAnchor(this->left);
 
-        backgroundTextureC->pos.z = this->pos.z;
+        // backgroundTextureC->pos.z = this->pos.z;
 
         // [End] Create background texture
 
@@ -169,7 +174,7 @@ namespace editor
     {
         UiComponent::show();
 
-        backgroundTextureC->show();
+        // backgroundTextureC->show();
 
         addButtonButtonC->show();
         addTextureButtonC->show();
@@ -183,7 +188,7 @@ namespace editor
     {
         UiComponent::hide();
 
-        backgroundTextureC->hide();
+        // backgroundTextureC->hide();
 
         addButtonButtonC->hide();
         addTextureButtonC->hide();

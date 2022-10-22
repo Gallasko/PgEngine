@@ -31,5 +31,13 @@ namespace pg
                 delete systems[i];
             }
         }
+
+        void EntitySystem::executeAll()
+        {
+            for(const auto& system : systems)
+            {
+                system->execute();
+            }
+        }
     }
 }

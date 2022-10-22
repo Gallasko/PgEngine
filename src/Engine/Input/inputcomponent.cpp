@@ -24,8 +24,8 @@ namespace pg
             int index = 0;
             if(left.component->pos->z > right.component->pos->z)
             {
-                std::cout << "Indice " << left.indice->index << " with z = " << left.component->pos->z <<
-                " is swapping with Indice " << right.indice->index << " with z = " << right.component->pos->z << std::endl;
+                // std::cout << "Indice " << left.indice->index << " with z = " << left.component->pos->z <<
+                // " is swapping with Indice " << right.indice->index << " with z = " << right.component->pos->z << std::endl;
                 index = left.indice->index;
                 left.indice->index = right.indice->index;
                 right.indice->index = index;
@@ -131,7 +131,7 @@ namespace pg
             if(highestZ > mouseArea->pos->z) // care some edge case exist like listview promoting a Z value so list is not always sorted ! 
                 break;
 
-            std::cout << "[" << i << "]: "  << mouseComponents[i].indice->index << " with z=" << mouseArea->pos->z << std::endl;
+            // std::cout << "[" << i << "]: "  << mouseComponents[i].indice->index << " with z=" << mouseArea->pos->z << std::endl;
 
             if(mouseArea->inBound(mousePos.x(), mousePos.y()) and *mouseArea->enable and mouseArea->pos->z >= highestZ)
             {

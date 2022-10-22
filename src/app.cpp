@@ -44,12 +44,18 @@ namespace
     {
         SceneElementSystem(MasterRenderer* masterRenderer) : masterRenderer(masterRenderer)
         {
-            setPolicy(ExecutionPolicy::Parallel);
+            setPolicy(ExecutionPolicy::Manual);
         }
 
         virtual void execute()
         {
             // parallelExecute(view<SceneElement>(), executeSceneElement, masterRenderer);
+
+            for(const auto& element : view<SceneElement>())
+            {
+                if(element->component != nullptr)
+                    element->component->render(masterRenderer);
+            }
         }
 
         MasterRenderer *masterRenderer;
@@ -57,10 +63,76 @@ namespace
 
     struct UiComponentSystem : public System<Own<UiComponent>>
     {
-        UiComponentSystem()
+        UiComponentSystem(MasterRenderer* masterRenderer) : masterRenderer(masterRenderer)
         {
-            setPolicy(ExecutionPolicy::Storage);
+            setPolicy(ExecutionPolicy::Manual);
         }
+
+        void execute() override
+        {
+        }
+
+        MasterRenderer *masterRenderer;
+    };
+
+    struct ButtonSystem : public System<Own<Button>>
+    {
+        ButtonSystem(MasterRenderer* masterRenderer) : masterRenderer(masterRenderer)
+        {
+            setPolicy(ExecutionPolicy::Manual);
+        }
+
+        virtual void execute()
+        {
+            // parallelExecute(view<SceneElement>(), executeSceneElement, masterRenderer);
+
+            for(const auto& element : view<Button>())
+            {
+                masterRenderer->render(element);
+            }
+        }
+
+        MasterRenderer *masterRenderer;
+    };
+
+    struct TextureSystem : public System<Own<TextureComponent>>
+    {
+        TextureSystem(MasterRenderer* masterRenderer) : masterRenderer(masterRenderer)
+        {
+            setPolicy(ExecutionPolicy::Manual);
+        }
+
+        virtual void execute()
+        {
+            // parallelExecute(view<SceneElement>(), executeSceneElement, masterRenderer);
+
+            for(const auto& element : view<TextureComponent>())
+            {
+                masterRenderer->render(element);
+            }
+        }
+
+        MasterRenderer *masterRenderer;
+    };
+
+    struct SentenceSystem : public System<Own<Sentence>>
+    {
+        SentenceSystem(MasterRenderer* masterRenderer) : masterRenderer(masterRenderer)
+        {
+            setPolicy(ExecutionPolicy::Manual);
+        }
+
+        virtual void execute()
+        {
+            // parallelExecute(view<SceneElement>(), executeSceneElement, masterRenderer);
+
+            for(const auto& element : view<Sentence>())
+            {
+                masterRenderer->render(element);
+            }
+        }
+
+        MasterRenderer *masterRenderer;
     };
 }
 
@@ -72,7 +144,8 @@ EditorWindow::EditorWindow(QWindow *parent) : QWindow(parent)
     //terminalSink->addFilter("Input Filter", new Logger::LogSink::FilterScope("Input"));
     // terminalSink->addFilter("Serializer Filter", new Logger::LogSink::FilterFile("src/Engine/serialization.cpp"));
     // terminalSink->addFilter("Configuration Filter", new Logger::LogSink::FilterFile("src/Engine/configuration.cpp"));
-    // terminalSink->addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
+    terminalSink->addFilter("Editor Filter", new Logger::LogSink::FilterFile("src/app.cpp"));
+    terminalSink->addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
 
     setSurfaceType(QWindow::OpenGLSurface);
 
@@ -144,6 +217,12 @@ void EditorWindow::initialize()
     masterRenderer.registerTexture("Light Blue", ":/res/menu/LightBlueTexture.png");
 
     fontLoader = new FontLoader("res/font/fontmap.ft");
+
+    ecs.createSystem<UiComponentSystem>(&masterRenderer);
+    ecs.createSystem<ButtonSystem>(&masterRenderer);
+    ecs.createSystem<TextureSystem>(&masterRenderer);
+
+    sceneEcs.createSystem<SceneElementSystem>(&masterRenderer);
 
     screenEntity = ecs.createEntity();
     screenUi = ecs.attach<UiComponent>(screenEntity);
@@ -221,6 +300,9 @@ void EditorWindow::render()
     InputSystem::system()->updateState(inputHandler, float(currentTime - lastTime) / 1000);
 
     renderUi();
+
+    sceneEcs.executeAll();
+    ecs.executeAll();
 
     inputHandler->updateInput(float(currentTime - lastTime) / 1000);
 
