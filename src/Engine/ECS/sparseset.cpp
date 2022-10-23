@@ -122,9 +122,14 @@ namespace pg
             
             const auto index = sparse[id];
 
+            LOG_INFO(DOM, Strfy() << "Removing component of entity: " << id << " at index " << index << " " << currentSize);
+
             // Update the index of the vector accordingly.
-            dense[index] = dense[sparse[currentSize - 1]];
-            sparse[id] = sparse[currentSize - 1];
+
+            const auto lastElement = dense[currentSize - 1];
+
+            dense[index] = lastElement;
+            sparse[lastElement] = index;
             return index;
         }
 
