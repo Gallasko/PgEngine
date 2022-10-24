@@ -110,4 +110,30 @@ namespace pg
         }
     }
 
+    TextFile UniversalFileAccessor::openTextFile(const std::string& filename) noexcept
+    {
+        LOG_THIS(DOM);
+
+        auto file = openTxtFile(":/" + filename);
+
+        if(file.data == "")
+            file = openTxtFile(filename);
+
+        return file;
+    }
+
+    std::vector<TextFile> UniversalFileAccessor::openTextFolder(const std::string& foldername) noexcept
+    {
+        LOG_THIS(DOM);
+
+        std::vector<TextFile> folder;
+
+        foreach(const QString& fileName, QDir(foldername.c_str()).entryList() )
+        {
+            folder.push_back(openTxtFile(foldername + fileName.toStdString()));
+        }
+
+        return folder;
+    }
+
 }

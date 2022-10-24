@@ -28,4 +28,11 @@ namespace pg
 
         static void writeToFile(const TextFile& file, const std::string& data) noexcept;
     };
+
+    class UniversalFileAccessor
+    {
+    public:
+        static TextFile openTextFile(const std::string& filename) noexcept;
+        static std::vector<TextFile> openTextFolder(const std::string& foldername) noexcept;
+    };
 }

@@ -11,10 +11,26 @@ namespace pg
 {
     class PgInterpreter
     {
+        struct ScriptImport
+        {
+            std::queue<StatementPtr> ast;
+            std::unordered_map<Expression*, unsigned int> symbols;
+            std::shared_ptr<Environment> env = nullptr;
+        };
+
     public:
-        void interpret(const std::string& scriptFile);
+        void interpretFromText(const std::string& scriptText);
+        void interpretFromFile(const std::string& scriptFile);
+
+        const ScriptImport& getAst(const std::string& script) const;
 
     private:
-        std::map<std::string, std::queue<StatementPtr>> listOfStatement;
+        void _interpret(const std::string& name, const std::queue<Token>& tokens);
+
+        void generateAST(const std::string& name, const std::queue<Token>& tokens);
+
+        Interpreter interpreter;
+
+        mutable std::map<std::string, ScriptImport> importedScripts;
     };
 }

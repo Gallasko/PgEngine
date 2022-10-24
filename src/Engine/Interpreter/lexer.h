@@ -34,11 +34,13 @@ namespace pg
     public:
         Lexer() { }
 
-        void readFile(const std::string& filename);
+        void readFromText(const std::string& script);
+        void readFromFile(const std::string& filename);
 
         const std::queue<Token>& getTokens() const { return tokens; }
 
     private:
+
         std::queue<Token> tokens;
     };
 
