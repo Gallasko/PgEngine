@@ -9,7 +9,6 @@
 #include "entity.h"
 
 #include "logger.h"
-#include "Memory/threadpool.h"
 #include "Memory/memorypool.h"
 
 namespace pg
@@ -90,8 +89,6 @@ namespace pg
             ComponentRegistry registry;
 
             std::vector<AbstractSystem*> systems;
-            ThreadPool pool;
-
             AllocatorPool<Entity> entityPool;
         };
     }
