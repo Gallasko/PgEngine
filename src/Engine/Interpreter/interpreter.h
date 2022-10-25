@@ -102,6 +102,13 @@ namespace pg
 
     std::shared_ptr<Valuable> executeBlock(std::queue<StatementPtr> statements, VisitorInterpreter* visitor, std::shared_ptr<Environment> environment);
 
+    struct ScriptImport
+    {
+        std::queue<StatementPtr> ast;
+        std::unordered_map<Expression*, unsigned int> symbols;
+        std::shared_ptr<Environment> env = nullptr;
+    };
+
     class Interpreter
     {
     public:
@@ -114,7 +121,7 @@ namespace pg
 
         inline bool hasError() const { return encounteredError; } 
 
-        inline std::queue<StatementPtr> getStatements() const { return statements; }
+        // inline std::queue<StatementPtr> getStatements() const { return statements; }
 
     private:
         std::unordered_map<Expression*, unsigned int> localsList;
