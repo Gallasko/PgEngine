@@ -47,16 +47,16 @@ namespace pg
         _interpret(scriptFile, tokens);
     }
 
-    const PgInterpreter::ScriptImport& PgInterpreter::getAst(const std::string& scriptFile) const
+    PgInterpreter::ScriptImport PgInterpreter::getAst(const std::string& scriptName) const
     { 
-        const auto& it = importedScripts.find(scriptFile);
+        const auto& it = importedScripts.find(scriptName);
         
         if(it != importedScripts.end())
             return it->second;
 
+        
 
-        // Todo remove this and replace it !
-        throw std::runtime_error("No AST here");
+        return PgInterpreter::ScriptImport{};
     }
 
     void PgInterpreter::_interpret(const std::string& name, const std::queue<Token>& tokens)
@@ -97,7 +97,7 @@ namespace pg
 
     }
 
-    void PgInterpreter::generateAST(const std::string& name, const std::queue<Token>& tokens)
+    void PgInterpreter::generateAST(const std::string& name)
     {
 
     }

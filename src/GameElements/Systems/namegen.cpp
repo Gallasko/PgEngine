@@ -57,7 +57,7 @@ void NameGenerator::parseFiles(const std::string &path)
 
         if(country == "")
         {
-            LOG_ERROR(DOM, "Error parsing: '" + file.filename + "', file is empty");
+            LOG_ERROR(DOM, "Error parsing: '" + file.filepath + "', file is empty");
             continue;
         }
 
@@ -65,7 +65,7 @@ void NameGenerator::parseFiles(const std::string &path)
 
         if(line == "")
         {
-            LOG_ERROR(DOM, "Error parsing: '" + file.filename + "', file is missing the gender type");
+            LOG_ERROR(DOM, "Error parsing: '" + file.filepath + "', file is missing the gender type");
             continue;
         }
 
@@ -79,7 +79,7 @@ void NameGenerator::parseFiles(const std::string &path)
             nameVector = &surnameList;
         else
         {
-            LOG_ERROR(DOM, "Error in parsing the gender of the file: " + file.filename);
+            LOG_ERROR(DOM, "Error in parsing the gender of the file: " + file.filepath);
             continue;
         }
 

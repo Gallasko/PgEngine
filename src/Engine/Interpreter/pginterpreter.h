@@ -19,15 +19,17 @@ namespace pg
         };
 
     public:
+        void interpret(const std::string& scriptName);
+        
         void interpretFromText(const std::string& scriptText);
         void interpretFromFile(const std::string& scriptFile);
 
-        const ScriptImport& getAst(const std::string& script) const;
-
     private:
-        void _interpret(const std::string& name, const std::queue<Token>& tokens);
+        ScriptImport getAst(const std::string& script) const;
 
-        void generateAST(const std::string& name, const std::queue<Token>& tokens);
+        void generateAST(const std::string& name);
+
+        void _interpret(const std::string& name, const std::queue<Token>& tokens);
 
         Interpreter interpreter;
 

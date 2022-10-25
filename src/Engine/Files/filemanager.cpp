@@ -2,6 +2,7 @@
 
 #include <QFile>
 #include <QDir>
+#include <QFileInfo>
 #include <QString>
 #include <QTextStream>
 
@@ -15,40 +16,40 @@ namespace pg
     {
         const char * DOM = "File Manager";
 
-        TextFile openTxtFile(const std::string& filename) noexcept
+        TextFile openTxtFile(const std::string& filepath) noexcept
         {
             LOG_THIS(DOM);
 
             try
             {
-                QFile file(filename.c_str());
+                QFile file(filepath.c_str());
 
                 if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
                 {
-                    LOG_INFO(DOM, "Can't open file '" + filename + "'.");
-                    return TextFile{filename, ""};
+                    LOG_INFO(DOM, "Can't open file '" + filepath + "'.");
+                    return TextFile{filepath, ""};
                 }
 
                 auto text = file.readAll().toStdString();
 
                 file.close();
 
-                return TextFile{filename, text};
+                return TextFile{filepath, text};
             }
             catch (const std::exception& e)
             {
-                LOG_INFO(DOM, e.what());
+                LOG_INFO(DOM, Strfy() << "Couldn't open file '" << filepath << "' : " << e.what());
 
-                return TextFile{filename, ""};
+                return TextFile{filepath, ""};
             }
         }
     }
 
-    TextFile ResourceAccessor::openTextFile(const std::string& filename) noexcept
+    TextFile ResourceAccessor::openTextFile(const std::string& filepath) noexcept
     {
         LOG_THIS(DOM);
 
-        return openTxtFile(":/" + filename);
+        return openTxtFile(":/" + filepath);
     }
 
     std::vector<TextFile> ResourceAccessor::openTextFolder(const std::string& foldername) noexcept
@@ -65,11 +66,11 @@ namespace pg
         return folder;
     }
 
-    TextFile FileAccessor::openTextFile(const std::string& filename) noexcept
+    TextFile FileAccessor::openTextFile(const std::string& filepath) noexcept
     {
         LOG_THIS(DOM);
 
-        return openTxtFile(filename);
+        return openTxtFile(filepath);
     }
 
     std::vector<TextFile> FileAccessor::openTextFolder(const std::string& foldername) noexcept
@@ -92,11 +93,11 @@ namespace pg
 
         try
         {
-            QFile f(file.filename.c_str());
+            QFile f(file.filepath.c_str());
 
             if (!f.open(QIODevice::WriteOnly | QIODevice::Text))
             {
-                LOG_ERROR(DOM, "Can't open file '" + file.filename + "'.");
+                LOG_ERROR(DOM, "Can't open file '" + file.filepath + "'.");
                 return;
             }
 
@@ -110,14 +111,14 @@ namespace pg
         }
     }
 
-    TextFile UniversalFileAccessor::openTextFile(const std::string& filename) noexcept
+    TextFile UniversalFileAccessor::openTextFile(const std::string& filepath) noexcept
     {
         LOG_THIS(DOM);
 
-        auto file = openTxtFile(":/" + filename);
+        auto file = openTxtFile(":/" + filepath);
 
         if(file.data == "")
-            file = openTxtFile(filename);
+            file = openTxtFile(filepath);
 
         return file;
     }
@@ -136,4 +137,17 @@ namespace pg
         return folder;
     }
 
+    std::string UniversalFileAccessor::getFileName(const TextFile& file) noexcept
+    {
+        QFileInfo fileInfo(file.filepath.c_str());
+
+        return fileInfo.baseName().toStdString();
+    }
+
+    std::string UniversalFileAccessor::getFoldername(const TextFile& file) noexcept
+    {
+        QFileInfo fileInfo(file.filepath.c_str());
+
+        return fileInfo.dir().path().toStdString();
+    }
 }
