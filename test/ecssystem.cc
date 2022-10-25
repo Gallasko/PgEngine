@@ -107,7 +107,7 @@ namespace pg
         {
             constexpr size_t nbComps = 1000;
 
-            MockLogger logger;
+            // MockLogger logger;
             // logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
 
             auto start = std::chrono::steady_clock::now();
@@ -210,7 +210,7 @@ namespace pg
             // logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
             // logger.addFilter("Mile Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::mile));
 
-            constexpr size_t nbComps = 10000000;
+            constexpr size_t nbComps = 10000;
 
             std::cout << "Number of entities: " << nbComps << std::endl;
 
@@ -239,7 +239,7 @@ namespace pg
                     absys->createOwnedComponent<B>(entity[i], i, 5);
             }
 
-            MockLogger logger;
+            // MockLogger logger;
 
             start = std::chrono::steady_clock::now();
 
