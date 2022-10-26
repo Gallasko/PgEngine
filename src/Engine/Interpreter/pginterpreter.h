@@ -1,19 +1,14 @@
 #pragma once
 
-#include "lexer.h"
-#include "parser.h"
-#include "resolver.h"
 #include "interpreter.h"
 
-#include <map>
+#include <unordered_map>
 
 namespace pg
 {
     class PgInterpreter
     {
-    public:
-        void interpret(const std::string& scriptName);
-        
+    public:        
         void interpretFromText(const std::string& scriptText);
         void interpretFromFile(const std::string& scriptFile);
 
@@ -23,9 +18,7 @@ namespace pg
         ScriptImport generateAST(const std::string& data);
         ScriptImport generateASTFromFile(const std::string& filename);
 
-        void _interpret(const std::string& name, const std::queue<Token>& tokens);
-
-        Interpreter interpreter;
+        void _interpret(const ScriptImport& script);
 
         // Todo store the absolute path of the custom made script file
         // to avoid using the AST of another file when trying to import a script

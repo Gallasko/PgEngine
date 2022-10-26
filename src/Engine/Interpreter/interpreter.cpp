@@ -480,7 +480,7 @@ namespace pg
         return std::make_shared<Variable>(ElementType{0});
     }
 
-    void Interpreter::interpret()
+    std::shared_ptr<Environment> Interpreter::interpret()
     {
         while(not statements.empty())
         {
@@ -498,6 +498,8 @@ namespace pg
                 encounteredError = true;
             }
         }
+
+        return visitor.env;
     }
 
 }

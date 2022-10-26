@@ -11,12 +11,13 @@
 
 namespace pg
 {
+    class PgInterpreter;
 
     //TODO: handle different types of contexts
     class Visitor
     {
     public:
-        Visitor(std::shared_ptr<Environment> environment = nullptr) : env(std::make_shared<Environment>(environment)) {}
+        Visitor(PgInterpreter *pgInterpreter, std::shared_ptr<Environment> environment = nullptr) : pgInterpreter(pgInterpreter), env(std::make_shared<Environment>(environment)) {}
         virtual ~Visitor() {}
 
         virtual std::shared_ptr<Valuable> visit(BinaryExpression *expr) = 0;
@@ -43,6 +44,7 @@ namespace pg
         virtual void visitStatement(ImportStatement *stmt) = 0;
 
     protected:
+        PgInterpreter *pgInterpreter;
         std::shared_ptr<Environment> env;
     };
 
@@ -52,7 +54,7 @@ namespace pg
     {
     friend class Interpreter;
     public:
-        VisitorInterpreter(std::shared_ptr<Environment> environment, const std::unordered_map<Expression*, unsigned int>& localsList) : Visitor(environment), localsList(localsList) {}
+        VisitorInterpreter(PgInterpreter *pgInterpreter, std::shared_ptr<Environment> environment, const std::unordered_map<Expression*, unsigned int>& localsList) : Visitor(pgInterpreter, environment), localsList(localsList) {}
         virtual ~VisitorInterpreter() {}
 
         virtual std::shared_ptr<Valuable> visit(BinaryExpression *expr) override;
@@ -107,17 +109,18 @@ namespace pg
         std::queue<StatementPtr> ast;
         std::unordered_map<Expression*, unsigned int> symbols;
         std::shared_ptr<Environment> env = nullptr;
+        std::string name = "";
     };
 
     class Interpreter
     {
     public:
-        Interpreter(const std::queue<StatementPtr>& statements, const std::unordered_map<Expression*, unsigned int>& localsList) : localsList(localsList), visitor(nullptr, localsList), statements(statements) {};
+        Interpreter(const ScriptImport& script, PgInterpreter* pgInterpreter) : localsList(script.symbols), visitor(pgInterpreter, nullptr, localsList), statements(script.ast) {};
 
         template<typename Functional>
         void defineSystemFunction(const std::string& name);
 
-        void interpret();
+        std::shared_ptr<Environment> interpret();
 
         inline bool hasError() const { return encounteredError; } 
 

@@ -33,6 +33,8 @@ namespace pg
         };
 
     public:
+        VisitorResolver(PgInterpreter *pgInterpreter) : Visitor(pgInterpreter) {}
+        
         virtual std::shared_ptr<Valuable> visit(BinaryExpression *expr) override;
         virtual std::shared_ptr<Valuable> visit(LogicExpression *expr) override;
         virtual std::shared_ptr<Valuable> visit(UnaryExpression *expr) override;
@@ -73,7 +75,7 @@ namespace pg
     class Resolver
     {
     public:
-        Resolver(const std::queue<StatementPtr>& statements) : statements(statements) {}
+        Resolver(const std::queue<StatementPtr>& statements, PgInterpreter *pgInterpreter) : statements(statements), rVisitor(pgInterpreter) {}
 
         const std::unordered_map<Expression*, unsigned int>& resolve();
         const std::queue<StatementPtr>& getStatementsList() const { return statements; }

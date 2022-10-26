@@ -1,6 +1,13 @@
 #include "pginterpreter.h"
 
+#include "lexer.h"
+#include "parser.h"
+#include "resolver.h"
+
 #include "logger.h"
+
+// Todo to remove
+#include "systemfunction.h"
 
 namespace pg
 {
@@ -11,13 +18,17 @@ namespace pg
 
     void PgInterpreter::interpretFromText(const std::string& scriptText)
     {
+        auto ast = generateAST(scriptText);
 
+        _interpret(ast);
         // _interpret(scriptText, tokens);
     }
 
     void PgInterpreter::interpretFromFile(const std::string& scriptFile)
     {
         auto ast = generateASTFromFile(scriptFile);
+
+        _interpret(ast);
 
         // _interpret(scriptFile, tokens);
     }
@@ -54,28 +65,28 @@ namespace pg
 
     }
 
-    void PgInterpreter::_interpret(const std::string& name, const std::queue<Token>& tokens)
+    void PgInterpreter::_interpret(const ScriptImport& script)
     {
-        
+        Interpreter interpreter(script, this);
 
-        // Interpreter interpreter(resolver.getStatementsList(), localsList);
+        // Todo to remove
+        interpreter.defineSystemFunction<LogInfo>("logInfo");
 
-//     interpreter.defineSystemFunction<ToString>("toString");
-//     interpreter.defineSystemFunction<LogInfo>("logInfo");
-//     interpreter.defineSystemFunction<HRClock>("mTime");
+        auto env = interpreter.interpret();
 
-//     interpreter.interpret();
+        if(interpreter.hasError())
+        {
+            LOG_ERROR(DOM, "Interpreter error");
+            return;
+        }
 
-//     if(interpreter.hasError())
-//     {
-//         LOG_ERROR(DOM, "Interpreter error");
-//         return 60;
-//     }
-
+        importedScripts[script.name] = script;
+        importedScripts[script.name].env = env;
     }
 
     ScriptImport PgInterpreter::generateAST(const std::string& data)
     {
+        ScriptImport script;
         Lexer lexer;
 
         try
@@ -85,7 +96,7 @@ namespace pg
         catch (const std::exception& e)
         {
             LOG_ERROR(DOM, e.what());
-            return;
+            return script;
         }
 
         auto tokens = lexer.getTokens();
@@ -94,23 +105,26 @@ namespace pg
 
         auto ast = parser.parse();
 
-        Resolver resolver(ast);
+        Resolver resolver(ast, this);
 
         auto symbolTable = resolver.resolve();
 
         if(parser.hasError())
         {
             LOG_ERROR(DOM, "Parser error");
-            return;
+            return script;
         }
 
         if(resolver.hasError())
         {
             LOG_ERROR(DOM, "Resolver error");
-            return;
+            return script;
         }
 
-        return {ast, symbolTable};
+        script.ast = ast;
+        script.symbols = symbolTable;
+
+        return script;
     }
 
     ScriptImport PgInterpreter::generateASTFromFile(const std::string& filename)
@@ -118,6 +132,9 @@ namespace pg
         auto file = UniversalFileAccessor::openTextFile(filename);
         auto name = UniversalFileAccessor::getFileName(file);
 
-        return generateAST(file.data);
+        auto ast = generateAST(file.data);
+        ast.name = name;
+
+        return ast;
     }
 }

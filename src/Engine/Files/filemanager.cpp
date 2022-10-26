@@ -115,10 +115,10 @@ namespace pg
     {
         LOG_THIS(DOM);
 
-        auto file = openTxtFile(":/" + filepath);
+        auto file = openTxtFile(filepath);
 
         if(file.data == "")
-            file = openTxtFile(filepath);
+            file = openTxtFile(":/" + filepath);
 
         return file;
     }
