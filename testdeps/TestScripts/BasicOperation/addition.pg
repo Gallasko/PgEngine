@@ -1,1 +1,1 @@
-logInfo(2 + 3);
+ExpectEq(2+3, 5)

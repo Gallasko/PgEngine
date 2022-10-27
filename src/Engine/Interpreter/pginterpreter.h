@@ -2,6 +2,7 @@
 
 #include "interpreter.h"
 
+#include <map>
 #include <unordered_map>
 
 namespace pg
@@ -11,6 +12,17 @@ namespace pg
     public:        
         void interpretFromText(const std::string& scriptText);
         void interpretFromFile(const std::string& scriptFile);
+
+    protected:
+        typedef void(*sysFunction)(Interpreter*, const std::string&);
+
+        template <typename Functional>
+        void addSystemFunction(const std::string& name)
+        {
+            sysFunctionTable.emplace(name, [](Interpreter *interpreter, const std::string& sysName){ interpreter->defineSystemFunction<Functional>(sysName); });
+        }
+
+        std::map<std::string, sysFunction> sysFunctionTable;
 
     private:
         ScriptImport getAst(const std::string& script, const std::string& filePath = "");

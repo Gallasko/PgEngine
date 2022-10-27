@@ -1,0 +1,3 @@
+var a = 10;
+
+ExpectEq(a, 10);

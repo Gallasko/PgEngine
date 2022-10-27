@@ -69,8 +69,13 @@ namespace pg
     {
         Interpreter interpreter(script, this);
 
+        for(auto& it : sysFunctionTable)
+        {
+            it.second(&interpreter, it.first);
+        }
+
         // Todo to remove
-        interpreter.defineSystemFunction<LogInfo>("logInfo");
+        // interpreter.defineSystemFunction<LogInfo>("logInfo");
 
         auto env = interpreter.interpret();
 
