@@ -102,7 +102,7 @@ namespace pg
             case TokenType::PLUS:
                 if(nextToken == TokenType::EQUAL)
                     return TokenType::PLUSEQUAL;
-                else if(nextToken == TokenType::EQUAL)
+                else if(nextToken == TokenType::PLUS)
                     return TokenType::INCREMENT;
                 else
                     return token;

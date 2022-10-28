@@ -47,6 +47,26 @@ namespace pg
         }
     };
 
+    class TestPrint : public Function
+    {
+        using Function::Function;
+    public:
+        virtual void setUp() override
+        {
+            setArity(1, 1);
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            auto v = args.front()->getElement();
+            args.pop();
+
+            std::cout << "[Interpreter]: " << v.toString() << std::endl;
+
+            return nullptr;
+        }
+    };
+
     class MockInterpreter : public PgInterpreter
     {
     public:
@@ -54,6 +74,8 @@ namespace pg
         {
             this->addSystemFunction<ExpectTrue>("ExpectTrue");
             this->addSystemFunction<ExpectEq>("ExpectEq");
+
+            this->addSystemFunction<TestPrint>("print");
         }
     };
 }

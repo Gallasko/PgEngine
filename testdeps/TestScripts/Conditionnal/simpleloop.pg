@@ -1,7 +1,11 @@
+print("Executing simple loop test")
+
 var i = 0;
 
 while (i < 10)
 {
-    logInfo(i);
-    i++;
+    ExpectEq(i, i);
+    i = i + 1;
 }
+
+ExpectEq(i, 10);

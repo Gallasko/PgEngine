@@ -5,6 +5,8 @@
 namespace pg
 {
 
+    // Todo support operator++ and --
+
     namespace
     {
         const char * DOM = "Parser";

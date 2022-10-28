@@ -33,6 +33,13 @@ namespace pg
         // _interpret(scriptFile, tokens);
     }
 
+    void PgInterpreter::interpretFromFile(const TextFile& scriptFile)
+    {
+        auto ast = generateASTFromFile(scriptFile);
+
+        _interpret(ast);
+    }
+
     ScriptImport PgInterpreter::getAst(const std::string& scriptName, const std::string& filePath)
     { 
         // Check if an AST is available for the script
@@ -135,6 +142,12 @@ namespace pg
     ScriptImport PgInterpreter::generateASTFromFile(const std::string& filename)
     {
         auto file = UniversalFileAccessor::openTextFile(filename);
+        
+        return generateASTFromFile(file);
+    }
+
+    ScriptImport PgInterpreter::generateASTFromFile(const TextFile& file)
+    {
         auto name = UniversalFileAccessor::getFileName(file);
 
         auto ast = generateAST(file.data);

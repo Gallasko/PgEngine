@@ -72,9 +72,45 @@ namespace pg
 
             interpreter.interpretFromText(testScript1);
 
-            EXPECT_EQ(logger.getNbError(), 0);
-
             interpreter.interpretFromText(testScript2);
+
+            EXPECT_EQ(logger.getNbError(), 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        TEST(interpreter_test, basic_operation_test)
+        {
+            MockLogger logger(false);
+
+            MockInterpreter interpreter;
+
+            auto scripts = UniversalFileAccessor::openTextFolder("TestScripts/BasicOperation/");
+
+            for(auto script : scripts)
+            {
+                interpreter.interpretFromFile(script);
+            }
+
+            EXPECT_EQ(logger.getNbError(), 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        TEST(interpreter_test, conditionnal_test)
+        {
+            MockLogger logger(true);
+
+            MockInterpreter interpreter;
+
+            auto scripts = UniversalFileAccessor::openTextFolder("TestScripts/Conditionnal/");
+
+            for(auto script : scripts)
+            {
+                interpreter.interpretFromFile(script);
+            }
 
             EXPECT_EQ(logger.getNbError(), 0);
         }

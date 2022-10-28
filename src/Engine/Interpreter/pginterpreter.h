@@ -12,6 +12,7 @@ namespace pg
     public:        
         void interpretFromText(const std::string& scriptText);
         void interpretFromFile(const std::string& scriptFile);
+        void interpretFromFile(const TextFile& scriptFile);
 
     protected:
         typedef void(*sysFunction)(Interpreter*, const std::string&);
@@ -29,6 +30,7 @@ namespace pg
 
         ScriptImport generateAST(const std::string& data);
         ScriptImport generateASTFromFile(const std::string& filename);
+        ScriptImport generateASTFromFile(const TextFile& file);
 
         void _interpret(const ScriptImport& script);
 
