@@ -300,12 +300,25 @@ namespace pg
 
     ExprPtr Parser::unary()
     {
-        if (match(TokenType::NOT, TokenType::MINUS)) 
+        if (match(TokenType::NOT, TokenType::MINUS))
         {
             Token op = previousToken;
             auto expr = unary();
 
             return std::make_shared<UnaryExpression>(expr, op);
+        }
+        else if(match(TokenType::INCREMENT, TokenType::DECREMENT))
+        {
+            Token op = previousToken;
+            auto expr = unary();
+
+            // Check if the expression is a variable definition
+            if(expr->getType() == "Var")
+            {
+                auto& token = std::static_pointer_cast<Var>(expr)->name;
+                return std::make_shared<PreFixExpression>(expr, op, token);
+            }
+            throw ParseException(tokenList.front(), "Expected Variable after pre fix operator");
         }
 
         return call();
@@ -314,6 +327,50 @@ namespace pg
     ExprPtr Parser::call()
     {
         auto expr = primary();
+
+        while (match(TokenType::INCREMENT, TokenType::DECREMENT)) 
+        {
+            Token op = previousToken;
+
+            // Check if the expression is a variable definition
+            if(expr->getType() == "Var")
+            {
+                auto& token = std::static_pointer_cast<Var>(expr)->name;
+                return std::make_shared<PostFixExpression>(expr, op, token);
+            }
+            // Todo need to be able to parse: var a = 5, b = 4; var c = a--b -> a - (-b);
+            else
+            {
+                skipEOL();
+                auto rExpr = call();
+
+                Token token, token2;
+
+                switch (op.type)
+                {
+                case TokenType::INCREMENT:
+                    token = Token(TokenType::PLUS, "+", op.line, op.column);
+                    return std::make_shared<BinaryExpression>(expr, op, rExpr);
+                    break;
+
+                case TokenType::DECREMENT:
+                    token = Token(TokenType::MINUS, "-", op.line, op.column);
+                    token2 = Token(TokenType::MINUS, "-", op.line + 1, op.column);
+
+                    rExpr = std::make_shared<UnaryExpression>(rExpr, token2);
+
+                    return std::make_shared<BinaryExpression>(expr, op, rExpr);
+                    break;
+
+                default:
+                    throw ParseException(tokenList.front(), "Unexpected Token in post fix operator");
+                    break;
+                }
+                
+            }
+
+            throw ParseException(tokenList.front(), "Expected Variable before post fix operator");
+        }
 
         while(true)
         {

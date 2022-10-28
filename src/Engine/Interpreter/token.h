@@ -94,7 +94,7 @@ namespace pg
 
     struct Token
     {
-        Token(const TokenType& type, const std::string& text, int line, int column) : type(type), text(text), line(line), column(column) { }
+        Token(const TokenType& type, const std::string& text, unsigned line, unsigned column) : type(type), text(text), line(line), column(column) { }
         Token(const Token& other) : type(other.type), text(other.text), line(other.line), column(other.column) { }
 
         Token() : Token(TokenType::INVALID, "", 0, 0) { }
@@ -103,8 +103,8 @@ namespace pg
 
         TokenType type;
         std::string text;
-        int line;
-        int column;
+        unsigned line;
+        unsigned column;
     };
 
 }

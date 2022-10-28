@@ -23,6 +23,8 @@ namespace pg
         virtual std::shared_ptr<Valuable> visit(BinaryExpression *expr) = 0;
         virtual std::shared_ptr<Valuable> visit(LogicExpression *expr) = 0;
         virtual std::shared_ptr<Valuable> visit(UnaryExpression *expr) = 0;
+        virtual std::shared_ptr<Valuable> visit(PreFixExpression *expr) = 0;
+        virtual std::shared_ptr<Valuable> visit(PostFixExpression *expr) = 0;
         virtual std::shared_ptr<Valuable> visit(CompoundAtom *expr) = 0;
         virtual std::shared_ptr<Valuable> visit(Atom *expr) = 0;
         virtual std::shared_ptr<Valuable> visit(List *expr) = 0;
@@ -60,6 +62,8 @@ namespace pg
         virtual std::shared_ptr<Valuable> visit(BinaryExpression *expr) override;
         virtual std::shared_ptr<Valuable> visit(LogicExpression *expr) override;
         virtual std::shared_ptr<Valuable> visit(UnaryExpression *expr) override;
+        virtual std::shared_ptr<Valuable> visit(PreFixExpression *expr) override;
+        virtual std::shared_ptr<Valuable> visit(PostFixExpression *expr) override;
         virtual std::shared_ptr<Valuable> visit(CompoundAtom *expr) override;
         virtual std::shared_ptr<Valuable> visit(Atom *expr) override;
         virtual std::shared_ptr<Valuable> visit(List *expr) override;

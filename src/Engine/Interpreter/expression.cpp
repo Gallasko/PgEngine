@@ -19,6 +19,16 @@ namespace pg
         return visitor->visit(this);
     }
 
+    std::shared_ptr<Valuable> PreFixExpression::accept(Visitor* visitor)
+    { 
+        return visitor->visit(this);
+    }
+
+    std::shared_ptr<Valuable> PostFixExpression::accept(Visitor* visitor)
+    { 
+        return visitor->visit(this);
+    }
+
     std::shared_ptr<Valuable> CompoundAtom::accept(Visitor* visitor)
     { 
         return visitor->visit(this);

@@ -38,6 +38,8 @@ namespace pg
         virtual std::shared_ptr<Valuable> visit(BinaryExpression *expr) override;
         virtual std::shared_ptr<Valuable> visit(LogicExpression *expr) override;
         virtual std::shared_ptr<Valuable> visit(UnaryExpression *expr) override;
+        virtual std::shared_ptr<Valuable> visit(PreFixExpression *expr) override;
+        virtual std::shared_ptr<Valuable> visit(PostFixExpression *expr) override;
         virtual std::shared_ptr<Valuable> visit(CompoundAtom *expr) override;
         virtual std::shared_ptr<Valuable> visit(Atom *expr) override;
         virtual std::shared_ptr<Valuable> visit(List *expr) override;

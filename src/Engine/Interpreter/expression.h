@@ -81,6 +81,36 @@ namespace pg
         ExprPtr expr;
     };
 
+    struct PreFixExpression : public Expression
+    {
+        PreFixExpression(ExprPtr expr, const Token& token, const Token& name) : Expression(), op(token), name(name), expr(expr) {}
+        ~PreFixExpression() {}
+
+        virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
+        virtual std::string prettyPrint() const { return name.text + " " + expr->prettyPrint(); }
+        virtual std::string getName() const { return name.text; }
+        virtual std::string getType() const { return "PreFixExpression"; }
+        
+        Token op;
+        Token name;
+        ExprPtr expr;
+    };
+
+    struct PostFixExpression : public Expression
+    {
+        PostFixExpression(ExprPtr expr, const Token& token, const Token& name) : Expression(), op(token), name(name), expr(expr) {}
+        ~PostFixExpression() {}
+
+        virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
+        virtual std::string prettyPrint() const { return name.text + " " + expr->prettyPrint(); }
+        virtual std::string getName() const { return name.text; }
+        virtual std::string getType() const { return "PostFixExpression"; }
+
+        Token op;
+        Token name;
+        ExprPtr expr;
+    };
+
     struct CompoundAtom : public Expression
     {
         CompoundAtom(ExprPtr expr) : Expression(), expr(expr) {}

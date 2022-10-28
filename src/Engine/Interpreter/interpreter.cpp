@@ -205,6 +205,95 @@ namespace pg
         throw RuntimeException(expr->op, "Unknown unary operation");
     }
 
+    std::shared_ptr<Valuable> VisitorInterpreter::visit(PreFixExpression *expr)
+    {
+        auto value = expr->expr->accept(this)->getElement();
+
+        switch(expr->op.type)
+        {
+            case TokenType::INCREMENT:
+                try
+                {
+                    auto res = std::make_shared<Variable>(value + ElementType{1});
+
+                    assignVariable(expr->name, expr, res);
+
+                    return res;
+                }
+                catch(const std::exception& e)
+                {
+                    throw RuntimeException(expr->op, e.what());
+                }
+                break;
+
+            case TokenType::DECREMENT:
+                try
+                {
+                    auto res = std::make_shared<Variable>(value - ElementType{1});
+
+                    assignVariable(expr->name, expr, res);
+
+                    return res;
+                }
+                catch(const std::exception& e)
+                {
+                    throw RuntimeException(expr->op, e.what());
+                }
+                break;
+
+            default:
+                throw RuntimeException(expr->op, "Unknown prefix operation");
+                break;
+        }
+
+        throw RuntimeException(expr->op, "Unknown prefix operation");
+    }
+
+    std::shared_ptr<Valuable> VisitorInterpreter::visit(PostFixExpression *expr)
+    {
+        auto baseValue = expr->expr->accept(this);
+        auto value = baseValue->getElement();
+
+        switch(expr->op.type)
+        {
+            case TokenType::INCREMENT:
+                try
+                {
+                    auto res = std::make_shared<Variable>(value + ElementType{1});
+
+                    assignVariable(expr->name, expr, res);
+
+                    return baseValue;
+                }
+                catch(const std::exception& e)
+                {
+                    throw RuntimeException(expr->op, e.what());
+                }
+                break;
+
+            case TokenType::DECREMENT:
+                try
+                {
+                    auto res = std::make_shared<Variable>(value - ElementType{1});
+
+                    assignVariable(expr->name, expr, res);
+
+                    return baseValue;
+                }
+                catch(const std::exception& e)
+                {
+                    throw RuntimeException(expr->op, e.what());
+                }
+                break;
+
+            default:
+                throw RuntimeException(expr->op, "Unknown postfix operation");
+                break;
+        }
+
+        throw RuntimeException(expr->op, "Unknown postfix operation");
+    }
+
     std::shared_ptr<Valuable> VisitorInterpreter::visit(CompoundAtom *expr)
     {
         return expr->expr->accept(this);

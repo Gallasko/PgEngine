@@ -35,6 +35,22 @@ namespace pg
         return nullptr;
     }
 
+    std::shared_ptr<Valuable> VisitorResolver::visit(PreFixExpression *expr)
+    {
+        expr->expr->accept(this);
+        resolveLocal(expr, expr->getName());
+
+        return nullptr;
+    }
+
+    std::shared_ptr<Valuable> VisitorResolver::visit(PostFixExpression *expr)
+    {
+        expr->expr->accept(this);
+        resolveLocal(expr, expr->getName());
+
+        return nullptr;
+    }
+
     std::shared_ptr<Valuable> VisitorResolver::visit(CompoundAtom *expr)
     {
         expr->expr->accept(this);
