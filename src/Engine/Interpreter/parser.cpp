@@ -339,6 +339,7 @@ namespace pg
                 return std::make_shared<PostFixExpression>(expr, op, token);
             }
             // Todo need to be able to parse: var a = 5, b = 4; var c = a--b -> a - (-b);
+            /*
             else
             {
                 skipEOL();
@@ -368,6 +369,7 @@ namespace pg
                 }
                 
             }
+            */
 
             throw ParseException(tokenList.front(), "Expected Variable before post fix operator");
         }

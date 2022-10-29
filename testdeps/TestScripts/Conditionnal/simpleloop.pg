@@ -9,3 +9,13 @@ while (i < 10)
 }
 
 ExpectEq(i, 10);
+
+var j = 0;
+
+while (j < 10)
+{
+    ExpectEq(j, j);
+    j++;
+}
+
+ExpectEq(j, 10);

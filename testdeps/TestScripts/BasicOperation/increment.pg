@@ -2,14 +2,14 @@ print("Executing post increment test")
 
 var a = 5;
 
-ExpectEq(a++, "5");
+ExpectEq(a++, 5);
 
-ExpectEq(a, "6");
+ExpectEq(a, 6);
 
 var b = 5;
 
 var c = b++;
 
-ExpectEq(c, "5");
+ExpectEq(c, 5);
 
-ExpectEq(b, "6");
+ExpectEq(b, 6);

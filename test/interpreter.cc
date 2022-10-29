@@ -82,7 +82,8 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(interpreter_test, basic_operation_test)
         {
-            MockLogger logger(false);
+            MockLogger logger(true);
+            logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
 
             MockInterpreter interpreter;
 
@@ -102,6 +103,7 @@ namespace pg
         TEST(interpreter_test, conditionnal_test)
         {
             MockLogger logger(true);
+            logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
 
             MockInterpreter interpreter;
 

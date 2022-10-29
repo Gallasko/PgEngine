@@ -9,6 +9,33 @@ namespace pg
         const char * DOM = "Expression";
     }
 
+    Strfy& operator<<(Strfy& os, const ElementType& value)
+    {
+        return os << value.toString();
+    }
+
+    Strfy& operator<<(Strfy& os, const ElementType::UnionType& value)
+    {
+        switch(value)
+        {
+        case ElementType::UnionType::FLOAT:
+            return os << "float";
+            break;
+
+        case ElementType::UnionType::INT:
+            return os << "int";
+            break;
+
+        case ElementType::UnionType::STRING:
+            os << "string";
+            break;
+
+        case ElementType::UnionType::BOOL:
+            os << "boolean";
+            break; 
+        }
+    }
+
     template<>
     void serialize(Archive& archive, const ElementType& element)
     {
@@ -117,8 +144,7 @@ namespace pg
         }
         else
         {
-            LOG_ERROR(DOM, "Operator + between two incompatible type of ElementType");
-            throw std::runtime_error("Operator + between two incompatible operand");
+            throw std::runtime_error(Strfy() << "Operator + between two incompatible operand: " << type << " and " << other.type);
         }
     }
 
@@ -142,9 +168,7 @@ namespace pg
         }
         else
         {
-            LOG_ERROR(DOM, "Operator - between two incompatible type of ElementType");
-            throw std::runtime_error("Operator - between two incompatible operand");
-
+            throw std::runtime_error(Strfy() << "Operator - between two incompatible operand: " << type << " and " << other.type);
         }
     }
 
@@ -168,8 +192,7 @@ namespace pg
         }
         else
         {
-            LOG_ERROR(DOM, "Operator * between two incompatible type of ElementType");
-            throw std::runtime_error("Operator * between two incompatible operand");
+            throw std::runtime_error(Strfy() << "Operator * between two incompatible operand: " << type << " and " << other.type);
         }
     }
 
@@ -179,7 +202,6 @@ namespace pg
         {
             if(other.get<float>() == 0.0f)
             {
-                LOG_ERROR(DOM, "Division by zero");
                 throw std::runtime_error("Division by zero");
             }
 
@@ -189,7 +211,6 @@ namespace pg
         {
             if(other.get<int>() == 0.0f)
             {
-                LOG_ERROR(DOM, "Division by zero");
                 throw std::runtime_error("Division by zero");
             }
 
@@ -199,7 +220,6 @@ namespace pg
         {
             if(other.get<int>() == 0.0f)
             {
-                LOG_ERROR(DOM, "Division by zero");
                 throw std::runtime_error("Division by zero");
             }
 
@@ -209,7 +229,6 @@ namespace pg
         {
             if(other.get<float>() == 0.0f)
             {
-                LOG_ERROR(DOM, "Division by zero");
                 throw std::runtime_error("Division by zero");
             }
 
@@ -217,8 +236,7 @@ namespace pg
         }
         else
         {
-            LOG_ERROR(DOM, "Operator / between two incompatible type of ElementType");
-            throw std::runtime_error("Operator / between two incompatible operand");
+            throw std::runtime_error(Strfy() << "Operator / between two incompatible operand: " << type << " and " << other.type);
         }
     }
 
@@ -230,8 +248,7 @@ namespace pg
         }
         else
         {
-            LOG_ERROR(DOM, "Operator % between two incompatible type of ElementType");
-            throw std::runtime_error("Operator % between two incompatible operand");
+            throw std::runtime_error(Strfy() << "Operator % between two incompatible operand: " << type << " and " << other.type);
         }
     }
 
@@ -255,7 +272,7 @@ namespace pg
         }
         else
         {
-            throw std::runtime_error("Operator > between two incompatible operand");
+            throw std::runtime_error(Strfy() << "Operator > between two incompatible operand: " << type << " and " << other.type);
         }
     }
 
@@ -267,7 +284,7 @@ namespace pg
         }
         catch (const std::runtime_error& e)
         {
-            throw std::runtime_error("Operator >= between two incompatible operand");
+            throw std::runtime_error(Strfy() << "Operator >= between two incompatible operand: " << type << " and " << other.type);
         }
     }
 
@@ -279,7 +296,7 @@ namespace pg
         }
         catch (const std::runtime_error& e)
         {
-            throw std::runtime_error("Operator < between two incompatible operand");
+            throw std::runtime_error(Strfy() << "Operator < between two incompatible operand: " << type << " and " << other.type);
         }
     }
 
@@ -291,7 +308,7 @@ namespace pg
         }
         catch (const std::runtime_error& e)
         {
-            throw std::runtime_error("Operator <= between two incompatible operand");
+            throw std::runtime_error(Strfy() << "Operator <= between two incompatible operand: " << type << " and " << other.type);
         }
     }
 
@@ -323,7 +340,7 @@ namespace pg
         }
         else
         {
-            throw std::runtime_error("Operator <= between two incompatible operand");
+            throw std::runtime_error(Strfy() << "Operator == between two incompatible operand: " << type << " and " << other.type);
         }
     }
 
@@ -335,7 +352,7 @@ namespace pg
         }
         catch (const std::runtime_error& e)
         {
-            throw std::runtime_error("Operator != between two incompatible operand");
+            throw std::runtime_error(Strfy() << "Operator != between two incompatible operand: " << type << " and " << other.type);
         }
     }
 
@@ -351,8 +368,7 @@ namespace pg
         }
         else
         {
-            LOG_ERROR(DOM, "Unary - on a incompatible type");
-            throw std::runtime_error("Operator unary - on an incompatible operand");
+            throw std::runtime_error(Strfy() << "Operator unary - on an incompatible operand: " << type);
         }
     }
 
