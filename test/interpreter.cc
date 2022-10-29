@@ -117,6 +117,26 @@ namespace pg
             EXPECT_EQ(logger.getNbError(), 0);
         }
 
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        TEST(interpreter_test, functionnal_test)
+        {
+            MockLogger logger(true);
+            logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
+
+            MockInterpreter interpreter;
+
+            auto scripts = UniversalFileAccessor::openTextFolder("TestScripts/Functionnal/");
+
+            for(auto script : scripts)
+            {
+                interpreter.interpretFromFile(script);
+            }
+
+            EXPECT_EQ(logger.getNbError(), 0);
+        }
+
     } // namespace test
 
 } // namespace pg

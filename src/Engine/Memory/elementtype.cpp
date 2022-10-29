@@ -27,13 +27,19 @@ namespace pg
             break;
 
         case ElementType::UnionType::STRING:
-            os << "string";
+            return os << "string";
             break;
 
         case ElementType::UnionType::BOOL:
-            os << "boolean";
-            break; 
+            return os << "boolean";
+            break;
+
+        default:
+            return os << "unknown";
+            break;
         }
+
+        return os << "unknown";
     }
 
     template<>
