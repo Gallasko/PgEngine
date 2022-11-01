@@ -80,11 +80,27 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        TEST(interpreter_test, assignment_test)
+        {
+            MockLogger logger;
+            MockInterpreter interpreter;
+
+            auto scripts = UniversalFileAccessor::openTextFolder("TestScripts/Assignment/");
+
+            for(auto script : scripts)
+            {
+                interpreter.interpretFromFile(script);
+            }
+
+            EXPECT_EQ(logger.getNbError(), 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         TEST(interpreter_test, basic_operation_test)
         {
-            MockLogger logger(true);
-            logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
-
+            MockLogger logger;
             MockInterpreter interpreter;
 
             auto scripts = UniversalFileAccessor::openTextFolder("TestScripts/BasicOperation/");
@@ -102,9 +118,7 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(interpreter_test, conditionnal_test)
         {
-            MockLogger logger(true);
-            logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
-
+            MockLogger logger;
             MockInterpreter interpreter;
 
             auto scripts = UniversalFileAccessor::openTextFolder("TestScripts/Conditionnal/");
@@ -122,12 +136,30 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(interpreter_test, functionnal_test)
         {
+            MockLogger logger;
+            MockInterpreter interpreter;
+
+            auto scripts = UniversalFileAccessor::openTextFolder("TestScripts/Functionnal/");
+
+            for(auto script : scripts)
+            {
+                interpreter.interpretFromFile(script);
+            }
+
+            EXPECT_EQ(logger.getNbError(), 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        TEST(interpreter_test, table_test)
+        {
             MockLogger logger(true);
             logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
 
             MockInterpreter interpreter;
 
-            auto scripts = UniversalFileAccessor::openTextFolder("TestScripts/Functionnal/");
+            auto scripts = UniversalFileAccessor::openTextFolder("TestScripts/Table/");
 
             for(auto script : scripts)
             {
