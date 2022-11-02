@@ -187,6 +187,14 @@ namespace pg
         const UiSize *leftAnchor    = nullptr;
     };
 
+    struct UiComponentSystem : public ecs::System<ecs::Own<UiComponent>>
+    {
+        UiComponentSystem()
+        {
+            setPolicy(ecs::ExecutionPolicy::Storage);
+        }
+    };
+
     //TODO Copy Constructor
     template <typename LoaderId> 
     struct LoaderRenderComponent : public UiComponent

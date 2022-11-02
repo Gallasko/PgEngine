@@ -8,6 +8,9 @@
 
 #include "logger.h"
 
+#include "Renderer/renderer.h"
+#include "Input/inputcomponent.h"
+
 namespace pg
 {
     namespace ecs
@@ -74,6 +77,11 @@ namespace pg
 
                 return static_cast<Group<Type, Types...>*>(static_cast<Delegate*>(groupStorageMap.at(Group<Type, Types...>::groupId)));
             }
+        
+            // Common singleton system
+        public:
+            InputSystem inputSystem;
+            MasterRenderer masterRenderer;
 
         private:
             std::unordered_map<_unique_id, Storage*> componentStorageMap;

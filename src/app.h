@@ -108,8 +108,6 @@ private:
     QOpenGLPaintDevice *m_device = nullptr;
 
     ecs::EntitySystem ecs;
-    MasterRenderer masterRenderer;
-
     ecs::EntitySystem sceneEcs;
 
     Input *inputHandler = nullptr;

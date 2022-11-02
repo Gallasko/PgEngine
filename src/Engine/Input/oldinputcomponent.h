@@ -4,8 +4,6 @@
 
 #include "../constant.h"
 
-#include "ECS/entitysystem.h"
-
 #include <functional>
 #include <memory>
 
@@ -171,39 +169,57 @@ namespace pg
     typedef std::shared_ptr<MouseInputComponent> MouseInputPtr;
     typedef std::shared_ptr<KeyboardInputComponent> KeyInputPtr;
 
-    // Helper Struct
-    struct MouseComponent
-    {
-        MouseComponent(const MouseInputPtr& component, InputIndice* indice, const std::function<void(Input*, double)>& inputCallback, const std::function<void(Input*, double)>& leaveCallback = nullptr) : component(component), inputCallback(inputCallback), leaveCallback(leaveCallback), indice(indice) {}
-        
-        bool operator==(const MouseComponent& rhs) const { return component == rhs.component; }
+    class MouseInput;
+    class KeyInput;
 
-        MouseInputPtr component;
-        std::function<void(Input*, double)> inputCallback;
-        std::function<void(Input*, double)> leaveCallback;
+    struct InputIndice
+    {
+        int index = 0;
+        InputIndice *prev = nullptr;
+        InputIndice *next = nullptr;
     };
 
-    // Helper Struct
-    struct KeyComponent
+    class InputSystem 
     {
-        KeyComponent(const KeyInputPtr& component, InputIndice* indice, const std::function<void(Input*, double)>& callback) : component(component), callback(callback), indice(indice) {}
-        
-        bool operator==(const KeyComponent& rhs) const { return component == rhs.component; }
+        friend class MouseInput;
+        friend class KeyInput;
 
-        KeyInputPtr component;
-        std::function<void(Input*, double)> callback;
-    };
+        // Typedefs
 
-    class InputSystem : public ecs::System<ecs::Own<MouseComponent>, ecs::Own<KeyComponent>>
-    {
         /** InputSystem unique pointer type definition */
         typedef std::unique_ptr<InputSystem> InputPtr;
 
     public:
-        InputSystem()
+        // Helper Struct
+        struct MouseComponent
         {
-            setPolicy(ecs::ExecutionPolicy::Storage);
-        }
+            MouseComponent(const MouseInputPtr& component, InputIndice* indice, const std::function<void(Input*, double)>& inputCallback, const std::function<void(Input*, double)>& leaveCallback = nullptr) : component(component), inputCallback(inputCallback), leaveCallback(leaveCallback), indice(indice) {}
+            
+            bool operator==(const MouseComponent& rhs) const { return component == rhs.component; }
+
+            MouseInputPtr component;
+            std::function<void(Input*, double)> inputCallback;
+            std::function<void(Input*, double)> leaveCallback;
+            InputIndice* indice = nullptr;
+        };
+
+        // Helper Struct
+        struct KeyComponent
+        {
+            KeyComponent(const KeyInputPtr& component, InputIndice* indice, const std::function<void(Input*, double)>& callback) : component(component), callback(callback), indice(indice) {}
+            
+            bool operator==(const KeyComponent& rhs) const { return component == rhs.component; }
+
+            KeyInputPtr component;
+            std::function<void(Input*, double)> callback;
+            InputIndice* indice = nullptr;
+        };
+
+    public:
+        static const InputPtr& system() { static auto system = InputPtr(new InputSystem()); return system; }
+
+        void deleteInput(const InputSystem::MouseComponent& component);
+        void deleteInput(const InputSystem::KeyComponent& component);
 
         void updateState(Input* inputHandler, double deltaTime);
 
@@ -216,12 +232,13 @@ namespace pg
         template<typename ObjectType, typename... Args>
         MouseInput makeMouseArea(UiComponent *component, ObjectType *obj, void (ObjectType::*mouseInput)(Input*, double, ...));
     
-        friend MouseComponent* makeMouseArea(ecs::EntitySystem *ecs, UiComponent *component, void (*mouseInput)(Input*, double), void (*mouseLeave)(Input*, double));
-        friend MouseComponent* makeMouseArea(ecs::EntitySystem *ecs, UiComponent *component, void (*mouseInput)(Input*, double), std::nullptr_t);
-        friend MouseComponent* makeMouseArea(ecs::EntitySystem *ecs, UiComponent *component, void (*mouseInput)(Input*, double));
-        friend MouseComponent* makeMouseArea(ecs::EntitySystem *ecs, UiComponent *component, const std::function<void(pg::Input*, double)>& mouseInput);
-        friend MouseComponent* makeMouseArea(ecs::EntitySystem *ecs, UiComponent *component, const std::function<void(pg::Input*, double)>& mouseInput, const std::function<void(pg::Input*, double)>& mouseLeave);
-        friend MouseComponent* makeMouseArea(ecs::EntitySystem *ecs, UiComponent *component, const InputSystem::MouseComponent& mouseArea);
+        friend MouseInput makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double), void (*mouseLeave)(Input*, double));
+        friend MouseInput makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double), std::nullptr_t);
+        friend MouseInput makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double));
+        friend MouseInput makeMouseArea(UiComponent *component, const std::function<void(pg::Input*, double)>& mouseInput);
+        friend MouseInput makeMouseArea(UiComponent *component, const std::function<void(pg::Input*, double)>& mouseInput, const std::function<void(pg::Input*, double)>& mouseLeave);
+    
+        friend MouseInput makeMouseArea(UiComponent *component, const InputSystem::MouseComponent& mouseArea);
 
         template<typename ObjectType, typename... Args>
         friend KeyInput makeKeyInput(ObjectType *obj, void (ObjectType::*f)(Input*, double, ...), const Args&... args);
@@ -229,23 +246,96 @@ namespace pg
         template<typename... Args>
         friend KeyInput makeKeyInput(void (*f)(Input*, double), const Args&... args);
 
-        MouseComponent* registerMouseArea(MouseInputPtr component, const std::function<void(Input*, double)>& inputCallback, const std::function<void(Input*, double)>& leaveCallback = nullptr);
+        MouseInput registerMouseArea(MouseInputPtr component, const std::function<void(Input*, double)>& inputCallback, const std::function<void(Input*, double)>& leaveCallback = nullptr);
         KeyInput registerKeyInput(KeyInputPtr component, const std::function<void(Input*, double)>& callback);
 
     private:
+        InputIndice* findLastMouseIndice() const
+        {
+            InputIndice* indice = firstMouseIndice;
+
+            if(indice == nullptr)
+                return nullptr;
+
+            while(indice->next != nullptr)
+                indice = indice->next;
+
+            return indice;
+        };
+
+        InputIndice* findLastKeyIndice() const
+        {
+            InputIndice* indice = firstKeyIndice;
+
+            if(indice == nullptr)
+                return nullptr;
+
+            while(indice->next != nullptr)
+                indice = indice->next;
+
+            return indice;
+        };
+
         void reorderMouse();
+        
+        inline void deleteMouseInput(InputIndice *index) { mouseDeleteList.push_back(index); }
+        inline void deleteKeyInput(InputIndice *index) { keyDeleteList.push_back(index); }
+
+        // Storing unique ptr of the component to avoid invaliding the ref to the component
+        std::vector<InputSystem::MouseComponent> mouseComponents;
+        std::vector<InputSystem::KeyComponent> keyComponents;
+
+        InputIndice *firstMouseIndice = nullptr;
+        InputIndice *firstKeyIndice = nullptr;
+
+        std::vector<InputIndice*> mouseDeleteList;
+        std::vector<InputIndice*> keyDeleteList;
     };
 
-    MouseComponent* makeMouseArea(ecs::EntitySystem *ecs, UiComponent *component, void (*mouseInput)(Input*, double), void (*mouseLeave)(Input*, double));
-    MouseComponent* makeMouseArea(ecs::EntitySystem *ecs, UiComponent *component, void (*mouseInput)(Input*, double), std::nullptr_t);
-    MouseComponent* makeMouseArea(ecs::EntitySystem *ecs, UiComponent *component, void (*mouseInput)(Input*, double));
-    MouseComponent* makeMouseArea(ecs::EntitySystem *ecs, UiComponent *component, const std::function<void(pg::Input*, double)>& mouseInput);
-    MouseComponent* makeMouseArea(ecs::EntitySystem *ecs, UiComponent *component, const std::function<void(pg::Input*, double)>& mouseInput, const std::function<void(pg::Input*, double)>& mouseLeave);
-    MouseComponent* makeMouseArea(ecs::EntitySystem *ecs, UiComponent *component, const InputSystem::MouseComponent& mouseArea);
+    class MouseInput 
+    {
+    friend class InputSystem;
+    public:
+        MouseInputPtr operator->() const { return InputSystem::system()->mouseComponents[indice->index].component; }
+
+        void changeZ(const UiSize& zOrder) const;
+
+        void deleteInput() const
+        {
+            InputSystem::system()->deleteMouseInput(indice);
+        }
+
+    private:
+        InputIndice *indice;
+    };
+
+    class KeyInput
+    {
+    friend class InputSystem;
+    public:
+        KeyInputPtr operator->() const { return InputSystem::system()->keyComponents[indice->index].component; }
+
+        void deleteInput() const
+        {
+            InputSystem::system()->deleteKeyInput(indice);
+        }
+
+    private:
+        InputIndice *indice;
+    };
+
+    MouseInput makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double), void (*mouseLeave)(Input*, double));
+    MouseInput makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double), std::nullptr_t);
+    MouseInput makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double));
+    MouseInput makeMouseArea(UiComponent *component, const std::function<void(pg::Input*, double)>& mouseInput);
+    MouseInput makeMouseArea(UiComponent *component, const std::function<void(pg::Input*, double)>& mouseInput, const std::function<void(pg::Input*, double)>& mouseLeave);
+    MouseInput makeMouseArea(UiComponent *component, const InputSystem::MouseComponent& mouseArea);
 
     template<typename ObjectType, typename... Args>
-    MouseComponent* makeMouseArea(ecs::EntitySystem *ecs, UiComponent *component, ObjectType *obj, void (ObjectType::*mouseInput)(Input*, double, ...), void (ObjectType::*mouseLeave)(Input*, double), const Args&... args)
+    MouseInput makeMouseArea(UiComponent *component, ObjectType *obj, void (ObjectType::*mouseInput)(Input*, double, ...), void (ObjectType::*mouseLeave)(Input*, double), const Args&... args)
     {
+        auto& system = InputSystem::system();
+
         auto mouseArea = MouseInputPtr(new MouseInputBase<ObjectType>(component));
         mouseArea->registerFunc(mouseInput, obj, mouseLeave);
 
@@ -253,13 +343,11 @@ namespace pg
 
         std::function<void(Input*, double)> leaveCallback = [=](Input* inputHandler, double deltaTime) { mouseArea->leave(inputHandler, deltaTime); };
 
-        ecs->inp
-
         return system->registerMouseArea(mouseArea, inputCallback, leaveCallback);
     }
 
     template<typename ObjectType, typename... Args>
-    MouseComponent* makeMouseArea(UiComponent *component, ObjectType *obj, void (ObjectType::*mouseInput)(Input*, double, ...), std::nullptr_t, const Args&... args)
+    MouseInput makeMouseArea(UiComponent *component, ObjectType *obj, void (ObjectType::*mouseInput)(Input*, double, ...), std::nullptr_t, const Args&... args)
     {
         auto& system = InputSystem::system();
 
@@ -272,7 +360,7 @@ namespace pg
     }
 
     template<typename ObjectType>
-    MouseComponent* makeMouseArea(UiComponent *component, ObjectType *obj, void (ObjectType::*mouseInput)(Input*, double, ...))
+    MouseInput makeMouseArea(UiComponent *component, ObjectType *obj, void (ObjectType::*mouseInput)(Input*, double, ...))
     {
         auto& system = InputSystem::system();
 

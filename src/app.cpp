@@ -34,12 +34,6 @@ namespace
         Button *mouseArea;
     };
 
-    inline void executeSceneElement(const SceneElement& element, MasterRenderer* masterRenderer)
-    {
-        if(element.component != nullptr)
-            element.component->render(masterRenderer);
-    }
-
     struct SceneElementSystem : public System<Own<SceneElement>>
     {
         SceneElementSystem(MasterRenderer* masterRenderer) : masterRenderer(masterRenderer)
@@ -61,20 +55,6 @@ namespace
         MasterRenderer *masterRenderer;
     };
 
-    struct UiComponentSystem : public System<Own<UiComponent>>
-    {
-        UiComponentSystem(MasterRenderer* masterRenderer) : masterRenderer(masterRenderer)
-        {
-            setPolicy(ExecutionPolicy::Manual);
-        }
-
-        void execute() override
-        {
-        }
-
-        MasterRenderer *masterRenderer;
-    };
-
     struct ButtonSystem : public System<Own<Button>>
     {
         ButtonSystem(MasterRenderer* masterRenderer) : masterRenderer(masterRenderer)
@@ -84,8 +64,6 @@ namespace
 
         virtual void execute()
         {
-            // parallelExecute(view<SceneElement>(), executeSceneElement, masterRenderer);
-
             for(const auto& element : view<Button>())
             {
                 masterRenderer->render(element);
@@ -104,8 +82,6 @@ namespace
 
         virtual void execute()
         {
-            // parallelExecute(view<SceneElement>(), executeSceneElement, masterRenderer);
-
             for(const auto& element : view<TextureComponent>())
             {
                 masterRenderer->render(element);
@@ -124,8 +100,6 @@ namespace
 
         virtual void execute()
         {
-            // parallelExecute(view<SceneElement>(), executeSceneElement, masterRenderer);
-
             for(const auto& element : view<Sentence>())
             {
                 masterRenderer->render(element);
@@ -179,46 +153,48 @@ void EditorWindow::initialize()
 {
 	initializeOpenGLFunctions();
 
-    masterRenderer.initialize(m_context);
-    masterRenderer.setWindowSize(width(), height());
+    auto masterRenderer = ecs.getMasterRenderer();
+
+    masterRenderer->initialize(m_context);
+    masterRenderer->setWindowSize(width(), height());
 
     //glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    masterRenderer.setWindowSize(640, 480);
+    masterRenderer->setWindowSize(640, 480);
 
-    masterRenderer.registerShader("default", ":/shader/default.vs", ":/shader/default.fs");
+    masterRenderer->registerShader("default", ":/shader/default.vs", ":/shader/default.fs");
     //masterRenderer.registerRederer<TextureRenderer>();
 
-    masterRenderer.registerShader("gui", ":/shader/default.vs", ":/shader/default.fs");
-    masterRenderer.registerShader("text", ":/shader/textrendering.vs", ":/shader/textrendering.fs");
+    masterRenderer->registerShader("gui", ":/shader/default.vs", ":/shader/default.fs");
+    masterRenderer->registerShader("text", ":/shader/textrendering.vs", ":/shader/textrendering.fs");
     //masterRenderer.registerRederer<SentenceRenderer>();
 
-    masterRenderer.registerShader("particle", ":/shader/particle.vs", ":/shader/particle.fs");
+    masterRenderer->registerShader("particle", ":/shader/particle.vs", ":/shader/particle.fs");
     //masterRenderer.registerRederer<ParticleRenderer>();
 
-    masterRenderer.registerTexture("atlas", ":/res/tiles/TeclaEatsAtlas.png");
-    masterRenderer.registerTexture("menu", ":/res/menu/Menu.png");
-    masterRenderer.registerTexture("font", ":/res/font/font.png");
-    masterRenderer.registerTexture("pigeon", ":/res/object/PigeonMockUp.png");
+    masterRenderer->registerTexture("atlas", ":/res/tiles/TeclaEatsAtlas.png");
+    masterRenderer->registerTexture("menu", ":/res/menu/Menu.png");
+    masterRenderer->registerTexture("font", ":/res/font/font.png");
+    masterRenderer->registerTexture("pigeon", ":/res/object/PigeonMockUp.png");
 
     //TODO register texture used in a Scene
     // and unload them when the scene is destroyed
 
     //TODO remove this
-    masterRenderer.registerTexture("frame", ":/res/menu/frame.png");
-    masterRenderer.registerTexture("menutest", ":/res/menu/menutest.png");
-    masterRenderer.registerTexture("Menu2", ":/res/menu/Menu2.png");
-    masterRenderer.registerTexture("slider", ":/res/object/slider.png");
-    masterRenderer.registerTexture("cursor", ":/res/object/cursor.png");
+    masterRenderer->registerTexture("frame", ":/res/menu/frame.png");
+    masterRenderer->registerTexture("menutest", ":/res/menu/menutest.png");
+    masterRenderer->registerTexture("Menu2", ":/res/menu/Menu2.png");
+    masterRenderer->registerTexture("slider", ":/res/object/slider.png");
+    masterRenderer->registerTexture("cursor", ":/res/object/cursor.png");
 
-    masterRenderer.registerTexture("TabTexture", ":/res/menu/NavyBlueTexture.png");
-    masterRenderer.registerTexture("Light Blue", ":/res/menu/LightBlueTexture.png");
+    masterRenderer->registerTexture("TabTexture", ":/res/menu/NavyBlueTexture.png");
+    masterRenderer->registerTexture("Light Blue", ":/res/menu/LightBlueTexture.png");
 
     fontLoader = new FontLoader("res/font/fontmap.ft");
 
-    ecs.createSystem<UiComponentSystem>(&masterRenderer);
+    ecs.createSystem<UiComponentSystem>();
     ecs.createSystem<ButtonSystem>(&masterRenderer);
     ecs.createSystem<TextureSystem>(&masterRenderer);
 

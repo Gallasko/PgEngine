@@ -37,7 +37,11 @@ namespace pg
 
             inline void setPolicy(const ExecutionPolicy& policy) { executionPolicy = policy; }
 
-            ExecutionPolicy executionPolicy = ExecutionPolicy::Sequential;
+            ExecutionPolicy executionPolicy = ExecutionPolicy::Manual;
+
+            ComponentRegistry *registry = nullptr;
+
+            _unique_id id;
 
             // Todo make function onAdd and onDelete of a component that default to nothing if not used
         };
@@ -77,6 +81,7 @@ namespace pg
             {
                 LOG_THIS_MEMBER("System");
                 System<Comps...>::systemid = generateId();
+                id = System<Comps...>::systemid;
             }
 
             ~System()
@@ -174,8 +179,6 @@ namespace pg
                 }
 
             }
-
-            ComponentRegistry *registry = nullptr;
 
             static _unique_id systemid;
         };

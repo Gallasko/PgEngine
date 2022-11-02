@@ -7,6 +7,7 @@
 #include "component.h"
 #include "componentregistry.h"
 #include "entity.h"
+#include "system.h"
 
 #include "logger.h"
 #include "Memory/memorypool.h"
@@ -85,11 +86,17 @@ namespace pg
 
             void executeAll();
 
+            InputSystem* getInputSystem() const { return &registry.inputSystem; }
+            MasterRenderer* getMasterRenderer() const { return &registry.masterRenderer; }
+
         private:
             ComponentRegistry registry;
 
             std::vector<AbstractSystem*> systems;
             AllocatorPool<Entity> entityPool;
+
+            /** Store all systems that doesn't have be executed by the ecs (systems tagged as policy = manual, onEvent or storage) */
+            std::unordered_map<_unique_id, AbstractSystem*> storageMap;
         };
     }
 }
