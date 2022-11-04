@@ -14,7 +14,7 @@ namespace pg
     class Button : public ecs::IsA<Button, UiComponent> 
     {
     public:
-        Button(MouseInput onPress, TextureComponent* background = nullptr, Sentence* sentence = nullptr, const UiComponent& frame = UiComponent());
+        Button(MouseComponent* onPress, TextureComponent* background = nullptr, Sentence* sentence = nullptr, const UiComponent& frame = UiComponent());
         
         template<typename Type, typename... Args>
         Button(const Type& object, void(Type::*onPress)(Input*, double), TextureComponent* background = nullptr, Sentence* sentence = nullptr, const UiComponent& frame = UiComponent(), const Args&... args);
@@ -54,7 +54,7 @@ namespace pg
         std::function<void(Input*, double)> callback = nullptr;
 
         //TODO make sure to copy that when making a copy of this button
-        MouseInput onPress;
+        MouseComponent *onPress;
 
         bool ownBackground = false;
         bool ownSentence = false;

@@ -15,7 +15,7 @@ namespace pg
 
     //TODO make sliders part of the scrollable component cause not only the list view need them
     //Scrollable widgets includes : listview, long text, long images, maps, etc... 
-    class SlideBar : public UiComponent
+    class SlideBar : public ecs::IsA<SlideBar, UiComponent>
     {
         typedef std::function<void(const UiSize&)> PositionCallback;
         
@@ -58,12 +58,12 @@ namespace pg
 
         UiOrientation orientation;
         
-        MouseInput mouseArea = makeMouseArea(this, this, SlideBar::mouseInput, SlideBar::mouseLeave);
+        MouseComponent* mouseArea = makeMouseArea(this, this, SlideBar::mouseInput, SlideBar::mouseLeave);
         bool pressed = false;
     };
 
     // Make list view subclass from scrollable components
-    class ListView : public UiComponent
+    class ListView : public ecs::IsA<ListView, UiComponent>
     {
     public:
         ListView(const UiComponent& frame, TextureComponent* backgroundTexture = nullptr, const UiOrientation& orientation = UiOrientation::VERTICAL);
@@ -97,7 +97,7 @@ namespace pg
         std::vector<std::shared_ptr<UiComponent>> children;
         std::vector<std::shared_ptr<UiComponent>> renderList;
 
-        MouseInput mouseArea = makeMouseArea(this, this, ListView::mouseInput, ListView::mouseLeave);
+        MouseComponent* mouseArea = makeMouseArea(this, this, ListView::mouseInput, ListView::mouseLeave);
 
         int spacing = 5;
 

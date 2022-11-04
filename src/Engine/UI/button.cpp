@@ -11,7 +11,7 @@ namespace pg
         const char * DOM = "Button";
 
         template <typename Type, typename... Args>
-        MouseInput makeButtonMouseComponent(UiComponent* uiComponent, Type *obj, void(Type::*onPress)(Input*, double...), const Args&... args)
+        MouseComponent* makeButtonMouseComponent(UiComponent* uiComponent, Type *obj, void(Type::*onPress)(Input*, double...), const Args&... args)
         {
             std::function<void(Input*, double)> press = [=](Input* inputHandler, double deltaTime) {
                 static bool pressed = false;
@@ -31,7 +31,7 @@ namespace pg
             return makeMouseArea(uiComponent, press);
         }
 
-        MouseInput makeButtonMouseComponent(UiComponent* uiComponent, void(*onPress)(Input*, double))
+        MouseComponent* makeButtonMouseComponent(UiComponent* uiComponent, void(*onPress)(Input*, double))
         {
             std::function<void(Input*, double)> press = [onPress](Input* inputHandler, double deltaTime) {
                 static bool pressed = false;
@@ -51,7 +51,7 @@ namespace pg
             return makeMouseArea(uiComponent, press);
         }
 
-        MouseInput makeButtonMouseComponent(UiComponent *uiComponent, const std::function<void(Input*, double)>& onPress)
+        MouseComponent* makeButtonMouseComponent(UiComponent *uiComponent, const std::function<void(Input*, double)>& onPress)
         {
             std::function<void(Input*, double)> press = [onPress](Input* inputHandler, double deltaTime) {
                 static bool pressed = false;
@@ -84,7 +84,7 @@ namespace pg
     }
 
     // TODO create an edge case for a copy of this type of button cause it doesn t have a callback
-    Button::Button(MouseInput onPress, TextureComponent* background, Sentence* sentence, const UiComponent& frame) : ecs::IsA<Button, UiComponent>(frame), background(background), sentence(sentence), onPress(onPress)
+    Button::Button(MouseComponent* onPress, TextureComponent* background, Sentence* sentence, const UiComponent& frame) : ecs::IsA<Button, UiComponent>(frame), background(background), sentence(sentence), onPress(onPress)
     {
         moveUiElements();
     }
@@ -194,8 +194,6 @@ namespace pg
 
     Button::~Button()
     {
-        deleteInput(onPress);
-
         if(ownSentence)
             delete sentence;
 

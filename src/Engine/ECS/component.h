@@ -23,6 +23,10 @@ namespace pg
         
             // Todo remove
             std::string name;
+
+            // todo add on remove and on removed variable
+            // bool detached = false;
+            // virtual ~AbstractComponent() { if(detached) ecs->detach(id, this); }
         };
 
         template<typename Comp>
@@ -55,10 +59,10 @@ namespace pg
         {
             using Component<Derived>::componentId;
 
-            IsA() : Component<Derived>() { LOG_THIS_MEMBER("Component"); }
+            IsA() { LOG_THIS_MEMBER("Component"); }
             
             template<typename... Args>
-            IsA(const Args&... args) : Base(args...), Component<Derived>() { LOG_THIS_MEMBER("Component"); }
+            IsA(const Args&... args) : Base(args...) { LOG_THIS_MEMBER("Component"); }
 
             virtual ~IsA() { LOG_THIS_MEMBER("Component"); }
         };

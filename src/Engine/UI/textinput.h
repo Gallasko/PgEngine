@@ -26,7 +26,7 @@ namespace pg
     class Sentence;
     class FontLoader;
 
-    class TextInput : public UiComponent
+    class TextInput : public ecs::IsA<TextInput, UiComponent>
     {
         // Typedefs
     public:
@@ -86,10 +86,10 @@ namespace pg
         TextInputCallback onChange;
 
         /** Hold the mouse input handler */
-        MouseInput mouseInput;
+        MouseComponent* mouseInput;
 
         /** Hold the key input handler */
-        KeyInput keyInput;
+        KeyComponent* keyInput;
 
         /** Hold the texture of the text input */
         TextureComponent *texture;

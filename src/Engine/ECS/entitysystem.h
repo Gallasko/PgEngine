@@ -86,8 +86,8 @@ namespace pg
 
             void executeAll();
 
-            InputSystem* getInputSystem() const { return &registry.inputSystem; }
-            MasterRenderer* getMasterRenderer() const { return &registry.masterRenderer; }
+            InputSystem* getInputSystem() { return registry.inputSystem; }
+            MasterRenderer* getMasterRenderer() { return registry.masterRenderer; }
 
         private:
             ComponentRegistry registry;

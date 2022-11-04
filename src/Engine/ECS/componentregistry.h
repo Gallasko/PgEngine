@@ -8,11 +8,11 @@
 
 #include "logger.h"
 
-#include "Renderer/renderer.h"
-#include "Input/inputcomponent.h"
-
 namespace pg
 {
+    class InputSystem;
+    class MasterRenderer;
+
     namespace ecs
     {
         template <typename Type>
@@ -27,16 +27,9 @@ namespace pg
             struct Storage {};
 
         public:
-            ComponentRegistry() {} 
+            ComponentRegistry();
 
-            ~ComponentRegistry()
-            {
-                LOG_THIS_MEMBER("Component Registry");
-
-                for(auto group : groupStorageMap)
-                    delete group.second;
-
-            }
+            ~ComponentRegistry();
 
             template <typename Type>
             void store(Own<Type>* owner)
@@ -80,8 +73,8 @@ namespace pg
         
             // Common singleton system
         public:
-            InputSystem inputSystem;
-            MasterRenderer masterRenderer;
+            InputSystem* inputSystem;
+            MasterRenderer* masterRenderer;
 
         private:
             std::unordered_map<_unique_id, Storage*> componentStorageMap;

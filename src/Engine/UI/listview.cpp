@@ -44,7 +44,7 @@ namespace pg
         glDisable(GL_SCISSOR_TEST);
     }
 
-    SlideBar::SlideBar(const UiComponent& frame, const PositionCallback& posToUpdate, const UiOrientation& orientation) : UiComponent(frame), posUpdate(posToUpdate), orientation(orientation)
+    SlideBar::SlideBar(const UiComponent& frame, const PositionCallback& posToUpdate, const UiOrientation& orientation) : ecs::IsA<SlideBar, UiComponent>(frame), posUpdate(posToUpdate), orientation(orientation)
     {
         // Default slider
 
@@ -66,13 +66,12 @@ namespace pg
         updateCursorSize(maxPos);
     }
 
-    SlideBar::SlideBar(const SlideBar& rhs) : UiComponent(rhs), slider(rhs.slider), cursor(rhs.cursor), buttonHeight(rhs.buttonHeight), boxToMonitor(rhs.boxToMonitor), posUpdate(rhs.posUpdate), orientation(rhs.orientation)
+    SlideBar::SlideBar(const SlideBar& rhs) : ecs::IsA<SlideBar, UiComponent>(rhs), slider(rhs.slider), cursor(rhs.cursor), buttonHeight(rhs.buttonHeight), boxToMonitor(rhs.boxToMonitor), posUpdate(rhs.posUpdate), orientation(rhs.orientation)
     {
     }
 
     SlideBar::~SlideBar()
     {
-        deleteInput(mouseArea);
         delete slider;
         delete cursor;
     }
@@ -152,7 +151,7 @@ namespace pg
     }
 
     //TODO create a 2nd slider like said in the header
-    ListView::ListView(const UiComponent& frame, TextureComponent* backgroundTexture, const UiOrientation& orientation) : UiComponent(frame), slide(SlideBar(UiFrame{this->right, this->top, this->pos.z, DEFAULT_SLIDER_WIDTH, this->height}, this->frame, this->pos.y, [&](const UiSize& pos){ this->updateListPos(pos); })), orientation(orientation), backgroundTexture(backgroundTexture)
+    ListView::ListView(const UiComponent& frame, TextureComponent* backgroundTexture, const UiOrientation& orientation) : ecs::IsA<ListView, UiComponent>(frame), slide(SlideBar(UiFrame{this->right, this->top, this->pos.z, DEFAULT_SLIDER_WIDTH, this->height}, this->frame, this->pos.y, [&](const UiSize& pos){ this->updateListPos(pos); })), orientation(orientation), backgroundTexture(backgroundTexture)
     {
         LOG_THIS_MEMBER(DOM);
 
@@ -167,7 +166,7 @@ namespace pg
     }
 
     //TODO don't pass a slider but the slider parameters and then contruct the slider to be relevent to this list view
-    ListView::ListView(const UiComponent& frame, const SlideBar& slidebar, TextureComponent* backgroundTexture, const UiOrientation& orientation) : UiComponent(frame), slide(slidebar), orientation(orientation), backgroundTexture(backgroundTexture)
+    ListView::ListView(const UiComponent& frame, const SlideBar& slidebar, TextureComponent* backgroundTexture, const UiOrientation& orientation) : ecs::IsA<ListView, UiComponent>(frame), slide(slidebar), orientation(orientation), backgroundTexture(backgroundTexture)
     {
         LOG_THIS_MEMBER(DOM);
 

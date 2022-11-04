@@ -195,10 +195,10 @@ void EditorWindow::initialize()
     fontLoader = new FontLoader("res/font/fontmap.ft");
 
     ecs.createSystem<UiComponentSystem>();
-    ecs.createSystem<ButtonSystem>(&masterRenderer);
-    ecs.createSystem<TextureSystem>(&masterRenderer);
+    ecs.createSystem<ButtonSystem>(masterRenderer);
+    ecs.createSystem<TextureSystem>(masterRenderer);
 
-    sceneEcs.createSystem<SceneElementSystem>(&masterRenderer);
+    sceneEcs.createSystem<SceneElementSystem>(masterRenderer);
 
     screenEntity = ecs.createEntity();
     screenUi = ecs.attach<UiComponent>(screenEntity);
@@ -259,21 +259,23 @@ void EditorWindow::render()
 
     currentTime = QDateTime::currentMSecsSinceEpoch();
 
+    auto masterRenderer = ecs.getMasterRenderer();
+
     if(screenUi->width != width())
     {
         screenUi->setWidth(width());
-        masterRenderer.setWindowSize(width(), height());
+        masterRenderer->setWindowSize(width(), height());
     }
         
     if(screenUi->height != height())
     {
         screenUi->setHeight(height());
-        masterRenderer.setWindowSize(width(), height());
+        masterRenderer->setWindowSize(width(), height());
     }
 
-    masterRenderer.setCurrentTime(currentTime);
+    masterRenderer->setCurrentTime(currentTime);
 
-    InputSystem::system()->updateState(inputHandler, float(currentTime - lastTime) / 1000);
+    // InputSystem::system()->updateState(inputHandler, float(currentTime - lastTime) / 1000);
 
     renderUi();
 
@@ -544,7 +546,7 @@ void EditorWindow::openInOption(UiComponent* component)
 
 void EditorWindow::renderUi()
 {
-    masterRenderer.render(optionTab);
+    ecs.getMasterRenderer()->render(optionTab);
 
 /*
     for(auto& child : sceneEcs.view<SceneElement>())

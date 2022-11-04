@@ -106,7 +106,8 @@
         "*.rh": "cpp",
         "any": "cpp",
         "coroutine": "cpp",
-        "resumable": "cpp"
+        "resumable": "cpp",
+        "stack": "cpp"
     },
     "files.exclude": {
         "**/*.o": true,

@@ -127,8 +127,6 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
 
 TileSelector::~TileSelector()
 {
-    for(int i = 2; i >= 0; i--)
-        deleteInput(mouseAreaVector.at(i));
 }
 
 void TileSelector::setVisibility(bool visibility)
