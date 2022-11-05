@@ -17,7 +17,7 @@ namespace pg
 {
     namespace ecs
     {
-        EntitySystem::EntitySystem() : registry()
+        EntitySystem::EntitySystem()
         {
             LOG_THIS_MEMBER("ECS");
         }

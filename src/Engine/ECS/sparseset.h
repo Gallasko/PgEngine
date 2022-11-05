@@ -538,11 +538,10 @@ namespace pg
                 // Todo: Test if allocating memory in a pool is faster than direct memory allocation with new
                 auto component = pool.allocate(std::forward<Args>(args)...);
 
-                componentList[nbComponents++] = component;
+                // Todo: see if needed for every component created
+                component->id = Comp::componentId;
 
-                // Todo
-                // Add the component to the entity component list for fast 
-                // entity.componentList[Type::componentId] = comp;
+                componentList[nbComponents++] = component;
 
                 return component;
             }
@@ -551,6 +550,10 @@ namespace pg
             Comp* addComponent(const Entity* entity, Args&&... args)
             {
                 LOG_THIS_MEMBER("Component Set");
+
+                // Todo
+                // Add the component to the entity component list for fast 
+                // entity.componentList[Type::componentId] = comp;
 
                 return addComponent(entity->id, std::forward<Args>(args)...);
             }

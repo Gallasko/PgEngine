@@ -13,7 +13,7 @@ namespace pg
     {
         template<class T>struct tag{using type=T;};
 
-        struct AbstractComponent : public Entity
+        struct AbstractComponent : virtual public Entity
         {
             AbstractComponent() : Entity(generateId()) { LOG_THIS_MEMBER("Abstract Component"); }
 

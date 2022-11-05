@@ -48,6 +48,8 @@ namespace pg
 
                 struct Delegate : public Storage, public Own<Type> { };
 
+                // Todo catch errors when component doesnt exist in storage or no system own the component (so it doesnt exist in storage !)
+
                 return static_cast<Own<Type>*>(static_cast<Delegate*>(componentStorageMap.at(Type::componentId)));
             }
 
@@ -73,7 +75,6 @@ namespace pg
         
             // Common singleton system
         public:
-            InputSystem* inputSystem;
             MasterRenderer* masterRenderer;
 
         private:

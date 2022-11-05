@@ -112,15 +112,6 @@ namespace
 
 EditorWindow::EditorWindow(QWindow *parent) : QWindow(parent)
 {
-    // Enable log in console
-    auto terminalSink = pg::Logger::registerSink<pg::TerminalSink>(true);
-    //TODO fix FilterFile
-    //terminalSink->addFilter("Input Filter", new Logger::LogSink::FilterScope("Input"));
-    // terminalSink->addFilter("Serializer Filter", new Logger::LogSink::FilterFile("src/Engine/serialization.cpp"));
-    // terminalSink->addFilter("Configuration Filter", new Logger::LogSink::FilterFile("src/Engine/configuration.cpp"));
-    terminalSink->addFilter("Editor Filter", new Logger::LogSink::FilterFile("src/app.cpp"));
-    terminalSink->addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
-
     setSurfaceType(QWindow::OpenGLSurface);
 
     mousePos = QPoint(0.0f, 0.0f);
@@ -194,6 +185,7 @@ void EditorWindow::initialize()
 
     fontLoader = new FontLoader("res/font/fontmap.ft");
 
+    ecs.createSystem<InputSystem>();
     ecs.createSystem<UiComponentSystem>();
     ecs.createSystem<ButtonSystem>(masterRenderer);
     ecs.createSystem<TextureSystem>(masterRenderer);
@@ -208,17 +200,17 @@ void EditorWindow::initialize()
 
     makeKeyInput(this, EditorWindow::quit);
 
-    optionTab = new editor::OptionTab(300, 1);
+    // optionTab = new editor::OptionTab(300, 1);
 
-    optionTab->setTopAnchor(screenUi->top);
-    optionTab->setRightAnchor(screenUi->right);
-    optionTab->setBottomAnchor(screenUi->bottom);
+    // optionTab->setTopAnchor(screenUi->top);
+    // optionTab->setRightAnchor(screenUi->right);
+    // optionTab->setBottomAnchor(screenUi->bottom);
 
     auto sceneEntity = ecs.createEntity();
     sceneEntityC = ecs.attach<UiComponent>(sceneEntity);
 
     sceneEntityC->setLeftAnchor(screenUi->left);
-    sceneEntityC->setRightAnchor(optionTab->left);
+    // sceneEntityC->setRightAnchor(optionTab->left);
     sceneEntityC->setTopAnchor(screenUi->top);
     sceneEntityC->setBottomAnchor(screenUi->bottom);
 
@@ -546,7 +538,7 @@ void EditorWindow::openInOption(UiComponent* component)
 
 void EditorWindow::renderUi()
 {
-    ecs.getMasterRenderer()->render(optionTab);
+    // ecs.getMasterRenderer()->render(optionTab);
 
 /*
     for(auto& child : sceneEcs.view<SceneElement>())

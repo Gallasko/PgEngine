@@ -8,6 +8,15 @@
 //[TODO] Variant using operator* dereferencing to recast to the original type
 int main(int argc, char *argv[])
 {
+    // Enable log in console
+    auto terminalSink = pg::Logger::registerSink<pg::TerminalSink>(true);
+    //TODO fix FilterFile
+    //terminalSink->addFilter("Input Filter", new Logger::LogSink::FilterScope("Input"));
+    // terminalSink->addFilter("Serializer Filter", new Logger::LogSink::FilterFile("src/Engine/serialization.cpp"));
+    // terminalSink->addFilter("Configuration Filter", new Logger::LogSink::FilterFile("src/Engine/configuration.cpp"));
+    terminalSink->addFilter("Editor Filter", new Logger::LogSink::FilterFile("src/app.cpp"));
+    terminalSink->addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
+    
     QSurfaceFormat format;
     format.setSwapInterval(0);
     format.setRenderableType(QSurfaceFormat::OpenGL);

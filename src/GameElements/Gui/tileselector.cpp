@@ -119,8 +119,8 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
     tileRendererVector[2].setWidth(50.0f);
     tileRendererVector[2].setHeight(50.0f);
     
-    for(int i = 0; i < 3; i++)
-        mouseAreaVector.push_back(makeMouseArea(&tileRendererVector[i], map, Map::changeTile, nullptr, tileRendererVector[i].id));
+    // for(int i = 0; i < 3; i++)
+        // mouseAreaVector.push_back(makeMouseArea(&tileRendererVector[i], map, Map::changeTile, nullptr, tileRendererVector[i].id));
 
     this->visible = true;
 }

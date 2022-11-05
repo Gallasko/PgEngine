@@ -59,7 +59,12 @@ namespace pg
 
                 try
                 {
-                    return registry.retrieve<Type>()->internalCreateComponent(entity, args...);                
+                    // Todo set the ecs ref of the created component to this as everything created from here should be a component ?
+                    auto res = registry.retrieve<Type>()->internalCreateComponent(entity, args...);
+
+                    res->ecsRef = this;
+
+                    return res;
                 }
                 catch (const std::exception& e)
                 {
@@ -86,7 +91,6 @@ namespace pg
 
             void executeAll();
 
-            InputSystem* getInputSystem() { return registry.inputSystem; }
             MasterRenderer* getMasterRenderer() { return registry.masterRenderer; }
 
         private:
