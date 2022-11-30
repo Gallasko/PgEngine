@@ -26,7 +26,7 @@ DebugActive ?= $(DEBUG)
 
 # define any compile-time flags -mwindows to make the app launch without a command prompt
 
-CXXFLAGS	:= -std=c++11 -Wall -Wextra -g -pthread
+CXXFLAGS	:= -std=c++17 -Wall -Wextra -g -pthread
 
 ifeq ($(DebugActive),True)
 CXXFLAGS    += -DDEBUG # --coverage

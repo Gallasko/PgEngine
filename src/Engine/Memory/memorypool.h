@@ -31,7 +31,7 @@ namespace pg
         56, 45, 25, 31, 35, 16,  9, 12,
         44, 24, 15,  8, 23,  7,  6,  5};
 
-    static int log2_64 (size_t value)
+    static constexpr int log2_64 (size_t value)
     {
         value |= value >> 1;
         value |= value >> 2;

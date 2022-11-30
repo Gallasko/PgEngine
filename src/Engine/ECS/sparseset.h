@@ -216,7 +216,7 @@ namespace pg
              * The list start at index 1 to nbElement()
              * This function is used to ensure that the bound of the set are respected
              */
-            inline constexpr size_t nbElements() const { LOG_THIS_MEMBER("Sparse Set"); return size; }
+            inline size_t nbElements() const { LOG_THIS_MEMBER("Sparse Set"); return size; }
 
             inline SparseSetList view() const
             {
