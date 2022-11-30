@@ -99,7 +99,7 @@ namespace pg
             }
 */
         }
-
+/*
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
@@ -281,6 +281,7 @@ namespace pg
             std::cout << "Iteration on group took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
 
         }
+*/
 
         /*
         TEST(system_test, system_perf_owned)

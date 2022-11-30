@@ -110,12 +110,18 @@ RM 				 := rm -f
 MD				 := mkdir -p
 endif
 
-# Look, up to 3 nested directories, to create an include tree of the include files in the source directory
-SOURCESDIRTREE := ${sort ${dir ${wildcard ${SOURCEDIRS}/*/ ${SOURCEDIRS}/*/*/ ${SOURCEDIRS}/*/*/*/}}}
+# Look, up to 4 nested directories, to create an include tree of the include files in the source directory
+SOURCESDIRTREE := ${sort ${dir ${wildcard ${SOURCEDIRS}/*/ ${SOURCEDIRS}/*/*/ ${SOURCEDIRS}/*/*/*/ ${SOURCEDIRS}/*/*/*/*/}}}
+
+# define Taskflow directory
+TASKFLOWDIR := $(IMPORTDIRS)/taskflow/taskflow
 
 # define any directories containing header files other than /usr/include
 INCLUDES	 := $(patsubst %,-I%, $(INCLUDEDIRS:%/=%)) \
-			    $(patsubst %,-I%, $(SOURCESDIRTREE:%/=%))
+			    $(patsubst %,-I%, $(SOURCESDIRTREE:%/=%)) \
+				$(patsubst %,-I%, $(TASKFLOWDIR:%/=%)) \
+				$(patsubst %,-I%, $(TASKFLOWDIR/algorithm:%/=%)) \
+				$(patsubst %,-I%, $(TASKFLOWDIR/core:%/=%))
 
 # define GTest directory
 GTESTDIR := $(IMPORTDIRS)/googletest/googletest
@@ -140,6 +146,7 @@ MOC_SOURCES	 := $(call rwildcard,$(SOURCEDIRS), *.h)
 RCC_SOURCES	 := $(call rwildcard,., *.qrc)
 
 GTEST_SOURCES = $(GTESTDIR)/src/*.cc $(GTESTDIR)/src/*.h $(GTEST_HEADERS)
+
 TEST_SOURCES := $(call rwildcard,$(TESTDIR), *.cc) 
 
 # define the C object files 

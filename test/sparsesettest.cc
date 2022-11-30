@@ -25,7 +25,7 @@ namespace pg
 
             ecs::SparseSet set;
         }
-
+/*
         TEST(sparse_test, iterate)
         {
             ecs::SparseSet set;
@@ -45,6 +45,6 @@ namespace pg
                 EXPECT_EQ(view[i], i);
             }
         }
-
+*/
     }
 }
