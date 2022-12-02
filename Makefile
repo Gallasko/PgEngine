@@ -115,13 +115,15 @@ SOURCESDIRTREE := ${sort ${dir ${wildcard ${SOURCEDIRS}/*/ ${SOURCEDIRS}/*/*/ ${
 
 # define Taskflow directory
 TASKFLOWDIR := $(IMPORTDIRS)/taskflow/taskflow
+TASKFLOWALG := $(TASKFLOWDIR)/algorithm
+TASKFLOWCOR := $(TASKFLOWDIR)/core
 
 # define any directories containing header files other than /usr/include
 INCLUDES	 := $(patsubst %,-I%, $(INCLUDEDIRS:%/=%)) \
 			    $(patsubst %,-I%, $(SOURCESDIRTREE:%/=%)) \
 				$(patsubst %,-I%, $(TASKFLOWDIR:%/=%)) \
-				$(patsubst %,-I%, $(TASKFLOWDIR/algorithm:%/=%)) \
-				$(patsubst %,-I%, $(TASKFLOWDIR/core:%/=%))
+				$(patsubst %,-I%, $(TASKFLOWALG:%/=%)) \
+				$(patsubst %,-I%, $(TASKFLOWCOR:%/=%))
 
 # define GTest directory
 GTESTDIR := $(IMPORTDIRS)/googletest/googletest

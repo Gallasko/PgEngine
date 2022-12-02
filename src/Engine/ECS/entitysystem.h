@@ -3,6 +3,8 @@
 #include <vector>
 #include <unordered_map>
 
+#include <taskflow.hpp>
+
 #include "uniqueid.h"
 #include "component.h"
 #include "componentregistry.h"
@@ -25,7 +27,7 @@ namespace pg
         class EntitySystem
         {
         public:
-            EntitySystem();
+            EntitySystem(bool emptyEcs = false);
             ~EntitySystem();
 
             Entity* createEntity()
@@ -47,6 +49,19 @@ namespace pg
 
                 return system;
             }
+
+            // template<template<class, class...> class... SysConstruct, class Sys, class... Args>
+            // Sys* createSystem(const Args&... args)
+            // {
+            //     LOG_THIS_MEMBER("ECS");
+
+            //     auto system = new Sys(args...);
+            //     system->setRegistry(&registry);
+
+            //     systems.push_back(system);
+
+            //     return system;
+            // }
 
             //TODO make a template specialization capable of attaching an entity to an entity
 
@@ -94,6 +109,7 @@ namespace pg
             MasterRenderer* getMasterRenderer() { return registry.masterRenderer; }
 
         private:
+            bool running = false;
             ComponentRegistry registry;
 
             std::vector<AbstractSystem*> systems;
@@ -101,6 +117,12 @@ namespace pg
 
             /** Store all systems that doesn't have be executed by the ecs (systems tagged as policy = manual, onEvent or storage) */
             std::unordered_map<_unique_id, AbstractSystem*> storageMap;
+
+            // Main executor of the ecs
+            tf::Executor executor;
+
+            // Taskflow of all the system of the ecs
+            tf::Taskflow taskflow;
         };
     }
 }

@@ -13,18 +13,28 @@
 
 #include "system.h"
 
+namespace
+{
+    constexpr char * DOM = "ECS";
+}
+
 namespace pg
 {
     namespace ecs
     {
-        EntitySystem::EntitySystem()
+        EntitySystem::EntitySystem(bool emptyEcs)
         {
-            LOG_THIS_MEMBER("ECS");
+            LOG_THIS_MEMBER(DOM);
+
+            if(not emptyEcs)
+            {
+
+            }
         }
 
         EntitySystem::~EntitySystem()
         {        
-            LOG_THIS_MEMBER("ECS");
+            LOG_THIS_MEMBER(DOM);
 
             for(size_t i = 0; i < systems.size(); i++)
             {
@@ -34,10 +44,18 @@ namespace pg
 
         void EntitySystem::executeAll()
         {
-            for(const auto& system : systems)
-            {
-                system->execute();
-            }
+            LOG_THIS_MEMBER(DOM);
+
+            running = true;
+
+            // executor.run(taskflow).wait();
+
+            // for(const auto& system : systems)
+            // {
+            //     system->execute();
+            // }
+
+            running = false;
         }
     }
 }

@@ -63,7 +63,6 @@ namespace pg
      * @brief A helper struct to create a block of memory
      * 
      * @tparam T Type of the object to be created
-     * @tparam N 
      */
     template<typename T>
     struct Block
@@ -81,16 +80,6 @@ namespace pg
 
             // Allocate at once enough space for N objects
             chunks = new Chunk<T>[size];
-/*
-            // Construct the free list of objects
-            for(unsigned int i = 0; i < size - 1; i++)
-            {
-                chunks[i].next = &chunks[i + 1];
-            }
-
-            // End the free list
-            chunks[size - 1].next = nullptr;
-*/
         }
 
         /** The first free space of the newly created block */
@@ -131,16 +120,19 @@ namespace pg
 
             if(reserveSize < size) return;
 
-            LOG_INFO("Memory Pool", "Reserving: " + std::to_string(reserveSize) +  ", currentPoolSize = " +
-                std::to_string(size) + " " +
-//                std::to_string(currentSize) + " " +
-                std::to_string(nbElements));
+            LOG_INFO("Memory Pool", Strfy() <<
+                "Reserving: " << reserveSize <<
+                ", currentPoolSize = " << size <<
+                " " << nbElements);
 
             while (reserveSize >= size)
             {
                 const size_t blockSize = N >= 2 ? N : size == 0 ? 1 : size + 1;
 
-                LOG_MILE("Memory Pool", "Current size: " + std::to_string(size) + ", target: " +std::to_string(reserveSize) + ", blockSize: " + std::to_string(blockSize));
+                LOG_MILE("Memory Pool", Strfy() <<
+                    "Current size: " << size <<
+                    ", target: " << reserveSize <<
+                    ", blockSize: " << blockSize);
 
                 auto newBlock = Block<T>(blockSize);
                 // freeList = newBlock.chunks;

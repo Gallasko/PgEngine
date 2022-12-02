@@ -80,8 +80,6 @@ namespace pg
             System() : AbstractSystem(), Comps(generateId())...
             {
                 LOG_THIS_MEMBER("System");
-                System<Comps...>::systemid = generateId();
-                id = System<Comps...>::systemid;
             }
 
             ~System()
@@ -179,11 +177,6 @@ namespace pg
                 }
 
             }
-
-            static _unique_id systemid;
         };
-
-        template <typename... Comps>
-        _unique_id System<Comps...>::systemid = 0;
     }
 }
