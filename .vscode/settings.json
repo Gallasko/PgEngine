@@ -107,7 +107,8 @@
         "any": "cpp",
         "coroutine": "cpp",
         "resumable": "cpp",
-        "stack": "cpp"
+        "stack": "cpp",
+        "filesystem": "cpp"
     },
     "files.exclude": {
         "**/*.o": true,
