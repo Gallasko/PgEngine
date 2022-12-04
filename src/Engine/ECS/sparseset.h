@@ -231,7 +231,7 @@ namespace pg
             void addDenseCapacity(const size_t& size);
 
             /** Internal helper function used to expend the sparse list */
-            void addSparseCapacity(const _unique_id& id, const size_t& size);
+            void addSparseCapacity(const _unique_id& id);
 
             // Private variables
         private:
@@ -539,7 +539,7 @@ namespace pg
                 auto component = pool.allocate(std::forward<Args>(args)...);
 
                 // Todo: see if needed for every component created
-                component->id = Comp::componentId;
+                // component->id = Comp::componentId;
 
                 componentList[nbComponents++] = component;
 

@@ -45,7 +45,7 @@ namespace pg
      * @param[in] onChange   The fonction to call when the text is different from before
      * @param[in] mode       The mode set up for this text input
      */
-    TextInput::TextInput(const UiFrame& frame, const std::string& texture, FontLoader* fontLoader, const TextInputCallback& onAccept, const TextInputCallback& onChange, const InputMode& mode) : ecs::IsA<TextInput, UiComponent>(frame), onAccept(onAccept), onChange(onChange), mode(mode)
+    TextInput::TextInput(const UiFrame& frame, const std::string& texture, FontLoader* fontLoader, const TextInputCallback& onAccept, const TextInputCallback& onChange, const InputMode& mode) : UiComponent(frame), onAccept(onAccept), onChange(onChange), mode(mode)
     {
         // TODO set TextureComponent with only a frame or a pointer to an UiComponent
         this->texture = new TextureComponent(this->width, this->height, texture);

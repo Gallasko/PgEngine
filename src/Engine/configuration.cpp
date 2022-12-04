@@ -6,7 +6,7 @@ namespace pg
 {
     namespace
     {
-        const char * DOM = "Configuration";
+        static constexpr char const * DOM = "Configuration";
     }
 
     template<>

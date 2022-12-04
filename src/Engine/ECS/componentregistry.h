@@ -8,6 +8,8 @@
 
 #include "logger.h"
 
+#include "uniqueid.h"
+
 namespace pg
 {
     class InputSystem;
@@ -32,13 +34,13 @@ namespace pg
             ~ComponentRegistry();
 
             template <typename Type>
-            void store(Own<Type>* owner)
+            void store(Own<Type>* owner) noexcept
             {
                 LOG_THIS_MEMBER("Component Registry");
 
                 struct Delegate : public Storage, public Own<Type> { };
 
-                componentStorageMap.emplace(Type::componentId, static_cast<Storage*>(static_cast<Delegate*>(owner)));
+                componentStorageMap.emplace(getTypeId<Type>(), static_cast<Storage*>(static_cast<Delegate*>(owner)));
             }
 
             template <typename Type>
@@ -50,17 +52,17 @@ namespace pg
 
                 // Todo catch errors when component doesnt exist in storage or no system own the component (so it doesnt exist in storage !)
 
-                return static_cast<Own<Type>*>(static_cast<Delegate*>(componentStorageMap.at(Type::componentId)));
+                return static_cast<Own<Type>*>(static_cast<Delegate*>(componentStorageMap.at(getTypeId<Type>())));
             }
 
             template <typename Type, typename... Types>
-            void storeGroup(Group<Type, Types...>* group)
+            void storeGroup(Group<Type, Types...>* group) noexcept
             {
                 LOG_THIS_MEMBER("Component Registry");
 
                 struct Delegate : public Storage, public Group<Type, Types...> { virtual ~Delegate() {} };
 
-                groupStorageMap.emplace(Group<Type, Types...>::groupId, static_cast<Storage*>(static_cast<Delegate*>(group)));
+                groupStorageMap.emplace(getTypeId<Type>(), static_cast<Storage*>(static_cast<Delegate*>(group)));
             }
 
             template <typename Type, typename... Types>
@@ -70,12 +72,22 @@ namespace pg
 
                 struct Delegate : public Storage, public Group<Type, Types...> { virtual ~Delegate() {} };
 
-                return static_cast<Group<Type, Types...>*>(static_cast<Delegate*>(groupStorageMap.at(Group<Type, Types...>::groupId)));
+                return static_cast<Group<Type, Types...>*>(static_cast<Delegate*>(groupStorageMap.at(getTypeId<Type>())));
             }
         
+            template <typename Type>
+            inline const _unique_id& getTypeId() const noexcept
+            {
+                static const _unique_id id = idGenerator.generateId();
+
+                return id;
+            }
+
             // Common singleton system
         public:
             MasterRenderer* masterRenderer;
+
+            mutable UniqueIdGenerator idGenerator;
 
         private:
             std::unordered_map<_unique_id, Storage*> componentStorageMap;
@@ -86,7 +98,7 @@ namespace pg
         struct Ref 
         {
             // Take an unique id only to have the same signature as Own object
-            Ref(_unique_id) { LOG_THIS_MEMBER("Ref"); }
+            Ref() { LOG_THIS_MEMBER("Ref"); }
 
             Ref(Own<Type> *ref) : ref(ref) { LOG_THIS_MEMBER("Ref"); }
 
@@ -123,22 +135,18 @@ namespace pg
                 return ref->view();
             }
 
-            inline const _unique_id& getComponentId() const { LOG_THIS_MEMBER("Ref"); return Type::componentId; }
-
             Own<Type> *ref;
         };
 
         template<class Type>
         struct Own : public Ref<Type>
         {
-            Own(_unique_id id) : Ref<Type>(this)
+            Own() : Ref<Type>(this)
             {
                 LOG_THIS_MEMBER("Own");
 
-                LOG_INFO("Own", "Type: " + std::string(typeid(Type).name()) + " get the id: " + std::to_string(id));
-
-                // Todo check if Type::componentId is not != 0 but it should never happen
-                Type::componentId = id;
+                // // Todo check if Type::componentId is not != 0 but it should never happen
+                // Type::componentId = id;
             }
 
             virtual ~Own() { LOG_THIS_MEMBER("Own"); }
@@ -146,6 +154,10 @@ namespace pg
             void setRegistry(ComponentRegistry* registry)
             {
                 LOG_THIS_MEMBER("Own");
+
+                const auto& id = registry->getTypeId<Type>();
+
+                LOG_INFO("Own", "Type: " + std::string(typeid(Type).name()) + " get the id: " + std::to_string(id));
 
                 registry->store<Type>(this);
             }
@@ -175,8 +187,6 @@ namespace pg
 
                 return components.viewComponents();
             }
-
-            inline const _unique_id& getComponentId() const { LOG_THIS_MEMBER("Own"); return Type::componentId; }
 
             ComponentSet<Type> components;
         };

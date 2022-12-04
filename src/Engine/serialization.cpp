@@ -14,7 +14,7 @@ namespace pg
     namespace
     {
         /** Name of the current domain (for logging purposes)*/
-        const char * DOM = "Serializer";
+        static constexpr char const * DOM = "Serializer";
 
         /** Name of the constant string indicating an attribute */
         std::string ATTRIBUTECONST = "PGSERIALISEDATTRIBUTE";

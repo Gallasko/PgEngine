@@ -7,7 +7,7 @@ using namespace pg;
 
 namespace
 {
-    const char * DOM = "Escape Panel";
+    static constexpr char const * DOM = "Escape Panel";
 }
 
 namespace pg

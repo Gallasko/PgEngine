@@ -4,7 +4,7 @@
 
 namespace pg::ecs
 {
-    struct SysCommand : public NamedComponent<SysCommand>
+    struct SysCommand : public Component
     {
         enum class SysCommandType
         {
@@ -15,7 +15,7 @@ namespace pg::ecs
             log
         };
 
-        SysCommand() : NamedComponent<SysCommand>("SysCommand") {}
+        SysCommand() : Component("SysCommand") {}
     };
 
     /**

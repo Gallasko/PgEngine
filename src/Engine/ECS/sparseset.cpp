@@ -10,7 +10,7 @@ namespace pg
     {
         namespace
         {
-            const char * DOM = "Sparse Set";
+            static constexpr char const * DOM = "Sparse Set";
         }
 
         /**
@@ -86,7 +86,7 @@ namespace pg
             if(sparseCapacity <= id)
             {
                 LOG_INFO(DOM, "Sparse array is too small (" + std::to_string(sparseCapacity) + ") to fit the element: " + std::to_string(id) + ", proceed to increase the capacity");
-                addSparseCapacity(id, currentSize);
+                addSparseCapacity(id);
             }
 
             // Link the entity id with the component id through the dense <-> sparse mechanism
@@ -226,7 +226,7 @@ namespace pg
          * 
          * This helper function double the size of the sparse to store up to size_t amount of data 
          */
-        void SparseSet::addSparseCapacity(const _unique_id& id, const size_t& size)
+        void SparseSet::addSparseCapacity(const _unique_id& id)
         {
             LOG_THIS_MEMBER(DOM);
 

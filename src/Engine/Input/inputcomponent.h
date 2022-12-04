@@ -197,9 +197,9 @@ namespace pg
     typedef std::shared_ptr<KeyboardInputComponent> KeyInputPtr;
 
     // Helper Struct
-    struct MouseComponent : public ecs::NamedComponent<MouseComponent>
+    struct MouseComponent : public ecs::Component
     {
-        MouseComponent(const MouseInputPtr& component) : ecs::NamedComponent<MouseComponent>("MouseComponent"), component(component) {}
+        MouseComponent(const MouseInputPtr& component) : ecs::Component("MouseComponent"), component(component) {}
         
         bool operator==(const MouseComponent& rhs) const { return component == rhs.component; }
 
@@ -207,9 +207,9 @@ namespace pg
     };
 
     // Helper Struct
-    struct KeyComponent : public ecs::NamedComponent<KeyComponent>
+    struct KeyComponent : public ecs::Component
     {
-        KeyComponent(const KeyInputPtr& component) : ecs::NamedComponent<KeyComponent>("KeyComponent"), component(component) {}
+        KeyComponent(const KeyInputPtr& component) : ecs::Component("KeyComponent"), component(component) {}
         
         bool operator==(const KeyComponent& rhs) const { return component == rhs.component; }
 

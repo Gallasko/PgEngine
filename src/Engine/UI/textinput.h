@@ -26,7 +26,7 @@ namespace pg
     class Sentence;
     class FontLoader;
 
-    class TextInput : public ecs::IsA<TextInput, UiComponent>
+    class TextInput : public UiComponent
     {
         // Typedefs
     public:

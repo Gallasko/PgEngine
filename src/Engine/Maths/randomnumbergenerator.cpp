@@ -10,7 +10,7 @@ namespace pg
 {
     namespace
     {
-        const char * DOM = "Number Generator";
+        static constexpr char const * DOM = "Number Generator";
     }
 
     template<>

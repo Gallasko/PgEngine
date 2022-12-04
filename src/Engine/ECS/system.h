@@ -33,8 +33,10 @@ namespace pg
 
             virtual void execute() { LOG_THIS_MEMBER("System"); }
 
-            virtual void parallelExecute(size_t start, size_t end) { LOG_THIS_MEMBER("System"); }
+            // Todo
+            virtual void parallelExecute(size_t, size_t) { LOG_THIS_MEMBER("System"); }
 
+            // Todo
             inline void setPolicy(const ExecutionPolicy& policy) { executionPolicy = policy; }
 
             ExecutionPolicy executionPolicy = ExecutionPolicy::Manual;
@@ -57,7 +59,7 @@ namespace pg
         {
             LOG_THIS("System");
 
-            LOG_INFO("System", "Registering an own to '" + std::string(typeid(Comp).name()) + "' to the system.");
+            LOG_INFO("System", Strfy() << "Registering an own to '" << typeid(Comp).name() << "' to the system.");
 
             static_cast<Own<Comp>*>(system)->setRegistry(registry);
             registerComponents(system, registry, comps...);
@@ -68,7 +70,7 @@ namespace pg
         {
             LOG_THIS("System");
             
-            LOG_INFO("System", "Registering a ref to '" + std::string(typeid(Comp).name()) + "' to the system.");
+            LOG_INFO("System", Strfy() << "Registering a ref to '" << typeid(Comp).name() << "' to the system.");
             
             static_cast<Ref<Comp>*>(system)->setRegistry(registry);
             registerComponents(system, registry, comps...);
@@ -77,7 +79,7 @@ namespace pg
         template <typename... Comps>
         struct System : public AbstractSystem, public Comps...
         {
-            System() : AbstractSystem(), Comps(generateId())...
+            System() : AbstractSystem(), Comps()...
             {
                 LOG_THIS_MEMBER("System");
             }
@@ -168,12 +170,15 @@ namespace pg
                 else
                 {
                     LOG_INFO("System", "Creating new group");
-                    auto group = new Group<Type, Types...>(generateId());
-                    
-                    group->setRegistry(registry);
-                    group->process();
+                    // Todo fix this with the new id generation
+                    // auto group = new Group<Type, Types...>(generateId());
+                    // 
+                    // group->setRegistry(registry);
+                    // group->process();
 
-                    return group;
+                    // return group;
+
+                    return nullptr;
                 }
 
             }

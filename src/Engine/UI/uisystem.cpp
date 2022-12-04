@@ -10,7 +10,7 @@ namespace pg
 {
     namespace
 	{
-		const char * DOM = "Ui System";
+		static constexpr char const * DOM = "Ui System";
 	}
 
     /**
@@ -219,7 +219,7 @@ namespace pg
         return component;
     }
 
-    UiComponent::UiComponent(const UiComponent& rhs) : ecs::NamedComponent<UiComponent>("UiComponent")
+    UiComponent::UiComponent(const UiComponent& rhs) : ecs::Component("UiComponent")
     {
         LOG_THIS_MEMBER(DOM);
 

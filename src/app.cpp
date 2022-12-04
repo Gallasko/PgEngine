@@ -20,9 +20,9 @@ using namespace pg::ecs;
 
 namespace
 {
-    const char * DOM = "Editor window";
+    static constexpr char const * DOM = "Editor window";
 
-    struct SceneElement : public Component<SceneElement>
+    struct SceneElement : public Component
     {
         SceneElement(int id, UiComponent *component, Button *mouseArea) : id(id), component(component), mouseArea(mouseArea) {}
 
@@ -34,6 +34,8 @@ namespace
         Button *mouseArea;
     };
 
+    // Todo objectiv with system implementation
+    // struct SceneElementSystem : public System<Policy<ExecutionPolicy::Manual>, Own<SceneElement>, Need<MasterRenderer>, Talk<SceneSystem>>
     struct SceneElementSystem : public System<Own<SceneElement>>
     {
         SceneElementSystem(MasterRenderer* masterRenderer) : masterRenderer(masterRenderer)

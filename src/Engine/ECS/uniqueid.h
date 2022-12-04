@@ -51,7 +51,7 @@ namespace pg
              * Can be called in a thread safe manner but no non thread safe generateId should be call during that time !
              */
             template<bool ThreadSafe = false>
-            _unique_id generateId()
+            _unique_id generateId() noexcept
             {
                 if constexpr (ThreadSafe)
                 {
@@ -73,7 +73,7 @@ namespace pg
              * Can be called in a thread safe manner but no non thread safe generateIdList should be call during that time !
              */
             template<bool ThreadSafe = false>
-            UniqueIdList generateIdList(_unique_id size)
+            UniqueIdList generateIdList(_unique_id size) noexcept
             {
                 if constexpr (ThreadSafe)
                 {
@@ -88,7 +88,5 @@ namespace pg
             _unique_id currentId = 3;
             std::mutex m;
         };
-
-        _unique_id generateId();
     }
 }

@@ -8,7 +8,7 @@ namespace pg
 {
 	namespace
 	{
-		const char * DOM = "Input";
+		static constexpr char const * DOM = "Input";
 
 		//Helper function 
 		template <typename Instance>

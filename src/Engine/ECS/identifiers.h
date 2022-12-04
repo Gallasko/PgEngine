@@ -8,12 +8,12 @@ namespace pg
     namespace ecs
     {
         /*
-        class EcsId : public NamedComponent
+        class EcsId : public Component
         {
             
         };
 
-        class EcsName : public NamedComponent
+        class EcsName : public Component
         {
 
         };

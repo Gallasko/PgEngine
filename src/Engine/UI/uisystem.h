@@ -24,7 +24,7 @@ namespace pg
      * This struct all data about the position of the object
      * as well as a render function
      */
-    class UiComponent : public ecs::NamedComponent<UiComponent>
+    class UiComponent : public ecs::Component
     {
         // Type definition
     private:
@@ -92,7 +92,7 @@ namespace pg
          * 
          * This construct an empty ui component at coord (0.0f, 0.0f, 0.0f) of size 0, 0
          */
-        UiComponent() : ecs::NamedComponent<UiComponent>("UiComponent") { }
+        UiComponent() : ecs::Component("UiComponent") { }
         
         /**
          * @brief Construct a new Ui Component object
@@ -102,7 +102,7 @@ namespace pg
          * This construct an ui component from a given reference
          * The position and size of the newly created object is automatically updated on the fly
          */
-        UiComponent(const UiFrame& frame) : ecs::NamedComponent<UiComponent>("UiComponent"), pos(&frame.pos), width(&frame.w), height(&frame.h) { }
+        UiComponent(const UiFrame& frame) : ecs::Component("UiComponent"), pos(&frame.pos), width(&frame.w), height(&frame.h) { }
 
         /**
          * @brief Construct a new Ui Component object

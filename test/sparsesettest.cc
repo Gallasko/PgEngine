@@ -9,7 +9,7 @@ namespace pg
 {
     namespace test
     {
-        struct A : public ecs::Component<A>
+        struct A : public ecs::Component
         {
             A(int data) : data(data) {}
 

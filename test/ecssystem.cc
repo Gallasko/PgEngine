@@ -20,9 +20,9 @@ namespace pg
     {
         namespace
         {
-            struct A : public ecs::NamedComponent<A>
+            struct A : public ecs::Component
             {
-                A(int arg1, int arg2) : ecs::NamedComponent<A>("A")
+                A(int arg1, int arg2) : ecs::Component("A")
                 {
                     value = arg1 + arg2;
                 }
@@ -30,9 +30,9 @@ namespace pg
                 int value;
             };
 
-            struct B : public ecs::NamedComponent<B>
+            struct B : public ecs::Component
             {
-                B(int arg1, int arg2) : ecs::NamedComponent<B>("B")
+                B(int arg1, int arg2) : ecs::Component("B")
                 {
                     value = arg1 - arg2;
                 }
@@ -50,9 +50,9 @@ namespace pg
                 virtual void execute() { std::cout << "Execute B System" << std::endl; }
             };
 
-            struct C : public ecs::NamedComponent<C>
+            struct C : public ecs::Component
             {
-                C(ecs::_unique_id value, const std::string& text) : ecs::NamedComponent<C>("C"), value(value), text(text) {}
+                C(ecs::_unique_id value, const std::string& text) : ecs::Component("C"), value(value), text(text) {}
 
                 ecs::_unique_id value;
                 std::string text;
@@ -79,7 +79,7 @@ namespace pg
                 size_t count = 1;
             };
 
-            struct D : ecs::Component<D>
+            struct D : ecs::Component
             {
                 std::string text;
             };
@@ -118,7 +118,9 @@ namespace pg
 
             std::cout << "Ecs creation took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
 
-            std::cout << A::componentId << " " << B::componentId << " " << C::componentId << std::endl;
+            // Todo make a test with that to verify that component id are not shared between ECS
+            // To get an id of a component you need to interact with the registry
+            // std::cout << A::componentId << " " << B::componentId << " " << C::componentId << std::endl;
 
             start = std::chrono::steady_clock::now();
             auto system = ecs.createSystem<ASystem>();
@@ -126,12 +128,12 @@ namespace pg
 
             std::cout << "System A creation took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
 
-            std::cout << A::componentId << " " << B::componentId << " " << C::componentId << std::endl;
+            // std::cout << A::componentId << " " << B::componentId << " " << C::componentId << std::endl;
 
             auto system2 = ecs.createSystem<ABSystem>();
             auto system3 = ecs.createSystem<CSystem>(nbComps / 50);
 
-            std::cout << A::componentId << " " << B::componentId << " " << C::componentId << std::endl;
+            // std::cout << A::componentId << " " << B::componentId << " " << C::componentId << std::endl;
 
             auto entity1 = ecs.createEntity();
             auto entity2 = ecs.createEntity();

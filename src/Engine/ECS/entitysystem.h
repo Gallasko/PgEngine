@@ -5,7 +5,6 @@
 
 #include <taskflow.hpp>
 
-#include "uniqueid.h"
 #include "component.h"
 #include "componentregistry.h"
 #include "entity.h"
@@ -34,7 +33,7 @@ namespace pg
             {
                 LOG_THIS_MEMBER("ECS");
 
-                return entityPool.allocate(idGenerator.generateId());
+                return entityPool.allocate(registry.idGenerator.generateId());
             }
 
             template<class Sys, typename... Args>
@@ -94,10 +93,6 @@ namespace pg
             void executeAll();
 
             MasterRenderer* getMasterRenderer() { return registry.masterRenderer; }
-
-        // 
-        public:
-            UniqueIdGenerator idGenerator;
 
         private:
             bool running = false;

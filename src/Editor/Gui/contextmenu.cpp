@@ -12,7 +12,7 @@ namespace pg
 {
     namespace
     {
-        static const char * DOM = "Context Menu";
+        static constexpr char const * DOM = "Context Menu";
     }
     
     template<>

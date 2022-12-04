@@ -15,7 +15,7 @@ namespace pg
 
     //TODO make sliders part of the scrollable component cause not only the list view need them
     //Scrollable widgets includes : listview, long text, long images, maps, etc... 
-    class SlideBar : public ecs::IsA<SlideBar, UiComponent>
+    class SlideBar : public UiComponent
     {
         typedef std::function<void(const UiSize&)> PositionCallback;
         
@@ -63,7 +63,7 @@ namespace pg
     };
 
     // Make list view subclass from scrollable components
-    class ListView : public ecs::IsA<ListView, UiComponent>
+    class ListView : public UiComponent
     {
     public:
         ListView(const UiComponent& frame, TextureComponent* backgroundTexture = nullptr, const UiOrientation& orientation = UiOrientation::VERTICAL);

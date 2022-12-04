@@ -8,7 +8,7 @@ namespace pg
 {
     namespace
     {
-        const char * DOM = "Scene Loader";
+        static constexpr char const * DOM = "Scene Loader";
 
         /**
          * @brief A function that trim all whitespace characters from the beginning of a string

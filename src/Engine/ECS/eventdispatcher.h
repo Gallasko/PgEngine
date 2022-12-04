@@ -4,9 +4,9 @@
 
 namespace pg::ecs
 {
-    struct Event : public NamedComponent<Event>
+    struct Event : public Component
     {
-        Event() : NamedComponent<Event>("Event") {}
+        Event() : Component("Event") {}
     };
 
     class EventDispatcher : public System<Own<Event>>

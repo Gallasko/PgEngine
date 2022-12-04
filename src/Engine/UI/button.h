@@ -11,7 +11,7 @@ namespace pg
 
     // Todo make a is relationship instead of inherit from UiComponent as it is like that with the new ECS
     // Todo make it a named component instead of an unamed one
-    class Button : public ecs::IsA<Button, UiComponent> 
+    class Button : public UiComponent
     {
     public:
         Button(MouseComponent* onPress, TextureComponent* background = nullptr, Sentence* sentence = nullptr, const UiComponent& frame = UiComponent());

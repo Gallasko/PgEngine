@@ -12,7 +12,7 @@ namespace pg
 		#define SPRITESIZE 64.0f
 		#define ATLASSIZE 1024.0f
 
-		const char * DOM = "Tile Loader";
+		static constexpr char const * DOM = "Tile Loader";
 	}
 
 	TilesLoader::TilesId::TilesId()

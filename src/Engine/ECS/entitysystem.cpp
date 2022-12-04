@@ -15,7 +15,7 @@
 
 namespace
 {
-    constexpr char * DOM = "ECS";
+    static constexpr char const * DOM = "ECS";
 }
 
 namespace pg

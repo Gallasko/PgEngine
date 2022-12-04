@@ -16,18 +16,18 @@ namespace pg
 }
 
 
-struct Item : public NamedComponent<Item>
+struct Item : public Component
 {
-    Item() : NamedComponent<Item>("Item") {}
+    Item() : Component("Item") {}
 
     unsigned int id;
     unsigned int amount = 1;
     unsigned int stackSize = 1;
 };
 
-struct Inventory : public NamedComponent<Inventory>
+struct Inventory : public Component
 {
-    Inventory(unsigned int capacity) : NamedComponent<Inventory>("Inventory"), capacity(capacity) {}
+    Inventory(unsigned int capacity) : Component("Inventory"), capacity(capacity) {}
 
     unsigned int capacity;
 };

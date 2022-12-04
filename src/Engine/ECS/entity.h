@@ -21,6 +21,10 @@ namespace pg
             // 0 means that it can't be a valid entity !
             Entity() : id(0) {}
 
+            // Default copy constructor
+            // Entity(Entity& mE)              = default;
+            // Entity& operator=(Entity& mE)   = default;
+
             inline bool has(const _unique_id& otherId) const { return componentList.find(otherId) != componentList.end(); }
 
             template <typename Component>
@@ -40,6 +44,7 @@ namespace pg
 
         protected:
             Entity(_unique_id id) : id(id) {}
+            ~Entity() {}
 
             const EntitySystem *ecsRef = nullptr;
         };

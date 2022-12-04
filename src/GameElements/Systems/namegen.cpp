@@ -6,7 +6,7 @@
 
 namespace
 {
-    const char * DOM = "Name Generation";
+    static constexpr char const * DOM = "Name Generation";
 }
 
 using pg::RandomNumberGenerator;
