@@ -7,49 +7,81 @@ namespace pg
 {
     namespace ecs
     {
+        /** A 64bits unsigned value used for identifiers */
         typedef uint_fast64_t _unique_id;
+
+        /** A fast 32bits unsigned value */
         typedef uint_fast32_t _uint32;
 
+        /**
+         * @brief Generator of unique identifiers
+         * 
+         * This class generates unique identifier in a non-thread and thread safe manner.
+         * 
+         * The first valid id is 3 as 0 is reserved for NONE, 1 is reserved for Ecs ID and 2 is reserved for Ecs Name,
+         * which are the basic id of the ecs. 
+         */
         class UniqueIdGenerator
         {
         public:
+            /**
+             * @brief A simple holder struct for a list of unique identifiers
+             * 
+             */
             struct UniqueIdList
             {
-                _unique_id start, end, length;
+                /** First unique identifier */
+                const _unique_id start;
+                /** Last unique identifier */
+                const _unique_id end;
+                /** Number of unique identifier */
+                const _unique_id length;
             };
 
         public:
+            
             /**
              * @brief Generate an unique identifier
+             * 
+             * @tparam ThreadSafe Set to true to execute in a thread safe manner
              * 
              * @return _unique_id An unique 64bit identifier
              * 
              * This function generates an unique identifier each time it is called.
-             * It is thread safe and should always return a new number each time.
-             * 
-             * The first valid id is 3 as 0 is reserved for NONE, 1 is reserved for Ecs ID and 2 is reserved for Ecs Name,
-             * which are the basic id of the ecs. 
+             * Can be called in a thread safe manner but no non thread safe generateId should be call during that time !
              */
-            _unique_id generateId() 
+            template<bool ThreadSafe = false>
+            _unique_id generateId()
             {
-                return currentId++;
+                if constexpr (ThreadSafe)
+                {
+                    std::lock_guard lock(m);
+                    return currentId++;
+                }
+                else
+                    return currentId++;
             }
 
+            /**
+             * @brief Generate an unique identifier
+             * 
+             * @tparam ThreadSafe Set to true to execute in a thread safe manner
+             * 
+             * @return UniqueIdList A start and end index of the generated Id
+             * 
+             * This function generates a list of unique identifier each time it is called.
+             * Can be called in a thread safe manner but no non thread safe generateIdList should be call during that time !
+             */
+            template<bool ThreadSafe = false>
             UniqueIdList generateIdList(_unique_id size)
             {
-                return {currentId, currentId += size, size};
-            }
-
-            _unique_id generateIdThreaded() 
-            {
-                std::lock_guard lock(m);
-                return currentId++;
-            }
-
-            UniqueIdList generateIdListThreaded(_unique_id size)
-            {
-                std::lock_guard lock(m);
-                return {currentId, currentId += size, size};
+                if constexpr (ThreadSafe)
+                {
+                    std::lock_guard lock(m);
+                    return {currentId, (currentId += size) - 1, size};
+                }
+                else
+                    return {currentId, (currentId += size) - 1, size};
             }
 
         private:

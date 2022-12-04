@@ -18,7 +18,7 @@ namespace pg
             for(auto group : groupStorageMap)
                 delete group.second;
 
-            delete masterRenderer;
+            // delete masterRenderer;
         }
 
     }

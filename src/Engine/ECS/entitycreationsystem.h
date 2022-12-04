@@ -4,7 +4,7 @@
 
 namespace pg::ecs
 {
-    class EntityCreationSystem : public System
+    class EntityCreationSystem // : public System
     {
 
     };

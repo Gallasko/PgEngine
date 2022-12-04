@@ -34,7 +34,7 @@ namespace pg
             {
                 LOG_THIS_MEMBER("ECS");
 
-                return entityPool.allocate(generateId());
+                return entityPool.allocate(idGenerator.generateId());
             }
 
             template<class Sys, typename... Args>
@@ -49,19 +49,6 @@ namespace pg
 
                 return system;
             }
-
-            // template<template<class, class...> class... SysConstruct, class Sys, class... Args>
-            // Sys* createSystem(const Args&... args)
-            // {
-            //     LOG_THIS_MEMBER("ECS");
-
-            //     auto system = new Sys(args...);
-            //     system->setRegistry(&registry);
-
-            //     systems.push_back(system);
-
-            //     return system;
-            // }
 
             //TODO make a template specialization capable of attaching an entity to an entity
 
@@ -107,6 +94,10 @@ namespace pg
             void executeAll();
 
             MasterRenderer* getMasterRenderer() { return registry.masterRenderer; }
+
+        // 
+        public:
+            UniqueIdGenerator idGenerator;
 
         private:
             bool running = false;

@@ -1,8 +1,9 @@
 #include "logger.h"
 
-// Only used for the console sink
+// Only used for the console sink 
 #include <iostream>
-
+// Used for dumping to a file with file sink
+#include <fstream>
 namespace pg
 {
     std::vector<Logger::LogSinkPtr> Logger::sinks;
@@ -103,6 +104,19 @@ namespace pg
         std::cout << logLevelString(log.level) << "'" << log.scope << "' " << logPositionString(log.filename, log.objectName, log.function, log.line) << " " << log.message << "\n";
         //if(not ignoreNonErrors and log.level == Logger::InfoLevel::log)
         //    std::cout << log.line << ", " << log.filename << ", " << log.function << ", " << log.objectName << "," << log.scope << ", " << log.message << ", " << static_cast<int>(log.level) << std::endl;
+    }
+
+    void FileSink::processLog(const Logger::Info& log)
+    {
+        dataBuffer += Strfy() << logLevelString(log.level) << "'" << log.scope << "' " << logPositionString(log.filename, log.objectName, log.function, log.line) << " " << log.message << "\n";
+        //if(not ignoreNonErrors and log.level == Logger::InfoLevel::log)
+        //    std::cout << log.line << ", " << log.filename << ", " << log.function << ", " << log.objectName << "," << log.scope << ", " << log.message << ", " << static_cast<int>(log.level) << std::endl;
+    }
+
+    FileSink::~FileSink()
+    {
+        std::ofstream f(filename);
+        f.write(dataBuffer.data(), dataBuffer.size());
     }
 
 }

@@ -8,6 +8,8 @@
 
 #include <string>
 
+#include "Files/filemanager.h"
+
 //TODO Create an object to utilize the ctor/dtor and know when we enter and exit the function called
 //     instead of only calling the _log() at the start of the function
 
@@ -78,9 +80,6 @@ namespace pg
         std::string data;
     };
 
-    // Forward declarations
-    class MockLogger;
-
     /**
      * @class Logger
      * 
@@ -111,7 +110,6 @@ namespace pg
          * @struct Info
          * 
          * A structure holding all the information about a log message
-         * 
          */
         struct Info
         {
@@ -179,7 +177,6 @@ namespace pg
         class LogSink
         {
         friend class Logger;
-        friend class MockLogger;
             class Filter
             {
             public:
@@ -463,6 +460,28 @@ namespace pg
         virtual void processLog(const Logger::Info& log) override;
 
     private:
+        /** Flag indicating whether we should ignore errors or not */
+        bool ignoreNonErrors;
+    };
+
+    class FileSink : public Logger::LogSink
+    {
+    friend class Logger;
+    public:
+        FileSink(const std::string& fileName = "log.txt", bool ignoreNonErrors = false) : filename(fileName), dataBuffer(""), ignoreNonErrors(ignoreNonErrors) {}
+        
+        virtual ~FileSink() override;
+        
+        /** Stream operator used to get the log and print the message to the console */
+        virtual void processLog(const Logger::Info& log) override;
+
+    private:
+        /** The file to write the log */
+        std::string filename;
+
+        /** The actual data to be written */
+        std::string dataBuffer;
+
         /** Flag indicating whether we should ignore errors or not */
         bool ignoreNonErrors;
     };

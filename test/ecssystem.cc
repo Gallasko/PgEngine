@@ -99,7 +99,7 @@ namespace pg
             }
 */
         }
-/*
+
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
@@ -107,7 +107,7 @@ namespace pg
         {
             constexpr size_t nbComps = 1000;
 
-            MockLogger logger;
+            MockLogger<FileSink> logger;
             // logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
 
             auto start = std::chrono::steady_clock::now();
@@ -203,7 +203,7 @@ namespace pg
 
             delete[] entity;
         }
-
+/*
         TEST(system_test, group)
         {
             // MockLogger logger;
