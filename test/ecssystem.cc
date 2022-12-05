@@ -16,13 +16,14 @@
 
 namespace pg
 {
+    using namespace ecs;
     namespace test
     {
         namespace
         {
-            struct A : public ecs::Component
+            struct A : public Component
             {
-                A(int arg1, int arg2) : ecs::Component("A")
+                A(int arg1, int arg2) : Component("A")
                 {
                     value = arg1 + arg2;
                 }
@@ -30,9 +31,9 @@ namespace pg
                 int value;
             };
 
-            struct B : public ecs::Component
+            struct B : public Component
             {
-                B(int arg1, int arg2) : ecs::Component("B")
+                B(int arg1, int arg2) : Component("B")
                 {
                     value = arg1 - arg2;
                 }
@@ -40,27 +41,27 @@ namespace pg
                 int value;
             };
 
-            struct ASystem : public ecs::System<ecs::Own<A>>
+            struct ASystem : public System<Own<A>>
             {                
                 virtual void execute() { std::cout << "Execute A System" << std::endl; }
             };
 
-            struct ABSystem : public ecs::System<ecs::Ref<A>, ecs::Own<B>>
+            struct ABSystem : public System<Ref<A>, Own<B>>
             {
                 virtual void execute() { std::cout << "Execute B System" << std::endl; }
             };
 
-            struct C : public ecs::Component
+            struct C : public Component
             {
-                C(ecs::_unique_id value, const std::string& text) : ecs::Component("C"), value(value), text(text) {}
+                C(_unique_id value, const std::string& text) : Component("C"), value(value), text(text) {}
 
-                ecs::_unique_id value;
+                _unique_id value;
                 std::string text;
             };
 
-            struct CSystem : public ecs::System<ecs::Own<C>>
+            struct CSystem : public System<Own<C>>
             {
-                CSystem(const size_t count) : ecs::System<ecs::Own<C>>(), count(count) {}
+                CSystem(const size_t count) : System<Own<C>>(), count(count) {}
 
                 virtual void execute()
                 {
@@ -79,13 +80,18 @@ namespace pg
                 size_t count = 1;
             };
 
-            struct D : ecs::Component
+            struct D : Component
             {
                 std::string text;
             };
 
+            struct DSystem : public System<Own<D>>
+            {                
+                virtual void execute() { std::cout << "Execute D System" << std::endl; }
+            };
+
 /*
-            struct CDSystem : public ecs::System<ecs::Ref<C>, ecs::Own<D>>
+            struct CDSystem : public System<Ref<C>, Own<D>>
             {
                 virtual void execute() override
                 {
@@ -103,6 +109,55 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        TEST(component_registry_test, initialization)
+        {
+            ASystem  sys1;
+            ABSystem sys2;
+            CSystem  sys3(1);
+
+            ComponentRegistry reg;
+
+            sys1.setRegistry(&reg);
+            sys2.setRegistry(&reg);
+            sys3.setRegistry(&reg);
+
+            EXPECT_EQ(reg.getTypeId<A>(), 3);
+            EXPECT_EQ(reg.getTypeId<B>(), 4);
+            EXPECT_EQ(reg.getTypeId<C>(), 5);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        TEST(component_registry_test, multiple_registy)
+        {
+            MockLogger logger;
+
+            ASystem  sys1;
+            ABSystem sys2; // AbSystem sys2bis // Todo here we get a cryptic map_base::at thrown exception when it is cause by A not being own by anything when creating AB <-- make a better compiler error ! or even catch it
+            CSystem  sys3(1), sys3bis(1);
+            DSystem  sys4;
+
+            ComponentRegistry reg, reg2;
+
+            sys1.setRegistry(&reg);
+            sys2.setRegistry(&reg);
+            sys3.setRegistry(&reg);
+
+            sys3bis.setRegistry(&reg2);
+            sys4.setRegistry(&reg2);
+
+            EXPECT_EQ(reg.getTypeId<A>(), 3);
+            EXPECT_EQ(reg.getTypeId<B>(), 4);
+            EXPECT_EQ(reg.getTypeId<C>(), 5);
+
+            EXPECT_EQ(reg2.getTypeId<C>(), 3);
+            EXPECT_EQ(reg2.getTypeId<D>(), 4);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         TEST(system_test, initialization)
         {
             constexpr size_t nbComps = 1000;
@@ -112,7 +167,7 @@ namespace pg
 
             auto start = std::chrono::steady_clock::now();
 
-            ecs::EntitySystem ecs;
+            EntitySystem ecs;
 
             auto end = std::chrono::steady_clock::now();
 
@@ -145,7 +200,7 @@ namespace pg
 
             std::cout << "Creating entities..." << std::endl;
 
-            ecs::Entity **entity = new ecs::Entity*[nbComps + 1];
+            Entity **entity = new Entity*[nbComps + 1];
             
             start = std::chrono::steady_clock::now();
             for(size_t i = 0; i < nbComps + 1; i++)
@@ -220,7 +275,7 @@ namespace pg
 
             auto start = std::chrono::steady_clock::now();
 
-            ecs::EntitySystem ecs;
+            EntitySystem ecs;
 
             auto end = std::chrono::steady_clock::now();
 
@@ -230,7 +285,7 @@ namespace pg
             
             auto absys = ecs.createSystem<ABSystem>();
 
-            auto entity = new ecs::Entity*[nbComps];
+            auto entity = new Entity*[nbComps];
 
             for(size_t i = 0; i < nbComps; i++)
             {
@@ -288,7 +343,7 @@ namespace pg
         /*
         TEST(system_test, system_perf_owned)
         {
-            ecs::EntitySystem ecs;
+            EntitySystem ecs;
 
             auto system = ecs.createSystem<ASystem>();
 
@@ -303,7 +358,7 @@ namespace pg
         
         TEST(system_test, system_perf_create)
         {
-            ecs::EntitySystem ecs;
+            EntitySystem ecs;
 
             auto system = ecs.createSystem<ASystem>();
 
@@ -317,7 +372,7 @@ namespace pg
 
         TEST(system_test, system_perf_attach)
         {
-            ecs::EntitySystem ecs;
+            EntitySystem ecs;
 
             auto system = ecs.createSystem<ASystem>();
 

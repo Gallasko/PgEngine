@@ -26,28 +26,28 @@ namespace
 
     struct MyObserver : public tf::ObserverInterface
     {
-        MyObserver(const std::string& name) {
-            std::cout << "constructing observer " << name << '\n';
+        MyObserver(const std::string&) {
+            // std::cout << "constructing observer " << name << '\n';
         }
 
         // set_up is a constructor-like method that will be called exactly once
         // passing the number of workers
-        void set_up(size_t num_workers) override final {
-            std::cout << "setting up observer with " << num_workers << " workers\n";
+        void set_up(size_t) override final {
+            // std::cout << "setting up observer with " << num_workers << " workers\n";
         }
 
         // on_entry will be called before a worker runs a task
-        void on_entry(tf::WorkerView wv, tf::TaskView tv) override final {
-            std::ostringstream oss;
-            oss << "worker " << wv.id() << " ready to run " << tv.name() << '\n';
-            std::cout << oss.str();
+        void on_entry(tf::WorkerView, tf::TaskView) override final {
+            // std::ostringstream oss;
+            // oss << "worker " << wv.id() << " ready to run " << tv.name() << '\n';
+            // std::cout << oss.str();
         }
 
         // on_exit will be called after a worker completes a task
-        void on_exit(tf::WorkerView wv, tf::TaskView tv) override final {
-            std::ostringstream oss;
-            oss << "worker " << wv.id() << " finished running " << tv.name() << '\n';
-            std::cout << oss.str();
+        void on_exit(tf::WorkerView, tf::TaskView) override final {
+            // std::ostringstream oss;
+            // oss << "worker " << wv.id() << " finished running " << tv.name() << '\n';
+            // std::cout << oss.str();
         }
     };
 }
@@ -70,10 +70,9 @@ TEST(taskflow_test, fibonacci)
 
     executor.run(taskflow).wait();
 
+    EXPECT_EQ(res, 610);
+
     //taskflow.dump(std::cout);
-
-    std::cout << "Fib[" << N << "]: " << res << std::endl;
-
 }
 
 // ----------------------------------------------------------------------------------------
@@ -81,14 +80,14 @@ TEST(taskflow_test, fibonacci)
 // ----------------------------------------------------------------------------------------
 TEST(taskflow_test, composition)
 {
-    std::cout << "Composition example 2\n";
-
     tf::Executor executor;
+
+    float x = 0, y = 0, res = 0;
 
     // f1 has two independent tasks
     tf::Taskflow f1("F1");
-    auto f1A = f1.emplace([&](){ std::cout << "F1 TaskA\n"; });
-    auto f1B = f1.emplace([&](){ std::cout << "F1 TaskB\n"; });
+    auto f1A = f1.emplace([&](){ x += 1; });
+    auto f1B = f1.emplace([&](){ y -= 1; });
     f1A.name("f1A");
     f1B.name("f1B");
 
@@ -98,9 +97,9 @@ TEST(taskflow_test, composition)
     //
     //  f1_module_task
     tf::Taskflow f2("F2");
-    auto f2A = f2.emplace([&](){ std::cout << "  F2 TaskA\n"; });
-    auto f2B = f2.emplace([&](){ std::cout << "  F2 TaskB\n"; });
-    auto f2C = f2.emplace([&](){ std::cout << "  F2 TaskC\n"; });
+    auto f2A = f2.emplace([&](){ x *= 2; });
+    auto f2B = f2.emplace([&](){ y /= 2; });
+    auto f2C = f2.emplace([&](){ res = x + y; });
     f2A.name("f2A");
     f2B.name("f2B");
     f2C.name("f2C");
@@ -112,7 +111,7 @@ TEST(taskflow_test, composition)
     // f3 has a module task (f2) and a regular task
     tf::Taskflow f3("F3");
     f3.composed_of(f2).name("module_of_f2");
-    f3.emplace([](){ std::cout << "      F3 TaskA\n"; }).name("f3A");
+    f3.emplace([](){ EXPECT_TRUE(true); }).name("f3A");
 
     // f4: f3_module_task -> f2_module_task
     tf::Taskflow f4;
@@ -121,25 +120,33 @@ TEST(taskflow_test, composition)
     auto f2_module_task = f4.composed_of(f2).name("module_of_f2");
     f3_module_task.precede(f2_module_task);
 
-    f4.dump(std::cout);
+    // f4.dump(std::cout);
 
     executor.run_until(
         f4,
-        [iter = 1] () mutable { std::cout << '\n'; return iter-- == 0; },
-        [](){ std::cout << "First run_until finished\n"; }
+        [iter = 1] () mutable { return iter-- == 0; },
+        [=](){ std::cout << "x: " << x << ", y: " << y << ", res: " << res; }
     ).get();
 
+    std::cout << "x: " << x << ", y: " << y << ", res: " << res;
+    x = 0; y = 0; res = 0;
+
     executor.run_until(
         f4,
-        [iter = 2] () mutable { std::cout << '\n'; return iter-- == 0; },
-        [](){ std::cout << "Second run_until finished\n"; }
+        [iter = 2] () mutable { return iter-- == 0; },
+        [=](){ std::cout << "x: " << x << ", y: " << y << ", res: " << res; }
     );
 
+    std::cout << "x: " << x << ", y: " << y << ", res: " << res;
+    x = 0; y = 0; res = 0;
+
     executor.run_until(
         f4,
-        [iter = 3] () mutable { std::cout << '\n'; return iter-- == 0; },
-        [](){ std::cout << "Third run_until finished\n"; }
+        [iter = 3] () mutable { return iter-- == 0; },
+        [=](){ std::cout << "x: " << x << ", y: " << y << ", res: " << res; }
     ).get();
+
+    std::cout << "x: " << x << ", y: " << y << ", res: " << res;
 
 }
 
@@ -150,10 +157,12 @@ TEST(taskflow_test, personal_composition)
 {
     tf::Executor executor;
 
+    std::string resGraph = "";
+
     // f1 has two independent tasks
     tf::Taskflow f1("F1");
-    auto f1A = f1.emplace([&](){ std::cout << "F1 TaskA\n"; });
-    auto f1B = f1.emplace([&](){ std::cout << "F1 TaskB\n"; });
+    auto f1A = f1.emplace([&](){ resGraph += "F1 TaskA\n"; });
+    auto f1B = f1.emplace([&](){ resGraph += "F1 TaskB\n"; });
     f1A.name("f1A");
     f1B.name("f1B");
 
@@ -161,9 +170,9 @@ TEST(taskflow_test, personal_composition)
     // f1_module_task ---> f2A ---> f2B ---> f2C
     //
     tf::Taskflow f2("F2");
-    auto f2A = f2.emplace([&](){ std::cout << "- F2 TaskA\n"; });
-    auto f2B = f2.emplace([&](){ std::cout << "- F2 TaskB\n"; });
-    auto f2C = f2.emplace([&](){ std::cout << "- F2 TaskC\n"; });
+    auto f2A = f2.emplace([&](){ resGraph += "- F2 TaskA\n"; });
+    auto f2B = f2.emplace([&](){ resGraph += "- F2 TaskB\n"; });
+    auto f2C = f2.emplace([&](){ resGraph += "- F2 TaskC\n"; });
     f2A.name("f2A");
     f2B.name("f2B");
     f2C.name("f2C");
@@ -180,16 +189,34 @@ TEST(taskflow_test, personal_composition)
     //
     tf::Taskflow f3("F3");
     auto f2_module_task = f3.composed_of(f2).name("module_of_f2");
-    auto f3A = f3.emplace([](){ std::cout << "- - F3 TaskA\n"; }).name("f3A");
-    auto f3B = f3.emplace([](){ std::cout << "- - F3 TaskB\n"; }).name("f3B");
-    auto f3C = f3.emplace([](){ std::cout << "- - F3 TaskC\n"; }).name("f3C");
+    auto f3A = f3.emplace([&](){ resGraph += "- - F3 TaskA\n"; }).name("f3A");
+    auto f3B = f3.emplace([&](){ resGraph += "- - F3 TaskB\n"; }).name("f3B");
+    auto f3C = f3.emplace([&](){ resGraph += "- - F3 TaskC\n"; }).name("f3C");
 
     f2_module_task.precede(f3A);
     f3A.precede(f3B, f3C);
 
-    f3.dump(std::cout);
+    // f3.dump(std::cout);
 
     executor.run(f3).wait();
+
+    // Because the task F1 A and B an d F3 B and C are independent four outcomes are possibles:
+    const std::string expectedResult1 = "F1 TaskB\n""F1 TaskA\n""- F2 TaskA\n""- F2 TaskB\n"
+                                        "- F2 TaskC\n""- - F3 TaskA\n""- - F3 TaskC\n""- - F3 TaskB\n";
+
+    const std::string expectedResult2 = "F1 TaskB\n""F1 TaskA\n""- F2 TaskA\n""- F2 TaskB\n"
+                                        "- F2 TaskC\n""- - F3 TaskA\n""- - F3 TaskB\n""- - F3 TaskC\n";
+
+    const std::string expectedResult3 = "F1 TaskA\n""F1 TaskB\n""- F2 TaskA\n""- F2 TaskB\n"
+                                        "- F2 TaskC\n""- - F3 TaskA\n""- - F3 TaskC\n""- - F3 TaskB\n";
+
+    const std::string expectedResult4 = "F1 TaskB\n""F1 TaskA\n""- F2 TaskA\n""- F2 TaskB\n"
+                                        "- F2 TaskC\n""- - F3 TaskA\n""- - F3 TaskB\n""- - F3 TaskC\n";
+
+    EXPECT_TRUE((resGraph == expectedResult1) or
+                (resGraph == expectedResult2) or
+                (resGraph == expectedResult3) or
+                (resGraph == expectedResult4));
 }
 
 // ----------------------------------------------------------------------------------------
@@ -215,24 +242,24 @@ TEST(taskflow_test, pipeline)
         }
         // save the result of this pipe into the buffer
         else {
-            printf("stage 1: input token = %zu\n", pf.token());
+            // printf("stage 1: input token = %zu\n", pf.token());
             buffer[pf.line()] = pf.token();
         }
         }},
 
         tf::Pipe{tf::PipeType::PARALLEL, [&buffer](tf::Pipeflow& pf) {
-        printf(
-            "stage 2: input buffer[%zu] = %d\n", pf.line(), buffer[pf.line()]
-        );
+        // printf(
+        //     "stage 2: input buffer[%zu] = %d\n", pf.line(), buffer[pf.line()]
+        // );
         // propagate the previous result to this pipe and increment
         // it by one
         buffer[pf.line()] = buffer[pf.line()] + 1;
         }},
 
         tf::Pipe{tf::PipeType::SERIAL, [&buffer](tf::Pipeflow& pf) {
-        printf(
-            "stage 3: input buffer[%zu] = %d\n", pf.line(), buffer[pf.line()]
-        );
+        // printf(
+        //     "stage 3: input buffer[%zu] = %d\n", pf.line(), buffer[pf.line()]
+        // );
         // propagate the previous result to this pipe and increment
         // it by one
         buffer[pf.line()] = buffer[pf.line()] + 1;
@@ -240,11 +267,11 @@ TEST(taskflow_test, pipeline)
     );
 
     // build the pipeline graph using composition
-    tf::Task init = taskflow.emplace([](){ std::cout << "ready\n"; })
+    tf::Task init = taskflow.emplace([](){})
                             .name("starting pipeline");
     tf::Task task = taskflow.composed_of(pl)
                             .name("pipeline");
-    tf::Task stop = taskflow.emplace([](){ std::cout << "stopped\n"; })
+    tf::Task stop = taskflow.emplace([](){})
                             .name("pipeline stopped");
 
     // create task dependency
@@ -252,7 +279,7 @@ TEST(taskflow_test, pipeline)
     task.precede(stop);
 
     // dump the pipeline graph structure (with composition)
-    taskflow.dump(std::cout);
+    // taskflow.dump(std::cout);
 
     // run the pipeline
     executor.run(taskflow).wait();
@@ -268,14 +295,14 @@ TEST(taskflow_test, observer)
     // Create a taskflow of eight tasks
     tf::Taskflow taskflow;
 
-    taskflow.emplace([] () { std::cout << "1\n"; }).name("A");
-    taskflow.emplace([] () { std::cout << "2\n"; }).name("B");
-    taskflow.emplace([] () { std::cout << "3\n"; }).name("C");
-    taskflow.emplace([] () { std::cout << "4\n"; }).name("D");
-    taskflow.emplace([] () { std::cout << "5\n"; }).name("E");
-    taskflow.emplace([] () { std::cout << "6\n"; }).name("F");
-    taskflow.emplace([] () { std::cout << "7\n"; }).name("G");
-    taskflow.emplace([] () { std::cout << "8\n"; }).name("H");
+    taskflow.emplace([] () {}).name("A");
+    taskflow.emplace([] () {}).name("B");
+    taskflow.emplace([] () {}).name("C");
+    taskflow.emplace([] () {}).name("D");
+    taskflow.emplace([] () {}).name("E");
+    taskflow.emplace([] () {}).name("F");
+    taskflow.emplace([] () {}).name("G");
+    taskflow.emplace([] () {}).name("H");
 
     // create a default observer
     std::shared_ptr<MyObserver> observer = executor.make_observer<MyObserver>("MyObserver");

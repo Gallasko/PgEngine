@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <map>
 #include <unordered_map>
 
 #include "sparseset.h"
@@ -76,11 +77,21 @@ namespace pg
             }
         
             template <typename Type>
-            inline const _unique_id& getTypeId() const noexcept
+            const _unique_id& getTypeId() const noexcept
             {
-                static const _unique_id id = idGenerator.generateId();
+                // Todo find a better implementation of this
+                static std::map<const ComponentRegistry*, _unique_id> idMap;
+                
+                if(not idMap[this])
+                    idMap[this] = idGenerator.generateId();
 
-                return id;
+                LOG_INFO("Component Registry", Strfy() << "Type: " << typeid(Type).name() << ", get id: " << idMap[this]);
+
+                return idMap[this];
+                
+                // This can't work as the static make this id the same through all the different object
+                // static const _unique_id id = idGenerator.generateId();
+                // return id;
             }
 
             // Common singleton system
