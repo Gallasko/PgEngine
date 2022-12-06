@@ -48,5 +48,13 @@ namespace pg
 
             const EntitySystem *ecsRef = nullptr;
         };
+
+        template<bool Complete = false>
+        struct EntityRecord
+        {
+            Entity *entity;
+
+            operator Entity*() const { return entity; }
+        };
     }
 }

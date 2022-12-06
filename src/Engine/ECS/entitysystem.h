@@ -32,7 +32,7 @@ namespace pg
             Entity* createEntity()
             {
                 LOG_THIS_MEMBER("ECS");
-
+                
                 return entityPool.allocate(registry.idGenerator.generateId());
             }
 
