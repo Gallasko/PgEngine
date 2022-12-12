@@ -15,7 +15,7 @@ namespace pg
         static constexpr char const * DOM = "Context Menu";
     }
     
-    template<>
+    template <>
     void renderer(MasterRenderer *masterRenderer, pg::editor::ContextMenu *contextMenu)
     {
         // contextMenu->backgroundTextureC->render(masterRenderer);
@@ -29,7 +29,7 @@ namespace pg
 
 namespace editor
 {
-    ContextMenu::ContextMenu(ecs::EntitySystem &ecs, FontLoader *fontLoader, const std::string& textureName, const std::function<void(const UiComponentType&)>& callback) : UiComponent(), callback(callback)
+    ContextMenu::ContextMenu(EntitySystem &ecs, FontLoader *fontLoader, const std::string& textureName, const std::function<void(const UiComponentType&)>& callback) : UiComponent(), callback(callback)
     {
         this->width = 0;
         this->height = 0;

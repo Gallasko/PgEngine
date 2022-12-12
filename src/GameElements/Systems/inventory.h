@@ -10,12 +10,6 @@
 
 using namespace pg;
 
-namespace pg
-{
-    using namespace ecs;
-}
-
-
 struct Item : public Component
 {
     Item() : Component("Item") {}

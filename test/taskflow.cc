@@ -125,29 +125,30 @@ TEST(taskflow_test, composition)
     executor.run_until(
         f4,
         [iter = 1] () mutable { return iter-- == 0; },
-        [=](){ std::cout << "x: " << x << ", y: " << y << ", res: " << res; }
+        [=](){ }
     ).get();
 
-    std::cout << "x: " << x << ", y: " << y << ", res: " << res;
+    std::cout << "Potential values after one interation: " << "x: " << x << ", y: " << y << ", res: " << res << std::endl;
+
     x = 0; y = 0; res = 0;
 
     executor.run_until(
         f4,
         [iter = 2] () mutable { return iter-- == 0; },
-        [=](){ std::cout << "x: " << x << ", y: " << y << ", res: " << res; }
+        [=](){ }
     );
 
-    std::cout << "x: " << x << ", y: " << y << ", res: " << res;
+    std::cout << "Potential values after two interation: " << "x: " << x << ", y: " << y << ", res: " << res << std::endl;
+
     x = 0; y = 0; res = 0;
 
     executor.run_until(
         f4,
         [iter = 3] () mutable { return iter-- == 0; },
-        [=](){ std::cout << "x: " << x << ", y: " << y << ", res: " << res; }
+        [=](){ }
     ).get();
 
-    std::cout << "x: " << x << ", y: " << y << ", res: " << res;
-
+    std::cout << "Potential values after three interation: " << "x: " << x << ", y: " << y << ", res: " << res << std::endl;
 }
 
 // ----------------------------------------------------------------------------------------
@@ -210,13 +211,18 @@ TEST(taskflow_test, personal_composition)
     const std::string expectedResult3 = "F1 TaskA\n""F1 TaskB\n""- F2 TaskA\n""- F2 TaskB\n"
                                         "- F2 TaskC\n""- - F3 TaskA\n""- - F3 TaskC\n""- - F3 TaskB\n";
 
-    const std::string expectedResult4 = "F1 TaskB\n""F1 TaskA\n""- F2 TaskA\n""- F2 TaskB\n"
+    const std::string expectedResult4 = "F1 TaskA\n""F1 TaskB\n""- F2 TaskA\n""- F2 TaskB\n"
                                         "- F2 TaskC\n""- - F3 TaskA\n""- - F3 TaskB\n""- - F3 TaskC\n";
 
-    EXPECT_TRUE((resGraph == expectedResult1) or
-                (resGraph == expectedResult2) or
-                (resGraph == expectedResult3) or
-                (resGraph == expectedResult4));
+    auto expected = (resGraph == expectedResult1) or
+                    (resGraph == expectedResult2) or
+                    (resGraph == expectedResult3) or
+                    (resGraph == expectedResult4);
+
+    EXPECT_TRUE(expected);
+
+    if(not expected)
+        std::cout << resGraph << std::endl;
 }
 
 // ----------------------------------------------------------------------------------------

@@ -25,7 +25,7 @@ namespace pg
      * @param[in] masterRenderer A pointer to the master renderer
      * @param[in] textInput      A pointer to the text input
      */
-    template<>
+    template <>
     void renderer(MasterRenderer* masterRenderer, TextInput* textInput)
     {
         if(textInput->texture != nullptr)

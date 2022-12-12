@@ -4,7 +4,4 @@
 
 namespace pg
 {
-    namespace ecs
-    {
-    }
 }

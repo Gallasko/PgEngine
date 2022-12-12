@@ -9,7 +9,7 @@ namespace pg
 {
     static constexpr char const * DOM = "Texture";
 
-    template<>
+    template <>
     void renderer(MasterRenderer* masterRenderer, TextureComponent* texture)
     {
         if(not texture->isVisible())
@@ -58,7 +58,7 @@ namespace pg
         shaderProgram->release();
     }
 
-    template<>
+    template <>
     void serialize(Archive& archive, const TextureComponent& value)
     {
         LOG_THIS(DOM);
@@ -71,7 +71,7 @@ namespace pg
         archive.endSerialization();
     }
 
-    template<>
+    template <>
     TextureComponent deserialize(const UnserializedObject& serializedString)
     {
         LOG_THIS(DOM);

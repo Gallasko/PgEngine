@@ -33,7 +33,7 @@ namespace pg
             void show() override;
             void hide() override;
 
-            template<class T>
+            template <class T>
             void addTextInput(const std::string& text, T* value)
             {
                 
@@ -48,7 +48,7 @@ namespace pg
             TextureComponent* backgroundTexture;
         };
 
-        template<typename... Args>
+        template <typename... Args>
         void printOption(OptionTab* tab, Args... args);
     }
 }

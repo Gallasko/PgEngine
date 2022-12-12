@@ -12,14 +12,14 @@ namespace pg
         float DEFAULT_SLIDER_WIDTH = 20;
     }
 
-    template<>
+    template <>
     void renderer(MasterRenderer* masterRenderer, SlideBar* slideBar)
     {
         masterRenderer->render(slideBar->slider);
         masterRenderer->render(slideBar->cursor);
     }
 
-    template<>
+    template <>
     void renderer(MasterRenderer* masterRenderer, ListView* listView)
     {
         auto rTable = masterRenderer->getParameter();

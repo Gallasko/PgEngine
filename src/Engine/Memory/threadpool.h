@@ -16,7 +16,7 @@
 class ThreadPool {
 public:
     ThreadPool(size_t);
-    template<class F, class... Args>
+    template <class F, class... Args>
     auto enqueue(F&& f, Args&&... args) 
         -> std::future<typename std::result_of<F(Args...)>::type>;
     ~ThreadPool();
@@ -66,7 +66,7 @@ inline ThreadPool::ThreadPool(size_t threads)
 }
 
 // add new work item to the pool
-template<class F, class... Args>
+template <class F, class... Args>
 auto ThreadPool::enqueue(F&& f, Args&&... args) 
     -> std::future<typename std::result_of<F(Args...)>::type>
 {

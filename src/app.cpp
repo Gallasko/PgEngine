@@ -531,7 +531,7 @@ void EditorWindow::addElement(const UiComponentType& type)
     contextMenu->hide();
 }
 
-template<typename SceneElementType>
+template <typename SceneElementType>
 void EditorWindow::openInOption(UiComponent* component)
 {
     // optionTab->clear();

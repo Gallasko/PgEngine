@@ -16,190 +16,238 @@ namespace pg
     class InputSystem;
     class MasterRenderer;
 
-    namespace ecs
+    template <typename Type>
+    struct Own;
+
+    template <typename Type, typename... Types>
+    struct Group;
+
+    class ComponentRegistry
     {
+        struct Storage {};
+
+    public:
+        ComponentRegistry();
+
+        ~ComponentRegistry();
+
         template <typename Type>
-        struct Own;
+        void store(Own<Type>* owner) noexcept
+        {
+            LOG_THIS_MEMBER("Component Registry");
+
+            struct Delegate : public Storage, public Own<Type> { };
+
+            const auto& id = getTypeId<Type>();
+
+            // Todo see if there is a performance hit to keep this function or does it get optimized as it should be always false in production code
+            // Block to find if a system is already registered in the ecs
+#ifdef DEBUG
+            if(const auto& it = componentStorageMap.find(id); it != componentStorageMap.end())
+            {
+                LOG_ERROR("Component Registry", Strfy() << "Trying to recreate a system that already existing with id: " << id << "Exiting");
+                return;
+            }
+#endif
+
+            componentStorageMap.emplace(id, static_cast<Storage*>(static_cast<Delegate*>(owner)));
+        }
+
+        template <typename Type>
+        Own<Type>* retrieve() const
+        {
+            LOG_THIS_MEMBER("Component Registry");
+
+            struct Delegate : public Storage, public Own<Type> { };
+
+            const auto& id = getTypeId<Type>();
+            // Todo catch errors when component doesnt exist in storage or no system own the component (so it doesnt exist in storage !)
+
+            // Todo see if there is a performance hit to keep this function or does it get optimized as it should be always false in production code
+            // Block to find if a group is already registered in the ecs
+#ifdef DEBUG
+            if(const auto& it = componentStorageMap.find(id); it == componentStorageMap.end())
+            {
+                LOG_ERROR("Component Registry", Strfy() << "Trying to retrieve a system that doesn't exist, Exiting");
+
+                throw std::runtime_error(Strfy() << "System  [" << typeid(Type).name() << "] is not registered");
+            }
+#endif
+
+            return static_cast<Own<Type>*>(static_cast<Delegate*>(componentStorageMap.at(id)));
+        }
 
         template <typename Type, typename... Types>
-        struct Group;
-
-        // TODO in destructor delete all groups !
-        class ComponentRegistry
+        void storeGroup(Group<Type, Types...>* group) noexcept
         {
-            struct Storage {};
+            LOG_THIS_MEMBER("Component Registry");
 
-        public:
-            ComponentRegistry();
+            struct Delegate : public Storage, public Group<Type, Types...> { virtual ~Delegate() {} };
 
-            ~ComponentRegistry();
+            // Todo see if there is a performance hit to keep this function or does it get optimized as it should be always false in production code
+            // Block to find if a group is already registered in the ecs
 
-            template <typename Type>
-            void store(Own<Type>* owner) noexcept
+            const auto& id = getTypeId<Group<Type, Types...>>();
+
+#ifdef DEBUG
+            if(const auto& it = groupStorageMap.find(id); it != groupStorageMap.end())
             {
-                LOG_THIS_MEMBER("Component Registry");
-
-                struct Delegate : public Storage, public Own<Type> { };
-
-                componentStorageMap.emplace(getTypeId<Type>(), static_cast<Storage*>(static_cast<Delegate*>(owner)));
+                LOG_ERROR("Component Registry", Strfy() << "Trying to recreate a group that already existing with id: " << id << "Exiting");
+                // Todo see if we need to throw an exception or not
+                // throw std::runtime_error("Group already registered");
+                return;
             }
+#endif
 
-            template <typename Type>
-            Own<Type>* retrieve() const
-            {
-                LOG_THIS_MEMBER("Component Registry");
+            groupStorageMap.emplace(id, static_cast<Storage*>(static_cast<Delegate*>(group)));
+        }
 
-                struct Delegate : public Storage, public Own<Type> { };
-
-                // Todo catch errors when component doesnt exist in storage or no system own the component (so it doesnt exist in storage !)
-
-                return static_cast<Own<Type>*>(static_cast<Delegate*>(componentStorageMap.at(getTypeId<Type>())));
-            }
-
-            template <typename Type, typename... Types>
-            void storeGroup(Group<Type, Types...>* group) noexcept
-            {
-                LOG_THIS_MEMBER("Component Registry");
-
-                struct Delegate : public Storage, public Group<Type, Types...> { virtual ~Delegate() {} };
-
-                groupStorageMap.emplace(getTypeId<Type>(), static_cast<Storage*>(static_cast<Delegate*>(group)));
-            }
-
-            template <typename Type, typename... Types>
-            Group<Type, Types...>* retrieveGroup() const
-            {
-                LOG_THIS_MEMBER("Component Registry");
-
-                struct Delegate : public Storage, public Group<Type, Types...> { virtual ~Delegate() {} };
-
-                return static_cast<Group<Type, Types...>*>(static_cast<Delegate*>(groupStorageMap.at(getTypeId<Type>())));
-            }
-        
-            template <typename Type>
-            const _unique_id& getTypeId() const noexcept
-            {
-                // Todo find a better implementation of this
-                static std::map<const ComponentRegistry*, _unique_id> idMap;
-                
-                if(not idMap[this])
-                    idMap[this] = idGenerator.generateId();
-
-                LOG_INFO("Component Registry", Strfy() << "Type: " << typeid(Type).name() << ", get id: " << idMap[this]);
-
-                return idMap[this];
-                
-                // This can't work as the static make this id the same through all the different object
-                // static const _unique_id id = idGenerator.generateId();
-                // return id;
-            }
-
-            // Common singleton system
-        public:
-            MasterRenderer* masterRenderer;
-
-            mutable UniqueIdGenerator idGenerator;
-
-        private:
-            std::unordered_map<_unique_id, Storage*> componentStorageMap;
-            std::unordered_map<_unique_id, Storage*> groupStorageMap;
-        };
-
-        template <class Type>
-        struct Ref 
+        template <typename Type, typename... Types>
+        Group<Type, Types...>* retrieveGroup() const
         {
-            // Take an unique id only to have the same signature as Own object
-            Ref() { LOG_THIS_MEMBER("Ref"); }
+            LOG_THIS_MEMBER("Component Registry");
 
-            Ref(Own<Type> *ref) : ref(ref) { LOG_THIS_MEMBER("Ref"); }
+            struct Delegate : public Storage, public Group<Type, Types...> { virtual ~Delegate() {} };
 
-            // Todo maybe remove the virtual destructor as the only thing that inherit Ref is Own
-            // And it only inherits it to be stored in the registry.
-            virtual ~Ref() { LOG_THIS_MEMBER("Ref"); }
+            const auto& id = getTypeId<Group<Type, Types...>>();
 
-            void setRegistry(ComponentRegistry* registry)
+            // Todo see if there is a performance hit to keep this function or does it get optimized as it should be always false in production code
+            // Block to find if a group is already registered in the ecs
+#ifdef DEBUG
+            if(const auto& it = groupStorageMap.find(id); it == groupStorageMap.end())
             {
-                LOG_THIS_MEMBER("Ref");
+                LOG_ERROR("Component Registry", Strfy() << "Trying to retrieve a group that doesn't exist, Exiting");
 
-                ref = registry->retrieve<Type>();
+                throw std::runtime_error(Strfy() <<  "Group [" << typeid(Type).name() << "] is not registered");
             }
+#endif
 
-            template <typename... Args>
-            inline Type* internalCreateComponent(Entity* entity, Args&&... args)
-            {
-                LOG_THIS_MEMBER("Ref");
-
-                return ref->internalCreateComponent(entity, std::forward<Args>(args)...);
-            }
-
-            inline void internalRemoveComponent(Entity* entity)
-            {
-                LOG_THIS_MEMBER("Ref");
-
-                ref->internalRemoveComponent(entity);
-            }
-
-            inline typename ComponentSet<Type>::ComponentSetList view() const
-            {
-                LOG_THIS_MEMBER("Ref");
-
-                return ref->view();
-            }
-
-            Own<Type> *ref;
-        };
-
-        template<class Type>
-        struct Own : public Ref<Type>
+            return static_cast<Group<Type, Types...>*>(static_cast<Delegate*>(groupStorageMap.at(id)));
+        }
+    
+        template <typename Type>
+        const _unique_id& getTypeId() const noexcept
         {
-            Own() : Ref<Type>(this)
-            {
-                LOG_THIS_MEMBER("Own");
+            // Todo find a better implementation of this
+            static std::map<const ComponentRegistry*, _unique_id> idMap;
+            
+            if(not idMap[this])
+                idMap[this] = idGenerator.generateId();
 
-                // // Todo check if Type::componentId is not != 0 but it should never happen
-                // Type::componentId = id;
-            }
+            LOG_INFO("Component Registry", Strfy() << "Type: " << typeid(Type).name() << ", get id: " << idMap[this]);
 
-            virtual ~Own() { LOG_THIS_MEMBER("Own"); }
+            return idMap[this];
+            
+            // This can't work as the static make this id the same through all the different object
+            // static const _unique_id id = idGenerator.generateId();
+            // return id;
+        }
 
-            void setRegistry(ComponentRegistry* registry)
-            {
-                LOG_THIS_MEMBER("Own");
+        // Common singleton system
+    public:
+        MasterRenderer* masterRenderer;
 
-                const auto& id = registry->getTypeId<Type>();
+        mutable UniqueIdGenerator idGenerator;
 
-                LOG_INFO("Own", "Type: " + std::string(typeid(Type).name()) + " get the id: " + std::to_string(id));
+    private:
+        std::unordered_map<_unique_id, Storage*> componentStorageMap;
+        std::unordered_map<_unique_id, Storage*> groupStorageMap;
+    };
 
-                registry->store<Type>(this);
-            }
+    template <class Type>
+    struct Ref 
+    {
+        // Take an unique id only to have the same signature as Own object
+        Ref() { LOG_THIS_MEMBER("Ref"); }
 
-            template <typename... Args>
-            inline Type* internalCreateComponent(Entity* entity, Args&&... args)
-            {
-                LOG_THIS_MEMBER("Own");
+        Ref(Own<Type> *ref) : ref(ref) { LOG_THIS_MEMBER("Ref"); }
 
-                // Create a new component and store it in a sparse set along with the entity id using it
-                return components.addComponent(entity, std::forward<Args>(args)...);
-            }
+        // Todo maybe remove the virtual destructor as the only thing that inherit Ref is Own
+        // And it only inherits it to be stored in the registry.
+        virtual ~Ref() { LOG_THIS_MEMBER("Ref"); }
 
-            inline void internalRemoveComponent(Entity* entity)
-            {
-                LOG_THIS_MEMBER("Own");
+        void setRegistry(ComponentRegistry* registry)
+        {
+            LOG_THIS_MEMBER("Ref");
 
-                components.removeComponent(entity);
+            ref = registry->retrieve<Type>();
+        }
 
-                // TODO
-                // entity.componentList.erase(Type::componentId);
-            }
+        template <typename... Args>
+        inline Type* internalCreateComponent(Entity* entity, Args&&... args)
+        {
+            LOG_THIS_MEMBER("Ref");
 
-            inline typename ComponentSet<Type>::ComponentSetList view() const
-            {
-                LOG_THIS_MEMBER("Own");
+            return ref->internalCreateComponent(entity, std::forward<Args>(args)...);
+        }
 
-                return components.viewComponents();
-            }
+        inline void internalRemoveComponent(Entity* entity)
+        {
+            LOG_THIS_MEMBER("Ref");
 
-            ComponentSet<Type> components;
-        };
-    }
+            ref->internalRemoveComponent(entity);
+        }
+
+        inline typename ComponentSet<Type>::ComponentSetList view() const
+        {
+            LOG_THIS_MEMBER("Ref");
+
+            return ref->view();
+        }
+
+        Own<Type> *ref;
+    };
+
+    template <class Type>
+    struct Own : public Ref<Type>
+    {
+        Own() : Ref<Type>(this)
+        {
+            LOG_THIS_MEMBER("Own");
+
+            // // Todo check if Type::componentId is not != 0 but it should never happen
+            // Type::componentId = id;
+        }
+
+        virtual ~Own() { LOG_THIS_MEMBER("Own"); }
+
+        void setRegistry(ComponentRegistry* registry)
+        {
+            LOG_THIS_MEMBER("Own");
+
+            const auto& id = registry->getTypeId<Type>();
+
+            LOG_INFO("Own", "Type: " + std::string(typeid(Type).name()) + " get the id: " + std::to_string(id));
+
+            registry->store<Type>(this);
+        }
+
+        template <typename... Args>
+        inline Type* internalCreateComponent(Entity* entity, Args&&... args)
+        {
+            LOG_THIS_MEMBER("Own");
+
+            // Create a new component and store it in a sparse set along with the entity id using it
+            return components.addComponent(entity, std::forward<Args>(args)...);
+        }
+
+        inline void internalRemoveComponent(Entity* entity)
+        {
+            LOG_THIS_MEMBER("Own");
+
+            components.removeComponent(entity);
+
+            // TODO
+            // entity.componentList.erase(Type::componentId);
+        }
+
+        inline typename ComponentSet<Type>::ComponentSetList view() const
+        {
+            LOG_THIS_MEMBER("Own");
+
+            return components.viewComponents();
+        }
+
+        ComponentSet<Type> components;
+    };
 }

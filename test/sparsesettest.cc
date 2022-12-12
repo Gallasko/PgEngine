@@ -9,7 +9,7 @@ namespace pg
 {
     namespace test
     {
-        struct A : public ecs::Component
+        struct A : public Component
         {
             A(int data) : data(data) {}
 
@@ -23,13 +23,13 @@ namespace pg
         {
             std::cout << "Test initialization" << std::endl;
 
-            ecs::SparseSet set;
+            SparseSet set;
         }
 /*
         TEST(sparse_test, iterate)
         {
-            ecs::SparseSet set;
-            ecs::EntitySystem ecs;
+            SparseSet set;
+            EntitySystem ecs;
 
             for (int i = 1; i < 1000; i++)
             {

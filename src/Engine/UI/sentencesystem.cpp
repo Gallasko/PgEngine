@@ -2,7 +2,7 @@
 
 namespace pg
 {
-    template<>
+    template <>
     void serialize(Archive& archive, const SentenceText& value)
     {
         archive.startSerialization("Sentence Text");
@@ -16,7 +16,7 @@ namespace pg
         archive.endSerialization();
     }
 
-    template<>
+    template <>
     void serialize(Archive& archive, const Sentence& value)
     {
         archive.startSerialization("Sentence");
@@ -29,7 +29,7 @@ namespace pg
         archive.endSerialization();
     }
 
-    template<>
+    template <>
     void renderer(MasterRenderer* masterRenderer, Sentence* sentence)
     {
         if(not sentence->isVisible())
@@ -80,7 +80,7 @@ namespace pg
         shaderProgram->release();
     }
 
-    template<>
+    template <>
     void renderer(MasterRenderer* masterRenderer, std::vector<Sentence*> sentenceList)
     { 
         auto rTable = masterRenderer->getParameter();

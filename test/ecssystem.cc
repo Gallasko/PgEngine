@@ -16,7 +16,6 @@
 
 namespace pg
 {
-    using namespace ecs;
     namespace test
     {
         namespace

@@ -73,7 +73,7 @@ namespace pg
 
     }
 
-    template<>
+    template <>
     void renderer(MasterRenderer* masterRenderer, Button* button)
     {
         if(button->background != nullptr)
@@ -89,7 +89,7 @@ namespace pg
         moveUiElements();
     }
         
-    template<typename Type, typename... Args>
+    template <typename Type, typename... Args>
     Button::Button(const Type& object, void(Type::*onPress)(Input*, double), TextureComponent* background, Sentence* sentence, const UiComponent& frame, const Args&... args) : UiComponent(frame), background(background), sentence(sentence), onPress(makeButtonMouseComponent(this, object, onPress, args...))
     {
         moveUiElements();

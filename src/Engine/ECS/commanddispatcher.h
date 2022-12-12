@@ -2,7 +2,7 @@
 
 #include "system.h"
 
-namespace pg::ecs
+namespace pg
 {
     struct SysCommand : public Component
     {

@@ -4,7 +4,7 @@
 
 namespace pg
 {
-    template<>
+    template <>
     void renderer(MasterRenderer* masterRenderer, TileSelector* tileSelector)
     {
         if(tileSelector->visible == false)

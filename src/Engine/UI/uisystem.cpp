@@ -19,7 +19,7 @@ namespace pg
      * @param archive A references to the archive
      * @param value The ui size value
      */
-    template<>
+    template <>
     void serialize(Archive& archive, const UiSize& value)
     {
         LOG_THIS(DOM);
@@ -37,7 +37,7 @@ namespace pg
      * @param archive A references to the archive
      * @param value The ui position value
      */
-    template<>
+    template <>
     void serialize(Archive& archive, const UiPosition& value)
     {
         LOG_THIS(DOM);
@@ -57,7 +57,7 @@ namespace pg
      * @param archive A references to the archive
      * @param value The ui frame value
      */
-    template<>
+    template <>
     void serialize(Archive& archive, const UiFrame& value)
     {
         LOG_THIS(DOM);
@@ -77,7 +77,7 @@ namespace pg
      * @param archive A references to the archive
      * @param value The ui component value
      */
-    template<>
+    template <>
     void serialize(Archive& archive, const UiComponent& value)
     {
         LOG_THIS(DOM);
@@ -106,7 +106,7 @@ namespace pg
      * @param serializedString A serialized string
      * @return UiSize An UiSize object contructed via the serialization string
      */
-    template<>
+    template <>
     UiSize deserialize(const UnserializedObject& serializedString)
     {
         LOG_THIS(DOM);
@@ -131,7 +131,7 @@ namespace pg
      * @param serializedString A serialized string
      * @return UiPosition An UiPosition object contructed via the serialization string
      */
-    template<>
+    template <>
     UiPosition deserialize(const UnserializedObject& serializedString)
     {
         LOG_THIS(DOM);
@@ -158,7 +158,7 @@ namespace pg
      * @param serializedString A serialized string
      * @return UiFrame An UiFrame object contructed via the serialization string
      */
-    template<>
+    template <>
     UiFrame deserialize(const UnserializedObject& serializedString)
     {
         LOG_THIS(DOM);
@@ -187,7 +187,7 @@ namespace pg
      * @param serializedString A serialized string
      * @return UiComponent An UiComponent object contructed via the serialization string
      */
-    template<>
+    template <>
     UiComponent deserialize(const UnserializedObject& serializedString)
     {
         LOG_THIS(DOM);
@@ -219,7 +219,7 @@ namespace pg
         return component;
     }
 
-    UiComponent::UiComponent(const UiComponent& rhs) : ecs::Component("UiComponent")
+    UiComponent::UiComponent(const UiComponent& rhs) : Component("UiComponent")
     {
         LOG_THIS_MEMBER(DOM);
 

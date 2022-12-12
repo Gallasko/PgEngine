@@ -12,7 +12,7 @@ namespace pg
         Logger::InfoLevel level;
     };
 
-    template<typename SinkType>
+    template <typename SinkType>
     class TestSink : public Logger::LogSink
     {
     friend class Logger;
@@ -60,7 +60,7 @@ namespace pg
         const bool showObject;
     };
 
-    template<typename SinkType = TerminalSink>
+    template <typename SinkType = TerminalSink>
     class MockLogger
     {
     public:

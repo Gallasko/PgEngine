@@ -135,11 +135,11 @@ namespace pg
 
     // TODO make a specialized renderer for std::nullptr_t to catch nullptr error ?; 
 
-    template<typename Type>
+    template <typename Type>
     void serialize(Archive& archive, const Type& value);
 
     // Todo make a static_assert to check if ": " is present in the name and reject it at compile time
-    template<typename Type>
+    template <typename Type>
     void serialize(Archive& archive, const std::string& name, const Type& value)
     {
         
@@ -148,7 +148,7 @@ namespace pg
         serialize(archive, value);
     }
 
-    template<typename Type>
+    template <typename Type>
     void serialize(Archive& archive, const char* value)
     {
         // Todo store the number of characters in the string
@@ -197,7 +197,7 @@ namespace pg
         bool isClass = true;
     };
 
-    template<typename Type>
+    template <typename Type>
     Type deserialize(const UnserializedObject& name);
 
     class Serializer

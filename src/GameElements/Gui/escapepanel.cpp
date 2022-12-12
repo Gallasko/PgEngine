@@ -12,7 +12,7 @@ namespace
 
 namespace pg
 {
-    template<>
+    template <>
     void renderer(MasterRenderer* masterRenderer, EscapePanel* escapePanel)
     {
         if(escapePanel->background != nullptr)

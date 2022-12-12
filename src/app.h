@@ -87,7 +87,7 @@ private:
 
     void addElement(const UiComponentType& type);
     
-    template<typename SceneElementType>
+    template <typename SceneElementType>
     void openInOption(UiComponent* component);
 
     UiComponent *sceneEntityC;
@@ -107,13 +107,13 @@ private:
     QOpenGLContext *m_context = nullptr;
     QOpenGLPaintDevice *m_device = nullptr;
 
-    ecs::EntitySystem ecs;
-    ecs::EntitySystem sceneEcs;
+    EntitySystem ecs;
+    EntitySystem sceneEcs;
 
     Input *inputHandler = nullptr;
     FontLoader *fontLoader = nullptr;
 
-    ecs::Entity* screenEntity;
+    Entity* screenEntity;
     UiComponent *screenUi;
 
     float xSensitivity = 1.0f;

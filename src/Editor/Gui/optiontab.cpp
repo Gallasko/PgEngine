@@ -18,7 +18,7 @@
 
 namespace pg
 {
-    template<>
+    template <>
     void renderer(MasterRenderer *masterRenderer, pg::editor::OptionTab* optionTab)
     {
         optionTab->backgroundTexture->render(masterRenderer);
@@ -27,14 +27,14 @@ namespace pg
 
     namespace editor
     {
-        template<>
+        template <>
         void printOption(OptionTab *tab, UiComponent* component)
         {
             tab->addTextInput("Width", &component->width);
             tab->addTextInput("Height", &component->height);
         }
 
-        template<>
+        template <>
         void printOption(OptionTab* tab, TextInput* textInput)
         {
             printOption<UiComponent*>(tab, textInput);

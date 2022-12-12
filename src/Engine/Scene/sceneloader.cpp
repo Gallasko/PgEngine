@@ -33,7 +33,7 @@ namespace pg
         }
     }
 
-    template<>
+    template <>
     void renderer(MasterRenderer* masterRenderer, Scene* scene)
     {
         LOG_THIS(DOM);

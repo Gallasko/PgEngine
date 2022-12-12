@@ -16,7 +16,7 @@ namespace pg
     public:
         Button(MouseComponent* onPress, TextureComponent* background = nullptr, Sentence* sentence = nullptr, const UiComponent& frame = UiComponent());
         
-        template<typename Type, typename... Args>
+        template <typename Type, typename... Args>
         Button(const Type& object, void(Type::*onPress)(Input*, double), TextureComponent* background = nullptr, Sentence* sentence = nullptr, const UiComponent& frame = UiComponent(), const Args&... args);
         
         // Constructor for funtion pointer

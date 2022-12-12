@@ -13,7 +13,7 @@ namespace pg
         static constexpr char const * DOM = "Number Generator";
     }
 
-    template<>
+    template <>
     void serialize(Archive& archive, const RandomNumberGenerator& generator)
     {
         LOG_THIS(DOM);
@@ -25,7 +25,7 @@ namespace pg
         archive.endSerialization();
     }
 
-    template<>
+    template <>
     RandomNumberGenerator deserialize(const UnserializedObject& serializedString)
     {
         LOG_THIS(DOM);

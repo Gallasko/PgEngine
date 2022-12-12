@@ -7,13 +7,13 @@
 namespace pg
 {
     // Use case :
-    // template<typename T>
+    // template <typename T>
     // using toString_t = decltype( std::declval<T&>().toString() );
     // 
-    // template<typename T>
+    // template <typename T>
     // constexpr bool has_toString = std::is_detected_v<toString_t, T>;
     // 
-    // template<class T>
+    // template <class T>
     // std::string optionalToString(T* obj)
     // {
     //     if constexpr (has_toString<T>)
@@ -23,11 +23,11 @@ namespace pg
     // }
 
 
-    template<class...>
+    template <class...>
     using void_t = void;
 
     // Primary template handles all types not supporting the archetypal Op:
-    template< class Default, class, template<class...> class Op, class... Args>
+    template <class Default, class, template <class...> class Op, class... Args>
     struct detector
     {
         using value_t = false_type;
@@ -35,7 +35,7 @@ namespace pg
     };
 
     // The specialization recognizes and handles only types supporting Op:
-    template< class Default, template<class...> class Op, class... Args>
+    template <class Default, template <class...> class Op, class... Args>
     struct detector<Default, void_t<Op<Args...>>, Op, Args...>
     {
         using value_t = true_type;
@@ -52,31 +52,31 @@ namespace pg
     };
 
     // All the detection templates
-    template<template<class...> class Op, class... Args>
+    template <template <class...> class Op, class... Args>
     using is_detected = typename detector<nonesuch, void, Op, Args...>::value_t;
     
-    template<template<class...> class Op, class... Args>
+    template <template <class...> class Op, class... Args>
     constexpr bool is_detected_v = is_detected<Op, Args...>::value;
     
-    template<template<class...> class Op, class... Args>
+    template <template <class...> class Op, class... Args>
     using detected_t = typename detector<nonesuch, void, Op, Args...>::type;
 
-    template<class Default, template<class...> class Op, class... Args>
+    template <class Default, template <class...> class Op, class... Args>
     using detected_or = detector<Default, void, Op, Args...>;
 
-    template<class Default, template<class...> class Op, class... Args>
+    template <class Default, template <class...> class Op, class... Args>
     using detected_or_t = typename detected_or<Default, Op, Args...>::type;
 
-    template<class Expected, template<class...> class Op, class... Args>
+    template <class Expected, template <class...> class Op, class... Args>
     using is_detected_exact = is_same< Expected, detected_t<Op, Args...> >;
 
-    template<class Expected, template<class...> class Op, class... Args>
+    template <class Expected, template <class...> class Op, class... Args>
     constexpr bool is_detected_exact_v = is_detected_exact<Expected, Op, Args...>::value;
 
-    template<class To, template<class...> class Op, class... Args>
+    template <class To, template <class...> class Op, class... Args>
     using is_detected_convertible = is_convertible<detected_t<Op, Args...>, To >;
 
-    template<class To, template<class...> class Op, class... Args>
+    template <class To, template <class...> class Op, class... Args>
     constexpr bool is_detected_convertible_v = is_detected_convertible<To, Op, Args...>::value;
 
 }

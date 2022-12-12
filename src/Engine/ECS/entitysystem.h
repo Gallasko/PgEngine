@@ -15,100 +15,115 @@
 
 namespace pg
 {
-    namespace ecs
+    // Todo create a queue that hold all entity id that got deleted to reattribute them later on
+    
+    // Forward declarations
+    class ComponentRegistry;
+    class AbstractSystem;
+    
+    class EntitySystem
     {
-        // Todo create a queue that hold all entity id that got deleted to reattribute them later on
-        
-        // Forward declarations
-        class ComponentRegistry;
-        class AbstractSystem;
-        
-        class EntitySystem
+    public:
+        EntitySystem(bool emptyEcs = false);
+        ~EntitySystem();
+
+        Entity* createEntity()
         {
-        public:
-            EntitySystem(bool emptyEcs = false);
-            ~EntitySystem();
+            LOG_THIS_MEMBER("ECS");
 
-            Entity* createEntity()
+            return entityPool.allocate(registry.idGenerator.generateId(), this);
+        }
+
+        void removeEntity(Entity* entity)
+        {
+            LOG_THIS_MEMBER("ECS");
+
+            // Todo Remove all attached component
+
+            entityPool.release(entity);
+        }
+
+        template <class Sys, typename... Args>
+        Sys* createSystem(const Args&... args)
+        {
+            LOG_THIS_MEMBER("ECS");
+
+            auto system = new Sys(args...);
+            system->setRegistry(&registry);
+
+            systems.push_back(system);
+
+            return system;
+        }
+
+        //TODO make a template specialization capable of attaching an entity to an entity
+
+        template <typename Type, typename... Args>
+        Type* attach(Entity* entity, const Args&... args) const
+        {
+            LOG_THIS_MEMBER("ECS");
+
+            try
             {
-                LOG_THIS_MEMBER("ECS");
-                
-                return entityPool.allocate(registry.idGenerator.generateId());
+                // Todo set the ecs ref of the created component to this as everything created from here should be a component ?
+                auto res = registry.retrieve<Type>()->internalCreateComponent(entity, args...);
+
+                res->ecsRef = this;
+
+                return res;
+            }
+            catch (const std::exception& e)
+            {
+                LOG_ERROR("ECS", Strfy() << "Can't attach component [" << typeid(Type).name() << "]: " << e.what());
             }
 
-            template<class Sys, typename... Args>
-            Sys* createSystem(const Args&... args)
+            return nullptr;
+        }
+
+        template <typename Type>
+        void dettach(Entity* entity) const
+        {
+            LOG_THIS_MEMBER("ECS");
+
+            try
             {
-                LOG_THIS_MEMBER("ECS");
-
-                auto system = new Sys(args...);
-                system->setRegistry(&registry);
-
-                systems.push_back(system);
-
-                return system;
+                registry.retrieve<Type>()->internalRemoveComponent(entity);            
             }
-
-            //TODO make a template specialization capable of attaching an entity to an entity
-
-            template<typename Type, typename... Args>
-            Type* attach(Entity* entity, const Args&... args) const
+            catch (const std::exception& e)
             {
-                LOG_THIS_MEMBER("ECS");
-
-                entity->ecsRef = this;
-
-                try
-                {
-                    // Todo set the ecs ref of the created component to this as everything created from here should be a component ?
-                    auto res = registry.retrieve<Type>()->internalCreateComponent(entity, args...);
-
-                    res->ecsRef = this;
-
-                    return res;
-                }
-                catch (const std::exception& e)
-                {
-                    LOG_ERROR("ECS", Strfy() << "Can't attach component [" << typeid(Type).name() << "]: " << e.what());
-                }
-
-                return nullptr;
+                LOG_ERROR("ECS", e.what());
             }
+        }
 
-            template<typename Type>
-            void dettach(Entity* entity) const
-            {
-                LOG_THIS_MEMBER("ECS");
+        inline bool has(Entity* entity, _unique_id id) const
+        {
+            
+        }
 
-                try
-                {
-                    registry.retrieve<Type>()->internalRemoveComponent(entity);            
-                }
-                catch (const std::exception& e)
-                {
-                    LOG_ERROR("ECS", e.what());
-                }
-            }
+        template <typename Type>
+        inline bool has(Entity* entity) const
+        {
 
-            void executeAll();
+        }
 
-            MasterRenderer* getMasterRenderer() { return registry.masterRenderer; }
+        void executeAll();
 
-        private:
-            bool running = false;
-            ComponentRegistry registry;
+        MasterRenderer* getMasterRenderer() { return registry.masterRenderer; }
 
-            std::vector<AbstractSystem*> systems;
-            AllocatorPool<Entity> entityPool;
+    private:
+        bool running = false;
+        ComponentRegistry registry;
 
-            /** Store all systems that doesn't have be executed by the ecs (systems tagged as policy = manual, onEvent or storage) */
-            std::unordered_map<_unique_id, AbstractSystem*> storageMap;
+        std::vector<AbstractSystem*> systems;
+        AllocatorPool<Entity> entityPool;
 
-            // Main executor of the ecs
-            tf::Executor executor;
+        /** Store all systems that doesn't have be executed by the ecs (systems tagged as policy = manual, onEvent or storage) */
+        std::unordered_map<_unique_id, AbstractSystem*> storageMap;
 
-            // Taskflow of all the system of the ecs
-            tf::Taskflow taskflow;
-        };
-    }
+        // Main executor of the ecs
+        tf::Executor executor;
+
+        // Taskflow of all the system of the ecs
+        tf::Taskflow taskflow;
+    };
 }

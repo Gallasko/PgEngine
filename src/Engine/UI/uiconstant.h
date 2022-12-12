@@ -243,16 +243,16 @@ namespace pg
             //return *res;
         }
 
-        template<typename Type>
+        template <typename Type>
         friend UiSize operator+(const Type& lhs, const UiSize& rhs);
 
-        template<typename Type>
+        template <typename Type>
         friend UiSize operator-(const Type& lhs, const UiSize& rhs);
 
-        template<typename Type>
+        template <typename Type>
         friend UiSize operator*(const Type& lhs, const UiSize& rhs);
 
-        template<typename Type>
+        template <typename Type>
         friend UiSize operator/(const Type& lhs, const UiSize& rhs);
 
         operator float() const
@@ -264,25 +264,25 @@ namespace pg
         std::shared_ptr<UiValue> value;
     };
 
-    template<typename Type>
+    template <typename Type>
     UiSize operator+(const Type& lhs, const UiSize& rhs)
     {
         return rhs + lhs;
     }
 
-    template<typename Type>
+    template <typename Type>
     UiSize operator-(const Type& lhs, const UiSize& rhs)
     {
         return UiSize(lhs, -1.0f, rhs.value);
     }
 
-    template<typename Type>
+    template <typename Type>
     UiSize operator*(const Type& lhs, const UiSize& rhs)
     {
         return rhs * lhs;
     }
 
-    template<typename Type>
+    template <typename Type>
     UiSize operator/(const Type& lhs, const UiSize& rhs)
     {
         return UiSize(lhs, 0.0f, nullptr, rhs.value, UiSize::UiValue::UiSizeOpType::DIV);

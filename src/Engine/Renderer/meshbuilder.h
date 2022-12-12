@@ -11,19 +11,19 @@
 
 namespace pg
 {
-    struct OpenGLObject : protected QOpenGLFunctions, public ecs::Component
+    struct OpenGLObject : protected QOpenGLFunctions, public Component
     {
         QOpenGLVertexArrayObject *VAO = nullptr;
         QOpenGLBuffer *VBO = nullptr;
         QOpenGLBuffer *EBO = nullptr;
 
-        OpenGLObject() : ecs::Component("OpenGLObject") {}
+        OpenGLObject() : Component("OpenGLObject") {}
         ~OpenGLObject() { delete VAO; delete VBO; delete EBO; }
 
         void initialize();
     };
 
-    class MeshBuilder : public ecs::System<ecs::Own<OpenGLObject>>
+    class MeshBuilder : public System<Own<OpenGLObject>>
     {
     public:
 

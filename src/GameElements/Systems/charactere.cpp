@@ -5,7 +5,7 @@
 
 namespace pg
 {
-    template<>
+    template <>
     void renderer(MasterRenderer* renderer, CharacterUi* chara)
     {
 

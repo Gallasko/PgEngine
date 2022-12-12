@@ -2,7 +2,4 @@
 
 namespace pg
 {
-    namespace ecs
-    {
-    }
 }

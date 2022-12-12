@@ -49,10 +49,10 @@ namespace pg
 
         //TODO check if we need to make a special case UiComponent
 
-        template<typename... Args>
+        template <typename... Args>
         void render(const Args&... args) { renderer(this, args...); }
 
-        template<typename Renderable>
+        template <typename Renderable>
         MasterRenderer& operator<<(Renderable* toRender) { renderer(this, toRender); return *this; }
 
         inline void setWindowSize(const int& width, const int& height) { systemParameters["ScreenWidth"] = width; systemParameters["ScreenHeight"] = height; }

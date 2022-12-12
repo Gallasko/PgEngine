@@ -28,7 +28,7 @@
 
 namespace std
 {
-    template<>
+    template <>
     struct hash<pg::constant::Vector2D> {
         size_t operator()(const pg::constant::Vector2D& k) const {
             return ((hash<int>()(k.x) ^ (hash<int>()(k.y) << 1)) >> 1);
@@ -226,7 +226,7 @@ namespace pg
             NoiseParameters noiseParam = {3, 5, 50, -1, 0.70};
         };
 
-        Map(ecs::EntitySystem *ecs, TilesLoader *tilesLoader, const Map::MapConstraint& constraint);
+        Map(EntitySystem *ecs, TilesLoader *tilesLoader, const Map::MapConstraint& constraint);
         ~Map();
 
         void generateMesh();
@@ -253,7 +253,7 @@ namespace pg
         void roadTiling();
         void drawPath();
 
-        ecs::EntitySystem *ecs;
+        EntitySystem *ecs;
         TilesLoader *tilesLoader; 
         Map::MapConstraint constraint;
         NoiseGenerator *noiseGenerator;

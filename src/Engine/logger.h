@@ -47,7 +47,7 @@ namespace pg
         Strfy(const std::string& msg) : data(msg) {}
         Strfy() : data("") {}
 
-        template<typename T>
+        template <typename T>
         Strfy& operator<<(const T& value)
         {
             data += std::to_string(value);

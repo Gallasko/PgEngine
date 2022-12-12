@@ -49,7 +49,7 @@ namespace pg
      * Union representing a chunk of memory mananaged by the pool.
      * It can be either a single object or a pointer to the next free space in the pool
      */
-    template<typename T>
+    template <typename T>
     union Chunk
     {
         /** Storage for a single object */
@@ -64,7 +64,7 @@ namespace pg
      * 
      * @tparam T Type of the object to be created
      */
-    template<typename T>
+    template <typename T>
     struct Block
     {
         /**
@@ -92,7 +92,7 @@ namespace pg
      * @tparam T Type of the object to be created
      * @tparam N if N > 1, Number of object to be created at once when running out of empty element else the pool expand exponentially (default at 1)
      */
-    template<typename T, size_t N = 1>
+    template <typename T, size_t N = 1>
     class AllocatorPool
     {
     public:
@@ -155,7 +155,7 @@ namespace pg
          * 
          * @see release
          */
-        template<typename... Args>
+        template <typename... Args>
         T* allocate(Args&&... args)
         {
             LOG_THIS_MEMBER("Memory Pool");

@@ -28,7 +28,7 @@ namespace editor
 {
     struct ContextMenu : public UiComponent
     {
-        ContextMenu(ecs::EntitySystem &ecs, FontLoader *fontLoader, const std::string& textureName, const std::function<void(const UiComponentType&)>& callback);
+        ContextMenu(EntitySystem &ecs, FontLoader *fontLoader, const std::string& textureName, const std::function<void(const UiComponentType&)>& callback);
         ~ContextMenu();
 
         virtual void render(MasterRenderer* masterRenderer);

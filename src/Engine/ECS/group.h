@@ -42,240 +42,237 @@
 
 namespace pg
 {
-    namespace ecs
+    // Type forwarding
+    class ComponentRegistry;
+
+    template <typename Type>
+    struct Getter
     {
-        // Type forwarding
-        class ComponentRegistry;
+        Getter() : value(nullptr) {}
+        Getter(Type* value) : value(value) { LOG_THIS_MEMBER("Ecs Group"); }
+
+        Type* get() const { LOG_THIS_MEMBER("Ecs Group"); return value; }
+        void set(Type* value) { LOG_THIS_MEMBER("Ecs Group"); this->value = value; }
+
+        Type* value; 
+    };
+
+    template <typename... Types>
+    struct GroupElement : public Getter<Types>...
+    {
+        GroupElement(const _unique_id& entityId) : Getter<Types>()..., entityId(entityId) {}
+        GroupElement(const _unique_id& entityId, Types*... values) : Getter<Types>(values)..., entityId(entityId) { LOG_THIS_MEMBER("Ecs Group"); }
 
         template <typename Type>
-        struct Getter
+        Type* get() const { LOG_THIS_MEMBER("Ecs Group"); return static_cast<const Getter<Type>*>(this)->get(); }
+
+        template <typename Type>
+        void set(Type *value) { LOG_THIS_MEMBER("Ecs Group"); static_cast<Getter<Type>*>(this)->set(value); }
+
+        const _unique_id entityId;
+        bool toBeDeleted = false;
+    };
+
+    template <typename Type, typename... Types>
+    struct SetHolder
+    {
+        SetHolder(const SparseSet* set, void(*f)(const SparseSet*, GroupElement<Type, Types...>&, size_t)) : set(set), setElement(f) {}
+
+        const SparseSet* set;
+        void (*setElement) (const SparseSet*, GroupElement<Type, Types...>&, size_t);
+    };
+
+    template <typename Set, typename Type, typename... Types>
+    void getFromSet(const SparseSet* set, GroupElement<Type, Types...>& element, size_t id)
+    {
+        const auto& pos = static_cast<const Set*>(set)->find(id);
+        if(pos != 0)
+            element.set((*static_cast<const Set*>(set))[pos]);
+        else
+            element.toBeDeleted = true;
+    }
+
+    template <typename Type, typename... Types>
+    struct Group
+    {
+        Group(_unique_id id) { LOG_THIS_MEMBER("Ecs Group"); Group<Type, Types...>::groupId = id; }
+        virtual ~Group() { LOG_THIS_MEMBER("Ecs Group"); }
+
+        void setRegistry(ComponentRegistry* registry)
         {
-            Getter() : value(nullptr) {}
-            Getter(Type* value) : value(value) { LOG_THIS_MEMBER("Ecs Group"); }
+            LOG_THIS_MEMBER("Ecs Group");
 
-            Type* get() const { LOG_THIS_MEMBER("Ecs Group"); return value; }
-            void set(Type* value) { LOG_THIS_MEMBER("Ecs Group"); this->value = value; }
-
-            Type* value; 
-        };
-
-        template <typename... Types>
-        struct GroupElement : public Getter<Types>...
-        {
-            GroupElement(const _unique_id& entityId) : Getter<Types>()..., entityId(entityId) {}
-            GroupElement(const _unique_id& entityId, Types*... values) : Getter<Types>(values)..., entityId(entityId) { LOG_THIS_MEMBER("Ecs Group"); }
-
-            template <typename Type>
-            Type* get() const { LOG_THIS_MEMBER("Ecs Group"); return static_cast<const Getter<Type>*>(this)->get(); }
-
-            template <typename Type>
-            void set(Type *value) { LOG_THIS_MEMBER("Ecs Group"); static_cast<Getter<Type>*>(this)->set(value); }
-
-            const _unique_id entityId;
-            bool toBeDeleted = false;
-        };
-
-        template <typename Type, typename... Types>
-        struct SetHolder
-        {
-            SetHolder(const SparseSet* set, void(*f)(const SparseSet*, GroupElement<Type, Types...>&, size_t)) : set(set), setElement(f) {}
-
-            const SparseSet* set;
-            void (*setElement) (const SparseSet*, GroupElement<Type, Types...>&, size_t);
-        };
-
-        template <typename Set, typename Type, typename... Types>
-        void getFromSet(const SparseSet* set, GroupElement<Type, Types...>& element, size_t id)
-        {
-            const auto& pos = static_cast<const Set*>(set)->find(id);
-            if(pos != 0)
-                element.set((*static_cast<const Set*>(set))[pos]);
-            else
-                element.toBeDeleted = true;
+            this->registry = registry;
+            registry->storeGroup<Type, Types...>(this);
         }
 
-        template <typename Type, typename... Types>
-        struct Group
+        void process()
         {
-            Group(_unique_id id) { LOG_THIS_MEMBER("Ecs Group"); Group<Type, Types...>::groupId = id; }
-            virtual ~Group() { LOG_THIS_MEMBER("Ecs Group"); }
+            LOG_THIS_MEMBER("Ecs Group");
 
-            void setRegistry(ComponentRegistry* registry)
+            constexpr size_t nbOfSets = sizeof...(Types) + 1;
+
+            SetHolder<Type, Types...> *setList[nbOfSets];
+
+            populateList(setList, 0, registry->retrieve<Type>()->components, registry->retrieve<Types>()->components...);
+
+            size_t smallestSetIndex = 0;
+
+            for(size_t i = 0; i < nbOfSets; ++i)
             {
-                LOG_THIS_MEMBER("Ecs Group");
-
-                this->registry = registry;
-                registry->storeGroup<Type, Types...>(this);
+                if(setList[i]->set->nbElements() < setList[smallestSetIndex]->set->nbElements())
+                    smallestSetIndex = i;
             }
 
-            void process()
+            const SparseSet* smallestSet = setList[smallestSetIndex]->set;
+
+            setList[smallestSetIndex] = setList[nbOfSets - 1];
+
+            // const auto& elements = {registry->retrieve<Type>()->components, registry->retrieve<Types>()->components...};
+
+            // const SparseSet& set = smallestSet(registry->retrieve<Type>()->components, registry->retrieve<Types>()->components...);
+
+            LOG_INFO("Ecs Group", "Smallest set has: " + std::to_string(smallestSet->nbElements()) + " elements");
+
+            // Todo add reserve and multiple emplace back in the component/sparse set
+            // elements.reserve(smallestSet->nbElements()); // May need a -1
+
+            // Todo check Branch: Parallel-Ecs to create a parallal implementation of grouping
+            for(const auto& id : smallestSet->view())
             {
-                LOG_THIS_MEMBER("Ecs Group");
+                GroupElement<Type, Types...> element(id);
 
-                constexpr size_t nbOfSets = sizeof...(Types) + 1;
-
-                SetHolder<Type, Types...> *setList[nbOfSets];
-
-                populateList(setList, 0, registry->retrieve<Type>()->components, registry->retrieve<Types>()->components...);
-
-                size_t smallestSetIndex = 0;
-
-                for(size_t i = 0; i < nbOfSets; ++i)
+                for(size_t j = 0; j < nbOfSets - 1; j++)
                 {
-                    if(setList[i]->set->nbElements() < setList[smallestSetIndex]->set->nbElements())
-                        smallestSetIndex = i;
+                    setList[j]->setElement(setList[j]->set, element, id);    
                 }
 
-                const SparseSet* smallestSet = setList[smallestSetIndex]->set;
+                if(not element.toBeDeleted)
+                    elements.addComponent(id, element);
+            }
 
-                setList[smallestSetIndex] = setList[nbOfSets - 1];
+            for(size_t i = 0; i < nbOfSets; i++)
+                delete setList[i];
 
-                // const auto& elements = {registry->retrieve<Type>()->components, registry->retrieve<Types>()->components...};
+            // Add support for thread pools by passing a pool in this function and add the task inside of this pool
+            // checkEntityInGroup<Type, Types...>(this->registry->getThreadPool(), elements);
 
-                // const SparseSet& set = smallestSet(registry->retrieve<Type>()->components, registry->retrieve<Types>()->components...);
+            // const auto& it = elements.viewComponents();
 
-                LOG_INFO("Ecs Group", "Smallest set has: " + std::to_string(smallestSet->nbElements()) + " elements");
+            // Remove all elements that miss at least one component from the group
+            // Todo Do not delete the component but make the iterator skip element to be deleted !
+            // for(size_t i = 1; i < elements.nbElements(); i++)
+            // {
+                // const auto& element = elements[i];
+                // if(element->toBeDeleted)
+                    // elements.removeComponent(element->entityId);
+            // }
+            //std::remove_if(it.begin(), it.end(), [](const GroupElement<Type, Types...>& element) { return element.toBeDeleted; });
+        
+            // Todo sort the group
+        }
 
-                // Todo add reserve and multiple emplace back in the component/sparse set
-                // elements.reserve(smallestSet->nbElements()); // May need a -1
+        template <typename Set>
+        inline void populateList(SetHolder<Type, Types...> **list, size_t index, const Set& setN)
+        {
+            LOG_THIS_MEMBER("Ecs Group");
 
-                // Todo check Branch: Parallel-Ecs to create a parallal implementation of grouping
-                for(const auto& id : smallestSet->view())
+            list[index] = new SetHolder<Type, Types...> ( &setN, &getFromSet<Set, Type, Types...> );
+        }
+
+        template <typename Set, typename... Sets>
+        inline void populateList(SetHolder<Type, Types...> **list, size_t index, const Set& setN, const Sets&... sets)
+        {
+            LOG_THIS_MEMBER("Ecs Group");
+
+            list[index] = new SetHolder<Type, Types...> ( &setN, &getFromSet<Set, Type, Types...> );
+
+            populateList(list, index + 1, sets...);
+        }
+
+        inline const SparseSet& smallestSet(const SparseSet& set1, const SparseSet& set2) const
+        {
+            LOG_THIS_MEMBER("Ecs Group");
+
+            return set1.nbElements() < set2.nbElements() ? set1 : set2;
+        }
+
+        template <typename Set, typename... Sets>
+        inline const SparseSet& smallestSet(const SparseSet& set1, const SparseSet& set2, const Set& setN, const Sets&... sets) const
+        {
+            LOG_THIS_MEMBER("Ecs Group");
+
+            return set1.nbElements() < set2.nbElements() ? smallestSet(set1, setN, sets...) : smallestSet(set2, setN, sets...);
+        }
+
+        // End case of the recursion
+        template <typename Value>
+        inline void checkEntityInGroup(ThreadPool* pool, GroupSet<GroupElement<Type, Types...>>& elements)
+        {
+            LOG_THIS_MEMBER("Ecs Group");
+
+            const auto& components = registry->retrieve<Value>()->components;
+
+            // Create Task
+            auto result = pool->enqueue( [&elements, &components]() -> void
+            {
+                for (const auto& element : elements.viewComponents())
                 {
-                    GroupElement<Type, Types...> element(id);
+                    const auto& pos = components.find(element->entityId);
+                    if(pos != 0)
+                        element->set(components[pos]);
+                    else
+                        element->toBeDeleted = true;
+                }  
+            });
 
-                    for(size_t j = 0; j < nbOfSets - 1; j++)
-                    {
-                        setList[j]->setElement(setList[j]->set, element, id);    
-                    }
+            // TODO
+            // Send task to the thread pool ( pool->addTask(task); )
+            //task();
 
-                    if(not element.toBeDeleted)
-                        elements.addComponent(id, element);
-                }
+            result.get();
 
-                for(size_t i = 0; i < nbOfSets; i++)
-                    delete setList[i];
+            // Todo join the task here !
+        }
 
-                // Add support for thread pools by passing a pool in this function and add the task inside of this pool
-                // checkEntityInGroup<Type, Types...>(this->registry->getThreadPool(), elements);
+        template <typename Value, typename Other, typename... Values>
+        inline void checkEntityInGroup(ThreadPool* pool, GroupSet<GroupElement<Type, Types...>>& elements)
+        {
+            LOG_THIS_MEMBER("Ecs Group");
 
-                // const auto& it = elements.viewComponents();
+            const auto& components = registry->retrieve<Value>()->components;
 
-                // Remove all elements that miss at least one component from the group
-                // Todo Do not delete the component but make the iterator skip element to be deleted !
-                // for(size_t i = 1; i < elements.nbElements(); i++)
-                // {
-                    // const auto& element = elements[i];
-                    // if(element->toBeDeleted)
-                        // elements.removeComponent(element->entityId);
-                // }
-                //std::remove_if(it.begin(), it.end(), [](const GroupElement<Type, Types...>& element) { return element.toBeDeleted; });
-            
-                // Todo sort the group
-            }
-
-            template <typename Set>
-            inline void populateList(SetHolder<Type, Types...> **list, size_t index, const Set& setN)
+            // Create Task
+            auto result = pool->enqueue( [&elements, &components]() -> void
             {
-                LOG_THIS_MEMBER("Ecs Group");
-
-                list[index] = new SetHolder<Type, Types...> ( &setN, &getFromSet<Set, Type, Types...> );
-            }
-
-            template <typename Set, typename... Sets>
-            inline void populateList(SetHolder<Type, Types...> **list, size_t index, const Set& setN, const Sets&... sets)
-            {
-                LOG_THIS_MEMBER("Ecs Group");
-
-                list[index] = new SetHolder<Type, Types...> ( &setN, &getFromSet<Set, Type, Types...> );
-
-                populateList(list, index + 1, sets...);
-            }
-
-            inline const SparseSet& smallestSet(const SparseSet& set1, const SparseSet& set2) const
-            {
-                LOG_THIS_MEMBER("Ecs Group");
-
-                return set1.nbElements() < set2.nbElements() ? set1 : set2;
-            }
-
-            template <typename Set, typename... Sets>
-            inline const SparseSet& smallestSet(const SparseSet& set1, const SparseSet& set2, const Set& setN, const Sets&... sets) const
-            {
-                LOG_THIS_MEMBER("Ecs Group");
-
-                return set1.nbElements() < set2.nbElements() ? smallestSet(set1, setN, sets...) : smallestSet(set2, setN, sets...);
-            }
-
-            // End case of the recursion
-            template <typename Value>
-            inline void checkEntityInGroup(ThreadPool* pool, GroupSet<GroupElement<Type, Types...>>& elements)
-            {
-                LOG_THIS_MEMBER("Ecs Group");
-
-                const auto& components = registry->retrieve<Value>()->components;
-
-                // Create Task
-                auto result = pool->enqueue( [&elements, &components]() -> void
+                for (const auto& element : elements.viewComponents())
                 {
-                    for (const auto& element : elements.viewComponents())
-                    {
-                        const auto& pos = components.find(element->entityId);
-                        if(pos != 0)
-                            element->set(components[pos]);
-                        else
-                            element->toBeDeleted = true;
-                    }  
-                });
+                    const auto& pos = components.find(element->entityId);
+                    if(pos != 0)
+                        element->set(components[pos]);
+                    else
+                        element->toBeDeleted = true;
+                }  
+            });
 
-                // TODO
-                // Send task to the thread pool ( pool->addTask(task); )
-                //task();
+            // TODO
+            // Send task to the thread pool ( pool->addTask(task); )
+            // task();
 
-                result.get();
+            // Recursive call to add all the different components to the group
+            checkEntityInGroup<Other, Values...>(pool, elements);
 
-                // Todo join the task here !
-            }
+            result.get();
 
-            template <typename Value, typename Other, typename... Values>
-            inline void checkEntityInGroup(ThreadPool* pool, GroupSet<GroupElement<Type, Types...>>& elements)
-            {
-                LOG_THIS_MEMBER("Ecs Group");
+            // Todo join the task here !
+        }
 
-                const auto& components = registry->retrieve<Value>()->components;
+        ComponentRegistry* registry;
+        GroupSet<GroupElement<Type, Types...>> elements;
 
-                // Create Task
-                auto result = pool->enqueue( [&elements, &components]() -> void
-                {
-                    for (const auto& element : elements.viewComponents())
-                    {
-                        const auto& pos = components.find(element->entityId);
-                        if(pos != 0)
-                            element->set(components[pos]);
-                        else
-                            element->toBeDeleted = true;
-                    }  
-                });
+        static _unique_id groupId;
+    };
 
-                // TODO
-                // Send task to the thread pool ( pool->addTask(task); )
-                // task();
-
-                // Recursive call to add all the different components to the group
-                checkEntityInGroup<Other, Values...>(pool, elements);
-
-                result.get();
-
-                // Todo join the task here !
-            }
-
-            ComponentRegistry* registry;
-            GroupSet<GroupElement<Type, Types...>> elements;
-
-            static _unique_id groupId;
-        };
-
-        template <typename Type, typename... Types>
-    	_unique_id Group<Type, Types...>::groupId = 0;
-    }
+    template <typename Type, typename... Types>
+    _unique_id Group<Type, Types...>::groupId = 0;
 }
