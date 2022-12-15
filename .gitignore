@@ -5,3 +5,4 @@
 /build*
 /dependencies*
 log.txt
+gtest-all.o

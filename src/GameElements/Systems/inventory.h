@@ -14,7 +14,7 @@ struct Item : public Component
 {
     Item() : Component("Item") {}
 
-    unsigned int id;
+    unsigned int itemId = 0;
     unsigned int amount = 1;
     unsigned int stackSize = 1;
 };

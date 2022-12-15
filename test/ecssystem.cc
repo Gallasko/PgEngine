@@ -226,7 +226,7 @@ namespace pg
             std::cout << "Entity " << entity[555]->id << " has: [";
             for (auto& comp : entity[555]->componentList)
             {
-                std::cout << std::to_string(comp.first) << ", ";
+                std::cout << std::to_string(comp->id) << ", ";
             }
 
             std::cout << "]" << std::endl;

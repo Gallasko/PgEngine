@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <algorithm>
 
 #include <taskflow.hpp>
 
@@ -20,7 +21,7 @@ namespace pg
     // Forward declarations
     class ComponentRegistry;
     class AbstractSystem;
-    
+
     class EntitySystem
     {
     public:
@@ -95,16 +96,8 @@ namespace pg
             }
         }
 
-        inline bool has(Entity* entity, _unique_id id) const
-        {
-            
-        }
-
-        template <typename Type>
-        inline bool has(Entity* entity) const
-        {
-
-        }
+        template <typename Comp>
+        inline const _unique_id& getId() const noexcept { return registry.getTypeId<Comp>(); }
 
         void executeAll();
 
@@ -126,4 +119,33 @@ namespace pg
         // Taskflow of all the system of the ecs
         tf::Taskflow taskflow;
     };
+
+    template <typename Comp>
+    inline bool Entity::has() const noexcept
+    {
+        if(not ecsRef)
+            return false;
+        
+        const auto& componentId = ecsRef->getId<Comp>();
+
+        return has(componentId);
+    }
+
+    template <typename Comp>
+    inline Comp* Entity::get() noexcept
+    {
+        if(not ecsRef)
+            return nullptr;
+        
+        const auto& componentId = ecsRef->getId<Comp>();
+
+        if(const auto& it = std::find_if(
+            componentList.begin(),
+            componentList.end(),
+            [&componentId](Entity *ent){ return ent->id == componentId; });
+            it != componentList.end())
+            { return *it; }
+
+        return nullptr;
+    }
 }
