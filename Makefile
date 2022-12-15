@@ -41,12 +41,21 @@ TESTFLAGS := $(CXXFLAGS)
 #   their path using -Lpath, something like:
 LFLAGS =
 
+# Add a flag to know if we are in production or not
+# (to remove some checks that should always be true, eg: static_assert and such)
+ifeq ($(ProductionActive), True)
+CXXFLAGS    += -DPROD
+else
+CXXFLAGS    += -DNPROD
+endif
+
 # define output directory
 ifeq ($(DebugActive),True)
 OUTPUT	:= debug_build
 else
 OUTPUT	:= release_build
 endif
+
 
 # define source directory
 SRC		:= src

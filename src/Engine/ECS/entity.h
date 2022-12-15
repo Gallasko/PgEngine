@@ -25,7 +25,7 @@ namespace pg
         // Entity(Entity&& mE)             = default;
         // Entity& operator=(Entity&& mE)  = default;
         
-        inline bool has(const _unique_id& otherId) const
+        inline bool has(const _unique_id& otherId) const noexcept
         {
             return std::find_if(
                 componentList.begin(),
@@ -43,7 +43,7 @@ namespace pg
         template <typename Comp>
         inline Comp* get() noexcept;
     
-        inline const EntitySystem* world() const { return ecsRef; }
+        inline const EntitySystem* world() const noexcept { return ecsRef; }
 
         _unique_id id;
 
@@ -54,8 +54,8 @@ namespace pg
         //Todo overload operator delete to call ecsRef->deleteEntity(this);
 
     protected:
-        Entity(_unique_id id, EntitySystem* ecs) : id(id), ecsRef(ecs) {}
-        ~Entity() { }
+        Entity(_unique_id id, EntitySystem* ecs) noexcept : id(id), ecsRef(ecs) {}
+        ~Entity() noexcept { }
 
         // Todo use this destructor but set ecsRef to nullptr when calling it from deleteEntity of the ecs to not destroy the entity multiple time
         // ~Entity() { if(ecsRef) ecsRef->deleteEntity(this); }

@@ -42,7 +42,7 @@ namespace pg
 
             // Todo see if there is a performance hit to keep this function or does it get optimized as it should be always false in production code
             // Block to find if a system is already registered in the ecs
-#ifdef DEBUG
+#ifdef PROD
             if(const auto& it = componentStorageMap.find(id); it != componentStorageMap.end())
             {
                 LOG_ERROR("Component Registry", Strfy() << "Trying to recreate a system that already existing with id: " << id << "Exiting");
@@ -65,7 +65,7 @@ namespace pg
 
             // Todo see if there is a performance hit to keep this function or does it get optimized as it should be always false in production code
             // Block to find if a group is already registered in the ecs
-#ifdef DEBUG
+#ifdef PROD
             if(const auto& it = componentStorageMap.find(id); it == componentStorageMap.end())
             {
                 LOG_ERROR("Component Registry", Strfy() << "Trying to retrieve a system that doesn't exist, Exiting");
@@ -89,7 +89,7 @@ namespace pg
 
             const auto& id = getTypeId<Group<Type, Types...>>();
 
-#ifdef DEBUG
+#ifdef PROD
             if(const auto& it = groupStorageMap.find(id); it != groupStorageMap.end())
             {
                 LOG_ERROR("Component Registry", Strfy() << "Trying to recreate a group that already existing with id: " << id << "Exiting");
@@ -113,7 +113,7 @@ namespace pg
 
             // Todo see if there is a performance hit to keep this function or does it get optimized as it should be always false in production code
             // Block to find if a group is already registered in the ecs
-#ifdef DEBUG
+#ifdef PROD
             if(const auto& it = groupStorageMap.find(id); it == groupStorageMap.end())
             {
                 LOG_ERROR("Component Registry", Strfy() << "Trying to retrieve a group that doesn't exist, Exiting");
@@ -204,9 +204,6 @@ namespace pg
         Own() : Ref<Type>(this)
         {
             LOG_THIS_MEMBER("Own");
-
-            // // Todo check if Type::componentId is not != 0 but it should never happen
-            // Type::componentId = id;
         }
 
         virtual ~Own() { LOG_THIS_MEMBER("Own"); }
@@ -236,9 +233,6 @@ namespace pg
             LOG_THIS_MEMBER("Own");
 
             components.removeComponent(entity);
-
-            // TODO
-            // entity.componentList.erase(Type::componentId);
         }
 
         inline typename ComponentSet<Type>::ComponentSetList view() const
