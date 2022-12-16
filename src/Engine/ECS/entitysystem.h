@@ -60,7 +60,7 @@ namespace pg
         //TODO make a template specialization capable of attaching an entity to an entity
 
         template <typename Type, typename... Args>
-        Type* attach(Entity* entity, const Args&... args) const
+        Type* attach(Entity* entity, const Args&... args) const noexcept
         {
             LOG_THIS_MEMBER("ECS");
 
@@ -82,7 +82,7 @@ namespace pg
         }
 
         template <typename Type>
-        void dettach(Entity* entity) const
+        void dettach(Entity* entity) const noexcept
         {
             LOG_THIS_MEMBER("ECS");
 

@@ -137,6 +137,8 @@ namespace pg
                 auto newBlock = Block<T>(blockSize);
                 // freeList = newBlock.chunks;
 
+                // Todo only create a memory block if an element need to be there
+
                 chunkList.push_back(newBlock.chunks);
 
                 size += blockSize;
@@ -190,6 +192,7 @@ namespace pg
                 " at pos: " << vectorPos <<
                 " with current pool size: " << size);
 
+            // Todo Check if the chunk was created before creating a new element 
             Chunk<T>* chunk = &chunkList[listPos][vectorPos];
 
             ::new(&(chunk->element)) T(std::forward<Args>(args)...);

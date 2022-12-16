@@ -1,10 +1,13 @@
 #pragma once
 
-#include "system.h"
+#include "concurrentqueue.h"
 
 namespace pg
 {
-    struct SysCommand : public Component
+    // Type forwarding
+    class EntitySystem;
+
+    struct SysCommand
     {
         enum class SysCommandType
         {
@@ -15,9 +18,9 @@ namespace pg
             log
         };
 
-        SysCommand() : Component("SysCommand") {}
+        SysCommandType type;
     };
-
+    
     /**
      * @brief A base ECS system responsible of system commands generated from other systems.
      * 
@@ -30,8 +33,34 @@ namespace pg
      * 
      * @see EventDispatcher
      */
-    class CommandDispatcher : public System<Own<SysCommand>>
+    class CommandDispatcher
     {
+    public:
+        typedef moodycamel::ConcurrentQueue<SysCommand>::producer_token_t CommandToken;
 
+    public:
+        CommandDispatcher(EntitySystem *ecs) : ecsRef(ecs) {}
+
+        inline bool enqueueCommand(const SysCommand& cmd)
+        {
+            sysQueue.enqueue(cmd);
+        }
+
+        inline bool enqueueCommand(SysCommand&& cmd)
+        {
+            sysQueue.enqueue(cmd);
+        }
+
+        inline bool enqueueCommand(const CommandToken& token, const SysCommand& cmd)
+        {
+            sysQueue.enqueue(token, cmd);
+        }
+
+        void process();
+
+    private:
+        const EntitySystem* ecsRef;
+
+        moodycamel::ConcurrentQueue<SysCommand> sysQueue;
     };
 }
