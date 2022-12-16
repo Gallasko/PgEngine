@@ -4,7 +4,6 @@
 #include <unordered_map>
 
 #include "entity.h"
-#include "component.h"
 #include "componentregistry.h"
 #include "group.h"
 

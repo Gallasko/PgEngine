@@ -8,6 +8,9 @@
 
 namespace pg
 {
+    // Todo find the correct place for this
+    template <class T>struct tag{using type=T;};
+
     class EntitySystem;
 
     class Entity

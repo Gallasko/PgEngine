@@ -22,7 +22,7 @@ namespace
 {
     static constexpr char const * DOM = "Editor window";
 
-    struct SceneElement : public Component
+    struct SceneElement
     {
         SceneElement(int id, UiComponent *component, Button *mouseArea) : id(id), component(component), mouseArea(mouseArea) {}
 

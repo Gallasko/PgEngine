@@ -4,7 +4,7 @@
 
 namespace pg
 {
-    struct Event : public Component
+    struct Event
     {
         Event() : Component("Event") {}
     };

@@ -10,10 +10,8 @@
 
 using namespace pg;
 
-struct Item : public Component
+struct Item
 {
-    Item() : Component("Item") {}
-
     unsigned int itemId = 0;
     unsigned int amount = 1;
     unsigned int stackSize = 1;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "uiconstant.h"
+// Todo only need to import /ecs/system ! modify accordingly
 #include "ECS/entitysystem.h"
 
 //Todo parenting, better anchoring
@@ -24,7 +25,7 @@ namespace pg
      * This struct all data about the position of the object
      * as well as a render function
      */
-    class UiComponent : public Component
+    class UiComponent
     {
         // Type definition
     private:
@@ -92,7 +93,7 @@ namespace pg
          * 
          * This construct an empty ui component at coord (0.0f, 0.0f, 0.0f) of size 0, 0
          */
-        UiComponent() : Component("UiComponent") { }
+        UiComponent() { }
         
         /**
          * @brief Construct a new Ui Component object
@@ -102,7 +103,7 @@ namespace pg
          * This construct an ui component from a given reference
          * The position and size of the newly created object is automatically updated on the fly
          */
-        UiComponent(const UiFrame& frame) : Component("UiComponent"), pos(&frame.pos), width(&frame.w), height(&frame.h) { }
+        UiComponent(const UiFrame& frame) : pos(&frame.pos), width(&frame.w), height(&frame.h) { }
 
         /**
          * @brief Construct a new Ui Component object

@@ -219,7 +219,7 @@ namespace pg
         return component;
     }
 
-    UiComponent::UiComponent(const UiComponent& rhs) : Component("UiComponent")
+    UiComponent::UiComponent(const UiComponent& rhs)
     {
         LOG_THIS_MEMBER(DOM);
 

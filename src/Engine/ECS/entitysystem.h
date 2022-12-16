@@ -6,7 +6,6 @@
 
 #include <taskflow.hpp>
 
-#include "component.h"
 #include "componentregistry.h"
 #include "entity.h"
 #include "system.h"
@@ -68,8 +67,6 @@ namespace pg
             {
                 // Todo set the ecs ref of the created component to this as everything created from here should be a component ?
                 auto res = registry.retrieve<Type>()->internalCreateComponent(entity, args...);
-
-                res->ecsRef = this;
 
                 return res;
             }

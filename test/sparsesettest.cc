@@ -9,7 +9,7 @@ namespace pg
 {
     namespace test
     {
-        struct A : public Component
+        struct A
         {
             A(int data) : data(data) {}
 

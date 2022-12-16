@@ -11,13 +11,13 @@
 
 namespace pg
 {
-    struct OpenGLObject : protected QOpenGLFunctions, public Component
+    struct OpenGLObject : protected QOpenGLFunctions
     {
         QOpenGLVertexArrayObject *VAO = nullptr;
         QOpenGLBuffer *VBO = nullptr;
         QOpenGLBuffer *EBO = nullptr;
 
-        OpenGLObject() : Component("OpenGLObject") {}
+        OpenGLObject() {}
         ~OpenGLObject() { delete VAO; delete VBO; delete EBO; }
 
         void initialize();

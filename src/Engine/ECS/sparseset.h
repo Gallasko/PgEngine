@@ -17,7 +17,6 @@
 #include <atomic>
 
 #include "entity.h"
-#include "component.h"
 
 #include "Memory/memorypool.h"
 

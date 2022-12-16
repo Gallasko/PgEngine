@@ -2,7 +2,6 @@
 
 #include "ECS/uniqueid.h"
 #include "ECS/entity.h"
-#include "ECS/component.h"
 #include "ECS/system.h"
 #include "ECS/componentregistry.h"
 #include "ECS/entitysystem.h"
@@ -20,9 +19,9 @@ namespace pg
     {
         namespace
         {
-            struct A : public Component
+            struct A
             {
-                A(int arg1, int arg2) : Component("A")
+                A(int arg1, int arg2)
                 {
                     value = arg1 + arg2;
                 }
@@ -30,9 +29,9 @@ namespace pg
                 int value;
             };
 
-            struct B : public Component
+            struct B
             {
-                B(int arg1, int arg2) : Component("B")
+                B(int arg1, int arg2)
                 {
                     value = arg1 - arg2;
                 }
@@ -50,9 +49,9 @@ namespace pg
                 virtual void execute() { std::cout << "Execute B System" << std::endl; }
             };
 
-            struct C : public Component
+            struct C
             {
-                C(_unique_id value, const std::string& text) : Component("C"), value(value), text(text) {}
+                C(_unique_id value, const std::string& text) : value(value), text(text) {}
 
                 _unique_id value;
                 std::string text;
@@ -79,7 +78,7 @@ namespace pg
                 size_t count = 1;
             };
 
-            struct D : Component
+            struct D
             {
                 std::string text;
             };
