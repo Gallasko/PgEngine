@@ -25,59 +25,74 @@ namespace pg
         return x > this->pos->x && x < (this->pos->x + *this->width) && y < (this->pos->y + *this->height) && y > this->pos->y; 
     }
 
-    MouseComponent* makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double), void (*mouseLeave)(Input*, double), EntitySystem *ecs)
+    Entity* makeMouseArea(EntitySystem *ecs, UiComponent *component, void (*mouseInput)(Input*, double), void (*mouseLeave)(Input*, double))
     {
-        // Todo catch errors when world isn't initialized in Uicomponent (often happens when calling makemousearea on a newly created uicomponent)
-        auto mouseArea = MouseInputPtr(new MouseInputBase<MouseInputComponent::Base>(component));
+        if(not ecs)
+            return nullptr;
+
+        MouseInputPtr mouseArea = std::make_shared<MouseInputBase<MouseInputComponent::Base>>(component);
         mouseArea->registerFunc(mouseInput, mouseLeave);
 
-        if(ecs)
-            return ecs->attach<MouseComponent>(component, mouseArea);
+        auto ent = ecs->createEntity();
 
-        return component->world()->attach<MouseComponent>(component, mouseArea);
+        ecs->attach<MouseComponent>(ent, mouseArea);
+
+        return ent;
     }
 
-    MouseComponent* makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double), std::nullptr_t, EntitySystem *ecs)
+    Entity* makeMouseArea(EntitySystem *ecs, UiComponent *component, void (*mouseInput)(Input*, double), std::nullptr_t)
     {
-        auto mouseArea = MouseInputPtr(new MouseInputBase<MouseInputComponent::Base>(component));
+        if(not ecs)
+            return nullptr;
+
+        MouseInputPtr mouseArea = std::make_shared<MouseInputBase<MouseInputComponent::Base>>(component);
         mouseArea->registerFunc(mouseInput, static_cast<void (*)(pg::Input*, double)>(nullptr));
+        
+        auto ent = ecs->createEntity();
 
-        if(ecs)
-            return ecs->attach<MouseComponent>(component, mouseArea);
+        ecs->attach<MouseComponent>(ent, mouseArea);
 
-        return component->world()->attach<MouseComponent>(component, mouseArea);
+        return ent;
     }
 
-    MouseComponent* makeMouseArea(UiComponent *component, void (*mouseInput)(Input*, double), EntitySystem *ecs)
+    Entity* makeMouseArea(EntitySystem *ecs, UiComponent *component, void (*mouseInput)(Input*, double))
     {
-        return makeMouseArea(component, mouseInput, nullptr, ecs);
+        return makeMouseArea(ecs, component, mouseInput, nullptr);
     }
 
-    MouseComponent* makeMouseArea(UiComponent *component, const std::function<void (Input*, double)>& mouseInput, const std::function<void (Input*, double)>& mouseLeave, EntitySystem *ecs)
+    Entity* makeMouseArea(EntitySystem *ecs, UiComponent *component, const std::function<void (Input*, double)>& mouseInput, const std::function<void (Input*, double)>& mouseLeave)
     {
-        auto mouseArea = MouseInputPtr(new MouseInputBase<MouseInputComponent::Base>(component));
+        if(not ecs)
+            return nullptr;
+
+        MouseInputPtr mouseArea = std::make_shared<MouseInputBase<MouseInputComponent::Base>>(component);
         mouseArea->registerFunc(mouseInput, mouseLeave);
 
-        if(ecs)
-            return ecs->attach<MouseComponent>(component, mouseArea);
+        auto ent = ecs->createEntity();
 
-        return component->world()->attach<MouseComponent>(component, mouseArea);
+        ecs->attach<MouseComponent>(ent, mouseArea);
+
+        return ent;
     }
 
-    MouseComponent* makeMouseArea(UiComponent *component, const std::function<void (Input*, double)>& mouseInput, std::nullptr_t, EntitySystem *ecs)
+    Entity* makeMouseArea(EntitySystem *ecs, UiComponent *component, const std::function<void (Input*, double)>& mouseInput, std::nullptr_t)
     {
-        auto mouseArea = MouseInputPtr(new MouseInputBase<MouseInputComponent::Base>(component));
+        if(not ecs)
+            return nullptr;
+
+        MouseInputPtr mouseArea = std::make_shared<MouseInputBase<MouseInputComponent::Base>>(component);
         mouseArea->registerFunc(mouseInput, static_cast<std::function<void (Input*, double)>>(nullptr));
 
-        if(ecs)
-            return ecs->attach<MouseComponent>(component, mouseArea);
+        auto ent = ecs->createEntity();
 
-        return component->world()->attach<MouseComponent>(component, mouseArea);
+        ecs->attach<MouseComponent>(ent, mouseArea);
+
+        return ent;
     }
 
-    MouseComponent* makeMouseArea(UiComponent *component, const std::function<void (Input*, double)>& mouseInput, EntitySystem *ecs)
+    Entity* makeMouseArea(EntitySystem *ecs, UiComponent *component, const std::function<void (Input*, double)>& mouseInput)
     {
-        return makeMouseArea(component, mouseInput, nullptr, ecs);
+        return makeMouseArea(ecs, component, mouseInput, nullptr);
     }
 
 }

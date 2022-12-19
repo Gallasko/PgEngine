@@ -16,8 +16,6 @@
 
 // TODO create a find function in ECS
 
-using namespace pg::ecs;
-
 namespace
 {
     static constexpr char const * DOM = "Editor window";
@@ -216,7 +214,7 @@ void EditorWindow::initialize()
     sceneEntityC->setTopAnchor(screenUi->top);
     sceneEntityC->setBottomAnchor(screenUi->bottom);
 
-    makeMouseArea(sceneEntityC, this, EditorWindow::openContextMenu, EditorWindow::closeContextMenu);
+    makeMouseArea(&ecs, sceneEntityC, this, EditorWindow::openContextMenu, EditorWindow::closeContextMenu);
 
     // [Start] Context menu UI
 
