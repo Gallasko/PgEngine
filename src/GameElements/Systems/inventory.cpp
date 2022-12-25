@@ -4,10 +4,10 @@
 
 void lootInventory(Inventory* src, Inventory* dst)
 {
-    auto srcEcs = src->world();
-    auto dstEcs = dst->world();
+    // auto srcEcs = src->world();
+    // auto dstEcs = dst->world();
 
-    for(auto item : src->componentList)
+    // for(auto item : src->componentList)
     {
         // dstEcs->move(item, src, srcEcs, dst);
     }

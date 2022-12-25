@@ -46,7 +46,7 @@ namespace pg
         template <typename Comp>
         inline Comp* get() noexcept;
     
-        inline const EntitySystem* world() const noexcept { return ecsRef; }
+        inline EntitySystem* world() const noexcept { return ecsRef; }
 
         _unique_id id;
 
@@ -63,6 +63,6 @@ namespace pg
         // Todo use this destructor but set ecsRef to nullptr when calling it from deleteEntity of the ecs to not destroy the entity multiple time
         // ~Entity() { if(ecsRef) ecsRef->deleteEntity(this); }
 
-        const EntitySystem *ecsRef = nullptr;
+        EntitySystem *const ecsRef = nullptr;
     };
 }

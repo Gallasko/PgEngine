@@ -59,9 +59,9 @@ namespace pg
         this->sentence->setLeftAnchor(this->left);
         this->sentence->setLeftMargin(10.0f);
 
-        mouseInput = makeMouseArea(this, this, TextInput::focus, TextInput::unfocus);
+        // mouseInput = makeMouseArea(this, this, TextInput::focus, TextInput::unfocus);
 
-        keyInput = makeKeyInput(this, changeTextCallback);
+        // keyInput = makeKeyInput(this, changeTextCallback);
     }
 
     /**

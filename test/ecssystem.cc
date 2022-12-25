@@ -129,7 +129,7 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(component_registry_test, multiple_registy)
         {
-            MockLogger logger;
+            // MockLogger logger;
 
             ASystem  sys1;
             ABSystem sys2; // AbSystem sys2bis // Todo here we get a cryptic map_base::at thrown exception when it is cause by A not being own by anything when creating AB <-- make a better compiler error ! or even catch it

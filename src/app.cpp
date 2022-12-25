@@ -198,7 +198,8 @@ void EditorWindow::initialize()
     screenUi->height = 400;
     screenUi->setZ(-1);
 
-    makeKeyInput(this, EditorWindow::quit);
+    // Todo
+    // makeKeyInput(this, EditorWindow::quit);
 
     // optionTab = new editor::OptionTab(300, 1);
 
@@ -479,7 +480,7 @@ void EditorWindow::addElement(const UiComponentType& type)
 
         // Todo
         // mouseArea = new Button([=](Input*, double){ delete component; }, component->frame);
-        mouseArea = new Button([component, mouseArea, ecsRef, ent](Input*, double){ ecsRef->dettach<SceneElement>(ent); delete component; delete mouseArea; }, component->frame);
+        mouseArea = new Button(ecsRef, [component, mouseArea, ecsRef, ent](Input*, double){ ecsRef->dettach<SceneElement>(ent); delete component; delete mouseArea; }, component->frame);
         // mouseArea = new Button([=](Input*, double){ this->openInOption<TextureComponent>(component); }, component->frame);
         mouseArea->setZ(component->pos.z + 1);
         break;
@@ -493,7 +494,7 @@ void EditorWindow::addElement(const UiComponentType& type)
         component->setTopMargin(componentY - component->height / 2.0f);
         component->setLeftMargin(componentX - component->width / 2.0f);
 
-        mouseArea = new Button([=](Input*, double){ this->openInOption<Sentence>(component); }, component->frame);
+        mouseArea = new Button(ecsRef, [=](Input*, double){ this->openInOption<Sentence>(component); }, component->frame);
         mouseArea->setZ(component->pos.z + 1);
         break;
 
@@ -506,7 +507,7 @@ void EditorWindow::addElement(const UiComponentType& type)
         component->setTopMargin(componentY - component->height / 2.0f);
         component->setLeftMargin(componentX - component->width / 2.0f);
 
-        mouseArea = new Button([=](Input*, double){ this->openInOption<Sentence>(component); }, component->frame);
+        mouseArea = new Button(ecsRef, [=](Input*, double){ this->openInOption<Sentence>(component); }, component->frame);
         mouseArea->setZ(component->pos.z - 1);
         break;
 

@@ -14,22 +14,22 @@ namespace pg
     class Button : public UiComponent
     {
     public:
-        Button(MouseComponent* onPress, TextureComponent* background = nullptr, Sentence* sentence = nullptr, const UiComponent& frame = UiComponent());
+        Button(EntitySystem *ecs, MouseComponent* onPress, TextureComponent* background = nullptr, Sentence* sentence = nullptr, const UiComponent& frame = UiComponent());
         
         template <typename Type, typename... Args>
-        Button(const Type& object, void(Type::*onPress)(Input*, double), TextureComponent* background = nullptr, Sentence* sentence = nullptr, const UiComponent& frame = UiComponent(), const Args&... args);
+        Button(EntitySystem *ecs, const Type& object, void(Type::*onPress)(Input*, double), TextureComponent* background = nullptr, Sentence* sentence = nullptr, const UiComponent& frame = UiComponent(), const Args&... args);
         
         // Constructor for funtion pointer
-        Button(void(*onPress)(Input*, double), TextureComponent* background = nullptr, Sentence* sentence = nullptr, const UiComponent& frame = UiComponent());
-        Button(void(*onPress)(Input*, double), const Sentence::SentenceParameters& sentence, const UiComponent& frame = UiComponent());
-        Button(void(*onPress)(Input*, double), const std::string& textureName, const UiComponent& frame = UiComponent());
-        Button(void(*onPress)(Input*, double), const std::string& textureName, const Sentence::SentenceParameters& sentence, const UiComponent& frame = UiComponent());
+        Button(EntitySystem *ecs, void(*onPress)(Input*, double), TextureComponent* background = nullptr, Sentence* sentence = nullptr, const UiComponent& frame = UiComponent());
+        Button(EntitySystem *ecs, void(*onPress)(Input*, double), const Sentence::SentenceParameters& sentence, const UiComponent& frame = UiComponent());
+        Button(EntitySystem *ecs, void(*onPress)(Input*, double), const std::string& textureName, const UiComponent& frame = UiComponent());
+        Button(EntitySystem *ecs, void(*onPress)(Input*, double), const std::string& textureName, const Sentence::SentenceParameters& sentence, const UiComponent& frame = UiComponent());
 
         // Constructor for std::function
-        Button(const std::function<void(Input*, double)>& onPress, const UiComponent& frame = UiComponent());
-        Button(const std::function<void(Input*, double)>& onPress, const std::string& textureName, const UiComponent& frame = UiComponent());
-        Button(const std::function<void(Input*, double)>& onPress, const Sentence::SentenceParameters& sentence, const UiComponent& frame = UiComponent());
-        Button(const std::function<void(Input*, double)>& onPress, const std::string& textureName, const Sentence::SentenceParameters& sentence, const UiComponent& frame = UiComponent());
+        Button(EntitySystem *ecs, const std::function<void(Input*, double)>& onPress, const UiComponent& frame = UiComponent());
+        Button(EntitySystem *ecs, const std::function<void(Input*, double)>& onPress, const std::string& textureName, const UiComponent& frame = UiComponent());
+        Button(EntitySystem *ecs, const std::function<void(Input*, double)>& onPress, const Sentence::SentenceParameters& sentence, const UiComponent& frame = UiComponent());
+        Button(EntitySystem *ecs, const std::function<void(Input*, double)>& onPress, const std::string& textureName, const Sentence::SentenceParameters& sentence, const UiComponent& frame = UiComponent());
 
         Button(const Button& rhs);
 
@@ -54,9 +54,16 @@ namespace pg
         std::function<void(Input*, double)> callback = nullptr;
 
         //TODO make sure to copy that when making a copy of this button
-        MouseComponent *onPress;
+        Entity *compoundEntity = nullptr;
 
         bool ownBackground = false;
         bool ownSentence = false;
     };
+
+    template <typename Type, typename... Args>
+    Button::Button(EntitySystem *ecs, const Type& object, void(Type::*onPress)(Input*, double), TextureComponent* background, Sentence* sentence, const UiComponent& frame, const Args&... args) : UiComponent(frame), background(background), sentence(sentence), compoundEntity(makeButtonMouseComponent(ecs, this, object, onPress, args...))
+    {
+        moveUiElements();
+    }
+
 }

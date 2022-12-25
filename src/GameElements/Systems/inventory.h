@@ -17,9 +17,9 @@ struct Item
     unsigned int stackSize = 1;
 };
 
-struct Inventory : public Component
+struct Inventory
 {
-    Inventory(unsigned int capacity) : Component("Inventory"), capacity(capacity) {}
+    Inventory(unsigned int capacity) : capacity(capacity) {}
 
     unsigned int capacity;
 };
@@ -27,19 +27,21 @@ struct Inventory : public Component
 template <typename Type>
 bool addItemToInventory(Inventory* inventory, Type* item)
 {
-    auto ecs = inventory->world();
-    auto heldItem = inventory->get<Type>();
+    // auto ecs = inventory->world();
+    // auto heldItem = inventory->get<Type>();
 
-    if(heldItem)
-    {
-        if(heldItem->amount + item->amount > heldItem->stackSize)
-            return false;
+    auto heldItem = false;
 
-        heldItem->amount += item->amount;
-        return true;
-    }
+    // if(heldItem)
+    // {
+    //     if(heldItem->amount + item->amount > heldItem->stackSize)
+    //         return false;
 
-    ecs->attach(inventory, item);
+    //     heldItem->amount += item->amount;
+    //     return true;
+    // }
+
+    // ecs->attach(inventory, item);
     return true;
 }
 

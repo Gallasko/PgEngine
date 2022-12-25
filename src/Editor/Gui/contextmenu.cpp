@@ -38,6 +38,7 @@ namespace editor
 
         auto addButtonButton = ecs.createEntity();
         addButtonButtonC = ecs.attach<Button>(addButtonButton,
+            &ecs,
             [&](Input*, double){ this->callback(UiComponentType::BUTTON); },
             Sentence::SentenceParameters{{"Add Button"}, 2.0f, fontLoader}
             );
@@ -56,6 +57,7 @@ namespace editor
 
         auto addTextureButton = ecs.createEntity();
         addTextureButtonC = ecs.attach<Button>(addTextureButton,
+            &ecs,
             [&](Input*, double){ this->callback(UiComponentType::TEXTURE); },
             Sentence::SentenceParameters{{"Add Texture"}, 2.0f, fontLoader}
             );
@@ -74,6 +76,7 @@ namespace editor
 
         auto addTextButton = ecs.createEntity();
         addTextButtonC = ecs.attach<Button>(addTextButton,
+            &ecs,
             [&](Input*, double){ this->callback(UiComponentType::TEXT); },
             Sentence::SentenceParameters{{"Add Text"}, 2.0f, fontLoader}
             );
@@ -92,6 +95,7 @@ namespace editor
 
         auto addTextInputButton = ecs.createEntity();
         addTextInputButtonC = ecs.attach<Button>(addTextInputButton,
+            &ecs,
             [&](Input*, double){ this->callback(UiComponentType::TEXTINPUT); },
             Sentence::SentenceParameters{{"Add Text Input"}, 2.0f, fontLoader}
             );
@@ -110,6 +114,7 @@ namespace editor
 
         auto addListButton = ecs.createEntity();
         addListButtonC = ecs.attach<Button>(addListButton,
+            &ecs,
             [&](Input*, double){ this->callback(UiComponentType::LIST); },
             Sentence::SentenceParameters{{"Add List"}, 2.0f, fontLoader}
             );
@@ -128,6 +133,7 @@ namespace editor
 
         auto addPrefabButton = ecs.createEntity();
         addPrefabButtonC = ecs.attach<Button>(addPrefabButton,
+            &ecs,
             [&](Input*, double){ this->callback(UiComponentType::LIST); },
             Sentence::SentenceParameters{{"Add Prefab"}, 2.0f, fontLoader}
             );

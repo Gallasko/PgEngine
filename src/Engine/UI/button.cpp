@@ -13,7 +13,7 @@ namespace pg
         template <typename Type, typename... Args>
         Entity* makeButtonMouseComponent(EntitySystem *ecs, UiComponent* uiComponent, Type *obj, void(Type::*onPress)(Input*, double...), const Args&... args)
         {
-            return makeMouseArea(ecs, uiComponent, [onPress](Input* inputHandler, double deltaTime) {
+            return makeMouseArea(ecs, uiComponent, [obj, onPress, args...](Input* inputHandler, double deltaTime) {
                 static bool pressed = false;
                 
                 if(inputHandler->isButtonPressed(Qt::LeftButton))
@@ -76,24 +76,20 @@ namespace pg
             masterRenderer->render(button->sentence);
     }
 
+    // Todo fix all of this
+
     // TODO create an edge case for a copy of this type of button cause it doesn t have a callback
-    Button::Button(MouseComponent* onPress, TextureComponent* background, Sentence* sentence, const UiComponent& frame) : UiComponent(frame), background(background), sentence(sentence), onPress(onPress)
-    {
-        moveUiElements();
-    }
-        
-    template <typename Type, typename... Args>
-    Button::Button(EntitySystem *ecs, const Type& object, void(Type::*onPress)(Input*, double), TextureComponent* background, Sentence* sentence, const UiComponent& frame, const Args&... args) : UiComponent(frame), background(background), sentence(sentence), onPress(makeButtonMouseComponent(this, object, onPress, args...))
-    {
-        moveUiElements();
-    }
-    
-    Button::Button(EntitySystem *ecs, void(*onPress)(Input*, double), TextureComponent* background, Sentence* sentence, const UiComponent& frame) : UiComponent(frame), background(background), sentence(sentence), callback(onPress), onPress(makeButtonMouseComponent(this, callback))
+    Button::Button(EntitySystem *ecs, MouseComponent* onPress, TextureComponent* background, Sentence* sentence, const UiComponent& frame) : UiComponent(frame), background(background), sentence(sentence)
     {
         moveUiElements();
     }
 
-    Button::Button(EntitySystem *ecs, void(*onPress)(Input*, double), const Sentence::SentenceParameters& sentence, const UiComponent& frame) : UiComponent(frame), callback(onPress), onPress(makeButtonMouseComponent(this, callback))
+    Button::Button(EntitySystem *ecs, void(*onPress)(Input*, double), TextureComponent* background, Sentence* sentence, const UiComponent& frame) : UiComponent(frame), background(background), sentence(sentence), callback(onPress), compoundEntity(makeButtonMouseComponent(ecs, this, callback))
+    {
+        moveUiElements();
+    }
+
+    Button::Button(EntitySystem *ecs, void(*onPress)(Input*, double), const Sentence::SentenceParameters& sentence, const UiComponent& frame) : UiComponent(frame), callback(onPress), compoundEntity(makeButtonMouseComponent(ecs, this, callback))
     {
         this->sentence = new Sentence(sentence);
         ownSentence = true;
@@ -104,7 +100,7 @@ namespace pg
         this->height = this->sentence->height;
     }
 
-    Button::Button(EntitySystem *ecs, void(*onPress)(Input*, double), const std::string& textureName, const UiComponent& frame) : UiComponent(frame), callback(onPress), onPress(makeButtonMouseComponent(this, callback))
+    Button::Button(EntitySystem *ecs, void(*onPress)(Input*, double), const std::string& textureName, const UiComponent& frame) : UiComponent(frame), callback(onPress), compoundEntity(makeButtonMouseComponent(ecs, this, callback))
     {
         this->background = new TextureComponent(this->width, this->height, textureName);
         ownBackground = true;
@@ -112,7 +108,7 @@ namespace pg
         moveUiElements();
     }
 
-    Button::Button(EntitySystem *ecs, void(*onPress)(Input*, double), const std::string& textureName, const Sentence::SentenceParameters& sentence, const UiComponent& frame) : UiComponent(frame), callback(onPress), onPress(makeButtonMouseComponent(this, callback))
+    Button::Button(EntitySystem *ecs, void(*onPress)(Input*, double), const std::string& textureName, const Sentence::SentenceParameters& sentence, const UiComponent& frame) : UiComponent(frame), callback(onPress), compoundEntity(makeButtonMouseComponent(ecs, this, callback))
     {
         this->sentence = new Sentence(sentence);
         ownSentence = true;
@@ -126,12 +122,12 @@ namespace pg
         moveUiElements();
     }
 
-    Button::Button(EntitySystem *ecs, const std::function<void(Input*, double)>& onPress, const UiComponent& frame) : UiComponent(frame), callback(onPress), onPress(makeButtonMouseComponent(this, callback))
+    Button::Button(EntitySystem *ecs, const std::function<void(Input*, double)>& onPress, const UiComponent& frame) : UiComponent(frame), callback(onPress), compoundEntity(makeButtonMouseComponent(ecs, this, callback))
     {
 
     }
 
-    Button::Button(EntitySystem *ecs, const std::function<void(Input*, double)>& onPress, const std::string& textureName, const UiComponent& frame) : Button(onPress, frame)
+    Button::Button(EntitySystem *ecs, const std::function<void(Input*, double)>& onPress, const std::string& textureName, const UiComponent& frame) : Button(ecs, onPress, frame)
     {
         this->background = new TextureComponent(this->width, this->height, textureName);
         ownBackground = true;
@@ -139,7 +135,7 @@ namespace pg
         moveUiElements();
     }
 
-    Button::Button(EntitySystem *ecs, const std::function<void(Input*, double)>& onPress, const Sentence::SentenceParameters& sentence, const UiComponent& frame) : Button(onPress, frame)
+    Button::Button(EntitySystem *ecs, const std::function<void(Input*, double)>& onPress, const Sentence::SentenceParameters& sentence, const UiComponent& frame) : Button(ecs, onPress, frame)
     {
         this->sentence = new Sentence(sentence);
         ownSentence = true;
@@ -150,7 +146,7 @@ namespace pg
         this->height = this->sentence->height;
     }
 
-    Button::Button(EntitySystem *ecs, const std::function<void(Input*, double)>& onPress, const std::string& textureName, const Sentence::SentenceParameters& sentence, const UiComponent& frame) : Button(onPress, frame)
+    Button::Button(EntitySystem *ecs, const std::function<void(Input*, double)>& onPress, const std::string& textureName, const Sentence::SentenceParameters& sentence, const UiComponent& frame) : Button(ecs, onPress, frame)
     {
         this->sentence = new Sentence(sentence);
         ownSentence = true;
@@ -164,7 +160,7 @@ namespace pg
         moveUiElements();
     }
 
-    Button::Button(const Button& rhs) : UiComponent(frame), callback(rhs.callback), onPress(makeMouseArea(this, callback)), ownBackground(rhs.ownBackground), ownSentence(rhs.ownSentence)
+    Button::Button(const Button& rhs) : UiComponent(rhs.frame), callback(rhs.callback), compoundEntity(makeButtonMouseComponent(rhs.compoundEntity->world(), this, callback)), ownBackground(rhs.ownBackground), ownSentence(rhs.ownSentence)
     {
         if(rhs.ownBackground)
         {
