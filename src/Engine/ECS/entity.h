@@ -30,11 +30,10 @@ namespace pg
         
         inline bool has(const _unique_id& otherId) const noexcept
         {
-            return std::find_if(
+            return std::any_of(
                 componentList.begin(),
                 componentList.end(),
-                [&otherId](Entity *ent){ return ent->id == otherId;}) !=
-                componentList.end();
+                [&otherId](Entity *ent){ return ent->id == otherId; });
         }
 
         // todo
