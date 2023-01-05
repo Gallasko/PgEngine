@@ -225,12 +225,12 @@ namespace pg
             std::cout << "Entity " << entity[555]->id << " has: [";
             for (auto& comp : entity[555]->componentList)
             {
-                std::cout << std::to_string(comp->id) << ", ";
+                std::cout << std::to_string(comp.getId()) << ", ";
             }
 
             std::cout << "]" << std::endl;
 
-            start = std::chrono::steady_clock::now();
+            start = std::chrono::steady_clock::now(); 
             system3->execute();
             end = std::chrono::steady_clock::now();
 

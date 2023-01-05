@@ -235,6 +235,11 @@ namespace pg
             components.removeComponent(entity);
         }
 
+        inline Type* getComponent(_unique_id id) const
+        {
+            return components[id];
+        }
+
         inline typename ComponentSet<Type>::ComponentSetList view() const
         {
             LOG_THIS_MEMBER("Own");

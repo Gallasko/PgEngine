@@ -475,7 +475,7 @@ namespace pg
          * Be careful as the operator doesn't not check the bound of the list, this can throw an out of bound exception
          * Use with nbElement of the sparse set to be in bound
          */
-        Comp* operator[](const size_t& index) const { LOG_THIS_MEMBER("Component Set"); return componentList[index]; }
+        constexpr Comp* operator[](const size_t& index) const { LOG_THIS_MEMBER("Component Set"); return componentList[index]; }
 
         void reserve(const size_t& size)
         {

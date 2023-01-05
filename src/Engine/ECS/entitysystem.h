@@ -23,6 +23,7 @@ namespace pg
 
     class EntitySystem
     {
+    friend class Entity;
     public:
         EntitySystem(bool emptyEcs = false);
         ~EntitySystem();
@@ -136,12 +137,13 @@ namespace pg
         
         const auto& componentId = ecsRef->getId<Comp>();
 
-        if(const auto& it = std::find_if(
-            componentList.begin(),
-            componentList.end(),
-            [&componentId](Entity *ent){ return ent->id == componentId; });
-            it != componentList.end())
-            { return *it; }
+        const auto& it = std::find(componentList.begin(), componentList.end(), componentId);
+
+        if(it != componentList.end())
+        {
+            ecsRef->registry.retrieve<Comp>()->getComponent(componentId);
+            // Todo go fetch in the corresponding system the component !
+        }
 
         return nullptr;
     }
