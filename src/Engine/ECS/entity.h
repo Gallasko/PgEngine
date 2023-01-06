@@ -66,7 +66,10 @@ namespace pg
 
         _unique_id getId() const
         {
-            
+            if(entityHeldType == EntityHeldType::entity)
+                return entityHeldId.entity->id;
+            else
+                return entityHeldId.id;
         }
 
         EntityHeldId entityHeldId;

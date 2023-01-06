@@ -3,6 +3,7 @@
 #include <memory>
 #include <map>
 #include <unordered_map>
+#include <functional>
 
 #include "sparseset.h"
 #include "entity.h"
@@ -25,6 +26,7 @@ namespace pg
     class ComponentRegistry
     {
         struct Storage {};
+        struct AbstractEvent {};
 
     public:
         ComponentRegistry();
@@ -75,6 +77,31 @@ namespace pg
 #endif
 
             return static_cast<Own<Type>*>(static_cast<Delegate*>(componentStorageMap.at(id)));
+        }
+
+        template<typename Event, typename EventListener>
+        void addEventListener(EventListener* listener)
+        {
+            LOG_THIS_MEMBER("Component Registry");
+
+            const auto& id = getTypeId<Event>();
+            
+            eventStorageMap[id].emplace_back([listener](const AbstractEvent& event) {listener->template onEvent<Event>(event);});
+        }
+
+        template<typename Event>
+        void processEvent(const Event& event)
+        {
+            LOG_THIS_MEMBER("Component Registry");
+
+            struct DelegateEvent : public AbstractEvent, public Event { virtual ~DelegateEvent() {} };
+
+            const auto& id = getTypeId<Event>();
+
+            for(auto& eventListener : eventStorageMap[id])
+            {
+                eventListener(static_cast<DelegateEvent>(event));
+            }
         }
 
         template <typename Type, typename... Types>
@@ -152,6 +179,7 @@ namespace pg
     private:
         std::unordered_map<_unique_id, Storage*> componentStorageMap;
         std::unordered_map<_unique_id, Storage*> groupStorageMap;
+        std::unordered_map<_unique_id, std::vector<std::function<void(const AbstractEvent&)>>> eventStorageMap;
     };
 
     template <class Type>

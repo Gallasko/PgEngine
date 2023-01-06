@@ -43,17 +43,17 @@ namespace pg
 
         inline bool enqueueCommand(const SysCommand& cmd)
         {
-            sysQueue.enqueue(cmd);
+            return sysQueue.enqueue(cmd);
         }
 
         inline bool enqueueCommand(SysCommand&& cmd)
         {
-            sysQueue.enqueue(cmd);
+            return sysQueue.enqueue(cmd);
         }
 
         inline bool enqueueCommand(const CommandToken& token, const SysCommand& cmd)
         {
-            sysQueue.enqueue(token, cmd);
+            return sysQueue.enqueue(token, cmd);
         }
 
         void process();

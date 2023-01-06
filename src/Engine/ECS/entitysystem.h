@@ -53,7 +53,10 @@ namespace pg
             auto system = new Sys(args...);
             system->setRegistry(&registry);
 
+            // Todo only add the system to the taskflow if the execution policy permits it !
             systems.push_back(system);
+
+            taskflow.emplace([system](){system->execute();});
 
             return system;
         }
@@ -94,6 +97,9 @@ namespace pg
                 LOG_ERROR("ECS", e.what());
             }
         }
+
+        template <typename Event>
+        inline void sendEvent(const Event& event) { registry.processEvent(event); }
 
         template <typename Comp>
         inline const _unique_id& getId() const noexcept { return registry.getTypeId<Comp>(); }

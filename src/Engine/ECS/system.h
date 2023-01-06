@@ -6,6 +6,7 @@
 #include "entity.h"
 #include "componentregistry.h"
 #include "group.h"
+#include "eventlistener.h"
 
 #include "logger.h"
 
@@ -73,6 +74,17 @@ namespace pg
         registerComponents(system, registry, comps...);
     }
 
+    template <typename Event, typename... Comps, typename Sys>
+    void registerComponents(Sys *system, ComponentRegistry *registry, const tag<Listener<Event>>&, const Comps&... comps)
+    {
+        LOG_THIS("System");
+        
+        LOG_INFO("System", Strfy() << "Registering a listener to event '" << typeid(Event).name() << "' to the system.");
+        
+        static_cast<Listener<Event>*>(system)->setRegistry(registry);
+        registerComponents(system, registry, comps...);
+    }
+
     template <typename... Comps>
     struct System : public AbstractSystem, public Comps...
     {
@@ -84,6 +96,15 @@ namespace pg
         ~System()
         {
             LOG_THIS_MEMBER("System");
+        }
+
+        template <typename Event>
+        void sendEvent(const Event& event)
+        {
+            LOG_THIS_MEMBER("System");
+
+            if(this->registry)
+                this->registry->processEvent(event);
         }
 
         void setRegistry(ComponentRegistry *registry)
