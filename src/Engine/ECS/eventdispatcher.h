@@ -6,7 +6,7 @@ namespace pg
 {
     struct Event
     {
-        Event() : Component("Event") {}
+        Event() {}
     };
 
     class EventDispatcher : public System<Own<Event>>

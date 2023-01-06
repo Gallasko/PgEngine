@@ -9,6 +9,7 @@
 #include "componentregistry.h"
 #include "entity.h"
 #include "system.h"
+#include "commanddispatcher.h"
 
 #include "logger.h"
 #include "Memory/memorypool.h"
@@ -105,17 +106,19 @@ namespace pg
         bool running = false;
         ComponentRegistry registry;
 
+        CommandDispatcher cmdDispatcher;
+
         std::vector<AbstractSystem*> systems;
         AllocatorPool<Entity> entityPool;
 
         /** Store all systems that doesn't have be executed by the ecs (systems tagged as policy = manual, onEvent or storage) */
         std::unordered_map<_unique_id, AbstractSystem*> storageMap;
 
-        // Main executor of the ecs
-        tf::Executor executor;
-
         // Taskflow of all the system of the ecs
         tf::Taskflow taskflow;
+
+        // Main executor of the ecs
+        tf::Executor executor;
     };
 
     template <typename Comp>
@@ -141,8 +144,7 @@ namespace pg
 
         if(it != componentList.end())
         {
-            ecsRef->registry.retrieve<Comp>()->getComponent(componentId);
-            // Todo go fetch in the corresponding system the component !
+            return ecsRef->registry.retrieve<Comp>()->getComponent(componentId);
         }
 
         return nullptr;

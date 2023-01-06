@@ -20,7 +20,7 @@ namespace pg
 
         SysCommandType type;
     };
-    
+
     /**
      * @brief A base ECS system responsible of system commands generated from other systems.
      * 
