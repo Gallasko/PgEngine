@@ -3,6 +3,8 @@
 #include <string>
 #include <unordered_map>
 
+#include <taskflow.hpp>
+
 #include "entity.h"
 #include "componentregistry.h"
 #include "group.h"
@@ -22,6 +24,17 @@ namespace pg
         Storage     = 5
     };
 
+    struct StoragePolicy { };
+
+    struct ManualPolicy { };
+
+    struct IndependentPolicy { };
+
+    struct ParallelPolicy
+    {
+        virtual void parallelExecute(tf::Taskflow&) = 0;
+    };
+
     /**
      * @brief Abstract representation of a system
      */
@@ -32,12 +45,9 @@ namespace pg
         virtual void execute() { LOG_THIS_MEMBER("System"); }
 
         // Todo
-        virtual void parallelExecute(size_t, size_t) { LOG_THIS_MEMBER("System"); }
-
-        // Todo
         inline void setPolicy(const ExecutionPolicy& policy) { executionPolicy = policy; }
 
-        ExecutionPolicy executionPolicy = ExecutionPolicy::Manual;
+        ExecutionPolicy executionPolicy = ExecutionPolicy::Sequential;
 
         ComponentRegistry *registry = nullptr;
 
@@ -85,6 +95,66 @@ namespace pg
         registerComponents(system, registry, comps...);
     }
 
+    template <typename... Comps, typename Sys>
+    void registerComponents(Sys *system, ComponentRegistry *registry, const tag<StoragePolicy>&, const Comps&... comps)
+    {
+        LOG_THIS("System");
+        
+        LOG_INFO("System", "Registering the system as a storage one");
+
+        if(system->executionPolicy != ExecutionPolicy::Sequential)
+            LOG_ERROR("System", "Trying to set two different execution policies !");
+
+        system->setPolicy(ExecutionPolicy::Storage);
+        
+        registerComponents(system, registry, comps...);
+    }
+
+    template <typename... Comps, typename Sys>
+    void registerComponents(Sys *system, ComponentRegistry *registry, const tag<ManualPolicy>&, const Comps&... comps)
+    {
+        LOG_THIS("System");
+        
+        LOG_INFO("System", "Registering the system as a manual one");
+
+        if(system->executionPolicy != ExecutionPolicy::Sequential)
+            LOG_ERROR("System", "Trying to set two different execution policies !");
+
+        system->setPolicy(ExecutionPolicy::Manual);
+        
+        registerComponents(system, registry, comps...);
+    }
+
+    template <typename... Comps, typename Sys>
+    void registerComponents(Sys *system, ComponentRegistry *registry, const tag<ParallelPolicy>&, const Comps&... comps)
+    {
+        LOG_THIS("System");
+        
+        LOG_INFO("System", "Registering the system as a parallel one");
+
+        if(system->executionPolicy != ExecutionPolicy::Sequential)
+            LOG_ERROR("System", "Trying to set two different execution policies !");
+
+        system->setPolicy(ExecutionPolicy::Parallel);
+        
+        registerComponents(system, registry, comps...);
+    }
+
+    template <typename... Comps, typename Sys>
+    void registerComponents(Sys *system, ComponentRegistry *registry, const tag<IndependentPolicy>&, const Comps&... comps)
+    {
+        LOG_THIS("System");
+        
+        LOG_INFO("System", "Registering the system as a parallel one");
+
+        if(system->executionPolicy != ExecutionPolicy::Sequential)
+            LOG_ERROR("System", "Trying to set two different execution policies !");
+
+        system->setPolicy(ExecutionPolicy::Independent);
+        
+        registerComponents(system, registry, comps...);
+    }
+
     template <typename... Comps>
     struct System : public AbstractSystem, public Comps...
     {
@@ -112,6 +182,8 @@ namespace pg
             LOG_THIS_MEMBER("System");
 
             this->registry = registry;
+
+            this->id = this->registry->getTypeId<System<Comps...>>();
 
             registerComponents(this, registry, tag<Comps>{}...);
         }

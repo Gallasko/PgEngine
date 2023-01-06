@@ -53,10 +53,26 @@ namespace pg
             auto system = new Sys(args...);
             system->setRegistry(&registry);
 
-            // Todo only add the system to the taskflow if the execution policy permits it !
             systems.push_back(system);
 
-            taskflow.emplace([system](){system->execute();});
+            // Only add the system to the taskflow if the execution policy is set to sequential or independent !
+            if(system->executionPolicy == ExecutionPolicy::Sequential)
+            {
+                auto task = taskflow.emplace([system](){system->execute();});
+
+                // Put the task after every other basic task
+                task.succeed(basicTask);
+
+                // Register the task in case we need to call precede and succeed
+                tasks[system->id] = task;
+            }
+            else if (system->executionPolicy == ExecutionPolicy::Independent)
+            {
+                auto task = taskflow.emplace([system](){system->execute();});
+
+                // Register the task in case we need to call precede and succeed
+                tasks[system->id] = task;
+            }
 
             return system;
         }
@@ -114,17 +130,23 @@ namespace pg
 
         CommandDispatcher cmdDispatcher;
 
+        /** Store all systems added to the ECS */
         std::vector<AbstractSystem*> systems;
+
+        /** All the entities generated from the ECS */
         AllocatorPool<Entity> entityPool;
 
-        /** Store all systems that doesn't have be executed by the ecs (systems tagged as policy = manual, onEvent or storage) */
-        std::unordered_map<_unique_id, AbstractSystem*> storageMap;
-
-        // Taskflow of all the system of the ecs
+        /** Taskflow of all the system of the ecs */
         tf::Taskflow taskflow;
 
-        // Main executor of the ecs
+        /** Main executor of the ecs */
         tf::Executor executor;
+
+        /** Map of all the task associated to systems */
+        std::unordered_map<_unique_id, tf::Task> tasks;
+
+        /** Last task of the mandatory ecs base systems */
+        tf::Task basicTask;
     };
 
     template <typename Comp>
