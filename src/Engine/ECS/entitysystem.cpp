@@ -20,15 +20,12 @@ namespace
 
 namespace pg
 {
-    EntitySystem::EntitySystem(bool emptyEcs) : cmdDispatcher(this)
+    EntitySystem::EntitySystem() : cmdDispatcher(this)
     {
         LOG_THIS_MEMBER(DOM);
 
-        if(not emptyEcs)
-        {
-            // Add the command dispatcher as the first element of the task flow
-            taskflow.emplace([this](){cmdDispatcher.process();});
-        }
+        // Add the command dispatcher as the first element of the task flow
+        basicTask = taskflow.emplace([this](){cmdDispatcher.process();});
     }
 
     EntitySystem::~EntitySystem()

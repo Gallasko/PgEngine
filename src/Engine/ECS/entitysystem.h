@@ -25,24 +25,29 @@ namespace pg
     class EntitySystem
     {
     friend class Entity;
+    friend class CommandDispatcher;
     public:
-        EntitySystem(bool emptyEcs = false);
+        EntitySystem();
         ~EntitySystem();
 
         Entity* createEntity()
         {
             LOG_THIS_MEMBER("ECS");
-
-            return entityPool.allocate(registry.idGenerator.generateId(), this);
+            
+            if(running)
+                return cmdDispatcher.createEntity();
+            else
+                return entityPool.allocate(registry.idGenerator.generateId(), this);
         }
 
         void removeEntity(Entity* entity)
         {
             LOG_THIS_MEMBER("ECS");
 
-            // Todo Remove all attached component
-
-            entityPool.release(entity);
+            if(running)
+                cmdDispatcher.deleteEntity(entity);
+            else
+                deleteEntityFromPool(entity);
         }
 
         template <class Sys, typename... Args>
@@ -51,7 +56,7 @@ namespace pg
             LOG_THIS_MEMBER("ECS");
 
             auto system = new Sys(args...);
-            system->setRegistry(&registry);
+            system->addToRegistry(&registry);
 
             systems.push_back(system);
 
@@ -125,6 +130,24 @@ namespace pg
         MasterRenderer* getMasterRenderer() { return registry.masterRenderer; }
 
     private:
+        void addEntityToPool(Entity* entity)
+        {
+            entityPool.allocate(*entity);
+        }
+
+        void deleteEntityFromPool(Entity* entity)
+        {
+            for(auto& comp : entity->componentList)
+            {
+                if(comp.entityHeldType == Entity::EntityHeld::EntityHeldType::id)
+                {
+                    // Todo Remove all attached component
+                }
+            }
+
+            entityPool.release(entity);
+        }
+
         bool running = false;
         ComponentRegistry registry;
 

@@ -86,7 +86,12 @@ namespace pg
 
             const auto& id = getTypeId<Event>();
             
-            eventStorageMap[id].emplace_back([listener](const AbstractEvent& event) {listener->template onEvent<Event>(event);});
+            eventStorageMap[id].emplace_back([listener](const AbstractEvent& event)
+            {
+                struct DelegateEvent : public AbstractEvent, public Event { virtual ~DelegateEvent() {} };
+
+                listener->onEvent(static_cast<const Event&>(static_cast<const DelegateEvent&>(event)));
+            });
         }
 
         template<typename Event>
@@ -100,7 +105,7 @@ namespace pg
 
             for(auto& eventListener : eventStorageMap[id])
             {
-                eventListener(static_cast<DelegateEvent>(event));
+                eventListener(static_cast<const DelegateEvent&>(event));
             }
         }
 

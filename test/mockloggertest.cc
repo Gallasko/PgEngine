@@ -47,6 +47,7 @@ namespace pg
             EXPECT_EQ(logger.getNbLog(),   0);
             EXPECT_EQ(logger.getNbInfo(),  0);
             EXPECT_EQ(logger.getNbError(), 0);
+            EXPECT_EQ(logger.getNbTest(),  0);
             EXPECT_EQ(logger.getLastMessage().message, "");
             EXPECT_EQ(logger.getLastMessage().level, Logger::InfoLevel::log);
 
@@ -55,6 +56,7 @@ namespace pg
             EXPECT_EQ(logger.getNbLog(),   1);
             EXPECT_EQ(logger.getNbInfo(),  0);
             EXPECT_EQ(logger.getNbError(), 0);
+            EXPECT_EQ(logger.getNbTest(),  0);
             EXPECT_EQ(logger.getLastMessage().message, "");
             EXPECT_EQ(logger.getLastMessage().level, Logger::InfoLevel::log);
 
@@ -65,14 +67,26 @@ namespace pg
             EXPECT_EQ(logger.getNbLog(),   3);
             EXPECT_EQ(logger.getNbInfo(),  1);
             EXPECT_EQ(logger.getNbError(), 0);
+            EXPECT_EQ(logger.getNbTest(),  0);
             EXPECT_EQ(logger.getLastMessage().message, "First Info");
             EXPECT_EQ(logger.getLastMessage().level, Logger::InfoLevel::info);
 
             LOG_THIS("Test");
+            LOG_TEST("Test", "Test log");
 
             EXPECT_EQ(logger.getNbLog(),   4);
             EXPECT_EQ(logger.getNbInfo(),  1);
             EXPECT_EQ(logger.getNbError(), 0);
+            EXPECT_EQ(logger.getNbTest(),  1);
+            EXPECT_EQ(logger.getLastMessage().message, "Test log");
+            EXPECT_EQ(logger.getLastMessage().level, Logger::InfoLevel::test);
+
+            LOG_THIS("Test");
+
+            EXPECT_EQ(logger.getNbLog(),   5);
+            EXPECT_EQ(logger.getNbInfo(),  1);
+            EXPECT_EQ(logger.getNbError(), 0);
+            EXPECT_EQ(logger.getNbTest(),  1);
             EXPECT_EQ(logger.getLastMessage().message, "");
             EXPECT_EQ(logger.getLastMessage().level, Logger::InfoLevel::log);
 
@@ -80,9 +94,10 @@ namespace pg
             LOG_THIS("Test");
             LOG_ERROR("Test", "First Error");
 
-            EXPECT_EQ(logger.getNbLog(),   5);
+            EXPECT_EQ(logger.getNbLog(),   6);
             EXPECT_EQ(logger.getNbInfo(),  2);
             EXPECT_EQ(logger.getNbError(), 1);
+            EXPECT_EQ(logger.getNbTest(),  1);
             EXPECT_EQ(logger.getLastMessage().message, "First Error");
             EXPECT_EQ(logger.getLastMessage().level, Logger::InfoLevel::error);
         } 

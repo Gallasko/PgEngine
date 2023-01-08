@@ -88,6 +88,23 @@ namespace pg
                 virtual void execute() { std::cout << "Execute D System" << std::endl; }
             };
 
+            struct EEvent
+            {
+                std::string payload;
+            };
+
+            struct E
+            {
+                std::string message;
+            };
+
+            struct ESystem : public System<Own<E>, Listener<EEvent>, StoragePolicy>
+            {
+                virtual void execute() { LOG_INFO("Event", "Execute E System"); }
+
+                virtual void onEvent(const EEvent& e) { LOG_TEST("Event", e.payload); }
+            };
+
 /*
             struct CDSystem : public System<Ref<C>, Own<D>>
             {
@@ -115,13 +132,13 @@ namespace pg
 
             ComponentRegistry reg;
 
-            sys1.setRegistry(&reg);
-            sys2.setRegistry(&reg);
-            sys3.setRegistry(&reg);
+            sys1.addToRegistry(&reg);
+            sys2.addToRegistry(&reg);
+            sys3.addToRegistry(&reg);
 
-            EXPECT_EQ(reg.getTypeId<A>(), 3);
-            EXPECT_EQ(reg.getTypeId<B>(), 4);
-            EXPECT_EQ(reg.getTypeId<C>(), 5);
+            EXPECT_EQ(reg.getTypeId<A>(), 4);
+            EXPECT_EQ(reg.getTypeId<B>(), 6);
+            EXPECT_EQ(reg.getTypeId<C>(), 8);
         }
 
         // ----------------------------------------------------------------------------------------
@@ -138,19 +155,19 @@ namespace pg
 
             ComponentRegistry reg, reg2;
 
-            sys1.setRegistry(&reg);
-            sys2.setRegistry(&reg);
-            sys3.setRegistry(&reg);
+            sys1.addToRegistry(&reg);
+            sys2.addToRegistry(&reg);
+            sys3.addToRegistry(&reg);
 
-            sys3bis.setRegistry(&reg2);
-            sys4.setRegistry(&reg2);
+            sys3bis.addToRegistry(&reg2);
+            sys4.addToRegistry(&reg2);
 
-            EXPECT_EQ(reg.getTypeId<A>(), 3);
-            EXPECT_EQ(reg.getTypeId<B>(), 4);
-            EXPECT_EQ(reg.getTypeId<C>(), 5);
+            EXPECT_EQ(reg.getTypeId<A>(), 4);
+            EXPECT_EQ(reg.getTypeId<B>(), 6);
+            EXPECT_EQ(reg.getTypeId<C>(), 8);
 
-            EXPECT_EQ(reg2.getTypeId<C>(), 3);
-            EXPECT_EQ(reg2.getTypeId<D>(), 4);
+            EXPECT_EQ(reg2.getTypeId<C>(), 4);
+            EXPECT_EQ(reg2.getTypeId<D>(), 6);
         }
 
         // ----------------------------------------------------------------------------------------
@@ -257,6 +274,24 @@ namespace pg
             std::cout << "End" << std::endl;
 
             delete[] entity;
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        TEST(system_test, basic_event_handling)
+        {
+            MockLogger logger;
+
+            EntitySystem ecs;
+
+            auto sys = ecs.createSystem<ESystem>();
+
+            EEvent event {"New E event !"};
+
+            ecs.sendEvent(event);
+
+            EXPECT_EQ(logger.getNbTest(),  1);
         }
 /*
         TEST(system_test, group)

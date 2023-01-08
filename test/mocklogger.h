@@ -12,6 +12,11 @@ namespace pg
         Logger::InfoLevel level;
     };
 
+    struct MockSink : public Logger::LogSink
+    {
+        virtual void processLog(const Logger::Info&) override {}
+    };
+
     template <typename SinkType>
     class TestSink : public Logger::LogSink
     {
@@ -27,6 +32,7 @@ namespace pg
         void resetSink()
         {
             nbMessages[Logger::InfoLevel::log]      = 0;
+            nbMessages[Logger::InfoLevel::test]      = 0;
             nbMessages[Logger::InfoLevel::mile]     = 0;
             nbMessages[Logger::InfoLevel::info]     = 0;
             nbMessages[Logger::InfoLevel::alert]    = 0;
@@ -60,7 +66,7 @@ namespace pg
         const bool showObject;
     };
 
-    template <typename SinkType = TerminalSink>
+    template <typename SinkType = MockSink>
     class MockLogger
     {
     public:
@@ -85,6 +91,13 @@ namespace pg
             auto pointer = std::static_pointer_cast<TestSink<SinkType>>(sink);
 
             return pointer->getNbMessages().at(Logger::InfoLevel::log);
+        }
+
+        unsigned int getNbTest() const
+        {
+            auto pointer = std::static_pointer_cast<TestSink<SinkType>>(sink);
+
+            return pointer->getNbMessages().at(Logger::InfoLevel::test);
         }
 
         unsigned int getNbMile() const

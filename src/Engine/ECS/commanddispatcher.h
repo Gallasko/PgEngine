@@ -2,10 +2,13 @@
 
 #include "concurrentqueue.h"
 
+#include "logger.h"
+
 namespace pg
 {
     // Type forwarding
     class EntitySystem;
+    class Entity;
 
     struct SysCommand
     {
@@ -26,20 +29,33 @@ namespace pg
      * 
      * This system is responsible for creating and running ECS system commands
      * Should be used for every commands that need to be executed asynchronously such as
-     * creating or deleting an Entity or launching some systems.
-     * 
-     * It differs from the Event System as this system communicates directly with the ECS root engine whereas
-     * the event system allows communication between systems.
-     * 
-     * @see EventDispatcher
+     * creating or deleting an Entity or a component.
      */
     class CommandDispatcher
     {
     public:
         typedef moodycamel::ConcurrentQueue<SysCommand>::producer_token_t CommandToken;
 
+        struct EntityCommand
+        {
+            enum class EntityCommandType
+            {
+                creation = 0,
+                deletion = 1
+            };
+
+            EntityCommand(Entity *entity, const EntityCommandType& type) : entity(entity), type(type) {}
+
+            Entity *entity;
+            EntityCommandType type;
+        };
+
     public:
         CommandDispatcher(EntitySystem *ecs) : ecsRef(ecs) {}
+
+        Entity* createEntity();
+
+        void deleteEntity(Entity* entity);
 
         inline bool enqueueCommand(const SysCommand& cmd)
         {
@@ -59,7 +75,9 @@ namespace pg
         void process();
 
     private:
-        const EntitySystem* ecsRef;
+        EntitySystem *const ecsRef;
+
+        moodycamel::ConcurrentQueue<EntityCommand> entityQueue;
 
         moodycamel::ConcurrentQueue<SysCommand> sysQueue;
     };

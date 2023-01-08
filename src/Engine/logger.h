@@ -21,12 +21,14 @@
 #ifdef DEBUG
 #define LOG_THIS(scope) _LOG(pg::Logger::_log(__LINE__, __FILE__, __func__, 0, 0, scope, "", pg::Logger::InfoLevel::log))
 #define LOG_THIS_MEMBER(scope) _LOG(pg::Logger::_log(__LINE__, __FILE__, __func__, this, typeid(*this).name(), scope, "", pg::Logger::InfoLevel::log))
+#define LOG_TEST(scope, msg) pg::Logger::_single_log(__LINE__, __FILE__, __func__, 0, 0, scope, msg, pg::Logger::InfoLevel::test)
 #define LOG_MILE(scope, msg) pg::Logger::_single_log(__LINE__, __FILE__, __func__, 0, 0, scope, msg, pg::Logger::InfoLevel::mile)
 #define LOG_INFO(scope, msg) pg::Logger::_single_log(__LINE__, __FILE__, __func__, 0, 0, scope, msg, pg::Logger::InfoLevel::info)
 #define LOG_ERROR(scope, msg) pg::Logger::_single_log(__LINE__, __FILE__, __func__, 0, 0, scope, msg, pg::Logger::InfoLevel::error)
 #else
 #define LOG_THIS(scope) 
 #define LOG_THIS_MEMBER(scope)
+#define LOG_TEST(scope, msg)
 #define LOG_MILE(scope, msg)
 #define LOG_INFO(scope, msg)
 #define LOG_ERROR(scope, msg)
@@ -97,13 +99,14 @@ namespace pg
          */
         enum class InfoLevel
         {
-            log      = 0,               ///< Log level used anywhere for basic logging
-            mile     = 1,               ///< Log level used to print relevant information of some in build data types
-            info     = 2,               ///< Info level used to print some important and informative message about the execution of the code
-            alert    = 3,               ///< Alert level used to alert the dev of weird branchings that can affect the output 
-            warning  = 4,               ///< Warning level used to warn the developer of an error that is non blocking 
-            error    = 5,               ///< Error level used to tell the developer of an error that is blocking and may need a restart of a component
-            critical = 6                ///< Critical level used to tell the developer of an error that is critical to the integrity of the application and need a full reboot of it
+            log      = 0, ///< Log level used anywhere for basic logging
+            test     = 1, ///< Log level only used for testing purposes
+            mile     = 2, ///< Log level used to print relevant information of some in build data types
+            info     = 3, ///< Info level used to print some important and informative message about the execution of the code
+            alert    = 4, ///< Alert level used to alert the dev of weird branchings that can affect the output 
+            warning  = 5, ///< Warning level used to warn the developer of an error that is non blocking 
+            error    = 6, ///< Error level used to tell the developer of an error that is blocking and may need a restart of a component
+            critical = 7  ///< Critical level used to tell the developer of an error that is critical to the integrity of the application and need a full reboot of it
         };
 
         /**
