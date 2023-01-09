@@ -129,6 +129,11 @@ namespace pg
 
         MasterRenderer* getMasterRenderer() { return registry.masterRenderer; }
 
+        /** Return the registry of the ECS, mainly for testing purposes */
+        inline constexpr const ComponentRegistry* getComponentRegistry() const noexcept { return &registry; }
+
+        inline constexpr size_t getNbEntities() const { return entityPool.getNbElements(); }
+
     private:
         void addEntityToPool(Entity* entity)
         {

@@ -31,7 +31,7 @@ namespace pg
 
         if(not entityQueue.enqueue(EntityCommand{entity, EntityCommand::EntityCommandType::deletion}))
         {
-            LOG_ERROR(DOM, Strfy() << "Could not enqueue the creation of entity " << entity->id);
+            LOG_ERROR(DOM, Strfy() << "Could not enqueue the deletion of entity " << entity->id);
         }
     }
 

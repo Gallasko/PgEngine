@@ -105,6 +105,27 @@ namespace pg
                 virtual void onEvent(const EEvent& e) { LOG_TEST("Event", e.payload); }
             };
 
+            struct CreateDummy
+            {
+                int i;
+            };
+
+            struct CreateSystem : public System<Own<CreateDummy>>
+            {
+                CreateSystem(EntitySystem *ecs) : ecsRef(ecs) {}
+
+                virtual void execute()
+                {
+                    LOG_INFO("Event", "Execute CreateSystem");
+
+                    auto entity = ecsRef->createEntity();
+
+                    LOG_TEST("Create System", Strfy() << "Created entity " << entity->id);
+                }
+
+                EntitySystem *ecsRef;
+            };
+
 /*
             struct CDSystem : public System<Ref<C>, Own<D>>
             {
@@ -293,6 +314,35 @@ namespace pg
 
             EXPECT_EQ(logger.getNbTest(),  1);
         }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        TEST(system_test, entity_creation_during_runtime)
+        {
+            MockLogger<TerminalSink> logger;
+
+            EntitySystem ecs;
+
+            auto sys = ecs.createSystem<CreateSystem>(&ecs);
+
+            EXPECT_EQ(ecs.getNbEntities(),  0);
+
+            CreateDummy dummy {1};
+
+            ecs.executeAll();
+
+            EXPECT_EQ(ecs.getNbEntities(),  0);
+
+            ecs.executeAll();
+
+            EXPECT_EQ(ecs.getNbEntities(),  1);
+
+            // ecs.sendEvent(event);
+
+            // EXPECT_EQ(logger.getNbTest(),  1);
+        }
+
 /*
         TEST(system_test, group)
         {

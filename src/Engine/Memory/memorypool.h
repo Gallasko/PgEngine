@@ -226,6 +226,8 @@ namespace pg
             }
         }
 
+        inline constexpr size_t getNbElements() const { return nbElements; }
+
     private:
         size_t size = 0;
         size_t nbElements = 0;

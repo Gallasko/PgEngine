@@ -188,7 +188,6 @@ namespace pg
             registerComponents(this, registry, tag<Comps>{}...);
         }
 
-
         // Todo : move those function (create component and delete component) in the Own and Ref struct
         // And call it create component so the system inherit of the correct one
         template <typename Type, typename... Args>
