@@ -10,7 +10,7 @@ namespace pg
         constexpr const char * const DOM = "Command Dispatcher";
     }
 
-    Entity* CommandDispatcher::createEntity()
+    EntityRef CommandDispatcher::createEntity()
     {
         LOG_THIS_MEMBER(DOM);
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "entity.h"
+
 #include "concurrentqueue.h"
 
 #include "logger.h"
@@ -53,7 +55,7 @@ namespace pg
     public:
         CommandDispatcher(EntitySystem *ecs) : ecsRef(ecs) {}
 
-        Entity* createEntity();
+        EntityRef createEntity();
 
         void deleteEntity(Entity* entity);
 

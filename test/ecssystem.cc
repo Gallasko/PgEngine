@@ -236,14 +236,14 @@ namespace pg
 
             std::cout << "Creating entities..." << std::endl;
 
-            Entity **entity = new Entity*[nbComps + 1];
+            auto entities = new EntityRef[nbComps + 1];
             
             start = std::chrono::steady_clock::now();
             for(size_t i = 0; i < nbComps + 1; i++)
             {
                 // std::cout << "Creating entity: " << i << std::endl;
-                entity[i] = ecs.createEntity();
-                system->createOwnedComponent<A>(entity[i], i, 15);
+                entities[i] = ecs.createEntity();
+                system->createOwnedComponent<A>(entities[i], i, 15);
                 // std::cout << "Created entity: " << i << std::endl;
             }
             end = std::chrono::steady_clock::now();
@@ -254,14 +254,14 @@ namespace pg
             for(size_t i = 0; i < nbComps + 1; i++)
             {
                 //ecs.attach<C>(entity.id, "Value of: " + std::to_string(i));
-                system3->createOwnedComponent<C>(entity[i], entity[i]->id, "Value of: " + std::to_string(i));
+                system3->createOwnedComponent<C>(entities[i], entities[i]->id, "Value of: " + std::to_string(i));
             }
             end = std::chrono::steady_clock::now();
 
             std::cout << "Adding C to " << nbComps + 1 << " entities took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
 
-            std::cout << "Entity " << entity[555]->id << " has: [";
-            for (auto& comp : entity[555]->componentList)
+            std::cout << "Entity " << entities[555]->id << " has: [";
+            for (auto& comp : entities[555]->componentList)
             {
                 std::cout << std::to_string(comp.getId()) << ", ";
             }
@@ -294,7 +294,7 @@ namespace pg
 
             std::cout << "End" << std::endl;
 
-            delete[] entity;
+            delete[] entities;
         }
 
         // ----------------------------------------------------------------------------------------

@@ -19,7 +19,7 @@ namespace pg
     friend class EntitySystem;
     friend class CommandDispatcher;
     friend class AllocatorPool<Entity>;
-    
+    private:
         struct EntityHeld
         {
             union EntityHeldId
@@ -79,10 +79,6 @@ namespace pg
         };
 
     public:
-        // Todo remove this as it is only for testing purposes
-        // 0 means that it can't be a valid entity !
-        Entity() : id(0), ecsRef(nullptr) {}
-
         // Default copy and move constructor
         // Entity(Entity& mE)              = default;
         // Entity& operator=(Entity& mE)   = default;
@@ -114,6 +110,10 @@ namespace pg
         //Todo overload operator delete to call ecsRef->deleteEntity(this);
 
     protected:
+        // Todo remove this as it is only for testing purposes
+        // 0 means that it can't be a valid entity !
+        Entity() : id(0), ecsRef(nullptr) {}
+
         Entity(_unique_id id, EntitySystem *const ecs) noexcept : id(id), ecsRef(ecs) {}
         ~Entity() noexcept { }
 
@@ -121,5 +121,41 @@ namespace pg
         // ~Entity() { if(ecsRef) ecsRef->deleteEntity(this); }
 
         EntitySystem *const ecsRef = nullptr;
+    };
+
+    struct EntityRef
+    {
+        EntityRef() : initialized(false), entity(nullptr), id(0), ecsRef(nullptr) {}
+
+        EntityRef(Entity* ent, bool initialized = true) : initialized(initialized), entity(ent), id(ent->id), ecsRef(ent->world()) {}
+
+        EntityRef(const EntityRef& rhs)
+        {
+            (*this) = rhs; 
+        }
+
+        void operator=(const EntityRef& rhs);
+
+        void operator=(Entity* ent)
+        {
+            entity = ent;
+            id = ent->id;
+            ecsRef = ent->world();
+        }
+
+        Entity* operator->() const
+        {
+            return entity;
+        }
+
+        operator Entity*() const
+        {
+            return entity;
+        }
+
+        bool initialized;
+        Entity* entity;
+        _unique_id id;
+        EntitySystem* ecsRef;  
     };
 }

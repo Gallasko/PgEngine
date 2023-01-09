@@ -30,7 +30,7 @@ namespace pg
         EntitySystem();
         ~EntitySystem();
 
-        Entity* createEntity()
+        EntityRef createEntity()
         {
             LOG_THIS_MEMBER("ECS");
             
@@ -133,6 +133,8 @@ namespace pg
         inline constexpr const ComponentRegistry* getComponentRegistry() const noexcept { return &registry; }
 
         inline constexpr size_t getNbEntities() const { return entityPool.getNbElements(); }
+
+        inline Entity* getEntity(size_t index) const { return entityPool.getElement(index); }
 
     private:
         void addEntityToPool(Entity* entity)
