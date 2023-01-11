@@ -153,6 +153,8 @@ namespace pg
             return entity;
         }
 
+        inline bool empty() const { return entity == nullptr; }
+
         bool initialized;
         Entity* entity;
         _unique_id id;

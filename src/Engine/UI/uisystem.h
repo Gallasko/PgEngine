@@ -188,11 +188,18 @@ namespace pg
         const UiSize *leftAnchor    = nullptr;
     };
 
-    struct UiComponentSystem : public System<Own<UiComponent>>
+    struct UiComponentChangeEvent
     {
-        UiComponentSystem()
+
+    };
+
+    struct UiComponentSystem : public System<Own<UiComponent>, Listener<UiComponentChangeEvent>, StoragePolicy>
+    {
+        UiComponentSystem() {}
+
+        virtual onEvent(const UiComponentChangeEvent& event) override
         {
-            setPolicy(ExecutionPolicy::Storage);
+
         }
     };
 

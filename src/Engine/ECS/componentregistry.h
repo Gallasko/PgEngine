@@ -282,4 +282,43 @@ namespace pg
 
         ComponentSet<Type> components;
     };
+
+    template <typename Comp>
+    struct CompRef
+    {
+        CompRef() : initialized(false), component(nullptr), id(0), ecsRef(nullptr) {}
+
+        CompRef(Comp* component, bool initialized = true) : initialized(initialized), entity(component), id(ent->id), ecsRef(ent->world()) {}
+
+        CompRef(const CompRef& rhs)
+        {
+            (*this) = rhs; 
+        }
+
+        void operator=(const CompRef& rhs);
+
+        void operator=(Comp* comp)
+        {
+            component = comp;
+            id = ent->id;
+            ecsRef = ent->world();
+        }
+
+        Comp* operator->() const
+        {
+            return component;
+        }
+
+        operator Comp*() const
+        {
+            return component;
+        }
+
+        inline bool empty() const { return component == nullptr; }
+
+        bool initialized;
+        Comp* component;
+        _unique_id id;
+        EntitySystem* ecsRef;  
+    };
 }

@@ -70,7 +70,7 @@ namespace pg
         glBindTexture(GL_TEXTURE_2D, masterRenderer->getTexture("font"));
 
         view.setToIdentity();
-        view.translate(QVector3D(-1.0f + 2.0f * (float)(sentence->pos.x) / screenWidth, 1.0f + 2.0f * (float)( -sentence->pos.y) / screenHeight, 0.0f));
+        view.translate(QVector3D(-1.0f + 2.0f * (float)(sentence->pos.x) / screenWidth, 1.0f + 2.0f * (float)(-sentence->pos.y) / screenHeight, 0.0f));
 
         shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
 
