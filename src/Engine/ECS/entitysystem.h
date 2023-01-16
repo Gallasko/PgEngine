@@ -22,6 +22,25 @@ namespace pg
     class ComponentRegistry;
     class AbstractSystem;
 
+    /**
+     * @brief Structure tag used to specify onCreation member on a component
+     *
+     * @todo find a better class name 
+     */
+    struct Ctor
+    {
+        virtual void onCreation(Entity* entity) = 0;
+    };
+
+    /**
+     * @brief Structure tag used to specify onCreation member on a component
+     *
+     * @todo find a better class name 
+     */    struct Dtor
+    {
+        virtual void onDeletion(Entity* entity) = 0;
+    };
+
     class EntitySystem
     {
     friend class Entity;
@@ -91,17 +110,23 @@ namespace pg
 
             try
             {
+                Type* component;
+
                 if(running)
                 {
-                    CompRef<Type>;
+                    component = new Type(args...);
                 }
                 else
                 {
-                    // Todo set the ecs ref of the created component to this as everything created from here should be a component ?
-                    auto res = registry.retrieve<Type>()->internalCreateComponent(entity, args...);
-
-                    return res;
+                    component = registry.retrieve<Type>()->internalCreateComponent(entity, args...);
                 }
+
+                auto res = CompRef<Type>(component, entity->id, this, not running);
+
+                if constexpr(std::is_base_of_v(Ctor, Type))
+                    res->onCreation(entity);
+
+                return res;
             }
             catch (const std::exception& e)
             {
@@ -114,16 +139,7 @@ namespace pg
         template <typename Type>
         void dettach(Entity* entity) const noexcept
         {
-            LOG_THIS_MEMBER("ECS");
-
-            try
-            {
-                registry.retrieve<Type>()->internalRemoveComponent(entity);            
-            }
-            catch (const std::exception& e)
-            {
-                LOG_ERROR("ECS", e.what());
-            }
+            
         }
 
         template <typename Event>
@@ -160,6 +176,24 @@ namespace pg
             }
 
             entityPool.release(entity);
+        }
+
+        template <typename Type>
+        void detachComponentFromPool(Entity* entity)
+        {
+            LOG_THIS_MEMBER("ECS");
+
+            try
+            {
+                if constexpr(std::is_base_of_v(Dtor, Type))
+                    res->onDeletion(entity);
+
+                registry.retrieve<Type>()->internalRemoveComponent(entity);            
+            }
+            catch (const std::exception& e)
+            {
+                LOG_ERROR("ECS", e.what());
+            }
         }
 
         bool running = false;

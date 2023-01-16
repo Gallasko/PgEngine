@@ -52,6 +52,28 @@ namespace pg
             EntityCommandType type;
         };
 
+        struct ComponentCommand
+        {
+            enum class ComponentCommandType
+            {
+                creation = 0,
+                deletion = 1
+            };
+
+            struct Storage {};
+
+            template <typename Type>
+            ComponentCommand(Type *component, const EntityCommandType& type) : type(type)
+            {
+                struct Delegate : public Storage, public Type {};
+
+                component = static_cast<Storage*>(static_cast<Delegate*>(component));
+            }
+
+            Storage *component;
+            ComponentCommandType type;
+        };
+
     public:
         CommandDispatcher(EntitySystem *ecs) : ecsRef(ecs) {}
 

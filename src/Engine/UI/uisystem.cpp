@@ -87,15 +87,15 @@ namespace pg
 
         archive.startSerialization("UiComponent");
 
-        serialize(archive, "visibility", value.isVisible());
-        serialize(archive, "pos", value.pos);
-        serialize(archive, "width", value.width);
-        serialize(archive, "height", value.height);
+        serialize(archive, "visibility",    value.isVisible());
+        serialize(archive, "pos",           value.pos);
+        serialize(archive, "width",         value.width);
+        serialize(archive, "height",        value.height);
 
-        serialize(archive, "topMargin", value.topMargin);
-        serialize(archive, "rightMargin", value.rightMargin);
-        serialize(archive, "bottomMargin", value.bottomMargin);
-        serialize(archive, "leftMargin", value.leftMargin);
+        serialize(archive, "topMargin",     value.topMargin);
+        serialize(archive, "rightMargin",   value.rightMargin);
+        serialize(archive, "bottomMargin",  value.bottomMargin);
+        serialize(archive, "leftMargin",    value.leftMargin);
 
         archive.endSerialization();
     }
@@ -174,8 +174,8 @@ namespace pg
             LOG_INFO(DOM, "Deserializing an UiFrame");
 
             frame.pos = deserialize<UiPosition>(serializedString["pos"]);
-            frame.w = deserialize<UiSize>(serializedString["w"]);
-            frame.h = deserialize<UiSize>(serializedString["h"]);
+            frame.w   = deserialize<UiSize>(serializedString["w"]);
+            frame.h   = deserialize<UiSize>(serializedString["h"]);
         }
 
         return frame;
@@ -204,14 +204,14 @@ namespace pg
 
             deserialize<bool>(serializedString["visibility"]) ? component.show() : component.hide();
 
-            component.pos = deserialize<UiPosition>(serializedString["pos"]);
-            component.width = deserialize<UiSize>(serializedString["width"]);
-            component.height = deserialize<UiSize>(serializedString["height"]);
+            component.pos           = deserialize<UiPosition>(serializedString["pos"]);
+            component.width         = deserialize<UiSize>(serializedString["width"]);
+            component.height        = deserialize<UiSize>(serializedString["height"]);
 
-            component.topMargin = deserialize<UiSize>(serializedString["topMargin"]);
-            component.rightMargin = deserialize<UiSize>(serializedString["rightMargin"]);
-            component.bottomMargin = deserialize<UiSize>(serializedString["bottomMargin"]);
-            component.leftMargin = deserialize<UiSize>(serializedString["leftMargin"]);
+            component.topMargin     = deserialize<UiSize>(serializedString["topMargin"]);
+            component.rightMargin   = deserialize<UiSize>(serializedString["rightMargin"]);
+            component.bottomMargin  = deserialize<UiSize>(serializedString["bottomMargin"]);
+            component.leftMargin    = deserialize<UiSize>(serializedString["leftMargin"]);
 
             component.update();
         }
@@ -223,19 +223,19 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
-        this->visible = rhs.visible;
-        this->pos = rhs.pos;
-        this->width = rhs.width;
-        this->height = rhs.height;
-        this->topAnchor = rhs.topAnchor;
-        this->rightAnchor = rhs.rightAnchor;
-        this->bottomAnchor = rhs.bottomAnchor;
-        this->leftAnchor = rhs.leftAnchor;
+        this->visible       = rhs.visible;
+        this->pos           = rhs.pos;
+        this->width         = rhs.width;
+        this->height        = rhs.height;
+        this->topAnchor     = rhs.topAnchor;
+        this->rightAnchor   = rhs.rightAnchor;
+        this->bottomAnchor  = rhs.bottomAnchor;
+        this->leftAnchor    = rhs.leftAnchor;
 
-        this->topMargin = rhs.topMargin;
-        this->rightMargin = rhs.rightMargin;
-        this->bottomMargin = rhs.bottomMargin;
-        this->leftMargin = rhs.leftMargin;
+        this->topMargin     = rhs.topMargin;
+        this->rightMargin   = rhs.rightMargin;
+        this->bottomMargin  = rhs.bottomMargin;
+        this->leftMargin    = rhs.leftMargin;
     }
 
     bool UiComponent::inBound(int x, int y) const
@@ -267,30 +267,30 @@ namespace pg
         
         if(topAnchor != nullptr && bottomAnchor != nullptr)
         {
-            this->height = (*bottomAnchor - bottomMargin) - (*topAnchor - topMargin);
-            this->pos.y = *topAnchor + topMargin;
+            this->height = (bottomAnchor->anchorPoint - bottomMargin) - (topAnchor->anchorPoint - topMargin);
+            this->pos.y = topAnchor->anchorPoint + topMargin;
         }
         else if(topAnchor != nullptr && bottomAnchor == nullptr)
         {
-            this->pos.y = *topAnchor + topMargin;
+            this->pos.y = topAnchor->anchorPoint + topMargin;
         }
         else if(topAnchor == nullptr && bottomAnchor != nullptr)
         {
-            this->pos.y = (*bottomAnchor - bottomMargin) - this->height;
+            this->pos.y = (bottomAnchor->anchorPoint - bottomMargin) - this->height;
         }
 
         if(rightAnchor != nullptr && leftAnchor != nullptr)
         {
-            this->width = (*rightAnchor - rightMargin) - (*leftAnchor - leftMargin);
+            this->width = (rightAnchor->anchorPoint - rightMargin) - (leftAnchor->anchorPoint - leftMargin);
             this->pos.x = *leftAnchor + leftMargin;
         }
         else if(rightAnchor != nullptr && leftAnchor == nullptr)
         {
-            this->pos.x = (*rightAnchor - rightMargin) - this->width;
+            this->pos.x = (rightAnchor->anchorPoint - rightMargin) - this->width;
         }
         else if(rightAnchor == nullptr && leftAnchor != nullptr)
         {
-            this->pos.x = *leftAnchor + leftMargin;
+            this->pos.x = leftAnchor->anchorPoint + leftMargin;
         }
     }
 }

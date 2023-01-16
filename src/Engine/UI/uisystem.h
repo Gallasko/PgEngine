@@ -25,7 +25,7 @@ namespace pg
      * This struct all data about the position of the object
      * as well as a render function
      */
-    class UiComponent
+    class UiComponent : public Ctor
     {
         // Type definition
     private:
@@ -42,7 +42,7 @@ namespace pg
         struct Anchor
         {
             mutable _unique_id id = 0; ///< Unique identifier of the entity oh this anchor 
-            UiSize anchorPoint; ///< The anchor point of the corner
+            UiSize anchorPoint;        ///< The anchor point of the corner
         };
         
         struct Corner
@@ -121,6 +121,19 @@ namespace pg
         UiComponent(const UiComponent& rhs);
 
         /**
+         * @brief Add id info to anchors if created in a ECS
+         * 
+         * @param entity The entity that hold this component
+         */
+        virtual void onCreation(Entity* entity) override
+        {
+            top.id    = entity->id;
+            right.id  = entity->id;
+            bottom.id = entity->id;
+            left.id   = entity->id;
+        }
+
+        /**
          * @brief Destroy the Ui Component object
          */
         virtual ~UiComponent() { }
@@ -195,14 +208,9 @@ namespace pg
 
     };
 
-    struct UiComponentSystem : public System<Own<UiComponent>, Own<UiSize>, Listener<UiComponentChangeEvent>, StoragePolicy>
+    struct UiComponentSystem : public System<Own<UiComponent>, Listener<UiComponentChangeEvent>, StoragePolicy>
     {
         UiComponentSystem() {}
-
-        virtual void onCreation(Entity* entity, UiComponent *component) override
-        {
-
-        }
 
         virtual void onEvent(const UiComponentChangeEvent& event) override
         {

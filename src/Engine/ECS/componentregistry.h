@@ -288,7 +288,7 @@ namespace pg
     {
         CompRef() : initialized(false), component(nullptr), entity(nullptr), entityId(0), ecsRef(nullptr) {}
 
-        CompRef(Comp* component, EntitySystem* ecs, bool initialized = true) : initialized(initialized), component(component), ecsRef(ecs) {}
+        CompRef(Comp* component, _unique_id id, EntitySystem* ecs, bool initialized = true) : initialized(initialized), component(component), entityId(id), ecsRef(ecs) {}
 
         CompRef(const CompRef& rhs)
         {
@@ -303,12 +303,12 @@ namespace pg
             {
                 initialized = rhs.initialized;
                 component   = rhs.component;
-                entityId    = rhs.id;
+                entityId    = rhs.entityId;
                 ecsRef      = rhs.ecsRef;
             }
             else
             {
-                entityId = rhs.id;
+                entityId = rhs.entityId;
 
                 if(entityId != 0)
                 {
