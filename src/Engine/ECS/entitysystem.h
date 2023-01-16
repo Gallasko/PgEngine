@@ -85,16 +85,23 @@ namespace pg
         //TODO make a template specialization capable of attaching an entity to an entity
 
         template <typename Type, typename... Args>
-        Type* attach(Entity* entity, const Args&... args) const noexcept
+        CompRef<Type> attach(Entity* entity, const Args&... args) const noexcept
         {
             LOG_THIS_MEMBER("ECS");
 
             try
             {
-                // Todo set the ecs ref of the created component to this as everything created from here should be a component ?
-                auto res = registry.retrieve<Type>()->internalCreateComponent(entity, args...);
+                if(running)
+                {
+                    CompRef<Type>;
+                }
+                else
+                {
+                    // Todo set the ecs ref of the created component to this as everything created from here should be a component ?
+                    auto res = registry.retrieve<Type>()->internalCreateComponent(entity, args...);
 
-                return res;
+                    return res;
+                }
             }
             catch (const std::exception& e)
             {

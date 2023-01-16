@@ -286,22 +286,50 @@ namespace pg
     template <typename Comp>
     struct CompRef
     {
-        CompRef() : initialized(false), component(nullptr), id(0), ecsRef(nullptr) {}
+        CompRef() : initialized(false), component(nullptr), entity(nullptr), entityId(0), ecsRef(nullptr) {}
 
-        CompRef(Comp* component, bool initialized = true) : initialized(initialized), entity(component), id(ent->id), ecsRef(ent->world()) {}
+        CompRef(Comp* component, EntitySystem* ecs, bool initialized = true) : initialized(initialized), component(component), ecsRef(ecs) {}
 
         CompRef(const CompRef& rhs)
         {
             (*this) = rhs; 
         }
 
-        void operator=(const CompRef& rhs);
-
-        void operator=(Comp* comp)
+        void operator=(const CompRef& rhs)
         {
-            component = comp;
-            id = ent->id;
-            ecsRef = ent->world();
+            LOG_THIS_MEMBER(DOM);
+
+            if(rhs.initialized)
+            {
+                initialized = rhs.initialized;
+                component   = rhs.component;
+                entityId    = rhs.id;
+                ecsRef      = rhs.ecsRef;
+            }
+            else
+            {
+                entityId = rhs.id;
+
+                if(entityId != 0)
+                {
+                    component = rhs.ecsRef->getComponent<Comp>(entityId);
+                    ecsRef = rhs.ecsRef;
+                    initialized = true;
+
+                    // Todo see if we propagate back the finding of the entity to the base ref !
+                    // rhs.entity = entity
+                    // rhs.initialized = true
+                    // Note that it needs to make the rhs not const or we need to make the member entity mutable !
+                }
+                else
+                {
+                    LOG_ERROR(DOM, "Copy of a reference to an invalid entity");
+
+                    initialized = rhs.initialized;
+                    component   = rhs.component;
+                    ecsRef      = rhs.ecsRef;
+                }
+            }
         }
 
         Comp* operator->() const
@@ -318,7 +346,7 @@ namespace pg
 
         bool initialized;
         Comp* component;
-        _unique_id id;
+        _unique_id entityId;
         EntitySystem* ecsRef;  
     };
 }

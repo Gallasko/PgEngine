@@ -65,7 +65,7 @@ namespace pg
                         if(refSizeValue2 == 0.0f)
                         {
                             // TODO
-                            // LOG_ERROR(DOM, "Division by zero");
+                            LOG_ERROR("Ui Constant", "Division by zero");
                             return 0.0f;
                         }
                         return refSize1Result / refSizeValue2;
@@ -81,7 +81,6 @@ namespace pg
             float scaleValue = 0.0f;
             std::shared_ptr<UiValue> refSize1;
             std::shared_ptr<UiValue> refSize2;
-            //std::shared_ptr<UiSize> refSize2;
             UiSizeOpType opType = UiSizeOpType::NONE;
         };
 
