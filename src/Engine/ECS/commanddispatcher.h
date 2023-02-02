@@ -63,7 +63,7 @@ namespace pg
             struct Storage {};
 
             template <typename Type>
-            ComponentCommand(Type *component, const EntityCommandType& type) : type(type)
+            ComponentCommand(Type *component, const ComponentCommandType& type) : type(type)
             {
                 struct Delegate : public Storage, public Type {};
 

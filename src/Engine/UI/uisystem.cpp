@@ -72,6 +72,57 @@ namespace pg
     }
 
     /**
+     * @brief Specialization of the serialize function for AnchorDir 
+     * 
+     * @param archive A references to the archive
+     * @param value The anchor dir value
+     */
+    template <>
+    void serialize(Archive& archive, const AnchorDir& value)
+    {
+        LOG_THIS(DOM);
+
+        archive.startSerialization("AnchorDir");
+
+        std::string anchorDirString;
+
+        switch(value)
+        {
+            case AnchorDir::Top:
+                anchorDirString = "Top"; break;
+            case AnchorDir::Right:
+                anchorDirString = "Right"; break;
+            case AnchorDir::Bottom:
+                anchorDirString = "Bottom"; break;
+            case AnchorDir::Left:
+                anchorDirString = "Left"; break;
+        }
+
+        serialize(archive, "dir", anchorDirString);
+
+        archive.endSerialization();
+    }
+
+    /**
+     * @brief Specialization of the serialize function for Anchor 
+     * 
+     * @param archive A references to the archive
+     * @param value The anchor value
+     */
+    template <>
+    void serialize(Archive& archive, const Anchor& value)
+    {
+        LOG_THIS(DOM);
+
+        archive.startSerialization("Anchor");
+
+        serialize(archive, "entityId", value.id);
+        serialize(archive, "anchorDir", value.anchorDir);
+
+        archive.endSerialization();
+    }
+
+    /**
      * @brief Specialization of the serialize function for UiComponent 
      * 
      * @param archive A references to the archive
@@ -96,6 +147,28 @@ namespace pg
         serialize(archive, "rightMargin",   value.rightMargin);
         serialize(archive, "bottomMargin",  value.bottomMargin);
         serialize(archive, "leftMargin",    value.leftMargin);
+
+        Anchor emptyAnchor = {0, AnchorDir::Top, 0};
+
+        if(value.topAnchor == nullptr)
+            serialize(archive, "topAnchor", emptyAnchor);
+        else
+            serialize(archive, "topAnchor", value.topAnchor);
+
+        if(value.leftAnchor == nullptr)
+            serialize(archive, "leftAnchor", emptyAnchor);
+        else
+            serialize(archive, "leftAnchor", value.leftAnchor);
+
+        if(value.bottomAnchor == nullptr)
+            serialize(archive, "bottomAnchor", emptyAnchor);
+        else
+            serialize(archive, "bottomAnchor", value.bottomAnchor);
+
+        if(value.rightAnchor == nullptr)
+            serialize(archive, "rightAnchor", emptyAnchor);
+        else
+            serialize(archive, "rightAnchor", value.rightAnchor);
 
         archive.endSerialization();
     }
@@ -227,6 +300,7 @@ namespace pg
         this->pos           = rhs.pos;
         this->width         = rhs.width;
         this->height        = rhs.height;
+
         this->topAnchor     = rhs.topAnchor;
         this->rightAnchor   = rhs.rightAnchor;
         this->bottomAnchor  = rhs.bottomAnchor;

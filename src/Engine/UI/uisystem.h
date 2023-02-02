@@ -35,16 +35,10 @@ namespace pg
         // {
         //     UiSize anchorPoint;
         // };
-
+        
         /**
          * @brief A struct describing the two anchor points needed to represent a corner
          */
-        struct Anchor
-        {
-            mutable _unique_id id = 0; ///< Unique identifier of the entity oh this anchor 
-            UiSize anchorPoint;        ///< The anchor point of the corner
-        };
-        
         struct Corner
         {
             const Anchor* verticalAnchor;       ///< The vertical anchor point of the corner
@@ -66,13 +60,13 @@ namespace pg
 
         // The 4 anchors points of the object
         /** Top anchor points of the object */
-        const Anchor top    = {0, &pos.y};
+        const Anchor top    = {0, AnchorDir::Top,    &pos.y};
         /** Right anchor points of the object */
-        const Anchor right  = {0, pos.x + width};
+        const Anchor right  = {0, AnchorDir::Right,  pos.x + width};
         /** Bottom anchor points of the object */
-        const Anchor bottom = {0, pos.y + height};
+        const Anchor bottom = {0, AnchorDir::Bottom, pos.y + height};
         /** Left anchor points of the object */
-        const Anchor left   = {0, &pos.x};
+        const Anchor left   = {0, AnchorDir::Left,   &pos.x};
 
         // The 4 corner points of the object
         /** Top left corner of the object */
@@ -140,34 +134,34 @@ namespace pg
 
         // Setter methods for position and size properties
     public:
-        inline void setX(const float& value) { pos.x = value; update(); }
-        inline void setY(const float& value) { pos.y = value; update(); }
-        inline void setZ(const float& value) { pos.z = value; update(); }
+        inline void setX(const float& value)              { pos.x = value; update(); }
+        inline void setY(const float& value)              { pos.y = value; update(); }
+        inline void setZ(const float& value)              { pos.z = value; update(); }
 
-        inline void setX(const UiSize& value) { pos.x = value; update(); }
-        inline void setY(const UiSize& value) { pos.y = value; update(); }
-        inline void setZ(const UiSize& value) { pos.z = value; update(); }
+        inline void setX(const UiSize& value)             { pos.x = value; update(); }
+        inline void setY(const UiSize& value)             { pos.y = value; update(); }
+        inline void setZ(const UiSize& value)             { pos.z = value; update(); }
 
-        inline void setWidth(const float& value)  { width = value; update(); }
-        inline void setHeight(const float& value) { height = value; update(); }
+        inline void setWidth(const float& value)          { width = value; update(); }
+        inline void setHeight(const float& value)         { height = value; update(); }
 
-        inline void setWidth(const UiSize& value)  { width = value; update(); }
-        inline void setHeight(const UiSize& value) { height = value; update(); }
+        inline void setWidth(const UiSize& value)         { width = value; update(); }
+        inline void setHeight(const UiSize& value)        { height = value; update(); }
 
         inline void setTopAnchor(const Anchor& anchor)    { topAnchor = &anchor; update(); }
         inline void setRightAnchor(const Anchor& anchor)  { rightAnchor = &anchor; update(); }
         inline void setBottomAnchor(const Anchor& anchor) { bottomAnchor = &anchor; update(); }
         inline void setLeftAnchor(const Anchor& anchor)   { leftAnchor = &anchor; update(); }
 
-        inline void setTopMargin(const int& value)    { topMargin = value; update(); }
-        inline void setRightMargin(const int& value)  { rightMargin = value; update(); }
-        inline void setBottomMargin(const int& value) { bottomMargin = value; update(); }
-        inline void setLeftMargin(const int& value)   { leftMargin = value; update(); }
+        inline void setTopMargin(const int& value)        { topMargin = value; update(); }
+        inline void setRightMargin(const int& value)      { rightMargin = value; update(); }
+        inline void setBottomMargin(const int& value)     { bottomMargin = value; update(); }
+        inline void setLeftMargin(const int& value)       { leftMargin = value; update(); }
 
-        inline void setTopMargin(const UiSize& value)    { topMargin = value; update(); }
-        inline void setRightMargin(const UiSize& value)  { rightMargin = value; update(); }
-        inline void setBottomMargin(const UiSize& value) { bottomMargin = value; update(); }
-        inline void setLeftMargin(const UiSize& value)   { leftMargin = value; update(); }
+        inline void setTopMargin(const UiSize& value)     { topMargin = value; update(); }
+        inline void setRightMargin(const UiSize& value)   { rightMargin = value; update(); }
+        inline void setBottomMargin(const UiSize& value)  { bottomMargin = value; update(); }
+        inline void setLeftMargin(const UiSize& value)    { leftMargin = value; update(); }
 
         // TODO add function for alignement with corner, vertical and horizontal center, center alignement
         // and fill
@@ -194,13 +188,13 @@ namespace pg
         // Pointer to anchors where this object is tied
 
         /** Pointer to the top attached anchor */
-        const Anchor* topAnchor;
+        const Anchor* topAnchor    = nullptr;
         /** Pointer to the right attached anchor */
-        const Anchor* rightAnchor;
+        const Anchor* rightAnchor  = nullptr;
         /** Pointer to the bottom attached anchor */
-        const Anchor* bottomAnchor;
+        const Anchor* bottomAnchor = nullptr;
         /** Pointer to the left attached anchor */
-        const Anchor* leftAnchor;
+        const Anchor* leftAnchor   = nullptr;
     };
 
     struct UiComponentChangeEvent

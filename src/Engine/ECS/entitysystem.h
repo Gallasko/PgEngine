@@ -123,7 +123,7 @@ namespace pg
 
                 auto res = CompRef<Type>(component, entity->id, this, not running);
 
-                if constexpr(std::is_base_of_v(Ctor, Type))
+                if constexpr(std::is_base_of_v<Ctor, Type>)
                     res->onCreation(entity);
 
                 return res;
@@ -133,7 +133,7 @@ namespace pg
                 LOG_ERROR("ECS", Strfy() << "Can't attach component [" << typeid(Type).name() << "]: " << e.what());
             }
 
-            return nullptr;
+            return CompRef<Type>();
         }
 
         template <typename Type>
@@ -158,6 +158,9 @@ namespace pg
         inline constexpr size_t getNbEntities() const { return entityPool.getNbElements(); }
 
         inline Entity* getEntity(size_t index) const { return entityPool.getElement(index); }
+
+        template <typename Comp>
+        inline Comp* getComponent(_unique_id id) const { return registry.retrieve<Comp>()->getComponent(id); }
 
     private:
         void addEntityToPool(Entity* entity)
@@ -185,8 +188,9 @@ namespace pg
 
             try
             {
-                if constexpr(std::is_base_of_v(Dtor, Type))
-                    res->onDeletion(entity);
+                // TODO: Add this somewhere (ie in ecs.detach or in sparset.removeComponent)
+                //if constexpr(std::is_base_of_v<Dtor, Type>)
+                //    res->onDeletion(entity);
 
                 registry.retrieve<Type>()->internalRemoveComponent(entity);            
             }
@@ -247,5 +251,43 @@ namespace pg
         }
 
         return nullptr;
+    }
+
+    template <typename Comp>
+    void CompRef<Comp>::operator=(const CompRef& rhs)
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        if(rhs.initialized)
+        {
+            initialized = rhs.initialized;
+            component   = rhs.component;
+            entityId    = rhs.entityId;
+            ecsRef      = rhs.ecsRef;
+        }
+        else
+        {
+            entityId = rhs.entityId;
+
+            if(entityId != 0)
+            {
+                component = rhs.ecsRef->getComponent<Comp>(entityId);
+                ecsRef = rhs.ecsRef;
+                initialized = true;
+
+                // Todo see if we propagate back the finding of the entity to the base ref !
+                // rhs.entity = entity
+                // rhs.initialized = true
+                // Note that it needs to make the rhs not const or we need to make the member entity mutable !
+            }
+            else
+            {
+                LOG_ERROR(DOM, "Copy of a reference to an invalid entity");
+
+                initialized = rhs.initialized;
+                component   = rhs.component;
+                ecsRef      = rhs.ecsRef;
+            }
+        }
     }
 }

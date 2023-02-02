@@ -287,8 +287,31 @@ namespace pg
         return UiSize(lhs, 0.0f, nullptr, rhs.value, UiSize::UiValue::UiSizeOpType::DIV);
     }
 
+    enum class AnchorDir : uint8_t
+    {
+        Top = 0,
+        Right,
+        Bottom,
+        Left
+    };
+
+    struct Anchor
+    {
+        mutable _unique_id id = 0; ///< Unique identifier of the entity oh this anchor
+        AnchorDir anchorDir;       ///< Direction of the anchor point mainly for serialization purposes
+        UiSize anchorPoint;        ///< The anchor point of the corner
+    };
+
     struct UiPosition 
     {
+        struct UiPosValue
+        {
+            enum class UiPosType : uint8_t
+            {
+
+            };
+        };
+
         UiPosition() {}
         UiPosition(const UiSize& x, const UiSize& y, const UiSize& z) { this->x = &x; this->y = &y; this->z = &z; }
         UiPosition(const UiPosition& pos) : x(pos.x), y(pos.y), z(pos.z) { }

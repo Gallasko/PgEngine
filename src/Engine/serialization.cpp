@@ -170,6 +170,7 @@ namespace pg
 
         archive.startSerialization("Model Info");
 
+        // Todo: create a serializer for a vector/list/map/arrays (serializeList)
         std::string attribute = "[ ";
         
         for(unsigned int i = 0; i < modelInfo.nbVertices; i++)

@@ -142,7 +142,6 @@ namespace pg
     template <typename Type>
     void serialize(Archive& archive, const std::string& name, const Type& value)
     {
-        
         archive << name << ": ";
 
         serialize(archive, value);

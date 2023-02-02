@@ -245,9 +245,7 @@ namespace pg
         {
             LOG_THIS_MEMBER("Own");
 
-            const auto& id = registry->getTypeId<Type>();
-
-            LOG_INFO("Own", "Type: " + std::string(typeid(Type).name()) + " get the id: " + std::to_string(id));
+            LOG_INFO("Own", Strfy() << "Type: " << typeid(Type).name() << " get the id: " << registry->getTypeId<Type>());
 
             registry->store<Type>(this);
         }
@@ -286,51 +284,16 @@ namespace pg
     template <typename Comp>
     struct CompRef
     {
-        CompRef() : initialized(false), component(nullptr), entity(nullptr), entityId(0), ecsRef(nullptr) {}
+        CompRef() : initialized(false), component(nullptr), entityId(0), ecsRef(nullptr) {}
 
-        CompRef(Comp* component, _unique_id id, EntitySystem* ecs, bool initialized = true) : initialized(initialized), component(component), entityId(id), ecsRef(ecs) {}
+        CompRef(Comp* component, _unique_id id, const EntitySystem* ecs, bool initialized = true) : initialized(initialized), component(component), entityId(id), ecsRef(ecs) {}
 
         CompRef(const CompRef& rhs)
         {
             (*this) = rhs; 
         }
 
-        void operator=(const CompRef& rhs)
-        {
-            LOG_THIS_MEMBER(DOM);
-
-            if(rhs.initialized)
-            {
-                initialized = rhs.initialized;
-                component   = rhs.component;
-                entityId    = rhs.entityId;
-                ecsRef      = rhs.ecsRef;
-            }
-            else
-            {
-                entityId = rhs.entityId;
-
-                if(entityId != 0)
-                {
-                    component = rhs.ecsRef->getComponent<Comp>(entityId);
-                    ecsRef = rhs.ecsRef;
-                    initialized = true;
-
-                    // Todo see if we propagate back the finding of the entity to the base ref !
-                    // rhs.entity = entity
-                    // rhs.initialized = true
-                    // Note that it needs to make the rhs not const or we need to make the member entity mutable !
-                }
-                else
-                {
-                    LOG_ERROR(DOM, "Copy of a reference to an invalid entity");
-
-                    initialized = rhs.initialized;
-                    component   = rhs.component;
-                    ecsRef      = rhs.ecsRef;
-                }
-            }
-        }
+        void operator=(const CompRef& rhs);
 
         Comp* operator->() const
         {
@@ -347,6 +310,6 @@ namespace pg
         bool initialized;
         Comp* component;
         _unique_id entityId;
-        EntitySystem* ecsRef;  
+        const EntitySystem* ecsRef;  
     };
 }

@@ -35,7 +35,6 @@ namespace pg
         }
     }
 
-
     void CommandDispatcher::process()
     {
         LOG_THIS_MEMBER(DOM);

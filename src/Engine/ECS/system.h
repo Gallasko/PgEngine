@@ -103,7 +103,9 @@ namespace pg
         LOG_INFO("System", "Registering the system as a storage one");
 
         if(system->executionPolicy != ExecutionPolicy::Sequential)
+        {
             LOG_ERROR("System", "Trying to set two different execution policies !");
+        }
 
         system->setPolicy(ExecutionPolicy::Storage);
         
@@ -118,7 +120,9 @@ namespace pg
         LOG_INFO("System", "Registering the system as a manual one");
 
         if(system->executionPolicy != ExecutionPolicy::Sequential)
+        {
             LOG_ERROR("System", "Trying to set two different execution policies !");
+        }
 
         system->setPolicy(ExecutionPolicy::Manual);
         
@@ -133,7 +137,9 @@ namespace pg
         LOG_INFO("System", "Registering the system as a parallel one");
 
         if(system->executionPolicy != ExecutionPolicy::Sequential)
+        {
             LOG_ERROR("System", "Trying to set two different execution policies !");
+        }
 
         system->setPolicy(ExecutionPolicy::Parallel);
         
@@ -148,7 +154,9 @@ namespace pg
         LOG_INFO("System", "Registering the system as a parallel one");
 
         if(system->executionPolicy != ExecutionPolicy::Sequential)
+        {
             LOG_ERROR("System", "Trying to set two different execution policies !");
+        }
 
         system->setPolicy(ExecutionPolicy::Independent);
         
