@@ -256,7 +256,7 @@ namespace pg
     template <typename Comp>
     void CompRef<Comp>::operator=(const CompRef& rhs)
     {
-        LOG_THIS_MEMBER(DOM);
+        LOG_THIS("Comp ref");
 
         if(rhs.initialized)
         {
@@ -282,7 +282,7 @@ namespace pg
             }
             else
             {
-                LOG_ERROR(DOM, "Copy of a reference to an invalid entity");
+                LOG_ERROR("Comp ref", "Copy of a reference to an invalid entity");
 
                 initialized = rhs.initialized;
                 component   = rhs.component;

@@ -458,8 +458,8 @@ void EditorWindow::addElement(const UiComponentType& type)
     // TODO: take the correct coord of the context menu (context menu can show up from the top of the cursor if their is not enough space in the bottom of the screen)
     if(contextMenu != nullptr)
     {
-    	componentX = contextMenu->pos.x;
-        componentY = contextMenu->pos.y;
+    	componentX = static_cast<UiSize>(contextMenu->pos.x);
+        componentY = static_cast<UiSize>(contextMenu->pos.y);
     }
 
     switch(type)

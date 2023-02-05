@@ -2,7 +2,6 @@
 
 #include "constant.h"
 #include "logger.h"
-#include "serialization.h"
 
 #include "Renderer/renderer.h"
 
@@ -12,6 +11,12 @@ namespace pg
 	{
 		static constexpr char const * DOM = "Ui System";
 	}
+
+    template <>
+    UiSize operator-(const UiPosition::UiPosValue& lhs, const UiSize& rhs)
+    {
+        return UiSize(static_cast<UiSize>(lhs), -1.0f, rhs.value);
+    }
 
     /**
      * @brief Specialization of the serialize function for UiSize 
@@ -27,6 +32,86 @@ namespace pg
         archive.startSerialization("UiSize");
 
         serialize(archive, "value", static_cast<float>(value));
+
+        archive.endSerialization();
+    }
+
+    /**
+     * @brief Specialization of the serialize function for AnchorDir 
+     * 
+     * @param archive A references to the archive
+     * @param value The anchor dir value
+     */
+    template <>
+    void serialize(Archive& archive, const AnchorDir& value)
+    {
+        LOG_THIS(DOM);
+
+        archive.startSerialization("AnchorDir");
+
+        std::string anchorDirString;
+
+        switch(value)
+        {
+            case AnchorDir::Top:
+                anchorDirString = "Top"; break;
+            case AnchorDir::Right:
+                anchorDirString = "Right"; break;
+            case AnchorDir::Bottom:
+                anchorDirString = "Bottom"; break;
+            case AnchorDir::Left:
+                anchorDirString = "Left"; break;
+        }
+
+        serialize(archive, "dir", anchorDirString);
+
+        archive.endSerialization();
+    }
+
+    /**
+     * @brief Specialization of the serialize function for Anchor 
+     * 
+     * @param archive A references to the archive
+     * @param value The anchor value
+     */
+    template <>
+    void serialize(Archive& archive, const UiAnchor& value)
+    {
+        LOG_THIS(DOM);
+
+        archive.startSerialization("UiAnchor");
+
+        serialize(archive, "entityId", value.id);
+        serialize(archive, "anchorDir", value.anchorDir);
+
+        archive.endSerialization();
+    }
+
+    /**
+     * @brief Specialization of the serialize function for UiPosValue 
+     * 
+     * @param archive A references to the archive
+     * @param value The ui pos value
+     */
+    template <>
+    void serialize(Archive& archive, const UiPosition::UiPosValue& value)
+    {
+        LOG_THIS(DOM);
+
+        archive.startSerialization("UiPosValue");
+
+        switch (value.type)
+        {
+            case UiPosition::UiPosValue::UiPosType::Anchor:
+                serialize(archive, "type",   std::string("anchor"));
+                serialize(archive, "anchor", value.value.anchor);
+                break;
+
+            case UiPosition::UiPosValue::UiPosType::Value:
+                serialize(archive, "type",  std::string("value"));
+                serialize(archive, "value", value.value.size);
+                break;
+        }
 
         archive.endSerialization();
     }
@@ -72,57 +157,6 @@ namespace pg
     }
 
     /**
-     * @brief Specialization of the serialize function for AnchorDir 
-     * 
-     * @param archive A references to the archive
-     * @param value The anchor dir value
-     */
-    template <>
-    void serialize(Archive& archive, const AnchorDir& value)
-    {
-        LOG_THIS(DOM);
-
-        archive.startSerialization("AnchorDir");
-
-        std::string anchorDirString;
-
-        switch(value)
-        {
-            case AnchorDir::Top:
-                anchorDirString = "Top"; break;
-            case AnchorDir::Right:
-                anchorDirString = "Right"; break;
-            case AnchorDir::Bottom:
-                anchorDirString = "Bottom"; break;
-            case AnchorDir::Left:
-                anchorDirString = "Left"; break;
-        }
-
-        serialize(archive, "dir", anchorDirString);
-
-        archive.endSerialization();
-    }
-
-    /**
-     * @brief Specialization of the serialize function for Anchor 
-     * 
-     * @param archive A references to the archive
-     * @param value The anchor value
-     */
-    template <>
-    void serialize(Archive& archive, const Anchor& value)
-    {
-        LOG_THIS(DOM);
-
-        archive.startSerialization("Anchor");
-
-        serialize(archive, "entityId", value.id);
-        serialize(archive, "anchorDir", value.anchorDir);
-
-        archive.endSerialization();
-    }
-
-    /**
      * @brief Specialization of the serialize function for UiComponent 
      * 
      * @param archive A references to the archive
@@ -148,27 +182,27 @@ namespace pg
         serialize(archive, "bottomMargin",  value.bottomMargin);
         serialize(archive, "leftMargin",    value.leftMargin);
 
-        Anchor emptyAnchor = {0, AnchorDir::Top, 0};
+        UiAnchor emptyAnchor = {0, AnchorDir::Top, 0.0f};
 
         if(value.topAnchor == nullptr)
             serialize(archive, "topAnchor", emptyAnchor);
         else
-            serialize(archive, "topAnchor", value.topAnchor);
+            serialize(archive, "topAnchor", *value.topAnchor);
 
         if(value.leftAnchor == nullptr)
             serialize(archive, "leftAnchor", emptyAnchor);
         else
-            serialize(archive, "leftAnchor", value.leftAnchor);
+            serialize(archive, "leftAnchor", *value.leftAnchor);
 
         if(value.bottomAnchor == nullptr)
             serialize(archive, "bottomAnchor", emptyAnchor);
         else
-            serialize(archive, "bottomAnchor", value.bottomAnchor);
+            serialize(archive, "bottomAnchor", *value.bottomAnchor);
 
         if(value.rightAnchor == nullptr)
             serialize(archive, "rightAnchor", emptyAnchor);
         else
-            serialize(archive, "rightAnchor", value.rightAnchor);
+            serialize(archive, "rightAnchor", *value.rightAnchor);
 
         archive.endSerialization();
     }
@@ -320,7 +354,7 @@ namespace pg
         const float xValue = x;
         const float yValue = y;
 
-        return xValue > this->pos.x && xValue < (this->pos.x + this->width) && yValue < (this->pos.y + this->height) && yValue > this->pos.y;
+        return xValue > static_cast<UiSize>(this->pos.x) && xValue < (this->pos.x + this->width) && yValue < (this->pos.y + this->height) && yValue > static_cast<UiSize>(this->pos.y);
     }
 
     bool UiComponent::inBound(const constant::Vector2D& vec2) const
@@ -356,7 +390,7 @@ namespace pg
         if(rightAnchor != nullptr && leftAnchor != nullptr)
         {
             this->width = (rightAnchor->anchorPoint - rightMargin) - (leftAnchor->anchorPoint - leftMargin);
-            this->pos.x = *leftAnchor + leftMargin;
+            this->pos.x = leftAnchor->anchorPoint + leftMargin;
         }
         else if(rightAnchor != nullptr && leftAnchor == nullptr)
         {

@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include "uniqueid.h"
 #include "logger.h"
 
 namespace pg
@@ -85,7 +86,7 @@ namespace pg
         };
 
     public:
-        UiSize(const float& pixelSize = 0.0f, const float& scaleValue = 0.0f, std::shared_ptr<UiValue> ref1 = nullptr, std::shared_ptr<UiValue> ref2 = nullptr, const UiValue::UiSizeOpType& op = UiValue::UiSizeOpType::NONE) : value(std::make_shared<UiValue>(pixelSize, scaleValue, ref1, ref2, op)) {}
+        UiSize(float pixelSize = 0.0f, float scaleValue = 0.0f, std::shared_ptr<UiValue> ref1 = nullptr, std::shared_ptr<UiValue> ref2 = nullptr, const UiValue::UiSizeOpType& op = UiValue::UiSizeOpType::NONE) : value(std::make_shared<UiValue>(pixelSize, scaleValue, ref1, ref2, op)) {}
         //UiSize(const float& pixelSize = 0.0f, const float& scaleValue = 0.0f, std::shared_ptr<UiValue> ref1 = nullptr, std::shared_ptr<UiValue> ref2 = nullptr, const UiValue::UiSizeOpType& op = UiValue::UiSizeOpType::NONE) : value(std::make_shared<UiValue>(pixelSize, scaleValue, ref1, ref2, op)) {}
         UiSize(const UiSize& size) : value(size.value) {} // TODO create a copy contruct with a bool to delete pointer
         UiSize(const UiSize* size) : UiSize(0.0f, 1.0f, size->value, nullptr, UiValue::UiSizeOpType::NONE) {}
@@ -295,21 +296,168 @@ namespace pg
         Left
     };
 
-    struct Anchor
+    struct UiAnchor
     {
         mutable _unique_id id = 0; ///< Unique identifier of the entity oh this anchor
         AnchorDir anchorDir;       ///< Direction of the anchor point mainly for serialization purposes
         UiSize anchorPoint;        ///< The anchor point of the corner
+
+        // UiAnchor() : id(0), anchorDir(AnchorDir::Top), anchorPoint(0.0f) {}
+        // UiAnchor(_unique_id id, const AnchorDir& dir, const UiSize& size) : id(id), anchorDir(dir), anchorPoint(size) {}
     };
 
     struct UiPosition 
     {
+        // UiPosValue always hold a reference to UiPoint assigned to it !
         struct UiPosValue
         {
             enum class UiPosType : uint8_t
             {
-
+                Anchor,
+                Value,
+                UiPosValue
             };
+
+            union UiPosV
+            {
+                UiPosV() { new(&size) UiSize(0.0f); }
+                ~UiPosV() {}
+
+                UiAnchor anchor;
+                UiSize size;
+                const UiPosValue *ref;
+            };
+
+            UiPosValue() : type(UiPosType::Value) { }
+
+            explicit UiPosValue(const UiSize& size) : type(UiPosType::Value) { new(&value.size) UiSize(size); this->size = value.size; }
+            explicit UiPosValue(const UiSize* size) : type(UiPosType::Value) { new(&value.size) UiSize(size); this->size = value.size; }
+            explicit UiPosValue(const UiAnchor& anchor) : type(UiPosType::Anchor) { new(&value.anchor) UiAnchor(anchor); this->size = value.anchor.anchorPoint; }
+
+            explicit UiPosValue(const UiPosValue& rhs)
+            { 
+                type = rhs.type;
+
+                if (type == UiPosType::Anchor)
+                {
+                    new(&value.anchor) UiAnchor(rhs.value.anchor);
+                    this->size = &value.anchor.anchorPoint;
+                }
+                else if (type == UiPosType::Value)
+                {
+                    new(&value.size) UiSize(rhs.value.size);
+                    this->size = value.size;
+                }
+                else
+                {
+                    value.ref = rhs.value.ref;
+                    this->size = rhs.size;
+                }
+            }
+
+            explicit UiPosValue(const UiPosValue* rhs) : type(UiPosType::UiPosValue) { value.ref = rhs; size = &rhs->size; }
+
+            ~UiPosValue() { clearOldType(); }
+
+            void operator=(const UiPosValue& rhs)
+            {
+                clearOldType();
+
+                type = rhs.type;
+
+                if (type == UiPosType::Anchor)
+                {
+                    new(&value.anchor) UiAnchor(rhs.value.anchor);
+                    this->size = &value.anchor.anchorPoint;
+                }
+                else if (type == UiPosType::Value)
+                {
+                    new(&value.size) UiSize(rhs.value.size);
+                    this->size = value.size;
+                }
+                else
+                {
+                    value.ref = rhs.value.ref;
+                    this->size = rhs.size;
+                }
+            }
+
+            void operator=(const UiPosValue* rhs)
+            {
+                clearOldType();
+
+                type = UiPosType::UiPosValue;
+
+                value.ref = rhs;
+                this->size = &rhs->size;
+            }
+
+            void operator=(const UiAnchor& anchor)
+            {
+                clearOldType();
+
+               type = UiPosType::Anchor;
+               new(&value.anchor) UiAnchor(anchor);
+
+               this->size = &value.anchor.anchorPoint;
+            }
+
+            void operator=(const UiSize& size)
+            {
+                clearOldType();
+
+                type = UiPosType::Value;
+                new(&value.size) UiSize(size);
+
+                this->size = value.size;
+            }
+
+            void operator=(const UiSize* size)
+            {
+                clearOldType();
+
+                type = UiPosType::Value;
+                new(&value.size) UiSize(size);
+
+                this->size = value.size;
+            }
+
+            void operator=(float v)
+            {
+                clearOldType();
+
+                type = UiPosType::Value;
+                new(&value.size) UiSize(v);
+
+                size = value.size;
+            }
+            
+            void operator=(int v)
+            {
+                clearOldType();
+
+                type = UiPosType::Value;
+                new(&value.size) UiSize(v);
+
+                size = value.size;
+            }
+
+            void clearOldType()
+            {
+                if (type == UiPosType::Anchor)
+                    value.anchor.~UiAnchor();
+                else if (type == UiPosType::Value)
+                    value.size.~UiSize();
+            }
+
+            operator UiSize() const
+            {
+                return size;
+            }
+
+            UiPosType type;
+            UiPosV value;
+            UiSize size;
         };
 
         UiPosition() {}
@@ -340,10 +488,13 @@ namespace pg
             return pos;
         } 
 
-        UiSize x;
-        UiSize y;
-        UiSize z;
+        UiPosValue x;
+        UiPosValue y;
+        UiPosValue z;
     };
+
+    template <>
+    UiSize operator-(const UiPosition::UiPosValue& lhs, const UiSize& rhs);
 
     struct UiFrame
     {

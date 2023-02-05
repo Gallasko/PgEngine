@@ -22,7 +22,7 @@ namespace pg
 
     bool MouseInputComponent::inBound(int x, int y) const
     { 
-        return x > this->pos->x && x < (this->pos->x + *this->width) && y < (this->pos->y + *this->height) && y > this->pos->y; 
+        return x > static_cast<UiSize>(this->pos->x) && x < (this->pos->x + *this->width) && y < (this->pos->y + *this->height) && y > static_cast<UiSize>(this->pos->y); 
     }
 
     Entity* makeMouseArea(EntitySystem *ecs, UiComponent *component, void (*mouseInput)(Input*, double), void (*mouseLeave)(Input*, double))

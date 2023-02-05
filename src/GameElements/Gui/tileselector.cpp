@@ -40,7 +40,7 @@ namespace pg
         for(auto tile : tileSelector->tileRendererVector)
         {
             view.setToIdentity();
-            view.translate(QVector3D(-1.0f + 2.0f * (float)(tile.pos.x + (tileHeight / 4.0f)) / screenWidth, 1.0f + 2.0f * (float)( -tile.pos.y - (tileHeight / 8.0f)) / screenHeight, 0.0f));
+            view.translate(QVector3D(-1.0f + 2.0f * (float)(static_cast<UiSize>(tile.pos.x) + (tileHeight / 4.0f)) / screenWidth, 1.0f + 2.0f * (float)( -static_cast<UiSize>(tile.pos.y) - (tileHeight / 8.0f)) / screenHeight, 0.0f));
 
             defaultShaderProgram->setUniformValue(defaultShaderProgram->uniformLocation("view"), view);
 

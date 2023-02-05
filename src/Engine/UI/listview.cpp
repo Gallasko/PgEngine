@@ -35,7 +35,7 @@ namespace pg
 
         glEnable(GL_SCISSOR_TEST);
         //glScissor defined the box from the bottom left corner (x, y, w, h);
-        glScissor(listView->pos.x, (screenHeight - listViewHeight) - listView->pos.y, listView->width, listViewHeight);
+        glScissor(static_cast<UiSize>(listView->pos.x), (screenHeight - listViewHeight) - listView->pos.y, listView->width, listViewHeight);
 
         //TODO see if the square calculation couldn t be optimized
         for(auto& child : listView->renderList)
@@ -151,7 +151,10 @@ namespace pg
     }
 
     //TODO create a 2nd slider like said in the header
-    ListView::ListView(const UiComponent& frame, TextureComponent* backgroundTexture, const UiOrientation& orientation) : UiComponent(frame), slide(SlideBar(UiFrame{this->right, this->top, this->pos.z, DEFAULT_SLIDER_WIDTH, this->height}, this->frame, this->pos.y, [&](const UiSize& pos){ this->updateListPos(pos); })), orientation(orientation), backgroundTexture(backgroundTexture)
+    // TODO add anchor to UiPosition 
+    ListView::ListView(const UiComponent& frame, TextureComponent* backgroundTexture, const UiOrientation& orientation) :
+        UiComponent(frame),
+        slide(SlideBar(UiFrame{this->right.anchorPoint, this->top.anchorPoint, this->pos.z, DEFAULT_SLIDER_WIDTH, this->height}, this->frame, this->pos.y, [&](const UiSize& pos){ this->updateListPos(pos); })), orientation(orientation), backgroundTexture(backgroundTexture)
     {
         LOG_THIS_MEMBER(DOM);
 
@@ -238,7 +241,7 @@ namespace pg
         }
         else
         {
-            child->setTopAnchor(this->top - this->firstMargin);
+            child->setTopAnchor(this->top); // Todo - this->firstMargin);
             child->setLeftAnchor(this->left);
         }
 
@@ -363,10 +366,10 @@ namespace pg
         for(auto& child : children)
         {
             //Cast once to avoid multiple value lockup
-            float childTop = child->top;
-            float childBottom = child->bottom;
-            float childLeft = child->left;
-            float childRight = child->right;
+            float childTop = child->top.anchorPoint;
+            float childBottom = child->bottom.anchorPoint;
+            float childLeft = child->left.anchorPoint;
+            float childRight = child->right.anchorPoint;
 
             child->hide();
 

@@ -48,7 +48,7 @@ namespace pg
         glBindTexture(GL_TEXTURE_2D, tex);
 
         view.setToIdentity();
-        view.translate(QVector3D(-1.0f + 2.0f * (float)(texture->pos.x) / screenWidth, 1.0f + 2.0f * (float)( -texture->pos.y) / screenHeight, 0.0f));
+        view.translate(QVector3D(-1.0f + 2.0f * static_cast<UiSize>(texture->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(texture->pos.y) / screenHeight, 0.0f));
 
         shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
 

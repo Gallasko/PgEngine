@@ -38,4 +38,18 @@ namespace pg
         bool initialised = false;
     };
 
+    struct TextureComponentSystem : public System<Own<TextureComponent>, Ref<UiComponent>, StoragePolicy>
+    {
+        TextureComponentSystem()
+        {
+            // group<UiComponent, TextureComponent>().addOnGroup([](Entity* entity){
+            //     auto uiComp = entity->get<UiComponent>();
+            //     auto textComp = entity->get<TextureComponent>();
+
+            //     entity->world()->attach<RenderableTexture>(uiComp, textComp);
+            // });
+        }
+
+    };
+
 }
