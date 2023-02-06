@@ -265,20 +265,20 @@ namespace pg
                 return nullptr;
             }
 
-            if(Group<Type, Types...>::groupId != 0)
+            const auto& groupId = registry->getTypeId<Group<Type, Types...>>();
+
+            if(registry->hasGroup(groupId))
                 return registry->retrieveGroup<Type, Types...>();
             else
             {
                 LOG_INFO("System", "Creating new group");
                 // Todo fix this with the new id generation
-                // auto group = new Group<Type, Types...>(generateId());
+                auto group = new Group<Type, Types...>(groupId);
                 // 
-                // group->setRegistry(registry);
-                // group->process();
+                group->setRegistry(registry);
+                group->process();
 
-                // return group;
-
-                return nullptr;
+                return group;
             }
         }
     };

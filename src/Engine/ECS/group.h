@@ -95,7 +95,7 @@ namespace pg
     template <typename Type, typename... Types>
     struct Group
     {
-        Group(_unique_id id) { LOG_THIS_MEMBER("Ecs Group"); Group<Type, Types...>::groupId = id; }
+        Group(_unique_id id) : id(id) { LOG_THIS_MEMBER("Ecs Group"); }
         virtual ~Group() { LOG_THIS_MEMBER("Ecs Group"); }
 
         void setRegistry(ComponentRegistry* registry)
@@ -267,12 +267,8 @@ namespace pg
             // Todo join the task here !
         }
 
+        _unique_id id;
         ComponentRegistry* registry;
         GroupSet<GroupElement<Type, Types...>> elements;
-
-        static _unique_id groupId;
     };
-
-    template <typename Type, typename... Types>
-    _unique_id Group<Type, Types...>::groupId = 0;
 }

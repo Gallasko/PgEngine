@@ -109,6 +109,11 @@ namespace pg
             }
         }
 
+        bool hasGroup(_unique_id groupId) const
+        {
+            return groupStorageMap.count(groupId) > 0;
+        }
+
         template <typename Type, typename... Types>
         void storeGroup(Group<Type, Types...>* group) noexcept
         {
@@ -256,7 +261,12 @@ namespace pg
             LOG_THIS_MEMBER("Own");
 
             // Create a new component and store it in a sparse set along with the entity id using it
-            return components.addComponent(entity, std::forward<Args>(args)...);
+            auto comp = components.addComponent(entity, std::forward<Args>(args)...);
+
+            for(const auto& callback : onComponentCreation)
+                callback.second(entity);
+
+            return comp;
         }
 
         inline void internalRemoveComponent(Entity* entity)
@@ -264,6 +274,9 @@ namespace pg
             LOG_THIS_MEMBER("Own");
 
             components.removeComponent(entity);
+
+            for(const auto& callback : onComponentDeletion)
+                callback.second(entity);
         }
 
         inline Type* getComponent(_unique_id id) const
@@ -279,6 +292,9 @@ namespace pg
         }
 
         ComponentSet<Type> components;
+
+        std::map<_unique_id, void(Entity*)> onComponentCreation;
+        std::map<_unique_id, void(Entity*)> onComponentDeletion;
     };
 
     template <typename Comp>

@@ -36,7 +36,8 @@ namespace pg
      * @brief Structure tag used to specify onCreation member on a component
      *
      * @todo find a better class name 
-     */    struct Dtor
+     */
+    struct Dtor
     {
         virtual void onDeletion(Entity* entity) = 0;
     };
@@ -112,6 +113,7 @@ namespace pg
             {
                 Type* component;
 
+                // Todo change this to add the command in the command dispatcher to avoid the dangling pointer
                 if(running)
                 {
                     component = new Type(args...);
@@ -189,8 +191,11 @@ namespace pg
             try
             {
                 // TODO: Add this somewhere (ie in ecs.detach or in sparset.removeComponent)
-                //if constexpr(std::is_base_of_v<Dtor, Type>)
-                //    res->onDeletion(entity);
+                if constexpr(std::is_base_of_v<Dtor, Type>)
+                {
+                    auto res = getComponent<Type>(entity.id);
+                    res->onDeletion(entity);
+                }
 
                 registry.retrieve<Type>()->internalRemoveComponent(entity);            
             }
