@@ -52,6 +52,8 @@ namespace pg
             }
 #endif
 
+            componentDeleteMap.emplace(id, [owner](Entity* entity){ owner->internalRemoveComponent(entity); });
+
             componentStorageMap.emplace(id, static_cast<Storage*>(static_cast<Delegate*>(owner)));
         }
 
@@ -180,6 +182,11 @@ namespace pg
             // return id;
         }
 
+        void detachComponentFromEntity(Entity* entity, _unique_id id) const
+        {
+            componentDeleteMap.at(id)(entity);
+        }
+
         // Common singleton system
     public:
         MasterRenderer* masterRenderer;
@@ -188,6 +195,7 @@ namespace pg
 
     private:
         std::unordered_map<_unique_id, Storage*> componentStorageMap;
+        std::unordered_map<_unique_id, std::function<void(Entity*)>> componentDeleteMap;
         std::unordered_map<_unique_id, Storage*> groupStorageMap;
         std::unordered_map<_unique_id, std::vector<std::function<void(const AbstractEvent&)>>> eventStorageMap;
     };
