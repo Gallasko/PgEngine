@@ -17,6 +17,8 @@
 namespace pg
 {
     // Todo create a queue that hold all entity id that got deleted to reattribute them later on
+
+    // Todo Create a different id gen for systems so that components id are smaller and more packed
     
     // Forward declarations
     class ComponentRegistry;
@@ -116,7 +118,7 @@ namespace pg
                 // Todo change this to add the command in the command dispatcher to avoid the dangling pointer
                 if(running)
                 {
-                    component = new Type(args...);
+                    component = cmdDispatcher.attachComp(args...);
                 }
                 else
                 {
@@ -181,6 +183,12 @@ namespace pg
             }
 
             entityPool.release(entity);
+        }
+
+        template <typename Type>
+        void addComponentToPool(Type* component)
+        {
+            
         }
 
         template <typename Type>

@@ -42,7 +42,8 @@ namespace pg
     {
         TextureComponentSystem()
         {
-            // group<UiComponent, TextureComponent>().addOnGroup([](Entity* entity){
+            // auto group = registerGroup<UiComponent, TextureComponent>();
+            // group.addOnGroup([](Entity* entity){
             //     auto uiComp = entity->get<UiComponent>();
             //     auto textComp = entity->get<TextureComponent>();
 

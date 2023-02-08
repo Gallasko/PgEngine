@@ -272,7 +272,27 @@ namespace pg
             else
             {
                 LOG_INFO("System", "Creating new group");
-                // Todo fix this with the new id generation
+
+                auto group = new Group<Type, Types...>(groupId);
+                // 
+                group->setRegistry(registry);
+                group->process();
+
+                return group;
+            }
+        }
+
+        template <typename Type, typename... Types>
+        Group<Type, Types...>* registerGroup() const
+        {
+            const auto& groupId = registry->getTypeId<Group<Type, Types...>>();
+
+            if(registry->hasGroup(groupId))
+                return registry->retrieveGroup<Type, Types...>();
+            else
+            {
+                LOG_INFO("System", "Creating new group");
+
                 auto group = new Group<Type, Types...>(groupId);
                 // 
                 group->setRegistry(registry);

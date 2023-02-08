@@ -106,6 +106,16 @@ namespace pg
             registry->storeGroup<Type, Types...>(this);
         }
 
+        void addOnGroup(void(*callback)(Entity*))
+        {
+            onAddGroup.push_back(callback);
+
+            for(const auto& element : elements.viewComponents())
+            {
+                callback(element->entityId);
+            }
+        }
+
         void process()
         {
             LOG_THIS_MEMBER("Ecs Group");
@@ -270,5 +280,8 @@ namespace pg
         _unique_id id;
         ComponentRegistry* registry;
         GroupSet<GroupElement<Type, Types...>> elements;
+
+        std::vector<void(Entity*)> onAddGroup;
+        std::vector<void(Entity*)> onDelGroup;
     };
 }

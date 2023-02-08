@@ -81,6 +81,22 @@ namespace pg
 
         void deleteEntity(Entity* entity);
 
+        template <typename Type, typename... Args>
+        Type* attachComp(const Args&... args)
+        {
+            LOG_THIS_MEMBER("Command Dispatcher");
+
+            auto comp = new Type(args...);
+
+            if(not componentQueue.enqueue(ComponentCommand{comp, ComponentCommand::ComponentCommandType::creation}))
+            {
+                LOG_ERROR(DOM, Strfy() << "Could not enqueue the creation of component " << typeid(Type).name());
+                return nullptr;
+            }
+
+            return comp;
+        }
+
         inline bool enqueueCommand(const SysCommand& cmd)
         {
             return sysQueue.enqueue(cmd);
@@ -102,6 +118,8 @@ namespace pg
         EntitySystem *const ecsRef;
 
         moodycamel::ConcurrentQueue<EntityCommand> entityQueue;
+
+        moodycamel::ConcurrentQueue<ComponentCommand> componentQueue;
 
         moodycamel::ConcurrentQueue<SysCommand> sysQueue;
     };
