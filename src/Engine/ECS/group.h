@@ -281,7 +281,7 @@ namespace pg
         ComponentRegistry* registry;
         GroupSet<GroupElement<Type, Types...>> elements;
 
-        std::vector<void(Entity*)> onAddGroup;
-        std::vector<void(Entity*)> onDelGroup;
+        std::vector<void(*)(Entity*)> onAddGroup;
+        std::vector<void(*)(Entity*)> onDelGroup;
     };
 }

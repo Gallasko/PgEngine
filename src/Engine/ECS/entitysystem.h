@@ -107,7 +107,7 @@ namespace pg
         //TODO make a template specialization capable of attaching an entity to an entity
 
         template <typename Type, typename... Args>
-        CompRef<Type> attach(Entity* entity, const Args&... args) const noexcept
+        CompRef<Type> attach(Entity* entity, const Args&... args) noexcept
         {
             LOG_THIS_MEMBER("ECS");
 
@@ -118,7 +118,7 @@ namespace pg
                 // Todo change this to add the command in the command dispatcher to avoid the dangling pointer
                 if(running)
                 {
-                    component = cmdDispatcher.attachComp(args...);
+                    component = cmdDispatcher.attachComp<Type>(args...);
                 }
                 else
                 {
@@ -201,7 +201,7 @@ namespace pg
                 // TODO: Add this somewhere (ie in ecs.detach or in sparset.removeComponent)
                 if constexpr(std::is_base_of_v<Dtor, Type>)
                 {
-                    auto res = getComponent<Type>(entity.id);
+                    auto res = getComponent<Type>(entity->id);
                     res->onDeletion(entity);
                 }
 
