@@ -8,6 +8,8 @@
 #include "uisystem.h"
 #include "constant.h"
 
+#include "Renderer/renderer.h"
+
 namespace pg
 {
 
@@ -42,13 +44,13 @@ namespace pg
     {
         TextureComponentSystem()
         {
-            // auto group = registerGroup<UiComponent, TextureComponent>();
-            // group.addOnGroup([](Entity* entity){
-            //     auto uiComp = entity->get<UiComponent>();
-            //     auto textComp = entity->get<TextureComponent>();
+            auto group = registerGroup<UiComponent, TextureComponent>();
+            group.addOnGroup([](Entity* entity){
+                auto uiComp = entity->get<UiComponent>();
+                auto textComp = entity->get<TextureComponent>();
 
-            //     entity->world()->attach<RenderableTexture>(uiComp, textComp);
-            // });
+                entity->world()->attach<RenderableTexture>(uiComp, textComp);
+            });
         }
 
     };

@@ -26,14 +26,33 @@ namespace pg
     template <typename... Args>
     void renderer(MasterRenderer* masterRender, Args... args);
 
-    //[TODO] Multiple FBO -> 1 for a whole screen capture and other for batch rendering on a texture 
-    // Add Particle systeme with instancing already done / create an alternative if needed
+    class UiComponent;
+    class TextureComponent;
 
-    class MasterRenderer : protected QOpenGLFunctions
+    struct RenderableTexture
+    {
+        RenderableTexture(UiComponent *uiComp, TextureComponent *texComp) : uiComp(uiComp), texComp(texComp) { }
+
+        UiComponent *uiComp;
+        TextureComponent *texComp;
+    };
+
+    //[TODO] Multiple FBO -> 1 for a whole screen capture and other for batch rendering on a texture 
+    // Add Particle system with instancing already done / create an alternative if needed
+
+    class MasterRenderer : protected QOpenGLFunctions, public System<Own<RenderableTexture>>
     {
     public:
         MasterRenderer() {}
         ~MasterRenderer() { delete extraFunctions; delete squareObject; delete instanceVBO; }
+
+        virtual void execute() override
+        {
+            for(auto entity : view<RenderableTexture>())
+            {
+                render(entity->texComp);
+            }
+        }
 
         void initialize(QOpenGLContext *m_context) { initializeGlObject(m_context); initializeParameters(); }
 
