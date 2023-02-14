@@ -20,7 +20,7 @@ namespace
 
 namespace pg
 {
-    EntitySystem::EntitySystem() : cmdDispatcher(this)
+    EntitySystem::EntitySystem() : cmdDispatcher(this), registry(this)
     {
         LOG_THIS_MEMBER(DOM);
 

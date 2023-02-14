@@ -4,7 +4,7 @@
 
 namespace pg
 {
-    ComponentRegistry::ComponentRegistry() : masterRenderer(new MasterRenderer())
+    ComponentRegistry::ComponentRegistry(EntitySystem *ecs) : masterRenderer(new MasterRenderer()), ecsRef(ecs)
     {
         LOG_THIS_MEMBER("ComponentRegistry");
     } 

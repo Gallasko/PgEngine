@@ -23,13 +23,15 @@ namespace pg
     template <typename Type, typename... Types>
     struct Group;
 
+    class EntitySystem;
+
     class ComponentRegistry
     {
         struct Storage {};
         struct AbstractEvent {};
 
     public:
-        ComponentRegistry();
+        ComponentRegistry(EntitySystem *ecs);
 
         ~ComponentRegistry();
 
@@ -187,6 +189,8 @@ namespace pg
             componentDeleteMap.at(id)(entity);
         }
 
+        inline EntitySystem* world() const noexcept { return ecsRef; }
+
         // Common singleton system
     public:
         MasterRenderer* masterRenderer;
@@ -194,6 +198,8 @@ namespace pg
         mutable UniqueIdGenerator idGenerator;
 
     private:
+        EntitySystem* const ecsRef;
+
         std::unordered_map<_unique_id, Storage*> componentStorageMap;
         std::unordered_map<_unique_id, std::function<void(Entity*)>> componentDeleteMap;
         std::unordered_map<_unique_id, Storage*> groupStorageMap;

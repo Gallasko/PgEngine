@@ -26,6 +26,7 @@
 #include "uniqueid.h"
 #include "sparseset.h"
 
+#include "entitysystem.h"
 #include "componentregistry.h"
 
 #include "logger.h"
@@ -60,8 +61,8 @@ namespace pg
     template <typename... Types>
     struct GroupElement : public Getter<Types>...
     {
-        GroupElement(const _unique_id& entityId) : Getter<Types>()..., entityId(entityId) {}
-        GroupElement(const _unique_id& entityId, Types*... values) : Getter<Types>(values)..., entityId(entityId) { LOG_THIS_MEMBER("Ecs Group"); }
+        GroupElement(const Entity *entity, const _unique_id& entityId) : Getter<Types>()..., entity(entity), entityId(entityId) { LOG_THIS_MEMBER("Ecs Group"); }
+        GroupElement(const Entity *entity, const _unique_id& entityId, Types*... values) : Getter<Types>(values)..., entity(entity), entityId(entityId) { LOG_THIS_MEMBER("Ecs Group"); }
 
         template <typename Type>
         Type* get() const { LOG_THIS_MEMBER("Ecs Group"); return static_cast<const Getter<Type>*>(this)->get(); }
@@ -69,6 +70,7 @@ namespace pg
         template <typename Type>
         void set(Type *value) { LOG_THIS_MEMBER("Ecs Group"); static_cast<Getter<Type>*>(this)->set(value); }
 
+        const Entity *entity;
         const _unique_id entityId;
         bool toBeDeleted = false;
     };
@@ -112,13 +114,16 @@ namespace pg
 
             for(const auto& element : elements.viewComponents())
             {
-                callback(element->entityId);
+                callback(element->entity);
             }
         }
 
         void process()
         {
             LOG_THIS_MEMBER("Ecs Group");
+
+            if(this->registry == nullptr)
+                return;
 
             constexpr size_t nbOfSets = sizeof...(Types) + 1;
 
@@ -158,7 +163,7 @@ namespace pg
                 }
 
                 if(not element.toBeDeleted)
-                    elements.addComponent(id, element);
+                    elements.addComponent(registry->world()->getEntity(id), id, element);
             }
 
             for(size_t i = 0; i < nbOfSets; i++)
