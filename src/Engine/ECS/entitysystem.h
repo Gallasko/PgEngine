@@ -363,10 +363,9 @@ namespace pg
                 elements.addComponent(id, element);
         }
 
-        for(size_t i = 0; i < nbOfSets - 1; i++)
-            delete setList[i];
-
-        delete smallestSetHolder;
+        // Todo add this on ~Group() !
+        // for(size_t i = 0; i < nbOfSets; i++)
+        //     delete setList[i];
 
         // Add support for thread pools by passing a pool in this function and add the task inside of this pool
         // checkEntityInGroup<Type, Types...>(this->registry->getThreadPool(), elements);

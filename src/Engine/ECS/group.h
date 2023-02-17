@@ -124,7 +124,7 @@ namespace pg
                 LOG_INFO("Group", Strfy() << "Entity " << id << " is in group " << this->id);
                 GroupElement<Type, Types...> element(entity, id);
 
-                for(size_t j = 0; j < nbOfSets - 1; j++)
+                for(size_t j = 0; j < nbOfSets; j++)
                 {
                     setList[j]->setElement(setList[j]->set, element, id);    
                 }
