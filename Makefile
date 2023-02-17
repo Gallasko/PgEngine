@@ -263,10 +263,10 @@ $(BUILDDIR):
 
 clean:
 	@echo Cleaning...
+	$(RM) $(BUILDDIR)
 	$(RM) gtest-all.o
 #	$(RM) $(call FIXPATH, $(call rwildcard,$(SOURCEDIRS),*.o))
 #	$(RM) $(call FIXPATH, $(call rwildcard,$(SOURCEDIRS),*.d))
-	$(RM) $(BUILDDIR)
 	@echo Cleanup complete!
 
 run: all

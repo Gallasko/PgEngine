@@ -82,11 +82,11 @@ namespace pg
         void deleteEntity(Entity* entity);
 
         template <typename Type, typename... Args>
-        Type* attachComp(const Args&... args)
+        Type* attachComp(Args&&... args)
         {
             LOG_THIS_MEMBER("Command Dispatcher");
 
-            auto comp = new Type(args...);
+            auto comp = new Type(std::forward<Args>(args)...);
 
             if(not componentQueue.enqueue(ComponentCommand{comp, ComponentCommand::ComponentCommandType::creation}))
             {

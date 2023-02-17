@@ -14,7 +14,7 @@
 
 namespace pg
 {
-    enum class ExecutionPolicy
+    enum class ExecutionPolicy : uint8_t
     {
         Manual      = 0,
         Sequential  = 1,
@@ -33,6 +33,11 @@ namespace pg
     struct ParallelPolicy
     {
         virtual void parallelExecute(tf::Taskflow&) = 0;
+    };
+
+    struct InitSys
+    {
+        virtual void init() = 0;
     };
 
     /**
@@ -159,6 +164,18 @@ namespace pg
         }
 
         system->setPolicy(ExecutionPolicy::Independent);
+        
+        registerComponents(system, registry, comps...);
+    }
+
+    template <typename... Comps, typename Sys>
+    void registerComponents(Sys *system, ComponentRegistry *registry, const tag<InitSys>&, const Comps&... comps)
+    {
+        LOG_THIS("System");
+        
+        LOG_INFO("System", "Running init");
+
+        system->init();
         
         registerComponents(system, registry, comps...);
     }

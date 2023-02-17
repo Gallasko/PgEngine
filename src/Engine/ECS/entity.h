@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vector>
+#include <set>
 #include <algorithm>
 #include <Memory/memorypool.h>
 
@@ -38,7 +38,7 @@ namespace pg
             };
 
             explicit EntityHeld(Entity* entity) : entityHeldId(entity), entityHeldType(EntityHeldType::entity) { }
-            explicit EntityHeld(_unique_id id) : entityHeldId(id), entityHeldType(EntityHeldType::id) {}
+            explicit EntityHeld(const _unique_id& id) : entityHeldId(id), entityHeldType(EntityHeldType::id) {}
 
             constexpr bool operator==(_unique_id id) const
             {
@@ -74,6 +74,11 @@ namespace pg
                     return entityHeldId.id;
             }
 
+            operator _unique_id() const
+            {
+                return getId();
+            }
+
             EntityHeldId entityHeldId;
             EntityHeldType entityHeldType;
         };
@@ -105,7 +110,7 @@ namespace pg
 
         // Todo make this mutable because it is only used for memoisation purposes
         // std::unordered_map<_unique_id, Entity*> componentList;
-        std::vector<EntityHeld> componentList;
+        std::set<EntityHeld> componentList;
 
         //Todo overload operator delete to call ecsRef->deleteEntity(this);
 

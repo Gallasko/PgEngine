@@ -18,6 +18,7 @@
 
 #define _LOG(value) pg::Logger::Logging CONCAT(_anonymous, __LINE__) = value
 
+// TODO replace all macro to add a Strfy on msg -> LOG(scope, msg) log(scope, Strfy() << msg) so i don't need to tap it each time
 #ifdef DEBUG
 #define LOG_THIS(scope) _LOG(pg::Logger::_log(__LINE__, __FILE__, __func__, 0, 0, scope, "", pg::Logger::InfoLevel::log))
 #define LOG_THIS_MEMBER(scope) _LOG(pg::Logger::_log(__LINE__, __FILE__, __func__, this, typeid(*this).name(), scope, "", pg::Logger::InfoLevel::log))

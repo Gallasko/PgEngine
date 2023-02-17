@@ -48,6 +48,8 @@ namespace pg
 
         virtual void execute() override
         {
+            LOG_INFO("MasterRenderer", Strfy() << "Executing render with " << view<RenderableTexture>().nbComponents() << " elements.");
+
             for(auto entity : view<RenderableTexture>())
             {
                 render(entity->texComp);

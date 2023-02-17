@@ -72,6 +72,7 @@ namespace pg
                 deleteEntityFromPool(entity);
         }
 
+        // TODO: Add a getSystem and destroySystem functions
         template <class Sys, typename... Args>
         Sys* createSystem(const Args&... args)
         {
@@ -107,7 +108,7 @@ namespace pg
         //TODO make a template specialization capable of attaching an entity to an entity
 
         template <typename Type, typename... Args>
-        CompRef<Type> attach(Entity* entity, const Args&... args) noexcept
+        CompRef<Type> attach(Entity* entity, Args&&... args) noexcept
         {
             LOG_THIS_MEMBER("ECS");
 
@@ -118,11 +119,11 @@ namespace pg
                 // Todo change this to add the command in the command dispatcher to avoid the dangling pointer
                 if(running)
                 {
-                    component = cmdDispatcher.attachComp<Type>(args...);
+                    component = cmdDispatcher.attachComp<Type>(std::forward<Args>(args)...);
                 }
                 else
                 {
-                    component = registry.retrieve<Type>()->internalCreateComponent(entity, args...);
+                    component = registry.retrieve<Type>()->internalCreateComponent(entity, std::forward<Args>(args)...);
                 }
 
                 auto res = CompRef<Type>(component, entity->id, this, not running);
@@ -188,7 +189,7 @@ namespace pg
         template <typename Type>
         void addComponentToPool(Type* component)
         {
-            
+            // entity->componentList.emplace(registry.getTypeId<Type>());
         }
 
         template <typename Type>
@@ -302,5 +303,86 @@ namespace pg
                 ecsRef      = rhs.ecsRef;
             }
         }
+    }
+
+    template <typename Type, typename... Types>
+    template <typename Set>
+    inline void Group<Type, Types...>::addEventToSet(Set setN)
+    {
+        setN->onComponentCreation.emplace(id, [](Entity *entity) {
+            LOG_INFO("Group", Strfy() << "On component creation for entity " << entity->id << ", sending event !");
+            entity->world()->sendEvent(OnCompCreatedCheckForGroup<Group<Type, Types...>>{entity});
+        });
+    }
+
+    template <typename Type, typename... Types>
+    void Group<Type, Types...>::process()
+    {
+        LOG_THIS_MEMBER("Ecs Group");
+
+        if(this->registry == nullptr)
+            return;
+
+        populateList(setList, 0, registry->retrieve<Type>(), registry->retrieve<Types>()...);
+
+        size_t smallestSetIndex = 0;
+
+        for(size_t i = 0; i < nbOfSets; ++i)
+        {
+            if(setList[i]->set->nbElements() < setList[smallestSetIndex]->set->nbElements())
+                smallestSetIndex = i;
+        }
+
+        SetHolder<Type, Types...>* smallestSetHolder = setList[smallestSetIndex];
+        const SparseSet* smallestSet = smallestSetHolder->set;
+
+        setList[smallestSetIndex] = setList[nbOfSets - 1];
+
+        setList[nbOfSets - 1] = smallestSetHolder;
+
+        // const auto& elements = {registry->retrieve<Type>()->components, registry->retrieve<Types>()->components...};
+
+        // const SparseSet& set = smallestSet(registry->retrieve<Type>()->components, registry->retrieve<Types>()->components...);
+
+        LOG_INFO("Ecs Group", "Smallest set has: " + std::to_string(smallestSet->nbElements()) + " elements");
+
+        // Todo add reserve and multiple emplace back in the component/sparse set
+        // elements.reserve(smallestSet->nbElements()); // May need a -1
+
+        // Todo check Branch: Parallel-Ecs to create a parallal implementation of grouping
+        for(const auto& id : smallestSet->view())
+        {
+            GroupElement<Type, Types...> element(registry->world()->getEntity(id), id);
+
+            for(size_t j = 0; j < nbOfSets - 1; j++)
+            {
+                setList[j]->setElement(setList[j]->set, element, id);    
+            }
+
+            if(not element.toBeDeleted)
+                elements.addComponent(id, element);
+        }
+
+        for(size_t i = 0; i < nbOfSets - 1; i++)
+            delete setList[i];
+
+        delete smallestSetHolder;
+
+        // Add support for thread pools by passing a pool in this function and add the task inside of this pool
+        // checkEntityInGroup<Type, Types...>(this->registry->getThreadPool(), elements);
+
+        // const auto& it = elements.viewComponents();
+
+        // Remove all elements that miss at least one component from the group
+        // Todo Do not delete the component but make the iterator skip element to be deleted !
+        // for(size_t i = 1; i < elements.nbElements(); i++)
+        // {
+            // const auto& element = elements[i];
+            // if(element->toBeDeleted)
+                // elements.removeComponent(element->entityId);
+        // }
+        //std::remove_if(it.begin(), it.end(), [](const GroupElement<Type, Types...>& element) { return element.toBeDeleted; });
+    
+        // Todo sort the group
     }
 }

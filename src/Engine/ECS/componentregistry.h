@@ -57,6 +57,8 @@ namespace pg
             componentDeleteMap.emplace(id, [owner](Entity* entity){ owner->internalRemoveComponent(entity); });
 
             componentStorageMap.emplace(id, static_cast<Storage*>(static_cast<Delegate*>(owner)));
+
+            owner->_componentId = id;
         }
 
         template <typename Type>
@@ -172,6 +174,7 @@ namespace pg
             // Todo find a better implementation of this
             static std::map<const ComponentRegistry*, _unique_id> idMap;
             
+            // Todo add a variable to keep track of the running state of the ECS
             if(not idMap[this])
                 idMap[this] = idGenerator.generateId();
 
@@ -247,6 +250,11 @@ namespace pg
             return ref->view();
         }
 
+        inline _unique_id getId() const
+        {
+            return ref->getId();
+        }
+
         Own<Type> *ref;
     };
 
@@ -277,6 +285,8 @@ namespace pg
             // Create a new component and store it in a sparse set along with the entity id using it
             auto comp = components.addComponent(entity, std::forward<Args>(args)...);
 
+            entity->componentList.emplace(_componentId);
+
             for(const auto& callback : onComponentCreation)
                 callback.second(entity);
 
@@ -305,10 +315,17 @@ namespace pg
             return components.viewComponents();
         }
 
+        inline _unique_id getId() const
+        {
+            return _componentId;
+        }
+
         ComponentSet<Type> components;
 
         std::map<_unique_id, void(*)(Entity*)> onComponentCreation;
         std::map<_unique_id, void(*)(Entity*)> onComponentDeletion;
+
+        _unique_id _componentId = 0;
     };
 
     template <typename Comp>

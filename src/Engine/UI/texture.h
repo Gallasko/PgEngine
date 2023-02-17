@@ -10,6 +10,8 @@
 
 #include "Renderer/renderer.h"
 
+#include "logger.h"
+
 namespace pg
 {
 
@@ -40,16 +42,23 @@ namespace pg
         bool initialised = false;
     };
 
-    struct TextureComponentSystem : public System<Own<TextureComponent>, Ref<UiComponent>, StoragePolicy>
+    struct TextureComponentSystem : public System<Own<TextureComponent>, Ref<UiComponent>, StoragePolicy, InitSys>
     {
         TextureComponentSystem()
         {
+            
+        }
+
+        virtual void init() override
+        {
             auto group = registerGroup<UiComponent, TextureComponent>();
-            group.addOnGroup([](Entity* entity){
+            group->addOnGroup([](Entity* entity) {
+                LOG_INFO("Texture Component System", Strfy() << "Add entity " << entity->id << " to ui - tex group !");
+
                 auto uiComp = entity->get<UiComponent>();
                 auto textComp = entity->get<TextureComponent>();
 
-                entity->world()->attach<RenderableTexture>(uiComp, textComp);
+                entity->world()->attach<RenderableTexture>(entity, uiComp, textComp);
             });
         }
 

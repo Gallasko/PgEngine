@@ -13,8 +13,9 @@ int main(int argc, char *argv[])
     //TODO fix FilterFile
     //terminalSink->addFilter("Input Filter", new Logger::LogSink::FilterScope("Input"));
     // terminalSink->addFilter("Serializer Filter", new Logger::LogSink::FilterFile("src/Engine/serialization.cpp"));
+    terminalSink->addFilter("Parser Filter", new Logger::LogSink::FilterFile("src/Engine/Renderer/renderer.h"));
     // terminalSink->addFilter("Configuration Filter", new Logger::LogSink::FilterFile("src/Engine/configuration.cpp"));
-    terminalSink->addFilter("Editor Filter", new Logger::LogSink::FilterFile("src/app.cpp"));
+    // terminalSink->addFilter("Editor Filter", new Logger::LogSink::FilterFile("src/app.cpp"));
     terminalSink->addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
     
     QSurfaceFormat format;

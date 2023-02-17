@@ -144,7 +144,9 @@ void EditorWindow::initialize()
 {
 	initializeOpenGLFunctions();
 
-    auto masterRenderer = ecs.getMasterRenderer();
+    // auto masterRenderer = ecs.getMasterRenderer();
+
+    masterRenderer = ecs.createSystem<MasterRenderer>();
 
     masterRenderer->initialize(m_context);
     masterRenderer->setWindowSize(width(), height());
@@ -185,12 +187,12 @@ void EditorWindow::initialize()
 
     fontLoader = new FontLoader("res/font/fontmap.ft");
 
-    ecs.createSystem<InputSystem>();
+    // ecs.createSystem<InputSystem>();
     ecs.createSystem<UiComponentSystem>();
-    ecs.createSystem<ButtonSystem>(masterRenderer);
-    ecs.createSystem<TextureSystem>(masterRenderer);
+    // ecs.createSystem<ButtonSystem>(masterRenderer);
+    ecs.createSystem<TextureComponentSystem>();
 
-    sceneEcs.createSystem<SceneElementSystem>(masterRenderer);
+    // sceneEcs.createSystem<SceneElementSystem>(masterRenderer);
 
     screenEntity = ecs.createEntity();
     screenUi = ecs.attach<UiComponent>(screenEntity);
@@ -210,28 +212,38 @@ void EditorWindow::initialize()
     auto sceneEntity = ecs.createEntity();
     sceneEntityC = ecs.attach<UiComponent>(sceneEntity);
 
-    sceneEntityC->setLeftAnchor(screenUi->left);
+    // sceneEntityC->setLeftAnchor(screenUi->left);
     // sceneEntityC->setRightAnchor(optionTab->left);
-    sceneEntityC->setTopAnchor(screenUi->top);
-    sceneEntityC->setBottomAnchor(screenUi->bottom);
+    // sceneEntityC->setTopAnchor(screenUi->top);
+    // sceneEntityC->setBottomAnchor(screenUi->bottom);
 
-    makeMouseArea(&ecs, sceneEntityC, this, EditorWindow::openContextMenu, EditorWindow::closeContextMenu);
+    // makeMouseArea(&ecs, sceneEntityC, this, EditorWindow::openContextMenu, EditorWindow::closeContextMenu);
 
     // [Start] Context menu UI
 
-    contextMenu = new editor::ContextMenu(ecs, fontLoader, "TabTexture", [=](const UiComponentType& type) {this->addElement(type);});
+    // contextMenu = new editor::ContextMenu(ecs, fontLoader, "TabTexture", [=](const UiComponentType& type) {this->addElement(type);});
 
     //auto contextMenuEntity = ecs.createEntity();
     //contextMenu = ecs.attach<TextureComponent>(contextMenuEntity, 250, 100, "TabTexture");
 
-    contextMenu->hide();
+    // contextMenu->hide();
     
     // [End] Context menu UI
 
     // std::cout << b1->width << std::endl;
     // std::cout << b1->pos.x << std::endl;
 
+    auto sceneEntityTex = ecs.attach<TextureComponent>(sceneEntity, 40, 200, "frame");
+
+    sceneEntityTex->setX(20);
+    sceneEntityTex->setY(20);
+
     std::cout << sceneEntityC->frame.w << std::endl;
+
+    for(auto& held : sceneEntity->componentList)
+    {
+        LOG_INFO(DOM, Strfy() << "Entity " << sceneEntity->id << "has component: " << held.getId());
+    }
     
     ticking = true;
     std::thread t (&EditorWindow::tick, this);
@@ -252,8 +264,6 @@ void EditorWindow::render()
 
     currentTime = QDateTime::currentMSecsSinceEpoch();
 
-    auto masterRenderer = ecs.getMasterRenderer();
-
     if(screenUi->width != width())
     {
         screenUi->setWidth(width());
@@ -270,9 +280,9 @@ void EditorWindow::render()
 
     // InputSystem::system()->updateState(inputHandler, float(currentTime - lastTime) / 1000);
 
-    renderUi();
+    // renderUi();
 
-    sceneEcs.executeAll();
+    // sceneEcs.executeAll();
     ecs.executeAll();
 
     inputHandler->updateInput(float(currentTime - lastTime) / 1000);

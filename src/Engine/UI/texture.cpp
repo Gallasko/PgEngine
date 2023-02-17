@@ -12,6 +12,8 @@ namespace pg
     template <>
     void renderer(MasterRenderer* masterRenderer, TextureComponent* texture)
     {
+        LOG_THIS(DOM);
+
         if(not texture->isVisible())
             return;
     
