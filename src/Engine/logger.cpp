@@ -64,14 +64,13 @@ namespace pg
             return logLevelStringBuffer; 
         }
 
-        std::string logPositionString(const char* filename, const char* objectName, const char* function, const int line)
+        std::string logPositionString(const std::string& filename, const std::string& objectName, const std::string& function, const int line)
         {
-            std::string logPositionStringBuffer = std::string(filename) + ":" + std::to_string(line) + ": ";
+            std::string logPositionStringBuffer = filename + ":" + std::to_string(line) + ": ";
 
-            if(function)
-                logPositionStringBuffer += std::string(function);
+            logPositionStringBuffer += function;
 
-            if(objectName)
+            if(objectName == "")
                 logPositionStringBuffer += " Object: " + std::string(objectName);
 
             return logPositionStringBuffer;

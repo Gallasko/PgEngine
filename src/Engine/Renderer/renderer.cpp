@@ -2,8 +2,25 @@
 
 #include <QImage>
 
+#include "UI/texture.h"
+
 namespace pg
 {
+
+    void MasterRenderer::execute()
+    {
+        LOG_INFO("MasterRenderer", "Executing render with " << view<RenderableTexture>().nbComponents() << " elements.");
+
+        // Todo Fix in group and ecs ! ( whereaver we are holding pointer of a comp actually ! )
+        // Todo hold a ref to the component list and the component index inside of this list instead of the raw pointer to not get invalidated on resize !
+        for(auto entity : group<UiComponent, TextureComponent, RenderableTexture>()->elements.viewComponents())
+        {
+            auto tex = entity->ecsRef->getComponent<TextureComponent>(entity->entityId);
+            if (tex != nullptr)
+                render(tex);
+        }
+    }
+
     void MasterRenderer::registerShader(const std::string& name, const char* vsPath, const char* fsPath)
     {
         auto shaderProgram = new QOpenGLShaderProgram();

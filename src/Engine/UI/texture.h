@@ -52,13 +52,11 @@ namespace pg
         virtual void init() override
         {
             auto group = registerGroup<UiComponent, TextureComponent>();
+
             group->addOnGroup([](Entity* entity) {
-                LOG_INFO("Texture Component System", Strfy() << "Add entity " << entity->id << " to ui - tex group !");
+                LOG_INFO("Texture Component System", "Add entity " << entity->id << " to ui - tex group !");
 
-                auto uiComp = entity->get<UiComponent>();
-                auto textComp = entity->get<TextureComponent>();
-
-                entity->world()->attach<RenderableTexture>(entity, uiComp, textComp);
+                entity->world()->attach<RenderableTexture>(entity);
             });
         }
 

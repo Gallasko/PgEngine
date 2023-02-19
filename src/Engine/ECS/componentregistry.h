@@ -49,7 +49,7 @@ namespace pg
 #ifdef PROD
             if(const auto& it = componentStorageMap.find(id); it != componentStorageMap.end())
             {
-                LOG_ERROR("Component Registry", Strfy() << "Trying to recreate a system that already existing with id: " << id << "Exiting");
+                LOG_ERROR("Component Registry", "Trying to recreate a system that already existing with id: " << id << "Exiting");
                 return;
             }
 #endif
@@ -76,7 +76,7 @@ namespace pg
 #ifdef PROD
             if(const auto& it = componentStorageMap.find(id); it == componentStorageMap.end())
             {
-                LOG_ERROR("Component Registry", Strfy() << "Trying to retrieve a system that doesn't exist, Exiting");
+                LOG_ERROR("Component Registry", "Trying to retrieve a system that doesn't exist, Exiting");
 
                 throw std::runtime_error(Strfy() << "System  [" << typeid(Type).name() << "] is not registered");
             }
@@ -135,7 +135,7 @@ namespace pg
 #ifdef PROD
             if(const auto& it = groupStorageMap.find(id); it != groupStorageMap.end())
             {
-                LOG_ERROR("Component Registry", Strfy() << "Trying to recreate a group that already existing with id: " << id << "Exiting");
+                LOG_ERROR("Component Registry", "Trying to recreate a group that already existing with id: " << id << "Exiting");
                 // Todo see if we need to throw an exception or not
                 // throw std::runtime_error("Group already registered");
                 return;
@@ -159,7 +159,7 @@ namespace pg
 #ifdef PROD
             if(const auto& it = groupStorageMap.find(id); it == groupStorageMap.end())
             {
-                LOG_ERROR("Component Registry", Strfy() << "Trying to retrieve a group that doesn't exist, Exiting");
+                LOG_ERROR("Component Registry", "Trying to retrieve a group that doesn't exist, Exiting");
 
                 throw std::runtime_error(Strfy() <<  "Group [" << typeid(Type).name() << "] is not registered");
             }
@@ -178,7 +178,7 @@ namespace pg
             if(not idMap[this])
                 idMap[this] = idGenerator.generateId();
 
-            LOG_INFO("Component Registry", Strfy() << "Type: " << typeid(Type).name() << ", get id: " << idMap[this]);
+            LOG_INFO("Component Registry", "Type: " << typeid(Type).name() << ", get id: " << idMap[this]);
 
             return idMap[this];
             
@@ -272,7 +272,7 @@ namespace pg
         {
             LOG_THIS_MEMBER("Own");
 
-            LOG_INFO("Own", Strfy() << "Type: " << typeid(Type).name() << " get the id: " << registry->getTypeId<Type>());
+            LOG_INFO("Own", "Type: " << typeid(Type).name() << " get the id: " << registry->getTypeId<Type>());
 
             registry->store<Type>(this);
         }

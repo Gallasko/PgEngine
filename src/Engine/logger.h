@@ -18,14 +18,15 @@
 
 #define _LOG(value) pg::Logger::Logging CONCAT(_anonymous, __LINE__) = value
 
-// TODO replace all macro to add a Strfy on msg -> LOG(scope, msg) log(scope, Strfy() << msg) so i don't need to tap it each time
+#define _SINGLE_LOG(scope, msg, level) pg::Logger::_single_log(__LINE__, __FILE__ ? std::string(__FILE__) : "", __func__ ? std::string(__func__) : "", 0, "", scope, pg::Strfy() << msg, level)
+
 #ifdef DEBUG
-#define LOG_THIS(scope) _LOG(pg::Logger::_log(__LINE__, __FILE__, __func__, 0, 0, scope, "", pg::Logger::InfoLevel::log))
-#define LOG_THIS_MEMBER(scope) _LOG(pg::Logger::_log(__LINE__, __FILE__, __func__, this, typeid(*this).name(), scope, "", pg::Logger::InfoLevel::log))
-#define LOG_TEST(scope, msg) pg::Logger::_single_log(__LINE__, __FILE__, __func__, 0, 0, scope, msg, pg::Logger::InfoLevel::test)
-#define LOG_MILE(scope, msg) pg::Logger::_single_log(__LINE__, __FILE__, __func__, 0, 0, scope, msg, pg::Logger::InfoLevel::mile)
-#define LOG_INFO(scope, msg) pg::Logger::_single_log(__LINE__, __FILE__, __func__, 0, 0, scope, msg, pg::Logger::InfoLevel::info)
-#define LOG_ERROR(scope, msg) pg::Logger::_single_log(__LINE__, __FILE__, __func__, 0, 0, scope, msg, pg::Logger::InfoLevel::error)
+#define LOG_THIS(scope) _LOG(pg::Logger::_log(__LINE__, __FILE__ ? std::string(__FILE__) : "", __func__ ? std::string(__func__) : "", 0, "", scope, "", pg::Logger::InfoLevel::log))
+#define LOG_THIS_MEMBER(scope) _LOG(pg::Logger::_log(__LINE__, __FILE__ ? std::string(__FILE__) : "", __func__ ? std::string(__func__) : "", this, typeid(*this).name(), scope, "", pg::Logger::InfoLevel::log))
+#define LOG_TEST(scope, msg) _SINGLE_LOG(scope, msg, pg::Logger::InfoLevel::test)
+#define LOG_MILE(scope, msg) _SINGLE_LOG(scope, msg, pg::Logger::InfoLevel::mile)
+#define LOG_INFO(scope, msg) _SINGLE_LOG(scope, msg, pg::Logger::InfoLevel::info)
+#define LOG_ERROR(scope, msg) _SINGLE_LOG(scope, msg, pg::Logger::InfoLevel::error)
 #else
 #define LOG_THIS(scope) 
 #define LOG_THIS_MEMBER(scope)
@@ -47,7 +48,7 @@ namespace pg
     class Strfy 
     {
     public:
-        Strfy(const std::string& msg) : data(msg) {}
+        Strfy(std::string_view msg) : data(msg) {}
         Strfy() : data("") {}
 
         template <typename T>
@@ -63,9 +64,21 @@ namespace pg
             return *this;
         }
 
+        Strfy& operator<<(std::string_view value)
+        {
+            data += value;
+            return *this;
+        }
+
         Strfy& operator<<(const char* value)
         {
             data += value;
+            return *this;
+        }
+
+        Strfy& operator<<(const Strfy& value)
+        {
+            data += value.data;
             return *this;
         }
 
@@ -118,13 +131,13 @@ namespace pg
         struct Info
         {
             const int line;             ///< The line number of the message
-            const char* filename;       ///< The name of the file where the log message happened
-            const char* function;       ///< The name of the function where the log message happened
+            const std::string filename;       ///< The name of the file where the log message happened
+            const std::string function;       ///< The name of the function where the log message happened
             const void* object;         ///< A pointer to the object where the log message happened
-            const char* objectName;     ///< The name of the object class where the log message happened
+            const std::string objectName;     ///< The name of the object class where the log message happened
 
-            const char* scope;          ///< The scope of the log
-            const char* message;        ///< The message string
+            const std::string scope;          ///< The scope of the log
+            const std::string message;        ///< The message string
 
             const InfoLevel level;      ///< The emergency level of the log
         };
@@ -133,7 +146,7 @@ namespace pg
         {
         friend class Logger;
         public:
-            Logging(const int line, const char* file, const char* function, const void* object, const char* objectName, const char* scope, const char* msg, const Logger::InfoLevel& level)
+            Logging(const int line, std::string_view file, std::string_view function, const void* object, std::string_view objectName, std::string_view scope, std::string_view msg, const Logger::InfoLevel& level)
              : line(line), file(file), function(function), object(object), objectName(objectName), scope(scope), msg(msg), level(level)
             {
                 auto& logger = Logger::getLogger();
@@ -141,7 +154,7 @@ namespace pg
                 // Fonctor to use C++ scope initialisation to easely lock log pushback
                 std::lock_guard<std::mutex> lock(logger->_lock);
 
-                const auto log = Logger::Info{line, file, ("Enter in: '" + std::string(function) + "'").c_str(), object, objectName, scope, msg, level};
+                const auto log = Logger::Info{line, this->file, "Enter in: '" + std::string(function) + "'", object, this->objectName, this->scope, this->msg, level};
 
                 // Call all the sink registered and push the received message to them
                 for(const auto& sink : logger->sinks)
@@ -155,7 +168,7 @@ namespace pg
                 // Fonctor to use C++ scope initialisation to easely lock log pushback
                 std::lock_guard<std::mutex> lock(logger->_lock);
 
-                const auto log = Logger::Info{line, file, ("Exit out: '" + std::string(function) + "'").c_str(), object, objectName, scope, msg, level};
+                const auto log = Logger::Info{line, file, "Exit out: '" + function + "'", object, objectName, scope, msg, level};
 
                 // Call all the sink registered and push the received message to them
                 for(const auto& sink : logger->sinks)
@@ -163,12 +176,12 @@ namespace pg
             }
 
             const int line;
-            const char* file;
-            const char* function;
+            const std::string file;
+            const std::string function;
             const void* object;
-            const char* objectName;
-            const char* scope;
-            const char* msg;
+            const std::string objectName;
+            const std::string scope;
+            const std::string msg;
             const Logger::InfoLevel& level;
         };
 
@@ -200,7 +213,7 @@ namespace pg
             class FilterFile : public Filter
             {
             public:
-                FilterFile(const std::string& filename, bool blacklisted = true) : filename(filename), blacklisted(blacklisted) {}
+                FilterFile(std::string_view filename, bool blacklisted = true) : filename(filename), blacklisted(blacklisted) {}
                 
                 inline virtual bool isFiltered(const Logger::Info& log) const
                 {
@@ -215,7 +228,7 @@ namespace pg
             class FilterFunction : public Filter
             {
             public:
-                FilterFunction(const std::string& function, bool blacklisted = true) : function(function), blacklisted(blacklisted) {}
+                FilterFunction(std::string_view function, bool blacklisted = true) : function(function), blacklisted(blacklisted) {}
                 
                 inline virtual bool isFiltered(const Logger::Info& log) const
                 {
@@ -249,7 +262,7 @@ namespace pg
             class FilterObjectName : public Filter
             {
             public:
-                FilterObjectName(const std::string& objectName, bool blacklisted = true) : objectName(objectName), blacklisted(blacklisted) {}
+                FilterObjectName(std::string_view objectName, bool blacklisted = true) : objectName(objectName), blacklisted(blacklisted) {}
                 
                 inline virtual bool isFiltered(const Logger::Info& log) const
                 {
@@ -264,7 +277,7 @@ namespace pg
             class FilterScope : public Filter
             {
             public:
-                FilterScope(const std::string& scope, bool blacklisted = true) : scope(scope), blacklisted(blacklisted) {}
+                FilterScope(std::string_view scope, bool blacklisted = true) : scope(scope), blacklisted(blacklisted) {}
                 
                 inline virtual bool isFiltered(const Logger::Info& log) const
                 {
@@ -343,12 +356,12 @@ namespace pg
          * @param msg           Message to be logged
          * @param level         Level of emergency of the message
          */
-        inline static void _single_log(const int line, const char* file, const char* function, const void* object, const char* objectName, const char* scope, const char* msg, const Logger::InfoLevel& level)
+        inline static void _single_log(const int line, const std::string& file, const std::string& function, const void* object, const std::string& objectName, const std::string& scope, const std::string& msg, const Logger::InfoLevel& level)
         {
             // Fonctor to use C++ scope initialisation to easely lock log pushback
             std::lock_guard<std::mutex> lock(_lock);
 
-            const auto log = Logger::Info{line, file, ("In function: '" + std::string(function) + "'").c_str(), object, objectName, scope, msg, level};
+            const auto log = Logger::Info{line, file, "In function: '" + std::string(function) + "'", object, objectName, scope, msg, level};
 
             // Call all the sink registered and push the received message to them
             for(const auto& sink : sinks)
@@ -367,9 +380,9 @@ namespace pg
          * @param msg           Message to be logged
          * @param level         Level of emergency of the message
          */
-        inline static void _single_log(const int line, const char* file, const char* function, const void* object, const char* objectName, const char* scope, const std::string& msg, const Logger::InfoLevel& level)
+        inline static void _single_log(const int line, const std::string& file, const std::string& function, const void* object, const std::string& objectName, const std::string& scope, const Strfy& msg, const Logger::InfoLevel& level)
         {
-            _single_log(line, file, function, object, objectName, scope, msg.c_str(), level);
+            _single_log(line, file, function, object, objectName, scope, static_cast<std::string>(msg), level);
         }
 
         /**
@@ -384,7 +397,7 @@ namespace pg
          * @param msg           Message to be logged
          * @param level         Level of emergency of the message
          */
-        inline static Logging _log(const int line, const char* file, const char* function, const void* object, const char* objectName, const char* scope, const char* msg, const Logger::InfoLevel& level)
+        inline static Logging _log(const int line, std::string_view file, std::string_view function, const void* object, std::string_view objectName, std::string_view scope, std::string_view msg, const Logger::InfoLevel& level)
         {
             return Logging(line, file, function, object, objectName, scope, msg, level);
         }
@@ -401,11 +414,11 @@ namespace pg
          * @param msg           Message to be logged
          * @param level         Level of emergency of the message
          */
-        inline static Logging _log(const int line, const char* file, const char* function, const void* object, const char* objectName, const char* scope, const std::string& msg, const Logger::InfoLevel& level)
-        {
-            // Call the log function
-            return _log(line, file, function, object, objectName, scope, msg.c_str(), level);
-        }
+        // inline static Logging _log(const int line, std::string_view file, std::string_view function, const void* object, std::string_view objectName, std::string_view scope, std::string_view msg, const Logger::InfoLevel& level)
+        // {
+        //     // Call the log function
+        //     return _log(line, file, function, object, objectName, scope, msg, level);
+        // }
 
         /**
          * @brief Get the reference of the unique Logger instance
@@ -472,7 +485,7 @@ namespace pg
     {
     friend class Logger;
     public:
-        FileSink(const std::string& fileName = "log.txt", bool ignoreNonErrors = false) : filename(fileName), dataBuffer(""), ignoreNonErrors(ignoreNonErrors) {}
+        FileSink(std::string_view fileName = "log.txt", bool ignoreNonErrors = false) : filename(fileName), dataBuffer(""), ignoreNonErrors(ignoreNonErrors) {}
         
         virtual ~FileSink() override;
         

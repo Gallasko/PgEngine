@@ -242,7 +242,7 @@ void EditorWindow::initialize()
 
     for(auto& held : sceneEntity->componentList)
     {
-        LOG_INFO(DOM, Strfy() << "Entity " << sceneEntity->id << "has component: " << held.getId());
+        LOG_INFO(DOM, "Entity " << sceneEntity->id << "has component: " << held.getId());
     }
     
     ticking = true;

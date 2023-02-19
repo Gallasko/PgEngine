@@ -120,7 +120,7 @@ namespace pg
 
                     auto entity = ecsRef->createEntity();
 
-                    LOG_TEST("Create System", Strfy() << "Created entity " << entity->id);
+                    LOG_TEST("Create System", "Created entity " << entity->id);
                 }
 
                 EntitySystem *ecsRef;

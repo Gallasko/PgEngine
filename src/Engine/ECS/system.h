@@ -72,7 +72,7 @@ namespace pg
     {
         LOG_THIS("System");
 
-        LOG_INFO("System", Strfy() << "Registering an own to '" << typeid(Comp).name() << "' to the system.");
+        LOG_INFO("System", "Registering an own to '" << typeid(Comp).name() << "' to the system.");
 
         static_cast<Own<Comp>*>(system)->setRegistry(registry);
         registerComponents(system, registry, comps...);
@@ -83,7 +83,7 @@ namespace pg
     {
         LOG_THIS("System");
         
-        LOG_INFO("System", Strfy() << "Registering a ref to '" << typeid(Comp).name() << "' to the system.");
+        LOG_INFO("System", "Registering a ref to '" << typeid(Comp).name() << "' to the system.");
         
         static_cast<Ref<Comp>*>(system)->setRegistry(registry);
         registerComponents(system, registry, comps...);
@@ -94,7 +94,7 @@ namespace pg
     {
         LOG_THIS("System");
         
-        LOG_INFO("System", Strfy() << "Registering a listener to event '" << typeid(Event).name() << "' to the system.");
+        LOG_INFO("System", "Registering a listener to event '" << typeid(Event).name() << "' to the system.");
         
         static_cast<Listener<Event>*>(system)->setRegistry(registry);
         registerComponents(system, registry, comps...);

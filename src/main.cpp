@@ -13,10 +13,16 @@ int main(int argc, char *argv[])
     //TODO fix FilterFile
     //terminalSink->addFilter("Input Filter", new Logger::LogSink::FilterScope("Input"));
     // terminalSink->addFilter("Serializer Filter", new Logger::LogSink::FilterFile("src/Engine/serialization.cpp"));
-    terminalSink->addFilter("Parser Filter", new Logger::LogSink::FilterFile("src/Engine/Renderer/renderer.h"));
+    // terminalSink->addFilter("Renderer Filter", new Logger::LogSink::FilterFile("src/Engine/Renderer/renderer.h"));
+    terminalSink->addFilter("Parser Filter", new Logger::LogSink::FilterScope("Parser"));
+    terminalSink->addFilter("Font Filter", new Logger::LogSink::FilterScope("Font Loader"));
     // terminalSink->addFilter("Configuration Filter", new Logger::LogSink::FilterFile("src/Engine/configuration.cpp"));
     // terminalSink->addFilter("Editor Filter", new Logger::LogSink::FilterFile("src/app.cpp"));
-    terminalSink->addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
+    // terminalSink->addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
+
+    auto fileSink = pg::Logger::registerSink<pg::FileSink>();
+
+    fileSink->addFilter("Parser Filter", new Logger::LogSink::FilterScope("Parser"));
     
     QSurfaceFormat format;
     format.setSwapInterval(0);

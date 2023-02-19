@@ -120,7 +120,7 @@ namespace pg
         
         const auto index = sparse[id];
 
-        LOG_INFO(DOM, Strfy() << "Removing component of entity: " << id << " at index " << index << " " << currentSize);
+        LOG_INFO(DOM, "Removing component of entity: " << id << " at index " << index << " " << currentSize);
 
         // Update the index of the vector accordingly.
 

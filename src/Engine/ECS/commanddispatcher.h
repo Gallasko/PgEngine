@@ -90,7 +90,7 @@ namespace pg
 
             if(not componentQueue.enqueue(ComponentCommand{comp, ComponentCommand::ComponentCommandType::creation}))
             {
-                LOG_ERROR("Command Dispatcher", Strfy() << "Could not enqueue the creation of component " << typeid(Type).name());
+                LOG_ERROR("Command Dispatcher", "Could not enqueue the creation of component " << typeid(Type).name());
                 return nullptr;
             }
 

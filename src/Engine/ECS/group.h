@@ -56,14 +56,14 @@ namespace pg
         Type* get() const { LOG_THIS_MEMBER("Ecs Group"); return value; }
         void set(Type* value) { LOG_THIS_MEMBER("Ecs Group"); this->value = value; }
 
-        Type* value; 
+        Type* value; // Todo hold a ref to the component list and the component index inside of this list instead of the raw pointer to not get invalidated on resize !
     };
 
     template <typename... Types>
     struct GroupElement : public Getter<Types>...
     {
-        GroupElement(Entity *entity, const _unique_id& entityId) : Getter<Types>()..., entity(entity), entityId(entityId) { LOG_THIS_MEMBER("Ecs Group"); }
-        GroupElement(Entity *entity, const _unique_id& entityId, Types*... values) : Getter<Types>(values)..., entity(entity), entityId(entityId) { LOG_THIS_MEMBER("Ecs Group"); }
+        GroupElement(Entity *entity, EntitySystem *const ecsRef, const _unique_id& entityId) : Getter<Types>()..., entity(entity), ecsRef(ecsRef), entityId(entityId) { LOG_THIS_MEMBER("Ecs Group"); }
+        GroupElement(Entity *entity, EntitySystem *const ecsRef, const _unique_id& entityId, Types*... values) : Getter<Types>(values)..., entity(entity), ecsRef(ecsRef), entityId(entityId) { LOG_THIS_MEMBER("Ecs Group"); }
 
         template <typename Type>
         Type* get() const { LOG_THIS_MEMBER("Ecs Group"); return static_cast<const Getter<Type>*>(this)->get(); }
@@ -71,7 +71,10 @@ namespace pg
         template <typename Type>
         void set(Type *value) { LOG_THIS_MEMBER("Ecs Group"); static_cast<Getter<Type>*>(this)->set(value); }
 
+        inline EntitySystem* world() const noexcept { return ecsRef; }
+
         Entity *entity;
+        EntitySystem *const ecsRef = nullptr;
         const _unique_id entityId;
         bool toBeDeleted = false;
     };
@@ -111,25 +114,25 @@ namespace pg
 
             for (auto compId : entity->componentList)
             {
-                LOG_INFO("Group", Strfy() << "Entity " << id << " has component " << compId);
+                LOG_INFO("Group", "Entity " << id << " has component " << compId);
             }
 
             for (auto compId : compIdList)
             {
-                LOG_INFO("Group", Strfy() << "Group " << id << " expect comp " << compId);
+                LOG_INFO("Group", "Group " << id << " expect comp " << compId);
             }
 
             if(isEntityInGroup(entity))
             {
-                LOG_INFO("Group", Strfy() << "Entity " << id << " is in group " << this->id);
-                GroupElement<Type, Types...> element(entity, id);
+                LOG_INFO("Group", "Entity " << id << " is in group " << this->id);
+                GroupElement<Type, Types...> element(entity, this->world(), id);
 
                 for(size_t j = 0; j < nbOfSets; j++)
                 {
                     setList[j]->setElement(setList[j]->set, element, id);    
                 }
 
-                LOG_INFO("Group", Strfy() << "Callback on Add Group");
+                LOG_INFO("Group", "Callback on Add Group");
                 for(auto callback : onAddGroup)
                     callback(entity);
 
@@ -278,6 +281,8 @@ namespace pg
         {
             return std::includes(entity->componentList.begin(), entity->componentList.end(), compIdList.begin(), compIdList.end());
         }
+
+        inline EntitySystem* world() const noexcept { return registry->world(); }
 
         _unique_id id;
         ComponentRegistry* registry;

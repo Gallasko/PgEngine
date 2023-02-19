@@ -29,13 +29,7 @@ namespace pg
     class UiComponent;
     class TextureComponent;
 
-    struct RenderableTexture
-    {
-        RenderableTexture(UiComponent *uiComp, TextureComponent *texComp) : uiComp(uiComp), texComp(texComp) { }
-
-        UiComponent *uiComp;
-        TextureComponent *texComp;
-    };
+    struct RenderableTexture { };
 
     //[TODO] Multiple FBO -> 1 for a whole screen capture and other for batch rendering on a texture 
     // Add Particle system with instancing already done / create an alternative if needed
@@ -46,15 +40,7 @@ namespace pg
         MasterRenderer() {}
         ~MasterRenderer() { delete extraFunctions; delete squareObject; delete instanceVBO; }
 
-        virtual void execute() override
-        {
-            LOG_INFO("MasterRenderer", Strfy() << "Executing render with " << view<RenderableTexture>().nbComponents() << " elements.");
-
-            for(auto entity : view<RenderableTexture>())
-            {
-                render(entity->texComp);
-            }
-        }
+        virtual void execute() override;
 
         void initialize(QOpenGLContext *m_context) { initializeGlObject(m_context); initializeParameters(); }
 

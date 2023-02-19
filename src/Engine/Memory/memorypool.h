@@ -120,8 +120,7 @@ namespace pg
 
             if(reserveSize < size) return;
 
-            LOG_INFO("Memory Pool", Strfy() <<
-                "Reserving: " << reserveSize <<
+            LOG_INFO("Memory Pool", "Reserving: " << reserveSize <<
                 ", currentPoolSize = " << size <<
                 " " << nbElements);
 
@@ -129,8 +128,7 @@ namespace pg
             {
                 const size_t blockSize = N >= 2 ? N : size == 0 ? 1 : size + 1;
 
-                LOG_MILE("Memory Pool", Strfy() <<
-                    "Current size: " << size <<
+                LOG_MILE("Memory Pool", "Current size: " << size <<
                     ", target: " << reserveSize <<
                     ", blockSize: " << blockSize);
 
@@ -179,15 +177,13 @@ namespace pg
             const unsigned int n = log2_64(index + 1);
             const size_t containerSize = N >= 2 ? N : n == 0 ? 0 : 1 << n;
 
-            LOG_MILE("Memory Pool", Strfy() <<
-                "Allocate internal, n: " << n <<
+            LOG_MILE("Memory Pool", "Allocate internal, n: " << n <<
                 " container size: "  << containerSize);
 
             const size_t listPos = N >= 2 ? index / containerSize : n;
             const size_t vectorPos = N >= 2 ? index % containerSize : n == 0 ? 0 : index + 1 - containerSize;
 
-            LOG_MILE("Memory Pool", Strfy() <<
-                "Allocating new element: " << index <<
+            LOG_MILE("Memory Pool", "Allocating new element: " << index <<
                 " in chunk: "  << listPos <<
                 " at pos: " << vectorPos <<
                 " with current pool size: " << size);

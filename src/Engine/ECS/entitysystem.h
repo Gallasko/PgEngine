@@ -135,7 +135,7 @@ namespace pg
             }
             catch (const std::exception& e)
             {
-                LOG_ERROR("ECS", Strfy() << "Can't attach component [" << typeid(Type).name() << "]: " << e.what());
+                LOG_ERROR("ECS", "Can't attach component [" << typeid(Type).name() << "]: " << e.what());
             }
 
             return CompRef<Type>();
@@ -310,7 +310,7 @@ namespace pg
     inline void Group<Type, Types...>::addEventToSet(Set setN)
     {
         setN->onComponentCreation.emplace(id, [](Entity *entity) {
-            LOG_INFO("Group", Strfy() << "On component creation for entity " << entity->id << ", sending event !");
+            LOG_INFO("Group", "On component creation for entity " << entity->id << ", sending event !");
             entity->world()->sendEvent(OnCompCreatedCheckForGroup<Group<Type, Types...>>{entity});
         });
     }
@@ -352,7 +352,7 @@ namespace pg
         // Todo check Branch: Parallel-Ecs to create a parallal implementation of grouping
         for(const auto& id : smallestSet->view())
         {
-            GroupElement<Type, Types...> element(registry->world()->getEntity(id), id);
+            GroupElement<Type, Types...> element(registry->world()->getEntity(id), this->world(), id);
 
             for(size_t j = 0; j < nbOfSets - 1; j++)
             {
