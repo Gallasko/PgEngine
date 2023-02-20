@@ -342,6 +342,7 @@ namespace pg
 
         void operator=(const CompRef& rhs);
 
+        // Todo always check if the component was not initialized in between calls to make sure to update the correct one
         Comp* operator->() const
         {
             return component;

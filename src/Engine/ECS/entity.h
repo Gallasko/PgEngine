@@ -148,6 +148,7 @@ namespace pg
             ecsRef = ent->world();
         }
 
+        // Todo always check if the component was not initialized in between calls to make sure to update the correct one
         Entity* operator->() const
         {
             return entity;

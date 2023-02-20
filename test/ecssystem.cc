@@ -151,7 +151,7 @@ namespace pg
             ABSystem sys2;
             CSystem  sys3(1);
 
-            ComponentRegistry reg;
+            ComponentRegistry reg(nullptr);
 
             sys1.addToRegistry(&reg);
             sys2.addToRegistry(&reg);
@@ -174,7 +174,7 @@ namespace pg
             CSystem  sys3(1), sys3bis(1);
             DSystem  sys4;
 
-            ComponentRegistry reg, reg2;
+            ComponentRegistry reg(nullptr), reg2(nullptr);
 
             sys1.addToRegistry(&reg);
             sys2.addToRegistry(&reg);

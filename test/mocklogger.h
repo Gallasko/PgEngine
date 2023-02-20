@@ -48,7 +48,7 @@ namespace pg
         
         virtual void processLog(const Logger::Info& log) override
         {
-            const char* objectName = showObject ? log.objectName : nullptr;
+            std::string objectName = showObject ? log.objectName : "";
 
             underlyingSink.processLog({log.line, log.filename, log.function, log.object, objectName, log.scope, log.message, log.level});
 

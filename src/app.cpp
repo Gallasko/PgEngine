@@ -146,6 +146,9 @@ void EditorWindow::initialize()
 
     // auto masterRenderer = ecs.getMasterRenderer();
 
+    ecs.createSystem<UiComponentSystem>();
+    // ecs.createSystem<ButtonSystem>(masterRenderer);
+    ecs.createSystem<TextureComponentSystem>();
     masterRenderer = ecs.createSystem<MasterRenderer>();
 
     masterRenderer->initialize(m_context);
@@ -188,9 +191,6 @@ void EditorWindow::initialize()
     fontLoader = new FontLoader("res/font/fontmap.ft");
 
     // ecs.createSystem<InputSystem>();
-    ecs.createSystem<UiComponentSystem>();
-    // ecs.createSystem<ButtonSystem>(masterRenderer);
-    ecs.createSystem<TextureComponentSystem>();
 
     // sceneEcs.createSystem<SceneElementSystem>(masterRenderer);
 
@@ -235,8 +235,8 @@ void EditorWindow::initialize()
 
     auto sceneEntityTex = ecs.attach<TextureComponent>(sceneEntity, 40, 200, "frame");
 
-    sceneEntityTex->setX(20);
-    sceneEntityTex->setY(20);
+    // sceneEntityTex->setX(20);
+    // sceneEntityTex->setY(20);
 
     std::cout << sceneEntityC->frame.w << std::endl;
 
@@ -479,7 +479,7 @@ void EditorWindow::addElement(const UiComponentType& type)
         break;
 
     case UiComponentType::TEXTURE:
-        component = new TextureComponent(50, 50, "TabTexture");
+        // component = new TextureComponent(50, 50, "TabTexture");
         component->setZ(index);
 
         component->setTopAnchor(sceneEntityC->top);

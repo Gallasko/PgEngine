@@ -50,7 +50,7 @@ namespace pg
     template <typename Type>
     struct Getter
     {
-        Getter() : value(nullptr) {}
+        Getter() : value(nullptr) { LOG_THIS_MEMBER("Ecs Group"); }
         Getter(Type* value) : value(value) { LOG_THIS_MEMBER("Ecs Group"); }
 
         Type* get() const { LOG_THIS_MEMBER("Ecs Group"); return value; }
@@ -71,7 +71,7 @@ namespace pg
         template <typename Type>
         void set(Type *value) { LOG_THIS_MEMBER("Ecs Group"); static_cast<Getter<Type>*>(this)->set(value); }
 
-        inline EntitySystem* world() const noexcept { return ecsRef; }
+        inline EntitySystem* world() const noexcept { LOG_THIS_MEMBER("Ecs Group"); return ecsRef; }
 
         Entity *entity;
         EntitySystem *const ecsRef = nullptr;
@@ -82,7 +82,7 @@ namespace pg
     template <typename Type, typename... Types>
     struct SetHolder
     {
-        SetHolder(const SparseSet* set, void(*f)(const SparseSet*, GroupElement<Type, Types...>&, size_t)) : set(set), setElement(f) {}
+        SetHolder(const SparseSet* set, void(*f)(const SparseSet*, GroupElement<Type, Types...>&, size_t)) : set(set), setElement(f) { LOG_THIS_MEMBER("Ecs Group"); }
 
         const SparseSet* set;
         void (*setElement) (const SparseSet*, GroupElement<Type, Types...>&, size_t);
@@ -91,7 +91,9 @@ namespace pg
     template <typename Set, typename Type, typename... Types>
     void getFromSet(const SparseSet* set, GroupElement<Type, Types...>& element, size_t id)
     {
-        const auto& pos = static_cast<const Set*>(set)->find(id);
+        LOG_THIS("Ecs Group");
+
+        const auto& pos = set->find(id);
         if(pos != 0)
             element.set((*static_cast<const Set*>(set))[pos]);
         else
@@ -109,15 +111,17 @@ namespace pg
     {
         virtual void onEvent(const OnCompCreatedCheckForGroup<Group<Type, Types...>>& event) override
         {
+            LOG_THIS_MEMBER("Ecs Group");
+
             auto entity = event.entity;
             auto& id = entity->id;
 
-            for (auto compId : entity->componentList)
+            for (const auto& compId : entity->componentList)
             {
                 LOG_INFO("Group", "Entity " << id << " has component " << compId);
             }
 
-            for (auto compId : compIdList)
+            for (const auto& compId : compIdList)
             {
                 LOG_INFO("Group", "Group " << id << " expect comp " << compId);
             }
@@ -155,6 +159,8 @@ namespace pg
 
         void addOnGroup(void(*callback)(Entity*))
         {
+            LOG_THIS_MEMBER("Ecs Group");
+
             onAddGroup.push_back(callback);
 
             for(auto element : elements.viewComponents())
@@ -168,6 +174,8 @@ namespace pg
         template <typename Set>
         inline void addInList(SetHolder<Type, Types...> **list, size_t index, const Set& set)
         {
+            LOG_THIS_MEMBER("Ecs Group");
+
             list[index] = new SetHolder<Type, Types...> ( &set, &getFromSet<Set, Type, Types...> );
         }
 
@@ -198,21 +206,6 @@ namespace pg
             addInList(list, index, setN->components);
 
             populateList(list, index + 1, sets...);
-        }
-
-        inline const SparseSet& smallestSet(const SparseSet& set1, const SparseSet& set2) const
-        {
-            LOG_THIS_MEMBER("Ecs Group");
-
-            return set1.nbElements() < set2.nbElements() ? set1 : set2;
-        }
-
-        template <typename Set, typename... Sets>
-        inline const SparseSet& smallestSet(const SparseSet& set1, const SparseSet& set2, const Set& setN, const Sets&... sets) const
-        {
-            LOG_THIS_MEMBER("Ecs Group");
-
-            return set1.nbElements() < set2.nbElements() ? smallestSet(set1, setN, sets...) : smallestSet(set2, setN, sets...);
         }
 
         // End case of the recursion
@@ -279,10 +272,12 @@ namespace pg
 
         inline bool isEntityInGroup(Entity *entity) const
         {
+            LOG_THIS_MEMBER("Ecs Group");
+
             return std::includes(entity->componentList.begin(), entity->componentList.end(), compIdList.begin(), compIdList.end());
         }
 
-        inline EntitySystem* world() const noexcept { return registry->world(); }
+        inline EntitySystem* world() const noexcept { LOG_THIS_MEMBER("Ecs Group"); return registry->world(); }
 
         _unique_id id;
         ComponentRegistry* registry;

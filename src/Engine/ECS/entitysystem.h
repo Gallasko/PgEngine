@@ -170,11 +170,15 @@ namespace pg
     private:
         void addEntityToPool(Entity* entity)
         {
+            LOG_THIS_MEMBER("ECS");
+
             entityPool.allocate(*entity);
         }
 
         void deleteEntityFromPool(Entity* entity)
         {
+            LOG_THIS_MEMBER("ECS");
+
             for(auto& comp : entity->componentList)
             {
                 if(comp.entityHeldType == Entity::EntityHeld::EntityHeldType::id)
@@ -189,6 +193,12 @@ namespace pg
         template <typename Type>
         void addComponentToPool(Type* component)
         {
+            LOG_THIS_MEMBER("ECS");
+
+            if(component)
+            {
+                LOG_MILE("ECS", "addComponentToPool");
+            }
             // entity->componentList.emplace(registry.getTypeId<Type>());
         }
 
@@ -241,6 +251,8 @@ namespace pg
     template <typename Comp>
     inline bool Entity::has() const noexcept
     {
+        LOG_THIS("Entity");
+
         if(not ecsRef)
             return false;
         
@@ -252,6 +264,8 @@ namespace pg
     template <typename Comp>
     inline Comp* Entity::get() noexcept
     {
+        LOG_THIS("Entity");
+
         if(not ecsRef)
             return nullptr;
         
@@ -309,6 +323,8 @@ namespace pg
     template <typename Set>
     inline void Group<Type, Types...>::addEventToSet(Set setN)
     {
+        LOG_THIS_MEMBER("Ecs Group");
+
         setN->onComponentCreation.emplace(id, [](Entity *entity) {
             LOG_INFO("Group", "On component creation for entity " << entity->id << ", sending event !");
             entity->world()->sendEvent(OnCompCreatedCheckForGroup<Group<Type, Types...>>{entity});
