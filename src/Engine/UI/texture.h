@@ -8,12 +8,12 @@
 #include "uisystem.h"
 #include "constant.h"
 
-#include "Renderer/renderer.h"
-
 #include "logger.h"
 
 namespace pg
 {
+
+    class MasterRenderer;
 
     // Todo make a is relationship instead of inherit from UiComponent as it is like that with the new ECS
     // Todo make it a named component instead of an unamed one
@@ -51,13 +51,13 @@ namespace pg
 
         virtual void init() override
         {
-            auto group = registerGroup<UiComponent, TextureComponent>();
+            // auto group = registerGroup<UiComponent, TextureComponent>();
 
-            group->addOnGroup([](Entity* entity) {
-                LOG_INFO("Texture Component System", "Add entity " << entity->id << " to ui - tex group !");
+            // group->addOnGroup([](Entity* entity) {
+            //     LOG_INFO("Texture Component System", "Add entity " << entity->id << " to ui - tex group !");
 
-                entity->world()->attach<RenderableTexture>(entity);
-            });
+            //     entity->world()->attach<RenderableTexture>(entity);
+            // });
         }
 
     };

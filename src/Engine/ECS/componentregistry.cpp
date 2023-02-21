@@ -1,10 +1,8 @@
 #include "componentregistry.h"
 
-#include "Renderer/renderer.h"
-
 namespace pg
 {
-    ComponentRegistry::ComponentRegistry(EntitySystem *ecs) : masterRenderer(new MasterRenderer()), ecsRef(ecs)
+    ComponentRegistry::ComponentRegistry(EntitySystem *ecs) : ecsRef(ecs)
     {
         LOG_THIS_MEMBER("ComponentRegistry");
     } 

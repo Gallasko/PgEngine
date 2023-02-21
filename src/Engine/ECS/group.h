@@ -146,7 +146,7 @@ namespace pg
         }
 
         Group(_unique_id id) : id(id) { LOG_THIS_MEMBER("Ecs Group"); }
-        virtual ~Group() { LOG_THIS_MEMBER("Ecs Group"); }
+        virtual ~Group() { LOG_THIS_MEMBER("Ecs Group"); } // Todo delete all SetHolder
 
         void setRegistry(ComponentRegistry* registry)
         {

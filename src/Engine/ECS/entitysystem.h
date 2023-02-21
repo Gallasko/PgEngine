@@ -155,7 +155,7 @@ namespace pg
 
         void executeAll();
 
-        MasterRenderer* getMasterRenderer() { return registry.masterRenderer; }
+        // MasterRenderer* getMasterRenderer() { return registry.masterRenderer; }
 
         /** Return the registry of the ECS, mainly for testing purposes */
         inline constexpr const ComponentRegistry* getComponentRegistry() const noexcept { return &registry; }

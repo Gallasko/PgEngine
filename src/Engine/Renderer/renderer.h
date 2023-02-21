@@ -13,6 +13,9 @@
 #include "..\constant.h"
 #include "meshbuilder.h"
 
+// Todo remove
+#include "UI/texture.h"
+
 namespace pg
 {
     typedef constant::RefracTable RefracRef;
@@ -27,14 +30,13 @@ namespace pg
     void renderer(MasterRenderer* masterRender, Args... args);
 
     class UiComponent;
-    class TextureComponent;
 
     struct RenderableTexture { };
 
     //[TODO] Multiple FBO -> 1 for a whole screen capture and other for batch rendering on a texture 
     // Add Particle system with instancing already done / create an alternative if needed
 
-    class MasterRenderer : protected QOpenGLFunctions, public System<Own<RenderableTexture>>
+    class MasterRenderer : protected QOpenGLFunctions, public System<Own<RenderableTexture>, Ref<TextureComponent>, StoragePolicy>
     {
     public:
         MasterRenderer() {}

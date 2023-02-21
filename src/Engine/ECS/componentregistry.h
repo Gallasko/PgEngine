@@ -15,7 +15,7 @@
 namespace pg
 {
     class InputSystem;
-    class MasterRenderer;
+    // class MasterRenderer;
 
     template <typename Type>
     struct Own;
@@ -196,7 +196,7 @@ namespace pg
 
         // Common singleton system
     public:
-        MasterRenderer* masterRenderer;
+        // MasterRenderer* masterRenderer;
 
         mutable UniqueIdGenerator idGenerator;
 

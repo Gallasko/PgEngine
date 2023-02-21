@@ -92,6 +92,8 @@ namespace pg
             return data.c_str();
         }
 
+        std::string getData() const { return data; }
+
     private:
         std::string data;
     };
@@ -382,7 +384,7 @@ namespace pg
          */
         inline static void _single_log(const int line, const std::string& file, const std::string& function, const void* object, const std::string& objectName, const std::string& scope, const Strfy& msg, const Logger::InfoLevel& level)
         {
-            _single_log(line, file, function, object, objectName, scope, static_cast<std::string>(msg), level);
+            _single_log(line, file, function, object, objectName, scope, msg.getData(), level);
         }
 
         /**
