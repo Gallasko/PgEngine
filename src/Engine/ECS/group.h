@@ -50,26 +50,27 @@ namespace pg
     template <typename Type>
     struct Getter
     {
-        Getter() : value(nullptr) { LOG_THIS_MEMBER("Ecs Group"); }
-        Getter(Type* value) : value(value) { LOG_THIS_MEMBER("Ecs Group"); }
+        Getter(_unique_id entityId) : owner(nullptr), id(entityId) { LOG_THIS_MEMBER("Ecs Group"); }
+        // Getter(Type* value) : value(value) { LOG_THIS_MEMBER("Ecs Group"); }
 
-        Type* get() const { LOG_THIS_MEMBER("Ecs Group"); return value; }
-        void set(Type* value) { LOG_THIS_MEMBER("Ecs Group"); this->value = value; }
+        Type* get() const { LOG_THIS_MEMBER("Ecs Group"); return owner->getComponent(id); }
+        void set(const ComponentSet<Type>* owner) { LOG_THIS_MEMBER("Ecs Group"); this->owner = owner; }
 
-        Type* value; // Todo hold a ref to the component list and the component index inside of this list instead of the raw pointer to not get invalidated on resize !
+        const ComponentSet<Type>* owner; // Todo hold a ref to the component list and the component index inside of this list instead of the raw pointer to not get invalidated on resize !
+        const _unique_id id;
     };
 
     template <typename... Types>
     struct GroupElement : public Getter<Types>...
     {
-        GroupElement(Entity *entity, EntitySystem *const ecsRef, const _unique_id& entityId) : Getter<Types>()..., entity(entity), ecsRef(ecsRef), entityId(entityId) { LOG_THIS_MEMBER("Ecs Group"); }
-        GroupElement(Entity *entity, EntitySystem *const ecsRef, const _unique_id& entityId, Types*... values) : Getter<Types>(values)..., entity(entity), ecsRef(ecsRef), entityId(entityId) { LOG_THIS_MEMBER("Ecs Group"); }
+        GroupElement(Entity *entity, EntitySystem *const ecsRef, const _unique_id& entityId) : Getter<Types>(entityId)..., entity(entity), ecsRef(ecsRef), entityId(entityId) { LOG_THIS_MEMBER("Ecs Group"); }
+        // GroupElement(Entity *entity, EntitySystem *const ecsRef, const _unique_id& entityId, Types*... values) : Getter<Types>(values)..., entity(entity), ecsRef(ecsRef), entityId(entityId) { LOG_THIS_MEMBER("Ecs Group"); }
 
         template <typename Type>
         Type* get() const { LOG_THIS_MEMBER("Ecs Group"); return static_cast<const Getter<Type>*>(this)->get(); }
 
         template <typename Type>
-        void set(Type *value) { LOG_THIS_MEMBER("Ecs Group"); static_cast<Getter<Type>*>(this)->set(value); }
+        void set(const ComponentSet<Type> *owner) { LOG_THIS_MEMBER("Ecs Group"); static_cast<Getter<Type>*>(this)->set(owner); }
 
         inline EntitySystem* world() const noexcept { LOG_THIS_MEMBER("Ecs Group"); return ecsRef; }
 
@@ -95,7 +96,7 @@ namespace pg
 
         const auto& pos = set->find(id);
         if(pos != 0)
-            element.set((*static_cast<const Set*>(set))[pos]);
+            element.set(static_cast<const Set*>(set));
         else
             element.toBeDeleted = true;
     }
