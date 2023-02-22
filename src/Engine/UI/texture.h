@@ -12,7 +12,6 @@
 
 namespace pg
 {
-
     class MasterRenderer;
 
     // Todo make a is relationship instead of inherit from UiComponent as it is like that with the new ECS

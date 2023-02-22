@@ -70,7 +70,7 @@ namespace pg
 
             logPositionStringBuffer += function;
 
-            if(objectName == "")
+            if(objectName != "")
                 logPositionStringBuffer += " Object: " + std::string(objectName);
 
             return logPositionStringBuffer;

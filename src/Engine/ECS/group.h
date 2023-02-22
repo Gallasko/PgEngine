@@ -146,7 +146,7 @@ namespace pg
         }
 
         Group(_unique_id id) : id(id) { LOG_THIS_MEMBER("Ecs Group"); }
-        virtual ~Group() { LOG_THIS_MEMBER("Ecs Group"); } // Todo delete all SetHolder
+        virtual ~Group() { LOG_THIS_MEMBER("Ecs Group"); }
 
         void setRegistry(ComponentRegistry* registry)
         {
@@ -206,68 +206,6 @@ namespace pg
             addInList(list, index, setN->components);
 
             populateList(list, index + 1, sets...);
-        }
-
-        // End case of the recursion
-        template <typename Value>
-        inline void checkEntityInGroup(ThreadPool* pool, GroupSet<GroupElement<Type, Types...>>& elements)
-        {
-            LOG_THIS_MEMBER("Ecs Group");
-
-            const auto& components = registry->retrieve<Value>()->components;
-
-            // Create Task
-            auto result = pool->enqueue( [&elements, &components]() -> void
-            {
-                for (const auto& element : elements.viewComponents())
-                {
-                    const auto& pos = components.find(element->entityId);
-                    if(pos != 0)
-                        element->set(components[pos]);
-                    else
-                        element->toBeDeleted = true;
-                }  
-            });
-
-            // TODO
-            // Send task to the thread pool ( pool->addTask(task); )
-            //task();
-
-            result.get();
-
-            // Todo join the task here !
-        }
-
-        template <typename Value, typename Other, typename... Values>
-        inline void checkEntityInGroup(ThreadPool* pool, GroupSet<GroupElement<Type, Types...>>& elements)
-        {
-            LOG_THIS_MEMBER("Ecs Group");
-
-            const auto& components = registry->retrieve<Value>()->components;
-
-            // Create Task
-            auto result = pool->enqueue( [&elements, &components]() -> void
-            {
-                for (const auto& element : elements.viewComponents())
-                {
-                    const auto& pos = components.find(element->entityId);
-                    if(pos != 0)
-                        element->set(components[pos]);
-                    else
-                        element->toBeDeleted = true;
-                }  
-            });
-
-            // TODO
-            // Send task to the thread pool ( pool->addTask(task); )
-            // task();
-
-            // Recursive call to add all the different components to the group
-            checkEntityInGroup<Other, Values...>(pool, elements);
-
-            result.get();
-
-            // Todo join the task here !
         }
 
         inline bool isEntityInGroup(Entity *entity) const

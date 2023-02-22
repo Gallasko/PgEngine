@@ -247,8 +247,6 @@ void EditorWindow::initialize()
         LOG_INFO(DOM, "Entity " << sceneEntity->id << "has component: " << held.getId());
     }
     
-    masterRenderer->execute();
-
     ticking = true;
     std::thread t (&EditorWindow::tick, this);
 
@@ -263,8 +261,8 @@ void EditorWindow::render()
     const qreal retinaScale = devicePixelRatio();
     glViewport(0, 0, width() * retinaScale, height() * retinaScale);
 
-    // glClearColor(0.1f, 0.3f, 0.7f, 1.0f);
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClearColor(0.1f, 0.3f, 0.7f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     currentTime = QDateTime::currentMSecsSinceEpoch();
 
@@ -288,7 +286,7 @@ void EditorWindow::render()
 
     // sceneEcs.executeAll();
     // ecs.executeAll();
-    // masterRenderer->execute();
+    masterRenderer->execute();
 
     inputHandler->updateInput(float(currentTime - lastTime) / 1000);
 
