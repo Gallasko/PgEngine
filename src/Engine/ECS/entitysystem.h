@@ -59,7 +59,10 @@ namespace pg
             if(running)
                 return cmdDispatcher.createEntity();
             else
-                return entityPool.allocate(registry.idGenerator.generateId(), this);
+            {
+                const auto& id = registry.idGenerator.generateId();
+                return entityPool.addComponent(id, id, this);
+            }
         }
 
         void removeEntity(Entity* entity)
@@ -160,9 +163,9 @@ namespace pg
         /** Return the registry of the ECS, mainly for testing purposes */
         inline constexpr const ComponentRegistry* getComponentRegistry() const noexcept { return &registry; }
 
-        inline constexpr size_t getNbEntities() const { return entityPool.getNbElements(); }
+        inline size_t getNbEntities() const { return entityPool.nbElements() - 1; }
 
-        inline Entity* getEntity(size_t index) const { return entityPool.getElement(index); }
+        inline Entity* getEntity(_unique_id id) const { return entityPool.atEntity(id); }
 
         template <typename Comp>
         inline Comp* getComponent(_unique_id id) const { return registry.retrieve<Comp>()->getComponent(id); }
@@ -172,7 +175,7 @@ namespace pg
         {
             LOG_THIS_MEMBER("ECS");
 
-            entityPool.allocate(*entity);
+            entityPool.addComponent(entity, *entity);
         }
 
         void deleteEntityFromPool(Entity* entity)
@@ -187,7 +190,7 @@ namespace pg
                 }
             }
 
-            entityPool.release(entity);
+            entityPool.removeComponent(entity);
         }
 
         template <typename Type>
@@ -233,7 +236,7 @@ namespace pg
         std::vector<AbstractSystem*> systems;
 
         /** All the entities generated from the ECS */
-        AllocatorPool<Entity> entityPool;
+        ComponentSet<Entity> entityPool;
 
         /** Taskflow of all the system of the ecs */
         tf::Taskflow taskflow;

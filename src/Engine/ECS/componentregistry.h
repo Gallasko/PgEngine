@@ -305,7 +305,7 @@ namespace pg
 
         inline Type* getComponent(_unique_id id) const
         {
-            return components[id];
+            return components.atEntity(id);
         }
 
         inline typename ComponentSet<Type>::ComponentSetList view() const

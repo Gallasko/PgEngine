@@ -477,6 +477,8 @@ namespace pg
          */
         constexpr Comp* operator[](const size_t& index) const { LOG_THIS_MEMBER("Component Set"); return componentList[index]; }
 
+        Comp* atEntity(_unique_id id) const { return componentList[find(id)]; }
+
         void reserve(const size_t& size)
         {
             LOG_THIS_MEMBER("Component Set");
@@ -510,7 +512,7 @@ namespace pg
         }
 
         template <typename... Args>
-        Comp* addComponent(const _unique_id& id, Args&&... args)
+        Comp* addComponent(_unique_id id, Args&&... args)
         {
             LOG_THIS_MEMBER("Component Set");
 
@@ -555,7 +557,7 @@ namespace pg
             return addComponent(entity->id, std::forward<Args>(args)...);
         }
 
-        void removeComponent(const _unique_id& id)
+        void removeComponent(_unique_id id)
         {
             LOG_THIS_MEMBER("Component Set");
 

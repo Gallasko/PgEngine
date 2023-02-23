@@ -25,11 +25,10 @@ namespace pg
 
             SparseSet set;
         }
-/*
+
         TEST(sparse_test, iterate)
         {
             SparseSet set;
-            EntitySystem ecs;
 
             for (int i = 1; i < 1000; i++)
             {
@@ -45,6 +44,6 @@ namespace pg
                 EXPECT_EQ(view[i], i);
             }
         }
-*/
+
     }
 }
