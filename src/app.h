@@ -98,10 +98,12 @@ private:
 
     void renderUi();
     void tick();
+    void executeEngine();
     void quit(Input* inputHandler, double...);
 
     bool m_animating = false;
     bool ticking = false;
+    bool running = false;
 
     //Render var
     QOpenGLContext *m_context = nullptr;

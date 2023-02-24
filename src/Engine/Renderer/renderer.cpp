@@ -9,7 +9,7 @@ namespace pg
 
     void MasterRenderer::execute()
     {
-        LOG_INFO("MasterRenderer", "Executing render with " << view<RenderableTexture>().nbComponents() << " elements.");
+        LOG_INFO("MasterRenderer", "Executing render with " << view<Renderable>().nbComponents() << " elements.");
 
         // for (auto tex : view<TextureComponent>())
         // {
@@ -18,13 +18,32 @@ namespace pg
         //         render(tex);
         // }
 
+        // Todo
+        tempRenderList.clear();
+
         // Todo Fix in group and ecs ! ( whereaver we are holding pointer of a comp actually ! )
         // Todo hold a ref to the component list and the component index inside of this list instead of the raw pointer to not get invalidated on resize !
-        for(auto entity : group<UiComponent, TextureComponent, RenderableTexture>()->elements.viewComponents())
+        for(auto entity : group<UiComponent, TextureComponent, Renderable>()->elements.viewComponents())
         {
-            auto tex = entity->ecsRef->getComponent<TextureComponent>(entity->entityId);
-            if (tex != nullptr)
-                render(tex);
+            tempRenderList.emplace(entity->get<TextureComponent>());
+            // auto tex = entity->ecsRef->getComponent<TextureComponent>(entity->entityId);
+            // if (tex != nullptr)
+                // render(tex);
+        }
+
+        std::lock_guard<std::mutex> lock(renderMutex);
+
+        currentRenderList = tempRenderList;
+    }
+
+    void MasterRenderer::renderAll()
+    {
+        std::lock_guard<std::mutex> lock(renderMutex);
+
+        // Todo: Use the same context to render all the same element
+        for(auto& tex : currentRenderList)
+        {
+            render(tex.texture);
         }
     }
 

@@ -2,6 +2,8 @@
 
 #include <unordered_map>
 
+#include <mutex>
+
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>
@@ -30,19 +32,26 @@ namespace pg
     void renderer(MasterRenderer* masterRender, Args... args);
 
     class UiComponent;
+    class TextureComponent;
 
-    struct RenderableTexture { };
+    struct Renderable { };
+
+    // Todo create and save a VAO here !
+    // Adapt rendering process for this
+    struct RenderableTexture { TextureComponent *texture; };
 
     //[TODO] Multiple FBO -> 1 for a whole screen capture and other for batch rendering on a texture 
     // Add Particle system with instancing already done / create an alternative if needed
 
-    class MasterRenderer : protected QOpenGLFunctions, public System<Own<RenderableTexture>, Ref<TextureComponent>, StoragePolicy>
+    class MasterRenderer : protected QOpenGLFunctions, public System<Own<Renderable>, Ref<TextureComponent>, StoragePolicy>
     {
     public:
         MasterRenderer() {}
         ~MasterRenderer() { delete extraFunctions; delete squareObject; delete instanceVBO; }
 
         virtual void execute() override;
+
+        void renderAll();
 
         void initialize(QOpenGLContext *m_context) { initializeGlObject(m_context); initializeParameters(); }
 
@@ -77,6 +86,13 @@ namespace pg
         void initializeGlObject(QOpenGLContext *context);
 
         void initializeParameters();
+
+        bool modified = false;
+
+        std::mutex renderMutex;
+
+        std::vector<RenderableTexture> tempRenderList;
+        std::vector<RenderableTexture> currentRenderList;
 
         QOpenGLExtraFunctions *extraFunctions;
         OpenGLObject *squareObject;

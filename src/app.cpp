@@ -122,6 +122,7 @@ EditorWindow::EditorWindow(QWindow *parent) : QWindow(parent)
 EditorWindow::~EditorWindow()
 {
     ticking = false;
+    running = false;
 
     if(inputHandler != nullptr)
         delete inputHandler;
@@ -235,7 +236,7 @@ void EditorWindow::initialize()
 
     auto sceneEntityTex = ecs.attach<TextureComponent>(sceneEntity, 40, 200, "frame");
 
-    ecs.attach<RenderableTexture>(sceneEntity);
+    // ecs.attach<Renderable>(sceneEntity);
 
     // sceneEntityTex->setX(20);
     // sceneEntityTex->setY(20);
@@ -249,6 +250,9 @@ void EditorWindow::initialize()
     
     ticking = true;
     std::thread t (&EditorWindow::tick, this);
+
+    running = true;
+    std::thread t2(&EditorWindow::executeEngine, this);
 
     t.detach();
 }
@@ -284,9 +288,10 @@ void EditorWindow::render()
 
     // renderUi();
 
+    masterRenderer->renderAll();
     // sceneEcs.executeAll();
     // ecs.executeAll();
-    masterRenderer->execute();
+    // masterRenderer->execute();
 
     inputHandler->updateInput(float(currentTime - lastTime) / 1000);
 
@@ -579,6 +584,16 @@ void EditorWindow::renderUi()
         masterRenderer.render(&sentence);
     }
 */
+}
+
+void EditorWindow::executeEngine()
+{
+    LOG_THIS_MEMBER(DOM);
+
+    while(running)
+    {
+        ecs.executeAll();
+    }
 }
 
 //TODO make a tick object that take tick function and run in background when you start up the engine
