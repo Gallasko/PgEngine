@@ -53,7 +53,7 @@ namespace pg
         Getter(_unique_id entityId) : owner(nullptr), id(entityId) { LOG_THIS_MEMBER("Ecs Group"); }
         // Getter(Type* value) : value(value) { LOG_THIS_MEMBER("Ecs Group"); }
 
-        Type* get() const { LOG_THIS_MEMBER("Ecs Group"); return owner->getComponent(id); }
+        Type* get() const { LOG_THIS_MEMBER("Ecs Group"); return owner->atEntity(id); }
         void set(const ComponentSet<Type>* owner) { LOG_THIS_MEMBER("Ecs Group"); this->owner = owner; }
 
         const ComponentSet<Type>* owner; // Todo hold a ref to the component list and the component index inside of this list instead of the raw pointer to not get invalidated on resize !

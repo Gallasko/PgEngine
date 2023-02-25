@@ -14,8 +14,6 @@ namespace pg
     {
         LOG_THIS(DOM);
 
-        LOG_MILE(DOM, "Texture rendering");
-
         if(not texture->isVisible())
             return;
     

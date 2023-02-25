@@ -43,7 +43,7 @@ namespace pg
     //[TODO] Multiple FBO -> 1 for a whole screen capture and other for batch rendering on a texture 
     // Add Particle system with instancing already done / create an alternative if needed
 
-    class MasterRenderer : protected QOpenGLFunctions, public System<Own<Renderable>, Ref<TextureComponent>, StoragePolicy>
+    class MasterRenderer : protected QOpenGLFunctions, public System<Own<Renderable>, Ref<TextureComponent>>
     {
     public:
         MasterRenderer() {}

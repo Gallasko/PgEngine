@@ -4,11 +4,19 @@
 
 #include "UI/texture.h"
 
+#include "logger.h"
+
 namespace pg
 {
+    namespace
+    {
+        constexpr static const char * const DOM = "Renderer";
+    }
 
     void MasterRenderer::execute()
     {
+        LOG_THIS_MEMBER(DOM);
+
         LOG_INFO("MasterRenderer", "Executing render with " << view<Renderable>().nbComponents() << " elements.");
 
         // for (auto tex : view<TextureComponent>())
@@ -23,12 +31,14 @@ namespace pg
 
         // Todo Fix in group and ecs ! ( whereaver we are holding pointer of a comp actually ! )
         // Todo hold a ref to the component list and the component index inside of this list instead of the raw pointer to not get invalidated on resize !
-        for(auto entity : group<UiComponent, TextureComponent, Renderable>()->elements.viewComponents())
+        // for(auto entity : group<UiComponent, TextureComponent, Renderable>()->elements.viewComponents())
+        // {
+        //     tempRenderList.push_back(RenderableTexture{entity->get<TextureComponent>()});
+        // }
+
+        for (auto tex : view<TextureComponent>())
         {
-            tempRenderList.emplace(entity->get<TextureComponent>());
-            // auto tex = entity->ecsRef->getComponent<TextureComponent>(entity->entityId);
-            // if (tex != nullptr)
-                // render(tex);
+            tempRenderList.push_back(RenderableTexture{tex});
         }
 
         std::lock_guard<std::mutex> lock(renderMutex);
@@ -38,6 +48,8 @@ namespace pg
 
     void MasterRenderer::renderAll()
     {
+        LOG_THIS_MEMBER(DOM);
+
         std::lock_guard<std::mutex> lock(renderMutex);
 
         // Todo: Use the same context to render all the same element
@@ -49,6 +61,8 @@ namespace pg
 
     void MasterRenderer::registerShader(const std::string& name, const char* vsPath, const char* fsPath)
     {
+        LOG_THIS_MEMBER(DOM);
+
         auto shaderProgram = new QOpenGLShaderProgram();
         shaderProgram->addShaderFromSourceFile(QOpenGLShader::Vertex, vsPath);
         shaderProgram->addShaderFromSourceFile(QOpenGLShader::Fragment, fsPath);
@@ -60,6 +74,8 @@ namespace pg
     //TODO mirror or not the texture
     void MasterRenderer::registerTexture(const std::string& name, const char* texturePath)
     { 
+        LOG_THIS_MEMBER(DOM);
+
         QImage textureAtlas = QImage(QString(texturePath));
         textureAtlas = textureAtlas.convertToFormat(QImage::Format_RGBA8888); //.mirrored(); // TODO check mirrored
 
@@ -85,6 +101,8 @@ namespace pg
 
     void MasterRenderer::initializeGlObject(QOpenGLContext *context)
     {
+        LOG_THIS_MEMBER(DOM);
+
         initializeOpenGLFunctions(); 
         extraFunctions = new QOpenGLExtraFunctions(context); 
 
@@ -135,6 +153,8 @@ namespace pg
 
     void MasterRenderer::initializeParameters()
     {
+        LOG_THIS_MEMBER(DOM);
+
         systemParameters["ScreenWidth"] = 1;
         systemParameters["ScreenHeight"] = 1;
         systemParameters["CurrentTime"] = 1;

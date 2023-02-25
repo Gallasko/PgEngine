@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
     terminalSink->addFilter("Font Filter", new Logger::LogSink::FilterScope("Font Loader"));
     // terminalSink->addFilter("Configuration Filter", new Logger::LogSink::FilterFile("src/Engine/configuration.cpp"));
     // terminalSink->addFilter("Editor Filter", new Logger::LogSink::FilterFile("src/app.cpp"));
-    // terminalSink->addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
+    terminalSink->addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
 
     auto fileSink = pg::Logger::registerSink<pg::FileSink>();
 

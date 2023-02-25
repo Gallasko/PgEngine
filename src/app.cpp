@@ -255,6 +255,8 @@ void EditorWindow::initialize()
     std::thread t2(&EditorWindow::executeEngine, this);
 
     t.detach();
+
+    t2.detach();
 }
 
 void EditorWindow::render()
@@ -296,6 +298,8 @@ void EditorWindow::render()
     inputHandler->updateInput(float(currentTime - lastTime) / 1000);
 
     lastTime = currentTime;
+
+    nbFrame++;
 }
 
 void EditorWindow::setAnimating(bool animating)
@@ -606,22 +610,27 @@ void EditorWindow::tick()
 
     while(ticking)
     {
+        // LOG_INFO(DOM, nbFrame);
+
+        std::cout << nbFrame << std::endl;  
+        nbFrame = 0;
+
         lastTickTime = QDateTime::currentMSecsSinceEpoch();
 
-        //Animation tick loop
-        for(int i = AnimationComponent::runningQueue.size() - 1; i >= 0; i--) 
-        {
-            AnimationComponent::runningQueue[i]->tick(40); // tickRate
+        // //Animation tick loop
+        // for(int i = AnimationComponent::runningQueue.size() - 1; i >= 0; i--) 
+        // {
+        //     AnimationComponent::runningQueue[i]->tick(40); // tickRate
             
-            if(!AnimationComponent::runningQueue[i]->isRunning())
-            {
-                //delete AnimationComponent::runningQueue[i]; // TODO check where to put this
-                AnimationComponent::runningQueue.erase(AnimationComponent::runningQueue.begin() + i);
-            }
-        }
+        //     if(!AnimationComponent::runningQueue[i]->isRunning())
+        //     {
+        //         //delete AnimationComponent::runningQueue[i]; // TODO check where to put this
+        //         AnimationComponent::runningQueue.erase(AnimationComponent::runningQueue.begin() + i);
+        //     }
+        // }
 
         currentTickTime = QDateTime::currentMSecsSinceEpoch();
-        std::this_thread::sleep_for(std::chrono::milliseconds(40 - (currentTickTime - lastTickTime)));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000 - (currentTickTime - lastTickTime)));
     }
 }
 

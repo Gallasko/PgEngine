@@ -127,6 +127,8 @@ private:
 
     QPoint mousePos;
 
+    uint32_t nbFrame = 0;
+
     bool debug = false;
     bool debugSwitched = false;
 };
