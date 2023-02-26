@@ -2,7 +2,8 @@
 
 #include <set>
 #include <algorithm>
-#include <Memory/memorypool.h>
+
+#include "Memory/memorypool.h"
 
 #include "uniqueid.h"
 
@@ -149,15 +150,9 @@ namespace pg
         }
 
         // Todo always check if the component was not initialized in between calls to make sure to update the correct one
-        Entity* operator->() const
-        {
-            return entity;
-        }
+        Entity* operator->() const;
 
-        operator Entity*() const
-        {
-            return entity;
-        }
+        operator Entity*() const;
 
         inline bool empty() const { return entity == nullptr; }
 

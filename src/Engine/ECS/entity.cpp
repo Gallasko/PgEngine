@@ -47,4 +47,20 @@ namespace pg
             }
         }
     }
+
+    Entity* EntityRef::operator->() const
+    {
+        if(initialized)
+            return ecsRef->getEntity(id);
+        else
+            return entity;
+    }
+
+    EntityRef::operator Entity*() const
+    {
+        if(initialized)
+            return ecsRef->getEntity(id);
+        else
+            return entity;
+    }
 }

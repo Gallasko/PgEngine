@@ -562,6 +562,8 @@ namespace pg
 				this->nbIndices = rhs.nbIndices;
 			}
 
+			virtual ~ModelInfo() { if(vertices != nullptr) delete[] vertices; if(indices!= nullptr) delete[] indices; }
+
 			inline void operator=(const ModelInfo &rhs)
 			{
 				unsigned int i = 0;
@@ -582,8 +584,6 @@ namespace pg
 				this->nbVertices = rhs.nbVertices;
 				this->nbIndices = rhs.nbIndices;		
 			}
-
-			~ModelInfo() { if(vertices != nullptr) delete[] vertices; if(indices!= nullptr) delete[] indices; }
 		};
 
 		struct SquareInfo : public ModelInfo
@@ -619,6 +619,8 @@ namespace pg
 				this->nbVertices = rhs.nbVertices;
 				this->nbIndices = rhs.nbIndices;
 			}
+
+			virtual ~SquareInfo() {}
 
 			inline void operator=(const SquareInfo &rhs)
 			{

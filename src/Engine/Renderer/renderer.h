@@ -12,11 +12,10 @@
 #include <QMatrix4x4>
 #include <cstdarg>
 
+#include "ECS/system.h"
+
 #include "..\constant.h"
 #include "meshbuilder.h"
-
-// Todo remove
-#include "UI/texture.h"
 
 namespace pg
 {
@@ -38,12 +37,19 @@ namespace pg
 
     // Todo create and save a VAO here !
     // Adapt rendering process for this
-    struct RenderableTexture { TextureComponent *texture; };
+    struct RenderableTexture
+    {
+        std::string textureName;
+        std::string shaderName;
+
+        CompRef<UiComponent> uiRef;
+        MeshBuilder::MeshRef meshRef;
+    };
 
     //[TODO] Multiple FBO -> 1 for a whole screen capture and other for batch rendering on a texture 
     // Add Particle system with instancing already done / create an alternative if needed
 
-    class MasterRenderer : protected QOpenGLFunctions, public System<Own<Renderable>, Ref<TextureComponent>>
+    class MasterRenderer : protected QOpenGLFunctions, public System<Own<Renderable>>
     {
     public:
         MasterRenderer() {}
@@ -101,5 +107,7 @@ namespace pg
         RefracRef systemParameters;
         ShaderRef shaderList;
         TextureRef textureList;
+
+        MeshBuilder meshBuilder;
     };
 }

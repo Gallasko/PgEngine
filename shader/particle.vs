@@ -17,7 +17,7 @@ uniform mat4 projection;
 
 void main()
 {
-	gl_Position =  projection * view * scale * model * vec4((aParticleScale * aPos) + aTransform, 1.0f);
+	gl_Position = projection * view * scale * model * vec4((aParticleScale * aPos) + aTransform, 1.0f);
 	TexCoord = vec2(aTexCoord.x + aTexOffset, aTexCoord.y);
     visible = aVisible;
 }

@@ -40,7 +40,7 @@ namespace pg
 
         for(int i = 0; i < scene->nbAllocatedObjects; i++)
         {
-            scene->sceneObjects[i]->render(masterRenderer);
+            // scene->sceneObjects[i]->render(masterRenderer);
         }
     }
 

@@ -69,8 +69,8 @@ namespace pg
     template <>
     void renderer(MasterRenderer* masterRenderer, Button* button)
     {
-        if(button->background != nullptr)
-            masterRenderer->render(button->background);
+        // if(button->background != nullptr)
+        //     masterRenderer->render(button->background);
 
         if(button->sentence != nullptr)
             masterRenderer->render(button->sentence);
@@ -102,7 +102,7 @@ namespace pg
 
     Button::Button(EntitySystem *ecs, void(*onPress)(Input*, double), const std::string& textureName, const UiComponent& frame) : UiComponent(frame), callback(onPress), compoundEntity(makeButtonMouseComponent(ecs, this, callback))
     {
-        this->background = new TextureComponent(this->width, this->height, textureName);
+        // this->background = new TextureComponent(this->width, this->height, textureName);
         ownBackground = true;
 
         moveUiElements();
@@ -116,7 +116,7 @@ namespace pg
         this->width = this->sentence->width;
         this->height = this->sentence->height;
 
-        this->background = new TextureComponent(this->width, this->height, textureName);
+        // this->background = new TextureComponent(this->width, this->height, textureName);
         ownBackground = true;
 
         moveUiElements();
@@ -129,7 +129,7 @@ namespace pg
 
     Button::Button(EntitySystem *ecs, const std::function<void(Input*, double)>& onPress, const std::string& textureName, const UiComponent& frame) : Button(ecs, onPress, frame)
     {
-        this->background = new TextureComponent(this->width, this->height, textureName);
+        // this->background = new TextureComponent(this->width, this->height, textureName);
         ownBackground = true;
 
         moveUiElements();
@@ -154,7 +154,7 @@ namespace pg
         this->width = this->sentence->width;
         this->height = this->sentence->height;
 
-        this->background = new TextureComponent(this->width, this->height, textureName);
+        // this->background = new TextureComponent(this->width, this->height, textureName);
         ownBackground = true;
 
         moveUiElements();
@@ -164,7 +164,7 @@ namespace pg
     {
         if(rhs.ownBackground)
         {
-            this->background = new TextureComponent(this->width, this->height, rhs.background->textureName);
+            // this->background = new TextureComponent(this->width, this->height, rhs.background->textureName);
 
             moveUiElements();
         }
@@ -199,8 +199,8 @@ namespace pg
     {
         UiComponent::show();
 
-        if(background != nullptr)
-            background->show();
+        // if(background != nullptr)
+        //     background->show();
 
         if(sentence != nullptr)
             sentence->show();
@@ -210,8 +210,8 @@ namespace pg
     {
         UiComponent::hide();
         
-        if(background != nullptr)
-            background->hide();
+        // if(background != nullptr)
+        //     background->hide();
 
         if(sentence != nullptr)
             sentence->hide();
@@ -219,11 +219,11 @@ namespace pg
 
     void Button::moveUiElements()
     {
-        if(background != nullptr)
-        {
-            background->setTopAnchor(this->top);
-            background->setLeftAnchor(this->left);
-        }
+        // if(background != nullptr)
+        // {
+        //     background->setTopAnchor(this->top);
+        //     background->setLeftAnchor(this->left);
+        // }
             
         if(sentence != nullptr)
         {

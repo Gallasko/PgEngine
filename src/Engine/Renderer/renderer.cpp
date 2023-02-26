@@ -13,6 +13,61 @@ namespace pg
         constexpr static const char * const DOM = "Renderer";
     }
 
+    void renderer(MasterRenderer* masterRenderer, RenderableTexture *renderableTexture)
+    {
+        LOG_THIS(DOM);
+
+        UiComponent *ui = renderableTexture->uiRef;
+
+        if(not ui->isVisible())
+            return;
+    
+        auto rTable = masterRenderer->getParameter();
+        const int screenWidth = rTable["ScreenWidth"];
+        const int screenHeight = rTable["ScreenHeight"];
+
+        QMatrix4x4 projection;
+        QMatrix4x4 view;
+        QMatrix4x4 model;
+        QMatrix4x4 scale;
+
+        projection.setToIdentity();
+        model.setToIdentity();
+        scale.setToIdentity();
+        scale.scale(QVector3D(2.0f / screenWidth, 2.0f / screenHeight, 0.0f)); 
+        // TODO why does it need to be scale * 2 ( the scaling now happen in the shader ) <- Done the * 2 is needed to map the -1 <-> 1 space to a 0 <-> 1 space 
+        // Need to make a note about that
+
+        // auto shaderProgram = masterRenderer->getShader("default");
+        // auto tex = masterRenderer->getTexture(texture->textureName);
+
+        auto shaderProgram = masterRenderer->getShader(renderableTexture->shaderName);
+        auto texture = masterRenderer->getTexture(renderableTexture->textureName);
+
+        // Tex rendering
+        
+        shaderProgram->bind();
+
+        shaderProgram->setUniformValue(shaderProgram->uniformLocation("projection"), projection);
+        shaderProgram->setUniformValue(shaderProgram->uniformLocation("model"), model);
+        shaderProgram->setUniformValue(shaderProgram->uniformLocation("scale"), scale);
+
+        auto mesh = renderableTexture->meshRef.getMesh();
+
+        //glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture);
+
+        view.setToIdentity();
+        view.translate(QVector3D(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, 0.0f));
+
+        shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
+
+        mesh->bind();
+        glDrawElements(GL_TRIANGLES, mesh->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
+
+        shaderProgram->release();
+    }
+
     void MasterRenderer::execute()
     {
         LOG_THIS_MEMBER(DOM);
@@ -31,15 +86,24 @@ namespace pg
 
         // Todo Fix in group and ecs ! ( whereaver we are holding pointer of a comp actually ! )
         // Todo hold a ref to the component list and the component index inside of this list instead of the raw pointer to not get invalidated on resize !
-        // for(auto entity : group<UiComponent, TextureComponent, Renderable>()->elements.viewComponents())
-        // {
-        //     tempRenderList.push_back(RenderableTexture{entity->get<TextureComponent>()});
-        // }
-
-        for (auto tex : view<TextureComponent>())
+        for(auto entity : group<UiComponent, TextureComponent, Renderable>()->elements.viewComponents())
         {
-            tempRenderList.push_back(RenderableTexture{tex});
+            auto ui = entity->get<UiComponent>();
+            auto tex = entity->get<TextureComponent>();
+
+            auto tName = tex->textureName;
+
+            auto mesh = meshBuilder.getTextureMesh(ui->width, ui->height, tName);
+
+            auto rTex = RenderableTexture{tName, "default", ui, mesh};
+
+            tempRenderList.push_back(rTex);
         }
+
+        // for (auto tex : view<TextureComponent>())
+        // {
+        //     tempRenderList.push_back(RenderableTexture{tex});
+        // }
 
         std::lock_guard<std::mutex> lock(renderMutex);
 
@@ -55,7 +119,7 @@ namespace pg
         // Todo: Use the same context to render all the same element
         for(auto& tex : currentRenderList)
         {
-            render(tex.texture);
+            render(&tex);
         }
     }
 

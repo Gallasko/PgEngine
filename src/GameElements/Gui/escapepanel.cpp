@@ -15,8 +15,8 @@ namespace pg
     template <>
     void renderer(MasterRenderer* masterRenderer, EscapePanel* escapePanel)
     {
-        if(escapePanel->background != nullptr)
-            masterRenderer->render(escapePanel->background);
+        // if(escapePanel->background != nullptr)
+        //     masterRenderer->render(escapePanel->background);
     }
 }
 
@@ -24,11 +24,11 @@ EscapePanel::EscapePanel(TextureComponent* background) : background(background)
 {
     LOG_THIS_MEMBER(DOM);
 
-    if(background != nullptr)
-    {
-        background->setTopAnchor(this->top);
-        background->setLeftAnchor(this->left);
-    }
+    // if(background != nullptr)
+    // {
+    //     background->setTopAnchor(this->top);
+    //     background->setLeftAnchor(this->left);
+    // }
 }
 
 void EscapePanel::show()
@@ -37,8 +37,8 @@ void EscapePanel::show()
 
     UiComponent::show();
 
-    if(background != nullptr)
-        background->show();
+    // if(background != nullptr)
+    //     background->show();
 }
 
 void EscapePanel::hide()
@@ -47,6 +47,6 @@ void EscapePanel::hide()
 
     UiComponent::hide();
 
-    if(background != nullptr)
-        background->hide();
+    // if(background != nullptr)
+    //     background->hide();
 }

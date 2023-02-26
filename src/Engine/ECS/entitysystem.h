@@ -322,6 +322,24 @@ namespace pg
         }
     }
 
+    template <typename Comp>
+    Comp* CompRef<Comp>::operator->() const
+    {
+        if (initialized)
+            return ecsRef->getComponent<Comp>(entityId);
+        else
+            return component;
+    }
+
+    template <typename Comp>
+    CompRef<Comp>::operator Comp*() const
+    {
+        if (initialized)
+            return ecsRef->getComponent<Comp>(entityId);
+        else
+            return component;
+    }
+
     template <typename Type, typename... Types>
     template <typename Set>
     inline void Group<Type, Types...>::addEventToSet(Set setN)

@@ -47,8 +47,8 @@ namespace
 
             for(const auto& element : view<SceneElement>())
             {
-                if(element->component != nullptr)
-                    element->component->render(masterRenderer);
+                // if(element->component != nullptr)
+                //     element->component->render(masterRenderer);
             }
         }
 
@@ -84,7 +84,7 @@ namespace
         {
             for(const auto& element : view<TextureComponent>())
             {
-                masterRenderer->render(element);
+                // masterRenderer->render(element);
             }
         }
 
@@ -213,6 +213,12 @@ void EditorWindow::initialize()
     auto sceneEntity = ecs.createEntity();
     sceneEntityC = ecs.attach<UiComponent>(sceneEntity);
 
+    sceneEntityC->setWidth(200);
+    sceneEntityC->setHeight(40);
+
+    sceneEntityC->setX(20);
+    sceneEntityC->setY(20);
+
     // sceneEntityC->setLeftAnchor(screenUi->left);
     // sceneEntityC->setRightAnchor(optionTab->left);
     // sceneEntityC->setTopAnchor(screenUi->top);
@@ -234,19 +240,9 @@ void EditorWindow::initialize()
     // std::cout << b1->width << std::endl;
     // std::cout << b1->pos.x << std::endl;
 
-    auto sceneEntityTex = ecs.attach<TextureComponent>(sceneEntity, 40, 200, "frame");
-
-    // ecs.attach<Renderable>(sceneEntity);
-
-    // sceneEntityTex->setX(20);
-    // sceneEntityTex->setY(20);
+    auto sceneEntityTex = ecs.attach<TextureComponent>(sceneEntity, "frame");
 
     std::cout << sceneEntityC->frame.w << std::endl;
-
-    for(auto& held : sceneEntity->componentList)
-    {
-        LOG_INFO(DOM, "Entity " << sceneEntity->id << "has component: " << held.getId());
-    }
     
     ticking = true;
     std::thread t (&EditorWindow::tick, this);

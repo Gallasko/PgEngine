@@ -20,11 +20,11 @@ namespace pg
     {
         // contextMenu->backgroundTextureC->render(masterRenderer);
 
-        contextMenu->addButtonButtonC->render(masterRenderer);
-        contextMenu->addTextureButtonC->render(masterRenderer);
-        contextMenu->addTextButtonC->render(masterRenderer);
-        contextMenu->addTextInputButtonC->render(masterRenderer);
-        contextMenu->addListButtonC->render(masterRenderer);
+        // contextMenu->addButtonButtonC->render(masterRenderer);
+        // contextMenu->addTextureButtonC->render(masterRenderer);
+        // contextMenu->addTextButtonC->render(masterRenderer);
+        // contextMenu->addTextInputButtonC->render(masterRenderer);
+        // contextMenu->addListButtonC->render(masterRenderer);
     }
 
 namespace editor

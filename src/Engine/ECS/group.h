@@ -47,6 +47,7 @@ namespace pg
     // Type forwarding
     // class ComponentRegistry;
 
+    // Todo find why sometime the component list gets invalidated
     template <typename Type>
     struct Getter
     {
@@ -56,7 +57,7 @@ namespace pg
         Type* get() const { LOG_THIS_MEMBER("Ecs Group"); return owner->atEntity(id); }
         void set(const ComponentSet<Type>* owner) { LOG_THIS_MEMBER("Ecs Group"); this->owner = owner; }
 
-        const ComponentSet<Type>* owner; // Todo hold a ref to the component list and the component index inside of this list instead of the raw pointer to not get invalidated on resize !
+        const ComponentSet<Type>* owner;
         const _unique_id id;
     };
 
@@ -66,8 +67,12 @@ namespace pg
         GroupElement(Entity *entity, EntitySystem *const ecsRef, const _unique_id& entityId) : Getter<Types>(entityId)..., entity(entity), ecsRef(ecsRef), entityId(entityId) { LOG_THIS_MEMBER("Ecs Group"); }
         // GroupElement(Entity *entity, EntitySystem *const ecsRef, const _unique_id& entityId, Types*... values) : Getter<Types>(values)..., entity(entity), ecsRef(ecsRef), entityId(entityId) { LOG_THIS_MEMBER("Ecs Group"); }
 
+        // Todo fix this !
+        // template <typename Type>
+        // Type* get() const { LOG_THIS_MEMBER("Ecs Group"); return static_cast<const Getter<Type>*>(this)->get(); }
+
         template <typename Type>
-        Type* get() const { LOG_THIS_MEMBER("Ecs Group"); return static_cast<const Getter<Type>*>(this)->get(); }
+        CompRef<Type> get() const { LOG_THIS_MEMBER("Ecs Group"); return CompRef<Type>(entity->get<Type>(), entityId, ecsRef, true); }
 
         template <typename Type>
         void set(const ComponentSet<Type> *owner) { LOG_THIS_MEMBER("Ecs Group"); static_cast<Getter<Type>*>(this)->set(owner); }

@@ -11,7 +11,7 @@ namespace pg
     {
         if(manager->currentScene)
         {
-            renderer(masterRenderer, manager->currentScene);
+            // renderer(masterRenderer, manager->currentScene);
         }
     }
 
