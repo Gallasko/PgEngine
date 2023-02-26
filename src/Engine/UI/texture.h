@@ -7,7 +7,6 @@
 
 namespace pg
 {
-    class MasterRenderer;
     class Renderable;
 
     struct TextureComponent
@@ -37,7 +36,9 @@ namespace pg
                 entity->world()->attach<Renderable>(entity);
             });
         }
-
     };
+
+    /** Helper that create an entity with an Ui component and a Texture component */
+    EntityRef makeUiTexture(EntitySystem *ecs, float width, float height, const std::string& name);
 
 }

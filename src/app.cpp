@@ -150,7 +150,7 @@ void EditorWindow::initialize()
     ecs.createSystem<UiComponentSystem>();
     // ecs.createSystem<ButtonSystem>(masterRenderer);
     ecs.createSystem<TextureComponentSystem>();
-    // sceneEcs.createSystem<SceneElementSystem>(masterRenderer);
+    // sceneEcs.createSystem<SceneElementSystem>(masterRenderer); 
 
     masterRenderer = ecs.createSystem<MasterRenderer>();
 
@@ -243,6 +243,14 @@ void EditorWindow::initialize()
     auto sceneEntityTex = ecs.attach<TextureComponent>(sceneEntity, "frame");
 
     std::cout << sceneEntityC->frame.w << std::endl;
+
+    makeUiTexture(&ecs, 80, 20, "pigeon");
+
+    auto e = makeUiTexture(&ecs, 160, 90, "menu");
+    auto c = e->get<UiComponent>();
+
+    c->setBottomAnchor(screenUi->bottom);
+    c->setRightAnchor(screenUi->right);
     
     ticking = true;
     std::thread t (&EditorWindow::tick, this);

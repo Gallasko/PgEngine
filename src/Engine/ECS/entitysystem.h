@@ -278,7 +278,7 @@ namespace pg
 
         if(it != componentList.end())
         {
-            return ecsRef->registry.retrieve<Comp>()->getComponent(componentId);
+            return ecsRef->registry.retrieve<Comp>()->getComponent(id);
         }
 
         return nullptr;

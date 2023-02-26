@@ -13,14 +13,9 @@ namespace pg
         constexpr static const char * const DOM = "Renderer";
     }
 
-    void renderer(MasterRenderer* masterRenderer, RenderableTexture *renderableTexture)
+    void renderer(MasterRenderer* masterRenderer, const std::map<std::string, std::map<std::string, std::vector<RenderableTexture>>>& renderableTextureMap)
     {
         LOG_THIS(DOM);
-
-        UiComponent *ui = renderableTexture->uiRef;
-
-        if(not ui->isVisible())
-            return;
     
         auto rTable = masterRenderer->getParameter();
         const int screenWidth = rTable["ScreenWidth"];
@@ -38,35 +33,47 @@ namespace pg
         // TODO why does it need to be scale * 2 ( the scaling now happen in the shader ) <- Done the * 2 is needed to map the -1 <-> 1 space to a 0 <-> 1 space 
         // Need to make a note about that
 
-        // auto shaderProgram = masterRenderer->getShader("default");
-        // auto tex = masterRenderer->getTexture(texture->textureName);
+        for(const auto& shaderMap : renderableTextureMap)
+        {
+            auto shaderProgram = masterRenderer->getShader(shaderMap.first);
 
-        auto shaderProgram = masterRenderer->getShader(renderableTexture->shaderName);
-        auto texture = masterRenderer->getTexture(renderableTexture->textureName);
+            for(const auto& textureMap : shaderMap.second)
+            {
+                auto texture = masterRenderer->getTexture(textureMap.first);
 
-        // Tex rendering
-        
-        shaderProgram->bind();
+                // Tex rendering
+                shaderProgram->bind();
 
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("projection"), projection);
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("model"), model);
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("scale"), scale);
+                shaderProgram->setUniformValue(shaderProgram->uniformLocation("projection"), projection);
+                shaderProgram->setUniformValue(shaderProgram->uniformLocation("model"), model);
+                shaderProgram->setUniformValue(shaderProgram->uniformLocation("scale"), scale);
 
-        auto mesh = renderableTexture->meshRef.getMesh();
+                //glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, texture);
 
-        //glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture);
+                // Todo combine all the call to the same texture into a single draw call using instanced rendering
+                for(const auto& renderableTexture : textureMap.second)
+                {
+                    UiComponent *ui = renderableTexture.uiRef;
 
-        view.setToIdentity();
-        view.translate(QVector3D(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, 0.0f));
+                    if(not ui->isVisible())
+                        break;
 
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
+                    auto mesh = renderableTexture.meshRef.getMesh();
 
-        mesh->bind();
-        glDrawElements(GL_TRIANGLES, mesh->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
+                    view.setToIdentity();
+                    view.translate(QVector3D(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, 0.0f));
 
-        shaderProgram->release();
-    }
+                    shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
+
+                    mesh->bind();
+                    glDrawElements(GL_TRIANGLES, mesh->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
+                }
+            }
+
+            shaderProgram->release();
+        }    
+     }
 
     void MasterRenderer::execute()
     {
@@ -95,9 +102,9 @@ namespace pg
 
             auto mesh = meshBuilder.getTextureMesh(ui->width, ui->height, tName);
 
-            auto rTex = RenderableTexture{tName, "default", ui, mesh};
+            auto rTex = RenderableTexture{ui, mesh};
 
-            tempRenderList.push_back(rTex);
+            tempRenderList["default"][tName].push_back(rTex);
         }
 
         // for (auto tex : view<TextureComponent>())
@@ -116,11 +123,7 @@ namespace pg
 
         std::lock_guard<std::mutex> lock(renderMutex);
 
-        // Todo: Use the same context to render all the same element
-        for(auto& tex : currentRenderList)
-        {
-            render(&tex);
-        }
+        render(currentRenderList);
     }
 
     void MasterRenderer::registerShader(const std::string& name, const char* vsPath, const char* fsPath)

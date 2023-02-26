@@ -35,13 +35,8 @@ namespace pg
 
     struct Renderable { };
 
-    // Todo create and save a VAO here !
-    // Adapt rendering process for this
     struct RenderableTexture
     {
-        std::string textureName;
-        std::string shaderName;
-
         CompRef<UiComponent> uiRef;
         MeshBuilder::MeshRef meshRef;
     };
@@ -71,8 +66,6 @@ namespace pg
         QOpenGLShaderProgram* getShader(const std::string& name) { return shaderList[name]; }
         unsigned int getTexture(const std::string& name) { return textureList[name]; }
 
-        //TODO check if we need to make a special case UiComponent
-
         template <typename... Args>
         void render(const Args&... args) { renderer(this, args...); }
 
@@ -97,8 +90,8 @@ namespace pg
 
         std::mutex renderMutex;
 
-        std::vector<RenderableTexture> tempRenderList;
-        std::vector<RenderableTexture> currentRenderList;
+        std::map<std::string, std::map<std::string, std::vector<RenderableTexture>>> tempRenderList;
+        std::map<std::string, std::map<std::string, std::vector<RenderableTexture>>> currentRenderList;
 
         QOpenGLExtraFunctions *extraFunctions;
         OpenGLObject *squareObject;
