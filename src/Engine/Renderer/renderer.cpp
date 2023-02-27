@@ -73,13 +73,37 @@ namespace pg
 
             shaderProgram->release();
         }    
-     }
+    }
+
+    void MasterRenderer::init()
+    {
+        auto group = registerGroup<UiComponent, TextureComponent, Renderable>();
+
+        group->addOnGroup([](Entity* entity) {
+            LOG_INFO("MasterRenderer", "Add entity " << entity->id << " to ui - tex - renderable group !");
+
+            auto ui = entity->get<UiComponent>();
+            auto tex = entity->get<TextureComponent>();
+
+            auto tName = tex->textureName;
+
+            auto sys = entity->world()->getSystem<MasterRenderer>();
+
+            auto mesh = sys->meshBuilder.getTextureMesh(ui->width, ui->height, tName);
+
+            auto rTex = RenderableTexture{ui, mesh};
+
+            sys->tempRenderList["default"][tName].push_back(rTex);
+
+            sys->changed = true;
+        });
+    }
 
     void MasterRenderer::execute()
     {
         LOG_THIS_MEMBER(DOM);
 
-        LOG_INFO("MasterRenderer", "Executing render with " << view<Renderable>().nbComponents() << " elements.");
+        // LOG_INFO("MasterRenderer", "Executing render with " << view<Renderable>().nbComponents() << " elements.");
 
         // for (auto tex : view<TextureComponent>())
         // {
@@ -89,32 +113,37 @@ namespace pg
         // }
 
         // Todo
-        tempRenderList.clear();
+        // tempRenderList.clear();
 
         // Todo Fix in group and ecs ! ( whereaver we are holding pointer of a comp actually ! )
         // Todo hold a ref to the component list and the component index inside of this list instead of the raw pointer to not get invalidated on resize !
-        for(auto entity : group<UiComponent, TextureComponent, Renderable>()->elements.viewComponents())
-        {
-            auto ui = entity->get<UiComponent>();
-            auto tex = entity->get<TextureComponent>();
+        // for(auto entity : group<UiComponent, TextureComponent, Renderable>()->elements.viewComponents())
+        // {
+            // auto ui = entity->get<UiComponent>();
+            // auto tex = entity->get<TextureComponent>();
 
-            auto tName = tex->textureName;
+            // auto tName = tex->textureName;
 
-            auto mesh = meshBuilder.getTextureMesh(ui->width, ui->height, tName);
+            // auto mesh = meshBuilder.getTextureMesh(ui->width, ui->height, tName);
 
-            auto rTex = RenderableTexture{ui, mesh};
+            // auto rTex = RenderableTexture{ui, mesh};
 
-            tempRenderList["default"][tName].push_back(rTex);
-        }
+            // tempRenderList["default"][tName].push_back(rTex);
+        // }
 
         // for (auto tex : view<TextureComponent>())
         // {
         //     tempRenderList.push_back(RenderableTexture{tex});
         // }
 
-        std::lock_guard<std::mutex> lock(renderMutex);
+        if(changed)
+        {
+            std::lock_guard<std::mutex> lock(renderMutex);
 
-        currentRenderList = tempRenderList;
+            currentRenderList = tempRenderList;
+
+            changed = false;
+        }        
     }
 
     void MasterRenderer::renderAll()

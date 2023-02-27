@@ -12,21 +12,21 @@
                 "command": "powershell",
                 "args": [
                     "-c",
-                    "mingw32-make DEBUG=True -j 8"
+                    "mingw32-make DEBUG=True PROD=True -j 8"
                 ]
             },
             "linux": {
                 "command": "bash",
                 "args": [
                     "-c",
-                    "make DEBUG=True"
+                    "make DEBUG=True PROD=True"
                 ]
             },
             "osx": {
                 "command": "bash",
                 "args": [
                     "-c",
-                    "make DEBUG=True"
+                    "make DEBUG=True PROD=True"
                 ]
             },
             "problemMatcher": []
@@ -42,21 +42,21 @@
                 "command": "powershell",
                 "args": [
                     "-c",
-                    "mingw32-make test DEBUG=True -j 8",
+                    "mingw32-make test DEBUG=True PROD=True -j 8",
                 ]
             },
             "linux": {
                 "command": "bash",
                 "args": [
                     "-c",
-                    "make DEBUG=True"
+                    "make DEBUG=True PROD=True"
                 ]
             },
             "osx": {
                 "command": "bash",
                 "args": [
                     "-c",
-                    "make DEBUG=True"
+                    "make DEBUG=True PROD=True"
                 ]
             },
             "problemMatcher": []

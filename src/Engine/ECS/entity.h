@@ -14,6 +14,9 @@ namespace pg
 
     class EntitySystem;
     class CommandDispatcher;
+    
+    template<typename Type>
+    class CompRef;
 
     class Entity
     {
@@ -103,7 +106,7 @@ namespace pg
         inline bool has() const noexcept;
 
         template <typename Comp>
-        inline Comp* get() noexcept;
+        inline CompRef<Comp> get() noexcept;
     
         inline EntitySystem* world() const noexcept { return ecsRef; }
 

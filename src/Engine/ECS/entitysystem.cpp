@@ -32,9 +32,9 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
-        for(size_t i = 0; i < systems.size(); i++)
+        for(auto& sys : systems)
         {
-            delete systems[i];
+            delete sys.second;
         }
     }
 

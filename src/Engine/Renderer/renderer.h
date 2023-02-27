@@ -44,12 +44,13 @@ namespace pg
     //[TODO] Multiple FBO -> 1 for a whole screen capture and other for batch rendering on a texture 
     // Add Particle system with instancing already done / create an alternative if needed
 
-    class MasterRenderer : protected QOpenGLFunctions, public System<Own<Renderable>>
+    class MasterRenderer : protected QOpenGLFunctions, public System<Own<Renderable>, InitSys>
     {
     public:
         MasterRenderer() {}
         ~MasterRenderer() { delete extraFunctions; delete squareObject; delete instanceVBO; }
 
+        virtual void init() override;
         virtual void execute() override;
 
         void renderAll();
@@ -86,7 +87,7 @@ namespace pg
 
         void initializeParameters();
 
-        bool modified = false;
+        bool changed = false;
 
         std::mutex renderMutex;
 

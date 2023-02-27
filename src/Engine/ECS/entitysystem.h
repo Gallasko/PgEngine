@@ -82,9 +82,11 @@ namespace pg
             LOG_THIS_MEMBER("ECS");
 
             auto system = new Sys(args...);
+            system->id = registry.getTypeId<Sys>();
+
             system->addToRegistry(&registry);
 
-            systems.push_back(system);
+            systems.emplace(system->id, system);
 
             // Only add the system to the taskflow if the execution policy is set to sequential or independent !
             if(system->executionPolicy == ExecutionPolicy::Sequential)
@@ -109,6 +111,16 @@ namespace pg
         }
 
         //TODO make a template specialization capable of attaching an entity to an entity
+
+        template <class Sys>
+        inline Sys* getSystem() const
+        {
+            LOG_THIS_MEMBER("ECS");
+
+            const auto& id = registry.getTypeId<Sys>();
+
+            return static_cast<Sys*>(systems.at(id));
+        }
 
         template <typename Type, typename... Args>
         CompRef<Type> attach(Entity* entity, Args&&... args) noexcept
@@ -233,7 +245,7 @@ namespace pg
         CommandDispatcher cmdDispatcher;
 
         /** Store all systems added to the ECS */
-        std::vector<AbstractSystem*> systems;
+        std::map<_unique_id, AbstractSystem*> systems;
 
         /** All the entities generated from the ECS */
         ComponentSet<Entity> entityPool;
@@ -265,12 +277,12 @@ namespace pg
     }
 
     template <typename Comp>
-    inline Comp* Entity::get() noexcept
+    inline CompRef<Comp> Entity::get() noexcept
     {
         LOG_THIS("Entity");
 
         if(not ecsRef)
-            return nullptr;
+            return CompRef<Comp>();
         
         const auto& componentId = ecsRef->getId<Comp>();
 
@@ -278,10 +290,10 @@ namespace pg
 
         if(it != componentList.end())
         {
-            return ecsRef->registry.retrieve<Comp>()->getComponent(id);
+            return CompRef<Comp>(ecsRef->registry.retrieve<Comp>()->getComponent(id), id, ecsRef, true);
         }
 
-        return nullptr;
+        return CompRef<Comp>();
     }
 
     template <typename Comp>

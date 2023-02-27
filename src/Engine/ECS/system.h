@@ -208,8 +208,6 @@ namespace pg
 
             this->registry = registry;
 
-            this->id = this->registry->getTypeId<System<Comps...>>();
-
             registerComponents(this, registry, tag<Comps>{}...);
         }
 

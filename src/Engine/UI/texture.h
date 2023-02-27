@@ -9,17 +9,32 @@ namespace pg
 {
     class Renderable;
 
-    struct TextureComponent
+    struct TextureChangeEvent
+    {
+        _unique_id id;
+        std::string oldTextureName;
+        std::string newTextureName;
+    };
+
+    struct TextureComponent : public Ctor
     {
         TextureComponent(const std::string& textureName) : textureName(textureName) { }
         TextureComponent(const TextureComponent &rhs) : textureName(rhs.textureName) { }
         virtual ~TextureComponent() {}
 
-        inline void setTexture(const std::string& textureName) { this->textureName = textureName; initialised = false; }
+        virtual void onCreation(Entity* entity) { this->entity = entity; }
+
+        inline void setTexture(const std::string& textureName)
+        {
+            if(entity)
+                entity->world()->sendEvent(TextureChangeEvent{entity->id, this->textureName, textureName});
+            
+            this->textureName = textureName;
+        }
 
         std::string textureName;
 
-        bool initialised = false;
+        Entity *entity = nullptr;
     };
 
     struct TextureComponentSystem : public System<Own<TextureComponent>, Ref<UiComponent>, StoragePolicy, InitSys>

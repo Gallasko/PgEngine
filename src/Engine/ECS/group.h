@@ -122,19 +122,10 @@ namespace pg
             auto entity = event.entity;
             auto& id = entity->id;
 
-            for (const auto& compId : entity->componentList)
-            {
-                LOG_INFO("Group", "Entity " << id << " has component " << compId);
-            }
-
-            for (const auto& compId : compIdList)
-            {
-                LOG_INFO("Group", "Group " << id << " expect comp " << compId);
-            }
-
             if(isEntityInGroup(entity))
             {
-                LOG_INFO("Group", "Entity " << id << " is in group " << this->id);
+                LOG_MILE("Group", "Entity " << id << " is in group " << this->id);
+
                 GroupElement<Type, Types...> element(entity, this->world(), id);
 
                 for(size_t j = 0; j < nbOfSets; j++)
@@ -142,7 +133,6 @@ namespace pg
                     setList[j]->setElement(setList[j]->set, element, id);    
                 }
 
-                LOG_INFO("Group", "Callback on Add Group");
                 for(auto callback : onAddGroup)
                     callback(entity);
 
