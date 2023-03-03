@@ -443,6 +443,31 @@ namespace pg
                 size = value.size;
             }
 
+            bool operator==(const UiPosValue& rhs) const
+            {
+                return size == rhs.size;
+            }
+
+            bool operator<(const UiPosValue& rhs) const
+            {
+                return size < rhs.size;
+            }
+
+            bool operator>(const UiPosValue& rhs) const
+            {
+                return size > rhs.size;
+            }
+
+            bool operator<(int rhs) const
+            {
+                return size < rhs;
+            }
+
+            bool operator>(int rhs) const
+            {
+                return size > rhs;
+            }
+
             void clearOldType()
             {
                 if (type == UiPosType::Anchor)

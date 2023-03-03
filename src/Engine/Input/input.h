@@ -75,13 +75,14 @@ namespace pg
 
 		void reset();
 
+	public:
+		double updateTime = 1.0f;
+
 	private:
 		std::vector<Input::KeyInstance> keyContainer;
 		std::vector<Input::ButtonInstance> buttonContainer;
 		QPoint mousePos;
 		QPoint mouseDelta;
-		
-		double updateTime;
 
 		template <typename Container, typename Value>
 		int findInputPos(const Value& value, const Container& container) const;

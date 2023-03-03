@@ -10,6 +10,28 @@ namespace pg
     {
     }
 
+    bool operator<(const MouseClickSystem::MouseAreaZ& lhs, const MouseClickSystem::MouseAreaZ& rhs)
+    {
+        const auto& z = lhs.ui->pos.z;
+        const auto& rhsZ = rhs.ui->pos.z;
+
+        if(z == rhsZ)
+            return lhs.id < rhs.id;
+        else
+            return z < rhsZ;
+    }
+
+    bool operator>(const MouseClickSystem::MouseAreaZ& lhs, const MouseClickSystem::MouseAreaZ& rhs)
+    {
+        const auto& z = lhs.ui->pos.z;
+        const auto& rhsZ = rhs.ui->pos.z;
+
+        if(z == rhsZ)
+            return lhs.id > rhs.id;
+        else
+            return z > rhsZ;
+    }
+
     MouseInputComponent::MouseInputComponent(UiComponent *component) : pos(&component->pos), width(&component->width), height(&component->height), enable(&component->isVisible())
     {
 

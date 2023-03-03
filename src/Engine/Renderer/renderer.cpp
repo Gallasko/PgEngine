@@ -77,10 +77,12 @@ namespace pg
 
     void MasterRenderer::init()
     {
+        LOG_THIS_MEMBER("MasterRenderer");
+
         auto group = registerGroup<UiComponent, TextureComponent, Renderable>();
 
         group->addOnGroup([](Entity* entity) {
-            LOG_INFO("MasterRenderer", "Add entity " << entity->id << " to ui - tex - renderable group !");
+            LOG_MILE("MasterRenderer", "Add entity " << entity->id << " to ui - tex - renderable group !");
 
             auto ui = entity->get<UiComponent>();
             auto tex = entity->get<TextureComponent>();
@@ -102,39 +104,9 @@ namespace pg
     void MasterRenderer::execute()
     {
         LOG_THIS_MEMBER(DOM);
-
-        // LOG_INFO("MasterRenderer", "Executing render with " << view<Renderable>().nbComponents() << " elements.");
-
-        // for (auto tex : view<TextureComponent>())
-        // {
-        //     LOG_INFO("MasterRenderer", "Tex ptr");
-        //     if (tex != nullptr)
-        //         render(tex);
-        // }
-
-        // Todo
-        // tempRenderList.clear();
-
+ 
         // Todo Fix in group and ecs ! ( whereaver we are holding pointer of a comp actually ! )
         // Todo hold a ref to the component list and the component index inside of this list instead of the raw pointer to not get invalidated on resize !
-        // for(auto entity : group<UiComponent, TextureComponent, Renderable>()->elements.viewComponents())
-        // {
-            // auto ui = entity->get<UiComponent>();
-            // auto tex = entity->get<TextureComponent>();
-
-            // auto tName = tex->textureName;
-
-            // auto mesh = meshBuilder.getTextureMesh(ui->width, ui->height, tName);
-
-            // auto rTex = RenderableTexture{ui, mesh};
-
-            // tempRenderList["default"][tName].push_back(rTex);
-        // }
-
-        // for (auto tex : view<TextureComponent>())
-        // {
-        //     tempRenderList.push_back(RenderableTexture{tex});
-        // }
 
         if(changed)
         {

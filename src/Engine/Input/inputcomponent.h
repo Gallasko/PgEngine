@@ -12,6 +12,76 @@
 
 namespace pg
 {
+    struct MouseClickComponent
+    {
+        MouseClickComponent(const std::function<void(Input*, double)>& callback) : callback(callback) { LOG_THIS_MEMBER("MouseClickSystem"); }
+        MouseClickComponent(const MouseClickComponent& rhs) : callback(rhs.callback) { LOG_THIS_MEMBER("MouseClickSystem"); }
+        virtual ~MouseClickComponent() { LOG_THIS_MEMBER("MouseClickSystem");}
+
+        std::function<void(Input*, double)> callback = [](Input*, double){ LOG_ERROR("MouseClickSystem", "Trying to call a empty Mouse Click Component !"); };
+    };
+
+    struct MouseClickSystem : public System<Own<MouseClickComponent>, InitSys>
+    {
+        struct MouseAreaZ
+        {
+            MouseAreaZ(_unique_id id, CompRef<UiComponent> ui) : id(id), ui(ui) { LOG_THIS_MEMBER("MouseClickSystem"); }
+
+            _unique_id id;
+            CompRef<UiComponent> ui;
+        };
+
+        MouseClickSystem(Input* inputHandler) : inputHandler(inputHandler) { LOG_THIS_MEMBER("MouseClickSystem"); }
+
+        void init() override
+        {
+            LOG_THIS_MEMBER("MouseClickSystem");
+
+            auto group = registerGroup<UiComponent, MouseClickComponent>();
+
+            group->addOnGroup([](Entity *entity) {
+                LOG_MILE("MouseClickSystem", "Add entity " << entity->id << " to ui - mouse click group !");
+
+                auto sys = entity->world()->getSystem<MouseClickSystem>();
+
+                const auto& ui = entity->get<UiComponent>();
+                
+                sys->mouseAreaHolder.emplace(entity->id, ui);
+            });
+        }
+
+        void execute() override
+        {
+            LOG_THIS_MEMBER("MouseClickSystem");
+
+            int highestZ = INT_MIN;
+            const auto& mousePos = inputHandler->getMousePos();
+
+            for(const auto& mouseArea : mouseAreaHolder)
+            {
+                UiComponent *ui = mouseArea.ui;
+
+                if(ui->pos.z < highestZ)
+                    break;
+
+                if(ui->inBound(mousePos.x(), mousePos.y()) && ui->isVisible())
+                {
+                    highestZ = static_cast<UiSize>(ui->pos.z);
+
+                    auto comp = getComponent(mouseArea.id);
+
+                    comp->callback(inputHandler, inputHandler->updateTime);
+                }
+            }
+        }
+
+        Input *inputHandler;
+        std::set<MouseAreaZ, std::greater<>> mouseAreaHolder;
+    };
+
+    bool operator<(const MouseClickSystem::MouseAreaZ& lhs, const MouseClickSystem::MouseAreaZ& rhs);
+    bool operator>(const MouseClickSystem::MouseAreaZ& lhs, const MouseClickSystem::MouseAreaZ& rhs);
+
     struct MouseInputComponent
     {
         struct Base {};

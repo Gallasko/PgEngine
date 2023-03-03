@@ -152,6 +152,8 @@ void EditorWindow::initialize()
     ecs.createSystem<TextureComponentSystem>();
     // sceneEcs.createSystem<SceneElementSystem>(masterRenderer); 
 
+    ecs.createSystem<MouseClickSystem>(inputHandler);
+
     masterRenderer = ecs.createSystem<MasterRenderer>();
 
     masterRenderer->initialize(m_context);
@@ -251,6 +253,8 @@ void EditorWindow::initialize()
 
     c->setBottomAnchor(screenUi->bottom);
     c->setRightAnchor(screenUi->right);
+
+    ecs.attach<MouseClickComponent>(sceneEntity, [](Input*, double) { LOG_TEST("Testing", "Mouse in component !"); });
     
     ticking = true;
     std::thread t (&EditorWindow::tick, this);

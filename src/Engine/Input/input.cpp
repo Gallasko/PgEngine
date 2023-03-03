@@ -212,9 +212,11 @@ namespace pg
 		return this->mouseDelta;
 	}
 
-	void Input::updateInput(double)
+	void Input::updateInput(double deltaTime)
 	{
 		LOG_THIS_MEMBER(DOM);
+
+		updateTime = deltaTime;
 		
 		this->mouseDelta.setX(0);
 		this->mouseDelta.setY(0);
