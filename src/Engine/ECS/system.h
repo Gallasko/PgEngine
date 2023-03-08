@@ -52,7 +52,11 @@ namespace pg
         // Todo
         inline void setPolicy(const ExecutionPolicy& policy) { executionPolicy = policy; }
 
+        inline EntitySystem* world() const noexcept { return ecsRef; }
+
         ExecutionPolicy executionPolicy = ExecutionPolicy::Sequential;
+
+        EntitySystem* ecsRef = nullptr;
 
         ComponentRegistry *registry = nullptr;
 
@@ -207,6 +211,8 @@ namespace pg
             LOG_THIS_MEMBER("System");
 
             this->registry = registry;
+
+            this->ecsRef = registry->world();
 
             registerComponents(this, registry, tag<Comps>{}...);
         }

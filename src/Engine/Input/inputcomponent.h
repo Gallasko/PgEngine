@@ -5,6 +5,7 @@
 #include "../constant.h"
 
 #include "ECS/entitysystem.h"
+#include "ECS/callable.h"
 #include "UI/uisystem.h"
 
 #include <functional>
@@ -14,11 +15,13 @@ namespace pg
 {
     struct MouseClickComponent
     {
-        MouseClickComponent(const std::function<void(Input*, double)>& callback) : callback(callback) { LOG_THIS_MEMBER("MouseClickSystem"); }
+        MouseClickComponent(std::shared_ptr<AbstractCallable> callback) : callback(callback) { LOG_THIS_MEMBER("MouseClickSystem"); }
         MouseClickComponent(const MouseClickComponent& rhs) : callback(rhs.callback) { LOG_THIS_MEMBER("MouseClickSystem"); }
         virtual ~MouseClickComponent() { LOG_THIS_MEMBER("MouseClickSystem");}
 
-        std::function<void(Input*, double)> callback = [](Input*, double){ LOG_ERROR("MouseClickSystem", "Trying to call a empty Mouse Click Component !"); };
+        std::shared_ptr<AbstractCallable> callback;
+
+        // std::function<void(Input*, double)> callback = [](Input*, double){ LOG_ERROR("MouseClickSystem", "Trying to call a empty Mouse Click Component !"); };
     };
 
     struct MouseClickSystem : public System<Own<MouseClickComponent>, InitSys>
@@ -57,22 +60,40 @@ namespace pg
             int highestZ = INT_MIN;
             const auto& mousePos = inputHandler->getMousePos();
 
-            for(const auto& mouseArea : mouseAreaHolder)
+            static bool pressed = false;
+
+            if(inputHandler->isButtonPressed(Qt::LeftButton))
             {
-                UiComponent *ui = mouseArea.ui;
-
-                if(ui->pos.z < highestZ)
-                    break;
-
-                if(ui->inBound(mousePos.x(), mousePos.y()) && ui->isVisible())
-                {
-                    highestZ = static_cast<UiSize>(ui->pos.z);
-
-                    auto comp = getComponent(mouseArea.id);
-
-                    comp->callback(inputHandler, inputHandler->updateTime);
-                }
+                pressed = true;
             }
+
+            if(not inputHandler->isButtonPressed(Qt::LeftButton))
+            {
+                if(pressed)
+                {
+                    for(const auto& mouseArea : mouseAreaHolder)
+                    {
+                        UiComponent *ui = mouseArea.ui;
+
+                        if(ui->pos.z < highestZ)
+                            break;
+
+                        if(ui->inBound(mousePos.x(), mousePos.y()) && ui->isVisible())
+                        {
+                            highestZ = static_cast<UiSize>(ui->pos.z);
+
+                            auto comp = getComponent(mouseArea.id);
+
+                            comp->callback->call(world());
+
+                            // comp->callback(inputHandler, inputHandler->updateTime);
+                        }
+                    }
+                }
+
+                pressed = false;
+            }
+            
         }
 
         Input *inputHandler;

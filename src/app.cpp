@@ -5,7 +5,10 @@
 #include "Engine/logger.h"
 #include "Engine/serialization.h" 
 #include "Engine/configuration.h"
+
 #include "Engine/Scene/sceneloader.h"
+
+#include "Engine/ECS/loggersystem.h"
 
 #include "UI/button.h"
 #include "UI/texture.h"
@@ -156,6 +159,8 @@ void EditorWindow::initialize()
 
     masterRenderer = ecs.createSystem<MasterRenderer>();
 
+    ecs.createSystem<TerminalLogSystem>();
+
     masterRenderer->initialize(m_context);
     masterRenderer->setWindowSize(width(), height());
 
@@ -254,7 +259,9 @@ void EditorWindow::initialize()
     c->setBottomAnchor(screenUi->bottom);
     c->setRightAnchor(screenUi->right);
 
-    ecs.attach<MouseClickComponent>(sceneEntity, [](Input*, double) { LOG_TEST("Testing", "Mouse in component !"); });
+    auto testingString = "Testing";
+
+    ecs.attach<MouseClickComponent>(sceneEntity, makeCallable<LogInfoEvent>(testingString, "Clicked on component"));
     
     ticking = true;
     std::thread t (&EditorWindow::tick, this);
