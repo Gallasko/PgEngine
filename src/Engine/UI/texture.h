@@ -41,16 +41,7 @@ namespace pg
     {
         TextureComponentSystem() { }
 
-        virtual void init() override
-        {
-            auto group = registerGroup<UiComponent, TextureComponent>();
-
-            group->addOnGroup([](Entity* entity) {
-                LOG_INFO("Texture Component System", "Add entity " << entity->id << " to ui - tex group !");
-
-                entity->world()->attach<Renderable>(entity);
-            });
-        }
+        virtual void init() override;
     };
 
     /** Helper that create an entity with an Ui component and a Texture component */

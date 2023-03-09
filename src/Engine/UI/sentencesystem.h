@@ -58,6 +58,15 @@ namespace pg
         }
     };
 
+    struct SentenceSystem : public System<Own<SentenceText>, Ref<UiComponent>, StoragePolicy, InitSys>
+    {
+        SentenceSystem(FontLoader *font) : font(font) { }
+
+        virtual void init() override;
+
+        FontLoader *font;
+    };
+
     //TODO check if in need to be static
     struct Sentence : public UiComponent, private QOpenGLFunctions
     {

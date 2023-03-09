@@ -42,6 +42,30 @@ namespace pg
         return TextureComponent{""};
     }
 
+    void TextureComponentSystem::init()
+    {
+        auto group = registerGroup<UiComponent, TextureComponent>();
+
+        group->addOnGroup([](Entity* entity) {
+            LOG_INFO("Texture Component System", "Add entity " << entity->id << " to ui - tex group !");
+
+            auto ui = entity->get<UiComponent>();
+            auto tex = entity->get<TextureComponent>();
+
+            auto tName = tex->textureName;
+
+            auto sys = entity->world()->getSystem<MasterRenderer>();
+
+            auto mesh = sys->meshBuilder.getTextureMesh(ui->width, ui->height, tName);
+
+            auto rTex = RenderableTexture{ui, mesh};
+
+            sys->tempRenderList["default"][tName].push_back(rTex);
+
+            sys->changed = true;
+        });
+    }
+
     EntityRef makeUiTexture(EntitySystem *ecs, float width, float height, const std::string& name)
     {
         auto entity = ecs->createEntity();

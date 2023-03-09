@@ -333,4 +333,27 @@ namespace pg
     { 
         renderer(masterRenderer, this); 
     }
+
+    void SentenceSystem::init()
+    {
+        auto group = registerGroup<UiComponent, SentenceText>();
+
+        group->addOnGroup([](Entity* entity) {
+            LOG_INFO("Sentence Component System", "Add entity " << entity->id << " to ui - sent group !");
+
+            auto ui = entity->get<UiComponent>();
+            auto sentence = entity->get<SentenceText>();
+
+            auto sys = entity->world()->getSystem<MasterRenderer>();
+            auto sys2 = entity->world()->getSystem<SentenceSystem>();
+
+            auto mesh = sys->meshBuilder.getSentenceMesh(ui->width, ui->height, *sentence, sys2->font);
+
+            auto rTex = RenderableTexture{ui, mesh};
+
+            sys->tempRenderList["text"]["font"].push_back(rTex);
+
+            sys->changed = true;
+        });
+    }
 }

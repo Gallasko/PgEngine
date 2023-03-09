@@ -93,24 +93,6 @@ namespace
 
         MasterRenderer *masterRenderer;
     };
-
-    struct SentenceSystem : public System<Own<Sentence>>
-    {
-        SentenceSystem(MasterRenderer* masterRenderer) : masterRenderer(masterRenderer)
-        {
-            setPolicy(ExecutionPolicy::Manual);
-        }
-
-        virtual void execute()
-        {
-            for(const auto& element : view<Sentence>())
-            {
-                masterRenderer->render(element);
-            }
-        }
-
-        MasterRenderer *masterRenderer;
-    };
 }
 
 EditorWindow::EditorWindow(QWindow *parent) : QWindow(parent)
@@ -199,6 +181,7 @@ void EditorWindow::initialize()
     masterRenderer->registerTexture("Light Blue", ":/res/menu/LightBlueTexture.png");
 
     fontLoader = new FontLoader("res/font/fontmap.ft");
+    ecs.createSystem<SentenceSystem>(fontLoader);
 
     // ecs.createSystem<InputSystem>();
 
@@ -262,6 +245,8 @@ void EditorWindow::initialize()
     auto testingString = "Testing";
 
     ecs.attach<MouseClickComponent>(sceneEntity, makeCallable<LogInfoEvent>(testingString, "Clicked on component"));
+
+    ecs.attach<SentenceText>(sceneEntity, "Hello there !");
     
     ticking = true;
     std::thread t (&EditorWindow::tick, this);

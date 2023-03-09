@@ -48,6 +48,8 @@ namespace pg
                 shaderProgram->setUniformValue(shaderProgram->uniformLocation("model"), model);
                 shaderProgram->setUniformValue(shaderProgram->uniformLocation("scale"), scale);
 
+                shaderProgram->setUniformValue(shaderProgram->uniformLocation("time"), static_cast<int>(0 % 314159));
+
                 //glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, texture);
 
@@ -73,32 +75,6 @@ namespace pg
 
             shaderProgram->release();
         }    
-    }
-
-    void MasterRenderer::init()
-    {
-        LOG_THIS_MEMBER("MasterRenderer");
-
-        auto group = registerGroup<UiComponent, TextureComponent, Renderable>();
-
-        group->addOnGroup([](Entity* entity) {
-            LOG_MILE("MasterRenderer", "Add entity " << entity->id << " to ui - tex - renderable group !");
-
-            auto ui = entity->get<UiComponent>();
-            auto tex = entity->get<TextureComponent>();
-
-            auto tName = tex->textureName;
-
-            auto sys = entity->world()->getSystem<MasterRenderer>();
-
-            auto mesh = sys->meshBuilder.getTextureMesh(ui->width, ui->height, tName);
-
-            auto rTex = RenderableTexture{ui, mesh};
-
-            sys->tempRenderList["default"][tName].push_back(rTex);
-
-            sys->changed = true;
-        });
     }
 
     void MasterRenderer::execute()

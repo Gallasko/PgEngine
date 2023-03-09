@@ -24,6 +24,10 @@ namespace pg
         void initialize();
     };
 
+    // Todo remove when Mesh specializations are implemented in their own headers
+    class SentenceText;
+    class FontLoader;
+
     class MeshBuilder
     {
     public:
@@ -60,6 +64,14 @@ namespace pg
             void generateMesh();
         };
 
+        struct SentenceMesh : public Mesh
+        {
+            SentenceMesh() : Mesh() { LOG_THIS_MEMBER("Sentence Mesh"); modelInfo = constant::SquareInfo{}; }
+            ~SentenceMesh() { LOG_THIS_MEMBER("Sentence Mesh"); }
+
+            void generateMesh();
+        };
+
         struct MeshRef
         {
             MeshRef(MeshBuilder *builder, const std::string &name) : builderRef(builder), textureName(name) { LOG_THIS_MEMBER("MeshBuilder"); }
@@ -79,6 +91,7 @@ namespace pg
         // Todo make a general "createMesh" function so the user can provide his own MeshConstruct which inherit Mesh like TextureMesh
 
         MeshRef getTextureMesh(float width, float height, const std::string& name);
+        MeshRef getSentenceMesh(float width, float height, const SentenceText& sentence, FontLoader *font);
 
         void clear() { LOG_THIS_MEMBER("MeshBuilder"); for(auto mesh : m_meshes) delete mesh.second; m_meshes.clear(); }
 

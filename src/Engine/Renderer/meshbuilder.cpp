@@ -1,5 +1,7 @@
 #include "meshbuilder.h"
 
+#include "UI/sentencesystem.h"
+
 namespace pg
 {
     void OpenGLObject::initialize()
@@ -46,6 +48,51 @@ namespace pg
         initialized = true;
     }
 
+    void MeshBuilder::SentenceMesh::generateMesh()
+    {
+        LOG_THIS_MEMBER("Sentence Mesh");
+
+        OpenGLMesh.initialize();
+
+        OpenGLMesh.VAO->bind();
+
+        // position attribute
+        OpenGLMesh.VBO->bind();
+        OpenGLMesh.VBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
+        OpenGLMesh.VBO->allocate(modelInfo.vertices, modelInfo.nbVertices * sizeof(float));
+
+        OpenGLMesh.glEnableVertexAttribArray(0);
+        OpenGLMesh.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 18 * sizeof(float), (void*)0);
+
+        // texture coord attribute
+        OpenGLMesh.glEnableVertexAttribArray(1);
+        OpenGLMesh.glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 18 * sizeof(float), (void*)(3 * sizeof(float)));
+
+        // texture coord attribute
+        OpenGLMesh.glEnableVertexAttribArray(2);
+        OpenGLMesh.glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 18 * sizeof(float), (void*)(5 * sizeof(float)));
+
+        // texture coord attribute
+        OpenGLMesh.glEnableVertexAttribArray(3);
+        OpenGLMesh.glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 18 * sizeof(float), (void*)(9 * sizeof(float)));
+
+        // texture coord attribute
+        OpenGLMesh.glEnableVertexAttribArray(4);
+        OpenGLMesh.glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 18 * sizeof(float), (void*)(13 * sizeof(float)));
+
+        // texture coord attribute
+        OpenGLMesh.glEnableVertexAttribArray(5);
+        OpenGLMesh.glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, 18 * sizeof(float), (void*)(17 * sizeof(float)));
+
+        OpenGLMesh.EBO->bind();
+        OpenGLMesh.EBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
+        OpenGLMesh.EBO->allocate(modelInfo.indices, modelInfo.nbIndices * sizeof(unsigned int));
+
+        OpenGLMesh.VAO->release();
+
+        initialized = true;
+    }
+
     MeshBuilder::MeshRef MeshBuilder::getTextureMesh(float width, float height, const std::string& name)
     {
         LOG_THIS_MEMBER("MeshBuilder");
@@ -72,6 +119,111 @@ namespace pg
             // Todo increment the number of time this mesh is used
             // m_meshes[meshName].count++;
         }
+
+        return MeshRef{this, meshName};
+    }
+
+    MeshBuilder::MeshRef MeshBuilder::getSentenceMesh(float width, float height, const SentenceText& sentence, FontLoader *font)
+    {
+        LOG_THIS_MEMBER("MeshBuilder");
+
+        auto meshName = "_sentence_" + sentence.text + "_" + std::to_string(width) + "_" + std::to_string(height);
+
+        LOG_MILE("MeshBuilder", "Creating a new texture mesh: " << meshName);
+
+        const auto& it = m_meshes.find(meshName);
+
+        if(it != m_meshes.end())
+        {
+            return MeshRef{this, meshName};
+        }
+
+        auto mesh = new SentenceMesh();
+
+        auto nbChara = sentence.text.length();
+        
+        mesh->modelInfo.nbVertices = 72 * nbChara;
+        mesh->modelInfo.nbIndices = 6 * nbChara;
+
+        if(mesh->modelInfo.vertices != nullptr)
+            delete[] mesh->modelInfo.vertices;
+        if(mesh->modelInfo.indices != nullptr)
+            delete[] mesh->modelInfo.indices;
+
+        mesh->modelInfo.vertices = new float [mesh->modelInfo.nbVertices];
+        mesh->modelInfo.indices = new unsigned int [mesh->modelInfo.nbIndices];
+
+        int currentX = 0.0f;
+        int outO = 0.0f; //Outline Offset
+
+        constant::ModelInfo letterModel; 
+
+        for(size_t i = 0; i < nbChara; i++)
+        {
+            const auto letter = font->getChara(std::string(1, sentence.text.at(i)));
+
+            outO = 0.0f;
+
+            // Todo see how to add back the scale
+            // auto w = letter->getWidth() * scale;
+            // auto h = letter->getHeight() * scale;
+            // auto o = letter->getOffset() * scale;
+
+            auto w = letter->getWidth() * 4.0f;
+            auto h = letter->getHeight() * 4.0f;
+            auto o = letter->getOffset() * 4.0f;
+
+            if(sentence.outline1.w == 0.0f)
+                outO += 1.0 * 4.0f;
+
+            if(sentence.outline2.w == 0.0f)
+                outO += 1.0 * 4.0f;
+
+            letterModel = letter->getModelInfo();
+
+            // Coord
+            mesh->modelInfo.vertices[i * 72 + 0]  = currentX - outO    ; mesh->modelInfo.vertices[i * 72 + 1]  =     -o + outO; mesh->modelInfo.vertices[i * 72 + 2]  = 0.0f;
+            mesh->modelInfo.vertices[i * 72 + 18] = currentX + w + outO; mesh->modelInfo.vertices[i * 72 + 19] =     -o + outO; mesh->modelInfo.vertices[i * 72 + 20] = 0.0f;
+            mesh->modelInfo.vertices[i * 72 + 36] = currentX - outO    ; mesh->modelInfo.vertices[i * 72 + 37] = -h - o - outO; mesh->modelInfo.vertices[i * 72 + 38] = 0.0f;
+            mesh->modelInfo.vertices[i * 72 + 54] = currentX + w + outO; mesh->modelInfo.vertices[i * 72 + 55] = -h - o - outO; mesh->modelInfo.vertices[i * 72 + 56] = 0.0f;
+
+            // Tex Coord
+            mesh->modelInfo.vertices[i * 72 + 3]  = letterModel.vertices[3]  - outO / font->getAtlasWidth(); mesh->modelInfo.vertices[i * 72 + 4]  = letterModel.vertices[4]  - outO / font->getAtlasHeight();  
+            mesh->modelInfo.vertices[i * 72 + 21] = letterModel.vertices[8]  + outO / font->getAtlasWidth(); mesh->modelInfo.vertices[i * 72 + 22] = letterModel.vertices[9]  - outO / font->getAtlasHeight();
+            mesh->modelInfo.vertices[i * 72 + 39] = letterModel.vertices[13] - outO / font->getAtlasWidth(); mesh->modelInfo.vertices[i * 72 + 40] = letterModel.vertices[14] + outO / font->getAtlasHeight();
+            mesh->modelInfo.vertices[i * 72 + 57] = letterModel.vertices[18] + outO / font->getAtlasWidth(); mesh->modelInfo.vertices[i * 72 + 58] = letterModel.vertices[19] + outO / font->getAtlasHeight();
+
+            //Main Color
+            mesh->modelInfo.vertices[i * 72 + 5]  = sentence.mainColor.x; mesh->modelInfo.vertices[i * 72 + 6]  = sentence.mainColor.y; mesh->modelInfo.vertices[i * 72 + 7]  = sentence.mainColor.z; mesh->modelInfo.vertices[i * 72 + 8]  = sentence.mainColor.w;
+            mesh->modelInfo.vertices[i * 72 + 23] = sentence.mainColor.x; mesh->modelInfo.vertices[i * 72 + 24] = sentence.mainColor.y; mesh->modelInfo.vertices[i * 72 + 25] = sentence.mainColor.z; mesh->modelInfo.vertices[i * 72 + 26] = sentence.mainColor.w;
+            mesh->modelInfo.vertices[i * 72 + 41] = sentence.mainColor.x; mesh->modelInfo.vertices[i * 72 + 42] = sentence.mainColor.y; mesh->modelInfo.vertices[i * 72 + 43] = sentence.mainColor.z; mesh->modelInfo.vertices[i * 72 + 44] = sentence.mainColor.w;
+            mesh->modelInfo.vertices[i * 72 + 59] = sentence.mainColor.x; mesh->modelInfo.vertices[i * 72 + 60] = sentence.mainColor.y; mesh->modelInfo.vertices[i * 72 + 61] = sentence.mainColor.z; mesh->modelInfo.vertices[i * 72 + 62] = sentence.mainColor.w;
+
+            //Outline 1
+            mesh->modelInfo.vertices[i * 72 + 9]  = sentence.outline1.x; mesh->modelInfo.vertices[i * 72 + 10] = sentence.outline1.y; mesh->modelInfo.vertices[i * 72 + 11] = sentence.outline1.z; mesh->modelInfo.vertices[i * 72 + 12] = sentence.outline1.w;
+            mesh->modelInfo.vertices[i * 72 + 27] = sentence.outline1.x; mesh->modelInfo.vertices[i * 72 + 28] = sentence.outline1.y; mesh->modelInfo.vertices[i * 72 + 29] = sentence.outline1.z; mesh->modelInfo.vertices[i * 72 + 30] = sentence.outline1.w;
+            mesh->modelInfo.vertices[i * 72 + 45] = sentence.outline1.x; mesh->modelInfo.vertices[i * 72 + 46] = sentence.outline1.y; mesh->modelInfo.vertices[i * 72 + 47] = sentence.outline1.z; mesh->modelInfo.vertices[i * 72 + 48] = sentence.outline1.w;
+            mesh->modelInfo.vertices[i * 72 + 63] = sentence.outline1.x; mesh->modelInfo.vertices[i * 72 + 64] = sentence.outline1.y; mesh->modelInfo.vertices[i * 72 + 65] = sentence.outline1.z; mesh->modelInfo.vertices[i * 72 + 66] = sentence.outline1.w;
+
+            //Outline 2
+            mesh->modelInfo.vertices[i * 72 + 13] = sentence.outline2.x; mesh->modelInfo.vertices[i * 72 + 14] = sentence.outline2.y; mesh->modelInfo.vertices[i * 72 + 15] = sentence.outline2.z; mesh->modelInfo.vertices[i * 72 + 16] = sentence.outline2.w;
+            mesh->modelInfo.vertices[i * 72 + 31] = sentence.outline2.x; mesh->modelInfo.vertices[i * 72 + 32] = sentence.outline2.y; mesh->modelInfo.vertices[i * 72 + 33] = sentence.outline2.z; mesh->modelInfo.vertices[i * 72 + 34] = sentence.outline2.w;
+            mesh->modelInfo.vertices[i * 72 + 49] = sentence.outline2.x; mesh->modelInfo.vertices[i * 72 + 50] = sentence.outline2.y; mesh->modelInfo.vertices[i * 72 + 51] = sentence.outline2.z; mesh->modelInfo.vertices[i * 72 + 52] = sentence.outline2.w;
+            mesh->modelInfo.vertices[i * 72 + 67] = sentence.outline2.x; mesh->modelInfo.vertices[i * 72 + 68] = sentence.outline2.y; mesh->modelInfo.vertices[i * 72 + 69] = sentence.outline2.z; mesh->modelInfo.vertices[i * 72 + 70] = sentence.outline2.w;
+
+            //Effect
+            mesh->modelInfo.vertices[i * 72 + 17] = (float)sentence.effect;
+            mesh->modelInfo.vertices[i * 72 + 35] = (float)sentence.effect;
+            mesh->modelInfo.vertices[i * 72 + 53] = (float)sentence.effect;
+            mesh->modelInfo.vertices[i * 72 + 71] = (float)sentence.effect;
+
+            mesh->modelInfo.indices[i * 6 + 0] = 4 * i + 0; mesh->modelInfo.indices[i * 6 + 1] = 4 * i + 1; mesh->modelInfo.indices[i * 6 + 2] = 4 * i + 2;
+            mesh->modelInfo.indices[i * 6 + 3] = 4 * i + 1; mesh->modelInfo.indices[i * 6 + 4] = 4 * i + 2; mesh->modelInfo.indices[i * 6 + 5] = 4 * i + 3;
+
+            currentX += w + 1;
+        }
+
+        m_meshes.emplace(meshName, mesh);
 
         return MeshRef{this, meshName};
     }
