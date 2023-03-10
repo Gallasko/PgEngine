@@ -53,7 +53,7 @@ namespace pg
         // this->texture->setLeftAnchor(this->left);
         
         // TODO Set sentence wihtout a fontloader call a basic font loader 
-        this->sentence = new Sentence({"Text"}, 2.0f, fontLoader);
+        // this->sentence = new Sentence({"Text"}, 2.0f, fontLoader);
         // this->sentence->setTopAnchor(this->texture->top);
         // this->sentence->setTopMargin(this->texture->height / 2.0f - this->sentence->height / 2.0f);
         this->sentence->setLeftAnchor(this->left);

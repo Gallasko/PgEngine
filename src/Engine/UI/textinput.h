@@ -23,7 +23,7 @@ namespace pg
     // Type forwarding
     class Input;
     class TextureComponent;
-    class Sentence;
+    // class Sentence;
     class FontLoader;
 
     class TextInput : public UiComponent
@@ -95,7 +95,7 @@ namespace pg
         TextureComponent *texture;
         
         /** Hold the sentence print to the screen */
-        Sentence *sentence;
+        // Sentence *sentence;
 
         /** Actual text inside the text input */
         std::string text;

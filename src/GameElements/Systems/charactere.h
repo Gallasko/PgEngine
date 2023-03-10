@@ -126,7 +126,7 @@ private:
 
     Character *chara;
 
-    pg::Sentence *displayName;
+    // pg::Sentence *displayName;
 };
 
 class Manager

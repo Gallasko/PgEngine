@@ -510,16 +510,16 @@ void EditorWindow::addElement(const UiComponentType& type)
         break;
 
     case UiComponentType::TEXT:
-        component = new Sentence({"Text"}, 2.0f, fontLoader);
+        // component = new Sentence({"Text"}, 2.0f, fontLoader);
 
-        component->setTopAnchor(sceneEntityC->top);
-        component->setLeftAnchor(sceneEntityC->left);
+        // component->setTopAnchor(sceneEntityC->top);
+        // component->setLeftAnchor(sceneEntityC->left);
 
-        component->setTopMargin(componentY - component->height / 2.0f);
-        component->setLeftMargin(componentX - component->width / 2.0f);
+        // component->setTopMargin(componentY - component->height / 2.0f);
+        // component->setLeftMargin(componentX - component->width / 2.0f);
 
-        mouseArea = new Button(ecsRef, [=](Input*, double){ this->openInOption<Sentence>(component); }, component->frame);
-        mouseArea->setZ(component->pos.z + 1);
+        // mouseArea = new Button(ecsRef, [=](Input*, double){ this->openInOption<Sentence>(component); }, component->frame);
+        // mouseArea->setZ(component->pos.z + 1);
         break;
 
     case UiComponentType::TEXTINPUT:

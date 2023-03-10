@@ -66,7 +66,7 @@ TileSelector::TileSelector(Map *map, TilesLoader *tileLoader, FontLoader *fontLo
     // texture->pos.x = &this->pos.x;
     // texture->pos.y = &this->pos.y;
 
-    auto text1 = new Sentence({"Base House"}, 4.0f, fontLoader);
+    // auto text1 = new Sentence({"Base House"}, 4.0f, fontLoader);
 
     textVector.push_back(text1); // TODO take care of the pb of object referencing because dumb std::vector create copies and doesn t not move the object in it 
     //textVector[0].setBottomAnchor(&this->bottom); //TODO Fix issue when text is rendered in bottom right it need to be divided by 2

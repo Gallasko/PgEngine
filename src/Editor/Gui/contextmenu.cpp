@@ -36,115 +36,115 @@ namespace editor
 
         // [Start] Add Button
 
-        auto addButtonButton = ecs.createEntity();
-        addButtonButtonC = ecs.attach<Button>(addButtonButton,
-            &ecs,
-            [&](Input*, double){ this->callback(UiComponentType::BUTTON); },
-            Sentence::SentenceParameters{{"Add Button"}, 2.0f, fontLoader}
-            );
+        // auto addButtonButton = ecs.createEntity();
+        // addButtonButtonC = ecs.attach<Button>(addButtonButton,
+        //     &ecs,
+        //     [&](Input*, double){ this->callback(UiComponentType::BUTTON); },
+        //     Sentence::SentenceParameters{{"Add Button"}, 2.0f, fontLoader}
+        //     );
 
-        addButtonButtonC->setTopAnchor(this->top);
-        addButtonButtonC->setLeftAnchor(this->left);
+        // addButtonButtonC->setTopAnchor(this->top);
+        // addButtonButtonC->setLeftAnchor(this->left);
 
-        addButtonButtonC->pos.z = this->pos.z;
+        // addButtonButtonC->pos.z = this->pos.z;
 
-        this->width = addButtonButtonC->width > this->width ? addButtonButtonC->width : this->width;
-        this->height += addButtonButtonC->height;
+        // this->width = addButtonButtonC->width > this->width ? addButtonButtonC->width : this->width;
+        // this->height += addButtonButtonC->height;
 
-        // [End] Add Button
+        // // [End] Add Button
 
-        // [Start] Add Texture
+        // // [Start] Add Texture
 
-        auto addTextureButton = ecs.createEntity();
-        addTextureButtonC = ecs.attach<Button>(addTextureButton,
-            &ecs,
-            [&](Input*, double){ this->callback(UiComponentType::TEXTURE); },
-            Sentence::SentenceParameters{{"Add Texture"}, 2.0f, fontLoader}
-            );
+        // auto addTextureButton = ecs.createEntity();
+        // addTextureButtonC = ecs.attach<Button>(addTextureButton,
+        //     &ecs,
+        //     [&](Input*, double){ this->callback(UiComponentType::TEXTURE); },
+        //     Sentence::SentenceParameters{{"Add Texture"}, 2.0f, fontLoader}
+        //     );
 
-        addTextureButtonC->setTopAnchor(addButtonButtonC->bottom);
-        addTextureButtonC->setLeftAnchor(this->left);
+        // addTextureButtonC->setTopAnchor(addButtonButtonC->bottom);
+        // addTextureButtonC->setLeftAnchor(this->left);
 
-        addTextureButtonC->pos.z = this->pos.z;
+        // addTextureButtonC->pos.z = this->pos.z;
 
-        this->width  = addTextureButtonC->width > this->width ? addTextureButtonC->width : this->width;
-        this->height += addTextureButtonC->height;
+        // this->width  = addTextureButtonC->width > this->width ? addTextureButtonC->width : this->width;
+        // this->height += addTextureButtonC->height;
 
-        // [End] Add Texture
+        // // [End] Add Texture
 
-        // [Start] Add Text
+        // // [Start] Add Text
 
-        auto addTextButton = ecs.createEntity();
-        addTextButtonC = ecs.attach<Button>(addTextButton,
-            &ecs,
-            [&](Input*, double){ this->callback(UiComponentType::TEXT); },
-            Sentence::SentenceParameters{{"Add Text"}, 2.0f, fontLoader}
-            );
+        // auto addTextButton = ecs.createEntity();
+        // addTextButtonC = ecs.attach<Button>(addTextButton,
+        //     &ecs,
+        //     [&](Input*, double){ this->callback(UiComponentType::TEXT); },
+        //     Sentence::SentenceParameters{{"Add Text"}, 2.0f, fontLoader}
+        //     );
 
-        addTextButtonC->setTopAnchor(addTextureButtonC->bottom);
-        addTextButtonC->setLeftAnchor(this->left);
+        // addTextButtonC->setTopAnchor(addTextureButtonC->bottom);
+        // addTextButtonC->setLeftAnchor(this->left);
 
-        addTextButtonC->pos.z = this->pos.z;
+        // addTextButtonC->pos.z = this->pos.z;
 
-        this->width  = addTextButtonC->width > this->width ? addTextButtonC->width : this->width;
-        this->height += addTextButtonC->height;
+        // this->width  = addTextButtonC->width > this->width ? addTextButtonC->width : this->width;
+        // this->height += addTextButtonC->height;
 
-        // [End] Add Text
+        // // [End] Add Text
 
-        // [Start] Add Text
+        // // [Start] Add Text
 
-        auto addTextInputButton = ecs.createEntity();
-        addTextInputButtonC = ecs.attach<Button>(addTextInputButton,
-            &ecs,
-            [&](Input*, double){ this->callback(UiComponentType::TEXTINPUT); },
-            Sentence::SentenceParameters{{"Add Text Input"}, 2.0f, fontLoader}
-            );
+        // auto addTextInputButton = ecs.createEntity();
+        // addTextInputButtonC = ecs.attach<Button>(addTextInputButton,
+        //     &ecs,
+        //     [&](Input*, double){ this->callback(UiComponentType::TEXTINPUT); },
+        //     Sentence::SentenceParameters{{"Add Text Input"}, 2.0f, fontLoader}
+        //     );
 
-        addTextInputButtonC->setTopAnchor(addTextButtonC->bottom);
-        addTextInputButtonC->setLeftAnchor(this->left);
+        // addTextInputButtonC->setTopAnchor(addTextButtonC->bottom);
+        // addTextInputButtonC->setLeftAnchor(this->left);
 
-        addTextInputButtonC->pos.z = this->pos.z;
+        // addTextInputButtonC->pos.z = this->pos.z;
 
-        this->width  = addTextInputButtonC->width > this->width ? addTextInputButtonC->width : this->width;
-        this->height += addTextInputButtonC->height;
+        // this->width  = addTextInputButtonC->width > this->width ? addTextInputButtonC->width : this->width;
+        // this->height += addTextInputButtonC->height;
 
-        // [End] Add Text
+        // // [End] Add Text
 
-        // [Start] Add List
+        // // [Start] Add List
 
-        auto addListButton = ecs.createEntity();
-        addListButtonC = ecs.attach<Button>(addListButton,
-            &ecs,
-            [&](Input*, double){ this->callback(UiComponentType::LIST); },
-            Sentence::SentenceParameters{{"Add List"}, 2.0f, fontLoader}
-            );
+        // auto addListButton = ecs.createEntity();
+        // addListButtonC = ecs.attach<Button>(addListButton,
+        //     &ecs,
+        //     [&](Input*, double){ this->callback(UiComponentType::LIST); },
+        //     Sentence::SentenceParameters{{"Add List"}, 2.0f, fontLoader}
+        //     );
 
-        addListButtonC->setTopAnchor(addTextInputButtonC->bottom);
-        addListButtonC->setLeftAnchor(this->left);
+        // addListButtonC->setTopAnchor(addTextInputButtonC->bottom);
+        // addListButtonC->setLeftAnchor(this->left);
 
-        addListButtonC->pos.z = this->pos.z;
+        // addListButtonC->pos.z = this->pos.z;
 
-        this->width  = addListButtonC->width > this->width ? addListButtonC->width : this->width;
-        this->height += addListButtonC->height;
+        // this->width  = addListButtonC->width > this->width ? addListButtonC->width : this->width;
+        // this->height += addListButtonC->height;
 
-        // [End] Add List
+        // // [End] Add List
 
-        // [Start] Add Prefab
+        // // [Start] Add Prefab
 
-        auto addPrefabButton = ecs.createEntity();
-        addPrefabButtonC = ecs.attach<Button>(addPrefabButton,
-            &ecs,
-            [&](Input*, double){ this->callback(UiComponentType::LIST); },
-            Sentence::SentenceParameters{{"Add Prefab"}, 2.0f, fontLoader}
-            );
+        // auto addPrefabButton = ecs.createEntity();
+        // addPrefabButtonC = ecs.attach<Button>(addPrefabButton,
+        //     &ecs,
+        //     [&](Input*, double){ this->callback(UiComponentType::LIST); },
+        //     Sentence::SentenceParameters{{"Add Prefab"}, 2.0f, fontLoader}
+        //     );
 
-        addPrefabButtonC->setTopAnchor(addListButtonC->bottom);
-        addPrefabButtonC->setLeftAnchor(this->left);
+        // addPrefabButtonC->setTopAnchor(addListButtonC->bottom);
+        // addPrefabButtonC->setLeftAnchor(this->left);
 
-        addPrefabButtonC->pos.z = this->pos.z;
+        // addPrefabButtonC->pos.z = this->pos.z;
 
-        this->width  = addPrefabButtonC->width > this->width ? addPrefabButtonC->width : this->width;
-        this->height += addPrefabButtonC->height;
+        // this->width  = addPrefabButtonC->width > this->width ? addPrefabButtonC->width : this->width;
+        // this->height += addPrefabButtonC->height;
 
         // [End] Add Prefab
 
