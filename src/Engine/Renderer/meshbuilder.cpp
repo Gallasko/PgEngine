@@ -123,7 +123,7 @@ namespace pg
         return MeshRef{this, meshName};
     }
 
-    MeshBuilder::MeshRef MeshBuilder::getSentenceMesh(float width, float height, const SentenceText& sentence, FontLoader *font)
+    MeshBuilder::MeshRef MeshBuilder::getSentenceMesh(float width, float height, SentenceText& sentence, FontLoader *font)
     {
         LOG_THIS_MEMBER("MeshBuilder");
 
@@ -153,8 +153,8 @@ namespace pg
         mesh->modelInfo.vertices = new float [mesh->modelInfo.nbVertices];
         mesh->modelInfo.indices = new unsigned int [mesh->modelInfo.nbIndices];
 
-        int currentX = 0.0f;
-        int outO = 0.0f; //Outline Offset
+        float currentX = 0.0f;
+        float outO = 0.0f; //Outline Offset
 
         constant::ModelInfo letterModel; 
 
@@ -181,6 +181,7 @@ namespace pg
 
             letterModel = letter->getModelInfo();
 
+            // Todo maybe also get the z to add it in the vertices
             // Coord
             mesh->modelInfo.vertices[i * 72 + 0]  = currentX - outO    ; mesh->modelInfo.vertices[i * 72 + 1]  =     -o + outO; mesh->modelInfo.vertices[i * 72 + 2]  = 0.0f;
             mesh->modelInfo.vertices[i * 72 + 18] = currentX + w + outO; mesh->modelInfo.vertices[i * 72 + 19] =     -o + outO; mesh->modelInfo.vertices[i * 72 + 20] = 0.0f;
@@ -221,7 +222,13 @@ namespace pg
             mesh->modelInfo.indices[i * 6 + 3] = 4 * i + 1; mesh->modelInfo.indices[i * 6 + 4] = 4 * i + 2; mesh->modelInfo.indices[i * 6 + 5] = 4 * i + 3;
 
             currentX += w + 1;
+
+            if(h + o > height)
+                height = h + o;
+
         }
+
+        width = currentX;
 
         m_meshes.emplace(meshName, mesh);
 

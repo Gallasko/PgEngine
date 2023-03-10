@@ -91,7 +91,7 @@ namespace pg
         // Todo make a general "createMesh" function so the user can provide his own MeshConstruct which inherit Mesh like TextureMesh
 
         MeshRef getTextureMesh(float width, float height, const std::string& name);
-        MeshRef getSentenceMesh(float width, float height, const SentenceText& sentence, FontLoader *font);
+        MeshRef getSentenceMesh(float width, float height, SentenceText& sentence, FontLoader *font);
 
         void clear() { LOG_THIS_MEMBER("MeshBuilder"); for(auto mesh : m_meshes) delete mesh.second; m_meshes.clear(); }
 

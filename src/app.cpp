@@ -247,6 +247,8 @@ void EditorWindow::initialize()
     ecs.attach<MouseClickComponent>(sceneEntity, makeCallable<LogInfoEvent>(testingString, "Clicked on component"));
 
     ecs.attach<SentenceText>(sceneEntity, "Hello there !");
+
+    makeSentence(&ecs, 20, 250, {"\"Hello_World\": Test?!"});
     
     ticking = true;
     std::thread t (&EditorWindow::tick, this);

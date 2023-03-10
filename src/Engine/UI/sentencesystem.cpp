@@ -356,4 +356,22 @@ namespace pg
             sys->changed = true;
         });
     }
+
+    /** Helper that create an entity with an Ui component and a Texture component */
+    EntityRef makeSentence(EntitySystem *ecs, float x, float y, const SentenceText& text)
+    {
+        auto entity = ecs->createEntity();
+
+        auto ui = ecs->attach<UiComponent>(entity);
+
+        auto sentence = ecs->attach<SentenceText>(entity, text);
+
+        ui->setX(x);
+        ui->setY(y);
+
+        ui->setWidth(sentence->textWidth);
+        ui->setHeight(sentence->textHeight);
+
+        return entity;
+    }
 }

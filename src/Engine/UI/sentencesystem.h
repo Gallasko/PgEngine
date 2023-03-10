@@ -30,6 +30,8 @@ namespace pg
 
         SentenceEffect effect = SentenceEffect::NOEFFCT;
 
+        float textWidth = 0.0f, textHeight = 0.0f;
+
         SentenceText() {}
 
         SentenceText(const std::string& text) : text(text) {}
@@ -40,11 +42,13 @@ namespace pg
 
         inline void operator=(const SentenceText &rhs)
         {
-            this->text      = rhs.text;
-            this->mainColor = rhs.mainColor;
-            this->outline1  = rhs.outline1;
-            this->outline2  = rhs.outline2;
-            this->effect    = rhs.effect;
+            this->text       = rhs.text;
+            this->mainColor  = rhs.mainColor;
+            this->outline1   = rhs.outline1;
+            this->outline2   = rhs.outline2;
+            this->effect     = rhs.effect;
+            this->textWidth  = rhs.textWidth;
+            this->textHeight = rhs.textHeight;
         }
 
         inline bool operator==(const SentenceText &rhs) const
@@ -66,6 +70,9 @@ namespace pg
 
         FontLoader *font;
     };
+
+    /** Helper that create an entity with an Ui component and a Texture component */
+    EntityRef makeSentence(EntitySystem *ecs, float x, float y, const SentenceText& text);
 
     //TODO check if in need to be static
     struct Sentence : public UiComponent, private QOpenGLFunctions
