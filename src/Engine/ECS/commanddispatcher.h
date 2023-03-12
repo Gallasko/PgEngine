@@ -70,12 +70,18 @@ namespace pg
                 this->component = static_cast<Storage*>(static_cast<Delegate*>(component));
             }
 
+            template <typename Type>
+            void setupFunctions();
+
             Storage *component;
             ComponentCommandType type;
+
+            void(*addInEcs)(EntitySystem*, Storage* component);
+            void(*deleteComp)(Storage* component);
         };
 
     public:
-        CommandDispatcher(EntitySystem *ecs) : ecsRef(ecs) {}
+        CommandDispatcher(EntitySystem *ecs) : ecsRef(ecs) { LOG_THIS_MEMBER("Command Dispatcher"); }
 
         EntityRef createEntity();
 

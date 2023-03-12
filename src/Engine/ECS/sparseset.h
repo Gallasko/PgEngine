@@ -453,6 +453,9 @@ namespace pg
             LOG_THIS_MEMBER("Component Set");
 
             componentList = new Comp*[componentCapacity];
+
+            // Set the first element as nullptr as it shouldn't be a valid component ever
+            componentList[0] = nullptr;
         };
 
         virtual ~ComponentSet()
@@ -477,7 +480,7 @@ namespace pg
          */
         constexpr Comp* operator[](const size_t& index) const { LOG_THIS_MEMBER("Component Set"); return componentList[index]; }
 
-        Comp* atEntity(_unique_id id) const { return componentList[find(id)]; }
+        Comp* atEntity(_unique_id id) const { LOG_THIS_MEMBER("Component Set"); return componentList[find(id)]; }
 
         void reserve(const size_t& size)
         {

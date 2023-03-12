@@ -53,5 +53,18 @@ namespace pg
                 ecsRef->deleteEntityFromPool(item.entity);
             }
         }
+
+        struct Empty {};
+        auto empty = Empty();
+        ComponentCommand item2(&empty, ComponentCommand::ComponentCommandType::creation);
+
+        while (componentQueue.try_dequeue(item2))
+        {
+            if(item2.type == ComponentCommand::ComponentCommandType::creation)
+            {
+                item2.addInEcs(ecsRef, item2.component);
+                item2.deleteComp(item2.component);
+            }
+        }
     }
 }

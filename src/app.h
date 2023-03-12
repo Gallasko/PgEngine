@@ -117,8 +117,8 @@ private:
     Input *inputHandler = nullptr;
     FontLoader *fontLoader = nullptr;
 
-    Entity* screenEntity;
-    UiComponent *screenUi;
+    EntityRef screenEntity;
+    CompRef<UiComponent> screenUi;
 
     float xSensitivity = 1.0f;
     float ySensitivity = 1.0f;

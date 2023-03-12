@@ -72,7 +72,7 @@ namespace pg
     };
 
     /** Helper that create an entity with an Ui component and a Texture component */
-    EntityRef makeSentence(EntitySystem *ecs, float x, float y, const SentenceText& text);
+    CompList<UiComponent, SentenceText> makeSentence(EntitySystem *ecs, float x, float y, const SentenceText& text);
 
     //TODO check if in need to be static
     struct Sentence : public UiComponent, private QOpenGLFunctions

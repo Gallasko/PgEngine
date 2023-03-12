@@ -358,7 +358,7 @@ namespace pg
     }
 
     /** Helper that create an entity with an Ui component and a Texture component */
-    EntityRef makeSentence(EntitySystem *ecs, float x, float y, const SentenceText& text)
+    CompList<UiComponent, SentenceText> makeSentence(EntitySystem *ecs, float x, float y, const SentenceText& text)
     {
         auto entity = ecs->createEntity();
 
@@ -372,6 +372,6 @@ namespace pg
         ui->setWidth(sentence->textWidth);
         ui->setHeight(sentence->textHeight);
 
-        return entity;
+        return CompList<UiComponent, SentenceText>(entity, ui, sentence);
     }
 }

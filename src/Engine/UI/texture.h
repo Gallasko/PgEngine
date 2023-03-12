@@ -45,6 +45,6 @@ namespace pg
     };
 
     /** Helper that create an entity with an Ui component and a Texture component */
-    EntityRef makeUiTexture(EntitySystem *ecs, float width, float height, const std::string& name);
+    CompList<UiComponent, TextureComponent> makeUiTexture(EntitySystem *ecs, float width, float height, const std::string& name);
 
 }

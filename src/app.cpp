@@ -237,7 +237,7 @@ void EditorWindow::initialize()
     makeUiTexture(&ecs, 80, 20, "pigeon");
 
     auto e = makeUiTexture(&ecs, 160, 90, "menu");
-    auto c = e->get<UiComponent>();
+    auto c = e.get<UiComponent>();
 
     c->setBottomAnchor(screenUi->bottom);
     c->setRightAnchor(screenUi->right);
@@ -255,6 +255,8 @@ void EditorWindow::initialize()
 
     running = true;
     std::thread t2(&EditorWindow::executeEngine, this);
+
+    // makeSentence(&ecs, 20, 150, {"\"Hello_World\": Test?!"});
 
     t.detach();
 
@@ -292,9 +294,11 @@ void EditorWindow::render()
 
     // renderUi();
 
+    // ecs.executeAll();
+
     masterRenderer->renderAll();
     // sceneEcs.executeAll();
-    // ecs.executeAll();
+    
     // masterRenderer->execute();
 
     inputHandler->updateInput(float(currentTime - lastTime) / 1000);

@@ -66,7 +66,7 @@ namespace pg
         });
     }
 
-    EntityRef makeUiTexture(EntitySystem *ecs, float width, float height, const std::string& name)
+    CompList<UiComponent, TextureComponent> makeUiTexture(EntitySystem *ecs, float width, float height, const std::string& name)
     {
         auto entity = ecs->createEntity();
 
@@ -75,8 +75,8 @@ namespace pg
         ui->setWidth(width);
         ui->setHeight(height);
 
-        ecs->attach<TextureComponent>(entity, name);
+        auto tex = ecs->attach<TextureComponent>(entity, name);
 
-        return entity;
+        return CompList<UiComponent, TextureComponent>(entity, ui, tex);
     }
 }

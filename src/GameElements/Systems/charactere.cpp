@@ -17,10 +17,10 @@ CharacterUi::CharacterUi(Character *chara, pg::FontLoader *fontLoader) : pg::UiC
     // displayName = new pg::Sentence({chara->getName()}, 2.0f, fontLoader);
 }
 
-CharacterUi::CharacterUi(const CharacterUi& other) : CharacterUi(other.chara, other.displayName->font)
-{
+// CharacterUi::CharacterUi(const CharacterUi& other) : CharacterUi(other.chara, other.displayName->font)
+// {
 
-}
+// }
 
 void CharacterUi::render(pg::MasterRenderer* masterRenderer)
 {

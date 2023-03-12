@@ -31,8 +31,8 @@ namespace pg
         // if(textInput->texture != nullptr)
         //     masterRenderer->render(textInput->texture);
 
-        if(textInput->sentence != nullptr)
-            masterRenderer->render(textInput->sentence);
+        // if(textInput->sentence != nullptr)
+        //     masterRenderer->render(textInput->sentence);
     }
 
     /**
@@ -56,8 +56,8 @@ namespace pg
         // this->sentence = new Sentence({"Text"}, 2.0f, fontLoader);
         // this->sentence->setTopAnchor(this->texture->top);
         // this->sentence->setTopMargin(this->texture->height / 2.0f - this->sentence->height / 2.0f);
-        this->sentence->setLeftAnchor(this->left);
-        this->sentence->setLeftMargin(10.0f);
+        // this->sentence->setLeftAnchor(this->left);
+        // this->sentence->setLeftMargin(10.0f);
 
         // mouseInput = makeMouseArea(this, this, TextInput::focus, TextInput::unfocus);
 
@@ -70,7 +70,7 @@ namespace pg
     TextInput::~TextInput()
     {
         delete texture;
-        delete sentence;
+        // delete sentence;
     }
 
     /**
@@ -93,7 +93,7 @@ namespace pg
         UiComponent::show();
 
         // texture->show();
-        sentence->show();
+        // sentence->show();
     }
 
     /**
@@ -107,7 +107,7 @@ namespace pg
         UiComponent::hide();
 
         // texture->hide();
-        sentence->hide();
+        // sentence->hide();
     }
 
     /**
@@ -180,7 +180,7 @@ namespace pg
         // Set the text of the underlying sentence to the current text
         if(previousText != text)
         {
-            this->sentence->setText(text);
+            // this->sentence->setText(text);
             
             if(onChange != nullptr)
                 onChange(text);

@@ -44,6 +44,27 @@ namespace pg
         virtual void onDeletion(Entity* entity) = 0;
     };
 
+    template <typename Comp>
+    struct CompListGetter
+    {
+        CompListGetter(CompRef<Comp> comp) : comp(comp) {}
+
+        inline CompRef<Comp> get() const { return comp; } 
+
+        CompRef<Comp> comp;
+    };
+
+    template<typename... Comps>
+    struct CompList : public CompListGetter<Comps>...
+    {
+        CompList(EntityRef entity, CompRef<Comps>... comps) : entity(entity), CompListGetter<Comps>(comps)... { }
+
+        template<typename Comp>
+        inline CompRef<Comp> get() const { return static_cast<const CompListGetter<Comp>*>(this)->get(); }
+
+        EntityRef entity;
+    };
+
     class EntitySystem
     {
     friend class Entity;
@@ -127,11 +148,13 @@ namespace pg
         {
             LOG_THIS_MEMBER("ECS");
 
+            LOG_MILE("ECS", "here");
+
             try
             {
                 Type* component;
 
-                // Todo change this to add the command in the command dispatcher to avoid the dangling pointer
+                // Todo add lock a mutex for running to protect for race conditions or only build component with the cmdDispatcher 
                 if(running)
                 {
                     component = cmdDispatcher.attachComp<Type>(std::forward<Args>(args)...);
@@ -141,7 +164,8 @@ namespace pg
                     component = registry.retrieve<Type>()->internalCreateComponent(entity, std::forward<Args>(args)...);
                 }
 
-                auto res = CompRef<Type>(component, entity->id, this, not running);
+                // auto res = CompRef<Type>(component, entity->id, this, not running);
+                auto res = CompRef<Type>(component, entity->id, this, false);
 
                 if constexpr(std::is_base_of_v<Ctor, Type>)
                     res->onCreation(entity);
@@ -269,7 +293,11 @@ namespace pg
         LOG_THIS("Entity");
 
         if(not ecsRef)
+        {
+            LOG_ERROR("Entity", "Entity is not referenced in any ECS");
+
             return false;
+        }
         
         const auto& componentId = ecsRef->getId<Comp>();
 
@@ -282,7 +310,11 @@ namespace pg
         LOG_THIS("Entity");
 
         if(not ecsRef)
+        {
+            LOG_ERROR("Entity", "Entity is not referenced in any ECS");
+
             return CompRef<Comp>();
+        }
         
         const auto& componentId = ecsRef->getId<Comp>();
 
@@ -293,6 +325,8 @@ namespace pg
             return CompRef<Comp>(ecsRef->registry.retrieve<Comp>()->getComponent(id), id, ecsRef, true);
         }
 
+        LOG_ERROR("Entity", "Entity doesn't have component: " << componentId);
+
         return CompRef<Comp>();
     }
 
@@ -301,23 +335,22 @@ namespace pg
     {
         LOG_THIS("Comp ref");
 
-        if(rhs.initialized)
-        {
-            initialized = rhs.initialized;
-            component   = rhs.component;
-            entityId    = rhs.entityId;
-            ecsRef      = rhs.ecsRef;
-        }
-        else
-        {
-            entityId = rhs.entityId;
+        ecsRef      = rhs.ecsRef;
+        entityId    = rhs.entityId;
+        initialized = rhs.initialized;
+        component   = rhs.component;
 
+        if(not initialized)
+        {
             if(entityId != 0)
             {
-                component = rhs.ecsRef->getComponent<Comp>(entityId);
-                ecsRef = rhs.ecsRef;
-                initialized = true;
+                auto fetchComponent = rhs.ecsRef->getComponent<Comp>(entityId);
 
+                if(fetchComponent)
+                {
+                    component   = fetchComponent;
+                    initialized = true;
+                }
                 // Todo see if we propagate back the finding of the entity to the base ref !
                 // rhs.entity = entity
                 // rhs.initialized = true
@@ -326,10 +359,6 @@ namespace pg
             else
             {
                 LOG_ERROR("Comp ref", "Copy of a reference to an invalid entity");
-
-                initialized = rhs.initialized;
-                component   = rhs.component;
-                ecsRef      = rhs.ecsRef;
             }
         }
     }
@@ -432,5 +461,15 @@ namespace pg
         //std::remove_if(it.begin(), it.end(), [](const GroupElement<Type, Types...>& element) { return element.toBeDeleted; });
     
         // Todo sort the group
+    }
+
+    template <typename Type>
+    void CommandDispatcher::ComponentCommand::setupFunctions()
+    {
+        struct Delegate : public ComponentCommand::ComponentCommand::Storage, public Type {};
+
+        addInEcs = [](EntitySystem* ecs, Storage* component) { ecs->addComponentToPool(static_cast<Type*>(static_cast<Delegate*>(component))); };
+
+        deleteComp = [](EntitySystem* ecs, Storage* component) { delete static_cast<Type*>(static_cast<Delegate*>(component)); };
     }
 }
