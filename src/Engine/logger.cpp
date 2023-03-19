@@ -8,8 +8,6 @@ namespace pg
 {
     std::vector<Logger::LogSinkPtr> Logger::sinks;
 
-    std::mutex Logger::_lock;
-
     namespace
     {
         template <typename Container, typename Value>
@@ -93,8 +91,10 @@ namespace pg
 
     void Logger::removeSink(std::shared_ptr<Logger::LogSink> sink)
     {
+        const auto& logger = Logger::getLogger();
+
         // Fonctor to use C++ scope initialisation to easely lock log pushback
-        std::lock_guard<std::mutex> lock(_lock);
+        std::lock_guard<std::recursive_mutex> lock(logger->_lock);
 
         const auto& it = findSinkPos(sink, sinks);
 

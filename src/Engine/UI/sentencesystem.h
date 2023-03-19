@@ -62,11 +62,19 @@ namespace pg
         }
     };
 
-    struct SentenceSystem : public System<Own<SentenceText>, Ref<UiComponent>, StoragePolicy, InitSys>
+    struct OnTextChanged
+    {
+        _unique_id entityId;
+        std::string newText;
+    };
+
+    struct SentenceSystem : public System<Own<SentenceText>, Ref<UiComponent>, Listener<OnTextChanged>, StoragePolicy, InitSys>
     {
         SentenceSystem(FontLoader *font) : font(font) { }
 
         virtual void init() override;
+
+        virtual void onEvent(const OnTextChanged& event) override; 
 
         FontLoader *font;
     };

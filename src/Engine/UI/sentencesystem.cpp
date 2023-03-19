@@ -349,12 +349,54 @@ namespace pg
 
             auto mesh = sys->meshBuilder.getSentenceMesh(ui->width, ui->height, *sentence, sys2->font);
 
-            auto rTex = RenderableTexture{ui, mesh};
+            auto rTex = RenderableTexture{entity->id, ui, mesh};
 
-            sys->tempRenderList["text"]["font"].push_back(rTex);
+            {
+                std::lock_guard<std::mutex> lock (sys->modificationMutex);
 
+                sys->tempRenderList["text"]["font"].push_back(rTex);
+            }
+            
             sys->changed = true;
         });
+    }
+
+    void SentenceSystem::onEvent(const OnTextChanged& event)
+    {
+        auto entity = ecsRef->getEntity(event.entityId);
+
+        auto ui = entity->get<UiComponent>();
+
+        // Todo check if the entity has a sentence text before trying to modify it
+        auto sentence = entity->get<SentenceText>();
+
+        sentence->text = event.newText;
+
+        auto sys = entity->world()->getSystem<MasterRenderer>();
+
+        auto mesh = sys->meshBuilder.getSentenceMesh(ui->width, ui->height, *sentence, font);
+
+        auto rTex = RenderableTexture{event.entityId, ui, mesh};
+
+        {
+            std::lock_guard<std::mutex> lock (sys->modificationMutex);
+
+            auto first = sys->tempRenderList["text"]["font"].begin();
+            auto last = sys->tempRenderList["text"]["font"].end();
+
+            while (first != last)
+            {
+                if (first->entityId == event.entityId)
+                {
+                    *first = rTex;
+                    break;
+                }
+
+                ++first;
+            }
+        }
+
+        sys->changed = true;
     }
 
     /** Helper that create an entity with an Ui component and a Texture component */

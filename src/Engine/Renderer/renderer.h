@@ -35,6 +35,7 @@ namespace pg
 
     struct RenderableTexture
     {
+        _unique_id entityId;
         CompRef<UiComponent> uiRef;
         MeshBuilder::MeshRef meshRef;
     };
@@ -87,6 +88,7 @@ namespace pg
     public:
         bool changed = false;
 
+        std::mutex modificationMutex;
         std::mutex renderMutex;
 
         std::map<std::string, std::map<std::string, std::vector<RenderableTexture>>> tempRenderList;

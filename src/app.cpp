@@ -58,41 +58,36 @@ namespace
         MasterRenderer *masterRenderer;
     };
 
-    struct ButtonSystem : public System<Own<Button>>
+    struct OnGainGold
     {
-        ButtonSystem(MasterRenderer* masterRenderer) : masterRenderer(masterRenderer)
-        {
-            setPolicy(ExecutionPolicy::Manual);
-        }
+        // Todo make this a big int
+        OnGainGold(int64_t gain) : gain(gain) { }
 
-        virtual void execute()
-        {
-            for(const auto& element : view<Button>())
-            {
-                masterRenderer->render(element);
-            }
-        }
-
-        MasterRenderer *masterRenderer;
+        int64_t gain;
     };
 
-    struct TextureSystem : public System<Own<TextureComponent>>
+    struct GoldSystem : public System<Listener<OnGainGold>, StoragePolicy, InitSys>
     {
-        TextureSystem(MasterRenderer* masterRenderer) : masterRenderer(masterRenderer)
+        void init() override
         {
-            setPolicy(ExecutionPolicy::Manual);
+            auto sentence = makeSentence(ecsRef, 150, 20, {"0"});
+
+            goldTextId = sentence.entity.id;
         }
 
-        virtual void execute()
+        void onEvent(const OnGainGold& gold) override
         {
-            for(const auto& element : view<TextureComponent>())
-            {
-                // masterRenderer->render(element);
-            }
+            this->gold += gold.gain;
+
+            auto goldStr = Strfy() << this->gold;
+
+            ecsRef->sendEvent(OnTextChanged{goldTextId, goldStr.getData()});
         }
 
-        MasterRenderer *masterRenderer;
+        int64_t gold = 0;
+        _unique_id goldTextId;
     };
+
 }
 
 EditorWindow::EditorWindow(QWindow *parent) : QWindow(parent)
@@ -183,6 +178,10 @@ void EditorWindow::initialize()
     fontLoader = new FontLoader("res/font/fontmap.ft");
     ecs.createSystem<SentenceSystem>(fontLoader);
 
+    auto goldSys = ecs.createSystem<GoldSystem>();
+
+    auto goldTextEntity = ecs.getEntity(goldSys->goldTextId);
+
     // ecs.createSystem<InputSystem>();
 
     screenEntity = ecs.createEntity();
@@ -190,6 +189,14 @@ void EditorWindow::initialize()
     screenUi->width = 400;
     screenUi->height = 400;
     screenUi->setZ(-1);
+
+    auto goldTextUi = goldTextEntity->get<UiComponent>();
+
+    goldTextUi->setTopAnchor(screenUi->top);
+    goldTextUi->setLeftAnchor(screenUi->left);
+
+    goldTextUi->setTopMargin(20);
+    goldTextUi->setLeftMargin((screenUi->width / 2) - (goldTextUi->width / 2));
 
     // Todo
     // makeKeyInput(this, EditorWindow::quit);
@@ -244,9 +251,10 @@ void EditorWindow::initialize()
 
     auto testingString = "Testing";
 
-    ecs.attach<MouseClickComponent>(sceneEntity, makeCallable<LogInfoEvent>(testingString, "Clicked on component"));
+    // ecs.attach<MouseClickComponent>(sceneEntity, makeCallable<LogInfoEvent>(testingString, "Clicked on component"));
+    ecs.attach<MouseClickComponent>(sceneEntity, makeCallable<OnGainGold>(1));
 
-    ecs.attach<SentenceText>(sceneEntity, "Hello there !");
+    // ecs.attach<SentenceText>(sceneEntity, "Hello there !");
 
     makeSentence(&ecs, 20, 250, {"\"Hello_World\": Test?!"});
     
@@ -293,8 +301,6 @@ void EditorWindow::render()
     // InputSystem::system()->updateState(inputHandler, float(currentTime - lastTime) / 1000);
 
     // renderUi();
-
-    // ecs.executeAll();
 
     masterRenderer->renderAll();
     // sceneEcs.executeAll();

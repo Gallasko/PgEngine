@@ -48,7 +48,7 @@ namespace pg
     class Strfy 
     {
     public:
-        Strfy(std::string_view msg) : data(msg) {}
+        Strfy(const std::string& msg) : data(msg) {}
         Strfy() : data("") {}
 
         template <typename T>
@@ -148,13 +148,13 @@ namespace pg
         {
         friend class Logger;
         public:
-            Logging(const int line, std::string_view file, std::string_view function, const void* object, std::string_view objectName, std::string_view scope, std::string_view msg, const Logger::InfoLevel& level)
+            Logging(const int line, const std::string& file, const std::string& function, const void* object, const std::string& objectName, const std::string& scope, const std::string& msg, const Logger::InfoLevel& level)
              : line(line), file(file), function(function), object(object), objectName(objectName), scope(scope), msg(msg), level(level)
             {
                 auto& logger = Logger::getLogger();
                 
                 // Fonctor to use C++ scope initialisation to easely lock log pushback
-                std::lock_guard<std::mutex> lock(logger->_lock);
+                std::lock_guard<std::recursive_mutex> lock(logger->_lock);
 
                 const auto log = Logger::Info{line, this->file, "Enter in: '" + std::string(function) + "'", object, this->objectName, this->scope, this->msg, level};
 
@@ -168,7 +168,7 @@ namespace pg
                 auto& logger = Logger::getLogger();
 
                 // Fonctor to use C++ scope initialisation to easely lock log pushback
-                std::lock_guard<std::mutex> lock(logger->_lock);
+                std::lock_guard<std::recursive_mutex> lock(logger->_lock);
 
                 const auto log = Logger::Info{line, file, "Exit out: '" + function + "'", object, objectName, scope, msg, level};
 
@@ -360,8 +360,10 @@ namespace pg
          */
         inline static void _single_log(const int line, const std::string& file, const std::string& function, const void* object, const std::string& objectName, const std::string& scope, const std::string& msg, const Logger::InfoLevel& level)
         {
+            const auto& logger = Logger::getLogger();
+
             // Fonctor to use C++ scope initialisation to easely lock log pushback
-            std::lock_guard<std::mutex> lock(_lock);
+            std::lock_guard<std::recursive_mutex> lock(logger->_lock);
 
             const auto log = Logger::Info{line, file, "In function: '" + std::string(function) + "'", object, objectName, scope, msg, level};
 
@@ -399,7 +401,7 @@ namespace pg
          * @param msg           Message to be logged
          * @param level         Level of emergency of the message
          */
-        inline static Logging _log(const int line, std::string_view file, std::string_view function, const void* object, std::string_view objectName, std::string_view scope, std::string_view msg, const Logger::InfoLevel& level)
+        inline static Logging _log(const int line, const std::string& file, const std::string& function, const void* object, const std::string& objectName, const std::string& scope, const std::string& msg, const Logger::InfoLevel& level)
         {
             return Logging(line, file, function, object, objectName, scope, msg, level);
         }
@@ -446,15 +448,16 @@ namespace pg
         static std::vector<LogSinkPtr> sinks;
         
         /** Mutex for pushing and accessing logs */ 
-        static std::mutex _lock;
+        mutable std::recursive_mutex _lock;
     };
 
     // Todo test and change with Args&&
     template <typename Sink, typename... Args>
     std::shared_ptr<Logger::LogSink> Logger::registerSink(Args... args)
     {
+        const auto& logger = Logger::getLogger();
         // Fonctor to use C++ scope initialisation to easely lock log pushback
-        std::lock_guard<std::mutex> lock(_lock);
+        std::lock_guard<std::recursive_mutex> lock(logger->_lock);
 
         // Create an unique reference to the sink created
         std::shared_ptr<Logger::LogSink> sink = std::make_shared<Sink>(args...);
@@ -487,7 +490,7 @@ namespace pg
     {
     friend class Logger;
     public:
-        FileSink(std::string_view fileName = "log.txt", bool ignoreNonErrors = false) : filename(fileName), dataBuffer(""), ignoreNonErrors(ignoreNonErrors) {}
+        FileSink(const std::string& fileName = "log.txt", bool ignoreNonErrors = false) : filename(fileName), dataBuffer(""), ignoreNonErrors(ignoreNonErrors) {}
         
         virtual ~FileSink() override;
         

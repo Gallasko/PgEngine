@@ -58,7 +58,7 @@ namespace pg
 
             auto mesh = sys->meshBuilder.getTextureMesh(ui->width, ui->height, tName);
 
-            auto rTex = RenderableTexture{ui, mesh};
+            auto rTex = RenderableTexture{entity->id, ui, mesh};
 
             sys->tempRenderList["default"][tName].push_back(rTex);
 

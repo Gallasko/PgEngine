@@ -86,7 +86,9 @@ namespace pg
 
         if(changed)
         {
-            std::lock_guard<std::mutex> lock(renderMutex);
+            std::lock_guard<std::mutex> lock(modificationMutex);
+
+            std::lock_guard<std::mutex> lock2(renderMutex);
 
             currentRenderList = tempRenderList;
 
