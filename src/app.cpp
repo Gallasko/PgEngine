@@ -1,6 +1,9 @@
 #include "app.h"
 
+// Todo remove
 #include <QDateTime>
+
+#include <chrono>
 
 #include "Engine/logger.h"
 #include "Engine/serialization.h" 
@@ -58,15 +61,89 @@ namespace
         MasterRenderer *masterRenderer;
     };
 
-    struct OnGainGold
+    // Todo add all the logger thing to all those systems and doc too
+    struct TickEvent
     {
-        // Todo make this a big int
-        OnGainGold(int64_t gain) : gain(gain) { }
+        TickEvent(size_t duration) : tick(duration) {}
 
-        int64_t gain;
+        size_t tick;
     };
 
-    struct GoldSystem : public System<Listener<OnGainGold>, StoragePolicy, InitSys>
+    // Todo find and fix why this system doesn't work
+    struct TickingSystem : public System<>
+    {
+        TickingSystem(size_t duration = 40) : tickDuration(duration)
+        { 
+            LOG_THIS_MEMBER("Ticking System");
+            
+            // Todo replace QDateTime with std::chrono
+            // firstTickTime = std::chrono::high_resolution_clock::now();
+            firstTickTime = QDateTime::currentMSecsSinceEpoch();
+            secondTickTime = QDateTime::currentMSecsSinceEpoch();
+        }
+
+        ~TickingSystem() { LOG_THIS_MEMBER("Ticking System"); stop(); }
+
+        inline void stop()
+        {
+            LOG_THIS_MEMBER("Ticking System");
+
+            LOG_INFO("Ticking System", "Ticking system stopping ...");
+
+            paused = false;
+        }
+
+        inline void pause()
+        {
+            LOG_THIS_MEMBER("Ticking System");
+
+            paused = true;
+        }
+
+        inline void resume()
+        {
+            LOG_THIS_MEMBER("Ticking System");
+
+            firstTickTime = QDateTime::currentMSecsSinceEpoch();
+            secondTickTime = QDateTime::currentMSecsSinceEpoch();
+
+            paused = false;
+        }
+
+        virtual void execute()
+        {
+            LOG_THIS_MEMBER("Ticking System");
+
+            secondTickTime = QDateTime::currentMSecsSinceEpoch();
+            
+            while(not paused and ((secondTickTime - firstTickTime) >= tickDuration))
+            {
+                firstTickTime += tickDuration;
+
+                ecsRef->sendEvent(TickEvent{tickDuration});
+            }
+        }
+
+        size_t tickDuration;
+
+        // Todo change qint64 with std::chrono
+        // std::chrono::high_resolution_clock::time_point firstTickTime, secondTickTime; 
+        qint64 firstTickTime, secondTickTime; 
+        bool paused = false;
+    };
+
+    // Todo make a FPS system that print the current FPS !
+
+    struct OnClickGainGold { };
+
+    struct OnGoldGain
+    {
+        OnGoldGain(int64_t gold) : gold(gold) {}
+
+        int64_t gold;
+    };
+
+    struct GoldSystem : public System<Listener<OnClickGainGold>, Listener<OnGoldGain>, StoragePolicy, InitSys>
     {
         void init() override
         {
@@ -75,17 +152,63 @@ namespace
             goldTextId = sentence.entity.id;
         }
 
-        void onEvent(const OnGainGold& gold) override
+        void onEvent(const OnClickGainGold&) override
         {
-            this->gold += gold.gain;
+            this->gold += clickPower;
 
-            auto goldStr = Strfy() << this->gold;
+            auto goldStr = Strfy() << this->gold.load();
 
             ecsRef->sendEvent(OnTextChanged{goldTextId, goldStr.getData()});
         }
 
-        int64_t gold = 0;
+        void onEvent(const OnGoldGain& event) override
+        {
+            this->gold += event.gold;
+
+            auto goldStr = Strfy() << this->gold.load();
+
+            ecsRef->sendEvent(OnTextChanged{goldTextId, goldStr.getData()});
+        }
+
+        int64_t clickPower = 1;
+
+        std::atomic<int64_t> gold {0};
         _unique_id goldTextId;
+    };
+
+    struct BuyFactory { };
+
+    struct FactorySystem : public System<Listener<BuyFactory>, Listener<TickEvent>, StoragePolicy>
+    {
+        void onEvent(const BuyFactory&) override
+        {
+            LOG_THIS_MEMBER("FactorySystem");
+
+            LOG_INFO("FactorySystem", "Bought a new factory");
+            nbFactory += 1;
+        }
+
+        void onEvent(const TickEvent& event) override
+        {
+            LOG_THIS_MEMBER("FactorySystem");
+
+            accumulatedTick += event.tick;
+
+            while (accumulatedTick >= factoryProdDuration)
+            {
+                LOG_INFO("FactorySystem", "Factory produced gold");
+
+                accumulatedTick -= factoryProdDuration;
+
+                ecsRef->sendEvent(OnGoldGain{nbFactory * factoryProdValue});
+            }
+        }
+
+        size_t accumulatedTick = 0;
+
+        size_t nbFactory = 0;
+        size_t factoryProdDuration = 1000;
+        size_t factoryProdValue = 1;
     };
 
 }
@@ -102,7 +225,8 @@ EditorWindow::EditorWindow(QWindow *parent) : QWindow(parent)
 EditorWindow::~EditorWindow()
 {
     ticking = false;
-    running = false;
+
+    ecs.stop();
 
     if(inputHandler != nullptr)
         delete inputHandler;
@@ -126,6 +250,8 @@ void EditorWindow::initialize()
 	initializeOpenGLFunctions();
 
     // auto masterRenderer = ecs.getMasterRenderer();
+
+    ecs.createSystem<TickingSystem>();
 
     ecs.createSystem<UiComponentSystem>();
     // ecs.createSystem<ButtonSystem>(masterRenderer);
@@ -179,6 +305,18 @@ void EditorWindow::initialize()
     ecs.createSystem<SentenceSystem>(fontLoader);
 
     auto goldSys = ecs.createSystem<GoldSystem>();
+
+    ecs.createSystem<FactorySystem>();
+
+    // Ecs task parenting
+
+    // ecs.succeed<GoldSystem, FactorySystem>();
+    // ecs.succeed<SentenceSystem, GoldSystem>();
+    ecs.succeed<MouseClickSystem, TickingSystem>();
+
+    ecs.succeed<MasterRenderer, MouseClickSystem>();
+
+    ecs.dumbTaskflow();
 
     auto goldTextEntity = ecs.getEntity(goldSys->goldTextId);
 
@@ -252,23 +390,29 @@ void EditorWindow::initialize()
     auto testingString = "Testing";
 
     // ecs.attach<MouseClickComponent>(sceneEntity, makeCallable<LogInfoEvent>(testingString, "Clicked on component"));
-    ecs.attach<MouseClickComponent>(sceneEntity, makeCallable<OnGainGold>(1));
+    ecs.attach<MouseClickComponent>(sceneEntity, makeCallable<OnClickGainGold>());
+
+    auto factoryCreationList = makeUiTexture(&ecs, 64, 32, "frame");
+    auto factoryCreationListEntity = factoryCreationList.entity;
+    auto factoryCreationListPos = factoryCreationList.get<UiComponent>();
+
+    factoryCreationListPos->setBottomAnchor(screenUi->bottom);
+    factoryCreationListPos->setLeftAnchor(screenUi->left);
+
+    ecs.attach<MouseClickComponent>(factoryCreationListEntity, makeCallable<BuyFactory>());
 
     // ecs.attach<SentenceText>(sceneEntity, "Hello there !");
 
     makeSentence(&ecs, 20, 250, {"\"Hello_World\": Test?!"});
     
     ticking = true;
-    std::thread t (&EditorWindow::tick, this);
-
-    running = true;
-    std::thread t2(&EditorWindow::executeEngine, this);
+    // std::thread t (&EditorWindow::tick, this);
 
     // makeSentence(&ecs, 20, 150, {"\"Hello_World\": Test?!"});
 
-    t.detach();
+    // t.detach();
 
-    t2.detach();
+    ecs.start();
 }
 
 void EditorWindow::render()
@@ -602,16 +746,6 @@ void EditorWindow::renderUi()
 */
 }
 
-void EditorWindow::executeEngine()
-{
-    LOG_THIS_MEMBER(DOM);
-
-    while(running)
-    {
-        ecs.executeAll();
-    }
-}
-
 //TODO make a tick object that take tick function and run in background when you start up the engine
 void EditorWindow::tick()
 {
@@ -620,14 +754,26 @@ void EditorWindow::tick()
     auto currentTickTime = QDateTime::currentMSecsSinceEpoch();
     auto lastTickTime = QDateTime::currentMSecsSinceEpoch();
 
+    size_t accumulatedTickCount = 0;
+
     while(ticking)
     {
         // LOG_INFO(DOM, nbFrame);
 
-        std::cout << nbFrame << std::endl;  
-        nbFrame = 0;
-
         lastTickTime = QDateTime::currentMSecsSinceEpoch();
+
+        accumulatedTickCount += 40;
+
+        while (accumulatedTickCount >= 1000)
+        {
+            accumulatedTickCount -= 1000;
+
+            std::cout << nbFrame << std::endl;  
+            nbFrame = 0;
+        }
+        
+        // Todo remove this when the Ticking system works
+        ecs.sendEvent(TickEvent{900});
 
         // //Animation tick loop
         // for(int i = AnimationComponent::runningQueue.size() - 1; i >= 0; i--) 
@@ -642,7 +788,7 @@ void EditorWindow::tick()
         // }
 
         currentTickTime = QDateTime::currentMSecsSinceEpoch();
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000 - (currentTickTime - lastTickTime)));
+        std::this_thread::sleep_for(std::chrono::milliseconds(20 - (currentTickTime - lastTickTime)));
     }
 }
 

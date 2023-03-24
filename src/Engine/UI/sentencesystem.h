@@ -33,11 +33,18 @@ namespace pg
         float textWidth = 0.0f, textHeight = 0.0f;
 
         SentenceText() {}
+        SentenceText(const SentenceText& other) : 
+            text(other.text),
+            mainColor(other.mainColor),
+            outline1(other.outline1),
+            outline2(other.outline2),
+            effect(other.effect),
+            textWidth(other.textWidth),
+            textHeight(other.textHeight)
+            {}
 
         SentenceText(const std::string& text) : text(text) {}
-
         SentenceText(const std::string& text, const constant::Vector4D& color1, const SentenceEffect& effect = SentenceEffect::NOEFFCT) : text(text), mainColor(color1), effect(effect) {}
-
         SentenceText(const std::string& text, const constant::Vector4D& color1, const constant::Vector4D& color2, const constant::Vector4D& color3 = constant::Vector4D(255.0f, 255.0f, 255.0f, 180.0f), const SentenceEffect& effect = SentenceEffect::NOEFFCT) : text(text), mainColor(color1), outline1(color2), outline2(color3), effect(effect) {}
 
         inline void operator=(const SentenceText &rhs)

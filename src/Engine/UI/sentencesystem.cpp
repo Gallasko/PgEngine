@@ -351,11 +351,9 @@ namespace pg
 
             auto rTex = RenderableTexture{entity->id, ui, mesh};
 
-            {
-                std::lock_guard<std::mutex> lock (sys->modificationMutex);
+            std::lock_guard<std::mutex> lock (sys->modificationMutex);
 
-                sys->tempRenderList["text"]["font"].push_back(rTex);
-            }
+            sys->tempRenderList["text"]["font"].push_back(rTex);
             
             sys->changed = true;
         });
@@ -378,22 +376,22 @@ namespace pg
 
         auto rTex = RenderableTexture{event.entityId, ui, mesh};
 
+        LOG_MILE("Sentence Component System", "Modification of id: " << entity->id << " sentence");
+
+        std::lock_guard<std::mutex> lock (sys->modificationMutex);
+
+        auto first = sys->tempRenderList["text"]["font"].begin();
+        auto last = sys->tempRenderList["text"]["font"].end();
+
+        while (first != last)
         {
-            std::lock_guard<std::mutex> lock (sys->modificationMutex);
-
-            auto first = sys->tempRenderList["text"]["font"].begin();
-            auto last = sys->tempRenderList["text"]["font"].end();
-
-            while (first != last)
+            if (first->entityId == event.entityId)
             {
-                if (first->entityId == event.entityId)
-                {
-                    *first = rTex;
-                    break;
-                }
-
-                ++first;
+                *first = rTex;
+                break;
             }
+
+            ++first;
         }
 
         sys->changed = true;

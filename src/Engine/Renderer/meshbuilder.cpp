@@ -93,6 +93,8 @@ namespace pg
         initialized = true;
     }
 
+    // Todo add a mutex to protect m_meshes of any race conditions
+
     MeshBuilder::MeshRef MeshBuilder::getTextureMesh(float width, float height, const std::string& name)
     {
         LOG_THIS_MEMBER("MeshBuilder");

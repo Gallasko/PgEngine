@@ -25,12 +25,14 @@ namespace pg
         LOG_THIS_MEMBER(DOM);
 
         // Add the command dispatcher as the first element of the task flow
-        basicTask = taskflow.emplace([this](){cmdDispatcher.process();});
+        basicTask = taskflow.emplace([this](){cmdDispatcher.process();}).name("Basic Task");
     }
 
     EntitySystem::~EntitySystem()
     {
         LOG_THIS_MEMBER(DOM);
+
+        stop();
 
         for(auto& sys : systems)
         {
@@ -42,15 +44,7 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
-        running = true;
-
-        executor.run(taskflow).wait();
-
-        // for(const auto& system : systems)
-        // {
-        //     system->execute();
-        // }
-
-        running = false;
+        // runs the taskflow until we stop the system
+        executor.run_until(taskflow, [&running = running](){ return not running; });
     }
 }

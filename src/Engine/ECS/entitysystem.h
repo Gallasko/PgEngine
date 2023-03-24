@@ -73,6 +73,31 @@ namespace pg
         EntitySystem();
         ~EntitySystem();
 
+        inline void start()
+        {
+            LOG_THIS_MEMBER("ECS");
+
+            if(running)
+                return;
+
+            running = true;
+
+            runningThread = std::thread(&EntitySystem::executeAll, this);
+        }
+
+        inline void stop()
+        {
+            LOG_THIS_MEMBER("ECS");
+
+            if (not running)
+                return;
+
+            if (runningThread.joinable())
+                runningThread.join();
+
+            running = false;
+        }
+
         EntityRef createEntity()
         {
             LOG_THIS_MEMBER("ECS");
@@ -112,7 +137,7 @@ namespace pg
             // Only add the system to the taskflow if the execution policy is set to sequential or independent !
             if(system->executionPolicy == ExecutionPolicy::Sequential)
             {
-                auto task = taskflow.emplace([system](){system->execute();});
+                auto task = taskflow.emplace([system](){system->execute();}).name(std::to_string(system->id));
 
                 // Put the task after every other basic task
                 task.succeed(basicTask);
@@ -122,13 +147,49 @@ namespace pg
             }
             else if (system->executionPolicy == ExecutionPolicy::Independent)
             {
-                auto task = taskflow.emplace([system](){system->execute();});
+                auto task = taskflow.emplace([system](){system->execute();}).name(std::to_string(system->id));
 
                 // Register the task in case we need to call precede and succeed
                 tasks[system->id] = task;
             }
 
             return system;
+        }
+
+        // Todo make proceed
+        template <typename SysAfter, typename SysBefore>
+        void succeed()
+        {
+            LOG_THIS_MEMBER("ECS");
+
+            auto sys1Id = registry.getTypeId<SysAfter>();
+            auto sys2Id = registry.getTypeId<SysBefore>();
+
+            auto it1 = tasks.find(sys1Id);
+            auto it2 = tasks.find(sys2Id);
+            
+            if(it1 != tasks.end() and it2 != tasks.end())
+            {
+                it1->second.succeed(it2->second);
+                LOG_INFO("ECS", "System " << sys1Id << " will run after system " << sys2Id << " !");
+            }
+            else if(it1 == tasks.end() and it2 != tasks.end())
+            {
+                LOG_ERROR("ECS", "Systems " << sys1Id << " is not a registered task in ecs can't reorder task !");
+            }
+            else if(it1 != tasks.end() and it2 == tasks.end())
+            {
+                LOG_ERROR("ECS", "Systems " << sys2Id << " is not a registered task in ecs can't reorder task !");
+            }
+            else
+            {
+                LOG_ERROR("ECS", "Both systems " << sys1Id << " and " << sys2Id << " are not registered task in ecs can't reorder their task !");
+            }
+        }
+
+        inline void dumbTaskflow() const
+        {
+            taskflow.dump(std::cout);
         }
 
         //TODO make a template specialization capable of attaching an entity to an entity
@@ -273,6 +334,9 @@ namespace pg
 
         /** All the entities generated from the ECS */
         ComponentSet<Entity> entityPool;
+
+        /** Running thread of the ECS */
+        std::thread runningThread;
 
         /** Taskflow of all the system of the ecs */
         tf::Taskflow taskflow;
