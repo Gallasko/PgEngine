@@ -58,25 +58,18 @@ namespace pg
                 {
                     UiComponent *ui = renderableTexture.uiRef;
 
-                    if(not ui->isVisible())
+                    auto mesh = renderableTexture.meshRef.getMesh();
+
+                    if(not ui->isVisible() or not mesh)
                         break;
 
-                    try
-                    {
-                        auto mesh = renderableTexture.meshRef.getMesh();
+                    view.setToIdentity();
+                    view.translate(QVector3D(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, 0.0f));
 
-                        view.setToIdentity();
-                        view.translate(QVector3D(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, 0.0f));
+                    shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
 
-                        shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
-
-                        mesh->bind();
-                        glDrawElements(GL_TRIANGLES, mesh->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
-                    }
-                    catch (const std::exception& e)
-                    {
-                        LOG_ERROR(DOM, e.what());
-                    }
+                    mesh->bind();
+                    glDrawElements(GL_TRIANGLES, mesh->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
                 }
             }
 

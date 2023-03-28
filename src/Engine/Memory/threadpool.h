@@ -33,12 +33,12 @@ private:
 };
  
 // the constructor just launches some amount of workers
-inline ThreadPool::ThreadPool(size_t threads)
+inline ThreadPool::ThreadPool(size_t)
     :   stop(false)
 {
     LOG_THIS_MEMBER("ThreadPool");
     
-    LOG_INFO("ThreadPool", "Creating new thread pool with: " + std::to_string(threads) + " threads.");
+    // LOG_INFO("ThreadPool", "Creating new thread pool with: " + std::to_string(threads) + " threads.");
 /*
     for(size_t i = 0;i<threads;++i)
         workers.emplace_back(

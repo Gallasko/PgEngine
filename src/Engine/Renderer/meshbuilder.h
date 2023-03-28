@@ -80,7 +80,20 @@ namespace pg
 
             MeshRef& operator=(const MeshRef& rhs) { LOG_THIS_MEMBER("MeshBuilder"); builderRef = rhs.builderRef; textureName = rhs.textureName; return *this; }
 
-            inline Mesh* getMesh() const { LOG_THIS_MEMBER("MeshBuilder"); return builderRef->m_meshes.at(textureName); }
+            inline Mesh* getMesh() const noexcept
+            {
+                LOG_THIS_MEMBER("MeshBuilder");
+
+                try
+                {
+                    return builderRef->m_meshes.at(textureName);
+                }
+                catch(const std::exception& e)
+                {
+                    LOG_ERROR("MeshBuilder", "Mesh was not found at " << textureName << ", error: " << e.what());
+                    return nullptr;
+                }
+            }
 
             MeshBuilder *builderRef;
             std::string textureName;

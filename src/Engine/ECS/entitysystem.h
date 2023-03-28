@@ -57,7 +57,7 @@ namespace pg
     template<typename... Comps>
     struct CompList : public CompListGetter<Comps>...
     {
-        CompList(EntityRef entity, CompRef<Comps>... comps) : entity(entity), CompListGetter<Comps>(comps)... { }
+        CompList(EntityRef entity, CompRef<Comps>... comps) : CompListGetter<Comps>(comps)..., entity(entity) { }
 
         template<typename Comp>
         inline CompRef<Comp> get() const { return static_cast<const CompListGetter<Comp>*>(this)->get(); }

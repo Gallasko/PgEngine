@@ -209,7 +209,7 @@ namespace pg
     {
         UiComponentSystem() {}
 
-        virtual void onEvent(const UiComponentChangeEvent& event) override
+        virtual void onEvent(const UiComponentChangeEvent&) override
         {
 
         }

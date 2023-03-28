@@ -116,7 +116,7 @@ namespace
 
             secondTickTime = QDateTime::currentMSecsSinceEpoch();
             
-            while(not paused and ((secondTickTime - firstTickTime) >= tickDuration))
+            while(not paused and ((secondTickTime - firstTickTime) >= static_cast<qint64>(tickDuration)))
             {
                 firstTickTime += tickDuration;
 
@@ -242,7 +242,7 @@ namespace
 
                 accumulatedTick -= factoryProdDuration;
 
-                ecsRef->sendEvent(OnGoldGain{nbFactory * factoryProdValue});
+                ecsRef->sendEvent(OnGoldGain{static_cast<int64_t>(nbFactory * factoryProdValue)});
             }
         }
 
@@ -419,7 +419,7 @@ void EditorWindow::initialize()
     // std::cout << b1->width << std::endl;
     // std::cout << b1->pos.x << std::endl;
 
-    auto sceneEntityTex = ecs.attach<TextureComponent>(sceneEntity, "frame");
+    ecs.attach<TextureComponent>(sceneEntity, "frame");
 
     std::cout << sceneEntityC->frame.w << std::endl;
 
@@ -431,7 +431,7 @@ void EditorWindow::initialize()
     c->setBottomAnchor(screenUi->bottom);
     c->setRightAnchor(screenUi->right);
 
-    auto testingString = "Testing";
+    // auto testingString = "Testing";
 
     // ecs.attach<MouseClickComponent>(sceneEntity, makeCallable<LogInfoEvent>(testingString, "Clicked on component"));
     ecs.attach<MouseClickComponent>(sceneEntity, makeCallable<OnClickGainGold>());
@@ -795,10 +795,10 @@ void EditorWindow::tick()
 {
     LOG_THIS_MEMBER(DOM);
 
-    auto currentTickTime = QDateTime::currentMSecsSinceEpoch();
-    auto lastTickTime = QDateTime::currentMSecsSinceEpoch();
+    // auto currentTickTime = QDateTime::currentMSecsSinceEpoch();
+    // auto lastTickTime = QDateTime::currentMSecsSinceEpoch();
 
-    size_t accumulatedTickCount = 0;
+    // size_t accumulatedTickCount = 0;
 
 
     // while(ticking)
