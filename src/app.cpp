@@ -134,6 +134,48 @@ namespace
 
     // Todo make a FPS system that print the current FPS !
 
+    struct FpsSystem : public System<Listener<TickEvent>, InitSys, StoragePolicy>
+    {
+        void init() override
+        {
+            auto sentence = makeSentence(ecsRef, 0, 0, {"0"});
+
+            fpsTextId = sentence.entity.id;
+        }
+
+        void onEvent(const TickEvent& event) override
+        {
+            LOG_THIS_MEMBER("FactorySystem");
+
+            accumulatedTick += event.tick;
+
+            if (accumulatedTick >= 1000)
+            {
+                accumulatedTick %= 1000;
+
+                auto rendererSys = ecsRef->getSystem<MasterRenderer>();
+
+                if (not rendererSys)
+                    return;
+
+                auto currentNbOfFrames = rendererSys->nbRenderedFrames;
+
+                auto res = currentNbOfFrames - lastNbOfFrames;
+
+                auto fpsStr = Strfy() << res;
+
+                lastNbOfFrames = currentNbOfFrames;
+
+                // Print FPS
+                ecsRef->sendEvent(OnTextChanged{fpsTextId, fpsStr.getData()});
+            }
+        }
+
+        _unique_id fpsTextId;
+        size_t accumulatedTick = 0;
+        size_t lastNbOfFrames = 0;
+    };
+
     struct OnClickGainGold { };
 
     struct OnGoldGain
@@ -304,6 +346,8 @@ void EditorWindow::initialize()
     fontLoader = new FontLoader("res/font/fontmap.ft");
     ecs.createSystem<SentenceSystem>(fontLoader);
 
+    ecs.createSystem<FpsSystem>();
+
     auto goldSys = ecs.createSystem<GoldSystem>();
 
     ecs.createSystem<FactorySystem>();
@@ -405,7 +449,7 @@ void EditorWindow::initialize()
 
     makeSentence(&ecs, 20, 250, {"\"Hello_World\": Test?!"});
     
-    ticking = true;
+    // ticking = true;
     // std::thread t (&EditorWindow::tick, this);
 
     // makeSentence(&ecs, 20, 150, {"\"Hello_World\": Test?!"});
@@ -756,40 +800,41 @@ void EditorWindow::tick()
 
     size_t accumulatedTickCount = 0;
 
-    while(ticking)
-    {
-        // LOG_INFO(DOM, nbFrame);
 
-        lastTickTime = QDateTime::currentMSecsSinceEpoch();
+    // while(ticking)
+    // {
+    //     // LOG_INFO(DOM, nbFrame);
 
-        accumulatedTickCount += 40;
+    //     lastTickTime = QDateTime::currentMSecsSinceEpoch();
 
-        while (accumulatedTickCount >= 1000)
-        {
-            accumulatedTickCount -= 1000;
+    //     accumulatedTickCount += 40;
 
-            std::cout << nbFrame << std::endl;  
-            nbFrame = 0;
-        }
+    //     while (accumulatedTickCount >= 1000)
+    //     {
+    //         accumulatedTickCount -= 1000;
+
+    //         std::cout << nbFrame << std::endl;  
+    //         nbFrame = 0;
+    //     }
         
-        // Todo remove this when the Ticking system works
-        ecs.sendEvent(TickEvent{900});
+    //     // Todo remove this when the Ticking system works
+    //     ecs.sendEvent(TickEvent{900});
 
-        // //Animation tick loop
-        // for(int i = AnimationComponent::runningQueue.size() - 1; i >= 0; i--) 
-        // {
-        //     AnimationComponent::runningQueue[i]->tick(40); // tickRate
+    //     // //Animation tick loop
+    //     // for(int i = AnimationComponent::runningQueue.size() - 1; i >= 0; i--) 
+    //     // {
+    //     //     AnimationComponent::runningQueue[i]->tick(40); // tickRate
             
-        //     if(!AnimationComponent::runningQueue[i]->isRunning())
-        //     {
-        //         //delete AnimationComponent::runningQueue[i]; // TODO check where to put this
-        //         AnimationComponent::runningQueue.erase(AnimationComponent::runningQueue.begin() + i);
-        //     }
-        // }
+    //     //     if(!AnimationComponent::runningQueue[i]->isRunning())
+    //     //     {
+    //     //         //delete AnimationComponent::runningQueue[i]; // TODO check where to put this
+    //     //         AnimationComponent::runningQueue.erase(AnimationComponent::runningQueue.begin() + i);
+    //     //     }
+    //     // }
 
-        currentTickTime = QDateTime::currentMSecsSinceEpoch();
-        std::this_thread::sleep_for(std::chrono::milliseconds(20 - (currentTickTime - lastTickTime)));
-    }
+    //     currentTickTime = QDateTime::currentMSecsSinceEpoch();
+    //     std::this_thread::sleep_for(std::chrono::milliseconds(20 - (currentTickTime - lastTickTime)));
+    // }
 }
 
 void EditorWindow::quit(Input* inputHandler, double...)

@@ -92,10 +92,12 @@ namespace pg
             if (not running)
                 return;
 
+            running = false;
+
+            executor.wait_for_all();
+
             if (runningThread.joinable())
                 runningThread.join();
-
-            running = false;
         }
 
         EntityRef createEntity()
@@ -195,13 +197,21 @@ namespace pg
         //TODO make a template specialization capable of attaching an entity to an entity
 
         template <class Sys>
-        inline Sys* getSystem() const
+        inline Sys* getSystem() const noexcept
         {
             LOG_THIS_MEMBER("ECS");
 
             const auto& id = registry.getTypeId<Sys>();
 
-            return static_cast<Sys*>(systems.at(id));
+            try
+            {
+                return static_cast<Sys*>(systems.at(id));
+            }
+            catch (const std::exception& e)
+            {
+                LOG_ERROR("ECS", "Get system failed: " << e.what());
+                return nullptr;
+            }
         }
 
         template <typename Type, typename... Args>

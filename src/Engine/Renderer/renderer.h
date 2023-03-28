@@ -103,5 +103,7 @@ namespace pg
         TextureRef textureList;
 
         MeshBuilder meshBuilder;
+
+        size_t nbRenderedFrames = 0;
     };
 }

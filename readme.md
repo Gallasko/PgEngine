@@ -26,3 +26,11 @@ Once those depencies are resolved, you can build the application with:
 - `mingw32-make` in release mode
 
 Or use the different task set up for vscode
+
+## Profiling App
+
+To profile the Taskflow scheduling of the application, you need to enable the profiler in your environment by setting the filename in the environment variable
+
+On windows:
+- `$env:TF_ENABLE_PROFILER=simple.json`
+

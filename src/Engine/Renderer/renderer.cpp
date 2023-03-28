@@ -61,15 +61,22 @@ namespace pg
                     if(not ui->isVisible())
                         break;
 
-                    auto mesh = renderableTexture.meshRef.getMesh();
+                    try
+                    {
+                        auto mesh = renderableTexture.meshRef.getMesh();
 
-                    view.setToIdentity();
-                    view.translate(QVector3D(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, 0.0f));
+                        view.setToIdentity();
+                        view.translate(QVector3D(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, 0.0f));
 
-                    shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
+                        shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
 
-                    mesh->bind();
-                    glDrawElements(GL_TRIANGLES, mesh->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
+                        mesh->bind();
+                        glDrawElements(GL_TRIANGLES, mesh->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
+                    }
+                    catch (const std::exception& e)
+                    {
+                        LOG_ERROR(DOM, e.what());
+                    }
                 }
             }
 
@@ -103,6 +110,8 @@ namespace pg
         std::lock_guard<std::mutex> lock(renderMutex);
 
         render(currentRenderList);
+
+        nbRenderedFrames++;
     }
 
     void MasterRenderer::registerShader(const std::string& name, const char* vsPath, const char* fsPath)
