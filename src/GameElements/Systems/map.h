@@ -28,7 +28,7 @@
 
 namespace std
 {
-    template<>
+    template <>
     struct hash<pg::constant::Vector2D> {
         size_t operator()(const pg::constant::Vector2D& k) const {
             return ((hash<int>()(k.x) ^ (hash<int>()(k.y) << 1)) >> 1);

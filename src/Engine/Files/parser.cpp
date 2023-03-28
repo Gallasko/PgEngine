@@ -8,7 +8,7 @@ namespace pg
 {
     namespace
     {
-        const char * DOM = "Parser";
+        static constexpr char const * DOM = "Parser";
     }
 
     std::string FileParser::getNextLine()

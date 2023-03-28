@@ -393,13 +393,13 @@ namespace pg
 			virtual Numerical* operator*(Numerical *rhs) const = 0;
 			virtual Numerical* operator/(Numerical *rhs) const = 0;
 			
-			template<typename T>
+			template <typename T>
 			Numerical* operator+(const T& value) const { return (*op)(value, Op::Operation::ADD); }
-			template<typename T>
+			template <typename T>
 			Numerical* operator-(const T& value) const { return (*op)(value, Op::Operation::SUB); }
-			template<typename T>
+			template <typename T>
 			Numerical* operator*(const T& value) const { return (*op)(value, Op::Operation::MUL); }
-			template<typename T>
+			template <typename T>
 			Numerical* operator/(const T& value) const { return (*op)(value, Op::Operation::DIV); }
 
 			virtual Numerical* clone() const = 0;
@@ -407,7 +407,7 @@ namespace pg
 			virtual ~Numerical() { delete op; }
 		};
 
-		template<typename Type>
+		template <typename Type>
 		struct Numerics : public Numerical
 		{
 			Type value;
@@ -426,7 +426,7 @@ namespace pg
 
 				Numerical* createEmpty() const { return new Numerics<Type> (); }
 
-				template<typename NumericalType, typename ValueType>
+				template <typename NumericalType, typename ValueType>
 				Numerical* createFunc(const ValueType& val, const Operation& operation) const {
 					switch (operation)
 					{
@@ -562,6 +562,8 @@ namespace pg
 				this->nbIndices = rhs.nbIndices;
 			}
 
+			virtual ~ModelInfo() { if(vertices != nullptr) delete[] vertices; if(indices!= nullptr) delete[] indices; }
+
 			inline void operator=(const ModelInfo &rhs)
 			{
 				unsigned int i = 0;
@@ -582,8 +584,6 @@ namespace pg
 				this->nbVertices = rhs.nbVertices;
 				this->nbIndices = rhs.nbIndices;		
 			}
-
-			~ModelInfo() { if(vertices != nullptr) delete[] vertices; if(indices!= nullptr) delete[] indices; }
 		};
 
 		struct SquareInfo : public ModelInfo
@@ -619,6 +619,8 @@ namespace pg
 				this->nbVertices = rhs.nbVertices;
 				this->nbIndices = rhs.nbIndices;
 			}
+
+			virtual ~SquareInfo() {}
 
 			inline void operator=(const SquareInfo &rhs)
 			{

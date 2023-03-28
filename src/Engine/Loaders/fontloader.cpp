@@ -7,7 +7,7 @@ namespace pg
 {
     namespace
     {
-        const char * DOM = "Font Loader";
+        static constexpr char const * DOM = "Font Loader";
     }
 
     FontLoader::Font::Font()

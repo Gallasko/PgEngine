@@ -87,7 +87,7 @@ private:
 
     void addElement(const UiComponentType& type);
     
-    template<typename SceneElementType>
+    template <typename SceneElementType>
     void openInOption(UiComponent* component);
 
     UiComponent *sceneEntityC;
@@ -108,15 +108,15 @@ private:
     QOpenGLPaintDevice *m_device = nullptr;
 
     EntitySystem ecs;
-    MasterRenderer masterRenderer;
-
     EntitySystem sceneEcs;
+
+    MasterRenderer *masterRenderer = nullptr;
 
     Input *inputHandler = nullptr;
     FontLoader *fontLoader = nullptr;
 
-    EntitySystem::Entity *screenEntity;
-    UiComponent *screenUi;
+    EntityRef screenEntity;
+    CompRef<UiComponent> screenUi;
 
     float xSensitivity = 1.0f;
     float ySensitivity = 1.0f;
@@ -124,6 +124,8 @@ private:
     qint64 currentTime = 0;
 
     QPoint mousePos;
+
+    uint32_t nbFrame = 0;
 
     bool debug = false;
     bool debugSwitched = false;

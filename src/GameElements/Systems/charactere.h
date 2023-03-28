@@ -115,7 +115,7 @@ class CharacterUi : public pg::UiComponent
 friend class Character;
 public:
     CharacterUi(Character *chara, pg::FontLoader *fontLoader);
-    CharacterUi(const CharacterUi& other);
+    // CharacterUi(const CharacterUi& other);
     
     ~CharacterUi() {}
 
@@ -126,7 +126,7 @@ private:
 
     Character *chara;
 
-    pg::Sentence *displayName;
+    // pg::Sentence *displayName;
 };
 
 class Manager

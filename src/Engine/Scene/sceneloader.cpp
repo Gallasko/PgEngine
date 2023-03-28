@@ -8,7 +8,7 @@ namespace pg
 {
     namespace
     {
-        const char * DOM = "Scene Loader";
+        static constexpr char const * DOM = "Scene Loader";
 
         /**
          * @brief A function that trim all whitespace characters from the beginning of a string
@@ -33,14 +33,14 @@ namespace pg
         }
     }
 
-    template<>
+    template <>
     void renderer(MasterRenderer* masterRenderer, Scene* scene)
     {
         LOG_THIS(DOM);
 
         for(int i = 0; i < scene->nbAllocatedObjects; i++)
         {
-            scene->sceneObjects[i]->render(masterRenderer);
+            // scene->sceneObjects[i]->render(masterRenderer);
         }
     }
 

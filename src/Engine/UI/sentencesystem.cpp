@@ -2,7 +2,7 @@
 
 namespace pg
 {
-    template<>
+    template <>
     void serialize(Archive& archive, const SentenceText& value)
     {
         archive.startSerialization("Sentence Text");
@@ -16,7 +16,7 @@ namespace pg
         archive.endSerialization();
     }
 
-    template<>
+    template <>
     void serialize(Archive& archive, const Sentence& value)
     {
         archive.startSerialization("Sentence");
@@ -29,7 +29,7 @@ namespace pg
         archive.endSerialization();
     }
 
-    template<>
+    template <>
     void renderer(MasterRenderer* masterRenderer, Sentence* sentence)
     {
         if(not sentence->isVisible())
@@ -70,7 +70,7 @@ namespace pg
         glBindTexture(GL_TEXTURE_2D, masterRenderer->getTexture("font"));
 
         view.setToIdentity();
-        view.translate(QVector3D(-1.0f + 2.0f * (float)(sentence->pos.x) / screenWidth, 1.0f + 2.0f * (float)( -sentence->pos.y) / screenHeight, 0.0f));
+        view.translate(QVector3D(-1.0f + 2.0f * static_cast<UiSize>(sentence->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(sentence->pos.y) / screenHeight, 0.0f));
 
         shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
 
@@ -80,7 +80,7 @@ namespace pg
         shaderProgram->release();
     }
 
-    template<>
+    template <>
     void renderer(MasterRenderer* masterRenderer, std::vector<Sentence*> sentenceList)
     { 
         auto rTable = masterRenderer->getParameter();
@@ -121,7 +121,7 @@ namespace pg
                 sentence->generateMesh();
 
             view.setToIdentity();
-            view.translate(QVector3D(-1.0f + 2.0f * (float)(sentence->pos.x) / screenWidth, 1.0f + 2.0f * (float)( -sentence->pos.y) / screenHeight, 0.0f));
+            view.translate(QVector3D(-1.0f + 2.0f * static_cast<UiSize>(sentence->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(sentence->pos.y) / screenHeight, 0.0f));
 
             shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
 
@@ -332,5 +332,86 @@ namespace pg
     void Sentence::render(MasterRenderer* masterRenderer)
     { 
         renderer(masterRenderer, this); 
+    }
+
+    void SentenceSystem::init()
+    {
+        auto group = registerGroup<UiComponent, SentenceText>();
+
+        group->addOnGroup([](Entity* entity) {
+            LOG_INFO("Sentence Component System", "Add entity " << entity->id << " to ui - sent group !");
+
+            auto ui = entity->get<UiComponent>();
+            auto sentence = entity->get<SentenceText>();
+
+            auto sys = entity->world()->getSystem<MasterRenderer>();
+            auto sys2 = entity->world()->getSystem<SentenceSystem>();
+
+            auto mesh = sys->meshBuilder.getSentenceMesh(ui->width, ui->height, *sentence, sys2->font);
+
+            auto rTex = RenderableTexture{entity->id, ui, mesh};
+
+            std::lock_guard<std::mutex> lock (sys->modificationMutex);
+
+            sys->tempRenderList["text"]["font"].push_back(rTex);
+            
+            sys->changed = true;
+        });
+    }
+
+    void SentenceSystem::onEvent(const OnTextChanged& event)
+    {
+        auto entity = ecsRef->getEntity(event.entityId);
+
+        auto ui = entity->get<UiComponent>();
+
+        // Todo check if the entity has a sentence text before trying to modify it
+        auto sentence = entity->get<SentenceText>();
+
+        sentence->text = event.newText;
+
+        auto sys = entity->world()->getSystem<MasterRenderer>();
+
+        auto mesh = sys->meshBuilder.getSentenceMesh(ui->width, ui->height, *sentence, font);
+
+        auto rTex = RenderableTexture{event.entityId, ui, mesh};
+
+        LOG_MILE("Sentence Component System", "Modification of id: " << entity->id << " sentence");
+
+        std::lock_guard<std::mutex> lock (sys->modificationMutex);
+
+        auto first = sys->tempRenderList["text"]["font"].begin();
+        auto last = sys->tempRenderList["text"]["font"].end();
+
+        while (first != last)
+        {
+            if (first->entityId == event.entityId)
+            {
+                *first = rTex;
+                break;
+            }
+
+            ++first;
+        }
+
+        sys->changed = true;
+    }
+
+    /** Helper that create an entity with an Ui component and a Texture component */
+    CompList<UiComponent, SentenceText> makeSentence(EntitySystem *ecs, float x, float y, const SentenceText& text)
+    {
+        auto entity = ecs->createEntity();
+
+        auto ui = ecs->attach<UiComponent>(entity);
+
+        auto sentence = ecs->attach<SentenceText>(entity, text);
+
+        ui->setX(x);
+        ui->setY(y);
+
+        ui->setWidth(sentence->textWidth);
+        ui->setHeight(sentence->textHeight);
+
+        return CompList<UiComponent, SentenceText>(entity, ui, sentence);
     }
 }

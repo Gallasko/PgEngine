@@ -57,8 +57,10 @@ namespace pg
         PositionCallback posUpdate = [](const UiSize&){};
 
         UiOrientation orientation;
-        
-        MouseInput mouseArea = makeMouseArea(this, this, SlideBar::mouseInput, SlideBar::mouseLeave);
+
+        // Todo        
+        MouseComponent* mouseArea = nullptr;
+        // MouseComponent* mouseArea = makeMouseArea(this, this, SlideBar::mouseInput, SlideBar::mouseLeave);
         bool pressed = false;
     };
 
@@ -97,7 +99,9 @@ namespace pg
         std::vector<std::shared_ptr<UiComponent>> children;
         std::vector<std::shared_ptr<UiComponent>> renderList;
 
-        MouseInput mouseArea = makeMouseArea(this, this, ListView::mouseInput, ListView::mouseLeave);
+        // Todo 
+        MouseComponent* mouseArea = nullptr;
+        // MouseComponent* mouseArea = makeMouseArea(this, this, ListView::mouseInput, ListView::mouseLeave);
 
         int spacing = 5;
 

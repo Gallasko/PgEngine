@@ -2,7 +2,6 @@
 
 #include "constant.h"
 #include "logger.h"
-#include "serialization.h"
 
 #include "Renderer/renderer.h"
 
@@ -10,8 +9,14 @@ namespace pg
 {
     namespace
 	{
-		const char * DOM = "Ui System";
+		static constexpr char const * DOM = "Ui System";
 	}
+
+    template <>
+    UiSize operator-(const UiPosition::UiPosValue& lhs, const UiSize& rhs)
+    {
+        return UiSize(static_cast<UiSize>(lhs), -1.0f, rhs.value);
+    }
 
     /**
      * @brief Specialization of the serialize function for UiSize 
@@ -19,7 +24,7 @@ namespace pg
      * @param archive A references to the archive
      * @param value The ui size value
      */
-    template<>
+    template <>
     void serialize(Archive& archive, const UiSize& value)
     {
         LOG_THIS(DOM);
@@ -32,12 +37,92 @@ namespace pg
     }
 
     /**
+     * @brief Specialization of the serialize function for AnchorDir 
+     * 
+     * @param archive A references to the archive
+     * @param value The anchor dir value
+     */
+    template <>
+    void serialize(Archive& archive, const AnchorDir& value)
+    {
+        LOG_THIS(DOM);
+
+        archive.startSerialization("AnchorDir");
+
+        std::string anchorDirString;
+
+        switch(value)
+        {
+            case AnchorDir::Top:
+                anchorDirString = "Top"; break;
+            case AnchorDir::Right:
+                anchorDirString = "Right"; break;
+            case AnchorDir::Bottom:
+                anchorDirString = "Bottom"; break;
+            case AnchorDir::Left:
+                anchorDirString = "Left"; break;
+        }
+
+        serialize(archive, "dir", anchorDirString);
+
+        archive.endSerialization();
+    }
+
+    /**
+     * @brief Specialization of the serialize function for Anchor 
+     * 
+     * @param archive A references to the archive
+     * @param value The anchor value
+     */
+    template <>
+    void serialize(Archive& archive, const UiAnchor& value)
+    {
+        LOG_THIS(DOM);
+
+        archive.startSerialization("UiAnchor");
+
+        serialize(archive, "entityId", value.id);
+        serialize(archive, "anchorDir", value.anchorDir);
+
+        archive.endSerialization();
+    }
+
+    /**
+     * @brief Specialization of the serialize function for UiPosValue 
+     * 
+     * @param archive A references to the archive
+     * @param value The ui pos value
+     */
+    template <>
+    void serialize(Archive& archive, const UiPosition::UiPosValue& value)
+    {
+        LOG_THIS(DOM);
+
+        archive.startSerialization("UiPosValue");
+
+        switch (value.type)
+        {
+            case UiPosition::UiPosValue::UiPosType::Anchor:
+                serialize(archive, "type",   std::string("anchor"));
+                serialize(archive, "anchor", value.value.anchor);
+                break;
+
+            case UiPosition::UiPosValue::UiPosType::Value:
+                serialize(archive, "type",  std::string("value"));
+                serialize(archive, "value", value.value.size);
+                break;
+        }
+
+        archive.endSerialization();
+    }
+
+    /**
      * @brief Specialization of the serialize function for UiPosition 
      * 
      * @param archive A references to the archive
      * @param value The ui position value
      */
-    template<>
+    template <>
     void serialize(Archive& archive, const UiPosition& value)
     {
         LOG_THIS(DOM);
@@ -57,7 +142,7 @@ namespace pg
      * @param archive A references to the archive
      * @param value The ui frame value
      */
-    template<>
+    template <>
     void serialize(Archive& archive, const UiFrame& value)
     {
         LOG_THIS(DOM);
@@ -77,7 +162,7 @@ namespace pg
      * @param archive A references to the archive
      * @param value The ui component value
      */
-    template<>
+    template <>
     void serialize(Archive& archive, const UiComponent& value)
     {
         LOG_THIS(DOM);
@@ -87,15 +172,37 @@ namespace pg
 
         archive.startSerialization("UiComponent");
 
-        serialize(archive, "visibility", value.isVisible());
-        serialize(archive, "pos", value.pos);
-        serialize(archive, "width", value.width);
-        serialize(archive, "height", value.height);
+        serialize(archive, "visibility",    value.isVisible());
+        serialize(archive, "pos",           value.pos);
+        serialize(archive, "width",         value.width);
+        serialize(archive, "height",        value.height);
 
-        serialize(archive, "topMargin", value.topMargin);
-        serialize(archive, "rightMargin", value.rightMargin);
-        serialize(archive, "bottomMargin", value.bottomMargin);
-        serialize(archive, "leftMargin", value.leftMargin);
+        serialize(archive, "topMargin",     value.topMargin);
+        serialize(archive, "rightMargin",   value.rightMargin);
+        serialize(archive, "bottomMargin",  value.bottomMargin);
+        serialize(archive, "leftMargin",    value.leftMargin);
+
+        UiAnchor emptyAnchor = {0, AnchorDir::Top, 0.0f};
+
+        if(value.topAnchor == nullptr)
+            serialize(archive, "topAnchor", emptyAnchor);
+        else
+            serialize(archive, "topAnchor", *value.topAnchor);
+
+        if(value.leftAnchor == nullptr)
+            serialize(archive, "leftAnchor", emptyAnchor);
+        else
+            serialize(archive, "leftAnchor", *value.leftAnchor);
+
+        if(value.bottomAnchor == nullptr)
+            serialize(archive, "bottomAnchor", emptyAnchor);
+        else
+            serialize(archive, "bottomAnchor", *value.bottomAnchor);
+
+        if(value.rightAnchor == nullptr)
+            serialize(archive, "rightAnchor", emptyAnchor);
+        else
+            serialize(archive, "rightAnchor", *value.rightAnchor);
 
         archive.endSerialization();
     }
@@ -106,7 +213,7 @@ namespace pg
      * @param serializedString A serialized string
      * @return UiSize An UiSize object contructed via the serialization string
      */
-    template<>
+    template <>
     UiSize deserialize(const UnserializedObject& serializedString)
     {
         LOG_THIS(DOM);
@@ -131,7 +238,7 @@ namespace pg
      * @param serializedString A serialized string
      * @return UiPosition An UiPosition object contructed via the serialization string
      */
-    template<>
+    template <>
     UiPosition deserialize(const UnserializedObject& serializedString)
     {
         LOG_THIS(DOM);
@@ -158,7 +265,7 @@ namespace pg
      * @param serializedString A serialized string
      * @return UiFrame An UiFrame object contructed via the serialization string
      */
-    template<>
+    template <>
     UiFrame deserialize(const UnserializedObject& serializedString)
     {
         LOG_THIS(DOM);
@@ -174,8 +281,8 @@ namespace pg
             LOG_INFO(DOM, "Deserializing an UiFrame");
 
             frame.pos = deserialize<UiPosition>(serializedString["pos"]);
-            frame.w = deserialize<UiSize>(serializedString["w"]);
-            frame.h = deserialize<UiSize>(serializedString["h"]);
+            frame.w   = deserialize<UiSize>(serializedString["w"]);
+            frame.h   = deserialize<UiSize>(serializedString["h"]);
         }
 
         return frame;
@@ -187,7 +294,7 @@ namespace pg
      * @param serializedString A serialized string
      * @return UiComponent An UiComponent object contructed via the serialization string
      */
-    template<>
+    template <>
     UiComponent deserialize(const UnserializedObject& serializedString)
     {
         LOG_THIS(DOM);
@@ -204,14 +311,14 @@ namespace pg
 
             deserialize<bool>(serializedString["visibility"]) ? component.show() : component.hide();
 
-            component.pos = deserialize<UiPosition>(serializedString["pos"]);
-            component.width = deserialize<UiSize>(serializedString["width"]);
-            component.height = deserialize<UiSize>(serializedString["height"]);
+            component.pos           = deserialize<UiPosition>(serializedString["pos"]);
+            component.width         = deserialize<UiSize>(serializedString["width"]);
+            component.height        = deserialize<UiSize>(serializedString["height"]);
 
-            component.topMargin = deserialize<UiSize>(serializedString["topMargin"]);
-            component.rightMargin = deserialize<UiSize>(serializedString["rightMargin"]);
-            component.bottomMargin = deserialize<UiSize>(serializedString["bottomMargin"]);
-            component.leftMargin = deserialize<UiSize>(serializedString["leftMargin"]);
+            component.topMargin     = deserialize<UiSize>(serializedString["topMargin"]);
+            component.rightMargin   = deserialize<UiSize>(serializedString["rightMargin"]);
+            component.bottomMargin  = deserialize<UiSize>(serializedString["bottomMargin"]);
+            component.leftMargin    = deserialize<UiSize>(serializedString["leftMargin"]);
 
             component.update();
         }
@@ -223,19 +330,20 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
-        this->visible = rhs.visible;
-        this->pos = rhs.pos;
-        this->width = rhs.width;
-        this->height = rhs.height;
-        this->topAnchor = rhs.topAnchor;
-        this->rightAnchor = rhs.rightAnchor;
-        this->bottomAnchor = rhs.bottomAnchor;
-        this->leftAnchor = rhs.leftAnchor;
+        this->visible       = rhs.visible;
+        this->pos           = rhs.pos;
+        this->width         = rhs.width;
+        this->height        = rhs.height;
 
-        this->topMargin = rhs.topMargin;
-        this->rightMargin = rhs.rightMargin;
-        this->bottomMargin = rhs.bottomMargin;
-        this->leftMargin = rhs.leftMargin;
+        this->topAnchor     = rhs.topAnchor;
+        this->rightAnchor   = rhs.rightAnchor;
+        this->bottomAnchor  = rhs.bottomAnchor;
+        this->leftAnchor    = rhs.leftAnchor;
+
+        this->topMargin     = rhs.topMargin;
+        this->rightMargin   = rhs.rightMargin;
+        this->bottomMargin  = rhs.bottomMargin;
+        this->leftMargin    = rhs.leftMargin;
     }
 
     bool UiComponent::inBound(int x, int y) const
@@ -246,7 +354,7 @@ namespace pg
         const float xValue = x;
         const float yValue = y;
 
-        return xValue > this->pos.x && xValue < (this->pos.x + this->width) && yValue < (this->pos.y + this->height) && yValue > this->pos.y;
+        return xValue > static_cast<UiSize>(this->pos.x) && xValue < (this->pos.x + this->width) && yValue < (this->pos.y + this->height) && yValue > static_cast<UiSize>(this->pos.y);
     }
 
     bool UiComponent::inBound(const constant::Vector2D& vec2) const
@@ -267,30 +375,30 @@ namespace pg
         
         if(topAnchor != nullptr && bottomAnchor != nullptr)
         {
-            this->height = (*bottomAnchor - bottomMargin) - (*topAnchor - topMargin);
-            this->pos.y = *topAnchor + topMargin;
+            this->height = (bottomAnchor->anchorPoint - bottomMargin) - (topAnchor->anchorPoint - topMargin);
+            this->pos.y = topAnchor->anchorPoint + topMargin;
         }
         else if(topAnchor != nullptr && bottomAnchor == nullptr)
         {
-            this->pos.y = *topAnchor + topMargin;
+            this->pos.y = topAnchor->anchorPoint + topMargin;
         }
         else if(topAnchor == nullptr && bottomAnchor != nullptr)
         {
-            this->pos.y = (*bottomAnchor - bottomMargin) - this->height;
+            this->pos.y = (bottomAnchor->anchorPoint - bottomMargin) - this->height;
         }
 
         if(rightAnchor != nullptr && leftAnchor != nullptr)
         {
-            this->width = (*rightAnchor - rightMargin) - (*leftAnchor - leftMargin);
-            this->pos.x = *leftAnchor + leftMargin;
+            this->width = (rightAnchor->anchorPoint - rightMargin) - (leftAnchor->anchorPoint - leftMargin);
+            this->pos.x = leftAnchor->anchorPoint + leftMargin;
         }
         else if(rightAnchor != nullptr && leftAnchor == nullptr)
         {
-            this->pos.x = (*rightAnchor - rightMargin) - this->width;
+            this->pos.x = (rightAnchor->anchorPoint - rightMargin) - this->width;
         }
         else if(rightAnchor == nullptr && leftAnchor != nullptr)
         {
-            this->pos.x = *leftAnchor + leftMargin;
+            this->pos.x = leftAnchor->anchorPoint + leftMargin;
         }
     }
 }

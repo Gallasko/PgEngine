@@ -3,6 +3,8 @@
 # 'make clean'  removes all .o and executable files
 #
 
+# Todo link Qt libraries only against the file needing those to reduce link time
+
 # Wildcard use to get recursively all the .cpp
 rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
@@ -24,19 +26,28 @@ DebugActive ?= $(DEBUG)
 
 # define any compile-time flags -mwindows to make the app launch without a command prompt
 
+CXXFLAGS	:= -std=c++17 -Wall -Wextra -g -pthread
+
 ifeq ($(DebugActive),True)
-CXXFLAGS	:= -std=c++11 -Wall -Wextra -g -DDEBUG
+CXXFLAGS    += -DDEBUG # --coverage
 else
-CXXFLAGS	:= -std=c++11 -Wall -Wextra -g -mwindows -O2 -DNDEBUG
+CXXFLAGS	+= -O2 -DNDEBUG # -mwindows
 endif
 
 TESTFLAGS := $(CXXFLAGS)
-TESTFLAGS += -pthread
 
 # define library paths in addition to /usr/lib
 #   if I wanted to include libraries not in /usr/lib I'd specify
 #   their path using -Lpath, something like:
 LFLAGS =
+
+# Add a flag to know if we are in production or not
+# (to remove some checks that should always be true, eg: static_assert and such)
+ifeq ($(ProductionActive), True)
+CXXFLAGS    += -DPROD
+else
+CXXFLAGS    += -DNPROD
+endif
 
 # define output directory
 ifeq ($(DebugActive),True)
@@ -44,6 +55,7 @@ OUTPUT	:= debug_build
 else
 OUTPUT	:= release_build
 endif
+
 
 # define source directory
 SRC		:= src
@@ -107,12 +119,20 @@ RM 				 := rm -f
 MD				 := mkdir -p
 endif
 
-# Look, up to 3 nested directories, to create an include tree of the include files in the source directory
-SOURCESDIRTREE := ${sort ${dir ${wildcard ${SOURCEDIRS}/*/ ${SOURCEDIRS}/*/*/ ${SOURCEDIRS}/*/*/*/}}}
+# Look, up to 4 nested directories, to create an include tree of the include files in the source directory
+SOURCESDIRTREE := ${sort ${dir ${wildcard ${SOURCEDIRS}/*/ ${SOURCEDIRS}/*/*/ ${SOURCEDIRS}/*/*/*/ ${SOURCEDIRS}/*/*/*/*/}}}
+
+# define Taskflow directory
+TASKFLOWDIR := $(IMPORTDIRS)/taskflow/taskflow
+TASKFLOWALG := $(TASKFLOWDIR)/algorithm
+TASKFLOWCOR := $(TASKFLOWDIR)/core
 
 # define any directories containing header files other than /usr/include
 INCLUDES	 := $(patsubst %,-I%, $(INCLUDEDIRS:%/=%)) \
-			    $(patsubst %,-I%, $(SOURCESDIRTREE:%/=%))
+			    $(patsubst %,-I%, $(SOURCESDIRTREE:%/=%)) \
+				$(patsubst %,-I%, $(TASKFLOWDIR:%/=%)) \
+				$(patsubst %,-I%, $(TASKFLOWALG:%/=%)) \
+				$(patsubst %,-I%, $(TASKFLOWCOR:%/=%))
 
 # define GTest directory
 GTESTDIR := $(IMPORTDIRS)/googletest/googletest
@@ -137,6 +157,7 @@ MOC_SOURCES	 := $(call rwildcard,$(SOURCEDIRS), *.h)
 RCC_SOURCES	 := $(call rwildcard,., *.qrc)
 
 GTEST_SOURCES = $(GTESTDIR)/src/*.cc $(GTESTDIR)/src/*.h $(GTEST_HEADERS)
+
 TEST_SOURCES := $(call rwildcard,$(TESTDIR), *.cc) 
 
 # define the C object files 
@@ -172,7 +193,11 @@ test: $(TEST_OBJECTS) gtest-all.o
 	@echo Building Test ...
 	$(CXX) $(TESTFLAGS) $(INCLUDES) $(TEST_INCLUDE) -o $(TESTMAIN) $(TEST_OBJECTS) gtest-all.o $(LFLAGS) $(LIBS)
 
+ifeq ($(DebugActive),True)
 	./debug_build/test.exe
+else
+	./release_build/test.exe
+endif
 
 # Create the output hierarchy
 $(OUTPUT):
@@ -238,9 +263,10 @@ $(BUILDDIR):
 
 clean:
 	@echo Cleaning...
+	$(RM) $(BUILDDIR)
+	$(RM) gtest-all.o
 #	$(RM) $(call FIXPATH, $(call rwildcard,$(SOURCEDIRS),*.o))
 #	$(RM) $(call FIXPATH, $(call rwildcard,$(SOURCEDIRS),*.d))
-	$(RM) $(BUILDDIR)
 	@echo Cleanup complete!
 
 run: all

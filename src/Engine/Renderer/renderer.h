@@ -2,6 +2,8 @@
 
 #include <unordered_map>
 
+#include <mutex>
+
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>
@@ -9,6 +11,8 @@
 
 #include <QMatrix4x4>
 #include <cstdarg>
+
+#include "ECS/system.h"
 
 #include "..\constant.h"
 #include "meshbuilder.h"
@@ -26,14 +30,28 @@ namespace pg
     template <typename... Args>
     void renderer(MasterRenderer* masterRender, Args... args);
 
-    //[TODO] Multiple FBO -> 1 for a whole screen capture and other for batch rendering on a texture 
-    // Add Particle systeme with instancing already done / create an alternative if needed
+    class UiComponent;
+    class TextureComponent;
 
-    class MasterRenderer : protected QOpenGLFunctions
+    struct RenderableTexture
+    {
+        _unique_id entityId;
+        CompRef<UiComponent> uiRef;
+        MeshBuilder::MeshRef meshRef;
+    };
+
+    //[TODO] Multiple FBO -> 1 for a whole screen capture and other for batch rendering on a texture 
+    // Add Particle system with instancing already done / create an alternative if needed
+
+    class MasterRenderer : protected QOpenGLFunctions, public System<>
     {
     public:
         MasterRenderer() {}
         ~MasterRenderer() { delete extraFunctions; delete squareObject; delete instanceVBO; }
+
+        virtual void execute() override;
+
+        void renderAll();
 
         void initialize(QOpenGLContext *m_context) { initializeGlObject(m_context); initializeParameters(); }
 
@@ -47,12 +65,10 @@ namespace pg
         QOpenGLShaderProgram* getShader(const std::string& name) { return shaderList[name]; }
         unsigned int getTexture(const std::string& name) { return textureList[name]; }
 
-        //TODO check if we need to make a special case UiComponent
-
-        template<typename... Args>
+        template <typename... Args>
         void render(const Args&... args) { renderer(this, args...); }
 
-        template<typename Renderable>
+        template <typename Renderable>
         MasterRenderer& operator<<(Renderable* toRender) { renderer(this, toRender); return *this; }
 
         inline void setWindowSize(const int& width, const int& height) { systemParameters["ScreenWidth"] = width; systemParameters["ScreenHeight"] = height; }
@@ -69,6 +85,15 @@ namespace pg
 
         void initializeParameters();
 
+    public:
+        bool changed = false;
+
+        std::mutex modificationMutex;
+        std::mutex renderMutex;
+
+        std::map<std::string, std::map<std::string, std::vector<RenderableTexture>>> tempRenderList;
+        std::map<std::string, std::map<std::string, std::vector<RenderableTexture>>> currentRenderList;
+
         QOpenGLExtraFunctions *extraFunctions;
         OpenGLObject *squareObject;
         QOpenGLBuffer *instanceVBO;
@@ -76,5 +101,9 @@ namespace pg
         RefracRef systemParameters;
         ShaderRef shaderList;
         TextureRef textureList;
+
+        MeshBuilder meshBuilder;
+
+        size_t nbRenderedFrames = 0;
     };
 }

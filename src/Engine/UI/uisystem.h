@@ -1,6 +1,9 @@
 #pragma once
 
 #include "uiconstant.h"
+// Todo only need to import /ecs/system ! modify accordingly
+#include "ECS/entitysystem.h"
+#include "serialization.h"
 
 //Todo parenting, better anchoring
 //TODO refactor all the struct that need to be a class and make the element private
@@ -23,7 +26,7 @@ namespace pg
      * This struct all data about the position of the object
      * as well as a render function
      */
-    class UiComponent
+    class UiComponent : public Ctor
     {
         // Type definition
     private:
@@ -33,14 +36,14 @@ namespace pg
         // {
         //     UiSize anchorPoint;
         // };
-
+        
         /**
          * @brief A struct describing the two anchor points needed to represent a corner
          */
         struct Corner
         {
-            const UiSize* verticalAnchor;       ///< The vertical anchor point of the corner
-            const UiSize* horizontalAnchor;     ///< The horizontal anchor point of the corner
+            const UiAnchor* verticalAnchor;       ///< The vertical anchor point of the corner
+            const UiAnchor* horizontalAnchor;     ///< The horizontal anchor point of the corner
         };
 
         // Public interface
@@ -58,13 +61,13 @@ namespace pg
 
         // The 4 anchors points of the object
         /** Top anchor points of the object */
-        const UiSize top    = &pos.y;
+        const UiAnchor top    = {0, AnchorDir::Top,    pos.y};
         /** Right anchor points of the object */
-        const UiSize right  = pos.x + width;
+        const UiAnchor right  = {0, AnchorDir::Right,  pos.x + width};
         /** Bottom anchor points of the object */
-        const UiSize bottom = pos.y + height;
+        const UiAnchor bottom = {0, AnchorDir::Bottom, pos.y + height};
         /** Left anchor points of the object */
-        const UiSize left   = &pos.x;
+        const UiAnchor left   = {0, AnchorDir::Left,   pos.x};
 
         // The 4 corner points of the object
         /** Top left corner of the object */
@@ -113,45 +116,53 @@ namespace pg
         UiComponent(const UiComponent& rhs);
 
         /**
+         * @brief Add id info to anchors if created in a ECS
+         * 
+         * @param entity The entity that hold this component
+         */
+        virtual void onCreation(Entity* entity) override
+        {
+            top.id    = entity->id;
+            right.id  = entity->id;
+            bottom.id = entity->id;
+            left.id   = entity->id;
+        }
+
+        /**
          * @brief Destroy the Ui Component object
          */
         virtual ~UiComponent() { }
 
         // Setter methods for position and size properties
     public:
-        inline void setX(const float& value) { pos.x = value; update(); }
-        inline void setY(const float& value) { pos.y = value; update(); }
-        inline void setZ(const float& value) { pos.z = value; update(); }
+        inline void setX(const float& value)                { pos.x = value; update(); }
+        inline void setY(const float& value)                { pos.y = value; update(); }
+        inline void setZ(const float& value)                { pos.z = value; update(); }
 
-        inline void setX(const UiSize& value) { pos.x = value; update(); }
-        inline void setY(const UiSize& value) { pos.y = value; update(); }
-        inline void setZ(const UiSize& value) { pos.z = value; update(); }
+        inline void setX(const UiSize& value)               { pos.x = value; update(); }
+        inline void setY(const UiSize& value)               { pos.y = value; update(); }
+        inline void setZ(const UiSize& value)               { pos.z = value; update(); }
 
-        inline void setWidth(const float& value) { width = value; update(); }
-        inline void setHeight(const float& value) { height = value; update(); }
+        inline void setWidth(const float& value)            { width = value; update(); }
+        inline void setHeight(const float& value)           { height = value; update(); }
 
-        inline void setWidth(const UiSize& value) { width = value; update(); }
-        inline void setHeight(const UiSize& value) { height = value; update(); }
+        inline void setWidth(const UiSize& value)           { width = value; update(); }
+        inline void setHeight(const UiSize& value)          { height = value; update(); }
 
-        inline void setTopAnchor(const UiSize* anchor) { topAnchor = anchor; update(); }
-        inline void setRightAnchor(const UiSize* anchor) { rightAnchor = anchor; update(); }
-        inline void setBottomAnchor(const UiSize* anchor) { bottomAnchor = anchor; update(); }
-        inline void setLeftAnchor(const UiSize* anchor) { leftAnchor = anchor; update(); }
+        inline void setTopAnchor(const UiAnchor& anchor)    { topAnchor = &anchor; update(); }
+        inline void setRightAnchor(const UiAnchor& anchor)  { rightAnchor = &anchor; update(); }
+        inline void setBottomAnchor(const UiAnchor& anchor) { bottomAnchor = &anchor; update(); }
+        inline void setLeftAnchor(const UiAnchor& anchor)   { leftAnchor = &anchor; update(); }
 
-        inline void setTopAnchor(const UiSize& anchor) { topAnchor = &anchor; update(); }
-        inline void setRightAnchor(const UiSize& anchor) { rightAnchor = &anchor; update(); }
-        inline void setBottomAnchor(const UiSize& anchor) { bottomAnchor = &anchor; update(); }
-        inline void setLeftAnchor(const UiSize& anchor) { leftAnchor = &anchor; update(); }
+        inline void setTopMargin(const int& value)          { topMargin = value; update(); }
+        inline void setRightMargin(const int& value)        { rightMargin = value; update(); }
+        inline void setBottomMargin(const int& value)       { bottomMargin = value; update(); }
+        inline void setLeftMargin(const int& value)         { leftMargin = value; update(); }
 
-        inline void setTopMargin(const int& value) { topMargin = value; update(); }
-        inline void setRightMargin(const int& value) { rightMargin = value; update(); }
-        inline void setBottomMargin(const int& value) { bottomMargin = value; update(); }
-        inline void setLeftMargin(const int& value) { leftMargin = value; update(); }
-
-        inline void setTopMargin(const UiSize& value) { topMargin = value; update(); }
-        inline void setRightMargin(const UiSize& value) { rightMargin = value; update(); }
-        inline void setBottomMargin(const UiSize& value) { bottomMargin = value; update(); }
-        inline void setLeftMargin(const UiSize& value) { leftMargin = value; update(); }
+        inline void setTopMargin(const UiSize& value)       { topMargin = value; update(); }
+        inline void setRightMargin(const UiSize& value)     { rightMargin = value; update(); }
+        inline void setBottomMargin(const UiSize& value)    { bottomMargin = value; update(); }
+        inline void setLeftMargin(const UiSize& value)      { leftMargin = value; update(); }
 
         // TODO add function for alignement with corner, vertical and horizontal center, center alignement
         // and fill
@@ -175,15 +186,33 @@ namespace pg
         bool visible = true;
 
     private:
+        friend void serialize<>(Archive& archive, const UiComponent& value);
+
         // Pointer to anchors where this object is tied
+
         /** Pointer to the top attached anchor */
-        const UiSize *topAnchor     = nullptr;
+        const UiAnchor* topAnchor    = nullptr;
         /** Pointer to the right attached anchor */
-        const UiSize *rightAnchor   = nullptr;
+        const UiAnchor* rightAnchor  = nullptr;
         /** Pointer to the bottom attached anchor */
-        const UiSize *bottomAnchor  = nullptr;
+        const UiAnchor* bottomAnchor = nullptr;
         /** Pointer to the left attached anchor */
-        const UiSize *leftAnchor    = nullptr;
+        const UiAnchor* leftAnchor   = nullptr;
+    };
+
+    struct UiComponentChangeEvent
+    {
+
+    };
+
+    struct UiComponentSystem : public System<Own<UiComponent>, Listener<UiComponentChangeEvent>, StoragePolicy>
+    {
+        UiComponentSystem() {}
+
+        virtual void onEvent(const UiComponentChangeEvent&) override
+        {
+
+        }
     };
 
     //TODO Copy Constructor

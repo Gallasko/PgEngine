@@ -2,10 +2,115 @@
 
 #include <QImage>
 
+#include "UI/texture.h"
+
+#include "logger.h"
+
 namespace pg
 {
+    namespace
+    {
+        constexpr static const char * const DOM = "Renderer";
+    }
+
+    void renderer(MasterRenderer* masterRenderer, const std::map<std::string, std::map<std::string, std::vector<RenderableTexture>>>& renderableTextureMap)
+    {
+        LOG_THIS(DOM);
+    
+        auto rTable = masterRenderer->getParameter();
+        const int screenWidth = rTable["ScreenWidth"];
+        const int screenHeight = rTable["ScreenHeight"];
+
+        QMatrix4x4 projection;
+        QMatrix4x4 view;
+        QMatrix4x4 model;
+        QMatrix4x4 scale;
+
+        projection.setToIdentity();
+        model.setToIdentity();
+        scale.setToIdentity();
+        scale.scale(QVector3D(2.0f / screenWidth, 2.0f / screenHeight, 0.0f)); 
+        // TODO why does it need to be scale * 2 ( the scaling now happen in the shader ) <- Done the * 2 is needed to map the -1 <-> 1 space to a 0 <-> 1 space 
+        // Need to make a note about that
+
+        for(const auto& shaderMap : renderableTextureMap)
+        {
+            auto shaderProgram = masterRenderer->getShader(shaderMap.first);
+
+            for(const auto& textureMap : shaderMap.second)
+            {
+                auto texture = masterRenderer->getTexture(textureMap.first);
+
+                // Tex rendering
+                shaderProgram->bind();
+
+                shaderProgram->setUniformValue(shaderProgram->uniformLocation("projection"), projection);
+                shaderProgram->setUniformValue(shaderProgram->uniformLocation("model"), model);
+                shaderProgram->setUniformValue(shaderProgram->uniformLocation("scale"), scale);
+
+                shaderProgram->setUniformValue(shaderProgram->uniformLocation("time"), static_cast<int>(0 % 314159));
+
+                //glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, texture);
+
+                // Todo combine all the call to the same texture into a single draw call using instanced rendering
+                for(const auto& renderableTexture : textureMap.second)
+                {
+                    UiComponent *ui = renderableTexture.uiRef;
+
+                    auto mesh = renderableTexture.meshRef.getMesh();
+
+                    if(not ui->isVisible() or not mesh)
+                        break;
+
+                    view.setToIdentity();
+                    view.translate(QVector3D(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, 0.0f));
+
+                    shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
+
+                    mesh->bind();
+                    glDrawElements(GL_TRIANGLES, mesh->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
+                }
+            }
+
+            shaderProgram->release();
+        }    
+    }
+
+    void MasterRenderer::execute()
+    {
+        LOG_THIS_MEMBER(DOM);
+ 
+        // Todo Fix in group and ecs ! ( whereaver we are holding pointer of a comp actually ! )
+        // Todo hold a ref to the component list and the component index inside of this list instead of the raw pointer to not get invalidated on resize !
+
+        if(changed)
+        {
+            std::lock_guard<std::mutex> lock(modificationMutex);
+
+            std::lock_guard<std::mutex> lock2(renderMutex);
+
+            currentRenderList = tempRenderList;
+
+            changed = false;
+        }        
+    }
+
+    void MasterRenderer::renderAll()
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        std::lock_guard<std::mutex> lock(renderMutex);
+
+        render(currentRenderList);
+
+        nbRenderedFrames++;
+    }
+
     void MasterRenderer::registerShader(const std::string& name, const char* vsPath, const char* fsPath)
     {
+        LOG_THIS_MEMBER(DOM);
+
         auto shaderProgram = new QOpenGLShaderProgram();
         shaderProgram->addShaderFromSourceFile(QOpenGLShader::Vertex, vsPath);
         shaderProgram->addShaderFromSourceFile(QOpenGLShader::Fragment, fsPath);
@@ -17,6 +122,8 @@ namespace pg
     //TODO mirror or not the texture
     void MasterRenderer::registerTexture(const std::string& name, const char* texturePath)
     { 
+        LOG_THIS_MEMBER(DOM);
+
         QImage textureAtlas = QImage(QString(texturePath));
         textureAtlas = textureAtlas.convertToFormat(QImage::Format_RGBA8888); //.mirrored(); // TODO check mirrored
 
@@ -42,6 +149,8 @@ namespace pg
 
     void MasterRenderer::initializeGlObject(QOpenGLContext *context)
     {
+        LOG_THIS_MEMBER(DOM);
+
         initializeOpenGLFunctions(); 
         extraFunctions = new QOpenGLExtraFunctions(context); 
 
@@ -92,6 +201,8 @@ namespace pg
 
     void MasterRenderer::initializeParameters()
     {
+        LOG_THIS_MEMBER(DOM);
+
         systemParameters["ScreenWidth"] = 1;
         systemParameters["ScreenHeight"] = 1;
         systemParameters["CurrentTime"] = 1;

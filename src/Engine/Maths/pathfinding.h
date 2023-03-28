@@ -44,7 +44,7 @@ struct vec3 {
 };
 
 namespace std {
-    template<>
+    template <>
     struct hash<vec3> {
         size_t operator()(const vec3& k) const {
             return ((hash<int>()(k.x)

@@ -2,7 +2,7 @@
 
 namespace pg
 {
-    template<>
+    template <>
     void renderer(MasterRenderer* masterRenderer, ParticleComponent* particle)
     {
         auto rTable = masterRenderer->getParameter();

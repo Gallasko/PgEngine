@@ -1,11 +1,17 @@
 #include "app.h"
 
+// Todo remove
 #include <QDateTime>
+
+#include <chrono>
 
 #include "Engine/logger.h"
 #include "Engine/serialization.h" 
 #include "Engine/configuration.h"
+
 #include "Engine/Scene/sceneloader.h"
+
+#include "Engine/ECS/loggersystem.h"
 
 #include "UI/button.h"
 #include "UI/texture.h"
@@ -18,7 +24,7 @@
 
 namespace
 {
-    const char * DOM = "Editor window";
+    static constexpr char const * DOM = "Editor window";
 
     struct SceneElement
     {
@@ -31,18 +37,226 @@ namespace
         /** Store a reference to the mouse area for delete purpose */
         Button *mouseArea;
     };
+
+    // Todo objectiv with system implementation
+    // struct SceneElementSystem : public System<Policy<ExecutionPolicy::Manual>, Own<SceneElement>, Need<MasterRenderer>, Talk<SceneSystem>>
+    struct SceneElementSystem : public System<Own<SceneElement>>
+    {
+        SceneElementSystem(MasterRenderer* masterRenderer) : masterRenderer(masterRenderer)
+        {
+            setPolicy(ExecutionPolicy::Manual);
+        }
+
+        virtual void execute()
+        {
+            // parallelExecute(view<SceneElement>(), executeSceneElement, masterRenderer);
+
+            for(const auto& element : view<SceneElement>())
+            {
+                // if(element->component != nullptr)
+                //     element->component->render(masterRenderer);
+            }
+        }
+
+        MasterRenderer *masterRenderer;
+    };
+
+    // Todo add all the logger thing to all those systems and doc too
+    struct TickEvent
+    {
+        TickEvent(size_t duration) : tick(duration) {}
+
+        size_t tick;
+    };
+
+    // Todo find and fix why this system doesn't work
+    struct TickingSystem : public System<>
+    {
+        TickingSystem(size_t duration = 40) : tickDuration(duration)
+        { 
+            LOG_THIS_MEMBER("Ticking System");
+            
+            // Todo replace QDateTime with std::chrono
+            // firstTickTime = std::chrono::high_resolution_clock::now();
+            firstTickTime = QDateTime::currentMSecsSinceEpoch();
+            secondTickTime = QDateTime::currentMSecsSinceEpoch();
+        }
+
+        ~TickingSystem() { LOG_THIS_MEMBER("Ticking System"); stop(); }
+
+        inline void stop()
+        {
+            LOG_THIS_MEMBER("Ticking System");
+
+            LOG_INFO("Ticking System", "Ticking system stopping ...");
+
+            paused = false;
+        }
+
+        inline void pause()
+        {
+            LOG_THIS_MEMBER("Ticking System");
+
+            paused = true;
+        }
+
+        inline void resume()
+        {
+            LOG_THIS_MEMBER("Ticking System");
+
+            firstTickTime = QDateTime::currentMSecsSinceEpoch();
+            secondTickTime = QDateTime::currentMSecsSinceEpoch();
+
+            paused = false;
+        }
+
+        virtual void execute()
+        {
+            LOG_THIS_MEMBER("Ticking System");
+
+            secondTickTime = QDateTime::currentMSecsSinceEpoch();
+            
+            while(not paused and ((secondTickTime - firstTickTime) >= static_cast<qint64>(tickDuration)))
+            {
+                firstTickTime += tickDuration;
+
+                ecsRef->sendEvent(TickEvent{tickDuration});
+            }
+        }
+
+        size_t tickDuration;
+
+        // Todo change qint64 with std::chrono
+        // std::chrono::high_resolution_clock::time_point firstTickTime, secondTickTime; 
+        qint64 firstTickTime, secondTickTime; 
+        bool paused = false;
+    };
+
+    // Todo make a FPS system that print the current FPS !
+
+    struct FpsSystem : public System<Listener<TickEvent>, InitSys, StoragePolicy>
+    {
+        void init() override
+        {
+            auto sentence = makeSentence(ecsRef, 0, 0, {"0"});
+
+            fpsTextId = sentence.entity.id;
+        }
+
+        void onEvent(const TickEvent& event) override
+        {
+            LOG_THIS_MEMBER("FactorySystem");
+
+            accumulatedTick += event.tick;
+
+            if (accumulatedTick >= 1000)
+            {
+                accumulatedTick %= 1000;
+
+                auto rendererSys = ecsRef->getSystem<MasterRenderer>();
+
+                if (not rendererSys)
+                    return;
+
+                auto currentNbOfFrames = rendererSys->nbRenderedFrames;
+
+                auto res = currentNbOfFrames - lastNbOfFrames;
+
+                auto fpsStr = Strfy() << res;
+
+                lastNbOfFrames = currentNbOfFrames;
+
+                // Print FPS
+                ecsRef->sendEvent(OnTextChanged{fpsTextId, fpsStr.getData()});
+            }
+        }
+
+        _unique_id fpsTextId;
+        size_t accumulatedTick = 0;
+        size_t lastNbOfFrames = 0;
+    };
+
+    struct OnClickGainGold { };
+
+    struct OnGoldGain
+    {
+        OnGoldGain(int64_t gold) : gold(gold) {}
+
+        int64_t gold;
+    };
+
+    struct GoldSystem : public System<Listener<OnClickGainGold>, Listener<OnGoldGain>, StoragePolicy, InitSys>
+    {
+        void init() override
+        {
+            auto sentence = makeSentence(ecsRef, 150, 20, {"0"});
+
+            goldTextId = sentence.entity.id;
+        }
+
+        void onEvent(const OnClickGainGold&) override
+        {
+            this->gold += clickPower;
+
+            auto goldStr = Strfy() << this->gold.load();
+
+            ecsRef->sendEvent(OnTextChanged{goldTextId, goldStr.getData()});
+        }
+
+        void onEvent(const OnGoldGain& event) override
+        {
+            this->gold += event.gold;
+
+            auto goldStr = Strfy() << this->gold.load();
+
+            ecsRef->sendEvent(OnTextChanged{goldTextId, goldStr.getData()});
+        }
+
+        int64_t clickPower = 1;
+
+        std::atomic<int64_t> gold {0};
+        _unique_id goldTextId;
+    };
+
+    struct BuyFactory { };
+
+    struct FactorySystem : public System<Listener<BuyFactory>, Listener<TickEvent>, StoragePolicy>
+    {
+        void onEvent(const BuyFactory&) override
+        {
+            LOG_THIS_MEMBER("FactorySystem");
+
+            LOG_INFO("FactorySystem", "Bought a new factory");
+            nbFactory += 1;
+        }
+
+        void onEvent(const TickEvent& event) override
+        {
+            LOG_THIS_MEMBER("FactorySystem");
+
+            accumulatedTick += event.tick;
+
+            while (accumulatedTick >= factoryProdDuration)
+            {
+                LOG_INFO("FactorySystem", "Factory produced gold");
+
+                accumulatedTick -= factoryProdDuration;
+
+                ecsRef->sendEvent(OnGoldGain{static_cast<int64_t>(nbFactory * factoryProdValue)});
+            }
+        }
+
+        size_t accumulatedTick = 0;
+
+        size_t nbFactory = 0;
+        size_t factoryProdDuration = 1000;
+        size_t factoryProdValue = 1;
+    };
+
 }
 
 EditorWindow::EditorWindow(QWindow *parent) : QWindow(parent)
 {
-    // Enable log in console
-    auto terminalSink = pg::Logger::registerSink<pg::TerminalSink>(true);
-    //TODO fix FilterFile
-    //terminalSink->addFilter("Input Filter", new Logger::LogSink::FilterScope("Input"));
-    terminalSink->addFilter("Serializer Filter", new Logger::LogSink::FilterFile("src/Engine/serialization.cpp"));
-    terminalSink->addFilter("Configuration Filter", new Logger::LogSink::FilterFile("src/Engine/configuration.cpp"));
-    terminalSink->addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
-
     setSurfaceType(QWindow::OpenGLSurface);
 
     mousePos = QPoint(0.0f, 0.0f);
@@ -53,6 +267,8 @@ EditorWindow::EditorWindow(QWindow *parent) : QWindow(parent)
 EditorWindow::~EditorWindow()
 {
     ticking = false;
+
+    ecs.stop();
 
     if(inputHandler != nullptr)
         delete inputHandler;
@@ -75,44 +291,80 @@ void EditorWindow::initialize()
 {
 	initializeOpenGLFunctions();
 
-    masterRenderer.initialize(m_context);
-    masterRenderer.setWindowSize(width(), height());
+    // auto masterRenderer = ecs.getMasterRenderer();
+
+    ecs.createSystem<TickingSystem>();
+
+    ecs.createSystem<UiComponentSystem>();
+    // ecs.createSystem<ButtonSystem>(masterRenderer);
+    ecs.createSystem<TextureComponentSystem>();
+    // sceneEcs.createSystem<SceneElementSystem>(masterRenderer); 
+
+    ecs.createSystem<MouseClickSystem>(inputHandler);
+
+    masterRenderer = ecs.createSystem<MasterRenderer>();
+
+    ecs.createSystem<TerminalLogSystem>();
+
+    masterRenderer->initialize(m_context);
+    masterRenderer->setWindowSize(width(), height());
 
     //glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    masterRenderer.setWindowSize(640, 480);
+    masterRenderer->setWindowSize(640, 480);
 
-    masterRenderer.registerShader("default", ":/shader/default.vs", ":/shader/default.fs");
+    masterRenderer->registerShader("default", ":/shader/default.vs", ":/shader/default.fs");
     //masterRenderer.registerRederer<TextureRenderer>();
 
-    masterRenderer.registerShader("gui", ":/shader/default.vs", ":/shader/default.fs");
-    masterRenderer.registerShader("text", ":/shader/textrendering.vs", ":/shader/textrendering.fs");
+    masterRenderer->registerShader("gui", ":/shader/default.vs", ":/shader/default.fs");
+    masterRenderer->registerShader("text", ":/shader/textrendering.vs", ":/shader/textrendering.fs");
     //masterRenderer.registerRederer<SentenceRenderer>();
 
-    masterRenderer.registerShader("particle", ":/shader/particle.vs", ":/shader/particle.fs");
+    masterRenderer->registerShader("particle", ":/shader/particle.vs", ":/shader/particle.fs");
     //masterRenderer.registerRederer<ParticleRenderer>();
 
-    masterRenderer.registerTexture("atlas", ":/res/tiles/TeclaEatsAtlas.png");
-    masterRenderer.registerTexture("menu", ":/res/menu/Menu.png");
-    masterRenderer.registerTexture("font", ":/res/font/font.png");
-    masterRenderer.registerTexture("pigeon", ":/res/object/PigeonMockUp.png");
+    masterRenderer->registerTexture("atlas", ":/res/tiles/TeclaEatsAtlas.png");
+    masterRenderer->registerTexture("menu", ":/res/menu/Menu.png");
+    masterRenderer->registerTexture("font", ":/res/font/font.png");
+    masterRenderer->registerTexture("pigeon", ":/res/object/PigeonMockUp.png");
 
     //TODO register texture used in a Scene
     // and unload them when the scene is destroyed
 
     //TODO remove this
-    masterRenderer.registerTexture("frame", ":/res/menu/frame.png");
-    masterRenderer.registerTexture("menutest", ":/res/menu/menutest.png");
-    masterRenderer.registerTexture("Menu2", ":/res/menu/Menu2.png");
-    masterRenderer.registerTexture("slider", ":/res/object/slider.png");
-    masterRenderer.registerTexture("cursor", ":/res/object/cursor.png");
+    masterRenderer->registerTexture("frame", ":/res/menu/frame.png");
+    masterRenderer->registerTexture("menutest", ":/res/menu/menutest.png");
+    masterRenderer->registerTexture("Menu2", ":/res/menu/Menu2.png");
+    masterRenderer->registerTexture("slider", ":/res/object/slider.png");
+    masterRenderer->registerTexture("cursor", ":/res/object/cursor.png");
 
-    masterRenderer.registerTexture("TabTexture", ":/res/menu/NavyBlueTexture.png");
-    masterRenderer.registerTexture("Light Blue", ":/res/menu/LightBlueTexture.png");
+    masterRenderer->registerTexture("TabTexture", ":/res/menu/NavyBlueTexture.png");
+    masterRenderer->registerTexture("Light Blue", ":/res/menu/LightBlueTexture.png");
 
     fontLoader = new FontLoader("res/font/fontmap.ft");
+    ecs.createSystem<SentenceSystem>(fontLoader);
+
+    ecs.createSystem<FpsSystem>();
+
+    auto goldSys = ecs.createSystem<GoldSystem>();
+
+    ecs.createSystem<FactorySystem>();
+
+    // Ecs task parenting
+
+    // ecs.succeed<GoldSystem, FactorySystem>();
+    // ecs.succeed<SentenceSystem, GoldSystem>();
+    ecs.succeed<MouseClickSystem, TickingSystem>();
+
+    ecs.succeed<MasterRenderer, MouseClickSystem>();
+
+    ecs.dumbTaskflow();
+
+    auto goldTextEntity = ecs.getEntity(goldSys->goldTextId);
+
+    // ecs.createSystem<InputSystem>();
 
     screenEntity = ecs.createEntity();
     screenUi = ecs.attach<UiComponent>(screenEntity);
@@ -120,44 +372,91 @@ void EditorWindow::initialize()
     screenUi->height = 400;
     screenUi->setZ(-1);
 
-    makeKeyInput(this, EditorWindow::quit);
+    auto goldTextUi = goldTextEntity->get<UiComponent>();
 
-    optionTab = new editor::OptionTab(300, 1);
+    goldTextUi->setTopAnchor(screenUi->top);
+    goldTextUi->setLeftAnchor(screenUi->left);
 
-    optionTab->setTopAnchor(screenUi->top);
-    optionTab->setRightAnchor(screenUi->right);
-    optionTab->setBottomAnchor(screenUi->bottom);
+    goldTextUi->setTopMargin(20);
+    goldTextUi->setLeftMargin((screenUi->width / 2) - (goldTextUi->width / 2));
+
+    // Todo
+    // makeKeyInput(this, EditorWindow::quit);
+
+    // optionTab = new editor::OptionTab(300, 1);
+
+    // optionTab->setTopAnchor(screenUi->top);
+    // optionTab->setRightAnchor(screenUi->right);
+    // optionTab->setBottomAnchor(screenUi->bottom);
 
     auto sceneEntity = ecs.createEntity();
     sceneEntityC = ecs.attach<UiComponent>(sceneEntity);
 
-    sceneEntityC->setLeftAnchor(screenUi->left);
-    sceneEntityC->setRightAnchor(optionTab->left);
-    sceneEntityC->setTopAnchor(screenUi->top);
-    sceneEntityC->setBottomAnchor(screenUi->bottom);
+    sceneEntityC->setWidth(200);
+    sceneEntityC->setHeight(40);
 
-    makeMouseArea(sceneEntityC, this, EditorWindow::openContextMenu, EditorWindow::closeContextMenu);
+    sceneEntityC->setX(20);
+    sceneEntityC->setY(20);
+
+    // sceneEntityC->setLeftAnchor(screenUi->left);
+    // sceneEntityC->setRightAnchor(optionTab->left);
+    // sceneEntityC->setTopAnchor(screenUi->top);
+    // sceneEntityC->setBottomAnchor(screenUi->bottom);
+
+    // makeMouseArea(&ecs, sceneEntityC, this, EditorWindow::openContextMenu, EditorWindow::closeContextMenu);
 
     // [Start] Context menu UI
 
-    contextMenu = new editor::ContextMenu(ecs, fontLoader, "TabTexture", [=](const UiComponentType& type) {this->addElement(type);});
+    // contextMenu = new editor::ContextMenu(ecs, fontLoader, "TabTexture", [=](const UiComponentType& type) {this->addElement(type);});
 
     //auto contextMenuEntity = ecs.createEntity();
     //contextMenu = ecs.attach<TextureComponent>(contextMenuEntity, 250, 100, "TabTexture");
 
-    contextMenu->hide();
+    // contextMenu->hide();
     
     // [End] Context menu UI
 
     // std::cout << b1->width << std::endl;
     // std::cout << b1->pos.x << std::endl;
 
-    std::cout << sceneEntityC->frame.w << std::endl;
-    
-    ticking = true;
-    std::thread t (&EditorWindow::tick, this);
+    ecs.attach<TextureComponent>(sceneEntity, "frame");
 
-    t.detach();
+    std::cout << sceneEntityC->frame.w << std::endl;
+
+    makeUiTexture(&ecs, 80, 20, "pigeon");
+
+    auto e = makeUiTexture(&ecs, 160, 90, "menu");
+    auto c = e.get<UiComponent>();
+
+    c->setBottomAnchor(screenUi->bottom);
+    c->setRightAnchor(screenUi->right);
+
+    // auto testingString = "Testing";
+
+    // ecs.attach<MouseClickComponent>(sceneEntity, makeCallable<LogInfoEvent>(testingString, "Clicked on component"));
+    ecs.attach<MouseClickComponent>(sceneEntity, makeCallable<OnClickGainGold>());
+
+    auto factoryCreationList = makeUiTexture(&ecs, 64, 32, "frame");
+    auto factoryCreationListEntity = factoryCreationList.entity;
+    auto factoryCreationListPos = factoryCreationList.get<UiComponent>();
+
+    factoryCreationListPos->setBottomAnchor(screenUi->bottom);
+    factoryCreationListPos->setLeftAnchor(screenUi->left);
+
+    ecs.attach<MouseClickComponent>(factoryCreationListEntity, makeCallable<BuyFactory>());
+
+    // ecs.attach<SentenceText>(sceneEntity, "Hello there !");
+
+    makeSentence(&ecs, 20, 250, {"\"Hello_World\": Test?!"});
+    
+    // ticking = true;
+    // std::thread t (&EditorWindow::tick, this);
+
+    // makeSentence(&ecs, 20, 150, {"\"Hello_World\": Test?!"});
+
+    // t.detach();
+
+    ecs.start();
 }
 
 void EditorWindow::render()
@@ -176,24 +475,31 @@ void EditorWindow::render()
     if(screenUi->width != width())
     {
         screenUi->setWidth(width());
-        masterRenderer.setWindowSize(width(), height());
+        masterRenderer->setWindowSize(width(), height());
     }
         
     if(screenUi->height != height())
     {
         screenUi->setHeight(height());
-        masterRenderer.setWindowSize(width(), height());
+        masterRenderer->setWindowSize(width(), height());
     }
 
-    masterRenderer.setCurrentTime(currentTime);
+    masterRenderer->setCurrentTime(currentTime);
 
-    InputSystem::system()->updateState(inputHandler, float(currentTime - lastTime) / 1000);
+    // InputSystem::system()->updateState(inputHandler, float(currentTime - lastTime) / 1000);
 
-    renderUi();
+    // renderUi();
+
+    masterRenderer->renderAll();
+    // sceneEcs.executeAll();
+    
+    // masterRenderer->execute();
 
     inputHandler->updateInput(float(currentTime - lastTime) / 1000);
 
     lastTime = currentTime;
+
+    nbFrame++;
 }
 
 void EditorWindow::setAnimating(bool animating)
@@ -374,8 +680,8 @@ void EditorWindow::addElement(const UiComponentType& type)
     // TODO: take the correct coord of the context menu (context menu can show up from the top of the cursor if their is not enough space in the bottom of the screen)
     if(contextMenu != nullptr)
     {
-    	componentX = contextMenu->pos.x;
-        componentY = contextMenu->pos.y;
+    	componentX = static_cast<UiSize>(contextMenu->pos.x);
+        componentY = static_cast<UiSize>(contextMenu->pos.y);
     }
 
     switch(type)
@@ -385,7 +691,7 @@ void EditorWindow::addElement(const UiComponentType& type)
         break;
 
     case UiComponentType::TEXTURE:
-        component = new TextureComponent(50, 50, "TabTexture");
+        // component = new TextureComponent(50, 50, "TabTexture");
         component->setZ(index);
 
         component->setTopAnchor(sceneEntityC->top);
@@ -396,22 +702,22 @@ void EditorWindow::addElement(const UiComponentType& type)
 
         // Todo
         // mouseArea = new Button([=](Input*, double){ delete component; }, component->frame);
-        mouseArea = new Button([component, mouseArea, ecsRef, ent](Input*, double){ ecsRef->dettach<SceneElement>(ent); delete component; delete mouseArea; }, component->frame);
+        mouseArea = new Button(ecsRef, [component, mouseArea, ecsRef, ent](Input*, double){ ecsRef->dettach<SceneElement>(ent); delete component; delete mouseArea; }, component->frame);
         // mouseArea = new Button([=](Input*, double){ this->openInOption<TextureComponent>(component); }, component->frame);
         mouseArea->setZ(component->pos.z + 1);
         break;
 
     case UiComponentType::TEXT:
-        component = new Sentence({"Text"}, 2.0f, fontLoader);
+        // component = new Sentence({"Text"}, 2.0f, fontLoader);
 
-        component->setTopAnchor(sceneEntityC->top);
-        component->setLeftAnchor(sceneEntityC->left);
+        // component->setTopAnchor(sceneEntityC->top);
+        // component->setLeftAnchor(sceneEntityC->left);
 
-        component->setTopMargin(componentY - component->height / 2.0f);
-        component->setLeftMargin(componentX - component->width / 2.0f);
+        // component->setTopMargin(componentY - component->height / 2.0f);
+        // component->setLeftMargin(componentX - component->width / 2.0f);
 
-        mouseArea = new Button([=](Input*, double){ this->openInOption<Sentence>(component); }, component->frame);
-        mouseArea->setZ(component->pos.z + 1);
+        // mouseArea = new Button(ecsRef, [=](Input*, double){ this->openInOption<Sentence>(component); }, component->frame);
+        // mouseArea->setZ(component->pos.z + 1);
         break;
 
     case UiComponentType::TEXTINPUT:
@@ -423,7 +729,7 @@ void EditorWindow::addElement(const UiComponentType& type)
         component->setTopMargin(componentY - component->height / 2.0f);
         component->setLeftMargin(componentX - component->width / 2.0f);
 
-        mouseArea = new Button([=](Input*, double){ this->openInOption<Sentence>(component); }, component->frame);
+        mouseArea = new Button(ecsRef, [=](Input*, double){ this->openInOption<Sentence>(component); }, component->frame);
         mouseArea->setZ(component->pos.z - 1);
         break;
 
@@ -446,7 +752,7 @@ void EditorWindow::addElement(const UiComponentType& type)
     contextMenu->hide();
 }
 
-template<typename SceneElementType>
+template <typename SceneElementType>
 void EditorWindow::openInOption(UiComponent* component)
 {
     // optionTab->clear();
@@ -455,14 +761,17 @@ void EditorWindow::openInOption(UiComponent* component)
 
 void EditorWindow::renderUi()
 {
-    masterRenderer.render(optionTab);
+    // ecs.getMasterRenderer()->render(optionTab);
 
+/*
     for(auto& child : sceneEcs.view<SceneElement>())
     {
         if(child.component != nullptr)
             child.component->render(&masterRenderer);
     }
+*/
 
+/*
     // Todo use the master renderer to render all the texture component but using only one shader binding 
     for(auto& texture : ecs.view<TextureComponent>())
     {
@@ -478,6 +787,7 @@ void EditorWindow::renderUi()
     {
         masterRenderer.render(&sentence);
     }
+*/
 }
 
 //TODO make a tick object that take tick function and run in background when you start up the engine
@@ -485,28 +795,46 @@ void EditorWindow::tick()
 {
     LOG_THIS_MEMBER(DOM);
 
-    auto currentTickTime = QDateTime::currentMSecsSinceEpoch();
-    auto lastTickTime = QDateTime::currentMSecsSinceEpoch();
+    // auto currentTickTime = QDateTime::currentMSecsSinceEpoch();
+    // auto lastTickTime = QDateTime::currentMSecsSinceEpoch();
 
-    while(ticking)
-    {
-        lastTickTime = QDateTime::currentMSecsSinceEpoch();
+    // size_t accumulatedTickCount = 0;
 
-        //Animation tick loop
-        for(int i = AnimationComponent::runningQueue.size() - 1; i >= 0; i--) 
-        {
-            AnimationComponent::runningQueue[i]->tick(40); // tickRate
+
+    // while(ticking)
+    // {
+    //     // LOG_INFO(DOM, nbFrame);
+
+    //     lastTickTime = QDateTime::currentMSecsSinceEpoch();
+
+    //     accumulatedTickCount += 40;
+
+    //     while (accumulatedTickCount >= 1000)
+    //     {
+    //         accumulatedTickCount -= 1000;
+
+    //         std::cout << nbFrame << std::endl;  
+    //         nbFrame = 0;
+    //     }
+        
+    //     // Todo remove this when the Ticking system works
+    //     ecs.sendEvent(TickEvent{900});
+
+    //     // //Animation tick loop
+    //     // for(int i = AnimationComponent::runningQueue.size() - 1; i >= 0; i--) 
+    //     // {
+    //     //     AnimationComponent::runningQueue[i]->tick(40); // tickRate
             
-            if(!AnimationComponent::runningQueue[i]->isRunning())
-            {
-                //delete AnimationComponent::runningQueue[i]; // TODO check where to put this
-                AnimationComponent::runningQueue.erase(AnimationComponent::runningQueue.begin() + i);
-            }
-        }
+    //     //     if(!AnimationComponent::runningQueue[i]->isRunning())
+    //     //     {
+    //     //         //delete AnimationComponent::runningQueue[i]; // TODO check where to put this
+    //     //         AnimationComponent::runningQueue.erase(AnimationComponent::runningQueue.begin() + i);
+    //     //     }
+    //     // }
 
-        currentTickTime = QDateTime::currentMSecsSinceEpoch();
-        std::this_thread::sleep_for(std::chrono::milliseconds(40 - (currentTickTime - lastTickTime)));
-    }
+    //     currentTickTime = QDateTime::currentMSecsSinceEpoch();
+    //     std::this_thread::sleep_for(std::chrono::milliseconds(20 - (currentTickTime - lastTickTime)));
+    // }
 }
 
 void EditorWindow::quit(Input* inputHandler, double...)

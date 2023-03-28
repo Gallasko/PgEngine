@@ -14,16 +14,42 @@
 #include <type_traits>
 #include <vector>
 #include <memory>
+#include <mutex>
+#include <cmath>
+#include <atomic>
 
+#include "logger.h"
 namespace pg
 {
+    static constexpr unsigned int tab64[64] = {
+        63,  0, 58,  1, 59, 47, 53,  2,
+        60, 39, 48, 27, 54, 33, 42,  3,
+        61, 51, 37, 40, 49, 18, 28, 20,
+        55, 30, 34, 11, 43, 14, 22,  4,
+        62, 57, 46, 52, 38, 26, 32, 41,
+        50, 36, 17, 19, 29, 10, 13, 21,
+        56, 45, 25, 31, 35, 16,  9, 12,
+        44, 24, 15,  8, 23,  7,  6,  5};
+
+    static constexpr int log2_64 (size_t value)
+    {
+        value |= value >> 1;
+        value |= value >> 2;
+        value |= value >> 4;
+        value |= value >> 8;
+        value |= value >> 16;
+        value |= value >> 32;
+
+        return tab64[((size_t)((value - (value >> 1))*0x07EDD5E59A4E28C2)) >> 58];
+    }
+
     /**
      * @tparam T Type of the underlying object
      * 
      * Union representing a chunk of memory mananaged by the pool.
      * It can be either a single object or a pointer to the next free space in the pool
      */
-    template<typename T>
+    template <typename T>
     union Chunk
     {
         /** Storage for a single object */
@@ -37,29 +63,23 @@ namespace pg
      * @brief A helper struct to create a block of memory
      * 
      * @tparam T Type of the object to be created
-     * @tparam N Number of object to allocate at once
      */
-    template<typename T, size_t N>
+    template <typename T>
     struct Block
     {
         /**
          * @brief Construct a new Block object
          * 
+         * @param size Number of object to allocate at once
+         * 
          * Create N free object and then passed the ownership of those element to the pool
          */
-        Block()
+        Block(const size_t& size)
         {
+            LOG_THIS_MEMBER("Memory Pool");
+
             // Allocate at once enough space for N objects
-            chunks = new Chunk<T>[N];
-
-            // Construct the free list of objects
-            for(unsigned int i = 0; i < N - 1; i++)
-            {
-                chunks[i].next = &chunks[i + 1];
-            }
-
-            // End the free list
-            chunks[N - 1].next = nullptr;
+            chunks = new Chunk<T>[size];
         }
 
         /** The first free space of the newly created block */
@@ -70,9 +90,9 @@ namespace pg
      * @brief An implementation of an allocator pool
      * 
      * @tparam T Type of the object to be created
-     * @tparam N Number of object to be created at once when running out of empty element (default at 64)
+     * @tparam N if N > 1, Number of object to be created at once when running out of empty element else the pool expand exponentially (default at 1)
      */
-    template<typename T, size_t N = 64>
+    template <typename T, size_t N = 1>
     class AllocatorPool
     {
     public:
@@ -86,8 +106,41 @@ namespace pg
          */
         ~AllocatorPool()
         {
+            LOG_THIS_MEMBER("Memory Pool");
+
+            // TODO delete the pool better
+
             for(Chunk<T>* chunk : chunkList)
                 delete chunk;
+        }
+
+        void reserve(size_t reserveSize)
+        {
+            LOG_THIS_MEMBER("Memory Pool");
+
+            if(reserveSize < size) return;
+
+            LOG_INFO("Memory Pool", "Reserving: " << reserveSize <<
+                ", currentPoolSize = " << size <<
+                " " << nbElements);
+
+            while (reserveSize >= size)
+            {
+                const size_t blockSize = N >= 2 ? N : size == 0 ? 1 : size + 1;
+
+                LOG_MILE("Memory Pool", "Current size: " << size <<
+                    ", target: " << reserveSize <<
+                    ", blockSize: " << blockSize);
+
+                auto newBlock = Block<T>(blockSize);
+                // freeList = newBlock.chunks;
+
+                // Todo only create a memory block if an element need to be there
+
+                chunkList.push_back(newBlock.chunks);
+
+                size += blockSize;
+            }
         }
 
         /**
@@ -102,24 +155,46 @@ namespace pg
          * 
          * @see release
          */
-        template<typename... Args>
-        T* allocate(const Args&... args)
+        template <typename... Args>
+        T* allocate(Args&&... args)
         {
-            if(freeList == nullptr)
+            LOG_THIS_MEMBER("Memory Pool");
+            
+            if(freeList)
             {
-                auto newBlock = Block<T, N>();
-                freeList = newBlock.chunks;
+                auto chunk = freeList;
+                freeList = chunk->next;
 
-                chunkList.push_back(newBlock.chunks);
+                ::new(&(chunk->element)) T(std::forward<Args>(args)...);
+
+                return reinterpret_cast<T*>(chunk);
             }
 
-            auto chunk = freeList;
-            freeList = chunk->next;
+            const size_t index = nbElements++;
 
-            ::new(&(chunk->element)) T(args...);
+            if(index >= size) reserve(index);
+
+            const unsigned int n = log2_64(index + 1);
+            const size_t containerSize = N >= 2 ? N : n == 0 ? 0 : 1 << n;
+
+            LOG_MILE("Memory Pool", "Allocate internal, n: " << n <<
+                " container size: "  << containerSize);
+
+            const size_t listPos = N >= 2 ? index / containerSize : n;
+            const size_t vectorPos = N >= 2 ? index % containerSize : n == 0 ? 0 : index + 1 - containerSize;
+
+            LOG_MILE("Memory Pool", "Allocating new element: " << index <<
+                " in chunk: "  << listPos <<
+                " at pos: " << vectorPos <<
+                " with current pool size: " << size);
+
+            // Todo Check if the chunk was created before creating a new element 
+            Chunk<T>* chunk = &chunkList[listPos][vectorPos];
+
+            ::new(&(chunk->element)) T(std::forward<Args>(args)...);
 
             return reinterpret_cast<T*>(chunk);
-        }
+        } 
 
         /**
          * @brief Function used to release the memory of a T object create using the pool
@@ -132,23 +207,43 @@ namespace pg
          */
         void release(T* pointer)
         {
+            LOG_THIS_MEMBER("Memory Pool");
+
             if(pointer != nullptr)
             {
                 pointer->~T();
 
+                // {
+                //     std::lock_guard<std::recursive_mutex> lock(mutex);
+
                 reinterpret_cast<Chunk<T>*>(pointer)->next = freeList;
                 freeList = reinterpret_cast<Chunk<T>*>(pointer);
+                // }
             }
         }
 
+        inline constexpr size_t getNbElements() const { return nbElements; }
+
+        inline T* getElement(size_t index) const
+        {
+            const unsigned int n = log2_64(index + 1);
+            const size_t containerSize = N >= 2 ? N : n == 0 ? 0 : 1 << n;
+
+            const size_t listPos = N >= 2 ? index / containerSize : n;
+            const size_t vectorPos = N >= 2 ? index % containerSize : n == 0 ? 0 : index + 1 - containerSize;
+
+            return reinterpret_cast<T*>(&chunkList[listPos][vectorPos]);
+        }
+
     private:
+        size_t size = 0;
+        size_t nbElements = 0;
+
+        // Todo implement back the freelist and used it only on deleted free space
         /** Pointer to the next free object in the pool */
         Chunk<T>* freeList = nullptr;
 
         /** Chunk Lists used in the pool (used to free the memory) */
         std::vector<Chunk<T>*> chunkList;
-
-        /** Static assertion to ensure that the pool must created block of at least two free object */
-        static_assert(N >= 2, "BlockSize too small.");
     };
 }

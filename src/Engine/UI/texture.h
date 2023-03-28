@@ -1,38 +1,50 @@
 #pragma once
 
-#include <QOpenGLFunctions>
-#include <QOpenGLTexture>
-#include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
-
 #include "uisystem.h"
 #include "constant.h"
 
+#include "logger.h"
+
 namespace pg
 {
-    struct TextureComponent : public UiComponent, private QOpenGLFunctions
+    class Renderable;
+
+    struct TextureChangeEvent
     {
-        TextureComponent(const UiSize& width, const UiSize& height, const std::string& textureName);
-        TextureComponent(const UiComponent& component, const std::string& textureName);
-        TextureComponent(const TextureComponent &rhs);
-        virtual ~TextureComponent();
+        _unique_id id;
+        std::string oldTextureName;
+        std::string newTextureName;
+    };
 
-        inline void setTexture(const std::string& textureName) { this->textureName = textureName; }
-        void generateMesh();
+    struct TextureComponent : public Ctor
+    {
+        TextureComponent(const std::string& textureName) : textureName(textureName) { }
+        TextureComponent(const TextureComponent &rhs) : textureName(rhs.textureName) { }
+        virtual ~TextureComponent() {}
 
-        virtual void render(MasterRenderer* masterRenderer);
+        virtual void onCreation(Entity* entity) { this->entity = entity; }
+
+        inline void setTexture(const std::string& textureName)
+        {
+            if(entity)
+                entity->world()->sendEvent(TextureChangeEvent{entity->id, this->textureName, textureName});
+            
+            this->textureName = textureName;
+        }
 
         std::string textureName;
 
-        constant::SquareInfo modelInfo;
-
-        QOpenGLVertexArrayObject *VAO = nullptr;
-        QOpenGLBuffer *VBO = nullptr;
-        QOpenGLBuffer *EBO = nullptr;
-
-        float oldWidth = width, oldHeight = height;
-
-        bool initialised = false;
+        Entity *entity = nullptr;
     };
+
+    struct TextureComponentSystem : public System<Own<TextureComponent>, Ref<UiComponent>, StoragePolicy, InitSys>
+    {
+        TextureComponentSystem() { }
+
+        virtual void init() override;
+    };
+
+    /** Helper that create an entity with an Ui component and a Texture component */
+    CompList<UiComponent, TextureComponent> makeUiTexture(EntitySystem *ecs, float width, float height, const std::string& name);
 
 }

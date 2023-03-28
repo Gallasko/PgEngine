@@ -14,7 +14,7 @@ namespace pg
     namespace
     {
         /** Name of the current domain (for logging purposes)*/
-        const char * DOM = "Serializer";
+        static constexpr char const * DOM = "Serializer";
 
         /** Name of the constant string indicating an attribute */
         std::string ATTRIBUTECONST = "PGSERIALISEDATTRIBUTE";
@@ -63,7 +63,7 @@ namespace pg
 
     // Serialisation of base type
 
-    template<>
+    template <>
     void serialize(Archive& archive, const bool& value)
     {
         LOG_THIS(DOM);
@@ -73,7 +73,7 @@ namespace pg
         archive.setAttribute(res, "bool");
     }
 
-    template<>
+    template <>
     void serialize(Archive& archive, const int& value)
     {
         LOG_THIS(DOM);
@@ -81,7 +81,7 @@ namespace pg
         archive.setAttribute(std::to_string(value), "int");
     }
 
-    template<>
+    template <>
     void serialize(Archive& archive, const unsigned int& value)
     {
         LOG_THIS(DOM);
@@ -89,7 +89,7 @@ namespace pg
         archive.setAttribute(std::to_string(value), "unsigned int");
     }
 
-    template<>
+    template <>
     void serialize(Archive& archive, const float& value)
     {
         LOG_THIS(DOM);
@@ -97,7 +97,7 @@ namespace pg
         archive.setAttribute(std::to_string(value), "float");
     }
 
-    template<>
+    template <>
     void serialize(Archive& archive, const double& value)
     {
         LOG_THIS(DOM);
@@ -105,7 +105,7 @@ namespace pg
         archive.setAttribute(std::to_string(value), "double");
     }
 
-    template<>
+    template <>
     void serialize(Archive& archive, const size_t& value)
     {
         LOG_THIS(DOM);
@@ -113,7 +113,7 @@ namespace pg
         archive.setAttribute(std::to_string(value), "size_t");
     }
 
-    template<>
+    template <>
     void serialize(Archive& archive, const std::string& value)
     {
         LOG_THIS(DOM);
@@ -121,7 +121,7 @@ namespace pg
         archive.setAttribute(value, "string");
     }
 
-    template<>
+    template <>
     void serialize(Archive& archive, const constant::Vector2D& vec2D)
     {
         LOG_THIS(DOM);
@@ -134,7 +134,7 @@ namespace pg
         archive.endSerialization();
     }
 
-    template<>
+    template <>
     void serialize(Archive& archive, const constant::Vector3D& vec3D)
     {
         LOG_THIS(DOM);
@@ -148,7 +148,7 @@ namespace pg
         archive.endSerialization();
     }
 
-    template<>
+    template <>
     void serialize(Archive& archive, const constant::Vector4D& vec4D)
     {
         LOG_THIS(DOM);
@@ -163,13 +163,14 @@ namespace pg
         archive.endSerialization();
     }
 
-    template<>
+    template <>
     void serialize(Archive& archive, const constant::ModelInfo& modelInfo)
     {
         LOG_THIS(DOM);
 
         archive.startSerialization("Model Info");
 
+        // Todo: create a serializer for a vector/list/map/arrays (serializeList)
         std::string attribute = "[ ";
         
         for(unsigned int i = 0; i < modelInfo.nbVertices; i++)
@@ -189,7 +190,7 @@ namespace pg
         archive.endSerialization();
     }
 
-    template<>
+    template <>
     bool deserialize(const UnserializedObject& serializedString)
     {
         LOG_THIS(DOM);
@@ -210,7 +211,7 @@ namespace pg
         return false;
     }
 
-    template<>
+    template <>
     int deserialize(const UnserializedObject& serializedString)
     {
         LOG_THIS(DOM);
@@ -230,7 +231,7 @@ namespace pg
         return value;
     }
 
-    template<>
+    template <>
     unsigned int deserialize(const UnserializedObject& serializedString)
     {
         LOG_THIS(DOM);
@@ -250,7 +251,7 @@ namespace pg
         return value;
     }
 
-    template<>
+    template <>
     float deserialize(const UnserializedObject& serializedString)
     {
         LOG_THIS(DOM);
@@ -270,7 +271,7 @@ namespace pg
         return value;
     }
 
-    template<>
+    template <>
     double deserialize(const UnserializedObject& serializedString)
     {
         LOG_THIS(DOM);
@@ -290,7 +291,7 @@ namespace pg
         return value;
     }
 
-    template<>
+    template <>
     size_t deserialize(const UnserializedObject& serializedString)
     {
         LOG_THIS(DOM);
@@ -310,7 +311,7 @@ namespace pg
         return value;
     }
 
-    template<>
+    template <>
     std::string deserialize(const UnserializedObject& serializedString)
     {
         LOG_THIS(DOM);

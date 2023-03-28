@@ -18,23 +18,23 @@
 
 namespace pg
 {
-    template<>
+    template <>
     void renderer(MasterRenderer *masterRenderer, pg::editor::OptionTab* optionTab)
     {
-        optionTab->backgroundTexture->render(masterRenderer);
+        // optionTab->backgroundTexture->render(masterRenderer);
         optionTab->listView.render(masterRenderer);
     }
 
     namespace editor
     {
-        template<>
+        template <>
         void printOption(OptionTab *tab, UiComponent* component)
         {
             tab->addTextInput("Width", &component->width);
             tab->addTextInput("Height", &component->height);
         }
 
-        template<>
+        template <>
         void printOption(OptionTab* tab, TextInput* textInput)
         {
             printOption<UiComponent*>(tab, textInput);
@@ -45,11 +45,11 @@ namespace pg
             this->width = width;
             this->height = height;
             
-            this->backgroundTexture = new TextureComponent(this->width, this->height, "TabTexture");
-            this->backgroundTexture->setTopAnchor(this->top);
-            this->backgroundTexture->setLeftAnchor(this->left);
-            this->backgroundTexture->setRightAnchor(this->right);
-            this->backgroundTexture->setBottomAnchor(this->bottom);
+            // this->backgroundTexture = new TextureComponent(this->width, this->height, "TabTexture");
+            // this->backgroundTexture->setTopAnchor(this->top);
+            // this->backgroundTexture->setLeftAnchor(this->left);
+            // this->backgroundTexture->setRightAnchor(this->right);
+            // this->backgroundTexture->setBottomAnchor(this->bottom);
 
             listView.setTopAnchor(this->top);
             listView.setLeftAnchor(this->left);
@@ -72,7 +72,7 @@ namespace pg
             UiComponent::show();
 
             listView.show();
-            backgroundTexture->show();
+            // backgroundTexture->show();
         }
 
         void OptionTab::hide()
@@ -80,7 +80,7 @@ namespace pg
             UiComponent::hide();
 
             listView.hide();
-            backgroundTexture->hide();
+            // backgroundTexture->hide();
         }
     }
 }

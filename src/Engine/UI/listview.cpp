@@ -7,39 +7,39 @@ namespace pg
 {
     namespace
     {
-        const char * DOM = "List View";
+        static constexpr char const * DOM = "List View";
 
         float DEFAULT_SLIDER_WIDTH = 20;
     }
 
-    template<>
+    template <>
     void renderer(MasterRenderer* masterRenderer, SlideBar* slideBar)
     {
-        masterRenderer->render(slideBar->slider);
-        masterRenderer->render(slideBar->cursor);
+        // masterRenderer->render(slideBar->slider);
+        // masterRenderer->render(slideBar->cursor);
     }
 
-    template<>
+    template <>
     void renderer(MasterRenderer* masterRenderer, ListView* listView)
     {
         auto rTable = masterRenderer->getParameter();
         const int screenHeight = rTable["ScreenHeight"];
 
-        if(listView->backgroundTexture != nullptr)
-            masterRenderer->render(listView->backgroundTexture);
+        // if(listView->backgroundTexture != nullptr)
+        //     masterRenderer->render(listView->backgroundTexture);
 
-        masterRenderer->render(&listView->slide);
+        // masterRenderer->render(&listView->slide);
 
         //Avoid multiple lockup
         float listViewHeight = listView->height;
 
         glEnable(GL_SCISSOR_TEST);
         //glScissor defined the box from the bottom left corner (x, y, w, h);
-        glScissor(listView->pos.x, (screenHeight - listViewHeight) - listView->pos.y, listView->width, listViewHeight);
+        glScissor(static_cast<UiSize>(listView->pos.x), (screenHeight - listViewHeight) - listView->pos.y, listView->width, listViewHeight);
 
         //TODO see if the square calculation couldn t be optimized
-        for(auto& child : listView->renderList)
-            child->render(masterRenderer);
+        // for(auto& child : listView->renderList)
+        //     child->render(masterRenderer);
             
         glDisable(GL_SCISSOR_TEST);
     }
@@ -51,13 +51,13 @@ namespace pg
         // TODO create a unique instance of a texture creator and call it to create all textures
         // TODO make the texture creator load the texture only once and call the same texture when needed (avoid duplication of a texture in memory)
         // TODO make them dependent on the texture create and keep only shared ptr of it
-        slider = new TextureComponent(this->width, this->height, "slider");
-        slider->setTopAnchor(this->top);
-        slider->setLeftAnchor(this->left);
+        // slider = new TextureComponent(this->width, this->height, "slider");
+        // slider->setTopAnchor(this->top);
+        // slider->setLeftAnchor(this->left);
 
-        cursor = new TextureComponent(this->width, this->buttonHeight, "cursor");
-        cursor->setTopAnchor(this->top);
-        cursor->setLeftAnchor(this->left);
+        // cursor = new TextureComponent(this->width, this->buttonHeight, "cursor");
+        // cursor->setTopAnchor(this->top);
+        // cursor->setLeftAnchor(this->left);
     }
 
     SlideBar::SlideBar(const UiComponent& frame, const UiFrame& boxToMonitor, const UiSize& maxPos, const PositionCallback& posToUpdate, const UiOrientation& orientation) : SlideBar(frame, posToUpdate, orientation)
@@ -72,7 +72,6 @@ namespace pg
 
     SlideBar::~SlideBar()
     {
-        deleteInput(mouseArea);
         delete slider;
         delete cursor;
     }
@@ -98,7 +97,7 @@ namespace pg
             this->buttonHeight = this->height;
         }
             
-        cursor->setHeight(this->buttonHeight);
+        // cursor->setHeight(this->buttonHeight);
     }
 
     void SlideBar::mouseInput(Input* inputHandler, double...)
@@ -148,22 +147,25 @@ namespace pg
         if(posUpdate && this->boxToMonitor.h > 0)
             posUpdate(currentPos * (this->maxPos / this->boxToMonitor.h));
 
-        cursor->setTopMargin(currentPos);
+        // cursor->setTopMargin(currentPos);
     }
 
     //TODO create a 2nd slider like said in the header
-    ListView::ListView(const UiComponent& frame, TextureComponent* backgroundTexture, const UiOrientation& orientation) : UiComponent(frame), slide(SlideBar(UiFrame{this->right, this->top, this->pos.z, DEFAULT_SLIDER_WIDTH, this->height}, this->frame, this->pos.y, [&](const UiSize& pos){ this->updateListPos(pos); })), orientation(orientation), backgroundTexture(backgroundTexture)
+    // TODO add anchor to UiPosition 
+    ListView::ListView(const UiComponent& frame, TextureComponent* backgroundTexture, const UiOrientation& orientation) :
+        UiComponent(frame),
+        slide(SlideBar(UiFrame{this->right.anchorPoint, this->top.anchorPoint, this->pos.z, DEFAULT_SLIDER_WIDTH, this->height}, this->frame, this->pos.y, [&](const UiSize& pos){ this->updateListPos(pos); })), orientation(orientation), backgroundTexture(backgroundTexture)
     {
         LOG_THIS_MEMBER(DOM);
 
-        if(backgroundTexture != nullptr)
-        {
-            backgroundTexture->setWidth(this->width);
-            backgroundTexture->setHeight(this->height);
+        // if(backgroundTexture != nullptr)
+        // {
+        //     backgroundTexture->setWidth(this->width);
+        //     backgroundTexture->setHeight(this->height);
 
-            backgroundTexture->setTopAnchor(this->top);
-            backgroundTexture->setLeftAnchor(this->left);
-        }
+        //     backgroundTexture->setTopAnchor(this->top);
+        //     backgroundTexture->setLeftAnchor(this->left);
+        // }
     }
 
     //TODO don't pass a slider but the slider parameters and then contruct the slider to be relevent to this list view
@@ -179,14 +181,14 @@ namespace pg
 
         //TODO make it for the horizontal one
 
-        if(backgroundTexture != nullptr)
-        {
-            backgroundTexture->setWidth(this->width);
-            backgroundTexture->setHeight(this->height);
+        // if(backgroundTexture != nullptr)
+        // {
+        //     backgroundTexture->setWidth(this->width);
+        //     backgroundTexture->setHeight(this->height);
 
-            backgroundTexture->setTopAnchor(this->top);
-            backgroundTexture->setLeftAnchor(this->left);
-        }
+        //     backgroundTexture->setTopAnchor(this->top);
+        //     backgroundTexture->setLeftAnchor(this->left);
+        // }
     }
 
     //TODO when changing orientation reset all margin !
@@ -239,7 +241,7 @@ namespace pg
         }
         else
         {
-            child->setTopAnchor(this->top - this->firstMargin);
+            child->setTopAnchor(this->top); // Todo - this->firstMargin);
             child->setLeftAnchor(this->left);
         }
 
@@ -364,10 +366,10 @@ namespace pg
         for(auto& child : children)
         {
             //Cast once to avoid multiple value lockup
-            float childTop = child->top;
-            float childBottom = child->bottom;
-            float childLeft = child->left;
-            float childRight = child->right;
+            float childTop = child->top.anchorPoint;
+            float childBottom = child->bottom.anchorPoint;
+            float childLeft = child->left.anchorPoint;
+            float childRight = child->right.anchorPoint;
 
             child->hide();
 

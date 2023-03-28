@@ -104,12 +104,25 @@
         "xloctime": "cpp",
         "qstring": "cpp",
         "*.rh": "cpp",
-        "any": "cpp"
+        "any": "cpp",
+        "coroutine": "cpp",
+        "resumable": "cpp",
+        "stack": "cpp",
+        "filesystem": "cpp"
     },
     "files.exclude": {
         "**/*.o": true,
         "**/Archive": true,
         "**/dependencies": true,
         "**/output": true
-    }
+    },
+    "testMate.cpp.test.advancedExecutables": [
+        {
+          "pattern": "{build,Build,BUILD,out,Out,OUT,release_build,debug_build}/**/*{test,Test,TEST}*",
+          "cwd": "${absDirpath}"
+        }
+    ],
+    "gcovViewer.buildDirectories": [
+        "x:\\Document\\GitHub\\TeclaEatsDesktop"
+    ]
 }

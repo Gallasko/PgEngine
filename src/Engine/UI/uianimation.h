@@ -22,16 +22,16 @@ namespace pg
         //because it create an endless loop that crash the app !
         typedef UiPosition OriginPoint; 
 
-        template<typename... Args>
+        template <typename... Args>
         Sequence(OriginPoint origin = OriginPoint(0, 0, 0), Args... args) : origin(origin) { add(args...); }
 
-        template<typename... Args>
+        template <typename... Args>
         Sequence(const UiKeyPoint& point, Args... args) { add(point); add(args...); }
 
         //TODO check that the keypoint time is greater than the last when adding in to the Sequence
         // or sort the whole list accordingly so that the last element is the duration of the sequence 
         // maybe replace the vector by a sorted map ? 
-        template<typename... Args>
+        template <typename... Args>
         void add(const UiKeyPoint& point, Args... args) { keyPoints.push_back(point), duration = point.time; add(args...); }
 
         void add(const UiKeyPoint& point) { keyPoints.push_back(point); duration = point.time; }

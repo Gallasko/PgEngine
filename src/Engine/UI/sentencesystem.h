@@ -30,21 +30,32 @@ namespace pg
 
         SentenceEffect effect = SentenceEffect::NOEFFCT;
 
+        float textWidth = 0.0f, textHeight = 0.0f;
+
         SentenceText() {}
+        SentenceText(const SentenceText& other) : 
+            text(other.text),
+            mainColor(other.mainColor),
+            outline1(other.outline1),
+            outline2(other.outline2),
+            effect(other.effect),
+            textWidth(other.textWidth),
+            textHeight(other.textHeight)
+            {}
 
         SentenceText(const std::string& text) : text(text) {}
-
         SentenceText(const std::string& text, const constant::Vector4D& color1, const SentenceEffect& effect = SentenceEffect::NOEFFCT) : text(text), mainColor(color1), effect(effect) {}
-
         SentenceText(const std::string& text, const constant::Vector4D& color1, const constant::Vector4D& color2, const constant::Vector4D& color3 = constant::Vector4D(255.0f, 255.0f, 255.0f, 180.0f), const SentenceEffect& effect = SentenceEffect::NOEFFCT) : text(text), mainColor(color1), outline1(color2), outline2(color3), effect(effect) {}
 
         inline void operator=(const SentenceText &rhs)
         {
-            this->text      = rhs.text;
-            this->mainColor = rhs.mainColor;
-            this->outline1  = rhs.outline1;
-            this->outline2  = rhs.outline2;
-            this->effect    = rhs.effect;
+            this->text       = rhs.text;
+            this->mainColor  = rhs.mainColor;
+            this->outline1   = rhs.outline1;
+            this->outline2   = rhs.outline2;
+            this->effect     = rhs.effect;
+            this->textWidth  = rhs.textWidth;
+            this->textHeight = rhs.textHeight;
         }
 
         inline bool operator==(const SentenceText &rhs) const
@@ -57,6 +68,26 @@ namespace pg
             return !(*this == rhs);
         }
     };
+
+    struct OnTextChanged
+    {
+        _unique_id entityId;
+        std::string newText;
+    };
+
+    struct SentenceSystem : public System<Own<SentenceText>, Ref<UiComponent>, Listener<OnTextChanged>, StoragePolicy, InitSys>
+    {
+        SentenceSystem(FontLoader *font) : font(font) { }
+
+        virtual void init() override;
+
+        virtual void onEvent(const OnTextChanged& event) override; 
+
+        FontLoader *font;
+    };
+
+    /** Helper that create an entity with an Ui component and a Texture component */
+    CompList<UiComponent, SentenceText> makeSentence(EntitySystem *ecs, float x, float y, const SentenceText& text);
 
     //TODO check if in need to be static
     struct Sentence : public UiComponent, private QOpenGLFunctions

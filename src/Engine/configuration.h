@@ -152,7 +152,7 @@ namespace pg
                 this->type = UnionType::BOOL;
             }
 
-            template<typename Type>
+            template <typename Type>
             Type get() const
             {
                 return static_cast<Type>(*this);
@@ -187,13 +187,13 @@ namespace pg
 
         inline static const ConfigurationPtr& config() { static ConfigurationPtr config = ConfigurationPtr(new Configuration(true)); return config; }
 
-        template<typename Type>
+        template <typename Type>
         Type get(const std::string& name, const Type& defaultValue) const;
 
-        template<typename Type>
+        template <typename Type>
         void set(const std::string& name, const Type& value);
 
-        template<typename Type>
+        template <typename Type>
         void set(const char* name, const Type& value);
 
     private:
@@ -222,7 +222,7 @@ namespace pg
         std::unordered_map<std::string, Configuration::ElementType> elementMap;
     };
 
-    template<typename Type>
+    template <typename Type>
     Type Configuration::get(const std::string& name, const Type& defaultValue) const
     {
         const auto& it = elementMap.find(name);
@@ -233,7 +233,7 @@ namespace pg
         return it->second.get<Type>();
     }
 
-    template<typename Type>
+    template <typename Type>
     void Configuration::set(const std::string& name, const Type& value)
     {
         elementMap[name] = ElementType(value);
@@ -242,7 +242,7 @@ namespace pg
         Serializer::getSerializer()->serializeObject("Config", *this);
     }
 
-    template<typename Type>
+    template <typename Type>
     void Configuration::set(const char* name, const Type& value)
     {
         elementMap[std::string(name)] = ElementType(value);

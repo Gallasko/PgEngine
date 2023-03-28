@@ -1,13 +1,12 @@
 #include "logger.h"
 
-// Only used for the console sink
+// Only used for the console sink 
 #include <iostream>
-
+// Used for dumping to a file with file sink
+#include <fstream>
 namespace pg
 {
     std::vector<Logger::LogSinkPtr> Logger::sinks;
-
-    std::mutex Logger::_lock;
 
     namespace
     {
@@ -29,6 +28,14 @@ namespace pg
             {
                 case Logger::InfoLevel::log:
                     logLevelStringBuffer = "[Log]: ";
+                    break;
+
+                case Logger::InfoLevel::test:
+                    logLevelStringBuffer = "[Test]: ";
+                    break;
+
+                case Logger::InfoLevel::mile:
+                    logLevelStringBuffer = "[Mile]: ";
                     break;
 
                 case Logger::InfoLevel::info:
@@ -55,17 +62,14 @@ namespace pg
             return logLevelStringBuffer; 
         }
 
-        std::string logPositionString(const char* filename, const char* objectName, const char* function, const int line)
+        std::string logPositionString(const std::string& filename, const std::string& objectName, const std::string& function, const int line)
         {
-            std::string logPositionStringBuffer = " in " + std::string(filename);
+            std::string logPositionStringBuffer = filename + ":" + std::to_string(line) + ": ";
 
-            if(objectName)
-            logPositionStringBuffer += " for object: " + std::string(objectName);
+            logPositionStringBuffer += function;
 
-            if(function)
-                logPositionStringBuffer += " in function: " + std::string(function);
-
-            logPositionStringBuffer += ", line " + std::to_string(line);
+            if(objectName != "")
+                logPositionStringBuffer += " Object: " + std::string(objectName);
 
             return logPositionStringBuffer;
         }
@@ -87,8 +91,10 @@ namespace pg
 
     void Logger::removeSink(std::shared_ptr<Logger::LogSink> sink)
     {
+        const auto& logger = Logger::getLogger();
+
         // Fonctor to use C++ scope initialisation to easely lock log pushback
-        std::lock_guard<std::mutex> lock(_lock);
+        std::lock_guard<std::recursive_mutex> lock(logger->_lock);
 
         const auto& it = findSinkPos(sink, sinks);
 
@@ -98,9 +104,22 @@ namespace pg
 
     void TerminalSink::processLog(const Logger::Info& log)
     {
-        std::cout << logLevelString(log.level) << log.scope << " " << log.message  << logPositionString(log.filename, log.objectName, log.function, log.line) << "\n";
+        std::cout << logLevelString(log.level) << "'" << log.scope << "' " << logPositionString(log.filename, log.objectName, log.function, log.line) << " " << log.message << "\n";
         //if(not ignoreNonErrors and log.level == Logger::InfoLevel::log)
         //    std::cout << log.line << ", " << log.filename << ", " << log.function << ", " << log.objectName << "," << log.scope << ", " << log.message << ", " << static_cast<int>(log.level) << std::endl;
+    }
+
+    void FileSink::processLog(const Logger::Info& log)
+    {
+        dataBuffer += Strfy() << logLevelString(log.level) << "'" << log.scope << "' " << logPositionString(log.filename, log.objectName, log.function, log.line) << " " << log.message << "\n";
+        //if(not ignoreNonErrors and log.level == Logger::InfoLevel::log)
+        //    std::cout << log.line << ", " << log.filename << ", " << log.function << ", " << log.objectName << "," << log.scope << ", " << log.message << ", " << static_cast<int>(log.level) << std::endl;
+    }
+
+    FileSink::~FileSink()
+    {
+        std::ofstream f(filename);
+        f.write(dataBuffer.data(), dataBuffer.size());
     }
 
 }

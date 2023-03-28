@@ -6,12 +6,12 @@ namespace pg
     {
     }
 
-    template<>
+    template <>
     void renderer(MasterRenderer* masterRenderer, SceneManager* manager)
     {
         if(manager->currentScene)
         {
-            renderer(masterRenderer, manager->currentScene);
+            // renderer(masterRenderer, manager->currentScene);
         }
     }
 

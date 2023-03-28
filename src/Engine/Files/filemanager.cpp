@@ -13,7 +13,7 @@ namespace pg
 {
     namespace
     {
-        const char * DOM = "File Manager";
+        static constexpr char const * DOM = "File Manager";
 
         TextFile openTxtFile(const std::string& filename) noexcept
         {

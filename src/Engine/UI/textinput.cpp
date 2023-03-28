@@ -25,14 +25,14 @@ namespace pg
      * @param[in] masterRenderer A pointer to the master renderer
      * @param[in] textInput      A pointer to the text input
      */
-    template<>
+    template <>
     void renderer(MasterRenderer* masterRenderer, TextInput* textInput)
     {
-        if(textInput->texture != nullptr)
-            masterRenderer->render(textInput->texture);
+        // if(textInput->texture != nullptr)
+        //     masterRenderer->render(textInput->texture);
 
-        if(textInput->sentence != nullptr)
-            masterRenderer->render(textInput->sentence);
+        // if(textInput->sentence != nullptr)
+        //     masterRenderer->render(textInput->sentence);
     }
 
     /**
@@ -48,20 +48,20 @@ namespace pg
     TextInput::TextInput(const UiFrame& frame, const std::string& texture, FontLoader* fontLoader, const TextInputCallback& onAccept, const TextInputCallback& onChange, const InputMode& mode) : UiComponent(frame), onAccept(onAccept), onChange(onChange), mode(mode)
     {
         // TODO set TextureComponent with only a frame or a pointer to an UiComponent
-        this->texture = new TextureComponent(this->width, this->height, texture);
-        this->texture->setTopAnchor(this->top);
-        this->texture->setLeftAnchor(this->left);
+        // this->texture = new TextureComponent(this->width, this->height, texture);
+        // this->texture->setTopAnchor(this->top);
+        // this->texture->setLeftAnchor(this->left);
         
         // TODO Set sentence wihtout a fontloader call a basic font loader 
-        this->sentence = new Sentence({"Text"}, 2.0f, fontLoader);
-        this->sentence->setTopAnchor(this->texture->top);
-        this->sentence->setTopMargin(this->texture->height / 2.0f - this->sentence->height / 2.0f);
-        this->sentence->setLeftAnchor(this->left);
-        this->sentence->setLeftMargin(10.0f);
+        // this->sentence = new Sentence({"Text"}, 2.0f, fontLoader);
+        // this->sentence->setTopAnchor(this->texture->top);
+        // this->sentence->setTopMargin(this->texture->height / 2.0f - this->sentence->height / 2.0f);
+        // this->sentence->setLeftAnchor(this->left);
+        // this->sentence->setLeftMargin(10.0f);
 
-        mouseInput = makeMouseArea(this, this, TextInput::focus, TextInput::unfocus);
+        // mouseInput = makeMouseArea(this, this, TextInput::focus, TextInput::unfocus);
 
-        keyInput = makeKeyInput(this, changeTextCallback);
+        // keyInput = makeKeyInput(this, changeTextCallback);
     }
 
     /**
@@ -70,7 +70,7 @@ namespace pg
     TextInput::~TextInput()
     {
         delete texture;
-        delete sentence;
+        // delete sentence;
     }
 
     /**
@@ -92,8 +92,8 @@ namespace pg
     {
         UiComponent::show();
 
-        texture->show();
-        sentence->show();
+        // texture->show();
+        // sentence->show();
     }
 
     /**
@@ -106,8 +106,8 @@ namespace pg
     {
         UiComponent::hide();
 
-        texture->hide();
-        sentence->hide();
+        // texture->hide();
+        // sentence->hide();
     }
 
     /**
@@ -180,7 +180,7 @@ namespace pg
         // Set the text of the underlying sentence to the current text
         if(previousText != text)
         {
-            this->sentence->setText(text);
+            // this->sentence->setText(text);
             
             if(onChange != nullptr)
                 onChange(text);

@@ -1,513 +1,549 @@
 #pragma once
 
-// [TODO] Add a sorting function to the ecs for certain view
-// Sorting function should be passable as a lambda
-
-// Optimize memory allocation 
-// 
-
-#include <unordered_map>
-#include <string>
 #include <vector>
-#include <typeinfo>
+#include <unordered_map>
+#include <algorithm>
 
-#include "component.h"
+#include <taskflow.hpp>
+
+#include "componentregistry.h"
+#include "entity.h"
+#include "system.h"
+#include "commanddispatcher.h"
+
+#include "logger.h"
 #include "Memory/memorypool.h"
 
 namespace pg
 {
-    template <typename View>
-    int viewLen(View view)
-    {
-        int i = 0;
-        for(const auto& pos : view)
-            i++;
+    // Todo create a queue that hold all entity id that got deleted to reattribute them later on
 
-        return i;
-    }
+    // Todo Create a different id gen for systems so that components id are smaller and more packed
+    
+    // Forward declarations
+    class ComponentRegistry;
+    class AbstractSystem;
+
+    /**
+     * @brief Structure tag used to specify onCreation member on a component
+     *
+     * @todo find a better class name 
+     */
+    struct Ctor
+    {
+        virtual void onCreation(Entity* entity) = 0;
+    };
+
+    /**
+     * @brief Structure tag used to specify onCreation member on a component
+     *
+     * @todo find a better class name 
+     */
+    struct Dtor
+    {
+        virtual void onDeletion(Entity* entity) = 0;
+    };
+
+    template <typename Comp>
+    struct CompListGetter
+    {
+        CompListGetter(CompRef<Comp> comp) : comp(comp) {}
+
+        inline CompRef<Comp> get() const { return comp; } 
+
+        CompRef<Comp> comp;
+    };
+
+    template<typename... Comps>
+    struct CompList : public CompListGetter<Comps>...
+    {
+        CompList(EntityRef entity, CompRef<Comps>... comps) : CompListGetter<Comps>(comps)..., entity(entity) { }
+
+        template<typename Comp>
+        inline CompRef<Comp> get() const { return static_cast<const CompListGetter<Comp>*>(this)->get(); }
+
+        EntityRef entity;
+    };
 
     class EntitySystem
     {
+    friend class Entity;
+    friend class CommandDispatcher;
     public:
-        EntitySystem() {};
+        EntitySystem();
         ~EntitySystem();
 
-        struct GenericComponent
+        inline void start()
         {
-            GenericComponent(unsigned int entityId, GenericComponent *prev, GenericComponent *next, void *data) : entityId(entityId), prev(prev), next(next), data(data) {}
+            LOG_THIS_MEMBER("ECS");
+
+            if(running)
+                return;
+
+            running = true;
+
+            runningThread = std::thread(&EntitySystem::executeAll, this);
+        }
+
+        inline void stop()
+        {
+            LOG_THIS_MEMBER("ECS");
+
+            if (not running)
+                return;
+
+            running = false;
+
+            executor.wait_for_all();
+
+            if (runningThread.joinable())
+                runningThread.join();
+        }
+
+        EntityRef createEntity()
+        {
+            LOG_THIS_MEMBER("ECS");
             
-            unsigned int entityId;
-
-            GenericComponent *prev;
-            GenericComponent *next; 
-
-            void *data;
-        };
-
-        class Entity
-        {
-        friend class EntitySystem;
-        public:
-            Entity(unsigned int id, Entity *previousEntity) : id(id), previousEntity(previousEntity), nextEntity(nullptr) {}
-
-            template <typename Component>
-            inline bool has() const { return has(typeid(Component).name()); }
-
-            template <typename Component>
-            inline Component* get() { return has<Component>() ? static_cast<Component* >(componentList[typeid(Component).name()]->data) : nullptr; }
-
-        protected:
-            inline bool has(std::string id) const { return componentList.find(id) != componentList.end(); }
-
-            template <typename Component>
-            inline EntitySystem::GenericComponent* getComponent() { return has<Component>() ? componentList[typeid(Component).name()] : nullptr; }
-            inline EntitySystem::GenericComponent* getComponent(const std::string& id) { return has(id) ? componentList[id] : nullptr; }
-
-            unsigned int id;
-            Entity *previousEntity;
-            Entity *nextEntity;
-
-            std::unordered_map<std::string, EntitySystem::GenericComponent*> componentList;
-        };
-
-        template <typename Component>
-        class ComponentList
-        {
-        public:
-            ComponentList(EntitySystem::GenericComponent *componentNodes) : head(componentNodes), tail(nullptr) {}
-            ComponentList() : head(nullptr), tail(nullptr) {}
-
-            class Iterator
+            if(running)
+                return cmdDispatcher.createEntity();
+            else
             {
-            friend class EntitySystem;
-            friend class ComponentList;
-            public:
-                Iterator() : node(nullptr) {}
+                const auto& id = registry.idGenerator.generateId();
+                return entityPool.addComponent(id, id, this);
+            }
+        }
 
-                //Pre Increment
-                inline Iterator& operator++() { node = node->next; return *this; }
-                
-                //Post Increment
-                inline Iterator operator++(int) { Iterator old = *this; node = node->next; return old; }
-
-                inline bool operator==(const Iterator& rhs) const { return node == rhs.node; } 
-                inline bool operator!=(const Iterator& rhs) const { return node != rhs.node; } 
-
-                inline Component& operator*() const { return *(static_cast<Component* >(node->data)); }
-
-            protected:
-                Iterator(EntitySystem::GenericComponent *componentNodes) : node(componentNodes) {}
-
-            private:
-                EntitySystem::GenericComponent *node;
-            };
-
-            inline Iterator begin() { return head; }
-            inline Iterator end() { return tail; }
-
-        private:
-            Iterator head;
-            Iterator tail;
-        };
-
-        class GroupList
+        void removeEntity(Entity* entity)
         {
-        friend class EntitySystem;
-        public:
-            class GroupItem
+            LOG_THIS_MEMBER("ECS");
+
+            if(running)
+                cmdDispatcher.deleteEntity(entity);
+            else
+                deleteEntityFromPool(entity);
+        }
+
+        // TODO: Add a getSystem and destroySystem functions
+        template <class Sys, typename... Args>
+        Sys* createSystem(const Args&... args)
+        {
+            LOG_THIS_MEMBER("ECS");
+
+            auto system = new Sys(args...);
+            system->id = registry.getTypeId<Sys>();
+
+            system->addToRegistry(&registry);
+
+            systems.emplace(system->id, system);
+
+            // Only add the system to the taskflow if the execution policy is set to sequential or independent !
+            if(system->executionPolicy == ExecutionPolicy::Sequential)
             {
-            friend class EntitySystem;
-            friend class GroupList;
-            public:
-                GroupItem(unsigned int id) : entityId(id) { }
+                auto task = taskflow.emplace([system](){system->execute();}).name(std::to_string(system->id));
 
-                inline bool has(std::string id) const { return componentList.find(id) != componentList.end(); }
+                // Put the task after every other basic task
+                task.succeed(basicTask);
 
-                template <typename Component>
-                inline bool has() const { return has(typeid(Component).name()); }
-
-                template <typename Component>
-                inline Component* get() { return has<Component>() ? static_cast<Component* >(componentList[typeid(Component).name()]->data) : nullptr; }
-
-            private:
-                unsigned int entityId;
-                std::unordered_map<std::string, EntitySystem::GenericComponent*> componentList;
-
-                GroupItem *next = nullptr;
-            };
-
-            class Iterator
+                // Register the task in case we need to call precede and succeed
+                tasks[system->id] = task;
+            }
+            else if (system->executionPolicy == ExecutionPolicy::Independent)
             {
-            friend class GroupList;
-            public:
-                Iterator() : node(nullptr) {}
-                Iterator(const EntitySystem::GroupList::Iterator& copy) : node(copy.node) {}
+                auto task = taskflow.emplace([system](){system->execute();}).name(std::to_string(system->id));
 
-                //Pre Increment
-                inline Iterator& operator++() { node = node->next; return *this; }
-                
-                //Post Increment
-                inline Iterator operator++(int) { Iterator old = *this; node = node->next; return old; }
+                // Register the task in case we need to call precede and succeed
+                tasks[system->id] = task;
+            }
 
-                inline bool operator==(const Iterator& rhs) const { return node == rhs.node; } 
-                inline bool operator!=(const Iterator& rhs) const { return node != rhs.node; } 
+            return system;
+        }
 
-                inline GroupList::GroupItem& operator*() const { return *node; }
+        // Todo make proceed
+        template <typename SysAfter, typename SysBefore>
+        void succeed()
+        {
+            LOG_THIS_MEMBER("ECS");
 
-            protected:
-                Iterator(GroupList::GroupItem *componentNodes) : node(componentNodes) {}
+            auto sys1Id = registry.getTypeId<SysAfter>();
+            auto sys2Id = registry.getTypeId<SysBefore>();
 
-                inline void deleteNode() { delete node; }
+            auto it1 = tasks.find(sys1Id);
+            auto it2 = tasks.find(sys2Id);
+            
+            if(it1 != tasks.end() and it2 != tasks.end())
+            {
+                it1->second.succeed(it2->second);
+                LOG_INFO("ECS", "System " << sys1Id << " will run after system " << sys2Id << " !");
+            }
+            else if(it1 == tasks.end() and it2 != tasks.end())
+            {
+                LOG_ERROR("ECS", "Systems " << sys1Id << " is not a registered task in ecs can't reorder task !");
+            }
+            else if(it1 != tasks.end() and it2 == tasks.end())
+            {
+                LOG_ERROR("ECS", "Systems " << sys2Id << " is not a registered task in ecs can't reorder task !");
+            }
+            else
+            {
+                LOG_ERROR("ECS", "Both systems " << sys1Id << " and " << sys2Id << " are not registered task in ecs can't reorder their task !");
+            }
+        }
 
-            private:
-                EntitySystem::GroupList::GroupItem *node;
-            };
+        inline void dumbTaskflow() const
+        {
+            taskflow.dump(std::cout);
+        }
 
-            GroupList() : head(nullptr), tail(nullptr), nbElement(0) {}
-            GroupList(EntitySystem::GroupList::GroupItem *first, unsigned int nbElement) : head(first), tail(nullptr), nbElement(nbElement) {}
-            GroupList(const GroupList& copy) : head(copy.head), tail(copy.tail), nbElement(copy.nbElement) {}
+        //TODO make a template specialization capable of attaching an entity to an entity
 
-            inline Iterator begin() { return head; }
-            inline Iterator end() { return tail; }
+        template <class Sys>
+        inline Sys* getSystem() const noexcept
+        {
+            LOG_THIS_MEMBER("ECS");
 
-            inline unsigned int size() const { return nbElement; }
-            inline bool isEmpty() const { return nbElement == 0; }
+            const auto& id = registry.getTypeId<Sys>();
 
-            inline void append(EntitySystem::GroupList::GroupItem *item) { item->next = head.node; head.node = item; nbElement++; };
-            void erase(unsigned int entityId);
-            bool changeId(unsigned int idToBeChanged, unsigned int newId);
+            try
+            {
+                return static_cast<Sys*>(systems.at(id));
+            }
+            catch (const std::exception& e)
+            {
+                LOG_ERROR("ECS", "Get system failed: " << e.what());
+                return nullptr;
+            }
+        }
 
-            bool find(unsigned int entityId);
-            inline bool find(EntitySystem::Entity *entity) { return find(entity->id); }
+        template <typename Type, typename... Args>
+        CompRef<Type> attach(Entity* entity, Args&&... args) noexcept
+        {
+            LOG_THIS_MEMBER("ECS");
 
-        private:
-            Iterator head;
-            Iterator tail;
+            LOG_MILE("ECS", "here");
 
-            unsigned int nbElement;
-        };
+            try
+            {
+                Type* component;
 
-        inline EntitySystem::Entity* createEntity() { EntitySystem::Entity *newEntity = entityPool.allocate(nbEntity++, lastEntity); if(lastEntity != nullptr) { lastEntity->nextEntity = newEntity; } lastEntity = newEntity; return newEntity; }
-        void removeEntity(EntitySystem::Entity* entity);
+                // Todo add lock a mutex for running to protect for race conditions or only build component with the cmdDispatcher 
+                if(running)
+                {
+                    component = cmdDispatcher.attachComp<Type>(std::forward<Args>(args)...);
+                }
+                else
+                {
+                    component = registry.retrieve<Type>()->internalCreateComponent(entity, std::forward<Args>(args)...);
+                }
 
-        template <typename Component, typename... Args>
-        Component* attach(EntitySystem::Entity *entity, const Args&... args);
+                // auto res = CompRef<Type>(component, entity->id, this, not running);
+                auto res = CompRef<Type>(component, entity->id, this, false);
 
-        template <typename Component>
-        void dettach(EntitySystem::Entity *entity);
+                if constexpr(std::is_base_of_v<Ctor, Type>)
+                    res->onCreation(entity);
 
-        template <typename Component>
-        EntitySystem::ComponentList<Component> view();
+                return res;
+            }
+            catch (const std::exception& e)
+            {
+                LOG_ERROR("ECS", "Can't attach component [" << typeid(Type).name() << "]: " << e.what());
+            }
 
-        template <typename Component, typename... Group>
-        EntitySystem::GroupList* registerGroup();
+            return CompRef<Type>();
+        }
 
-        template <typename Component, typename... Group>
-        EntitySystem::GroupList group();
+        template <typename Type>
+        void dettach(Entity* entity) const noexcept
+        {
+            
+        }
+
+        template <typename Event>
+        inline void sendEvent(const Event& event) { registry.processEvent(event); }
+
+        template <typename Comp>
+        inline const _unique_id& getId() const noexcept { return registry.getTypeId<Comp>(); }
+
+        void executeAll();
+
+        // MasterRenderer* getMasterRenderer() { return registry.masterRenderer; }
+
+        /** Return the registry of the ECS, mainly for testing purposes */
+        inline constexpr const ComponentRegistry* getComponentRegistry() const noexcept { return &registry; }
+
+        inline size_t getNbEntities() const { return entityPool.nbElements() - 1; }
+
+        inline Entity* getEntity(_unique_id id) const { return entityPool.atEntity(id); }
+
+        template <typename Comp>
+        inline Comp* getComponent(_unique_id id) const { return registry.retrieve<Comp>()->getComponent(id); }
 
     private:
-        template <typename Component, typename... Args>
-        auto typeToId() -> typename std::enable_if<(sizeof...(Args) == 0), std::string>::type
+        void addEntityToPool(Entity* entity)
         {
-            return std::string(typeid(Component).name()) + std::string(";");
+            LOG_THIS_MEMBER("ECS");
+
+            entityPool.addComponent(entity, *entity);
         }
 
-        template <typename First, typename... Next>
-        auto typeToId() -> typename std::enable_if<(sizeof...(Next) > 0), std::string>::type
+        void deleteEntityFromPool(Entity* entity)
         {
-            return typeToId<First>() + typeToId<Next...>();
-        }
+            LOG_THIS_MEMBER("ECS");
 
-        template <typename Component, typename... Args>
-        auto addViewToVector(std::vector<EntitySystem::GenericComponent *> *vec) -> typename std::enable_if<(sizeof...(Args) == 0), bool>::type
-        {
-            auto id = typeid(Component).name();
-
-            if(componentMap.find(id) != componentMap.end())
+            for(auto& comp : entity->componentList)
             {
-                vec->push_back(componentMap[id]);
-                return true;
+                if(comp.entityHeldType == Entity::EntityHeld::EntityHeldType::id)
+                {
+                    // Todo Remove all attached component
+                }
             }
-            else
-                return false;
+
+            entityPool.removeComponent(entity);
         }
 
-        template <typename First, typename... Next>
-        auto addViewToVector(std::vector<EntitySystem::GenericComponent *> *vec) -> typename std::enable_if<(sizeof...(Next) > 0), bool>::type
+        template <typename Type>
+        void addComponentToPool(Type* component)
         {
-            return addViewToVector<First>(vec) && addViewToVector<Next...>(vec);
+            LOG_THIS_MEMBER("ECS");
+
+            if(component)
+            {
+                LOG_MILE("ECS", "addComponentToPool");
+            }
+            // entity->componentList.emplace(registry.getTypeId<Type>());
         }
 
-        bool inline isGroupRegistered(std::string id) const { return groupList.find(id) != groupList.end(); }
+        template <typename Type>
+        void detachComponentFromPool(Entity* entity)
+        {
+            LOG_THIS_MEMBER("ECS");
 
-        std::unordered_map<std::string, EntitySystem::GenericComponent* >::iterator dettach(EntitySystem::Entity *entity, std::string id, std::unordered_map<std::string, EntitySystem::GenericComponent* >::iterator it);
+            try
+            {
+                // TODO: Add this somewhere (ie in ecs.detach or in sparset.removeComponent)
+                if constexpr(std::is_base_of_v<Dtor, Type>)
+                {
+                    auto res = getComponent<Type>(entity->id);
+                    res->onDeletion(entity);
+                }
 
-        void moveBack(EntitySystem::Entity *entity, std::string id, EntitySystem::GenericComponent *component);
-        
-        bool isEntityInGroup(EntitySystem::Entity *entity, std::string groupName) const;
+                registry.retrieve<Type>()->internalRemoveComponent(entity);            
+            }
+            catch (const std::exception& e)
+            {
+                LOG_ERROR("ECS", e.what());
+            }
+        }
 
-        unsigned int nbEntity = 0;
-        Entity *lastEntity = nullptr;
-        std::unordered_map<std::string, EntitySystem::GenericComponent*> componentMap;
-        std::unordered_map<std::string, EntitySystem::GroupList*> groupList;
-        std::unordered_map<std::string, std::vector<std::string>> groupNameSpliceList;
+        bool running = false;
+        ComponentRegistry registry;
 
-        AllocatorPool<EntitySystem::Entity, 1024> entityPool;
-        AllocatorPool<GenericComponent, 64> componentPool;
-        AllocatorPool<GroupList, 64> groupPool;
+        CommandDispatcher cmdDispatcher;
+
+        /** Store all systems added to the ECS */
+        std::map<_unique_id, AbstractSystem*> systems;
+
+        /** All the entities generated from the ECS */
+        ComponentSet<Entity> entityPool;
+
+        /** Running thread of the ECS */
+        std::thread runningThread;
+
+        /** Taskflow of all the system of the ecs */
+        tf::Taskflow taskflow;
+
+        /** Main executor of the ecs */
+        tf::Executor executor;
+
+        /** Map of all the task associated to systems */
+        std::unordered_map<_unique_id, tf::Task> tasks;
+
+        /** Last task of the mandatory ecs base systems */
+        tf::Task basicTask;
     };
 
-    template <typename Component, typename... Args>
-    Component* EntitySystem::attach(EntitySystem::Entity *entity, const Args&... args)
+    template <typename Comp>
+    inline bool Entity::has() const noexcept
     {
-        auto id = typeid(Component).name();
+        LOG_THIS("Entity");
 
-        Component *cmp = new Component(args...);
-
-        if(entity->has<Component>())
+        if(not ecsRef)
         {
-            entity->componentList[id]->data = cmp;
-        }
-        else
-        {
-            // TODO create a unique componentPool for each component list !
-            if(componentMap.find(id) == componentMap.end())
-            {
-                EntitySystem::GenericComponent *cp = componentPool.allocate(entity->id, nullptr, nullptr, cmp);
-                componentMap[id] = cp;
+            LOG_ERROR("Entity", "Entity is not referenced in any ECS");
 
-                entity->componentList[id] = cp;
-            }
-            else
-            {
-                if(componentMap[id]->prev == nullptr)
-                {
-                    EntitySystem::GenericComponent *cp = componentPool.allocate(entity->id, componentMap[id], nullptr, cmp);
-                    componentMap[id]->prev = cp;
-                    componentMap[id]->next = cp;
-
-                    entity->componentList[id] = cp;
-
-                    moveBack(entity, id, cp);
-                }
-                else
-                {
-                    EntitySystem::GenericComponent *cp = componentPool.allocate(entity->id, componentMap[id]->prev, nullptr, cmp);
-                    componentMap[id]->prev->next = cp;
-                    componentMap[id]->prev = cp;
-
-                    entity->componentList[id] = cp;
-                    moveBack(entity, id, cp);
-                }
-            }
-
-            for(auto& it : groupList)
-            {
-                if(isEntityInGroup(entity, it.first))
-                {
-                    if(!it.second->find(entity))
-                    {
-                        auto item = new EntitySystem::GroupList::GroupItem(entity->id);
-
-                        for(const auto& it2 : groupNameSpliceList[it.first])
-                            item->componentList[it2] = entity->getComponent(it2);
-
-                        it.second->append(item);
-                    }
-                }
-            }
+            return false;
         }
         
-        return cmp;
+        const auto& componentId = ecsRef->getId<Comp>();
+
+        return has(componentId);
     }
 
-    template <typename Component>
-    void EntitySystem::dettach(EntitySystem::Entity *entity)
+    template <typename Comp>
+    inline CompRef<Comp> Entity::get() noexcept
     {
-        auto id = typeid(Component).name();
+        LOG_THIS("Entity");
 
-        if(componentMap.find(id) != componentMap.end())
+        if(not ecsRef)
         {
-            EntitySystem::GenericComponent* component = entity->getComponent<Component>();
+            LOG_ERROR("Entity", "Entity is not referenced in any ECS");
 
-            if(component != nullptr)
-            {
-                // if prev is nullptr it means that it was the only element of the list
-                if(component->prev != nullptr)
-                {
-                    if(component->next == nullptr) // if component is the last element of the list
-                    {
-                        component->prev->next = nullptr;
-
-                        if(component->prev == componentMap[id])
-                        {
-                            componentMap[id]->prev = nullptr;
-                        }
-                        else
-                        {
-                            componentMap[id]->prev = component->prev;
-                        }
-                    }
-                    else
-                    {
-                        if(component->prev != component->next) // if prev == next it means that there are only 2 elements in the list;
-                        {
-                            if(component->prev->next == nullptr) // it means that the current component is the first one
-                            {
-                                componentMap[id] = component->next;
-                            }
-                            else
-                            {
-                                component->prev->next = component->next;
-                            }
-
-                            component->next->prev = component->prev;
-                        }
-                        else
-                        {
-                            componentMap[id] = component->next;
-                            component->next->prev = nullptr;
-                        }
-                    }
-                }
-                else
-                {
-                    componentMap.erase(id);
-                }
-
-                entity->componentList.erase(id);
-                componentPool.release(component);
-
-                for(auto& it : groupList)
-                {
-                    if(it.first.find(id) != std::string::npos)
-                        it.second->erase(entity->id);
-                }
-            }
+            return CompRef<Comp>();
         }
-    }
+        
+        const auto& componentId = ecsRef->getId<Comp>();
 
-    //TODO make an empty list and make this const !
+        const auto& it = std::find(componentList.begin(), componentList.end(), componentId);
 
-    template <typename Component>
-    EntitySystem::ComponentList<Component> EntitySystem::view()
-    {
-        // TODO uniform the id name of a component whatever it is in a component list or a group list
-        // (use type to id)
-        auto id = typeid(Component).name();
-
-        if(componentMap.find(id) != componentMap.end())
-            return EntitySystem::ComponentList<Component>(componentMap[id]);
-        else
-            return EntitySystem::ComponentList<Component>();
-    }
-
-    // TODO enable group of a single component list
-    template <typename Component, typename... Group>
-    EntitySystem::GroupList* EntitySystem::registerGroup()
-    {
-        auto groupId = typeToId<Component, Group...>();
-
-        if(!isGroupRegistered(groupId))
-            groupList[groupId] = new EntitySystem::GroupList(group<Component, Group...>());
-
-        return groupList[groupId];
-    }
-
-    template <typename Component, typename... Group>
-    EntitySystem::GroupList EntitySystem::group()
-    {
-        auto groupId = typeToId<Component, Group...>();
-
-        if(isGroupRegistered(groupId))
+        if(it != componentList.end())
         {
-            return *groupList[groupId];
+            return CompRef<Comp>(ecsRef->registry.retrieve<Comp>()->getComponent(id), id, ecsRef, true);
         }
-        else
+
+        LOG_ERROR("Entity", "Entity doesn't have component: " << componentId);
+
+        return CompRef<Comp>();
+    }
+
+    template <typename Comp>
+    void CompRef<Comp>::operator=(const CompRef& rhs)
+    {
+        LOG_THIS("Comp ref");
+
+        ecsRef      = rhs.ecsRef;
+        entityId    = rhs.entityId;
+        initialized = rhs.initialized;
+        component   = rhs.component;
+
+        if(not initialized)
         {
-            std::vector<EntitySystem::GenericComponent *> idList;
-
-            auto groupName = groupId;
-            std::vector<std::string> idNames;
-
-            std::string delimiter = ";";
-
-            size_t pos = 0;
-            while ((pos = groupId.find(delimiter)) != std::string::npos)
+            if(entityId != 0)
             {
-                idNames.push_back(groupId.substr(0, pos));
-                groupId.erase(0, pos + delimiter.length());
-            }
+                auto fetchComponent = rhs.ecsRef->getComponent<Comp>(entityId);
 
-            groupNameSpliceList[groupName] = idNames;
-
-            if(addViewToVector<Component, Group...>(&idList))
-            {
-                unsigned int currentEntityId = 0;
-                unsigned int nbElement = 0;
-                EntitySystem::GroupList::GroupItem *currentItem = nullptr;
-                EntitySystem::GroupList::GroupItem *firstItem = nullptr;
-                bool isFirstItem = true;
-                bool sameEntityId = false; 
-                bool end = false;
-                
-                do
+                if(fetchComponent)
                 {
-                    do
-                    {
-                        for (auto& node : idList)
-                        {
-                            if(!end)
-                            {
-                                while(node->entityId < currentEntityId && node->next != nullptr)
-                                    node = node->next;
-                                
-                                if(node->next == nullptr && node->entityId < currentEntityId)
-                                    end = true;
-
-                                if(node->entityId > currentEntityId)
-                                    currentEntityId = node->entityId;
-                            }                    
-                        }
-
-                        sameEntityId = true;
-                        for (auto& node : idList)
-                            if(node->entityId != currentEntityId)
-                                sameEntityId = false;
-
-                    } while ( !end && !sameEntityId );
-
-                    if(!end)
-                    {
-                        if(isFirstItem)
-                        {
-                            firstItem = new EntitySystem::GroupList::GroupItem(currentEntityId);
-                            currentItem = firstItem;
-                            isFirstItem = false;
-                        }
-                        else
-                        {
-                            currentItem->next = new EntitySystem::GroupList::GroupItem(currentEntityId);
-                            currentItem = currentItem->next; 
-                        }
-
-                        for (int x = 0; x < static_cast<int>(idNames.size()); x++)
-                            currentItem->componentList[idNames[x]] = idList[x];
-                            
-                        nbElement++;
-                        currentEntityId++;
-                    }
-
-                } while (!end);
-                
-                return EntitySystem::GroupList(firstItem, nbElement);
+                    component   = fetchComponent;
+                    initialized = true;
+                }
+                // Todo see if we propagate back the finding of the entity to the base ref !
+                // rhs.entity = entity
+                // rhs.initialized = true
+                // Note that it needs to make the rhs not const or we need to make the member entity mutable !
             }
             else
             {
-                return EntitySystem::GroupList();
+                LOG_ERROR("Comp ref", "Copy of a reference to an invalid entity");
             }
         }
+    }
 
-        return EntitySystem::GroupList();
+    template <typename Comp>
+    Comp* CompRef<Comp>::operator->() const
+    {
+        if (initialized)
+            return ecsRef->getComponent<Comp>(entityId);
+        else
+            return component;
+    }
+
+    template <typename Comp>
+    CompRef<Comp>::operator Comp*() const
+    {
+        if (initialized)
+            return ecsRef->getComponent<Comp>(entityId);
+        else
+            return component;
+    }
+
+    template <typename Type, typename... Types>
+    template <typename Set>
+    inline void Group<Type, Types...>::addEventToSet(Set setN)
+    {
+        LOG_THIS_MEMBER("Ecs Group");
+
+        setN->onComponentCreation.emplace(id, [](Entity *entity) {
+            LOG_INFO("Group", "On component creation for entity " << entity->id << ", sending event !");
+            entity->world()->sendEvent(OnCompCreatedCheckForGroup<Group<Type, Types...>>{entity});
+        });
+    }
+
+    template <typename Type, typename... Types>
+    void Group<Type, Types...>::process()
+    {
+        LOG_THIS_MEMBER("Ecs Group");
+
+        if(this->registry == nullptr)
+            return;
+
+        populateList(setList, 0, registry->retrieve<Type>(), registry->retrieve<Types>()...);
+
+        size_t smallestSetIndex = 0;
+
+        for(size_t i = 0; i < nbOfSets; ++i)
+        {
+            if(setList[i]->set->nbElements() < setList[smallestSetIndex]->set->nbElements())
+                smallestSetIndex = i;
+        }
+
+        SetHolder<Type, Types...>* smallestSetHolder = setList[smallestSetIndex];
+        const SparseSet* smallestSet = smallestSetHolder->set;
+
+        setList[smallestSetIndex] = setList[nbOfSets - 1];
+
+        setList[nbOfSets - 1] = smallestSetHolder;
+
+        // const auto& elements = {registry->retrieve<Type>()->components, registry->retrieve<Types>()->components...};
+
+        // const SparseSet& set = smallestSet(registry->retrieve<Type>()->components, registry->retrieve<Types>()->components...);
+
+        LOG_INFO("Ecs Group", "Smallest set has: " + std::to_string(smallestSet->nbElements()) + " elements");
+
+        // Todo add reserve and multiple emplace back in the component/sparse set
+        // elements.reserve(smallestSet->nbElements()); // May need a -1
+
+        // Todo check Branch: Parallel-Ecs to create a parallal implementation of grouping
+        for(const auto& id : smallestSet->view())
+        {
+            GroupElement<Type, Types...> element(registry->world()->getEntity(id), this->world(), id);
+
+            for(size_t j = 0; j < nbOfSets - 1; j++)
+            {
+                setList[j]->setElement(setList[j]->set, element, id);    
+            }
+
+            if(not element.toBeDeleted)
+                elements.addComponent(id, element);
+        }
+
+        // Todo add this on ~Group() !
+        // for(size_t i = 0; i < nbOfSets; i++)
+        //     delete setList[i];
+
+        // Add support for thread pools by passing a pool in this function and add the task inside of this pool
+        // checkEntityInGroup<Type, Types...>(this->registry->getThreadPool(), elements);
+
+        // const auto& it = elements.viewComponents();
+
+        // Remove all elements that miss at least one component from the group
+        // Todo Do not delete the component but make the iterator skip element to be deleted !
+        // for(size_t i = 1; i < elements.nbElements(); i++)
+        // {
+            // const auto& element = elements[i];
+            // if(element->toBeDeleted)
+                // elements.removeComponent(element->entityId);
+        // }
+        //std::remove_if(it.begin(), it.end(), [](const GroupElement<Type, Types...>& element) { return element.toBeDeleted; });
+    
+        // Todo sort the group
+    }
+
+    template <typename Type>
+    void CommandDispatcher::ComponentCommand::setupFunctions()
+    {
+        struct Delegate : public ComponentCommand::ComponentCommand::Storage, public Type {};
+
+        addInEcs = [](EntitySystem* ecs, Storage* component) { ecs->addComponentToPool(static_cast<Type*>(static_cast<Delegate*>(component))); };
+
+        deleteComp = [](EntitySystem* ecs, Storage* component) { delete static_cast<Type*>(static_cast<Delegate*>(component)); };
     }
 }

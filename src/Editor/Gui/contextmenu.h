@@ -15,8 +15,12 @@ namespace pg {
         PREFAB // TOdo to implement !
     };
 
+    namespace ecs
+    {
+        class EntitySystem;
+    }
+
     // Class forwarding
-    class EntitySystem;
     class FontLoader;
     class MasterRenderer;
 

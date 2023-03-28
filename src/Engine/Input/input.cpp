@@ -8,7 +8,7 @@ namespace pg
 {
 	namespace
 	{
-		const char * DOM = "Input";
+		static constexpr char const * DOM = "Input";
 
 		//Helper function 
 		template <typename Instance>
@@ -212,9 +212,11 @@ namespace pg
 		return this->mouseDelta;
 	}
 
-	void Input::updateInput(double)
+	void Input::updateInput(double deltaTime)
 	{
 		LOG_THIS_MEMBER(DOM);
+
+		updateTime = deltaTime;
 		
 		this->mouseDelta.setX(0);
 		this->mouseDelta.setY(0);

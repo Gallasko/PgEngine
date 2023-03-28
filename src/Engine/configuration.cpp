@@ -6,10 +6,10 @@ namespace pg
 {
     namespace
     {
-        const char * DOM = "Configuration";
+        static constexpr char const * DOM = "Configuration";
     }
 
-    template<>
+    template <>
     void serialize(Archive& archive, const Configuration::ElementType& element)
     {
         LOG_THIS(DOM);
@@ -42,7 +42,7 @@ namespace pg
         archive.endSerialization();
     }
 
-    template<>
+    template <>
     void serialize(Archive& archive, const Configuration& config)
     {
         LOG_THIS(DOM);
@@ -57,7 +57,7 @@ namespace pg
         archive.endSerialization();
     }
 
-    template<>
+    template <>
     Configuration::ElementType deserialize(const UnserializedObject& serializedString)
     {
         LOG_THIS(DOM);
@@ -92,7 +92,7 @@ namespace pg
         return value;
     }
 
-    template<>
+    template <>
     Configuration deserialize(const UnserializedObject& serializedString)
     {
         LOG_THIS(DOM);

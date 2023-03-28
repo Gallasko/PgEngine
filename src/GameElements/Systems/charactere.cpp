@@ -5,7 +5,7 @@
 
 namespace pg
 {
-    template<>
+    template <>
     void renderer(MasterRenderer* renderer, CharacterUi* chara)
     {
 
@@ -14,13 +14,13 @@ namespace pg
 
 CharacterUi::CharacterUi(Character *chara, pg::FontLoader *fontLoader) : pg::UiComponent(), chara(chara)
 {
-    displayName = new pg::Sentence({chara->getName()}, 2.0f, fontLoader);
+    // displayName = new pg::Sentence({chara->getName()}, 2.0f, fontLoader);
 }
 
-CharacterUi::CharacterUi(const CharacterUi& other) : CharacterUi(other.chara, other.displayName->font)
-{
+// CharacterUi::CharacterUi(const CharacterUi& other) : CharacterUi(other.chara, other.displayName->font)
+// {
 
-}
+// }
 
 void CharacterUi::render(pg::MasterRenderer* masterRenderer)
 {
