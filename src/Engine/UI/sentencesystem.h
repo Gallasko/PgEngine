@@ -75,9 +75,11 @@ namespace pg
         std::string newText;
     };
 
-    struct SentenceSystem : public System<Own<SentenceText>, Ref<UiComponent>, Listener<OnTextChanged>, StoragePolicy, InitSys>
+    struct SentenceSystem : public System<Own<SentenceText>, Ref<UiComponent>, Listener<OnTextChanged>, NamedSystem, InitSys, StoragePolicy>
     {
         SentenceSystem(FontLoader *font) : font(font) { }
+
+        virtual std::string getSystemName() const override { return "Sentence System"; }
 
         virtual void init() override;
 

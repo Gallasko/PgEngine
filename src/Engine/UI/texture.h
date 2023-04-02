@@ -37,9 +37,11 @@ namespace pg
         Entity *entity = nullptr;
     };
 
-    struct TextureComponentSystem : public System<Own<TextureComponent>, Ref<UiComponent>, StoragePolicy, InitSys>
+    struct TextureComponentSystem : public System<Own<TextureComponent>, Ref<UiComponent>, NamedSystem, InitSys, StoragePolicy>
     {
         TextureComponentSystem() { }
+
+        virtual std::string getSystemName() const override { return "Texture System"; }
 
         virtual void init() override;
     };

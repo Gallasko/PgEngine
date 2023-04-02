@@ -205,9 +205,11 @@ namespace pg
 
     };
 
-    struct UiComponentSystem : public System<Own<UiComponent>, Listener<UiComponentChangeEvent>, StoragePolicy>
+    struct UiComponentSystem : public System<Own<UiComponent>, Listener<UiComponentChangeEvent>, NamedSystem, StoragePolicy>
     {
         UiComponentSystem() {}
+
+        virtual std::string getSystemName() const override { return "Ui System"; }
 
         virtual void onEvent(const UiComponentChangeEvent&) override
         {

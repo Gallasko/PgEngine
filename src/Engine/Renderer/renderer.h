@@ -43,11 +43,13 @@ namespace pg
     //[TODO] Multiple FBO -> 1 for a whole screen capture and other for batch rendering on a texture 
     // Add Particle system with instancing already done / create an alternative if needed
 
-    class MasterRenderer : protected QOpenGLFunctions, public System<>
+    class MasterRenderer : protected QOpenGLFunctions, public System<NamedSystem>
     {
     public:
         MasterRenderer() {}
         ~MasterRenderer() { delete extraFunctions; delete squareObject; delete instanceVBO; }
+
+        virtual std::string getSystemName() const override { return "Renderer System"; }
 
         virtual void execute() override;
 

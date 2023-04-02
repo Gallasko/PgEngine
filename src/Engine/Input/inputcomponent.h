@@ -24,7 +24,7 @@ namespace pg
         // std::function<void(Input*, double)> callback = [](Input*, double){ LOG_ERROR("MouseClickSystem", "Trying to call a empty Mouse Click Component !"); };
     };
 
-    struct MouseClickSystem : public System<Own<MouseClickComponent>, InitSys>
+    struct MouseClickSystem : public System<Own<MouseClickComponent>, NamedSystem, InitSys>
     {
         struct MouseAreaZ
         {
@@ -35,6 +35,8 @@ namespace pg
         };
 
         MouseClickSystem(Input* inputHandler) : inputHandler(inputHandler) { LOG_THIS_MEMBER("MouseClickSystem"); }
+
+        virtual std::string getSystemName() const override { return "Mouse Click System"; }
 
         void init() override
         {
@@ -303,16 +305,18 @@ namespace pg
         KeyInputPtr component;
     };
 
-    class InputSystem : public System<Own<MouseComponent>, Own<KeyComponent>>
+    class InputSystem : public System<Own<MouseComponent>, Own<KeyComponent>, NamedSystem>
     {
         /** InputSystem unique pointer type definition */
         typedef std::unique_ptr<InputSystem> InputPtr;
 
     public:
-        InputSystem() : System<Own<MouseComponent>, Own<KeyComponent>>()
+        InputSystem() : System<Own<MouseComponent>, Own<KeyComponent>, NamedSystem>()
         {
             setPolicy(ExecutionPolicy::Storage);
         }
+
+        virtual std::string getSystemName() const override { return "Input System"; }
 
         void execute() override
         {

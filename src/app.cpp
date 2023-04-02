@@ -28,14 +28,14 @@ namespace
 
     struct SceneElement
     {
-        SceneElement(int id, UiComponent *component, Button *mouseArea) : id(id), component(component), mouseArea(mouseArea) {}
+        SceneElement(_unique_id id) : id(id) {}
 
-        int id;
+        _unique_id id;
 
-        UiComponent *component;
+        // UiComponent *component;
 
         /** Store a reference to the mouse area for delete purpose */
-        Button *mouseArea;
+        // Button *mouseArea;
     };
 
     // Todo objectiv with system implementation
@@ -69,8 +69,7 @@ namespace
         size_t tick;
     };
 
-    // Todo find and fix why this system doesn't work
-    struct TickingSystem : public System<>
+    struct TickingSystem : public System<NamedSystem>
     {
         TickingSystem(size_t duration = 40) : tickDuration(duration)
         { 
@@ -83,6 +82,8 @@ namespace
         }
 
         ~TickingSystem() { LOG_THIS_MEMBER("Ticking System"); stop(); }
+
+        virtual std::string getSystemName() const override { return "Ticking System"; }
 
         inline void stop()
         {
@@ -132,10 +133,10 @@ namespace
         bool paused = false;
     };
 
-    // Todo make a FPS system that print the current FPS !
-
-    struct FpsSystem : public System<Listener<TickEvent>, InitSys, StoragePolicy>
+    struct FpsSystem : public System<Listener<TickEvent>, NamedSystem, InitSys, StoragePolicy>
     {
+        virtual std::string getSystemName() const override { return "Fps System"; }
+
         void init() override
         {
             auto sentence = makeSentence(ecsRef, 0, 0, {"0"});
@@ -185,8 +186,10 @@ namespace
         int64_t gold;
     };
 
-    struct GoldSystem : public System<Listener<OnClickGainGold>, Listener<OnGoldGain>, StoragePolicy, InitSys>
+    struct GoldSystem : public System<Listener<OnClickGainGold>, Listener<OnGoldGain>, NamedSystem, InitSys, StoragePolicy>
     {
+        virtual std::string getSystemName() const override { return "Gold System"; }
+
         void init() override
         {
             auto sentence = makeSentence(ecsRef, 150, 20, {"0"});
@@ -220,8 +223,10 @@ namespace
 
     struct BuyFactory { };
 
-    struct FactorySystem : public System<Listener<BuyFactory>, Listener<TickEvent>, StoragePolicy>
+    struct FactorySystem : public System<Listener<BuyFactory>, Listener<TickEvent>, NamedSystem, StoragePolicy>
     {
+        virtual std::string getSystemName() const override { return "Factory System"; }
+
         void onEvent(const BuyFactory&) override
         {
             LOG_THIS_MEMBER("FactorySystem");

@@ -40,6 +40,11 @@ namespace pg
         virtual void init() = 0;
     };
 
+    struct NamedSystem
+    {
+        virtual std::string getSystemName() const = 0;
+    };
+
     /**
      * @brief Abstract representation of a system
      */
@@ -61,6 +66,8 @@ namespace pg
         ComponentRegistry *registry = nullptr;
 
         _unique_id id;
+
+        std::string name = "Unnamed";
 
         // Todo make function onAdd and onDelete of a component that default to nothing if not used
     };
@@ -168,6 +175,18 @@ namespace pg
         }
 
         system->setPolicy(ExecutionPolicy::Independent);
+        
+        registerComponents(system, registry, comps...);
+    }
+
+    template <typename... Comps, typename Sys>
+    void registerComponents(Sys *system, ComponentRegistry *registry, const tag<NamedSystem>&, const Comps&... comps)
+    {
+        LOG_THIS("System");
+        
+        LOG_INFO("System", "Naming the system, system id [" << system->id << "] get name: " << system->getSystemName());
+
+        system->name = system->getSystemName();
         
         registerComponents(system, registry, comps...);
     }

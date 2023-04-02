@@ -115,7 +115,7 @@ namespace pg
             }
         }
 
-        bool hasGroup(_unique_id groupId) const
+        inline bool hasGroup(_unique_id groupId) const
         {
             return groupStorageMap.count(groupId) > 0;
         }
@@ -176,9 +176,11 @@ namespace pg
             
             // Todo add a variable to keep track of the running state of the ECS
             if(not idMap[this])
+            {
                 idMap[this] = idGenerator.generateId();
 
-            LOG_INFO("Component Registry", "Type: " << typeid(Type).name() << ", get id: " << idMap[this]);
+                LOG_INFO("Component Registry", "Type: " << typeid(Type).name() << ", get id: " << idMap[this]);
+            }
 
             return idMap[this];
             
@@ -187,7 +189,7 @@ namespace pg
             // return id;
         }
 
-        void detachComponentFromEntity(Entity* entity, _unique_id id) const
+        inline void detachComponentFromEntity(Entity* entity, _unique_id id) const
         {
             componentDeleteMap.at(id)(entity);
         }

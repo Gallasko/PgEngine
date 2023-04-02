@@ -11,6 +11,8 @@
 #include "system.h"
 #include "commanddispatcher.h"
 
+#include "serialization.h"
+
 #include "logger.h"
 #include "Memory/memorypool.h"
 
@@ -191,6 +193,8 @@ namespace pg
 
         inline void dumbTaskflow() const
         {
+            LOG_THIS_MEMBER("ECS");
+
             taskflow.dump(std::cout);
         }
 
@@ -258,10 +262,10 @@ namespace pg
         }
 
         template <typename Event>
-        inline void sendEvent(const Event& event) { registry.processEvent(event); }
+        inline void sendEvent(const Event& event) { LOG_THIS_MEMBER("ECS"); registry.processEvent(event); }
 
         template <typename Comp>
-        inline const _unique_id& getId() const noexcept { return registry.getTypeId<Comp>(); }
+        inline const _unique_id& getId() const noexcept { LOG_THIS_MEMBER("ECS"); return registry.getTypeId<Comp>(); }
 
         void executeAll();
 
@@ -270,14 +274,16 @@ namespace pg
         /** Return the registry of the ECS, mainly for testing purposes */
         inline constexpr const ComponentRegistry* getComponentRegistry() const noexcept { return &registry; }
 
-        inline size_t getNbEntities() const { return entityPool.nbElements() - 1; }
+        inline size_t getNbEntities() const { LOG_THIS_MEMBER("ECS"); return entityPool.nbElements() - 1; }
 
-        inline Entity* getEntity(_unique_id id) const { return entityPool.atEntity(id); }
+        inline Entity* getEntity(_unique_id id) const { LOG_THIS_MEMBER("ECS"); return entityPool.atEntity(id); }
 
         template <typename Comp>
-        inline Comp* getComponent(_unique_id id) const { return registry.retrieve<Comp>()->getComponent(id); }
+        inline Comp* getComponent(_unique_id id) const { LOG_THIS_MEMBER("ECS"); return registry.retrieve<Comp>()->getComponent(id); }
 
     private:
+        friend void serialize<>(Archive& archive, const EntitySystem& ecs);
+
         void addEntityToPool(Entity* entity)
         {
             LOG_THIS_MEMBER("ECS");
@@ -364,7 +370,7 @@ namespace pg
     template <typename Comp>
     inline bool Entity::has() const noexcept
     {
-        LOG_THIS("Entity");
+        LOG_THIS_MEMBER("Entity");
 
         if(not ecsRef)
         {
@@ -381,7 +387,7 @@ namespace pg
     template <typename Comp>
     inline CompRef<Comp> Entity::get() noexcept
     {
-        LOG_THIS("Entity");
+        LOG_THIS_MEMBER("Entity");
 
         if(not ecsRef)
         {
@@ -407,7 +413,7 @@ namespace pg
     template <typename Comp>
     void CompRef<Comp>::operator=(const CompRef& rhs)
     {
-        LOG_THIS("Comp ref");
+        LOG_THIS_MEMBER("Comp ref");
 
         ecsRef      = rhs.ecsRef;
         entityId    = rhs.entityId;
@@ -440,6 +446,8 @@ namespace pg
     template <typename Comp>
     Comp* CompRef<Comp>::operator->() const
     {
+        LOG_THIS_MEMBER("Comp ref");
+
         if (initialized)
             return ecsRef->getComponent<Comp>(entityId);
         else
@@ -449,6 +457,8 @@ namespace pg
     template <typename Comp>
     CompRef<Comp>::operator Comp*() const
     {
+        LOG_THIS_MEMBER("Comp ref");
+
         if (initialized)
             return ecsRef->getComponent<Comp>(entityId);
         else
@@ -540,6 +550,8 @@ namespace pg
     template <typename Type>
     void CommandDispatcher::ComponentCommand::setupFunctions()
     {
+        LOG_THIS_MEMBER("Command Dispatcher");
+
         struct Delegate : public ComponentCommand::ComponentCommand::Storage, public Type {};
 
         addInEcs = [](EntitySystem* ecs, Storage* component) { ecs->addComponentToPool(static_cast<Type*>(static_cast<Delegate*>(component))); };
