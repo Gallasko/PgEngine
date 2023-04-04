@@ -10,7 +10,7 @@ namespace pg
     {
     }
 
-    bool operator<(const MouseClickSystem::MouseAreaZ& lhs, const MouseClickSystem::MouseAreaZ& rhs)
+    bool operator<(const MouseAreaZ& lhs, const MouseAreaZ& rhs)
     {
         const auto& z = lhs.ui->pos.z;
         const auto& rhsZ = rhs.ui->pos.z;
@@ -21,7 +21,7 @@ namespace pg
             return z < rhsZ;
     }
 
-    bool operator>(const MouseClickSystem::MouseAreaZ& lhs, const MouseClickSystem::MouseAreaZ& rhs)
+    bool operator>(const MouseAreaZ& lhs, const MouseAreaZ& rhs)
     {
         const auto& z = lhs.ui->pos.z;
         const auto& rhsZ = rhs.ui->pos.z;

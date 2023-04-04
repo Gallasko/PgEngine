@@ -20,6 +20,8 @@
 #include "Editor/Gui/contextmenu.h"
 #include "Editor/Gui/optiontab.h"
 
+#include "GameElements/Systems/basicsystems.h"
+
 // TODO create a find function in ECS
 
 namespace
@@ -28,236 +30,23 @@ namespace
 
     struct SceneElement
     {
-        SceneElement(_unique_id id) : id(id) {}
+        SceneElement(Entity *entity) : entity(entity) {}
 
-        _unique_id id;
-
-        // UiComponent *component;
-
-        /** Store a reference to the mouse area for delete purpose */
-        // Button *mouseArea;
+        Entity *entity;
     };
 
     // Todo objectiv with system implementation
     // struct SceneElementSystem : public System<Policy<ExecutionPolicy::Manual>, Own<SceneElement>, Need<MasterRenderer>, Talk<SceneSystem>>
-    struct SceneElementSystem : public System<Own<SceneElement>>
+    struct SceneElementSystem : public System<Own<SceneElement>, StoragePolicy>
     {
-        SceneElementSystem(MasterRenderer* masterRenderer) : masterRenderer(masterRenderer)
+        SceneElementSystem() {}
+        
+        template <typename Type, typename... Args>
+        void addComponent(SceneElement *element, Args... args)
         {
-            setPolicy(ExecutionPolicy::Manual);
+            ecsRef->attach<Type>(element->entity, std::forward<Args>(args)...);
         }
-
-        virtual void execute()
-        {
-            // parallelExecute(view<SceneElement>(), executeSceneElement, masterRenderer);
-
-            for(const auto& element : view<SceneElement>())
-            {
-                // if(element->component != nullptr)
-                //     element->component->render(masterRenderer);
-            }
-        }
-
-        MasterRenderer *masterRenderer;
     };
-
-    // Todo add all the logger thing to all those systems and doc too
-    struct TickEvent
-    {
-        TickEvent(size_t duration) : tick(duration) {}
-
-        size_t tick;
-    };
-
-    struct TickingSystem : public System<NamedSystem>
-    {
-        TickingSystem(size_t duration = 40) : tickDuration(duration)
-        { 
-            LOG_THIS_MEMBER("Ticking System");
-            
-            // Todo replace QDateTime with std::chrono
-            // firstTickTime = std::chrono::high_resolution_clock::now();
-            firstTickTime = QDateTime::currentMSecsSinceEpoch();
-            secondTickTime = QDateTime::currentMSecsSinceEpoch();
-        }
-
-        ~TickingSystem() { LOG_THIS_MEMBER("Ticking System"); stop(); }
-
-        virtual std::string getSystemName() const override { return "Ticking System"; }
-
-        inline void stop()
-        {
-            LOG_THIS_MEMBER("Ticking System");
-
-            LOG_INFO("Ticking System", "Ticking system stopping ...");
-
-            paused = false;
-        }
-
-        inline void pause()
-        {
-            LOG_THIS_MEMBER("Ticking System");
-
-            paused = true;
-        }
-
-        inline void resume()
-        {
-            LOG_THIS_MEMBER("Ticking System");
-
-            firstTickTime = QDateTime::currentMSecsSinceEpoch();
-            secondTickTime = QDateTime::currentMSecsSinceEpoch();
-
-            paused = false;
-        }
-
-        virtual void execute()
-        {
-            LOG_THIS_MEMBER("Ticking System");
-
-            secondTickTime = QDateTime::currentMSecsSinceEpoch();
-            
-            while(not paused and ((secondTickTime - firstTickTime) >= static_cast<qint64>(tickDuration)))
-            {
-                firstTickTime += tickDuration;
-
-                ecsRef->sendEvent(TickEvent{tickDuration});
-            }
-        }
-
-        size_t tickDuration;
-
-        // Todo change qint64 with std::chrono
-        // std::chrono::high_resolution_clock::time_point firstTickTime, secondTickTime; 
-        qint64 firstTickTime, secondTickTime; 
-        bool paused = false;
-    };
-
-    struct FpsSystem : public System<Listener<TickEvent>, NamedSystem, InitSys, StoragePolicy>
-    {
-        virtual std::string getSystemName() const override { return "Fps System"; }
-
-        void init() override
-        {
-            auto sentence = makeSentence(ecsRef, 0, 0, {"0"});
-
-            fpsTextId = sentence.entity.id;
-        }
-
-        void onEvent(const TickEvent& event) override
-        {
-            LOG_THIS_MEMBER("FactorySystem");
-
-            accumulatedTick += event.tick;
-
-            if (accumulatedTick >= 1000)
-            {
-                accumulatedTick %= 1000;
-
-                auto rendererSys = ecsRef->getSystem<MasterRenderer>();
-
-                if (not rendererSys)
-                    return;
-
-                auto currentNbOfFrames = rendererSys->nbRenderedFrames;
-
-                auto res = currentNbOfFrames - lastNbOfFrames;
-
-                auto fpsStr = Strfy() << res;
-
-                lastNbOfFrames = currentNbOfFrames;
-
-                // Print FPS
-                ecsRef->sendEvent(OnTextChanged{fpsTextId, fpsStr.getData()});
-            }
-        }
-
-        _unique_id fpsTextId;
-        size_t accumulatedTick = 0;
-        size_t lastNbOfFrames = 0;
-    };
-
-    struct OnClickGainGold { };
-
-    struct OnGoldGain
-    {
-        OnGoldGain(int64_t gold) : gold(gold) {}
-
-        int64_t gold;
-    };
-
-    struct GoldSystem : public System<Listener<OnClickGainGold>, Listener<OnGoldGain>, NamedSystem, InitSys, StoragePolicy>
-    {
-        virtual std::string getSystemName() const override { return "Gold System"; }
-
-        void init() override
-        {
-            auto sentence = makeSentence(ecsRef, 150, 20, {"0"});
-
-            goldTextId = sentence.entity.id;
-        }
-
-        void onEvent(const OnClickGainGold&) override
-        {
-            this->gold += clickPower;
-
-            auto goldStr = Strfy() << this->gold.load();
-
-            ecsRef->sendEvent(OnTextChanged{goldTextId, goldStr.getData()});
-        }
-
-        void onEvent(const OnGoldGain& event) override
-        {
-            this->gold += event.gold;
-
-            auto goldStr = Strfy() << this->gold.load();
-
-            ecsRef->sendEvent(OnTextChanged{goldTextId, goldStr.getData()});
-        }
-
-        int64_t clickPower = 1;
-
-        std::atomic<int64_t> gold {0};
-        _unique_id goldTextId;
-    };
-
-    struct BuyFactory { };
-
-    struct FactorySystem : public System<Listener<BuyFactory>, Listener<TickEvent>, NamedSystem, StoragePolicy>
-    {
-        virtual std::string getSystemName() const override { return "Factory System"; }
-
-        void onEvent(const BuyFactory&) override
-        {
-            LOG_THIS_MEMBER("FactorySystem");
-
-            LOG_INFO("FactorySystem", "Bought a new factory");
-            nbFactory += 1;
-        }
-
-        void onEvent(const TickEvent& event) override
-        {
-            LOG_THIS_MEMBER("FactorySystem");
-
-            accumulatedTick += event.tick;
-
-            while (accumulatedTick >= factoryProdDuration)
-            {
-                LOG_INFO("FactorySystem", "Factory produced gold");
-
-                accumulatedTick -= factoryProdDuration;
-
-                ecsRef->sendEvent(OnGoldGain{static_cast<int64_t>(nbFactory * factoryProdValue)});
-            }
-        }
-
-        size_t accumulatedTick = 0;
-
-        size_t nbFactory = 0;
-        size_t factoryProdDuration = 1000;
-        size_t factoryProdValue = 1;
-    };
-
 }
 
 EditorWindow::EditorWindow(QWindow *parent) : QWindow(parent)
@@ -305,7 +94,7 @@ void EditorWindow::initialize()
     ecs.createSystem<TextureComponentSystem>();
     // sceneEcs.createSystem<SceneElementSystem>(masterRenderer); 
 
-    ecs.createSystem<MouseClickSystem>(inputHandler);
+    ecs.createSystem<MouseLeftClickSystem>(inputHandler);
 
     masterRenderer = ecs.createSystem<MasterRenderer>();
 
@@ -357,13 +146,15 @@ void EditorWindow::initialize()
 
     ecs.createSystem<FactorySystem>();
 
+    ecs.createSystem<SceneElementSystem>();
+
     // Ecs task parenting
 
     // ecs.succeed<GoldSystem, FactorySystem>();
     // ecs.succeed<SentenceSystem, GoldSystem>();
-    ecs.succeed<MouseClickSystem, TickingSystem>();
+    ecs.succeed<MouseLeftClickSystem, TickingSystem>();
 
-    ecs.succeed<MasterRenderer, MouseClickSystem>();
+    ecs.succeed<MasterRenderer, MouseLeftClickSystem>();
 
     ecs.dumbTaskflow();
 
@@ -438,8 +229,8 @@ void EditorWindow::initialize()
 
     // auto testingString = "Testing";
 
-    // ecs.attach<MouseClickComponent>(sceneEntity, makeCallable<LogInfoEvent>(testingString, "Clicked on component"));
-    ecs.attach<MouseClickComponent>(sceneEntity, makeCallable<OnClickGainGold>());
+    // ecs.attach<MouseLeftClickComponent>(sceneEntity, makeCallable<LogInfoEvent>(testingString, "Clicked on component"));
+    ecs.attach<MouseLeftClickComponent>(sceneEntity, makeCallable<OnClickGainGold>());
 
     auto factoryCreationList = makeUiTexture(&ecs, 64, 32, "frame");
     auto factoryCreationListEntity = factoryCreationList.entity;
@@ -448,7 +239,7 @@ void EditorWindow::initialize()
     factoryCreationListPos->setBottomAnchor(screenUi->bottom);
     factoryCreationListPos->setLeftAnchor(screenUi->left);
 
-    ecs.attach<MouseClickComponent>(factoryCreationListEntity, makeCallable<BuyFactory>());
+    ecs.attach<MouseLeftClickComponent>(factoryCreationListEntity, makeCallable<BuyFactory>());
 
     // ecs.attach<SentenceText>(sceneEntity, "Hello there !");
 
@@ -751,7 +542,7 @@ void EditorWindow::addElement(const UiComponentType& type)
         break;
     }
 
-    sceneEcs.attach<SceneElement>(ent, index, component, mouseArea);
+    // sceneEcs.attach<SceneElement>(ent, index, component, mouseArea);
     index++;
 
     contextMenu->hide();

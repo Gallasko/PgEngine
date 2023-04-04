@@ -13,41 +13,41 @@
 
 namespace pg
 {
-    struct MouseClickComponent
+    struct MouseLeftClickComponent
     {
-        MouseClickComponent(std::shared_ptr<AbstractCallable> callback) : callback(callback) { LOG_THIS_MEMBER("MouseClickSystem"); }
-        MouseClickComponent(const MouseClickComponent& rhs) : callback(rhs.callback) { LOG_THIS_MEMBER("MouseClickSystem"); }
-        virtual ~MouseClickComponent() { LOG_THIS_MEMBER("MouseClickSystem");}
+        MouseLeftClickComponent(std::shared_ptr<AbstractCallable> callback) : callback(callback) { LOG_THIS_MEMBER("MouseLeftClickSystem"); }
+        MouseLeftClickComponent(const MouseLeftClickComponent& rhs) : callback(rhs.callback) { LOG_THIS_MEMBER("MouseLeftClickSystem"); }
+        virtual ~MouseLeftClickComponent() { LOG_THIS_MEMBER("MouseLeftClickSystem");}
 
         std::shared_ptr<AbstractCallable> callback;
 
-        // std::function<void(Input*, double)> callback = [](Input*, double){ LOG_ERROR("MouseClickSystem", "Trying to call a empty Mouse Click Component !"); };
+        // std::function<void(Input*, double)> callback = [](Input*, double){ LOG_ERROR("MouseLeftClickSystem", "Trying to call a empty Mouse Click Component !"); };
     };
 
-    struct MouseClickSystem : public System<Own<MouseClickComponent>, NamedSystem, InitSys>
+    struct MouseAreaZ
     {
-        struct MouseAreaZ
-        {
-            MouseAreaZ(_unique_id id, CompRef<UiComponent> ui) : id(id), ui(ui) { LOG_THIS_MEMBER("MouseClickSystem"); }
+        MouseAreaZ(_unique_id id, CompRef<UiComponent> ui) : id(id), ui(ui) { LOG_THIS_MEMBER("MouseLeftClickSystem"); }
 
-            _unique_id id;
-            CompRef<UiComponent> ui;
-        };
+        _unique_id id;
+        CompRef<UiComponent> ui;
+    };
 
-        MouseClickSystem(Input* inputHandler) : inputHandler(inputHandler) { LOG_THIS_MEMBER("MouseClickSystem"); }
+    struct MouseLeftClickSystem : public System<Own<MouseLeftClickComponent>, NamedSystem, InitSys>
+    {
+        MouseLeftClickSystem(Input* inputHandler) : inputHandler(inputHandler) { LOG_THIS_MEMBER("MouseLeftClickSystem"); }
 
         virtual std::string getSystemName() const override { return "Mouse Click System"; }
 
         void init() override
         {
-            LOG_THIS_MEMBER("MouseClickSystem");
+            LOG_THIS_MEMBER("MouseLeftClickSystem");
 
-            auto group = registerGroup<UiComponent, MouseClickComponent>();
+            auto group = registerGroup<UiComponent, MouseLeftClickComponent>();
 
             group->addOnGroup([](Entity *entity) {
-                LOG_MILE("MouseClickSystem", "Add entity " << entity->id << " to ui - mouse click group !");
+                LOG_MILE("MouseLeftClickSystem", "Add entity " << entity->id << " to ui - mouse click group !");
 
-                auto sys = entity->world()->getSystem<MouseClickSystem>();
+                auto sys = entity->world()->getSystem<MouseLeftClickSystem>();
 
                 const auto& ui = entity->get<UiComponent>();
                 
@@ -57,7 +57,7 @@ namespace pg
 
         void execute() override
         {
-            LOG_THIS_MEMBER("MouseClickSystem");
+            LOG_THIS_MEMBER("MouseLeftClickSystem");
 
             int highestZ = INT_MIN;
             const auto& mousePos = inputHandler->getMousePos();
@@ -87,8 +87,6 @@ namespace pg
                             auto comp = getComponent(mouseArea.id);
 
                             comp->callback->call(world());
-
-                            // comp->callback(inputHandler, inputHandler->updateTime);
                         }
                     }
                 }
@@ -102,8 +100,8 @@ namespace pg
         std::set<MouseAreaZ, std::greater<>> mouseAreaHolder;
     };
 
-    bool operator<(const MouseClickSystem::MouseAreaZ& lhs, const MouseClickSystem::MouseAreaZ& rhs);
-    bool operator>(const MouseClickSystem::MouseAreaZ& lhs, const MouseClickSystem::MouseAreaZ& rhs);
+    bool operator<(const MouseAreaZ& lhs, const MouseAreaZ& rhs);
+    bool operator>(const MouseAreaZ& lhs, const MouseAreaZ& rhs);
 
     struct MouseInputComponent
     {

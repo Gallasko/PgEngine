@@ -61,6 +61,9 @@ namespace pg
             currentIndex -= 1;
             return getPos(elapsedTime);
         }
+
+        // Todo Error should never arrive here
+        return UiPosition();
     }
 
     std::vector<AnimationComponent*> AnimationComponent::runningQueue;
