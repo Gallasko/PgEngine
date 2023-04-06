@@ -20,13 +20,20 @@ namespace pg
         virtual ~MouseLeftClickComponent() { LOG_THIS_MEMBER("MouseLeftClickSystem");}
 
         std::shared_ptr<AbstractCallable> callback;
+    };
 
-        // std::function<void(Input*, double)> callback = [](Input*, double){ LOG_ERROR("MouseLeftClickSystem", "Trying to call a empty Mouse Click Component !"); };
+    struct MouseRightClickComponent
+    {
+        MouseRightClickComponent(std::shared_ptr<AbstractCallable> callback) : callback(callback) { LOG_THIS_MEMBER("MouseRightClickSystem"); }
+        MouseRightClickComponent(const MouseRightClickComponent& rhs) : callback(rhs.callback) { LOG_THIS_MEMBER("MouseRightClickSystem"); }
+        virtual ~MouseRightClickComponent() { LOG_THIS_MEMBER("MouseRightClickSystem");}
+
+        std::shared_ptr<AbstractCallable> callback;
     };
 
     struct MouseAreaZ
     {
-        MouseAreaZ(_unique_id id, CompRef<UiComponent> ui) : id(id), ui(ui) { LOG_THIS_MEMBER("MouseLeftClickSystem"); }
+        MouseAreaZ(_unique_id id, CompRef<UiComponent> ui) : id(id), ui(ui) { LOG_THIS_MEMBER("MouseArea"); }
 
         _unique_id id;
         CompRef<UiComponent> ui;
@@ -36,7 +43,7 @@ namespace pg
     {
         MouseLeftClickSystem(Input* inputHandler) : inputHandler(inputHandler) { LOG_THIS_MEMBER("MouseLeftClickSystem"); }
 
-        virtual std::string getSystemName() const override { return "Mouse Click System"; }
+        virtual std::string getSystemName() const override { return "Mouse Left Click System"; }
 
         void init() override
         {
@@ -45,7 +52,7 @@ namespace pg
             auto group = registerGroup<UiComponent, MouseLeftClickComponent>();
 
             group->addOnGroup([](Entity *entity) {
-                LOG_MILE("MouseLeftClickSystem", "Add entity " << entity->id << " to ui - mouse click group !");
+                LOG_MILE("MouseLeftClickSystem", "Add entity " << entity->id << " to ui - mouse left click group !");
 
                 auto sys = entity->world()->getSystem<MouseLeftClickSystem>();
 
@@ -70,6 +77,74 @@ namespace pg
             }
 
             if(not inputHandler->isButtonPressed(Qt::LeftButton))
+            {
+                if(pressed)
+                {
+                    for(const auto& mouseArea : mouseAreaHolder)
+                    {
+                        UiComponent *ui = mouseArea.ui;
+
+                        if(ui->pos.z < highestZ)
+                            break;
+
+                        if(ui->inBound(mousePos.x(), mousePos.y()) && ui->isVisible())
+                        {
+                            highestZ = static_cast<UiSize>(ui->pos.z);
+
+                            auto comp = getComponent(mouseArea.id);
+
+                            comp->callback->call(world());
+                        }
+                    }
+                }
+
+                pressed = false;
+            }
+            
+        }
+
+        Input *inputHandler;
+        std::set<MouseAreaZ, std::greater<>> mouseAreaHolder;
+    };
+
+    struct MouseRightClickSystem : public System<Own<MouseRightClickComponent>, NamedSystem, InitSys>
+    {
+        MouseRightClickSystem(Input* inputHandler) : inputHandler(inputHandler) { LOG_THIS_MEMBER("MouseRightClickSystem"); }
+
+        virtual std::string getSystemName() const override { return "Mouse Right Click System"; }
+
+        void init() override
+        {
+            LOG_THIS_MEMBER("MouseRightClickSystem");
+
+            auto group = registerGroup<UiComponent, MouseRightClickComponent>();
+
+            group->addOnGroup([](Entity *entity) {
+                LOG_MILE("MouseRightClickSystem", "Add entity " << entity->id << " to ui - mouse right click group !");
+
+                auto sys = entity->world()->getSystem<MouseRightClickSystem>();
+
+                const auto& ui = entity->get<UiComponent>();
+                
+                sys->mouseAreaHolder.emplace(entity->id, ui);
+            });
+        }
+
+        void execute() override
+        {
+            LOG_THIS_MEMBER("MouseRightClickSystem");
+
+            int highestZ = INT_MIN;
+            const auto& mousePos = inputHandler->getMousePos();
+
+            static bool pressed = false;
+
+            if(inputHandler->isButtonPressed(Qt::RightButton))
+            {
+                pressed = true;
+            }
+
+            if(not inputHandler->isButtonPressed(Qt::RightButton))
             {
                 if(pressed)
                 {

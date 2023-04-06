@@ -17,7 +17,9 @@ namespace pg
     {
         class Vector2D;
     }
+
     class MasterRenderer;
+    class UiComponentSystem;
 
     /**
      * @class UiComponent
@@ -28,6 +30,8 @@ namespace pg
      */
     class UiComponent : public Ctor
     {
+        friend class UiComponentSystem;
+
         // Type definition
     private:
         // Todo use this struct instead of a plain uisize to avoid possible problems with user
@@ -122,6 +126,10 @@ namespace pg
          */
         virtual void onCreation(Entity* entity) override
         {
+            ecsRef = entity->world();
+
+            entityId = entity->id;
+
             top.id    = entity->id;
             right.id  = entity->id;
             bottom.id = entity->id;
@@ -198,26 +206,78 @@ namespace pg
         const UiAnchor* bottomAnchor = nullptr;
         /** Pointer to the left attached anchor */
         const UiAnchor* leftAnchor   = nullptr;
+
+        EntitySystem* ecsRef = nullptr;
+
+        _unique_id entityId = 0;
     };
+
+    struct UiComponentInternalChangeEvent {};
 
     struct UiComponentChangeEvent
     {
-
+        _unique_id id;
+        UiComponent *component;
     };
 
-    struct UiComponentSystem : public System<Own<UiComponent>, Listener<UiComponentChangeEvent>, NamedSystem, StoragePolicy>
+    struct UiComponentSystem : public System<Own<UiComponent>, Listener<UiComponentInternalChangeEvent>, NamedSystem>
     {
+        struct UiOldValue
+        {
+            float x = 0.0f, y = 0.0f, z = 0.0f, w = 0.0f, h = 0.0f;
+
+            inline void operator=(const UiComponent& comp)
+            {
+                x = static_cast<UiSize>(comp.pos.x); 
+                y = static_cast<UiSize>(comp.pos.y);
+                z = static_cast<UiSize>(comp.pos.z);
+                w = comp.width;
+                h = comp.height;
+            }
+
+            inline bool isEqual(const UiComponent& comp) const
+            { 
+                return comp.pos.x == x and
+                       comp.pos.y == y and
+                       comp.pos.z == z and
+                       comp.width == w and
+                       comp.height == h; 
+            } 
+        };
+
         UiComponentSystem() {}
 
         virtual std::string getSystemName() const override { return "Ui System"; }
 
-        virtual void onEvent(const UiComponentChangeEvent&) override
-        {
+        // Set updated to true on add also !
 
+        virtual void onEvent(const UiComponentInternalChangeEvent&) override
+        {
+            updated = true;
         }
+
+        virtual void execute() override
+        {
+            if(updated)
+            {
+                for(auto comp : view<UiComponent>())
+                {
+                    if(not oldMap[comp->entityId].isEqual(*comp))
+                    {
+                        oldMap[comp->entityId] = *comp;
+                        ecsRef->sendEvent(UiComponentChangeEvent{comp->entityId, comp});
+                    }
+                }
+
+                updated = false;
+            }
+        }
+
+        std::unordered_map<_unique_id, UiOldValue> oldMap;
+
+        bool updated = false;
     };
 
-    //TODO Copy Constructor
     template <typename LoaderId> 
     struct LoaderRenderComponent : public UiComponent
     {

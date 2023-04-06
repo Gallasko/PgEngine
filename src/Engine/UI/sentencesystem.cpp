@@ -397,6 +397,45 @@ namespace pg
         sys->changed = true;
     }
 
+    void SentenceSystem::onEvent(const UiComponentChangeEvent& event)
+    {
+        auto entity = ecsRef->getEntity(event.id);
+
+        if(not entity->has<SentenceText>())
+            return;
+
+        auto ui = entity->get<UiComponent>();
+
+        // Todo check if the entity has a sentence text before trying to modify it
+        auto sentence = entity->get<SentenceText>();
+
+        auto sys = entity->world()->getSystem<MasterRenderer>();
+
+        auto mesh = sys->meshBuilder.getSentenceMesh(ui->width, ui->height, *sentence, font);
+
+        auto rTex = RenderableTexture{event.id, ui, mesh};
+
+        LOG_MILE("Sentence Component System", "Modification of id: " << entity->id << " sentence");
+
+        std::lock_guard<std::mutex> lock (sys->modificationMutex);
+
+        auto first = sys->tempRenderList["text"]["font"].begin();
+        auto last = sys->tempRenderList["text"]["font"].end();
+
+        while (first != last)
+        {
+            if (first->entityId == event.id)
+            {
+                *first = rTex;
+                break;
+            }
+
+            ++first;
+        }
+
+        sys->changed = true;
+    }
+
     /** Helper that create an entity with an Ui component and a Texture component */
     CompList<UiComponent, SentenceText> makeSentence(EntitySystem *ecs, float x, float y, const SentenceText& text)
     {

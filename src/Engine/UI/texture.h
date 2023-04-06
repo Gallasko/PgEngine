@@ -37,13 +37,15 @@ namespace pg
         Entity *entity = nullptr;
     };
 
-    struct TextureComponentSystem : public System<Own<TextureComponent>, Ref<UiComponent>, NamedSystem, InitSys, StoragePolicy>
+    struct TextureComponentSystem : public System<Own<TextureComponent>, Listener<UiComponentChangeEvent>, Ref<UiComponent>, NamedSystem, InitSys, StoragePolicy>
     {
         TextureComponentSystem() { }
 
         virtual std::string getSystemName() const override { return "Texture System"; }
 
         virtual void init() override;
+
+        virtual void onEvent(const UiComponentChangeEvent& event) override;
     };
 
     /** Helper that create an entity with an Ui component and a Texture component */

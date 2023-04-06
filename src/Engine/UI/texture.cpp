@@ -66,6 +66,47 @@ namespace pg
         });
     }
 
+    void TextureComponentSystem::onEvent(const UiComponentChangeEvent& event)
+    {
+        auto entity = ecsRef->getEntity(event.id);
+
+        if(not entity->has<TextureComponent>())
+            return;
+
+        auto ui = entity->get<UiComponent>();
+
+        // Todo check if the entity has a sentence text before trying to modify it
+        auto tex = entity->get<TextureComponent>();
+
+        auto tName = tex->textureName;
+
+        auto sys = entity->world()->getSystem<MasterRenderer>();
+
+        auto mesh = sys->meshBuilder.getTextureMesh(ui->width, ui->height, tName);
+
+        auto rTex = RenderableTexture{event.id, ui, mesh};
+
+        LOG_MILE("Texture Component System", "Modification of id: " << entity->id << " texture");
+
+        std::lock_guard<std::mutex> lock (sys->modificationMutex);
+
+        auto first = sys->tempRenderList["default"][tName].begin();
+        auto last = sys->tempRenderList["default"][tName].end();
+
+        while (first != last)
+        {
+            if (first->entityId == event.id)
+            {
+                *first = rTex;
+                break;
+            }
+
+            ++first;
+        }
+
+        sys->changed = true;
+    }
+
     CompList<UiComponent, TextureComponent> makeUiTexture(EntitySystem *ecs, float width, float height, const std::string& name)
     {
         auto entity = ecs->createEntity();

@@ -400,5 +400,8 @@ namespace pg
         {
             this->pos.x = leftAnchor->anchorPoint + leftMargin;
         }
+
+        if(ecsRef)
+            ecsRef->sendEvent(UiComponentInternalChangeEvent{});
     }
 }

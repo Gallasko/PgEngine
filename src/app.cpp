@@ -44,6 +44,7 @@ namespace
         template <typename Type, typename... Args>
         void addComponent(SceneElement *element, Args... args)
         {
+            // Todo disable every thing on the entity except Rendering to not update the scene element during editing !
             ecsRef->attach<Type>(element->entity, std::forward<Args>(args)...);
         }
     };
@@ -95,6 +96,7 @@ void EditorWindow::initialize()
     // sceneEcs.createSystem<SceneElementSystem>(masterRenderer); 
 
     ecs.createSystem<MouseLeftClickSystem>(inputHandler);
+    ecs.createSystem<MouseRightClickSystem>(inputHandler);
 
     masterRenderer = ecs.createSystem<MasterRenderer>();
 
@@ -154,6 +156,9 @@ void EditorWindow::initialize()
     // ecs.succeed<SentenceSystem, GoldSystem>();
     ecs.succeed<MouseLeftClickSystem, TickingSystem>();
 
+    ecs.succeed<MasterRenderer, UiComponentSystem>();
+
+    ecs.succeed<MasterRenderer, MouseRightClickSystem>();
     ecs.succeed<MasterRenderer, MouseLeftClickSystem>();
 
     ecs.dumbTaskflow();
@@ -184,6 +189,14 @@ void EditorWindow::initialize()
     // optionTab->setTopAnchor(screenUi->top);
     // optionTab->setRightAnchor(screenUi->right);
     // optionTab->setBottomAnchor(screenUi->bottom);
+
+    auto entityTabEntity = makeUiTexture(&ecs, 300, 200, "TabTexture");
+    auto entityTabEntityUiC = entityTabEntity.get<UiComponent>();
+
+    entityTabEntityUiC->setTopAnchor(screenUi->top);
+    entityTabEntityUiC->setLeftAnchor(screenUi->left);
+    // entityTabEntityUiC->setRightAnchor(screenUi->right);
+    entityTabEntityUiC->setBottomAnchor(screenUi->bottom);
 
     auto sceneEntity = ecs.createEntity();
     sceneEntityC = ecs.attach<UiComponent>(sceneEntity);

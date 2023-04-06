@@ -443,9 +443,14 @@ namespace pg
                 size = value.size;
             }
 
-            bool operator==(const UiPosValue& rhs) const
+            inline bool operator==(const UiPosValue& rhs) const
             {
                 return size == rhs.size;
+            }
+
+            inline bool operator==(float rhs) const
+            {
+                return size == rhs;
             }
 
             bool operator<(const UiPosValue& rhs) const

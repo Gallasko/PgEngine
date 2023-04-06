@@ -75,7 +75,7 @@ namespace pg
         std::string newText;
     };
 
-    struct SentenceSystem : public System<Own<SentenceText>, Ref<UiComponent>, Listener<OnTextChanged>, NamedSystem, InitSys, StoragePolicy>
+    struct SentenceSystem : public System<Own<SentenceText>, Ref<UiComponent>, Listener<OnTextChanged>, Listener<UiComponentChangeEvent>, NamedSystem, InitSys, StoragePolicy>
     {
         SentenceSystem(FontLoader *font) : font(font) { }
 
@@ -83,7 +83,9 @@ namespace pg
 
         virtual void init() override;
 
-        virtual void onEvent(const OnTextChanged& event) override; 
+        virtual void onEvent(const OnTextChanged& event) override;
+
+        virtual void onEvent(const UiComponentChangeEvent& event) override;
 
         FontLoader *font;
     };
