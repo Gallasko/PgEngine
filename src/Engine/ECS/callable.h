@@ -13,6 +13,8 @@ namespace pg
         virtual void call(EntitySystem* const ecsRef) = 0;
     };
 
+    typedef std::shared_ptr<AbstractCallable> CallablePtr;
+
     template<typename Event, typename... Types>
     struct Callable : public AbstractCallable
     {

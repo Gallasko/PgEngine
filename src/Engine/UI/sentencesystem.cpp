@@ -347,7 +347,7 @@ namespace pg
             auto sys = entity->world()->getSystem<MasterRenderer>();
             auto sys2 = entity->world()->getSystem<SentenceSystem>();
 
-            auto mesh = sys->meshBuilder.getSentenceMesh(ui->width, ui->height, *sentence, sys2->font);
+            auto mesh = sys->meshBuilder.getSentenceMesh(*sentence, sys2->font);
 
             auto rTex = RenderableTexture{entity->id, ui, mesh};
 
@@ -372,7 +372,7 @@ namespace pg
 
         auto sys = entity->world()->getSystem<MasterRenderer>();
 
-        auto mesh = sys->meshBuilder.getSentenceMesh(ui->width, ui->height, *sentence, font);
+        auto mesh = sys->meshBuilder.getSentenceMesh(*sentence, font);
 
         auto rTex = RenderableTexture{event.entityId, ui, mesh};
 
@@ -411,7 +411,7 @@ namespace pg
 
         auto sys = entity->world()->getSystem<MasterRenderer>();
 
-        auto mesh = sys->meshBuilder.getSentenceMesh(ui->width, ui->height, *sentence, font);
+        auto mesh = sys->meshBuilder.getSentenceMesh(*sentence, font);
 
         auto rTex = RenderableTexture{event.id, ui, mesh};
 

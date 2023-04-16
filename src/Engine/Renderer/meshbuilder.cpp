@@ -125,11 +125,12 @@ namespace pg
         return MeshRef{this, meshName};
     }
 
-    MeshBuilder::MeshRef MeshBuilder::getSentenceMesh(float width, float height, SentenceText& sentence, FontLoader *font)
+    MeshBuilder::MeshRef MeshBuilder::getSentenceMesh(SentenceText& sentence, FontLoader *font)
     {
         LOG_THIS_MEMBER("MeshBuilder");
 
-        auto meshName = "_sentence_" + sentence.text + "_" + std::to_string(width) + "_" + std::to_string(height);
+        // Todo add font name in mesh name
+        auto meshName = "_sentence_" + sentence.text + "_" + std::to_string(sentence.scale);
 
         LOG_MILE("MeshBuilder", "Creating a new texture mesh: " << meshName);
 
@@ -171,15 +172,15 @@ namespace pg
             // auto h = letter->getHeight() * scale;
             // auto o = letter->getOffset() * scale;
 
-            auto w = letter->getWidth() * 4.0f;
-            auto h = letter->getHeight() * 4.0f;
-            auto o = letter->getOffset() * 4.0f;
+            auto w = letter->getWidth() * sentence.scale;
+            auto h = letter->getHeight() * sentence.scale;
+            auto o = letter->getOffset() * sentence.scale;
 
             if(sentence.outline1.w == 0.0f)
-                outO += 1.0 * 4.0f;
+                outO += 1.0 * sentence.scale;
 
             if(sentence.outline2.w == 0.0f)
-                outO += 1.0 * 4.0f;
+                outO += 1.0 * sentence.scale;
 
             letterModel = letter->getModelInfo();
 
@@ -225,12 +226,12 @@ namespace pg
 
             currentX += w + 1;
 
-            if(h + o > height)
-                height = h + o;
+            if(h + o > sentence.textHeight)
+                sentence.textHeight = h + o;
 
         }
 
-        width = currentX;
+        sentence.textWidth = currentX;
 
         m_meshes.emplace(meshName, mesh);
 

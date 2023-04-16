@@ -62,22 +62,27 @@ namespace pg
 
             struct Storage {};
 
+            ComponentCommand() : component(nullptr), type(ComponentCommandType::creation) {}
+
             template <typename Type>
-            ComponentCommand(Type *component, const ComponentCommandType& type) : type(type)
+            ComponentCommand(EntityRef entity, Type *component, const ComponentCommandType& type) : entity(entity), type(type)
             {
                 struct Delegate : public Storage, public Type {};
 
                 this->component = static_cast<Storage*>(static_cast<Delegate*>(component));
+
+                setupFunctions<Type>();
             }
 
             template <typename Type>
             void setupFunctions();
 
+            EntityRef entity;
             Storage *component;
             ComponentCommandType type;
 
-            void(*addInEcs)(EntitySystem*, Storage* component);
-            void(*deleteComp)(Storage* component);
+            void(*addInEcs)(EntitySystem*, EntityRef, Storage*);
+            void(*deleteComp)(Storage*);
         };
 
     public:
@@ -88,13 +93,13 @@ namespace pg
         void deleteEntity(Entity* entity);
 
         template <typename Type, typename... Args>
-        Type* attachComp(Args&&... args)
+        Type* attachComp(EntityRef entity, Args&&... args)
         {
             LOG_THIS_MEMBER("Command Dispatcher");
 
             auto comp = new Type(std::forward<Args>(args)...);
 
-            if(not componentQueue.enqueue(ComponentCommand{comp, ComponentCommand::ComponentCommandType::creation}))
+            if(not componentQueue.enqueue(ComponentCommand{entity, comp, ComponentCommand::ComponentCommandType::creation}))
             {
                 LOG_ERROR("Command Dispatcher", "Could not enqueue the creation of component " << typeid(Type).name());
                 return nullptr;

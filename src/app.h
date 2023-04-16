@@ -39,6 +39,7 @@ namespace pg
     namespace editor
     {
         class OptionTab;
+        class ContextMenu;
     }
 }
 
@@ -90,9 +91,9 @@ private:
     template <typename SceneElementType>
     void openInOption(UiComponent* component);
 
-    UiComponent *sceneEntityC;
+    CompRef<UiComponent> sceneEntityC;
     editor::OptionTab *optionTab;
-    UiComponent *contextMenu = nullptr;
+    editor::ContextMenu *contextMenu = nullptr;
 
     // Button* b1;
 

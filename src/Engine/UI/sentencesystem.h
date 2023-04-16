@@ -24,17 +24,19 @@ namespace pg
     struct SentenceText
     {
         std::string text = "";
+        float scale = 2.0f;
         constant::Vector4D mainColor = constant::Vector4D(255.0f, 255.0f, 255.0f, 255.0f);
         constant::Vector4D outline1  = constant::Vector4D(  0.0f,   0.0f,   0.0f, 205.0f);
         constant::Vector4D outline2  = constant::Vector4D(255.0f, 255.0f, 255.0f, 180.0f);
 
         SentenceEffect effect = SentenceEffect::NOEFFCT;
 
-        float textWidth = 0.0f, textHeight = 0.0f;
+        UiSize textWidth = 0.0f, textHeight = 0.0f;
 
         SentenceText() {}
         SentenceText(const SentenceText& other) : 
             text(other.text),
+            scale(other.scale),
             mainColor(other.mainColor),
             outline1(other.outline1),
             outline2(other.outline2),
@@ -44,12 +46,13 @@ namespace pg
             {}
 
         SentenceText(const std::string& text) : text(text) {}
-        SentenceText(const std::string& text, const constant::Vector4D& color1, const SentenceEffect& effect = SentenceEffect::NOEFFCT) : text(text), mainColor(color1), effect(effect) {}
-        SentenceText(const std::string& text, const constant::Vector4D& color1, const constant::Vector4D& color2, const constant::Vector4D& color3 = constant::Vector4D(255.0f, 255.0f, 255.0f, 180.0f), const SentenceEffect& effect = SentenceEffect::NOEFFCT) : text(text), mainColor(color1), outline1(color2), outline2(color3), effect(effect) {}
+        SentenceText(const std::string& text, float scale, const constant::Vector4D& color1, const SentenceEffect& effect = SentenceEffect::NOEFFCT) : text(text), scale(scale), mainColor(color1), effect(effect) {}
+        SentenceText(const std::string& text, float scale, const constant::Vector4D& color1, const constant::Vector4D& color2, const constant::Vector4D& color3 = constant::Vector4D(255.0f, 255.0f, 255.0f, 180.0f), const SentenceEffect& effect = SentenceEffect::NOEFFCT) : text(text), scale(scale), mainColor(color1), outline1(color2), outline2(color3), effect(effect) {}
 
         inline void operator=(const SentenceText &rhs)
         {
             this->text       = rhs.text;
+            this->scale      = rhs.scale;
             this->mainColor  = rhs.mainColor;
             this->outline1   = rhs.outline1;
             this->outline2   = rhs.outline2;
@@ -60,7 +63,7 @@ namespace pg
 
         inline bool operator==(const SentenceText &rhs) const
         {
-            return this->text == rhs.text && this->mainColor == rhs.mainColor && this->outline1 == rhs.outline1 && this->outline2 == rhs.outline2 && this->effect == rhs.effect;
+            return this->text == rhs.text && this->scale == rhs.scale && this->mainColor == rhs.mainColor && this->outline1 == rhs.outline1 && this->outline2 == rhs.outline2 && this->effect == rhs.effect;
         }
 
         inline bool operator!=(const SentenceText &rhs) const

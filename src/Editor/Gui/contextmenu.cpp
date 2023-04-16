@@ -7,6 +7,7 @@
 #include "UI/button.h"
 #include "UI/texture.h"
 #include "Renderer/renderer.h"
+#include "Scene/scenemanager.h"
 
 namespace pg
 {
@@ -29,10 +30,12 @@ namespace pg
 
 namespace editor
 {
-    ContextMenu::ContextMenu(EntitySystem &ecs, FontLoader *fontLoader, const std::string& textureName, const std::function<void(const UiComponentType&)>& callback) : UiComponent(), callback(callback)
+    ContextMenu::ContextMenu()
     {
-        this->width = 0;
-        this->height = 0;
+        LOG_THIS_MEMBER(DOM);
+
+        // this->width = 0;
+        // this->height = 0;
 
         // [Start] Add Button
 
@@ -168,40 +171,146 @@ namespace editor
 
     ContextMenu::~ContextMenu()
     {
-
+        LOG_THIS_MEMBER(DOM);
     }
 
-    void ContextMenu::render(MasterRenderer* masterRenderer)
+    void ContextMenu::init()
     {
-        renderer(masterRenderer, this);
+        LOG_THIS_MEMBER(DOM);
+
+        parent = ecsRef->createEntity();
+
+        parentUi = ecsRef->attach<UiComponent>(parent);
+
+        ecsRef->attach<MouseLeaveClickComponent>(parent, makeCallable<HideContextMenu>());
+
+        auto backTexture = makeUiTexture(ecsRef, 1, 1, "TabTexture");
+
+        auto background = backTexture.entity;
+
+        backgroundC = backTexture.get<UiComponent>();
+
+        // Todo add a fill in Uicomponent to auto make those !
+        backgroundC->setTopAnchor(parentUi->top);
+        backgroundC->setLeftAnchor(parentUi->left);
+        backgroundC->setBottomAnchor(parentUi->bottom);
+        backgroundC->setRightAnchor(parentUi->right);
+        
+        // Todo move this in the ctor of the Context menu cause it is the only thing preventing 
+        setContextList("Add Sentence",  makeCallable<CreateElement>(UiComponentType::TEXT),
+                       "Add Texture",   makeCallable<CreateElement>(UiComponentType::TEXTURE),
+                       "Add Button",    makeCallable<CreateElement>(UiComponentType::BUTTON),
+                       "Add TextInput", makeCallable<CreateElement>(UiComponentType::TEXTINPUT),
+                       "Add List",      makeCallable<CreateElement>(UiComponentType::LIST),
+                       "Add Prefab",    makeCallable<CreateElement>(UiComponentType::PREFAB));
+
+        hide();
+
+        parentUi->update();
     }
 
-    void ContextMenu::show()
+    void ContextMenu::setContextList(const std::string& text, CallablePtr callable)
     {
-        UiComponent::show();
+        addItemInContextMenu(text, callable);
+    }
 
-        // backgroundTextureC->show();
+    void ContextMenu::addItemInContextMenu(const std::string& text, CallablePtr callable)
+    {
+        auto addItem = makeSentence(ecsRef, 0, 0, {text});
 
-        addButtonButtonC->show();
-        addTextureButtonC->show();
-        addTextButtonC->show();
-        addTextInputButtonC->show();
-        addListButtonC->show();
-        addPrefabButtonC->show();
+        auto addItemEntity = addItem.entity;
+
+        ecsRef->attach<MouseLeftClickComponent>(addItemEntity, callable);
+
+        auto addItemC = addItem.get<UiComponent>();
+
+        if(components.size() > 0)
+            addItemC->setTopAnchor(components.back()->bottom);
+        else
+            addItemC->setTopAnchor(parentUi->top);
+        
+        addItemC->setLeftAnchor(parentUi->left);
+
+        if(addItemC->width > parentUi->width)
+        {
+            parentUi->setWidth(addItemC->width);
+
+            for(auto comp : components)
+            {
+                comp->setWidth(addItemC->width);
+            }
+        }
+
+        parentUi->height += addItemC->height;
+
+        components.push_back(addItemC);
     }
 
     void ContextMenu::hide()
     {
-        UiComponent::hide();
+        LOG_THIS_MEMBER(DOM);
 
-        // backgroundTextureC->hide();
+        parentUi->hide();
 
-        addButtonButtonC->hide();
-        addTextureButtonC->hide();
-        addTextButtonC->hide();
-        addTextInputButtonC->hide();
-        addListButtonC->hide();
-        addPrefabButtonC->hide();
+        backgroundC->hide();
+
+        for(auto comp : components)
+        {
+            comp->hide();
+        }
     }
+
+    void ContextMenu::onEvent(const ShowContextMenu& event)
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        LOG_MILE("Context Menu", "Show context");
+
+        auto pos = event.inputHandler->getMousePos();
+
+        parentUi->show();
+
+        currentX = pos.x();
+        currentY = pos.y();
+
+        // Todo check for width / height overflow 
+
+        parentUi->setX(pos.x());
+        parentUi->setY(pos.y());
+
+        backgroundC->show();
+        
+        for(auto comp : components)
+        {
+            comp->show();
+        }
+    }
+
+    void ContextMenu::onEvent(const HideContextMenu&)
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        LOG_MILE("Context Menu", "Hide context");
+
+        hide();
+    }
+
+    void ContextMenu::onEvent(const CreateElement& event)
+    {
+        switch(event.type)
+        {
+            case UiComponentType::TEXT:
+                    makeSentence(ecsRef, currentX, currentY, {"New Text"});
+                break;
+
+            case UiComponentType::TEXTURE:
+
+                break;
+
+            default:
+                break;
+        }
+    }
+
 }
 }

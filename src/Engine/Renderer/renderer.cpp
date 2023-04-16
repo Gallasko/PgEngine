@@ -61,7 +61,7 @@ namespace pg
                     auto mesh = renderableTexture.meshRef.getMesh();
 
                     if(not ui->isVisible() or not mesh)
-                        break;
+                        continue;
 
                     view.setToIdentity();
                     view.translate(QVector3D(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, 0.0f));

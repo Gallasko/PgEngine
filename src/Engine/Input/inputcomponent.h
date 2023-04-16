@@ -31,6 +31,17 @@ namespace pg
         std::shared_ptr<AbstractCallable> callback;
     };
 
+    struct MouseLeaveClickComponent
+    {
+        MouseLeaveClickComponent(std::shared_ptr<AbstractCallable> callback) : callback(callback) { LOG_THIS_MEMBER("MouseLeaveClickSystem"); }
+        MouseLeaveClickComponent(const MouseLeaveClickComponent& rhs) : callback(rhs.callback) { LOG_THIS_MEMBER("MouseLeaveClickSystem"); }
+        virtual ~MouseLeaveClickComponent() { LOG_THIS_MEMBER("MouseLeaveClickSystem");}
+
+        std::shared_ptr<AbstractCallable> callback;
+    };
+
+    struct OnMouseClick {};
+
     struct MouseAreaZ
     {
         MouseAreaZ(_unique_id id, CompRef<UiComponent> ui) : id(id), ui(ui) { LOG_THIS_MEMBER("MouseArea"); }
@@ -45,7 +56,7 @@ namespace pg
 
         virtual std::string getSystemName() const override { return "Mouse Left Click System"; }
 
-        void init() override
+        virtual void init() override
         {
             LOG_THIS_MEMBER("MouseLeftClickSystem");
 
@@ -62,7 +73,7 @@ namespace pg
             });
         }
 
-        void execute() override
+        virtual void execute() override
         {
             LOG_THIS_MEMBER("MouseLeftClickSystem");
 
@@ -73,6 +84,9 @@ namespace pg
 
             if(inputHandler->isButtonPressed(Qt::LeftButton))
             {
+                if(not pressed)
+                    ecsRef->sendEvent(OnMouseClick{});
+
                 pressed = true;
             }
 
@@ -87,7 +101,7 @@ namespace pg
                         if(ui->pos.z < highestZ)
                             break;
 
-                        if(ui->inBound(mousePos.x(), mousePos.y()) && ui->isVisible())
+                        if(ui->inBound(mousePos.x(), mousePos.y()))
                         {
                             highestZ = static_cast<UiSize>(ui->pos.z);
 
@@ -113,7 +127,7 @@ namespace pg
 
         virtual std::string getSystemName() const override { return "Mouse Right Click System"; }
 
-        void init() override
+        virtual void init() override
         {
             LOG_THIS_MEMBER("MouseRightClickSystem");
 
@@ -130,7 +144,7 @@ namespace pg
             });
         }
 
-        void execute() override
+        virtual void execute() override
         {
             LOG_THIS_MEMBER("MouseRightClickSystem");
 
@@ -141,6 +155,9 @@ namespace pg
 
             if(inputHandler->isButtonPressed(Qt::RightButton))
             {
+                if(not pressed)
+                    ecsRef->sendEvent(OnMouseClick{});
+
                 pressed = true;
             }
 
@@ -155,7 +172,7 @@ namespace pg
                         if(ui->pos.z < highestZ)
                             break;
 
-                        if(ui->inBound(mousePos.x(), mousePos.y()) && ui->isVisible())
+                        if(ui->inBound(mousePos.x(), mousePos.y()))
                         {
                             highestZ = static_cast<UiSize>(ui->pos.z);
 
@@ -173,6 +190,52 @@ namespace pg
 
         Input *inputHandler;
         std::set<MouseAreaZ, std::greater<>> mouseAreaHolder;
+    };
+
+    struct MouseLeaveClickSystem : public System<Listener<OnMouseClick>, Own<MouseLeaveClickComponent>, NamedSystem, InitSys, StoragePolicy>
+    {
+        MouseLeaveClickSystem(Input* inputHandler) : inputHandler(inputHandler) { LOG_THIS_MEMBER("MouseLeaveClickSystem"); }
+
+        virtual std::string getSystemName() const override { return "Mouse Leave Click System"; }
+
+        virtual void init() override
+        {
+            LOG_THIS_MEMBER("MouseLeaveClickSystem");
+
+            auto group = registerGroup<UiComponent, MouseLeaveClickComponent>();
+
+            group->addOnGroup([](Entity *entity) {
+                LOG_MILE("MouseLeaveClickSystem", "Add entity " << entity->id << " to ui - mouse leave click group !");
+
+                auto sys = entity->world()->getSystem<MouseLeaveClickSystem>();
+
+                const auto& ui = entity->get<UiComponent>();
+                
+                sys->mouseAreaHolder.emplace(entity->id, ui);
+            });
+        }
+
+        virtual void onEvent(const OnMouseClick&) override
+        {
+            LOG_THIS_MEMBER("MouseLeaveClickSystem");
+
+            const auto& mousePos = inputHandler->getMousePos();
+
+            for(const auto& mouseArea : mouseAreaHolder)
+            {
+                UiComponent *ui = mouseArea.ui;
+
+                if(not ui->inBound(mousePos.x(), mousePos.y()))
+                {
+                    auto comp = getComponent(mouseArea.id);
+
+                    comp->callback->call(world());
+                }
+            }
+        }
+
+        Input *inputHandler;
+        std::set<MouseAreaZ, std::less<>> mouseAreaHolder;
     };
 
     bool operator<(const MouseAreaZ& lhs, const MouseAreaZ& rhs);

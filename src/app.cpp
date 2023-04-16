@@ -20,6 +20,8 @@
 #include "Editor/Gui/contextmenu.h"
 #include "Editor/Gui/optiontab.h"
 
+#include "Scene/scenemanager.h"
+
 #include "GameElements/Systems/basicsystems.h"
 
 // TODO create a find function in ECS
@@ -27,27 +29,6 @@
 namespace
 {
     static constexpr char const * DOM = "Editor window";
-
-    struct SceneElement
-    {
-        SceneElement(Entity *entity) : entity(entity) {}
-
-        Entity *entity;
-    };
-
-    // Todo objectiv with system implementation
-    // struct SceneElementSystem : public System<Policy<ExecutionPolicy::Manual>, Own<SceneElement>, Need<MasterRenderer>, Talk<SceneSystem>>
-    struct SceneElementSystem : public System<Own<SceneElement>, StoragePolicy>
-    {
-        SceneElementSystem() {}
-        
-        template <typename Type, typename... Args>
-        void addComponent(SceneElement *element, Args... args)
-        {
-            // Todo disable every thing on the entity except Rendering to not update the scene element during editing !
-            ecsRef->attach<Type>(element->entity, std::forward<Args>(args)...);
-        }
-    };
 }
 
 EditorWindow::EditorWindow(QWindow *parent) : QWindow(parent)
@@ -97,6 +78,8 @@ void EditorWindow::initialize()
 
     ecs.createSystem<MouseLeftClickSystem>(inputHandler);
     ecs.createSystem<MouseRightClickSystem>(inputHandler);
+
+    ecs.createSystem<MouseLeaveClickSystem>(inputHandler);
 
     masterRenderer = ecs.createSystem<MasterRenderer>();
 
@@ -154,12 +137,17 @@ void EditorWindow::initialize()
 
     // ecs.succeed<GoldSystem, FactorySystem>();
     // ecs.succeed<SentenceSystem, GoldSystem>();
+    ecs.succeed<MouseRightClickSystem, TickingSystem>();
     ecs.succeed<MouseLeftClickSystem, TickingSystem>();
+
+    ecs.succeed<UiComponentSystem, MouseRightClickSystem>();
+    ecs.succeed<UiComponentSystem, MouseLeftClickSystem>();
 
     ecs.succeed<MasterRenderer, UiComponentSystem>();
 
-    ecs.succeed<MasterRenderer, MouseRightClickSystem>();
-    ecs.succeed<MasterRenderer, MouseLeftClickSystem>();
+    ecs.createSystem<editor::ContextMenu>();
+
+    // contextMenu = new editor::ContextMenu(ecs);
 
     ecs.dumbTaskflow();
 
@@ -201,16 +189,14 @@ void EditorWindow::initialize()
     auto sceneEntity = ecs.createEntity();
     sceneEntityC = ecs.attach<UiComponent>(sceneEntity);
 
-    sceneEntityC->setWidth(200);
-    sceneEntityC->setHeight(40);
+    sceneEntityC->setLeftAnchor(entityTabEntityUiC->right);
+    sceneEntityC->setRightAnchor(screenUi->right);
+    sceneEntityC->setTopAnchor(screenUi->top);
+    sceneEntityC->setBottomAnchor(screenUi->bottom);
 
-    sceneEntityC->setX(20);
-    sceneEntityC->setY(20);
+    ecs.attach<MouseRightClickComponent>(sceneEntity, makeCallable<editor::ShowContextMenu>(inputHandler, sceneEntityC));
 
-    // sceneEntityC->setLeftAnchor(screenUi->left);
-    // sceneEntityC->setRightAnchor(optionTab->left);
-    // sceneEntityC->setTopAnchor(screenUi->top);
-    // sceneEntityC->setBottomAnchor(screenUi->bottom);
+    // ;
 
     // makeMouseArea(&ecs, sceneEntityC, this, EditorWindow::openContextMenu, EditorWindow::closeContextMenu);
 
@@ -228,7 +214,8 @@ void EditorWindow::initialize()
     // std::cout << b1->width << std::endl;
     // std::cout << b1->pos.x << std::endl;
 
-    ecs.attach<TextureComponent>(sceneEntity, "frame");
+    // ecs.attach<TextureComponent>(sceneEntity, "frame");
+    // ecs.attach<MouseLeftClickComponent>(sceneEntity, makeCallable<OnClickGainGold>());
 
     std::cout << sceneEntityC->frame.w << std::endl;
 
@@ -243,7 +230,6 @@ void EditorWindow::initialize()
     // auto testingString = "Testing";
 
     // ecs.attach<MouseLeftClickComponent>(sceneEntity, makeCallable<LogInfoEvent>(testingString, "Clicked on component"));
-    ecs.attach<MouseLeftClickComponent>(sceneEntity, makeCallable<OnClickGainGold>());
 
     auto factoryCreationList = makeUiTexture(&ecs, 64, 32, "frame");
     auto factoryCreationListEntity = factoryCreationList.entity;
@@ -437,8 +423,8 @@ void EditorWindow::openContextMenu(Input* inputHandler, double...)
     {
         const auto& mousePos = inputHandler->getMousePos();
 
-        if(not contextMenu->inBound(mousePos.x(), mousePos.y()))
-            contextMenu->hide();
+        // if(not contextMenu->inBound(mousePos.x(), mousePos.y()))
+        //     contextMenu->hide();
     }
 
     if(inputHandler->isButtonPressed(Qt::RightButton) && !pressed)
@@ -453,16 +439,16 @@ void EditorWindow::openContextMenu(Input* inputHandler, double...)
         auto xPos = mousePos.x();
         auto yPos = mousePos.y();
 
-        if(contextMenu->width + xPos > sceneEntityC->width)
-            xPos -= contextMenu->width;
+        // if(contextMenu->width + xPos > sceneEntityC->width)
+        //     xPos -= contextMenu->width;
 
-        if(contextMenu->height + yPos > sceneEntityC->height)
-            yPos -= contextMenu->height;
+        // if(contextMenu->height + yPos > sceneEntityC->height)
+        //     yPos -= contextMenu->height;
 
-        contextMenu->setX(xPos);
-        contextMenu->setY(yPos);
+        // contextMenu->setX(xPos);
+        // contextMenu->setY(yPos);
 
-        contextMenu->show();
+        // contextMenu->show();
 
         pressed = false;
     }
@@ -473,7 +459,7 @@ void EditorWindow::closeContextMenu(Input* inputHandler, double)
 {
     if(inputHandler->isButtonPressed(Qt::LeftButton) or inputHandler->isButtonPressed(Qt::RightButton))
     {
-        contextMenu->hide();
+        // contextMenu->hide();
     }
 }
 
@@ -489,8 +475,8 @@ void EditorWindow::addElement(const UiComponentType& type)
     // TODO: take the correct coord of the context menu (context menu can show up from the top of the cursor if their is not enough space in the bottom of the screen)
     if(contextMenu != nullptr)
     {
-    	componentX = static_cast<UiSize>(contextMenu->pos.x);
-        componentY = static_cast<UiSize>(contextMenu->pos.y);
+    	// componentX = static_cast<UiSize>(contextMenu->pos.x);
+        // componentY = static_cast<UiSize>(contextMenu->pos.y);
     }
 
     switch(type)
@@ -558,7 +544,7 @@ void EditorWindow::addElement(const UiComponentType& type)
     // sceneEcs.attach<SceneElement>(ent, index, component, mouseArea);
     index++;
 
-    contextMenu->hide();
+    // contextMenu->hide();
 }
 
 template <typename SceneElementType>

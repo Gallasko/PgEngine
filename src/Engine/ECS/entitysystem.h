@@ -219,7 +219,7 @@ namespace pg
         }
 
         template <typename Type, typename... Args>
-        CompRef<Type> attach(Entity* entity, Args&&... args) noexcept
+        CompRef<Type> attach(EntityRef entity, Args&&... args) noexcept
         {
             LOG_THIS_MEMBER("ECS");
 
@@ -232,15 +232,15 @@ namespace pg
                 // Todo add lock a mutex for running to protect for race conditions or only build component with the cmdDispatcher 
                 if(running)
                 {
-                    component = cmdDispatcher.attachComp<Type>(std::forward<Args>(args)...);
+                    component = cmdDispatcher.attachComp<Type>(entity, std::forward<Args>(args)...);
                 }
                 else
                 {
                     component = registry.retrieve<Type>()->internalCreateComponent(entity, std::forward<Args>(args)...);
                 }
-
-                // auto res = CompRef<Type>(component, entity->id, this, not running);
-                auto res = CompRef<Type>(component, entity->id, this, false);
+                
+                auto res = CompRef<Type>(component, entity.id, this, not running);
+                // auto res = CompRef<Type>(component, entity->id, this, false);
 
                 if constexpr(std::is_base_of_v<Ctor, Type>)
                     res->onCreation(entity);
@@ -307,13 +307,15 @@ namespace pg
         }
 
         template <typename Type>
-        void addComponentToPool(Type* component)
+        void addComponentToPool(EntityRef entity, Type* component)
         {
             LOG_THIS_MEMBER("ECS");
 
             if(component)
             {
                 LOG_MILE("ECS", "addComponentToPool");
+
+                registry.retrieve<Type>()->internalCreateComponent(entity, *component);
             }
             // entity->componentList.emplace(registry.getTypeId<Type>());
         }
@@ -554,8 +556,8 @@ namespace pg
 
         struct Delegate : public ComponentCommand::ComponentCommand::Storage, public Type {};
 
-        addInEcs = [](EntitySystem* ecs, Storage* component) { ecs->addComponentToPool(static_cast<Type*>(static_cast<Delegate*>(component))); };
+        addInEcs = [](EntitySystem* ecs, EntityRef entity, Storage* component) { ecs->addComponentToPool(entity, static_cast<Type*>(static_cast<Delegate*>(component))); };
 
-        deleteComp = [](EntitySystem* ecs, Storage* component) { delete static_cast<Type*>(static_cast<Delegate*>(component)); };
+        deleteComp = [](Storage* component) { delete static_cast<Type*>(static_cast<Delegate*>(component)); };
     }
 }

@@ -22,7 +22,7 @@ namespace pg
             return nullptr;
         }
 
-        return entity;
+        return {entity, false};
     }
 
     void CommandDispatcher::deleteEntity(Entity* entity)
@@ -54,15 +54,13 @@ namespace pg
             }
         }
 
-        struct Empty {};
-        auto empty = Empty();
-        ComponentCommand item2(&empty, ComponentCommand::ComponentCommandType::creation);
+        ComponentCommand item2;
 
         while (componentQueue.try_dequeue(item2))
         {
             if(item2.type == ComponentCommand::ComponentCommandType::creation)
             {
-                item2.addInEcs(ecsRef, item2.component);
+                item2.addInEcs(ecsRef, item2.entity, item2.component);
                 item2.deleteComp(item2.component);
             }
         }

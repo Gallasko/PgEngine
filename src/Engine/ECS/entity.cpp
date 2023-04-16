@@ -26,9 +26,11 @@ namespace pg
         {
             id = rhs.id;
 
-            if(id != 0)
+            auto ent = rhs.ecsRef->getEntity(id);
+
+            if(id != 0 and ent)
             {
-                entity = rhs.ecsRef->getEntity(id);
+                entity = ent;
                 ecsRef = rhs.ecsRef;
                 initialized = true;
 
@@ -39,8 +41,6 @@ namespace pg
             }
             else
             {
-                LOG_ERROR(DOM, "Copy of a reference to an invalid entity");
-
                 initialized = rhs.initialized;
                 entity      = rhs.entity;
                 ecsRef      = rhs.ecsRef;
