@@ -190,13 +190,9 @@ namespace editor
 
         backgroundC = backTexture.get<UiComponent>();
 
-        // Todo add a fill in Uicomponent to auto make those !
-        backgroundC->setTopAnchor(parentUi->top);
-        backgroundC->setLeftAnchor(parentUi->left);
-        backgroundC->setBottomAnchor(parentUi->bottom);
-        backgroundC->setRightAnchor(parentUi->right);
+        backgroundC->fill(parentUi);
         
-        // Todo move this in the ctor of the Context menu cause it is the only thing preventing 
+        // Todo move this in the ctor of the Context menu cause it is the only thing preventing this class to be generic
         setContextList("Add Sentence",  makeCallable<CreateElement>(UiComponentType::TEXT),
                        "Add Texture",   makeCallable<CreateElement>(UiComponentType::TEXTURE),
                        "Add Button",    makeCallable<CreateElement>(UiComponentType::BUTTON),
@@ -290,8 +286,6 @@ namespace editor
     {
         LOG_THIS_MEMBER(DOM);
 
-        LOG_MILE("Context Menu", "Hide context");
-
         hide();
     }
 
@@ -300,7 +294,11 @@ namespace editor
         switch(event.type)
         {
             case UiComponentType::TEXT:
-                    makeSentence(ecsRef, currentX, currentY, {"New Text"});
+                {
+                    auto newElement = makeSentence(ecsRef, currentX, currentY, {"New Text"});
+
+                    ecsRef->attach<SceneElement>(newElement.entity);
+                }
                 break;
 
             case UiComponentType::TEXTURE:
@@ -310,6 +308,8 @@ namespace editor
             default:
                 break;
         }
+
+        hide();
     }
 
 }

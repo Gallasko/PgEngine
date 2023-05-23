@@ -62,7 +62,7 @@ namespace pg
 
             auto group = registerGroup<UiComponent, MouseLeftClickComponent>();
 
-            group->addOnGroup([](Entity *entity) {
+            group->addOnGroup([](EntityRef entity) {
                 LOG_MILE("MouseLeftClickSystem", "Add entity " << entity->id << " to ui - mouse left click group !");
 
                 auto sys = entity->world()->getSystem<MouseLeftClickSystem>();
@@ -133,7 +133,7 @@ namespace pg
 
             auto group = registerGroup<UiComponent, MouseRightClickComponent>();
 
-            group->addOnGroup([](Entity *entity) {
+            group->addOnGroup([](EntityRef entity) {
                 LOG_MILE("MouseRightClickSystem", "Add entity " << entity->id << " to ui - mouse right click group !");
 
                 auto sys = entity->world()->getSystem<MouseRightClickSystem>();
@@ -204,7 +204,7 @@ namespace pg
 
             auto group = registerGroup<UiComponent, MouseLeaveClickComponent>();
 
-            group->addOnGroup([](Entity *entity) {
+            group->addOnGroup([](EntityRef entity) {
                 LOG_MILE("MouseLeaveClickSystem", "Add entity " << entity->id << " to ui - mouse leave click group !");
 
                 auto sys = entity->world()->getSystem<MouseLeaveClickSystem>();

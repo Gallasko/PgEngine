@@ -41,28 +41,32 @@ namespace pg
 
         EntityCommand item(nullptr, EntityCommand::EntityCommandType::creation);
 
-        while (entityQueue.try_dequeue(item))
-        {
-            if(item.type == EntityCommand::EntityCommandType::creation)
-            {
-                ecsRef->addEntityToPool(item.entity);
-                delete item.entity;
-            }
-            else if(item.type == EntityCommand::EntityCommandType::deletion)
-            {
-                ecsRef->deleteEntityFromPool(item.entity);
-            }
-        }
-
         ComponentCommand item2;
 
-        while (componentQueue.try_dequeue(item2))
+        bool found = componentQueue.try_dequeue(item2);
+
+        while (found or entityQueue.try_dequeue(item))
         {
-            if(item2.type == ComponentCommand::ComponentCommandType::creation)
+            while (entityQueue.try_dequeue(item))
+            {
+                if(item.type == EntityCommand::EntityCommandType::creation)
+                {
+                    ecsRef->addEntityToPool(item.entity);
+                    delete item.entity;
+                }
+                else if(item.type == EntityCommand::EntityCommandType::deletion)
+                {
+                    ecsRef->deleteEntityFromPool(item.entity);
+                }
+            }
+
+            if(found or item2.type == ComponentCommand::ComponentCommandType::creation)
             {
                 item2.addInEcs(ecsRef, item2.entity, item2.component);
                 item2.deleteComp(item2.component);
             }
+
+            found = componentQueue.try_dequeue(item2);
         }
     }
 }

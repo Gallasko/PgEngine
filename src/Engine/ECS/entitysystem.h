@@ -33,7 +33,9 @@ namespace pg
      */
     struct Ctor
     {
-        virtual void onCreation(Entity* entity) = 0;
+        virtual void onCreation(EntityRef entity) = 0;
+
+        virtual ~Ctor() {}
     };
 
     /**
@@ -43,7 +45,9 @@ namespace pg
      */
     struct Dtor
     {
-        virtual void onDeletion(Entity* entity) = 0;
+        virtual void onDeletion(EntityRef entity) = 0;
+
+        virtual ~Dtor() {}
     };
 
     template <typename Comp>
@@ -258,11 +262,11 @@ namespace pg
         template <typename Type>
         void dettach(Entity* entity) const noexcept
         {
-            
+            // Todo
         }
 
         template <typename Event>
-        inline void sendEvent(const Event& event) { LOG_THIS_MEMBER("ECS"); registry.processEvent(event); }
+        inline void sendEvent(Event&& event) { LOG_THIS_MEMBER("ECS"); registry.processEvent(std::forward<Event>(event)); }
 
         template <typename Comp>
         inline const _unique_id& getId() const noexcept { LOG_THIS_MEMBER("ECS"); return registry.getTypeId<Comp>(); }

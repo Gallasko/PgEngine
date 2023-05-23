@@ -153,7 +153,7 @@ namespace pg
             registry->storeGroup<Type, Types...>(this);
         }
 
-        void addOnGroup(void(*callback)(Entity*))
+        void addOnGroup(void(*callback)(EntityRef))
         {
             LOG_THIS_MEMBER("Ecs Group");
 
@@ -221,7 +221,7 @@ namespace pg
         constexpr static size_t nbOfSets = sizeof...(Types) + 1;
         SetHolder<Type, Types...> *setList[nbOfSets];
 
-        std::vector<void(*)(Entity*)> onAddGroup;
-        std::vector<void(*)(Entity*)> onDelGroup;
+        std::vector<void(*)(EntityRef)> onAddGroup;
+        std::vector<void(*)(EntityRef)> onDelGroup;
     };
 }

@@ -97,7 +97,7 @@ namespace pg
         {
             LOG_THIS_MEMBER("Command Dispatcher");
 
-            auto comp = new Type(std::forward<Args>(args)...);
+            auto comp = new Type{std::forward<Args>(args)...};
 
             if(not componentQueue.enqueue(ComponentCommand{entity, comp, ComponentCommand::ComponentCommandType::creation}))
             {

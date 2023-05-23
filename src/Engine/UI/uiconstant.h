@@ -77,6 +77,12 @@ namespace pg
                 }
             }
 
+            void setEntityId(_unique_id id) { entityId = id; }
+
+        private:
+            /** Entity id of the entity using this UiValue, default to 0 (no entity) */
+            _unique_id entityId = 0;
+
         private:
             float pixelSize = 0.0f;
             float scaleValue = 0.0f;
@@ -260,6 +266,10 @@ namespace pg
         {
             return value->returnCurrentSize();
         }
+
+        void setEntityId(_unique_id id) { value->setEntityId(id); }
+
+        _unique_id getEntityId() const { return value->entityId; }
 
     private:
         std::shared_ptr<UiValue> value;

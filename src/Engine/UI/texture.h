@@ -22,7 +22,7 @@ namespace pg
         TextureComponent(const TextureComponent &rhs) : textureName(rhs.textureName) { }
         virtual ~TextureComponent() {}
 
-        virtual void onCreation(Entity* entity) { this->entity = entity; }
+        virtual void onCreation(EntityRef entity) { this->entity = entity; }
 
         inline void setTexture(const std::string& textureName)
         {

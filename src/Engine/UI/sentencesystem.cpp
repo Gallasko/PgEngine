@@ -338,7 +338,7 @@ namespace pg
     {
         auto group = registerGroup<UiComponent, SentenceText>();
 
-        group->addOnGroup([](Entity* entity) {
+        group->addOnGroup([](EntityRef entity) {
             LOG_INFO("Sentence Component System", "Add entity " << entity->id << " to ui - sent group !");
 
             auto ui = entity->get<UiComponent>();

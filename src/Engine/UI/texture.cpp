@@ -46,7 +46,7 @@ namespace pg
     {
         auto group = registerGroup<UiComponent, TextureComponent>();
 
-        group->addOnGroup([](Entity* entity) {
+        group->addOnGroup([](EntityRef entity) {
             LOG_INFO("Texture Component System", "Add entity " << entity->id << " to ui - tex group !");
 
             auto ui = entity->get<UiComponent>();

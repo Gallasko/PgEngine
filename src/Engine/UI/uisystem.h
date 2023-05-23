@@ -124,7 +124,7 @@ namespace pg
          * 
          * @param entity The entity that hold this component
          */
-        virtual void onCreation(Entity* entity) override
+        virtual void onCreation(EntityRef entity) override
         {
             ecsRef = entity->world();
 
@@ -171,6 +171,27 @@ namespace pg
         inline void setRightMargin(const UiSize& value)     { rightMargin = value; update(); }
         inline void setBottomMargin(const UiSize& value)    { bottomMargin = value; update(); }
         inline void setLeftMargin(const UiSize& value)      { leftMargin = value; update(); }
+
+        inline void fill(UiComponent *component)
+        {
+            topAnchor    = &component->top;
+            rightAnchor  = &component->right;
+            bottomAnchor = &component->bottom;
+            leftAnchor   = &component->left;
+
+            update();
+        }
+
+        inline void fill(const UiComponent& component)
+        {
+            topAnchor    = &component.top;
+            rightAnchor  = &component.right;
+            bottomAnchor = &component.bottom;
+            leftAnchor   = &component.left;
+
+            update();
+        }
+
 
         // TODO add function for alignement with corner, vertical and horizontal center, center alignement
         // and fill

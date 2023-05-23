@@ -132,16 +132,16 @@ namespace pg
          */
         struct Info
         {
-            const int line;             ///< The line number of the message
+            const int line;                   ///< The line number of the message
             const std::string filename;       ///< The name of the file where the log message happened
             const std::string function;       ///< The name of the function where the log message happened
-            const void* object;         ///< A pointer to the object where the log message happened
+            const void* object;               ///< A pointer to the object where the log message happened
             const std::string objectName;     ///< The name of the object class where the log message happened
 
             const std::string scope;          ///< The scope of the log
             const std::string message;        ///< The message string
 
-            const InfoLevel level;      ///< The emergency level of the log
+            const InfoLevel level;            ///< The emergency level of the log
         };
 
         class Logging
