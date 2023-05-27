@@ -506,6 +506,22 @@ namespace pg
         UiPosition(const UiPosition& pos) : x(pos.x), y(pos.y), z(pos.z) { }
         UiPosition(const UiPosition *pos) : x(&pos->x), y(&pos->y), z(&pos->z) { }
 
+        void setEntityId(_unique_id id)
+        {
+            entityId = id;
+
+            if(x.type == UiPosValue::UiPosType::Value)
+                x.value.size.setEntityId(id);
+
+            if(y.type == UiPosValue::UiPosType::Value)
+                y.value.size.setEntityId(id);
+            
+            if(z.type == UiPosValue::UiPosType::Value)
+                z.value.size.setEntityId(id);
+        }
+
+        _unique_id getEntityId() const { return entityId; }
+
         void operator=(const UiPosition& rhs)
         {
             x = rhs.x;
@@ -532,6 +548,8 @@ namespace pg
         UiPosValue x;
         UiPosValue y;
         UiPosValue z;
+
+        _unique_id entityId = 0;
     };
 
     template <>

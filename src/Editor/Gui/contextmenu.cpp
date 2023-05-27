@@ -34,139 +34,6 @@ namespace editor
     {
         LOG_THIS_MEMBER(DOM);
 
-        // this->width = 0;
-        // this->height = 0;
-
-        // [Start] Add Button
-
-        // auto addButtonButton = ecs.createEntity();
-        // addButtonButtonC = ecs.attach<Button>(addButtonButton,
-        //     &ecs,
-        //     [&](Input*, double){ this->callback(UiComponentType::BUTTON); },
-        //     Sentence::SentenceParameters{{"Add Button"}, 2.0f, fontLoader}
-        //     );
-
-        // addButtonButtonC->setTopAnchor(this->top);
-        // addButtonButtonC->setLeftAnchor(this->left);
-
-        // addButtonButtonC->pos.z = this->pos.z;
-
-        // this->width = addButtonButtonC->width > this->width ? addButtonButtonC->width : this->width;
-        // this->height += addButtonButtonC->height;
-
-        // // [End] Add Button
-
-        // // [Start] Add Texture
-
-        // auto addTextureButton = ecs.createEntity();
-        // addTextureButtonC = ecs.attach<Button>(addTextureButton,
-        //     &ecs,
-        //     [&](Input*, double){ this->callback(UiComponentType::TEXTURE); },
-        //     Sentence::SentenceParameters{{"Add Texture"}, 2.0f, fontLoader}
-        //     );
-
-        // addTextureButtonC->setTopAnchor(addButtonButtonC->bottom);
-        // addTextureButtonC->setLeftAnchor(this->left);
-
-        // addTextureButtonC->pos.z = this->pos.z;
-
-        // this->width  = addTextureButtonC->width > this->width ? addTextureButtonC->width : this->width;
-        // this->height += addTextureButtonC->height;
-
-        // // [End] Add Texture
-
-        // // [Start] Add Text
-
-        // auto addTextButton = ecs.createEntity();
-        // addTextButtonC = ecs.attach<Button>(addTextButton,
-        //     &ecs,
-        //     [&](Input*, double){ this->callback(UiComponentType::TEXT); },
-        //     Sentence::SentenceParameters{{"Add Text"}, 2.0f, fontLoader}
-        //     );
-
-        // addTextButtonC->setTopAnchor(addTextureButtonC->bottom);
-        // addTextButtonC->setLeftAnchor(this->left);
-
-        // addTextButtonC->pos.z = this->pos.z;
-
-        // this->width  = addTextButtonC->width > this->width ? addTextButtonC->width : this->width;
-        // this->height += addTextButtonC->height;
-
-        // // [End] Add Text
-
-        // // [Start] Add Text
-
-        // auto addTextInputButton = ecs.createEntity();
-        // addTextInputButtonC = ecs.attach<Button>(addTextInputButton,
-        //     &ecs,
-        //     [&](Input*, double){ this->callback(UiComponentType::TEXTINPUT); },
-        //     Sentence::SentenceParameters{{"Add Text Input"}, 2.0f, fontLoader}
-        //     );
-
-        // addTextInputButtonC->setTopAnchor(addTextButtonC->bottom);
-        // addTextInputButtonC->setLeftAnchor(this->left);
-
-        // addTextInputButtonC->pos.z = this->pos.z;
-
-        // this->width  = addTextInputButtonC->width > this->width ? addTextInputButtonC->width : this->width;
-        // this->height += addTextInputButtonC->height;
-
-        // // [End] Add Text
-
-        // // [Start] Add List
-
-        // auto addListButton = ecs.createEntity();
-        // addListButtonC = ecs.attach<Button>(addListButton,
-        //     &ecs,
-        //     [&](Input*, double){ this->callback(UiComponentType::LIST); },
-        //     Sentence::SentenceParameters{{"Add List"}, 2.0f, fontLoader}
-        //     );
-
-        // addListButtonC->setTopAnchor(addTextInputButtonC->bottom);
-        // addListButtonC->setLeftAnchor(this->left);
-
-        // addListButtonC->pos.z = this->pos.z;
-
-        // this->width  = addListButtonC->width > this->width ? addListButtonC->width : this->width;
-        // this->height += addListButtonC->height;
-
-        // // [End] Add List
-
-        // // [Start] Add Prefab
-
-        // auto addPrefabButton = ecs.createEntity();
-        // addPrefabButtonC = ecs.attach<Button>(addPrefabButton,
-        //     &ecs,
-        //     [&](Input*, double){ this->callback(UiComponentType::LIST); },
-        //     Sentence::SentenceParameters{{"Add Prefab"}, 2.0f, fontLoader}
-        //     );
-
-        // addPrefabButtonC->setTopAnchor(addListButtonC->bottom);
-        // addPrefabButtonC->setLeftAnchor(this->left);
-
-        // addPrefabButtonC->pos.z = this->pos.z;
-
-        // this->width  = addPrefabButtonC->width > this->width ? addPrefabButtonC->width : this->width;
-        // this->height += addPrefabButtonC->height;
-
-        // [End] Add Prefab
-
-        // [Start] Create background texture
-
-        // auto backgroundTexture = ecs.createEntity();
-        // backgroundTextureC = ecs.attach<TextureComponent>(backgroundTexture,
-        //     this->width,
-        //     this->height,
-        //     textureName
-        //     );
-
-        // backgroundTextureC->setTopAnchor(this->top);
-        // backgroundTextureC->setLeftAnchor(this->left);
-
-        // backgroundTextureC->pos.z = this->pos.z;
-
-        // [End] Create background texture
-
     }
 
     ContextMenu::~ContextMenu()
@@ -181,6 +48,8 @@ namespace editor
         parent = ecsRef->createEntity();
 
         parentUi = ecsRef->attach<UiComponent>(parent);
+
+        parentUi->setZ(10);
 
         ecsRef->attach<MouseLeaveClickComponent>(parent, makeCallable<HideContextMenu>());
 
@@ -219,6 +88,8 @@ namespace editor
         ecsRef->attach<MouseLeftClickComponent>(addItemEntity, callable);
 
         auto addItemC = addItem.get<UiComponent>();
+
+        addItemC->setZ(11);
 
         if(components.size() > 0)
             addItemC->setTopAnchor(components.back()->bottom);
@@ -302,7 +173,16 @@ namespace editor
                 break;
 
             case UiComponentType::TEXTURE:
+                {
+                    auto newElement = makeUiTexture(ecsRef, 50, 50, "TabTexture");
 
+                    auto uiComp = newElement.get<UiComponent>();
+
+                    uiComp->setX(currentX);
+                    uiComp->setY(currentY);
+
+                    ecsRef->attach<SceneElement>(newElement.entity);
+                }
                 break;
 
             default:

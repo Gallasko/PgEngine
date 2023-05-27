@@ -356,6 +356,16 @@ namespace pg
         right.id  = this->entityId;
         bottom.id = this->entityId;
         left.id   = this->entityId;
+
+        pos.setEntityId(entityId);
+
+        width.setEntityId(entityId);
+        height.setEntityId(entityId);
+
+        topMargin.setEntityId(entityId);
+        leftMargin.setEntityId(entityId);
+        rightMargin.setEntityId(entityId);
+        bottomMargin.setEntityId(entityId);
     }
 
     bool UiComponent::inBound(int x, int y) const

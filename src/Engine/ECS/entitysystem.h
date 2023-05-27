@@ -50,6 +50,22 @@ namespace pg
         virtual ~Dtor() {}
     };
 
+    /**
+     * @brief Structure tag used to specify a component as a singleton component
+     * 
+     * When this tag is set for a component. That means that the component should only be created once
+     * and when a system or a component need this component we can use the same refererence everywhere.
+     * 
+     * So when a component with this tag is created we can directly save the ref in the ecs and used
+     * it throughout !
+     * 
+     * @todo make this
+     */
+    struct SingletonComp
+    {
+
+    };
+
     template <typename Comp>
     struct CompListGetter
     {
@@ -248,6 +264,8 @@ namespace pg
 
                 if constexpr(std::is_base_of_v<Ctor, Type>)
                     res->onCreation(entity);
+
+                // Todo make the systems capable of triggering on a component creation
 
                 return res;
             }

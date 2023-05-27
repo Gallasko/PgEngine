@@ -448,6 +448,7 @@ namespace pg
         ui->setX(x);
         ui->setY(y);
 
+        // Todo fix this in ui component so it does work right now if the entity is created during runtime the link is not made correctly
         ui->setWidth(sentence->textWidth);
         ui->setHeight(sentence->textHeight);
 

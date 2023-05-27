@@ -130,10 +130,20 @@ namespace pg
 
             entityId = entity->id;
 
-            top.id    = entity->id;
-            right.id  = entity->id;
-            bottom.id = entity->id;
-            left.id   = entity->id;
+            top.id    = entityId;
+            right.id  = entityId;
+            bottom.id = entityId;
+            left.id   = entityId;
+
+            pos.setEntityId(entityId);
+
+            width.setEntityId(entityId);
+            height.setEntityId(entityId);
+
+            topMargin.setEntityId(entityId);
+            leftMargin.setEntityId(entityId);
+            rightMargin.setEntityId(entityId);
+            bottomMargin.setEntityId(entityId);
         }
 
         /**
@@ -191,7 +201,6 @@ namespace pg
 
             update();
         }
-
 
         // TODO add function for alignement with corner, vertical and horizontal center, center alignement
         // and fill

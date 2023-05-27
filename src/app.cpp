@@ -252,6 +252,9 @@ void EditorWindow::initialize()
     // t.detach();
 
     ecs.start();
+
+    // Todo
+    // glEnable(GL_DEPTH_TEST);
 }
 
 void EditorWindow::render()
