@@ -20,6 +20,12 @@ namespace
 
 namespace pg
 {
+    template<>
+    void serialize(Archive& archive, const EntitySystem& ecs)
+    {
+        LOG_THIS(DOM);
+    }
+
     EntitySystem::EntitySystem() : registry(this), cmdDispatcher(this)
     {
         LOG_THIS_MEMBER(DOM);

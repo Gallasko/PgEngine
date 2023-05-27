@@ -77,6 +77,12 @@ namespace pg
                 }
             }
 
+            void setEntityId(_unique_id id) { entityId = id; }
+
+        private:
+            /** Entity id of the entity using this UiValue, default to 0 (no entity) */
+            _unique_id entityId = 0;
+
         private:
             float pixelSize = 0.0f;
             float scaleValue = 0.0f;
@@ -261,6 +267,10 @@ namespace pg
             return value->returnCurrentSize();
         }
 
+        void setEntityId(_unique_id id) { value->setEntityId(id); }
+
+        _unique_id getEntityId() const { return value->entityId; }
+
     private:
         std::shared_ptr<UiValue> value;
     };
@@ -443,9 +453,14 @@ namespace pg
                 size = value.size;
             }
 
-            bool operator==(const UiPosValue& rhs) const
+            inline bool operator==(const UiPosValue& rhs) const
             {
                 return size == rhs.size;
+            }
+
+            inline bool operator==(float rhs) const
+            {
+                return size == rhs;
             }
 
             bool operator<(const UiPosValue& rhs) const
@@ -491,6 +506,22 @@ namespace pg
         UiPosition(const UiPosition& pos) : x(pos.x), y(pos.y), z(pos.z) { }
         UiPosition(const UiPosition *pos) : x(&pos->x), y(&pos->y), z(&pos->z) { }
 
+        void setEntityId(_unique_id id)
+        {
+            entityId = id;
+
+            if(x.type == UiPosValue::UiPosType::Value)
+                x.value.size.setEntityId(id);
+
+            if(y.type == UiPosValue::UiPosType::Value)
+                y.value.size.setEntityId(id);
+            
+            if(z.type == UiPosValue::UiPosType::Value)
+                z.value.size.setEntityId(id);
+        }
+
+        _unique_id getEntityId() const { return entityId; }
+
         void operator=(const UiPosition& rhs)
         {
             x = rhs.x;
@@ -517,6 +548,8 @@ namespace pg
         UiPosValue x;
         UiPosValue y;
         UiPosValue z;
+
+        _unique_id entityId = 0;
     };
 
     template <>

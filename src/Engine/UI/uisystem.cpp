@@ -330,6 +330,8 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
+        // Copy ui component stuff
+
         this->visible       = rhs.visible;
         this->pos           = rhs.pos;
         this->width         = rhs.width;
@@ -344,17 +346,40 @@ namespace pg
         this->rightMargin   = rhs.rightMargin;
         this->bottomMargin  = rhs.bottomMargin;
         this->leftMargin    = rhs.leftMargin;
+
+        // Copy entity stuff
+
+        this->ecsRef        = rhs.ecsRef;
+        this->entityId      = rhs.entityId;
+
+        top.id    = this->entityId;
+        right.id  = this->entityId;
+        bottom.id = this->entityId;
+        left.id   = this->entityId;
+
+        pos.setEntityId(entityId);
+
+        width.setEntityId(entityId);
+        height.setEntityId(entityId);
+
+        topMargin.setEntityId(entityId);
+        leftMargin.setEntityId(entityId);
+        rightMargin.setEntityId(entityId);
+        bottomMargin.setEntityId(entityId);
     }
 
     bool UiComponent::inBound(int x, int y) const
     {
         LOG_THIS_MEMBER(DOM);
 
-        // Lockup x and y only once
-        const float xValue = x;
-        const float yValue = y;
+        if(not visible)
+            return false;
 
-        return xValue > static_cast<UiSize>(this->pos.x) && xValue < (this->pos.x + this->width) && yValue < (this->pos.y + this->height) && yValue > static_cast<UiSize>(this->pos.y);
+        // Lockup x and y only once
+        const float xValue = static_cast<UiSize>(this->pos.x);
+        const float yValue = static_cast<UiSize>(this->pos.y);
+
+        return x > xValue && x < (xValue + this->width) && y < (yValue + this->height) && y > yValue;
     }
 
     bool UiComponent::inBound(const constant::Vector2D& vec2) const
@@ -400,5 +425,8 @@ namespace pg
         {
             this->pos.x = leftAnchor->anchorPoint + leftMargin;
         }
+
+        if(ecsRef)
+            ecsRef->sendEvent(UiComponentInternalChangeEvent{});
     }
 }

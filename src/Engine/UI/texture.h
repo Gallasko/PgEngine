@@ -22,7 +22,7 @@ namespace pg
         TextureComponent(const TextureComponent &rhs) : textureName(rhs.textureName) { }
         virtual ~TextureComponent() {}
 
-        virtual void onCreation(Entity* entity) { this->entity = entity; }
+        virtual void onCreation(EntityRef entity) { this->entity = entity; }
 
         inline void setTexture(const std::string& textureName)
         {
@@ -37,11 +37,15 @@ namespace pg
         Entity *entity = nullptr;
     };
 
-    struct TextureComponentSystem : public System<Own<TextureComponent>, Ref<UiComponent>, StoragePolicy, InitSys>
+    struct TextureComponentSystem : public System<Own<TextureComponent>, Listener<UiComponentChangeEvent>, Ref<UiComponent>, NamedSystem, InitSys, StoragePolicy>
     {
         TextureComponentSystem() { }
 
+        virtual std::string getSystemName() const override { return "Texture System"; }
+
         virtual void init() override;
+
+        virtual void onEvent(const UiComponentChangeEvent& event) override;
     };
 
     /** Helper that create an entity with an Ui component and a Texture component */

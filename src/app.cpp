@@ -20,239 +20,15 @@
 #include "Editor/Gui/contextmenu.h"
 #include "Editor/Gui/optiontab.h"
 
+#include "Scene/scenemanager.h"
+
+#include "GameElements/Systems/basicsystems.h"
+
 // TODO create a find function in ECS
 
 namespace
 {
     static constexpr char const * DOM = "Editor window";
-
-    struct SceneElement
-    {
-        SceneElement(int id, UiComponent *component, Button *mouseArea) : id(id), component(component), mouseArea(mouseArea) {}
-
-        int id;
-
-        UiComponent *component;
-
-        /** Store a reference to the mouse area for delete purpose */
-        Button *mouseArea;
-    };
-
-    // Todo objectiv with system implementation
-    // struct SceneElementSystem : public System<Policy<ExecutionPolicy::Manual>, Own<SceneElement>, Need<MasterRenderer>, Talk<SceneSystem>>
-    struct SceneElementSystem : public System<Own<SceneElement>>
-    {
-        SceneElementSystem(MasterRenderer* masterRenderer) : masterRenderer(masterRenderer)
-        {
-            setPolicy(ExecutionPolicy::Manual);
-        }
-
-        virtual void execute()
-        {
-            // parallelExecute(view<SceneElement>(), executeSceneElement, masterRenderer);
-
-            for(const auto& element : view<SceneElement>())
-            {
-                // if(element->component != nullptr)
-                //     element->component->render(masterRenderer);
-            }
-        }
-
-        MasterRenderer *masterRenderer;
-    };
-
-    // Todo add all the logger thing to all those systems and doc too
-    struct TickEvent
-    {
-        TickEvent(size_t duration) : tick(duration) {}
-
-        size_t tick;
-    };
-
-    // Todo find and fix why this system doesn't work
-    struct TickingSystem : public System<>
-    {
-        TickingSystem(size_t duration = 40) : tickDuration(duration)
-        { 
-            LOG_THIS_MEMBER("Ticking System");
-            
-            // Todo replace QDateTime with std::chrono
-            // firstTickTime = std::chrono::high_resolution_clock::now();
-            firstTickTime = QDateTime::currentMSecsSinceEpoch();
-            secondTickTime = QDateTime::currentMSecsSinceEpoch();
-        }
-
-        ~TickingSystem() { LOG_THIS_MEMBER("Ticking System"); stop(); }
-
-        inline void stop()
-        {
-            LOG_THIS_MEMBER("Ticking System");
-
-            LOG_INFO("Ticking System", "Ticking system stopping ...");
-
-            paused = false;
-        }
-
-        inline void pause()
-        {
-            LOG_THIS_MEMBER("Ticking System");
-
-            paused = true;
-        }
-
-        inline void resume()
-        {
-            LOG_THIS_MEMBER("Ticking System");
-
-            firstTickTime = QDateTime::currentMSecsSinceEpoch();
-            secondTickTime = QDateTime::currentMSecsSinceEpoch();
-
-            paused = false;
-        }
-
-        virtual void execute()
-        {
-            LOG_THIS_MEMBER("Ticking System");
-
-            secondTickTime = QDateTime::currentMSecsSinceEpoch();
-            
-            while(not paused and ((secondTickTime - firstTickTime) >= static_cast<qint64>(tickDuration)))
-            {
-                firstTickTime += tickDuration;
-
-                ecsRef->sendEvent(TickEvent{tickDuration});
-            }
-        }
-
-        size_t tickDuration;
-
-        // Todo change qint64 with std::chrono
-        // std::chrono::high_resolution_clock::time_point firstTickTime, secondTickTime; 
-        qint64 firstTickTime, secondTickTime; 
-        bool paused = false;
-    };
-
-    // Todo make a FPS system that print the current FPS !
-
-    struct FpsSystem : public System<Listener<TickEvent>, InitSys, StoragePolicy>
-    {
-        void init() override
-        {
-            auto sentence = makeSentence(ecsRef, 0, 0, {"0"});
-
-            fpsTextId = sentence.entity.id;
-        }
-
-        void onEvent(const TickEvent& event) override
-        {
-            LOG_THIS_MEMBER("FactorySystem");
-
-            accumulatedTick += event.tick;
-
-            if (accumulatedTick >= 1000)
-            {
-                accumulatedTick %= 1000;
-
-                auto rendererSys = ecsRef->getSystem<MasterRenderer>();
-
-                if (not rendererSys)
-                    return;
-
-                auto currentNbOfFrames = rendererSys->nbRenderedFrames;
-
-                auto res = currentNbOfFrames - lastNbOfFrames;
-
-                auto fpsStr = Strfy() << res;
-
-                lastNbOfFrames = currentNbOfFrames;
-
-                // Print FPS
-                ecsRef->sendEvent(OnTextChanged{fpsTextId, fpsStr.getData()});
-            }
-        }
-
-        _unique_id fpsTextId;
-        size_t accumulatedTick = 0;
-        size_t lastNbOfFrames = 0;
-    };
-
-    struct OnClickGainGold { };
-
-    struct OnGoldGain
-    {
-        OnGoldGain(int64_t gold) : gold(gold) {}
-
-        int64_t gold;
-    };
-
-    struct GoldSystem : public System<Listener<OnClickGainGold>, Listener<OnGoldGain>, StoragePolicy, InitSys>
-    {
-        void init() override
-        {
-            auto sentence = makeSentence(ecsRef, 150, 20, {"0"});
-
-            goldTextId = sentence.entity.id;
-        }
-
-        void onEvent(const OnClickGainGold&) override
-        {
-            this->gold += clickPower;
-
-            auto goldStr = Strfy() << this->gold.load();
-
-            ecsRef->sendEvent(OnTextChanged{goldTextId, goldStr.getData()});
-        }
-
-        void onEvent(const OnGoldGain& event) override
-        {
-            this->gold += event.gold;
-
-            auto goldStr = Strfy() << this->gold.load();
-
-            ecsRef->sendEvent(OnTextChanged{goldTextId, goldStr.getData()});
-        }
-
-        int64_t clickPower = 1;
-
-        std::atomic<int64_t> gold {0};
-        _unique_id goldTextId;
-    };
-
-    struct BuyFactory { };
-
-    struct FactorySystem : public System<Listener<BuyFactory>, Listener<TickEvent>, StoragePolicy>
-    {
-        void onEvent(const BuyFactory&) override
-        {
-            LOG_THIS_MEMBER("FactorySystem");
-
-            LOG_INFO("FactorySystem", "Bought a new factory");
-            nbFactory += 1;
-        }
-
-        void onEvent(const TickEvent& event) override
-        {
-            LOG_THIS_MEMBER("FactorySystem");
-
-            accumulatedTick += event.tick;
-
-            while (accumulatedTick >= factoryProdDuration)
-            {
-                LOG_INFO("FactorySystem", "Factory produced gold");
-
-                accumulatedTick -= factoryProdDuration;
-
-                ecsRef->sendEvent(OnGoldGain{static_cast<int64_t>(nbFactory * factoryProdValue)});
-            }
-        }
-
-        size_t accumulatedTick = 0;
-
-        size_t nbFactory = 0;
-        size_t factoryProdDuration = 1000;
-        size_t factoryProdValue = 1;
-    };
-
 }
 
 EditorWindow::EditorWindow(QWindow *parent) : QWindow(parent)
@@ -300,7 +76,10 @@ void EditorWindow::initialize()
     ecs.createSystem<TextureComponentSystem>();
     // sceneEcs.createSystem<SceneElementSystem>(masterRenderer); 
 
-    ecs.createSystem<MouseClickSystem>(inputHandler);
+    ecs.createSystem<MouseLeftClickSystem>(inputHandler);
+    ecs.createSystem<MouseRightClickSystem>(inputHandler);
+
+    ecs.createSystem<MouseLeaveClickSystem>(inputHandler);
 
     masterRenderer = ecs.createSystem<MasterRenderer>();
 
@@ -352,13 +131,23 @@ void EditorWindow::initialize()
 
     ecs.createSystem<FactorySystem>();
 
+    ecs.createSystem<SceneElementSystem>();
+
     // Ecs task parenting
 
     // ecs.succeed<GoldSystem, FactorySystem>();
     // ecs.succeed<SentenceSystem, GoldSystem>();
-    ecs.succeed<MouseClickSystem, TickingSystem>();
+    ecs.succeed<MouseRightClickSystem, TickingSystem>();
+    ecs.succeed<MouseLeftClickSystem, TickingSystem>();
 
-    ecs.succeed<MasterRenderer, MouseClickSystem>();
+    ecs.succeed<UiComponentSystem, MouseRightClickSystem>();
+    ecs.succeed<UiComponentSystem, MouseLeftClickSystem>();
+
+    ecs.succeed<MasterRenderer, UiComponentSystem>();
+
+    ecs.createSystem<editor::ContextMenu>();
+
+    // contextMenu = new editor::ContextMenu(ecs);
 
     ecs.dumbTaskflow();
 
@@ -389,19 +178,25 @@ void EditorWindow::initialize()
     // optionTab->setRightAnchor(screenUi->right);
     // optionTab->setBottomAnchor(screenUi->bottom);
 
+    auto entityTabEntity = makeUiTexture(&ecs, 300, 200, "TabTexture");
+    auto entityTabEntityUiC = entityTabEntity.get<UiComponent>();
+
+    entityTabEntityUiC->setTopAnchor(screenUi->top);
+    entityTabEntityUiC->setLeftAnchor(screenUi->left);
+    // entityTabEntityUiC->setRightAnchor(screenUi->right);
+    entityTabEntityUiC->setBottomAnchor(screenUi->bottom);
+
     auto sceneEntity = ecs.createEntity();
     sceneEntityC = ecs.attach<UiComponent>(sceneEntity);
 
-    sceneEntityC->setWidth(200);
-    sceneEntityC->setHeight(40);
+    sceneEntityC->setLeftAnchor(entityTabEntityUiC->right);
+    sceneEntityC->setRightAnchor(screenUi->right);
+    sceneEntityC->setTopAnchor(screenUi->top);
+    sceneEntityC->setBottomAnchor(screenUi->bottom);
 
-    sceneEntityC->setX(20);
-    sceneEntityC->setY(20);
+    ecs.attach<MouseRightClickComponent>(sceneEntity, makeCallable<editor::ShowContextMenu>(inputHandler, sceneEntityC));
 
-    // sceneEntityC->setLeftAnchor(screenUi->left);
-    // sceneEntityC->setRightAnchor(optionTab->left);
-    // sceneEntityC->setTopAnchor(screenUi->top);
-    // sceneEntityC->setBottomAnchor(screenUi->bottom);
+    // ;
 
     // makeMouseArea(&ecs, sceneEntityC, this, EditorWindow::openContextMenu, EditorWindow::closeContextMenu);
 
@@ -419,7 +214,8 @@ void EditorWindow::initialize()
     // std::cout << b1->width << std::endl;
     // std::cout << b1->pos.x << std::endl;
 
-    ecs.attach<TextureComponent>(sceneEntity, "frame");
+    // ecs.attach<TextureComponent>(sceneEntity, "frame");
+    // ecs.attach<MouseLeftClickComponent>(sceneEntity, makeCallable<OnClickGainGold>());
 
     std::cout << sceneEntityC->frame.w << std::endl;
 
@@ -433,8 +229,7 @@ void EditorWindow::initialize()
 
     // auto testingString = "Testing";
 
-    // ecs.attach<MouseClickComponent>(sceneEntity, makeCallable<LogInfoEvent>(testingString, "Clicked on component"));
-    ecs.attach<MouseClickComponent>(sceneEntity, makeCallable<OnClickGainGold>());
+    // ecs.attach<MouseLeftClickComponent>(sceneEntity, makeCallable<LogInfoEvent>(testingString, "Clicked on component"));
 
     auto factoryCreationList = makeUiTexture(&ecs, 64, 32, "frame");
     auto factoryCreationListEntity = factoryCreationList.entity;
@@ -443,7 +238,7 @@ void EditorWindow::initialize()
     factoryCreationListPos->setBottomAnchor(screenUi->bottom);
     factoryCreationListPos->setLeftAnchor(screenUi->left);
 
-    ecs.attach<MouseClickComponent>(factoryCreationListEntity, makeCallable<BuyFactory>());
+    ecs.attach<MouseLeftClickComponent>(factoryCreationListEntity, makeCallable<BuyFactory>());
 
     // ecs.attach<SentenceText>(sceneEntity, "Hello there !");
 
@@ -457,6 +252,9 @@ void EditorWindow::initialize()
     // t.detach();
 
     ecs.start();
+
+    // Todo
+    // glEnable(GL_DEPTH_TEST);
 }
 
 void EditorWindow::render()
@@ -628,8 +426,8 @@ void EditorWindow::openContextMenu(Input* inputHandler, double...)
     {
         const auto& mousePos = inputHandler->getMousePos();
 
-        if(not contextMenu->inBound(mousePos.x(), mousePos.y()))
-            contextMenu->hide();
+        // if(not contextMenu->inBound(mousePos.x(), mousePos.y()))
+        //     contextMenu->hide();
     }
 
     if(inputHandler->isButtonPressed(Qt::RightButton) && !pressed)
@@ -644,16 +442,16 @@ void EditorWindow::openContextMenu(Input* inputHandler, double...)
         auto xPos = mousePos.x();
         auto yPos = mousePos.y();
 
-        if(contextMenu->width + xPos > sceneEntityC->width)
-            xPos -= contextMenu->width;
+        // if(contextMenu->width + xPos > sceneEntityC->width)
+        //     xPos -= contextMenu->width;
 
-        if(contextMenu->height + yPos > sceneEntityC->height)
-            yPos -= contextMenu->height;
+        // if(contextMenu->height + yPos > sceneEntityC->height)
+        //     yPos -= contextMenu->height;
 
-        contextMenu->setX(xPos);
-        contextMenu->setY(yPos);
+        // contextMenu->setX(xPos);
+        // contextMenu->setY(yPos);
 
-        contextMenu->show();
+        // contextMenu->show();
 
         pressed = false;
     }
@@ -664,7 +462,7 @@ void EditorWindow::closeContextMenu(Input* inputHandler, double)
 {
     if(inputHandler->isButtonPressed(Qt::LeftButton) or inputHandler->isButtonPressed(Qt::RightButton))
     {
-        contextMenu->hide();
+        // contextMenu->hide();
     }
 }
 
@@ -680,8 +478,8 @@ void EditorWindow::addElement(const UiComponentType& type)
     // TODO: take the correct coord of the context menu (context menu can show up from the top of the cursor if their is not enough space in the bottom of the screen)
     if(contextMenu != nullptr)
     {
-    	componentX = static_cast<UiSize>(contextMenu->pos.x);
-        componentY = static_cast<UiSize>(contextMenu->pos.y);
+    	// componentX = static_cast<UiSize>(contextMenu->pos.x);
+        // componentY = static_cast<UiSize>(contextMenu->pos.y);
     }
 
     switch(type)
@@ -746,10 +544,10 @@ void EditorWindow::addElement(const UiComponentType& type)
         break;
     }
 
-    sceneEcs.attach<SceneElement>(ent, index, component, mouseArea);
+    // sceneEcs.attach<SceneElement>(ent, index, component, mouseArea);
     index++;
 
-    contextMenu->hide();
+    // contextMenu->hide();
 }
 
 template <typename SceneElementType>

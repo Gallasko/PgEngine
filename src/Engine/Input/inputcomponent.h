@@ -13,39 +13,59 @@
 
 namespace pg
 {
-    struct MouseClickComponent
+    struct MouseLeftClickComponent
     {
-        MouseClickComponent(std::shared_ptr<AbstractCallable> callback) : callback(callback) { LOG_THIS_MEMBER("MouseClickSystem"); }
-        MouseClickComponent(const MouseClickComponent& rhs) : callback(rhs.callback) { LOG_THIS_MEMBER("MouseClickSystem"); }
-        virtual ~MouseClickComponent() { LOG_THIS_MEMBER("MouseClickSystem");}
+        MouseLeftClickComponent(std::shared_ptr<AbstractCallable> callback) : callback(callback) { LOG_THIS_MEMBER("MouseLeftClickSystem"); }
+        MouseLeftClickComponent(const MouseLeftClickComponent& rhs) : callback(rhs.callback) { LOG_THIS_MEMBER("MouseLeftClickSystem"); }
+        virtual ~MouseLeftClickComponent() { LOG_THIS_MEMBER("MouseLeftClickSystem");}
 
         std::shared_ptr<AbstractCallable> callback;
-
-        // std::function<void(Input*, double)> callback = [](Input*, double){ LOG_ERROR("MouseClickSystem", "Trying to call a empty Mouse Click Component !"); };
     };
 
-    struct MouseClickSystem : public System<Own<MouseClickComponent>, InitSys>
+    struct MouseRightClickComponent
     {
-        struct MouseAreaZ
+        MouseRightClickComponent(std::shared_ptr<AbstractCallable> callback) : callback(callback) { LOG_THIS_MEMBER("MouseRightClickSystem"); }
+        MouseRightClickComponent(const MouseRightClickComponent& rhs) : callback(rhs.callback) { LOG_THIS_MEMBER("MouseRightClickSystem"); }
+        virtual ~MouseRightClickComponent() { LOG_THIS_MEMBER("MouseRightClickSystem");}
+
+        std::shared_ptr<AbstractCallable> callback;
+    };
+
+    struct MouseLeaveClickComponent
+    {
+        MouseLeaveClickComponent(std::shared_ptr<AbstractCallable> callback) : callback(callback) { LOG_THIS_MEMBER("MouseLeaveClickSystem"); }
+        MouseLeaveClickComponent(const MouseLeaveClickComponent& rhs) : callback(rhs.callback) { LOG_THIS_MEMBER("MouseLeaveClickSystem"); }
+        virtual ~MouseLeaveClickComponent() { LOG_THIS_MEMBER("MouseLeaveClickSystem");}
+
+        std::shared_ptr<AbstractCallable> callback;
+    };
+
+    struct OnMouseClick {};
+
+    struct MouseAreaZ
+    {
+        MouseAreaZ(_unique_id id, CompRef<UiComponent> ui) : id(id), ui(ui) { LOG_THIS_MEMBER("MouseArea"); }
+
+        _unique_id id;
+        CompRef<UiComponent> ui;
+    };
+
+    struct MouseLeftClickSystem : public System<Own<MouseLeftClickComponent>, NamedSystem, InitSys>
+    {
+        MouseLeftClickSystem(Input* inputHandler) : inputHandler(inputHandler) { LOG_THIS_MEMBER("MouseLeftClickSystem"); }
+
+        virtual std::string getSystemName() const override { return "Mouse Left Click System"; }
+
+        virtual void init() override
         {
-            MouseAreaZ(_unique_id id, CompRef<UiComponent> ui) : id(id), ui(ui) { LOG_THIS_MEMBER("MouseClickSystem"); }
+            LOG_THIS_MEMBER("MouseLeftClickSystem");
 
-            _unique_id id;
-            CompRef<UiComponent> ui;
-        };
+            auto group = registerGroup<UiComponent, MouseLeftClickComponent>();
 
-        MouseClickSystem(Input* inputHandler) : inputHandler(inputHandler) { LOG_THIS_MEMBER("MouseClickSystem"); }
+            group->addOnGroup([](EntityRef entity) {
+                LOG_MILE("MouseLeftClickSystem", "Add entity " << entity->id << " to ui - mouse left click group !");
 
-        void init() override
-        {
-            LOG_THIS_MEMBER("MouseClickSystem");
-
-            auto group = registerGroup<UiComponent, MouseClickComponent>();
-
-            group->addOnGroup([](Entity *entity) {
-                LOG_MILE("MouseClickSystem", "Add entity " << entity->id << " to ui - mouse click group !");
-
-                auto sys = entity->world()->getSystem<MouseClickSystem>();
+                auto sys = entity->world()->getSystem<MouseLeftClickSystem>();
 
                 const auto& ui = entity->get<UiComponent>();
                 
@@ -53,9 +73,9 @@ namespace pg
             });
         }
 
-        void execute() override
+        virtual void execute() override
         {
-            LOG_THIS_MEMBER("MouseClickSystem");
+            LOG_THIS_MEMBER("MouseLeftClickSystem");
 
             int highestZ = INT_MIN;
             const auto& mousePos = inputHandler->getMousePos();
@@ -64,6 +84,9 @@ namespace pg
 
             if(inputHandler->isButtonPressed(Qt::LeftButton))
             {
+                if(not pressed)
+                    ecsRef->sendEvent(OnMouseClick{});
+
                 pressed = true;
             }
 
@@ -78,15 +101,13 @@ namespace pg
                         if(ui->pos.z < highestZ)
                             break;
 
-                        if(ui->inBound(mousePos.x(), mousePos.y()) && ui->isVisible())
+                        if(ui->inBound(mousePos.x(), mousePos.y()))
                         {
                             highestZ = static_cast<UiSize>(ui->pos.z);
 
                             auto comp = getComponent(mouseArea.id);
 
                             comp->callback->call(world());
-
-                            // comp->callback(inputHandler, inputHandler->updateTime);
                         }
                     }
                 }
@@ -100,8 +121,125 @@ namespace pg
         std::set<MouseAreaZ, std::greater<>> mouseAreaHolder;
     };
 
-    bool operator<(const MouseClickSystem::MouseAreaZ& lhs, const MouseClickSystem::MouseAreaZ& rhs);
-    bool operator>(const MouseClickSystem::MouseAreaZ& lhs, const MouseClickSystem::MouseAreaZ& rhs);
+    struct MouseRightClickSystem : public System<Own<MouseRightClickComponent>, NamedSystem, InitSys>
+    {
+        MouseRightClickSystem(Input* inputHandler) : inputHandler(inputHandler) { LOG_THIS_MEMBER("MouseRightClickSystem"); }
+
+        virtual std::string getSystemName() const override { return "Mouse Right Click System"; }
+
+        virtual void init() override
+        {
+            LOG_THIS_MEMBER("MouseRightClickSystem");
+
+            auto group = registerGroup<UiComponent, MouseRightClickComponent>();
+
+            group->addOnGroup([](EntityRef entity) {
+                LOG_MILE("MouseRightClickSystem", "Add entity " << entity->id << " to ui - mouse right click group !");
+
+                auto sys = entity->world()->getSystem<MouseRightClickSystem>();
+
+                const auto& ui = entity->get<UiComponent>();
+                
+                sys->mouseAreaHolder.emplace(entity->id, ui);
+            });
+        }
+
+        virtual void execute() override
+        {
+            LOG_THIS_MEMBER("MouseRightClickSystem");
+
+            int highestZ = INT_MIN;
+            const auto& mousePos = inputHandler->getMousePos();
+
+            static bool pressed = false;
+
+            if(inputHandler->isButtonPressed(Qt::RightButton))
+            {
+                if(not pressed)
+                    ecsRef->sendEvent(OnMouseClick{});
+
+                pressed = true;
+            }
+
+            if(not inputHandler->isButtonPressed(Qt::RightButton))
+            {
+                if(pressed)
+                {
+                    for(const auto& mouseArea : mouseAreaHolder)
+                    {
+                        UiComponent *ui = mouseArea.ui;
+
+                        if(ui->pos.z < highestZ)
+                            break;
+
+                        if(ui->inBound(mousePos.x(), mousePos.y()))
+                        {
+                            highestZ = static_cast<UiSize>(ui->pos.z);
+
+                            auto comp = getComponent(mouseArea.id);
+
+                            comp->callback->call(world());
+                        }
+                    }
+                }
+
+                pressed = false;
+            }
+            
+        }
+
+        Input *inputHandler;
+        std::set<MouseAreaZ, std::greater<>> mouseAreaHolder;
+    };
+
+    struct MouseLeaveClickSystem : public System<Listener<OnMouseClick>, Own<MouseLeaveClickComponent>, NamedSystem, InitSys, StoragePolicy>
+    {
+        MouseLeaveClickSystem(Input* inputHandler) : inputHandler(inputHandler) { LOG_THIS_MEMBER("MouseLeaveClickSystem"); }
+
+        virtual std::string getSystemName() const override { return "Mouse Leave Click System"; }
+
+        virtual void init() override
+        {
+            LOG_THIS_MEMBER("MouseLeaveClickSystem");
+
+            auto group = registerGroup<UiComponent, MouseLeaveClickComponent>();
+
+            group->addOnGroup([](EntityRef entity) {
+                LOG_MILE("MouseLeaveClickSystem", "Add entity " << entity->id << " to ui - mouse leave click group !");
+
+                auto sys = entity->world()->getSystem<MouseLeaveClickSystem>();
+
+                const auto& ui = entity->get<UiComponent>();
+                
+                sys->mouseAreaHolder.emplace(entity->id, ui);
+            });
+        }
+
+        virtual void onEvent(const OnMouseClick&) override
+        {
+            LOG_THIS_MEMBER("MouseLeaveClickSystem");
+
+            const auto& mousePos = inputHandler->getMousePos();
+
+            for(const auto& mouseArea : mouseAreaHolder)
+            {
+                UiComponent *ui = mouseArea.ui;
+
+                if(not ui->inBound(mousePos.x(), mousePos.y()))
+                {
+                    auto comp = getComponent(mouseArea.id);
+
+                    comp->callback->call(world());
+                }
+            }
+        }
+
+        Input *inputHandler;
+        std::set<MouseAreaZ, std::less<>> mouseAreaHolder;
+    };
+
+    bool operator<(const MouseAreaZ& lhs, const MouseAreaZ& rhs);
+    bool operator>(const MouseAreaZ& lhs, const MouseAreaZ& rhs);
 
     struct MouseInputComponent
     {
@@ -303,16 +441,18 @@ namespace pg
         KeyInputPtr component;
     };
 
-    class InputSystem : public System<Own<MouseComponent>, Own<KeyComponent>>
+    class InputSystem : public System<Own<MouseComponent>, Own<KeyComponent>, NamedSystem>
     {
         /** InputSystem unique pointer type definition */
         typedef std::unique_ptr<InputSystem> InputPtr;
 
     public:
-        InputSystem() : System<Own<MouseComponent>, Own<KeyComponent>>()
+        InputSystem() : System<Own<MouseComponent>, Own<KeyComponent>, NamedSystem>()
         {
             setPolicy(ExecutionPolicy::Storage);
         }
+
+        virtual std::string getSystemName() const override { return "Input System"; }
 
         void execute() override
         {

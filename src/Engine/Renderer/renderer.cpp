@@ -61,9 +61,11 @@ namespace pg
                     auto mesh = renderableTexture.meshRef.getMesh();
 
                     if(not ui->isVisible() or not mesh)
-                        break;
+                        continue;
 
                     view.setToIdentity();
+                    // Todo
+                    // view.translate(QVector3D(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, -static_cast<UiSize>(ui->pos.z)));
                     view.translate(QVector3D(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, 0.0f));
 
                     shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
@@ -163,10 +165,10 @@ namespace pg
         auto tileVertices = new float[20];
 
         //                 x                         y                         z                      texpos x                 texpos y
-        tileVertices[0]  = 0.0f; tileVertices[1]  =  0.0f; tileVertices[2]  = 0.0f; tileVertices[3]  = 0.0f; tileVertices[4]  = 0.0f;   
-        tileVertices[5]  = 1.0f; tileVertices[6]  =  0.0f; tileVertices[7]  = 0.0f; tileVertices[8]  = 1.0f; tileVertices[9]  = 0.0f;
-        tileVertices[10] = 1.0f; tileVertices[11] = -1.0f; tileVertices[12] = 0.0f; tileVertices[13] = 0.0f; tileVertices[14] = 1.0f;
-        tileVertices[15] = 0.0f; tileVertices[16] = -1.0f; tileVertices[17] = 0.0f; tileVertices[18] = 1.0f; tileVertices[19] = 1.0f;
+        tileVertices[0]  = 0.0f; tileVertices[1]  =  0.0f; tileVertices[2]  = 1.0f; tileVertices[3]  = 0.0f; tileVertices[4]  = 0.0f;   
+        tileVertices[5]  = 1.0f; tileVertices[6]  =  0.0f; tileVertices[7]  = 1.0f; tileVertices[8]  = 1.0f; tileVertices[9]  = 0.0f;
+        tileVertices[10] = 1.0f; tileVertices[11] = -1.0f; tileVertices[12] = 1.0f; tileVertices[13] = 0.0f; tileVertices[14] = 1.0f;
+        tileVertices[15] = 0.0f; tileVertices[16] = -1.0f; tileVertices[17] = 1.0f; tileVertices[18] = 1.0f; tileVertices[19] = 1.0f;
 
         unsigned int nbTileVertices = 20;
 

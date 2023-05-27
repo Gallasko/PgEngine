@@ -1,10 +1,10 @@
 #pragma once
 
-#include <functional>
+#include "ECS/entitysystem.h"
 
-#include "UI/uisystem.h"
-
-namespace pg {
+#include "ECS/callable.h"
+namespace pg 
+{
     enum class UiComponentType
     {
         BUTTON,
@@ -12,40 +12,61 @@ namespace pg {
         TEXT,
         TEXTINPUT,
         LIST,
-        PREFAB // TOdo to implement !
+        PREFAB // Todo to implement !
     };
 
-    namespace ecs
-    {
-        class EntitySystem;
-    }
-
-    // Class forwarding
-    class FontLoader;
-    class MasterRenderer;
+    class UiComponent;
+    class Input;
 
 namespace editor
 {
-    struct ContextMenu : public UiComponent
+    struct ShowContextMenu 
     {
-        ContextMenu(EntitySystem &ecs, FontLoader *fontLoader, const std::string& textureName, const std::function<void(const UiComponentType&)>& callback);
+        ShowContextMenu(Input* inputHandler, const CompRef<UiComponent>& sceneUi) : inputHandler(inputHandler), sceneUi(sceneUi) {}
+
+        Input* inputHandler; CompRef<UiComponent> sceneUi;
+    };
+
+    struct HideContextMenu {};
+
+    struct CreateElement { CreateElement(const UiComponentType& type) : type(type) {} UiComponentType type; };
+
+    // Todo make the context menu a generic Ui element !
+    struct ContextMenu : System<Listener<ShowContextMenu>, Listener<HideContextMenu>, Listener<CreateElement>, InitSys, StoragePolicy>
+    {
+        ContextMenu();
         ~ContextMenu();
 
-        virtual void render(MasterRenderer* masterRenderer);
+        virtual void init() override;
 
-        void show() override;
-        void hide() override;
+        void setContextList(const std::string& text, CallablePtr callable);
 
-        UiComponent *backgroundTextureC;
+        template<typename... Args>
+        void setContextList(const std::string& text, CallablePtr callable, const std::string& nText, CallablePtr nCallable, Args... args)
+        {
+            addItemInContextMenu(text, callable);
 
-        UiComponent *addButtonButtonC;
-        UiComponent *addTextureButtonC;
-        UiComponent *addTextButtonC;
-        UiComponent *addTextInputButtonC;
-        UiComponent *addListButtonC;
-        UiComponent *addPrefabButtonC;
+            setContextList(nText, nCallable, args...);
+        }
 
-        std::function<void(const UiComponentType&)> callback;
+        void addItemInContextMenu(const std::string& text, CallablePtr callable);
+
+        inline void clear() { components.clear(); }
+
+        void hide();
+
+        virtual void onEvent(const ShowContextMenu& event) override;
+        virtual void onEvent(const HideContextMenu&) override;
+        virtual void onEvent(const CreateElement& event) override;
+
+        EntityRef parent;
+        CompRef<UiComponent> parentUi;
+
+        CompRef<UiComponent> backgroundC;
+
+        std::vector<CompRef<UiComponent>> components;
+
+        float currentX = 0.0f, currentY = 0.0f; 
     };
 }
 }

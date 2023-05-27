@@ -13,6 +13,8 @@ namespace pg
         virtual void call(EntitySystem* const ecsRef) = 0;
     };
 
+    typedef std::shared_ptr<AbstractCallable> CallablePtr;
+
     template<typename Event, typename... Types>
     struct Callable : public AbstractCallable
     {
@@ -29,6 +31,6 @@ namespace pg
 
     // Todo make a scriptCallable
 
-// std::function<void(Input*, double)> callback = [](Input*, double){ LOG_ERROR("MouseClickSystem", "Trying to call a empty Mouse Click Component !"); };
+// std::function<void(Input*, double)> callback = [](Input*, double){ LOG_ERROR("MouseLeftClickSystem", "Trying to call a empty Mouse Click Component !"); };
 
 }
