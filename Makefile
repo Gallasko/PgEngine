@@ -3,24 +3,11 @@
 # 'make clean'  removes all .o and executable files
 #
 
-# Todo link Qt libraries only against the file needing those to reduce link time
-
 # Wildcard use to get recursively all the .cpp
 rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
-# Qt path
-#Qt_PATH := C:/Qt/5.11.2-x64
-Qt_PATH := $(QTPATH)
-#Qt_PATH := Z:\Qt\5.15.2\mingw81_64
-
 # define the Cpp compiler to use
 CXX = g++
-
-# define the moc
-MOC = $(Qt_PATH)/bin/moc.exe
-
-# define the rcc
-RCC = $(Qt_PATH)/bin/rcc.exe
 
 DebugActive ?= $(DEBUG)
 
@@ -56,22 +43,18 @@ else
 OUTPUT	:= release_build
 endif
 
-
 # define source directory
 SRC		:= src
 
 # define include directory
-INCLUDE	:= include \
-		   $(Qt_PATH)/include \
-		   $(Qt_PATH)/include/QtCore \
-		   $(Qt_PATH)/include/QtGui
+INCLUDE	:= include
 
 # define import directory
 IMPORT 	:= import
 
 # define lib directory
 LIB		:= lib \
-		   $(Qt_PATH)/lib
+		#    $(Qt_PATH)/lib
 
 # define dependency directory
 DEPENDENCIES := dependencies
@@ -127,6 +110,48 @@ TASKFLOWDIR := $(IMPORTDIRS)/taskflow/taskflow
 TASKFLOWALG := $(TASKFLOWDIR)/algorithm
 TASKFLOWCOR := $(TASKFLOWDIR)/core
 
+SDLDIR := $(IMPORTDIRS)/SDL2-2.0.10
+SDLLIBDIR := $(SDLDIR)/lib/x64
+SDLINCDIR := $(SDLDIR)/include
+
+SDLTTFDIR := $(IMPORTDIRS)/SDL2_ttf-2.0.15
+SDLTTFLIBDIR := $(SDLTTFDIR)/lib/x64
+SDLTTFINCDIR := $(SDLTTFDIR)/include
+
+SDLMIXERDIR := $(IMPORTDIRS)/SDL2_mixer-2.0.2
+SDLMIXERLIBDIR := $(SDLMIXERDIR)/lib/x64
+SDLMIXERINCDIR := $(SDLMIXERDIR)/include
+
+GLEWDIR := $(IMPORTDIRS)/glew-2.1.0
+GLEWLIBDIR := $(GLEWDIR)/lib/Release/x64
+GLEWINCDIR := $(GLEWDIR)/include
+
+ifeq ($(OS),Windows_NT)
+# define any directories containing header files other than /usr/include
+INCLUDES	 := $(patsubst %,-I%, $(INCLUDEDIRS:%/=%)) \
+			    $(patsubst %,-I%, $(SOURCESDIRTREE:%/=%)) \
+				$(patsubst %,-I%, $(TASKFLOWDIR:%/=%)) \
+				$(patsubst %,-I%, $(TASKFLOWALG:%/=%)) \
+				$(patsubst %,-I%, $(TASKFLOWCOR:%/=%)) \
+				$(patsubst %,-I%, $(SDLINCDIR:%/=%)) \
+				$(patsubst %,-I%, $(SDLTTFINCDIR:%/=%)) \
+				$(patsubst %,-I%, $(SDLMIXERINCDIR:%/=%)) \
+				$(patsubst %,-I%, $(GLEWINCDIR:%/=%))
+
+# define the C libs
+LIBS		:= $(patsubst %,-L%, $(LIBDIRS:%/=%)) \
+			   $(patsubst %,-L%, $(SDLLIBDIR:%/=%)) \
+			   $(patsubst %,-L%, $(SDLTTFLIBDIR:%/=%)) \
+			   $(patsubst %,-L%, $(SDLMIXERLIBDIR:%/=%)) \
+			   $(patsubst %,-L%, $(GLEWLIBDIR:%/=%)) \
+			   -lSDL2main \
+			   -lSDL2 \
+			   -lSDL2_ttf \
+			   -lSDL2_mixer \
+			   -lglew32 \
+			   -lzlib1 \
+			   -lopengl32
+else
 # define any directories containing header files other than /usr/include
 INCLUDES	 := $(patsubst %,-I%, $(INCLUDEDIRS:%/=%)) \
 			    $(patsubst %,-I%, $(SOURCESDIRTREE:%/=%)) \
@@ -134,6 +159,16 @@ INCLUDES	 := $(patsubst %,-I%, $(INCLUDEDIRS:%/=%)) \
 				$(patsubst %,-I%, $(TASKFLOWALG:%/=%)) \
 				$(patsubst %,-I%, $(TASKFLOWCOR:%/=%))
 
+# define the C libs
+LIBS		:= -lSDL2main \
+			   -lSDL2 \
+			   -lSDL2_ttf \
+			   -lSDL2_mixer \
+			   -lGLEW \
+			   -lGLU \
+			   -lGL
+
+endif
 # define GTest directory
 GTESTDIR := $(IMPORTDIRS)/googletest/googletest
 
@@ -145,16 +180,8 @@ TESTFLAGS += -isystem $(GTESTDIR)/include
 
 TEST_INCLUDES := $(patsubst %,-I%, $(TESTDIR:%/=%))
 
-# define the C libs
-LIBS		:= $(patsubst %,-L%, $(LIBDIRS:%/=%)) \
-			   -lQt5Gui \
-			   -lQt5Core \
-			   -lopengl32
-
 # define the C source files
 SOURCES		 := $(call rwildcard,$(SOURCEDIRS), *.cpp)
-MOC_SOURCES	 := $(call rwildcard,$(SOURCEDIRS), *.h)
-RCC_SOURCES	 := $(call rwildcard,., *.qrc)
 
 GTEST_SOURCES = $(GTESTDIR)/src/*.cc $(GTESTDIR)/src/*.h $(GTEST_HEADERS)
 
@@ -162,14 +189,9 @@ TEST_SOURCES := $(call rwildcard,$(TESTDIR), *.cc)
 
 # define the C object files 
 OBJECTS		 := $(SOURCES:%.cpp=$(BUILDDIR)/%.o) \
-				$(MOC_SOURCES:%.h=$(BUILDDIR)/%.moc.o) \
-				$(RCC_SOURCES:%.qrc=$(BUILDDIR)/%.rcc.o)
 
 TEST_OBJECTS := $(SOURCES:%.cpp=$(BUILDDIR)/%.o) \
-				$(MOC_SOURCES:%.h=$(BUILDDIR)/%.moc.o) \
-				$(RCC_SOURCES:%.qrc=$(BUILDDIR)/%.rcc.o) \
 				$(TEST_SOURCES:%.cc=$(BUILDDIR)/%.o)
-
 
 TEST_OBJECTS := $(filter-out build/src/main.o, $(TEST_OBJECTS))
 
@@ -180,6 +202,8 @@ DEP := $(OBJECTS:%.o=%.d)
 # build any executable just by changing the definitions above and by
 # deleting dependencies appended to the file from 'make depend'
 #
+
+ifeq ($(OS),Windows_NT)
 
 OUTPUTMAIN	:= $(call FIXPATH,$(OUTPUT)/$(MAIN))
 TESTMAIN 	:= $(call FIXPATH,$(OUTPUT)/test.exe)
@@ -193,11 +217,11 @@ test: $(TEST_OBJECTS) gtest-all.o
 	@echo Building Test ...
 	$(CXX) $(TESTFLAGS) $(INCLUDES) $(TEST_INCLUDE) -o $(TESTMAIN) $(TEST_OBJECTS) gtest-all.o $(LFLAGS) $(LIBS)
 
-ifeq ($(DebugActive),True)
-	./debug_build/test.exe
-else
-	./release_build/test.exe
-endif
+	ifeq ($(DebugActive),True)
+		./debug_build/test.exe
+	else
+		./release_build/test.exe
+	endif
 
 # Create the output hierarchy
 $(OUTPUT):
@@ -209,7 +233,7 @@ $(MAIN): $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(OUTPUTMAIN) $(OBJECTS) $(LFLAGS) $(LIBS)
 
 	@echo Copy the ddl dependencies
-	xcopy $(DEPENDENCIESDIRS) $(OUTPUT) /v /f /s /y /d
+	xcopy $(DEPENDENCIESDIRS)/x64 $(OUTPUT) /v /f /s /y /d
 
 # this is a suffix replacement rule for building .o's from .c's
 # it uses automatic variables $<: the name of the prerequisite of
@@ -234,30 +258,72 @@ $(BUILDDIR)/%.o: %.cpp
 	@echo Converting $< to $@
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD  -MP -c $< -o $@
 
-# Compile headers
-%.moc.o: %.moc.cpp
+$(OBJECTS): | $(BUILDDIR)
+
+$(BUILDDIR):
+	$(MD) $(foreach dir, $(SOURCESDIRTREE), $(BUILDDIR)/$(dir),) build/test
+
+else
+
+OUTPUTMAIN	:= $(call FIXPATH,$(OUTPUT)/$(MAIN))
+TESTMAIN 	:= $(call FIXPATH,$(OUTPUT)/test)
+
+# Compile the executable
+all: $(OUTPUT) $(MAIN)
+	@echo Executing 'all' complete!
+
+# Compile the test
+test: $(TEST_OBJECTS) gtest-all.o
+	@echo Building Test ...
+	$(CXX) $(TESTFLAGS) $(INCLUDES) $(TEST_INCLUDE) -o $(TESTMAIN) $(TEST_OBJECTS) gtest-all.o $(LFLAGS) $(LIBS)
+
+	ifeq ($(DebugActive),True)
+		./debug_build/test
+	else
+		./release_build/test
+	endif
+
+# Create the output hierarchy
+$(OUTPUT):
+	$(MD) $(OUTPUT)
+
+# Build main and copy dependencies
+$(MAIN): $(OBJECTS)
+	@echo Building Main ...
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(OUTPUTMAIN) $(OBJECTS) $(LFLAGS) $(LIBS)
+
+	@echo Copy the ddl dependencies
+	cp $(DEPENDENCIESDIRS) $(OUTPUT) /v /f /s /y /d
+
+# this is a suffix replacement rule for building .o's from .c's
+# it uses automatic variables $<: the name of the prerequisite of
+# the rule(a .c file) and $@: the name of the target of the rule (a .o file) 
+# (see the gnu make manual section about automatic variables)
+
+# Compile the test files
+$(BUILDDIR)/%.o: %.cc
 	@echo Converting $< to $@
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD  -MP -c $<  -o $@
+	$(CXX) $(TESTFLAGS) $(TEST_INCLUDE) $(INCLUDES) -MMD  -MP -c $< -o $@
 
-# Run qmoc on .h files as qt may need to bind signals and slots
-$(BUILDDIR)/%.moc.cpp: %.h
-	@echo Creating $@
-	$(MOC) $(INCLUDES) $< -o $@
+gtest-all.o : $(GTEST_SOURCES)
+	$(CXX) $(TESTFLAGS) -I$(GTESTDIR) $(TESTFLAGS) -c \
+            $(GTESTDIR)/src/gtest-all.cc
 
-# Compile the ressource file
-%.rcc.o: %.rcc.cpp
+gtest_main.o : $(GTEST_SOURCES)
+	$(CXX) $(TESTFLAGS) -I$(GTESTDIR) $(TESTFLAGS) -c \
+            $(GTESTDIR)/src/gtest_main.cc
+
+# Compile all the remaining source files
+$(BUILDDIR)/%.o: %.cpp
 	@echo Converting $< to $@
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -MMD  -MP -c $< -o $@
-
-# Read the qrc file and generate the ressource cpp file
-$(BUILDDIR)/%.rcc.cpp: %.qrc
-	@echo Creating $@
-	$(RCC) $< -o $@
 
 $(OBJECTS): | $(BUILDDIR)
 
 $(BUILDDIR):
 	$(MD) $(foreach dir, $(SOURCESDIRTREE), $(BUILDDIR)/$(dir),) build/test
+
+endif
 
 .PHONY: clean
 

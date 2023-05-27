@@ -3,7 +3,6 @@
 /debug_build*
 /release_build*
 /build*
-/dependencies*
 log.txt
 gtest-all.o
 simple.json
