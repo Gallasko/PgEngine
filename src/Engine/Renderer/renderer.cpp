@@ -1,10 +1,10 @@
 #include "renderer.h"
 
-#include <QImage>
-
 #include "UI/texture.h"
 
 #include "logger.h"
+
+#include "openglobject.h"
 
 namespace pg
 {
@@ -109,11 +109,16 @@ namespace pg
         nbRenderedFrames++;
     }
 
+    void registerShader(const std::string& name, OpenGLShaderProgram *shaderProgram)
+    { 
+        shaderList[name] = shaderProgram;
+    }
+
     void MasterRenderer::registerShader(const std::string& name, const char* vsPath, const char* fsPath)
     {
         LOG_THIS_MEMBER(DOM);
 
-        auto shaderProgram = new QOpenGLShaderProgram();
+        auto shaderProgram = new OpenGLShaderProgram();
         shaderProgram->addShaderFromSourceFile(QOpenGLShader::Vertex, vsPath);
         shaderProgram->addShaderFromSourceFile(QOpenGLShader::Fragment, fsPath);
         shaderProgram->link();

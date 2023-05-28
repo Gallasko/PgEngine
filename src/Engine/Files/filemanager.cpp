@@ -1,10 +1,5 @@
 #include "filemanager.h"
 
-#include <QFile>
-#include <QDir>
-#include <QString>
-#include <QTextStream>
-
 #include <stdexcept>
 
 #include "../logger.h"
@@ -19,28 +14,30 @@ namespace pg
         {
             LOG_THIS(DOM);
 
-            try
-            {
-                QFile file(filename.c_str());
+            // Todo
 
-                if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-                {
-                    LOG_INFO(DOM, "Can't open file '" + filename + "'.");
-                    return TextFile{filename, ""};
-                }
+            // try
+            // {
+            //     QFile file(filename.c_str());
 
-                auto text = file.readAll().toStdString();
+            //     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+            //     {
+            //         LOG_INFO(DOM, "Can't open file '" + filename + "'.");
+            //         return TextFile{filename, ""};
+            //     }
 
-                file.close();
+            //     auto text = file.readAll().toStdString();
 
-                return TextFile{filename, text};
-            }
-            catch (const std::exception& e)
-            {
-                LOG_INFO(DOM, e.what());
+            //     file.close();
 
-                return TextFile{filename, ""};
-            }
+            //     return TextFile{filename, text};
+            // }
+            // catch (const std::exception& e)
+            // {
+            //     LOG_INFO(DOM, e.what());
+
+            //     return TextFile{filename, ""};
+            // }
         }
     }
 
@@ -57,10 +54,12 @@ namespace pg
 
         std::vector<TextFile> folder;
 
-        foreach(const QString& fileName, QDir((":/" + foldername).c_str()).entryList())
-        {
-            folder.push_back(openTxtFile(":/" + foldername + fileName.toStdString()));
-        }
+        // Todo
+
+        // foreach(const QString& fileName, QDir((":/" + foldername).c_str()).entryList())
+        // {
+        //     folder.push_back(openTxtFile(":/" + foldername + fileName.toStdString()));
+        // }
 
         return folder;
     }
@@ -78,10 +77,12 @@ namespace pg
 
         std::vector<TextFile> folder;
 
-        foreach(const QString& fileName, QDir(foldername.c_str()).entryList() )
-        {
-            folder.push_back(openTxtFile(foldername + fileName.toStdString()));
-        }
+        // Todo
+
+        // foreach(const QString& fileName, QDir(foldername.c_str()).entryList() )
+        // {
+        //     folder.push_back(openTxtFile(foldername + fileName.toStdString()));
+        // }
 
         return folder;
     }
@@ -90,24 +91,26 @@ namespace pg
     {
         LOG_THIS(DOM);
 
-        try
-        {
-            QFile f(file.filename.c_str());
+        // Todo
 
-            if (!f.open(QIODevice::WriteOnly | QIODevice::Text))
-            {
-                LOG_ERROR(DOM, "Can't open file '" + file.filename + "'.");
-                return;
-            }
+        // try
+        // {
+        //     QFile f(file.filename.c_str());
 
-            f.write(data.c_str());
+        //     if (!f.open(QIODevice::WriteOnly | QIODevice::Text))
+        //     {
+        //         LOG_ERROR(DOM, "Can't open file '" + file.filename + "'.");
+        //         return;
+        //     }
 
-            f.close();
-        }
-        catch (const std::exception& e)
-        {
-            LOG_ERROR(DOM, e.what());
-        }
+        //     f.write(data.c_str());
+
+        //     f.close();
+        // }
+        // catch (const std::exception& e)
+        // {
+        //     LOG_ERROR(DOM, e.what());
+        // }
     }
 
 }

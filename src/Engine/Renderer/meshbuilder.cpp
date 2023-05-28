@@ -2,21 +2,31 @@
 
 #include "UI/sentencesystem.h"
 
+#include "Helpers/openglobject.h"
+
 namespace pg
 {
     void OpenGLObject::initialize()
     {
         LOG_THIS_MEMBER("OpenGLObject");
-
-        initializeOpenGLFunctions();
         
-        VAO = new QOpenGLVertexArrayObject();
-        VBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-        EBO = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer); 
+        VAO = new OpenGLVertexArrayObject();
+        VBO = new OpenGLBuffer(OpenGLBuffer::VertexBuffer);
+        EBO = new OpenGLBuffer(OpenGLBuffer::IndexBuffer); 
 
         VAO->create();
         VBO->create();
         EBO->create();
+    }
+
+    void MeshBuilder::Mesh::bind()
+    { 
+        LOG_THIS_MEMBER("Mesh");
+
+        if(not initialized)
+            generateMesh();
+        
+        OpenGLMesh.VAO->bind();
     }
 
     void MeshBuilder::TextureMesh::generateMesh()

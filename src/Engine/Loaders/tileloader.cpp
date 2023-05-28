@@ -1,159 +1,161 @@
-#include "tileloader.h"
+// Todo
 
-#include "../Files/parser.h"
-#include "../logger.h"
+// #include "tileloader.h"
 
-namespace pg
-{
-	namespace
-	{
-		//TODO make this a param of the atlas somewhere in a file
-		#define NBROWTEXTUREATLAS 16.0f
-		#define SPRITESIZE 64.0f
-		#define ATLASSIZE 1024.0f
+// #include "../Files/parser.h"
+// #include "../logger.h"
 
-		static constexpr char const * DOM = "Tile Loader";
-	}
+// namespace pg
+// {
+// 	namespace
+// 	{
+// 		//TODO make this a param of the atlas somewhere in a file
+// 		#define NBROWTEXTUREATLAS 16.0f
+// 		#define SPRITESIZE 64.0f
+// 		#define ATLASSIZE 1024.0f
 
-	TilesLoader::TilesId::TilesId()
-	{
-		LOG_THIS_MEMBER(DOM);
+// 		static constexpr char const * DOM = "Tile Loader";
+// 	}
 
-		initializeOpenGLFunctions(); 
+// 	TilesLoader::TilesId::TilesId()
+// 	{
+// 		LOG_THIS_MEMBER(DOM);
 
-		VAO = new QOpenGLVertexArrayObject();
-		VBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-		EBO = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
+// 		initializeOpenGLFunctions(); 
 
-		VAO->create();
-		VBO->create();
-		EBO->create();
-	}
+// 		VAO = new QOpenGLVertexArrayObject();
+// 		VBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+// 		EBO = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
 
-	TilesLoader::TilesId::~TilesId()
-	{
-		LOG_THIS_MEMBER(DOM);
+// 		VAO->create();
+// 		VBO->create();
+// 		EBO->create();
+// 	}
 
-		delete VAO;
-		delete VBO;
-		delete EBO;
-	}
+// 	TilesLoader::TilesId::~TilesId()
+// 	{
+// 		LOG_THIS_MEMBER(DOM);
 
-	void TilesLoader::TilesId::setMesh(int textureId)
-	{
-		LOG_THIS_MEMBER(DOM);
+// 		delete VAO;
+// 		delete VBO;
+// 		delete EBO;
+// 	}
 
-		int column = textureId % (int)NBROWTEXTUREATLAS;
-		float xMin = (column * SPRITESIZE) / ATLASSIZE;
-		float xMax = ((column + 1) * SPRITESIZE) / ATLASSIZE;
+// 	void TilesLoader::TilesId::setMesh(int textureId)
+// 	{
+// 		LOG_THIS_MEMBER(DOM);
 
-		int row = (float)textureId / NBROWTEXTUREATLAS;
-		float yMin = (row * SPRITESIZE)  / ATLASSIZE;
-		float yMax = ((row + 1) * SPRITESIZE)  / ATLASSIZE;
+// 		int column = textureId % (int)NBROWTEXTUREATLAS;
+// 		float xMin = (column * SPRITESIZE) / ATLASSIZE;
+// 		float xMax = ((column + 1) * SPRITESIZE) / ATLASSIZE;
 
-		//texpos x                 texpos y
-		modelInfo.vertices[3] =  xMin; modelInfo.vertices[4] =  yMin;   
-		modelInfo.vertices[8] =  xMax; modelInfo.vertices[9] =  yMin;
-		modelInfo.vertices[13] = xMin; modelInfo.vertices[14] = yMax;
-		modelInfo.vertices[18] = xMax; modelInfo.vertices[19] = yMax;
+// 		int row = (float)textureId / NBROWTEXTUREATLAS;
+// 		float yMin = (row * SPRITESIZE)  / ATLASSIZE;
+// 		float yMax = ((row + 1) * SPRITESIZE)  / ATLASSIZE;
 
-		VAO->bind();
+// 		//texpos x                 texpos y
+// 		modelInfo.vertices[3] =  xMin; modelInfo.vertices[4] =  yMin;   
+// 		modelInfo.vertices[8] =  xMax; modelInfo.vertices[9] =  yMin;
+// 		modelInfo.vertices[13] = xMin; modelInfo.vertices[14] = yMax;
+// 		modelInfo.vertices[18] = xMax; modelInfo.vertices[19] = yMax;
 
-		// position attribute
-		glEnableVertexAttribArray(0);
-		VBO->bind();
-		VBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
-		VBO->allocate(modelInfo.vertices, modelInfo.nbVertices * sizeof(float));
+// 		VAO->bind();
 
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+// 		// position attribute
+// 		glEnableVertexAttribArray(0);
+// 		VBO->bind();
+// 		VBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
+// 		VBO->allocate(modelInfo.vertices, modelInfo.nbVertices * sizeof(float));
 
-		// texture coord attribute
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+// 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 
-		EBO->bind();
-		EBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
-		EBO->allocate(modelInfo.indices, modelInfo.nbIndices * sizeof(unsigned int));
+// 		// texture coord attribute
+// 		glEnableVertexAttribArray(1);
+// 		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
-		VAO->release();
-	}
+// 		EBO->bind();
+// 		EBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
+// 		EBO->allocate(modelInfo.indices, modelInfo.nbIndices * sizeof(unsigned int));
 
-	void TilesLoader::TilesId::setType(std::string type)
-	{
-		LOG_THIS_MEMBER(DOM);
+// 		VAO->release();
+// 	}
 
-		if(type == "Blank")
-			tileType = TileType::BLANK;
-		else if(type == "House")
-			tileType = TileType::HOUSE;
-		else if(type == "Shop")
-			tileType = TileType::SHOP;
-		else if(type == "Road")
-			tileType = TileType::ROAD;
-		else if(type == "Misc")
-			tileType = TileType::MISC;
-		else if(type == "Pathfinding")
-			tileType = TileType::PATHFINDING;
-		else
-			tileType = TileType::BLANK;
-	}
+// 	void TilesLoader::TilesId::setType(std::string type)
+// 	{
+// 		LOG_THIS_MEMBER(DOM);
 
-	TilesLoader::TilesLoader(const std::string& tilesFolder) : nbTilesId(0)
-	{
-		LOG_THIS_MEMBER(DOM);
+// 		if(type == "Blank")
+// 			tileType = TileType::BLANK;
+// 		else if(type == "House")
+// 			tileType = TileType::HOUSE;
+// 		else if(type == "Shop")
+// 			tileType = TileType::SHOP;
+// 		else if(type == "Road")
+// 			tileType = TileType::ROAD;
+// 		else if(type == "Misc")
+// 			tileType = TileType::MISC;
+// 		else if(type == "Pathfinding")
+// 			tileType = TileType::PATHFINDING;
+// 		else
+// 			tileType = TileType::BLANK;
+// 	}
 
-		std::shared_ptr<TilesLoader::TilesId> newTile;
+// 	TilesLoader::TilesLoader(const std::string& tilesFolder) : nbTilesId(0)
+// 	{
+// 		LOG_THIS_MEMBER(DOM);
 
-		std::vector<TextFile> folder = ResourceAccessor::openTextFolder(tilesFolder);
+// 		std::shared_ptr<TilesLoader::TilesId> newTile;
 
-		for(auto file : folder)
-		{
-			newTile = std::make_shared<TilesLoader::TilesId>();
-			newTile->setId(nbTilesId);
+// 		std::vector<TextFile> folder = ResourceAccessor::openTextFolder(tilesFolder);
 
-			FileParser parser(file);
+// 		for(auto file : folder)
+// 		{
+// 			newTile = std::make_shared<TilesLoader::TilesId>();
+// 			newTile->setId(nbTilesId);
 
-        	parser.addCallback("Tile Name",  [&](const std::string&) { newTile->setName(parser.getNextLine()); } );
-        	parser.addCallback("Texture",    [&](const std::string&) { newTile->setMesh(std::stoi(parser.getNextLine())); } );
-        	parser.addCallback("Type",       [&](const std::string&) { newTile->setType(parser.getNextLine()); } );
+// 			FileParser parser(file);
 
-			parser.run();
+//         	parser.addCallback("Tile Name",  [&](const std::string&) { newTile->setName(parser.getNextLine()); } );
+//         	parser.addCallback("Texture",    [&](const std::string&) { newTile->setMesh(std::stoi(parser.getNextLine())); } );
+//         	parser.addCallback("Type",       [&](const std::string&) { newTile->setType(parser.getNextLine()); } );
 
-			tilesList.push_back(newTile);
-			tilesDict[newTile->getName()] = nbTilesId;
+// 			parser.run();
 
-			nbTilesId++; 
-		}
-	}
+// 			tilesList.push_back(newTile);
+// 			tilesDict[newTile->getName()] = nbTilesId;
 
-	TilesLoader::~TilesLoader()
-	{
-		LOG_THIS_MEMBER(DOM);
+// 			nbTilesId++; 
+// 		}
+// 	}
 
-		tilesList.clear();
-		tilesList.shrink_to_fit();
-		//std::vector<TilesLoader::TilesId* >().swap(tilesList); //delete block list
-	}
+// 	TilesLoader::~TilesLoader()
+// 	{
+// 		LOG_THIS_MEMBER(DOM);
 
-	const TilesLoader::TilesId* TilesLoader::getTile(int id) const
-	{
-		LOG_THIS_MEMBER(DOM);
+// 		tilesList.clear();
+// 		tilesList.shrink_to_fit();
+// 		//std::vector<TilesLoader::TilesId* >().swap(tilesList); //delete block list
+// 	}
 
-		if(id < nbTilesId)
-			return tilesList[id].get();
-		else
-			return nullptr;
-	}
+// 	const TilesLoader::TilesId* TilesLoader::getTile(int id) const
+// 	{
+// 		LOG_THIS_MEMBER(DOM);
 
-	const TilesLoader::TilesId* TilesLoader::getTile(std::string tileName) const
-	{
-		LOG_THIS_MEMBER(DOM);
+// 		if(id < nbTilesId)
+// 			return tilesList[id].get();
+// 		else
+// 			return nullptr;
+// 	}
 
-		auto it = tilesDict.find(tileName);
+// 	const TilesLoader::TilesId* TilesLoader::getTile(std::string tileName) const
+// 	{
+// 		LOG_THIS_MEMBER(DOM);
 
-		if(it != tilesDict.end())
-			return tilesList[tilesDict.at(tileName)].get();
-		else
-			return nullptr;
-	}
-}
+// 		auto it = tilesDict.find(tileName);
+
+// 		if(it != tilesDict.end())
+// 			return tilesList[tilesDict.at(tileName)].get();
+// 		else
+// 			return nullptr;
+// 	}
+// }

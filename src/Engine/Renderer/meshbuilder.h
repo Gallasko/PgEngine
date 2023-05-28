@@ -1,9 +1,5 @@
 #pragma once
 
-#include <QOpenGLFunctions>
-#include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
-
 #include <memory>
 #include <unordered_map>
 
@@ -12,11 +8,15 @@
 
 namespace pg
 {
-    struct OpenGLObject : public QOpenGLFunctions
+    // Forward declarations
+    class OpenGLVertexArrayObject;
+    class OpenGLBuffer;
+
+    struct OpenGLObject
     {
-        QOpenGLVertexArrayObject *VAO = nullptr;
-        QOpenGLBuffer *VBO = nullptr;
-        QOpenGLBuffer *EBO = nullptr;
+        OpenGLVertexArrayObject *VAO = nullptr;
+        OpenGLBuffer *VBO = nullptr;
+        OpenGLBuffer *EBO = nullptr;
 
         OpenGLObject() { LOG_THIS_MEMBER("OpenGLObject"); }
         ~OpenGLObject() { LOG_THIS_MEMBER("OpenGLObject"); delete VAO; delete VBO; delete EBO; }
@@ -39,15 +39,7 @@ namespace pg
             Mesh& operator=(const Mesh &other) = delete;
             virtual ~Mesh() {}
 
-            void bind()
-            { 
-                LOG_THIS_MEMBER("Mesh");
-
-                if(not initialized)
-                    generateMesh();
-                
-                OpenGLMesh.VAO->bind();
-            }
+            void bind();
 
             virtual void generateMesh() = 0;
 

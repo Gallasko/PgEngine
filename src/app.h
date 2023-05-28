@@ -1,133 +1,119 @@
-#pragma once
+// #pragma once
 
-#include <QWindow>
-#include <QOpenGLFunctions>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLTexture>
-#include <QOpenGLContext>
-#include <QOpenGLPaintDevice>
-#include <QPainter>
-#include <QOpenGLExtraFunctions>
+// #include <QWindow>
+// #include <QOpenGLFunctions>
+// #include <QOpenGLShaderProgram>
+// #include <QOpenGLTexture>
+// #include <QOpenGLContext>
+// #include <QOpenGLPaintDevice>
+// #include <QPainter>
+// #include <QOpenGLExtraFunctions>
 
-#include <QKeyEvent>
-#include <QMouseEvent>
+// #include <QKeyEvent>
+// #include <QMouseEvent>
 
-#include <iostream>
-// timer includes
-#include <chrono>
-#include <thread>
+// #include <iostream>
+// // timer includes
+// #include <chrono>
+// #include <thread>
 
-#include "ECS/entitysystem.h"
+// #include "ECS/entitysystem.h"
 
-#include "Input/input.h"
-#include "Input/inputcomponent.h"
-#include "constant.h"
-#include "Loaders/fontloader.h"
-#include "Renderer/renderer.h"
-#include "UI/sentencesystem.h"
-#include "UI/uianimation.h"
-#include "UI/listview.h"
+// #include "Input/input.h"
+// #include "Input/inputcomponent.h"
+// #include "constant.h"
+// #include "Loaders/fontloader.h"
+// #include "Renderer/renderer.h"
+// #include "UI/sentencesystem.h"
+// #include "UI/uianimation.h"
+// #include "UI/listview.h"
 
-using namespace pg;
+// using namespace pg;
 
-namespace pg
-{
-    // Forward declarations
-    enum class UiComponentType;
-    class Button;
+// namespace pg
+// {
+//     // Forward declarations
+//     enum class UiComponentType;
+//     class Button;
 
-    namespace editor
-    {
-        class OptionTab;
-        class ContextMenu;
-    }
-}
+//     namespace editor
+//     {
+//         class OptionTab;
+//         class ContextMenu;
+//     }
+// }
 
-//TODO make a MainWindow that handle all the QT events and can start all the base engine systems !
+// //TODO make a MainWindow that handle all the QT events and can start all the base engine systems !
 
-class EditorWindow : public QWindow, protected QOpenGLFunctions
-{
-	Q_OBJECT
+// class EditorWindow
+// {
+// public:
+//     explicit EditorWindow();
+//     ~EditorWindow();
 
-public:
-    explicit EditorWindow(QWindow *parent = nullptr);
-    ~EditorWindow();
+//     virtual void initialize();
 
-    virtual void initialize();
+//     virtual void render();
 
-    virtual void render(QPainter *painter);
-    virtual void render();
+//     void setAnimating(bool animating);
 
-    void setAnimating(bool animating);
+//     void keyPressEvent(QKeyEvent *event);
+//     void keyReleaseEvent(QKeyEvent *event);
+//     void mouseMoveEvent(QMouseEvent *event);
+//     void mousePressEvent(QMouseEvent *event);
+//     void mouseReleaseEvent(QMouseEvent *event);
+//     void wheelEvent(QWheelEvent *event);
 
-    void keyPressEvent(QKeyEvent *event);
-    void keyReleaseEvent(QKeyEvent *event);
-    void mouseMoveEvent(QMouseEvent *event);
-    void mousePressEvent(QMouseEvent *event);
-    void mouseReleaseEvent(QMouseEvent *event);
-    void wheelEvent(QWheelEvent *event);
+//     //UI callback function
 
-    //UI callback function
+//     void renderLater();
+//     void renderNow();
 
-public slots:
-    void renderLater();
-    void renderNow();
+//     void quitApp();
 
-signals:
-    void quitApp();
+// protected:
+//     bool event(QEvent *event) override;
 
-protected:
-    bool event(QEvent *event) override;
+//     void exposeEvent(QExposeEvent *event) override;
 
-    void exposeEvent(QExposeEvent *event) override;
+// private:
+//     void addElement(const UiComponentType& type);
 
-private:
-    // Ui Input callbacks
-    void openContextMenu(Input* inputHandler, double...);
-    void closeContextMenu(Input* inputHandler, double);
+//     CompRef<UiComponent> sceneEntityC;
+//     editor::OptionTab *optionTab;
+//     editor::ContextMenu *contextMenu = nullptr;
 
-    void addElement(const UiComponentType& type);
-    
-    template <typename SceneElementType>
-    void openInOption(UiComponent* component);
+//     // Button* b1;
 
-    CompRef<UiComponent> sceneEntityC;
-    editor::OptionTab *optionTab;
-    editor::ContextMenu *contextMenu = nullptr;
+//     void quit(Input* inputHandler, double...);
 
-    // Button* b1;
+//     bool m_animating = false;
+//     bool ticking = false;
 
-    void renderUi();
-    void tick();
-    void quit(Input* inputHandler, double...);
+//     //Render var
+//     QOpenGLContext *m_context = nullptr;
+//     QOpenGLPaintDevice *m_device = nullptr;
 
-    bool m_animating = false;
-    bool ticking = false;
+//     EntitySystem ecs;
+//     EntitySystem sceneEcs;
 
-    //Render var
-    QOpenGLContext *m_context = nullptr;
-    QOpenGLPaintDevice *m_device = nullptr;
+//     MasterRenderer *masterRenderer = nullptr;
 
-    EntitySystem ecs;
-    EntitySystem sceneEcs;
+//     Input *inputHandler = nullptr;
+//     FontLoader *fontLoader = nullptr;
 
-    MasterRenderer *masterRenderer = nullptr;
+//     EntityRef screenEntity;
+//     CompRef<UiComponent> screenUi;
 
-    Input *inputHandler = nullptr;
-    FontLoader *fontLoader = nullptr;
+//     float xSensitivity = 1.0f;
+//     float ySensitivity = 1.0f;
 
-    EntityRef screenEntity;
-    CompRef<UiComponent> screenUi;
+//     qint64 currentTime = 0;
 
-    float xSensitivity = 1.0f;
-    float ySensitivity = 1.0f;
+//     QPoint mousePos;
 
-    qint64 currentTime = 0;
+//     uint32_t nbFrame = 0;
 
-    QPoint mousePos;
-
-    uint32_t nbFrame = 0;
-
-    bool debug = false;
-    bool debugSwitched = false;
-};
+//     bool debug = false;
+//     bool debugSwitched = false;
+// };

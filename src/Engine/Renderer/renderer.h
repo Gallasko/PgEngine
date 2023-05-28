@@ -4,12 +4,6 @@
 
 #include <mutex>
 
-#include <QOpenGLContext>
-#include <QOpenGLFunctions>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLExtraFunctions>
-
-#include <QMatrix4x4>
 #include <cstdarg>
 
 #include "ECS/system.h"
@@ -19,11 +13,14 @@
 
 namespace pg
 {
-    typedef constant::RefracTable RefracRef;
-    typedef std::unordered_map<std::string, QOpenGLShaderProgram*> ShaderRef;
-    typedef std::unordered_map<std::string, unsigned int> TextureRef;
-
+    // Forwarding
+    class OpenGLShaderProgram;
     class MasterRenderer;
+
+    // Type def
+    typedef constant::RefracTable RefracRef;
+    typedef std::unordered_map<std::string, OpenGLShaderProgram*> ShaderRef;
+    typedef std::unordered_map<std::string, unsigned int> TextureRef;
 
     // TODO make a specialized renderer for std::nullptr_t to catch nullptr error;
 
@@ -43,7 +40,7 @@ namespace pg
     //[TODO] Multiple FBO -> 1 for a whole screen capture and other for batch rendering on a texture 
     // Add Particle system with instancing already done / create an alternative if needed
 
-    class MasterRenderer : protected QOpenGLFunctions, public System<NamedSystem>
+    class MasterRenderer : public System<NamedSystem>
     {
     public:
         MasterRenderer() {}
@@ -57,14 +54,14 @@ namespace pg
 
         void initialize(QOpenGLContext *m_context) { initializeGlObject(m_context); initializeParameters(); }
 
-        void registerShader(const std::string& name, QOpenGLShaderProgram *shaderProgram) { shaderList[name] = shaderProgram; }
+        void registerShader(const std::string& name, OpenGLShaderProgram *shaderProgram) { shaderList[name] = shaderProgram; }
         void registerShader(const std::string& name, const char* vsPath, const char* fsPath);
 
         void registerTexture(const std::string& name, unsigned int textureId) { textureList[name] = textureId; }
         void registerTexture(const std::string& name, const char* texturePath);
 
         //TODO raise exception on none presence of attribute
-        QOpenGLShaderProgram* getShader(const std::string& name) { return shaderList[name]; }
+        OpenGLShaderProgram* getShader(const std::string& name) { return shaderList[name]; }
         unsigned int getTexture(const std::string& name) { return textureList[name]; }
 
         template <typename... Args>
@@ -96,9 +93,8 @@ namespace pg
         std::map<std::string, std::map<std::string, std::vector<RenderableTexture>>> tempRenderList;
         std::map<std::string, std::map<std::string, std::vector<RenderableTexture>>> currentRenderList;
 
-        QOpenGLExtraFunctions *extraFunctions;
         OpenGLObject *squareObject;
-        QOpenGLBuffer *instanceVBO;
+        OpenGLBuffer *instanceVBO;
         
         RefracRef systemParameters;
         ShaderRef shaderList;
