@@ -1,10 +1,17 @@
+#define STB_IMAGE_IMPLEMENTATION
+
 #include "renderer.h"
+
+#include <glm.hpp>
+#include <gtc/matrix_transform.hpp>
 
 #include "UI/texture.h"
 
 #include "logger.h"
 
 #include "openglobject.h"
+
+#include "Loaders/stb_image.h"
 
 namespace pg
 {
@@ -21,15 +28,13 @@ namespace pg
         const int screenWidth = rTable["ScreenWidth"];
         const int screenHeight = rTable["ScreenHeight"];
 
-        QMatrix4x4 projection;
-        QMatrix4x4 view;
-        QMatrix4x4 model;
-        QMatrix4x4 scale;
+        glm::mat4 projection(1.0);
+        glm::mat4 view(1.0);
+        glm::mat4 model(1.0);
+        glm::mat4 scale(1.0);
 
-        projection.setToIdentity();
-        model.setToIdentity();
-        scale.setToIdentity();
-        scale.scale(QVector3D(2.0f / screenWidth, 2.0f / screenHeight, 0.0f)); 
+        glm::scale(scale, glm::vec3(2.0f / screenWidth, 2.0f / screenHeight, 0.0f));
+
         // TODO why does it need to be scale * 2 ( the scaling now happen in the shader ) <- Done the * 2 is needed to map the -1 <-> 1 space to a 0 <-> 1 space 
         // Need to make a note about that
 
@@ -44,11 +49,11 @@ namespace pg
                 // Tex rendering
                 shaderProgram->bind();
 
-                shaderProgram->setUniformValue(shaderProgram->uniformLocation("projection"), projection);
-                shaderProgram->setUniformValue(shaderProgram->uniformLocation("model"), model);
-                shaderProgram->setUniformValue(shaderProgram->uniformLocation("scale"), scale);
+                shaderProgram->setUniformValue("projection", projection);
+                shaderProgram->setUniformValue("model", model);
+                shaderProgram->setUniformValue("scale", scale);
 
-                shaderProgram->setUniformValue(shaderProgram->uniformLocation("time"), static_cast<int>(0 % 314159));
+                shaderProgram->setUniformValue("time", static_cast<int>(0 % 314159));
 
                 //glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, texture);
@@ -63,12 +68,11 @@ namespace pg
                     if(not ui->isVisible() or not mesh)
                         continue;
 
-                    view.setToIdentity();
                     // Todo
                     // view.translate(QVector3D(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, -static_cast<UiSize>(ui->pos.z)));
-                    view.translate(QVector3D(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, 0.0f));
+                    glm::translate(view, glm::vec3(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, 0.0f));
 
-                    shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
+                    shaderProgram->setUniformValue("view", view);
 
                     mesh->bind();
                     glDrawElements(GL_TRIANGLES, mesh->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
@@ -77,6 +81,17 @@ namespace pg
 
             shaderProgram->release();
         }    
+    }
+
+    MasterRenderer::MasterRenderer()
+    {
+
+    }
+
+    MasterRenderer::~MasterRenderer()
+    { 
+        delete squareObject;
+        delete instanceVBO;
     }
 
     void MasterRenderer::execute()
@@ -109,7 +124,7 @@ namespace pg
         nbRenderedFrames++;
     }
 
-    void registerShader(const std::string& name, OpenGLShaderProgram *shaderProgram)
+    void MasterRenderer::registerShader(const std::string& name, OpenGLShaderProgram *shaderProgram)
     { 
         shaderList[name] = shaderProgram;
     }
@@ -118,10 +133,10 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
-        auto shaderProgram = new OpenGLShaderProgram();
-        shaderProgram->addShaderFromSourceFile(QOpenGLShader::Vertex, vsPath);
-        shaderProgram->addShaderFromSourceFile(QOpenGLShader::Fragment, fsPath);
-        shaderProgram->link();
+        auto shaderProgram = new OpenGLShaderProgram(vsPath, fsPath);
+        // shaderProgram->addShaderFromSourceFile(QOpenGLShader::Vertex, vsPath);
+        // shaderProgram->addShaderFromSourceFile(QOpenGLShader::Fragment, fsPath);
+        // shaderProgram->link();
 
         registerShader(name, shaderProgram);
     }
@@ -131,8 +146,14 @@ namespace pg
     { 
         LOG_THIS_MEMBER(DOM);
 
-        QImage textureAtlas = QImage(QString(texturePath));
-        textureAtlas = textureAtlas.convertToFormat(QImage::Format_RGBA8888); //.mirrored(); // TODO check mirrored
+        int width, height, nrChannels;
+        unsigned char *data = stbi_load(name.c_str(), &width, &height, &nrChannels, 0);
+        if (not data)
+        {
+            LOG_ERROR(DOM, "Failed to load texture");
+
+            return;
+        }
 
         unsigned int texture;
 
@@ -148,20 +169,19 @@ namespace pg
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         // load image, create texture and generate mipmaps
         
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureAtlas.width(), textureAtlas.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, textureAtlas.bits());
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
 
         registerTexture(name, texture);
+
+        stbi_image_free(data);
     }
 
-    void MasterRenderer::initializeGlObject(QOpenGLContext *context)
+    void MasterRenderer::initializeGlObject(OpenGLContext *context)
     {
-        LOG_THIS_MEMBER(DOM);
+        LOG_THIS_MEMBER(DOM); 
 
-        initializeOpenGLFunctions(); 
-        extraFunctions = new QOpenGLExtraFunctions(context); 
-
-        instanceVBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
+        instanceVBO = new OpenGLBuffer(OpenGLBuffer::VertexBuffer);
         instanceVBO->create();
 
         squareObject = new OpenGLObject();
@@ -189,7 +209,7 @@ namespace pg
         // position attribute
         
         squareObject->VBO->bind();
-        squareObject->VBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
+        squareObject->VBO->setUsagePattern(OpenGLBuffer::StaticDraw);
         squareObject->VBO->allocate(tileVertices, nbTileVertices * sizeof(float));
 
         glEnableVertexAttribArray(0);
@@ -200,7 +220,7 @@ namespace pg
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
         squareObject->EBO->bind();
-        squareObject->EBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
+        squareObject->EBO->setUsagePattern(OpenGLBuffer::StaticDraw);
         squareObject->EBO->allocate(tileVerticesIndice, nbOfElements * sizeof(unsigned int));
 
         squareObject->VAO->release();

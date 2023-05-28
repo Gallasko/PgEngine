@@ -1,8 +1,6 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
-#include "Event/eventloop.h"
-
 #include "window.h"
 
 namespace pg
@@ -21,8 +19,6 @@ namespace pg
         int exec();
 
     private:
-        EventLoop eventLoop;
-
         pg::Window window;
     };
 

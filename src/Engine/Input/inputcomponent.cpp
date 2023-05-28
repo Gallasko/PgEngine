@@ -4,10 +4,106 @@
 
 #include <iostream>
 
+#ifdef __linux__
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_opengl.h>
+#elif _WIN32
+#include <SDL.h>
+#include <SDL_opengl.h>
+#endif
+
 namespace pg
 {
     namespace
     {
+    }
+
+    void MouseLeftClickSystem::execute()
+    {
+        LOG_THIS_MEMBER("MouseLeftClickSystem");
+
+        int highestZ = INT_MIN;
+        const auto& mousePos = inputHandler->getMousePos();
+
+        static bool pressed = false;
+
+        if(inputHandler->isButtonPressed(SDL_BUTTON_LEFT))
+        {
+            if(not pressed)
+                ecsRef->sendEvent(OnMouseClick{});
+
+            pressed = true;
+        }
+
+        if(not inputHandler->isButtonPressed(SDL_BUTTON_RIGHT))
+        {
+            if(pressed)
+            {
+                for(const auto& mouseArea : mouseAreaHolder)
+                {
+                    UiComponent *ui = mouseArea.ui;
+
+                    if(ui->pos.z < highestZ)
+                        break;
+
+                    if(ui->inBound(mousePos.x, mousePos.y))
+                    {
+                        highestZ = static_cast<UiSize>(ui->pos.z);
+
+                        auto comp = getComponent(mouseArea.id);
+
+                        comp->callback->call(world());
+                    }
+                }
+            }
+
+            pressed = false;
+        }
+        
+    }
+
+    void MouseRightClickSystem::execute()
+    {
+        LOG_THIS_MEMBER("MouseRightClickSystem");
+
+        int highestZ = INT_MIN;
+        const auto& mousePos = inputHandler->getMousePos();
+
+        static bool pressed = false;
+
+        if(inputHandler->isButtonPressed(SDL_BUTTON_RIGHT))
+        {
+            if(not pressed)
+                ecsRef->sendEvent(OnMouseClick{});
+
+            pressed = true;
+        }
+
+        if(not inputHandler->isButtonPressed(SDL_BUTTON_RIGHT))
+        {
+            if(pressed)
+            {
+                for(const auto& mouseArea : mouseAreaHolder)
+                {
+                    UiComponent *ui = mouseArea.ui;
+
+                    if(ui->pos.z < highestZ)
+                        break;
+
+                    if(ui->inBound(mousePos.x, mousePos.y))
+                    {
+                        highestZ = static_cast<UiSize>(ui->pos.z);
+
+                        auto comp = getComponent(mouseArea.id);
+
+                        comp->callback->call(world());
+                    }
+                }
+            }
+
+            pressed = false;
+        }
+        
     }
 
     bool operator<(const MouseAreaZ& lhs, const MouseAreaZ& rhs)
@@ -31,90 +127,4 @@ namespace pg
         else
             return z > rhsZ;
     }
-
-    MouseInputComponent::MouseInputComponent(UiComponent *component) : pos(&component->pos), width(&component->width), height(&component->height), enable(&component->isVisible())
-    {
-
-    }
-
-    MouseInputComponent::MouseInputComponent(const MouseInputComponent& component) : pos(component.pos), width(component.width), height(component.height), enable(component.enable), object(component.object), onPressed(component.onPressed), onLeave(component.onLeave), onPressedLambda(component.onPressedLambda), onLeaveLambda(component.onLeaveLambda)
-    {
-
-    }
-
-    bool MouseInputComponent::inBound(int x, int y) const
-    { 
-        return x > static_cast<UiSize>(this->pos->x) && x < (this->pos->x + *this->width) && y < (this->pos->y + *this->height) && y > static_cast<UiSize>(this->pos->y); 
-    }
-
-    Entity* makeMouseArea(EntitySystem *ecs, UiComponent *component, void (*mouseInput)(Input*, double), void (*mouseLeave)(Input*, double))
-    {
-        if(not ecs)
-            return nullptr;
-
-        MouseInputPtr mouseArea = std::make_shared<MouseInputBase<MouseInputComponent::Base>>(component);
-        mouseArea->registerFunc(mouseInput, mouseLeave);
-
-        auto ent = ecs->createEntity();
-
-        ecs->attach<MouseComponent>(ent, mouseArea);
-
-        return ent;
-    }
-
-    Entity* makeMouseArea(EntitySystem *ecs, UiComponent *component, void (*mouseInput)(Input*, double), std::nullptr_t)
-    {
-        if(not ecs)
-            return nullptr;
-
-        MouseInputPtr mouseArea = std::make_shared<MouseInputBase<MouseInputComponent::Base>>(component);
-        mouseArea->registerFunc(mouseInput, static_cast<void (*)(pg::Input*, double)>(nullptr));
-        
-        auto ent = ecs->createEntity();
-
-        ecs->attach<MouseComponent>(ent, mouseArea);
-
-        return ent;
-    }
-
-    Entity* makeMouseArea(EntitySystem *ecs, UiComponent *component, void (*mouseInput)(Input*, double))
-    {
-        return makeMouseArea(ecs, component, mouseInput, nullptr);
-    }
-
-    Entity* makeMouseArea(EntitySystem *ecs, UiComponent *component, const std::function<void (Input*, double)>& mouseInput, const std::function<void (Input*, double)>& mouseLeave)
-    {
-        if(not ecs)
-            return nullptr;
-
-        MouseInputPtr mouseArea = std::make_shared<MouseInputBase<MouseInputComponent::Base>>(component);
-        mouseArea->registerFunc(mouseInput, mouseLeave);
-
-        auto ent = ecs->createEntity();
-
-        ecs->attach<MouseComponent>(ent, mouseArea);
-
-        return ent;
-    }
-
-    Entity* makeMouseArea(EntitySystem *ecs, UiComponent *component, const std::function<void (Input*, double)>& mouseInput, std::nullptr_t)
-    {
-        if(not ecs)
-            return nullptr;
-
-        MouseInputPtr mouseArea = std::make_shared<MouseInputBase<MouseInputComponent::Base>>(component);
-        mouseArea->registerFunc(mouseInput, static_cast<std::function<void (Input*, double)>>(nullptr));
-
-        auto ent = ecs->createEntity();
-
-        ecs->attach<MouseComponent>(ent, mouseArea);
-
-        return ent;
-    }
-
-    Entity* makeMouseArea(EntitySystem *ecs, UiComponent *component, const std::function<void (Input*, double)>& mouseInput)
-    {
-        return makeMouseArea(ecs, component, mouseInput, nullptr);
-    }
-
 }

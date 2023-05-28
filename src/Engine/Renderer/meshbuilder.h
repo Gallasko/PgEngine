@@ -18,8 +18,8 @@ namespace pg
         OpenGLBuffer *VBO = nullptr;
         OpenGLBuffer *EBO = nullptr;
 
-        OpenGLObject() { LOG_THIS_MEMBER("OpenGLObject"); }
-        ~OpenGLObject() { LOG_THIS_MEMBER("OpenGLObject"); delete VAO; delete VBO; delete EBO; }
+        OpenGLObject();
+        ~OpenGLObject();
 
         void initialize();
     };

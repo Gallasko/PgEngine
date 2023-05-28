@@ -15,6 +15,7 @@ namespace pg
 {
     // Forwarding
     class OpenGLShaderProgram;
+    class OpenGLContext;
     class MasterRenderer;
 
     // Type def
@@ -43,8 +44,8 @@ namespace pg
     class MasterRenderer : public System<NamedSystem>
     {
     public:
-        MasterRenderer() {}
-        ~MasterRenderer() { delete extraFunctions; delete squareObject; delete instanceVBO; }
+        MasterRenderer();
+        ~MasterRenderer();
 
         virtual std::string getSystemName() const override { return "Renderer System"; }
 
@@ -52,9 +53,9 @@ namespace pg
 
         void renderAll();
 
-        void initialize(QOpenGLContext *m_context) { initializeGlObject(m_context); initializeParameters(); }
+        void initialize(OpenGLContext *m_context) { initializeGlObject(m_context); initializeParameters(); }
 
-        void registerShader(const std::string& name, OpenGLShaderProgram *shaderProgram) { shaderList[name] = shaderProgram; }
+        void registerShader(const std::string& name, OpenGLShaderProgram *shaderProgram);
         void registerShader(const std::string& name, const char* vsPath, const char* fsPath);
 
         void registerTexture(const std::string& name, unsigned int textureId) { textureList[name] = textureId; }
@@ -75,12 +76,11 @@ namespace pg
 
         RefracRef getParameter() const { return systemParameters; }
 
-        QOpenGLExtraFunctions* getExtraFunctions() const { return extraFunctions; }
-        QOpenGLVertexArrayObject* getSquareVAO() const { return squareObject->VAO; }
-        QOpenGLBuffer* getInstanceVBO() const { return instanceVBO; }
+        OpenGLVertexArrayObject* getSquareVAO() const { return squareObject->VAO; }
+        OpenGLBuffer* getInstanceVBO() const { return instanceVBO; }
         
     private:
-        void initializeGlObject(QOpenGLContext *context);
+        void initializeGlObject(OpenGLContext *context);
 
         void initializeParameters();
 

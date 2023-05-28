@@ -12,7 +12,7 @@
 #pragma once
 
 #include "UI/uisystem.h"
-#include "UI/listview.h"
+// #include "UI/listview.h"
 
 namespace pg
 {
@@ -44,7 +44,7 @@ namespace pg
                 //std::make_shared<>
             }
 
-            ListView listView;
+            // ListView listView;
             TextureComponent* backgroundTexture;
         };
 

@@ -4,6 +4,12 @@
 
 #include "../logger.h"
 
+#ifdef __linux__
+#include <SDL2/SDL.h>
+#elif _WIN32
+#include <SDL.h>
+#endif
+
 namespace pg
 {
 	namespace
@@ -18,7 +24,7 @@ namespace pg
 		}
 	}
 
-	Input::InputState Input::registerKeyInput(const Qt::Key& key, const Input::InputState& state)
+	Input::InputState Input::registerKeyInput(const SDL_Keycode& key, const Input::InputState& state)
 	{
 		LOG_THIS_MEMBER(DOM);
 
@@ -65,7 +71,7 @@ namespace pg
 		}
 	}
 
-	Input::InputState Input::registerMouseInput(const Qt::MouseButton& button, const Input::InputState& state)
+	Input::InputState Input::registerMouseInput(const MouseButton& button, const Input::InputState& state)
 	{
 		LOG_THIS_MEMBER(DOM);
 
@@ -116,7 +122,7 @@ namespace pg
 		}
 	}
 
-	Input::InputState Input::registerMouseMove(const QPoint& mousePos, const QPoint& mouseDelta)
+	Input::InputState Input::registerMouseMove(const MousePos& mousePos, const MousePos& mouseDelta)
 	{
 		LOG_THIS_MEMBER(DOM);
 
@@ -126,21 +132,21 @@ namespace pg
 		return Input::InputState::INPUTREGISTERED;
 	}
 
-	void Input::grabKey(const Qt::Key& key)
+	void Input::grabKey(const SDL_Keycode& key)
 	{
 		LOG_THIS_MEMBER(DOM);
 
 		registerKeyInput(key, Input::InputState::KEYGRABBED);
 	}
 
-	void Input::grabMouse(const Qt::MouseButton& button)
+	void Input::grabMouse(const MouseButton& button)
 	{
 		LOG_THIS_MEMBER(DOM);
 
 		registerMouseInput(button, Input::InputState::MOUSEGRABBED);
 	}
 
-	Input::InputState Input::keyState(const Qt::Key& key) const
+	Input::InputState Input::keyState(const SDL_Keycode& key) const
 	{
 		LOG_THIS_MEMBER(DOM);
 
@@ -148,28 +154,28 @@ namespace pg
 		return (it != -1) ? keyContainer.at(it).state : Input::InputState::INPUTERROR;
 	}
 
-	bool Input::isKeyPressed(const Qt::Key& key) const
+	bool Input::isKeyPressed(const SDL_Keycode& key) const
 	{
 		LOG_THIS_MEMBER(DOM);
 
 		return keyState(key) == Input::InputState::KEYPRESSED;
 	}
 
-	bool Input::isKeyGrabbed(const Qt::Key& key) const
+	bool Input::isKeyGrabbed(const SDL_Keycode& key) const
 	{
 		LOG_THIS_MEMBER(DOM);
 
 		return keyState(key) == Input::InputState::KEYGRABBED;
 	}
 
-	bool Input::isKeyReleased(const Qt::Key& key) const
+	bool Input::isKeyReleased(const SDL_Keycode& key) const
 	{
 		LOG_THIS_MEMBER(DOM);
 
 		return keyState(key) == Input::InputState::KEYRELEASED;
 	}
 
-	Input::InputState Input::buttonState(const Qt::MouseButton& button) const
+	Input::InputState Input::buttonState(const MouseButton& button) const
 	{
 		LOG_THIS_MEMBER(DOM);
 
@@ -177,35 +183,35 @@ namespace pg
 		return (it != -1) ? buttonContainer.at(it).state : Input::InputState::INPUTERROR;
 	}
 
-	bool Input::isButtonPressed(const Qt::MouseButton& button) const
+	bool Input::isButtonPressed(const MouseButton& button) const
 	{
 		LOG_THIS_MEMBER(DOM);
 
 		return buttonState(button) == Input::InputState::MOUSEPRESS;
 	}
 
-	bool Input::isButtonGrabbed(const Qt::MouseButton& button) const
+	bool Input::isButtonGrabbed(const MouseButton& button) const
 	{
 		LOG_THIS_MEMBER(DOM);
 
 		return buttonState(button) == Input::InputState::MOUSEGRABBED;
 	}
 
-	bool Input::isButtonReleased(const Qt::MouseButton& button) const
+	bool Input::isButtonReleased(const MouseButton& button) const
 	{
 		LOG_THIS_MEMBER(DOM);
 
 		return buttonState(button) == Input::InputState::MOUSERELEASE;
 	}
 
-	const QPoint& Input::getMousePos() const
+	const MousePos& Input::getMousePos() const
 	{
 		LOG_THIS_MEMBER(DOM);
 
 		return this->mousePos;
 	}
 
-	const QPoint& Input::getMouseDelta() const
+	const MousePos& Input::getMouseDelta() const
 	{
 		LOG_THIS_MEMBER(DOM);
 
@@ -218,8 +224,8 @@ namespace pg
 
 		updateTime = deltaTime;
 		
-		this->mouseDelta.setX(0);
-		this->mouseDelta.setY(0);
+		this->mouseDelta.x = 0;
+		this->mouseDelta.y = 0;
 
 		// Remove old data
 		const auto removeKey = std::remove_if(keyContainer.begin(), keyContainer.end(), &CheckReleased<KeyInstance>);

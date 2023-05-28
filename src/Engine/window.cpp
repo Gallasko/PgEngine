@@ -1,9 +1,11 @@
+#include "gl_debug.hpp"
+
 #include "window.h"
 
 #include <string>
 
 #include "logger.h"
-#include "gl_debug.hpp"
+
 
 namespace
 {
@@ -21,14 +23,15 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
+        SDL_GL_DeleteContext(context);
         SDL_Quit();
     }
 
-    bool Window::init(int xPos, int yPos, int width, int height, bool isFullscreen)
+    bool Window::init(int width, int height, bool isFullscreen)
     {
         LOG_THIS_MEMBER(DOM);
 
-        int flags = SDL_WINDOW_OPENGL;
+        int flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL;
 
         if (isFullscreen)
         {
@@ -50,7 +53,7 @@ namespace pg
 
             // WindowSdl
             window = std::unique_ptr<SDL_Window, SdlWindowDestroyer>(
-                SDL_CreateWindow(title.c_str(), xPos, yPos, width, height, flags));
+                SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, flags));
 
             if (window)
             {
@@ -93,8 +96,8 @@ namespace pg
             const GLubyte *renderer = glGetString(GL_RENDERER);
             const GLubyte *version = glGetString(GL_VERSION);
 
-            LOG_INFO(DOM, << "Renderer: " << renderer);
-            LOG_INFO(DOM, << "OpenGL version supported " << version);
+            LOG_INFO(DOM, "Renderer: " << renderer);
+            LOG_INFO(DOM, "OpenGL version supported " << version);
 
             glViewport(0, 0, width, height);
             // Todo set this or not
@@ -114,8 +117,8 @@ namespace pg
         }
         else
         {
-            LOG_ERROR(DOM, << "SDL initialisation failed");
-            LOG_ERROR(DOM, << SDL_GetError());
+            LOG_ERROR(DOM, "SDL initialisation failed");
+            LOG_ERROR(DOM, SDL_GetError());
 
             return false;
         }

@@ -70,9 +70,21 @@ namespace pg
             return *this;
         }
 
+        Strfy& operator<<(char* value)
+        {
+            data += value;
+            return *this;
+        }
+
         Strfy& operator<<(const char* value)
         {
             data += value;
+            return *this;
+        }
+
+        Strfy& operator<<(const unsigned char* value)
+        {
+            data += reinterpret_cast<const char*>(value);
             return *this;
         }
 

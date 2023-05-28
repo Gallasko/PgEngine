@@ -1,4 +1,9 @@
+#include "Helpers/openglobject.h"
+
 #include "sentencesystem.h"
+
+#include <glm.hpp>
+#include <gtc/matrix_transform.hpp>
 
 namespace pg
 {
@@ -40,15 +45,12 @@ namespace pg
         const int screenHeight = rTable["ScreenHeight"];
         const int currentTime = rTable["CurrentTime"];
 
-        QMatrix4x4 projection;
-        QMatrix4x4 view;
-        QMatrix4x4 model;
-        QMatrix4x4 scale;
+        glm::mat4 projection;
+        glm::mat4 view;
+        glm::mat4 model;
+        glm::mat4 scale;
 
-        projection.setToIdentity();
-        model.setToIdentity();
-        scale.setToIdentity();
-        scale.scale(QVector3D(2.0f / screenWidth, 2.0f / screenHeight, 0.0f));
+        glm::scale(scale, glm::vec3(2.0f / screenWidth, 2.0f / screenHeight, 0.0f));
 
         auto shaderProgram = masterRenderer->getShader("text");
 
@@ -56,11 +58,11 @@ namespace pg
         
         shaderProgram->bind();
 
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("projection"), projection);
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("model"), model);
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("scale"), scale);
+        shaderProgram->setUniformValue("projection", projection);
+        shaderProgram->setUniformValue("model", model);
+        shaderProgram->setUniformValue("scale", scale);
 
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("time"), static_cast<int>(currentTime % 314159));
+        shaderProgram->setUniformValue("time", static_cast<int>(currentTime % 314159));
 
         if(sentence->initialised == false)
             sentence->generateMesh();
@@ -69,10 +71,9 @@ namespace pg
         //glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, masterRenderer->getTexture("font"));
 
-        view.setToIdentity();
-        view.translate(QVector3D(-1.0f + 2.0f * static_cast<UiSize>(sentence->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(sentence->pos.y) / screenHeight, 0.0f));
+        glm::translate(view, glm::vec3(-1.0f + 2.0f * static_cast<UiSize>(sentence->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(sentence->pos.y) / screenHeight, 0.0f));
 
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
+        shaderProgram->setUniformValue("view", view);
 
         sentence->VAO->bind();
         glDrawElements(GL_TRIANGLES, sentence->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
@@ -88,15 +89,12 @@ namespace pg
         const int screenHeight = rTable["ScreenHeight"];
         const int currentTime = rTable["CurrentTime"];
 
-        QMatrix4x4 projection;
-        QMatrix4x4 view;
-        QMatrix4x4 model;
-        QMatrix4x4 scale;
+        glm::mat4 projection(1.0f);
+        glm::mat4 view(1.0f);
+        glm::mat4 model(1.0f);
+        glm::mat4 scale(1.0f);
 
-        projection.setToIdentity();
-        model.setToIdentity();
-        scale.setToIdentity();
-        scale.scale(QVector3D(1.0f / screenWidth, 1.0f / screenHeight, 0.0f));
+        glm::scale(scale, glm::vec3(1.0f / screenWidth, 1.0f / screenHeight, 0.0f));
 
         auto shaderProgram = masterRenderer->getShader("text");
 
@@ -104,11 +102,11 @@ namespace pg
         
         shaderProgram->bind();
 
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("projection"), projection);
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("model"), model);
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("scale"), scale);
+        shaderProgram->setUniformValue("projection", projection);
+        shaderProgram->setUniformValue("model", model);
+        shaderProgram->setUniformValue("scale", scale);
 
-        shaderProgram->setUniformValue(shaderProgram->uniformLocation("time"), static_cast<int>(currentTime % 314159));
+        shaderProgram->setUniformValue("time", static_cast<int>(currentTime % 314159));
         //TODO store texture of the font in the font loader to get it back in the renderer
         glBindTexture(GL_TEXTURE_2D, masterRenderer->getTexture("font"));
 
@@ -120,10 +118,9 @@ namespace pg
             if(sentence->initialised == false)
                 sentence->generateMesh();
 
-            view.setToIdentity();
-            view.translate(QVector3D(-1.0f + 2.0f * static_cast<UiSize>(sentence->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(sentence->pos.y) / screenHeight, 0.0f));
+            glm::translate(view, glm::vec3(-1.0f + 2.0f * static_cast<UiSize>(sentence->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(sentence->pos.y) / screenHeight, 0.0f));
 
-            shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
+            shaderProgram->setUniformValue("view", view);
 
             sentence->VAO->bind();
             glDrawElements(GL_TRIANGLES, sentence->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
@@ -134,13 +131,11 @@ namespace pg
 
     //TODO make a class responsible for creating all the VAO/VBO for the meshes so the class doesn t need to subclass QOpenGLFunctions
 
-    Sentence::Sentence(const SentenceText& sentence, const float& scale, FontLoader *font) : QOpenGLFunctions(), scale(scale), font(font)
+    Sentence::Sentence(const SentenceText& sentence, const float& scale, FontLoader *font) : scale(scale), font(font)
     {
-        initializeOpenGLFunctions(); 
-
-        VAO = new QOpenGLVertexArrayObject();
-        VBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-        EBO = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
+        VAO = new OpenGLVertexArrayObject();
+        VBO = new OpenGLBuffer(OpenGLBuffer::VertexBuffer);
+        EBO = new OpenGLBuffer(OpenGLBuffer::IndexBuffer);
 
         VAO->create();
         VBO->create();
@@ -154,13 +149,11 @@ namespace pg
 
     }
 
-    Sentence::Sentence(const Sentence &rhs) : UiComponent(rhs), QOpenGLFunctions()
+    Sentence::Sentence(const Sentence &rhs) : UiComponent(rhs)
     {
-        initializeOpenGLFunctions(); 
-
-        VAO = new QOpenGLVertexArrayObject();
-        VBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-        EBO = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
+        VAO = new OpenGLVertexArrayObject();
+        VBO = new OpenGLBuffer(OpenGLBuffer::VertexBuffer);
+        EBO = new OpenGLBuffer(OpenGLBuffer::IndexBuffer);
 
         VAO->create();
         VBO->create();
@@ -294,7 +287,7 @@ namespace pg
 
         // position attribute
         VBO->bind();
-        VBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
+        VBO->setUsagePattern(OpenGLBuffer::StaticDraw);
         VBO->allocate(modelInfo.vertices, modelInfo.nbVertices * sizeof(float));
 
         glEnableVertexAttribArray(0);
@@ -321,7 +314,7 @@ namespace pg
         glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, 18 * sizeof(float), (void*)(17 * sizeof(float)));
 
         EBO->bind();
-        EBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
+        EBO->setUsagePattern(OpenGLBuffer::StaticDraw);
         EBO->allocate(modelInfo.indices, modelInfo.nbIndices * sizeof(unsigned int));
 
         VAO->release();

@@ -1,18 +1,23 @@
 #ifndef INPUT_H
 #define INPUT_H
 
-#include <Qt>
-#include <QObject>
-#include <QPoint>
-
 #include <vector>
+
+#include <SDL_keycode.h>
 
 namespace pg
 {
-	class Input : public QObject
-	{
-		Q_OBJECT
+	typedef uint8_t MouseButton;
 
+	struct MousePos
+	{
+		int x, y;
+	
+		MousePos& operator+=(const MousePos& rhs) { x += rhs.x; y += rhs.y; return *this; }
+	};
+
+	class Input
+	{
 	public:
 		enum class InputState
 		{
@@ -45,31 +50,31 @@ namespace pg
 
 		};
 
-		typedef InputInstance<Qt::Key> KeyInstance;
-		typedef InputInstance<Qt::MouseButton> ButtonInstance;
+		typedef InputInstance<SDL_Keycode> KeyInstance;
+		typedef InputInstance<MouseButton> ButtonInstance;
 
 	public:
-		Input() : QObject() {}
+		Input() {}
 
-		Input::InputState registerKeyInput(const Qt::Key& key, const Input::InputState& state);
-		Input::InputState registerMouseInput(const Qt::MouseButton& button, const Input::InputState& state);
-		Input::InputState registerMouseMove(const QPoint& mousePos, const QPoint& mouseDelta);
+		Input::InputState registerKeyInput(const SDL_Keycode& key, const Input::InputState& state);
+		Input::InputState registerMouseInput(const MouseButton& button, const Input::InputState& state);
+		Input::InputState registerMouseMove(const MousePos& mousePos, const MousePos& mouseDelta);
 
-		void grabKey(const Qt::Key& key);
-		void grabMouse(const Qt::MouseButton& button);
+		void grabKey(const SDL_Keycode& key);
+		void grabMouse(const MouseButton& button);
 
-		Input::InputState keyState(const Qt::Key& key) const;
-		bool isKeyPressed(const Qt::Key& key) const;
-		bool isKeyGrabbed(const Qt::Key& key) const;
-		bool isKeyReleased(const Qt::Key& key) const;
+		Input::InputState keyState(const SDL_Keycode& key) const;
+		bool isKeyPressed(const SDL_Keycode& key) const;
+		bool isKeyGrabbed(const SDL_Keycode& key) const;
+		bool isKeyReleased(const SDL_Keycode& key) const;
 
-		Input::InputState buttonState(const Qt::MouseButton& button) const;
-		bool isButtonPressed(const Qt::MouseButton& button) const;
-		bool isButtonGrabbed(const Qt::MouseButton& button) const;
-		bool isButtonReleased(const Qt::MouseButton& button) const;
+		Input::InputState buttonState(const MouseButton& button) const;
+		bool isButtonPressed(const MouseButton& button) const;
+		bool isButtonGrabbed(const MouseButton& button) const;
+		bool isButtonReleased(const MouseButton& button) const;
 
-		const QPoint& getMousePos() const;
-		const QPoint& getMouseDelta() const;
+		const MousePos& getMousePos() const;
+		const MousePos& getMouseDelta() const;
 
 		void updateInput(double deltaTime);
 
@@ -81,8 +86,8 @@ namespace pg
 	private:
 		std::vector<Input::KeyInstance> keyContainer;
 		std::vector<Input::ButtonInstance> buttonContainer;
-		QPoint mousePos;
-		QPoint mouseDelta;
+		MousePos mousePos;
+		MousePos mouseDelta;
 
 		template <typename Container, typename Value>
 		int findInputPos(const Value& value, const Container& container) const;

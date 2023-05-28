@@ -97,7 +97,7 @@ namespace pg
     CompList<UiComponent, SentenceText> makeSentence(EntitySystem *ecs, float x, float y, const SentenceText& text);
 
     //TODO check if in need to be static
-    struct Sentence : public UiComponent, private QOpenGLFunctions
+    struct Sentence : public UiComponent
     {
         struct SentenceParameters
         {
@@ -126,9 +126,9 @@ namespace pg
         
         constant::ModelInfo modelInfo;
 
-        QOpenGLVertexArrayObject *VAO = nullptr;
-        QOpenGLBuffer *VBO = nullptr;
-        QOpenGLBuffer *EBO = nullptr;
+        OpenGLVertexArrayObject *VAO = nullptr;
+        OpenGLBuffer *VBO = nullptr;
+        OpenGLBuffer *EBO = nullptr;
 
         bool initialised = false;
     };

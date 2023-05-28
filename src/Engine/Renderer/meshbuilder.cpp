@@ -6,6 +6,20 @@
 
 namespace pg
 {
+    OpenGLObject::OpenGLObject()
+    {
+        LOG_THIS_MEMBER("OpenGLObject");
+    }
+
+    OpenGLObject::~OpenGLObject()
+    {
+        LOG_THIS_MEMBER("OpenGLObject");
+        
+        delete VAO; 
+        delete VBO; 
+        delete EBO;
+    }
+
     void OpenGLObject::initialize()
     {
         LOG_THIS_MEMBER("OpenGLObject");
@@ -39,18 +53,18 @@ namespace pg
 
         // position attribute
         OpenGLMesh.VBO->bind();
-        OpenGLMesh.VBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
+        OpenGLMesh.VBO->setUsagePattern(OpenGLBuffer::StreamDraw);
         OpenGLMesh.VBO->allocate(modelInfo.vertices, modelInfo.nbVertices * sizeof(float));
 
-        OpenGLMesh.glEnableVertexAttribArray(0);
-        OpenGLMesh.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 
         // texture coord attribute
-        OpenGLMesh.glEnableVertexAttribArray(1);
-        OpenGLMesh.glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
         OpenGLMesh.EBO->bind();
-        OpenGLMesh.EBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
+        OpenGLMesh.EBO->setUsagePattern(OpenGLBuffer::StreamDraw);
         OpenGLMesh.EBO->allocate(modelInfo.indices, modelInfo.nbIndices * sizeof(unsigned int));
 
         OpenGLMesh.VAO->release();
@@ -68,34 +82,34 @@ namespace pg
 
         // position attribute
         OpenGLMesh.VBO->bind();
-        OpenGLMesh.VBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
+        OpenGLMesh.VBO->setUsagePattern(OpenGLBuffer::StaticDraw);
         OpenGLMesh.VBO->allocate(modelInfo.vertices, modelInfo.nbVertices * sizeof(float));
 
-        OpenGLMesh.glEnableVertexAttribArray(0);
-        OpenGLMesh.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 18 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 18 * sizeof(float), (void*)0);
 
         // texture coord attribute
-        OpenGLMesh.glEnableVertexAttribArray(1);
-        OpenGLMesh.glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 18 * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 18 * sizeof(float), (void*)(3 * sizeof(float)));
 
         // texture coord attribute
-        OpenGLMesh.glEnableVertexAttribArray(2);
-        OpenGLMesh.glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 18 * sizeof(float), (void*)(5 * sizeof(float)));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 18 * sizeof(float), (void*)(5 * sizeof(float)));
 
         // texture coord attribute
-        OpenGLMesh.glEnableVertexAttribArray(3);
-        OpenGLMesh.glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 18 * sizeof(float), (void*)(9 * sizeof(float)));
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 18 * sizeof(float), (void*)(9 * sizeof(float)));
 
         // texture coord attribute
-        OpenGLMesh.glEnableVertexAttribArray(4);
-        OpenGLMesh.glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 18 * sizeof(float), (void*)(13 * sizeof(float)));
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 18 * sizeof(float), (void*)(13 * sizeof(float)));
 
         // texture coord attribute
-        OpenGLMesh.glEnableVertexAttribArray(5);
-        OpenGLMesh.glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, 18 * sizeof(float), (void*)(17 * sizeof(float)));
+        glEnableVertexAttribArray(5);
+        glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, 18 * sizeof(float), (void*)(17 * sizeof(float)));
 
         OpenGLMesh.EBO->bind();
-        OpenGLMesh.EBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
+        OpenGLMesh.EBO->setUsagePattern(OpenGLBuffer::StaticDraw);
         OpenGLMesh.EBO->allocate(modelInfo.indices, modelInfo.nbIndices * sizeof(unsigned int));
 
         OpenGLMesh.VAO->release();

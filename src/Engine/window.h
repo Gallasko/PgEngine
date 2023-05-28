@@ -33,7 +33,7 @@ namespace pg
         Window(const std::string &title);
         virtual ~Window();
 
-        bool init(int xPos, int yPos, int width, int height, bool isFullscreen);
+        bool init(int width, int height, bool isFullscreen);
 
         void resize(int width, int height);
 

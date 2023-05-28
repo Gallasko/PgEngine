@@ -126,6 +126,9 @@ GLEWDIR := $(IMPORTDIRS)/glew-2.1.0
 GLEWLIBDIR := $(GLEWDIR)/lib/Release/x64
 GLEWINCDIR := $(GLEWDIR)/include
 
+GLMDIR := $(IMPORTDIRS)/glm
+GLMINCDIR := $(GLMDIR)/glm
+
 ifeq ($(OS),Windows_NT)
 # define any directories containing header files other than /usr/include
 INCLUDES	 := $(patsubst %,-I%, $(INCLUDEDIRS:%/=%)) \
@@ -136,7 +139,8 @@ INCLUDES	 := $(patsubst %,-I%, $(INCLUDEDIRS:%/=%)) \
 				$(patsubst %,-I%, $(SDLINCDIR:%/=%)) \
 				$(patsubst %,-I%, $(SDLTTFINCDIR:%/=%)) \
 				$(patsubst %,-I%, $(SDLMIXERINCDIR:%/=%)) \
-				$(patsubst %,-I%, $(GLEWINCDIR:%/=%))
+				$(patsubst %,-I%, $(GLEWINCDIR:%/=%)) \
+				$(patsubst %,-I%, $(GLMINCDIR:%/=%))
 
 # define the C libs
 LIBS		:= $(patsubst %,-L%, $(LIBDIRS:%/=%)) \
@@ -157,7 +161,8 @@ INCLUDES	 := $(patsubst %,-I%, $(INCLUDEDIRS:%/=%)) \
 			    $(patsubst %,-I%, $(SOURCESDIRTREE:%/=%)) \
 				$(patsubst %,-I%, $(TASKFLOWDIR:%/=%)) \
 				$(patsubst %,-I%, $(TASKFLOWALG:%/=%)) \
-				$(patsubst %,-I%, $(TASKFLOWCOR:%/=%))
+				$(patsubst %,-I%, $(TASKFLOWCOR:%/=%)) \
+				$(patsubst %,-I%, $(GLMINCDIR:%/=%))
 
 # define the C libs
 LIBS		:= -lSDL2main \
@@ -233,7 +238,7 @@ $(MAIN): $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(OUTPUTMAIN) $(OBJECTS) $(LFLAGS) $(LIBS)
 
 	@echo Copy the ddl dependencies
-	xcopy $(DEPENDENCIESDIRS)/x64 $(OUTPUT) /v /f /s /y /d
+	xcopy $(DEPENDENCIESDIRS)\x64 $(OUTPUT) /v /f /s /y /d
 
 # this is a suffix replacement rule for building .o's from .c's
 # it uses automatic variables $<: the name of the prerequisite of
