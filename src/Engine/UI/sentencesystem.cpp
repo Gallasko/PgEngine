@@ -89,10 +89,10 @@ namespace pg
         const int screenHeight = rTable["ScreenHeight"];
         const int currentTime = rTable["CurrentTime"];
 
-        glm::mat4 projection(1.0f);
-        glm::mat4 view(1.0f);
-        glm::mat4 model(1.0f);
-        glm::mat4 scale(1.0f);
+        glm::mat4 projection;
+        glm::mat4 view;
+        glm::mat4 model;
+        glm::mat4 scale;
 
         glm::scale(scale, glm::vec3(1.0f / screenWidth, 1.0f / screenHeight, 0.0f));
 

@@ -112,7 +112,7 @@
     },
     "files.exclude": {
         "**/*.o": true,
-        "**/Archive": true,
+        "**/Archive": false,
         "**/dependencies": true,
         "**/output": true
     },

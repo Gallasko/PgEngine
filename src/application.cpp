@@ -19,18 +19,6 @@ namespace pg
         LOG_THIS_MEMBER(DOM);
     }
 
-    void PgApplication::resize(int width, int height)
-    {   
-        LOG_THIS_MEMBER(DOM);
-
-    }
-
-    void PgApplication::show()
-    {   
-        LOG_THIS_MEMBER(DOM);
-
-    }
-
     int PgApplication::exec()
     {   
         LOG_THIS_MEMBER(DOM);
@@ -41,6 +29,12 @@ namespace pg
 
         LOG_INFO(DOM, "Window init done !");
 
+        LOG_INFO(DOM, "Initializing engine ...");
+
+        window.initEngine();
+
+        LOG_INFO(DOM, "Initializing engine done !");
+
         LOG_INFO(DOM, "Starting SDL event loop, waiting for events...");
 
         for( ;; )
@@ -50,25 +44,13 @@ namespace pg
             SDL_Event event;
             while(SDL_PollEvent(&event))
             {
-                switch(event.type)
-                {
-                    case SDL_WINDOWEVENT:
-                        if (event.window.event == SDL_WINDOWEVENT_RESIZED) 
-                        {
-                            LOG_MILE(DOM, "MESSAGE: Resizing window... New width: " << event.window.data1 << ", new height: " << event.window.data2);
-
-                            window.resize(event.window.data1, event.window.data2);
-                        }
-                        break;
-
-                    case SDL_KEYUP:
-                        if( event.key.keysym.sym == SDLK_ESCAPE )
-                            return 0;
-                        break;
-                }
+                window.processEvents(event);
             }
 
-            window.swapBuffer();
+            window.render();
+
+            if(window.requestQuit())
+                return 0;
         }
 
         return 0;

@@ -3,8 +3,15 @@
 #include "window.h"
 
 #include <string>
+#include <chrono>
 
 #include "logger.h"
+
+#include "Renderer/renderer.h"
+#include "Ui/uisystem.h"
+#include "Input/input.h"
+
+#include "UI/texture.h"
 
 
 namespace
@@ -17,11 +24,18 @@ namespace pg
     Window::Window(const std::string &title) : title(title)
     {
         LOG_THIS_MEMBER(DOM);
+
+        inputHandler = new Input();
     }
 
     Window::~Window()
     {
         LOG_THIS_MEMBER(DOM);
+
+        ecs.stop();
+
+        if(inputHandler != nullptr)
+            delete inputHandler;
 
         SDL_GL_DeleteContext(context);
         SDL_Quit();
@@ -30,6 +44,9 @@ namespace pg
     bool Window::init(int width, int height, bool isFullscreen)
     {
         LOG_THIS_MEMBER(DOM);
+
+        // this->width = width;
+        // this->height = height;
 
         int flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL;
 
@@ -46,8 +63,15 @@ namespace pg
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 
+            SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+            SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+            SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+            SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+            SDL_GL_SetAttribute(SDL_GL_BUFFER_SIZE, 32);
             SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-            SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+            // SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+            SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+
 
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 
@@ -124,11 +148,124 @@ namespace pg
         }
     }
 
+    bool Window::initEngine()
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        ecs.createSystem<UiComponentSystem>();
+
+        ecs.createSystem<TextureComponentSystem>();
+
+        masterRenderer = ecs.createSystem<MasterRenderer>();
+
+        masterRenderer->registerShader("default", "shader/default.vs", "shader/default.fs");
+
+        masterRenderer->registerShader("gui", "shader/default.vs", "shader/default.fs");
+        masterRenderer->registerShader("text", "shader/textrendering.vs", "shader/textrendering.fs");
+
+        masterRenderer->registerTexture("menu", "res/menu/Menu.png");
+
+        masterRenderer->setWindowSize(width, height);
+
+        // Ecs task scheduling
+        ecs.succeed<MasterRenderer, UiComponentSystem>();
+
+        // Log taskflow for this window
+        ecs.dumbTaskflow();
+
+        screenEntity = ecs.createEntity();
+        screenUi = ecs.attach<UiComponent>(screenEntity);
+        screenUi->width = 400;
+        screenUi->height = 400;
+        screenUi->setZ(-1);
+
+        auto e = makeUiTexture(&ecs, 160, 90, "menu");
+        auto c = e.get<UiComponent>();
+
+        c->setBottomAnchor(screenUi->bottom);
+        c->setRightAnchor(screenUi->right);
+
+        ecs.start();
+
+        return true;
+    }
+
+    void Window::processEvents(const SDL_Event& event)
+    {
+        switch(event.type)
+        {
+            case SDL_WINDOWEVENT:
+                switch (event.window.event)
+                {
+                    // User clicked on 'x' to close the window
+                    case SDL_WINDOWEVENT_CLOSE:
+                        LOG_INFO(DOM, "User wants to close the window, quiting ...");
+                        needToQuit = true;
+                        break;
+
+                    // User resized the window
+                    case SDL_WINDOWEVENT_RESIZED:
+                        LOG_MILE(DOM, "MESSAGE: Resizing window... New width: " << event.window.data1 << ", new height: " << event.window.data2);
+
+                        this->resize(event.window.data1, event.window.data2);
+                        break;
+
+                    default:
+                        break;
+                }
+                break;
+
+            case SDL_KEYUP:
+                if(event.key.keysym.sym == SDLK_ESCAPE)
+                    needToQuit = true;
+                break;
+                
+        }
+    }
+
     void Window::resize(int width, int height)
     {
         LOG_THIS_MEMBER(DOM);
 
+        this->width = width;
+        this->height = height;
+
         glViewport(0, 0, width, height);
+
+        if(screenUi->width != width)
+        {
+            screenUi->setWidth(width);
+            masterRenderer->setWindowSize(width, height);
+        }
+            
+        if(screenUi->height != height)
+        {
+            screenUi->setHeight(height);
+            masterRenderer->setWindowSize(width, height);
+        }
+    }
+
+    void Window::render()
+    {
+        currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        static auto lastTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
+        glClearColor(0.1f, 0.3f, 0.7f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
+        masterRenderer->setCurrentTime(currentTime);
+
+        masterRenderer->renderAll();
+
+        inputHandler->updateInput(float(currentTime - lastTime) / 1000);
+
+        lastTime = currentTime;
+
+        nbFrame++;
+
+        swapBuffer();
     }
 
     void Window::swapBuffer()

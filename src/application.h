@@ -12,10 +12,6 @@ namespace pg
         PgApplication(const std::string& appName);
         ~PgApplication();
 
-        void resize(int width, int height);
-
-        void show();
-
         int exec();
 
     private:

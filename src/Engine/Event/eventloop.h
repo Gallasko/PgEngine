@@ -21,9 +21,10 @@ class EventLoop
 {
 public: 
     EventLoop();
+    ~EventLoop() { stop(); }
 
     inline void start() { running = true; f = std::async(&EventLoop::loop, this); }
-    inline void stop() { running = false; }
+    inline void stop() { running = false; eventLoopCV.notify_all(); }
     inline int wait() { return f.get(); }
     int loop();
 

@@ -124,6 +124,7 @@ namespace pg
          * 
          * A enum class holding the emergency level of the log
          * 
+         * @todo add a debug level
          */
         enum class InfoLevel
         {

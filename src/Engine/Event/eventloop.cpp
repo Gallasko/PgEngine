@@ -12,6 +12,9 @@ int EventLoop::loop()
         std::unique_lock<std::mutex> lock(eventLoopMutex);
         eventLoopCV.wait(lock);
 
+        if(not running)
+            break;
+
         while(eventCount != 0)
         {
             for (auto const& dict : eventQueue)

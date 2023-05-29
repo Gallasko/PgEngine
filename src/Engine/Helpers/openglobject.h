@@ -13,6 +13,8 @@
 
 #include <string>
 
+#include "logger.h"
+
 namespace pg
 {
     class OpenGLShaderProgram
@@ -59,28 +61,51 @@ namespace pg
     class OpenGLVertexArrayObject
     {
     public:
-        OpenGLVertexArrayObject() {}
-        ~OpenGLVertexArrayObject() {}
+        OpenGLVertexArrayObject() { LOG_THIS_MEMBER("OpenGLVertexArrayObject"); }
+        ~OpenGLVertexArrayObject() { LOG_THIS_MEMBER("OpenGLVertexArrayObject"); if(created) glDeleteVertexArrays(1, &VAO); }
 
-        inline void create()
+        OpenGLVertexArrayObject(const OpenGLVertexArrayObject&) = delete;
+        OpenGLVertexArrayObject& operator=(const OpenGLVertexArrayObject&) = delete;
+
+        void create()
         {
+            LOG_THIS_MEMBER("OpenGLVertexArrayObject");
+
             /* Allocate and assign a Vertex Array Object to our handle */
-            glGenVertexArrays(1, &vao);
+            glGenVertexArrays(1, &VAO);
+
+            created = true;
         }
 
-        inline void bind()
+        void bind()
         {
+            LOG_THIS_MEMBER("OpenGLVertexArrayObject");
+
             /* Bind our Vertex Array Object as the current used object */
-            glBindVertexArray(vao);
+            if(created)
+                glBindVertexArray(VAO);
+            else
+            {
+                LOG_ERROR("OpenGLVertexArrayObject", "Trying to bind to a vertex array that is not initialized yet");
+            }
         }
 
-        inline void release()
+        void release()
         {
-            glDeleteVertexArrays(1, &vao);
+            LOG_THIS_MEMBER("OpenGLVertexArrayObject");
+
+            if(created)
+                glBindVertexArray(0);
+            else
+            {
+                LOG_ERROR("OpenGLVertexArrayObject", "Trying to delete a vertex array that is not initialized");
+            }
         }
 
     private:
-        GLuint vao;
+        GLuint VAO;
+
+        bool created = false;
     };
 
     class OpenGLBuffer
@@ -125,37 +150,66 @@ namespace pg
         };
 
     public:
-        OpenGLBuffer(OpenGLBuffer::Type type) : type(type), usagePattern(UsagePattern::StaticDraw) {}
-        ~OpenGLBuffer() {}
+        OpenGLBuffer(OpenGLBuffer::Type type) : type(type), usagePattern(UsagePattern::StaticDraw) { LOG_THIS_MEMBER("OpenGLBuffer"); }
+        ~OpenGLBuffer() { LOG_THIS_MEMBER("OpenGLBuffer"); if(created) glDeleteBuffers(1, &buffer); }
 
-        inline OpenGLBuffer::UsagePattern getUsagePattern() const { return usagePattern; }
+        inline OpenGLBuffer::UsagePattern getUsagePattern() const { LOG_THIS_MEMBER("OpenGLBuffer"); return usagePattern; }
 
         void setUsagePattern(OpenGLBuffer::UsagePattern value)
         {
+            LOG_THIS_MEMBER("OpenGLBuffer");
+
             usagePattern = value;
         }
 
-        inline void create()
+        void create()
         {
+            LOG_THIS_MEMBER("OpenGLBuffer");
+
             /* Allocate and assign a Vertex Array Object to our handle */
             glGenBuffers(1, &buffer);
+
+            created = true;
         }
 
-        inline void bind()
+        void bind()
         {
-            /* Bind our Vertex Array Object as the current used object */
-            glBindBuffer(type, buffer);
+            LOG_THIS_MEMBER("OpenGLBuffer");
+
+            /* Bind our Vertex Buffer Object as the current used object */
+            if(created)
+                glBindBuffer(type, buffer);
+            else
+            {
+                LOG_ERROR("OpenGLBuffer", "Trying to bind to a buffer that is not initialized yet");
+            }
         }
 
-        inline void release()
+        void release()
         {
-            glDeleteBuffers(1, &buffer);
+            LOG_THIS_MEMBER("OpenGLBuffer");
+
+            if(created)
+                glBindBuffer(type, 0);
+            else
+            {
+                LOG_ERROR("OpenGLBuffer", "Trying to delete a buffer that is not initialized");
+            }
         }
 
         void allocate(const void *data, int count)
         {
-            glBindBuffer(type, buffer);
-            glBufferData(type, count, data, usagePattern);
+            LOG_THIS_MEMBER("OpenGLBuffer");
+
+            if(created)
+            {
+                glBindBuffer(type, buffer);
+                glBufferData(type, count, data, usagePattern);
+            }
+            else
+            {
+                LOG_ERROR("OpenGLBuffer", "Trying to allocate a buffer that is not initialized");
+            }
         }
 
         inline void allocate(int count) { allocate(nullptr, count); }
@@ -165,6 +219,8 @@ namespace pg
 
         OpenGLBuffer::Type type;
         OpenGLBuffer::UsagePattern usagePattern;
+
+        bool created = false;
     };
 
 }

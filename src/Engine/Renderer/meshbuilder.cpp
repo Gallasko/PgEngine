@@ -15,9 +15,13 @@ namespace pg
     {
         LOG_THIS_MEMBER("OpenGLObject");
         
-        delete VAO; 
-        delete VBO; 
-        delete EBO;
+        if(initialized)
+        {
+            delete VAO; 
+            delete VBO; 
+            delete EBO;
+        }
+        
     }
 
     void OpenGLObject::initialize()
@@ -31,6 +35,8 @@ namespace pg
         VAO->create();
         VBO->create();
         EBO->create();
+
+        initialized = true;
     }
 
     void MeshBuilder::Mesh::bind()
@@ -125,12 +131,12 @@ namespace pg
 
         auto meshName = "_texture_" + name + "_" + std::to_string(width) + "_" + std::to_string(height);
 
-        LOG_MILE("MeshBuilder", "Creating a new texture mesh: " << meshName);
-
         const auto& it = m_meshes.find(meshName);
 
         if(it == m_meshes.end())
         {
+            LOG_MILE("MeshBuilder", "Creating a new texture mesh: " << meshName);
+
             auto mesh = new TextureMesh();
 
             mesh->modelInfo.vertices[0] =  0.0f;  mesh->modelInfo.vertices[1] =    0.0f;   mesh->modelInfo.vertices[2] =  0.0f;

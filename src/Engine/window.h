@@ -10,6 +10,8 @@
 
 #include <memory>
 
+#include "ECS/entitysystem.h"
+
 // Used by SDL_Window unique pointer
 struct SdlWindowDestroyer
 {
@@ -19,14 +21,15 @@ struct SdlWindowDestroyer
     }
 };
 
-// namespace std
-// {
-//     // Forward declaration
-//     class string;
-// }
+// Todo see if we support multiple window rendering in which case we need to correctly send the events to correct window
 
 namespace pg
 {
+    // Type forwarding
+    class MasterRenderer;
+    class Input;
+    class UiComponent;
+
     class Window
     {
     public:
@@ -34,9 +37,17 @@ namespace pg
         virtual ~Window();
 
         bool init(int width, int height, bool isFullscreen);
+        virtual bool initEngine();
+
+        virtual void processEvents(const SDL_Event& event);
 
         void resize(int width, int height);
 
+        virtual void render();
+
+        inline bool requestQuit() const { return needToQuit; }
+
+    protected:
         void swapBuffer();
 
     private:
@@ -44,5 +55,20 @@ namespace pg
         SDL_GLContext context;
 
         const std::string &title;
+        bool needToQuit = false;
+
+        uint64_t currentTime = 0;
+
+        uint32_t nbFrame = 0;
+
+        int width = 1, height = 1;
+
+        EntitySystem ecs;
+
+        MasterRenderer *masterRenderer = nullptr;
+        Input *inputHandler = nullptr;
+
+        EntityRef screenEntity;
+        CompRef<UiComponent> screenUi;
     };
 }

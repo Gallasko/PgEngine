@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
     terminalSink->addFilter("Registry Filter", new pg::Logger::LogSink::FilterScope("Component Registry"));
     // terminalSink->addFilter("Configuration Filter", new Logger::LogSink::FilterFile("src/Engine/configuration.cpp"));
     // terminalSink->addFilter("Editor Filter", new Logger::LogSink::FilterFile("src/app.cpp"));
-    // terminalSink->addFilter("Log Level Filter", new pg::Logger::LogSink::FilterLogLevel(pg::Logger::InfoLevel::log));
+    terminalSink->addFilter("Log Level Filter", new pg::Logger::LogSink::FilterLogLevel(pg::Logger::InfoLevel::log));
 
     // auto fileSink = pg::Logger::registerSink<pg::FileSink>();
 

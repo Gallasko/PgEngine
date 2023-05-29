@@ -1,6 +1,7 @@
 #include "filemanager.h"
 
 #include <stdexcept>
+#include <fstream>
 
 #include "../logger.h"
 
@@ -14,30 +15,34 @@ namespace pg
         {
             LOG_THIS(DOM);
 
-            // Todo
+            try
+            {
+                constexpr auto read_size = std::size_t(4096);
+                auto stream = std::ifstream(filename.data());
+                stream.exceptions(std::ios_base::badbit);
 
-            // try
-            // {
-            //     QFile file(filename.c_str());
+                if (not stream) {
+                    throw std::ios_base::failure("File does not exist");
+                }
+                
+                auto out = std::string();
+                auto buf = std::string(read_size, '\0');
 
-            //     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-            //     {
-            //         LOG_INFO(DOM, "Can't open file '" + filename + "'.");
-            //         return TextFile{filename, ""};
-            //     }
+                while (stream.read(& buf[0], read_size)) 
+                {
+                    out.append(buf, 0, stream.gcount());
+                }
 
-            //     auto text = file.readAll().toStdString();
+                out.append(buf, 0, stream.gcount());
 
-            //     file.close();
+                return TextFile{filename, out};
+            }
+            catch (const std::exception& e)
+            {
+                LOG_INFO(DOM, e.what());
 
-            //     return TextFile{filename, text};
-            // }
-            // catch (const std::exception& e)
-            // {
-            //     LOG_INFO(DOM, e.what());
-
-            //     return TextFile{filename, ""};
-            // }
+                return TextFile{filename, ""};
+            }
         }
     }
 

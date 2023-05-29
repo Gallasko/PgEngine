@@ -53,13 +53,13 @@ const char *debugGlSeverityToStr(GLenum severity)
   return severities[severity];
 }
 
-void debugGlErrorCallback(GLenum source,
+void debugGlErrorCallback(GLenum,
                           GLenum type,
                           GLuint id,
                           GLenum severity,
-                          GLsizei length,
+                          GLsizei,
                           const GLchar *message,
-                          GLvoid *userParam)
+                          GLvoid*)
 {
     LOG_THIS("GL Debug");
 

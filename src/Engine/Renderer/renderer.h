@@ -53,8 +53,6 @@ namespace pg
 
         void renderAll();
 
-        void initialize(OpenGLContext *m_context) { initializeGlObject(m_context); initializeParameters(); }
-
         void registerShader(const std::string& name, OpenGLShaderProgram *shaderProgram);
         void registerShader(const std::string& name, const char* vsPath, const char* fsPath);
 
@@ -75,13 +73,8 @@ namespace pg
         inline void setCurrentTime(const unsigned int& time) { systemParameters["CurrentTime"] = static_cast<int>(time); }
 
         RefracRef getParameter() const { return systemParameters; }
-
-        OpenGLVertexArrayObject* getSquareVAO() const { return squareObject->VAO; }
-        OpenGLBuffer* getInstanceVBO() const { return instanceVBO; }
         
     private:
-        void initializeGlObject(OpenGLContext *context);
-
         void initializeParameters();
 
     public:
@@ -92,9 +85,6 @@ namespace pg
 
         std::map<std::string, std::map<std::string, std::vector<RenderableTexture>>> tempRenderList;
         std::map<std::string, std::map<std::string, std::vector<RenderableTexture>>> currentRenderList;
-
-        OpenGLObject *squareObject;
-        OpenGLBuffer *instanceVBO;
         
         RefracRef systemParameters;
         ShaderRef shaderList;

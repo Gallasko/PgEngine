@@ -13,6 +13,7 @@ namespace
 
 namespace pg
 {
+    // Todo change this with our custom file opener
     OpenGLShaderProgram::OpenGLShaderProgram(const char* vertexPath, const char* fragmentPath)
     {
         // 1. retrieve the vertex/fragment source code from filePath
