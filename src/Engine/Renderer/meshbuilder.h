@@ -66,6 +66,14 @@ namespace pg
             void generateMesh();
         };
 
+        struct SimpleMesh : public Mesh
+        {
+            SimpleMesh() : Mesh() { LOG_THIS_MEMBER("Simple Mesh"); modelInfo = constant::SquareInfo{}; }
+            ~SimpleMesh() { LOG_THIS_MEMBER("Simple Mesh"); }
+
+            void generateMesh();
+        }
+
         struct MeshRef
         {
             MeshRef(MeshBuilder *builder, const std::string &name) : builderRef(builder), textureName(name) { LOG_THIS_MEMBER("MeshBuilder"); }
@@ -99,6 +107,7 @@ namespace pg
 
         MeshRef getTextureMesh(float width, float height, const std::string& name);
         MeshRef getSentenceMesh(SentenceText& sentence, FontLoader *font);
+        MeshRef getSimpleMesh(float width, float height, const SimpleMesh::Type& type);
 
         void clear() { LOG_THIS_MEMBER("MeshBuilder"); for(auto mesh : m_meshes) delete mesh.second; m_meshes.clear(); }
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Renderer/renderer.h"
+
 #include "uisystem.h"
 #include "constant.h"
 
@@ -7,8 +9,6 @@
 
 namespace pg
 {
-    class Renderable;
-
     struct TextureChangeEvent
     {
         _unique_id id;
@@ -37,11 +37,13 @@ namespace pg
         Entity *entity = nullptr;
     };
 
-    struct TextureComponentSystem : public System<Own<TextureComponent>, Listener<UiComponentChangeEvent>, Ref<UiComponent>, NamedSystem, InitSys, StoragePolicy>
+    struct TextureComponentSystem : public AbstractRenderer, System<Own<TextureComponent>, Listener<UiComponentChangeEvent>, Ref<UiComponent>, NamedSystem, InitSys, StoragePolicy>
     {
-        TextureComponentSystem() { }
+        TextureComponentSystem(MasterRenderer* masterRenderer) : AbstractRenderer(masterRenderer, RenderStage::Render) { }
 
         virtual std::string getSystemName() const override { return "Texture System"; }
+
+        virtual void render() override;
 
         virtual void init() override;
 

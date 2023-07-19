@@ -54,7 +54,7 @@ namespace pg
 
             auto tName = tex->textureName;
 
-            auto sys = entity->world()->getSystem<MasterRenderer>();
+            auto sys = entity->world()->getSystem<TextureComponentSystem>();
 
             auto mesh = sys->meshBuilder.getTextureMesh(ui->width, ui->height, tName);
 

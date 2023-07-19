@@ -16,13 +16,18 @@ namespace fs = std::filesystem;
 
 #include "Loaders/stb_image.h"
 
-
-
 namespace pg
 {
     namespace
     {
         constexpr static const char * const DOM = "Renderer";
+    }
+
+    AbstractRenderer::AbstractRenderer(MasterRenderer *masterRenderer, const RenderStage& stage) : masterRenderer(masterRenderer), renderStage(stage)
+    {
+        LOG_THIS_MEMBER("AbstractRenderer");
+
+        masterRenderer->addRenderer(this);
     }
 
     void renderer(MasterRenderer* masterRenderer, const std::map<std::string, std::map<std::string, std::vector<RenderableTexture>>>& renderableTextureMap)
@@ -95,11 +100,14 @@ namespace pg
 
     MasterRenderer::MasterRenderer()
     {
+        LOG_THIS_MEMBER(DOM);
+
         initializeParameters();
     }
 
     MasterRenderer::~MasterRenderer()
-    { 
+    {
+        LOG_THIS_MEMBER(DOM);
     }
 
     void MasterRenderer::execute()
@@ -109,31 +117,28 @@ namespace pg
         // Todo Fix in group and ecs ! ( whereaver we are holding pointer of a comp actually ! )
         // Todo hold a ref to the component list and the component index inside of this list instead of the raw pointer to not get invalidated on resize !
 
-        if(changed)
+        for (auto renderer : renderers)
         {
-            std::lock_guard<std::mutex> lock(modificationMutex);
-
-            std::lock_guard<std::mutex> lock2(renderMutex);
-
-            currentRenderList = tempRenderList;
-
-            changed = false;
-        }        
+            renderer->updateMeshes();
+        }   
     }
 
     void MasterRenderer::renderAll()
     {
         LOG_THIS_MEMBER(DOM);
 
-        std::lock_guard<std::mutex> lock(renderMutex);
-
-        render(currentRenderList);
+        for (auto renderer : renderers)
+        {
+            renderer->render();
+        }   
 
         nbRenderedFrames++;
     }
 
     void MasterRenderer::registerShader(const std::string& name, OpenGLShaderProgram *shaderProgram)
-    { 
+    {
+        LOG_THIS_MEMBER(DOM);
+
         shaderList[name] = shaderProgram;
     }
 

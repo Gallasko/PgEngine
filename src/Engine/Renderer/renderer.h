@@ -38,6 +38,51 @@ namespace pg
         MeshBuilder::MeshRef meshRef;
     };
 
+    enum class RenderStage : uint8_t
+    {
+        PreRender,
+        Render,
+        PostProcess
+    };
+
+    class AbstractRenderer
+    {
+    public:
+        AbstractRenderer(MasterRenderer* masterRenderer, const RenderStage& stage);
+        virtual ~AbstractRenderer() {}
+
+        RenderStage getRenderStage() const { return renderStage; }
+    
+        virtual void render() = 0;
+
+        void updateMeshes()
+        {
+            if(changed)
+            {
+                std::lock_guard<std::mutex> lock(modificationMutex);
+
+                std::lock_guard<std::mutex> lock(renderMutex);
+
+                currentRenderList = tempRenderList;
+
+                changed = false;
+            }
+        }
+
+    protected:
+        MasterRenderer *masterRenderer;
+    
+        RenderStage renderStage;
+
+        bool changed = false;
+
+        std::mutex modificationMutex;
+        std::mutex renderMutex;
+
+        std::map<unsigned int, std::vector<RenderableTexture>> tempRenderList;
+        std::map<unsigned int, std::vector<RenderableTexture>> currentRenderList;
+    };
+
     //[TODO] Multiple FBO -> 1 for a whole screen capture and other for batch rendering on a texture 
     // Add Particle system with instancing already done / create an alternative if needed
 
@@ -73,18 +118,14 @@ namespace pg
         inline void setCurrentTime(const unsigned int& time) { systemParameters["CurrentTime"] = static_cast<int>(time); }
 
         RefracRef getParameter() const { return systemParameters; }
+
+        inline void addRenderer(AbstractRenderer* renderer) { renderers.push_back(renderer); }
         
     private:
         void initializeParameters();
 
     public:
         bool changed = false;
-
-        std::mutex modificationMutex;
-        std::mutex renderMutex;
-
-        std::map<std::string, std::map<std::string, std::vector<RenderableTexture>>> tempRenderList;
-        std::map<std::string, std::map<std::string, std::vector<RenderableTexture>>> currentRenderList;
         
         RefracRef systemParameters;
         ShaderRef shaderList;
@@ -93,5 +134,7 @@ namespace pg
         MeshBuilder meshBuilder;
 
         size_t nbRenderedFrames = 0;
+
+        std::vector<AbstractRenderer*> renderers;
     };
 }

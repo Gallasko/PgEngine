@@ -162,7 +162,7 @@ namespace pg
         // Todo add font name in mesh name
         auto meshName = "_sentence_" + sentence.text + "_" + std::to_string(sentence.scale);
 
-        LOG_MILE("MeshBuilder", "Lookup for the texture: " << meshName);
+        LOG_MILE("MeshBuilder", "Lookup for the sentence texture: " << meshName);
 
         const auto& it = m_meshes.find(meshName);
 
@@ -171,7 +171,7 @@ namespace pg
             return MeshRef{this, meshName};
         }
 
-        LOG_MILE("MeshBuilder", "Creating a new texture mesh: " << meshName);
+        LOG_MILE("MeshBuilder", "Creating a new sentence texture mesh: " << meshName);
 
         auto mesh = new SentenceMesh();
 
@@ -268,5 +268,10 @@ namespace pg
         m_meshes.emplace(meshName, mesh);
 
         return MeshRef{this, meshName};
+    }
+
+    MeshBuilder::MeshRef MeshBuilder::getSimpleMesh(float width, float height, const SimpleMesh::Type& type)
+    {
+
     }
 }
