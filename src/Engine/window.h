@@ -12,15 +12,6 @@
 
 #include "ECS/entitysystem.h"
 
-// Used by SDL_Window unique pointer
-struct SdlWindowDestroyer
-{
-    void operator()(SDL_Window *window) const
-    {
-        SDL_DestroyWindow(window);
-    }
-};
-
 // Todo see if we support multiple window rendering in which case we need to correctly send the events to correct window
 
 namespace pg
@@ -51,10 +42,10 @@ namespace pg
         void swapBuffer();
 
     private:
-        std::unique_ptr<SDL_Window, SdlWindowDestroyer> window;
+        SDL_Window* window = NULL;
         SDL_GLContext context;
 
-        const std::string &title;
+        std::string title;
         bool needToQuit = false;
 
         uint64_t currentTime = 0;

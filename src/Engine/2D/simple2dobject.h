@@ -44,9 +44,4 @@ namespace pg
 
     };
 
-    class SimpleRectangle : public Simple2DObject
-    {
-    public:
-        virtual Type getType() const override { return Type::Rectangle; }
-    };
 }

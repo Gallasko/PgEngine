@@ -9,7 +9,7 @@
 #include "ECS/system.h"
 
 #include "..\constant.h"
-#include "meshbuilder.h"
+#include "mesh.h"
 
 namespace pg
 {
@@ -35,7 +35,7 @@ namespace pg
     {
         _unique_id entityId;
         CompRef<UiComponent> uiRef;
-        MeshBuilder::MeshRef meshRef;
+        Mesh* meshRef;
     };
 
     enum class RenderStage : uint8_t
@@ -61,7 +61,7 @@ namespace pg
             {
                 std::lock_guard<std::mutex> lock(modificationMutex);
 
-                std::lock_guard<std::mutex> lock(renderMutex);
+                std::lock_guard<std::mutex> lock2(renderMutex);
 
                 currentRenderList = tempRenderList;
 
@@ -81,6 +81,8 @@ namespace pg
 
         std::map<unsigned int, std::vector<RenderableTexture>> tempRenderList;
         std::map<unsigned int, std::vector<RenderableTexture>> currentRenderList;
+
+        std::unordered_map<std::string, Mesh*> meshes;
     };
 
     //[TODO] Multiple FBO -> 1 for a whole screen capture and other for batch rendering on a texture 

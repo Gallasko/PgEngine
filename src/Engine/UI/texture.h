@@ -16,6 +16,14 @@ namespace pg
         std::string newTextureName;
     };
 
+    struct TextureMesh : public Mesh
+    {
+        TextureMesh() : Mesh() { LOG_THIS_MEMBER("Texture Mesh"); modelInfo = constant::SquareInfo{}; }
+        ~TextureMesh() { LOG_THIS_MEMBER("Texture Mesh"); }
+
+        void generateMesh();
+    };
+
     struct TextureComponent : public Ctor
     {
         TextureComponent(const std::string& textureName) : textureName(textureName) { }
@@ -48,6 +56,8 @@ namespace pg
         virtual void init() override;
 
         virtual void onEvent(const UiComponentChangeEvent& event) override;
+
+        Mesh* getTextureMesh(float width, float height, const std::string& name);
     };
 
     /** Helper that create an entity with an Ui component and a Texture component */

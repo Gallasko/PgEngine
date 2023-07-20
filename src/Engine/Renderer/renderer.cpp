@@ -77,7 +77,7 @@ namespace pg
                 {
                     UiComponent *ui = renderableTexture.uiRef;
 
-                    auto mesh = renderableTexture.meshRef.getMesh();
+                    auto mesh = renderableTexture.meshRef;
 
                     if(not ui->isVisible() or not mesh)
                         continue;

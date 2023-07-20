@@ -21,6 +21,14 @@ namespace pg
         NUM_TYPES
     };
 
+    struct SentenceMesh : public Mesh
+    {
+        SentenceMesh() : Mesh() { LOG_THIS_MEMBER("Sentence Mesh"); modelInfo = constant::SquareInfo{}; }
+        ~SentenceMesh() { LOG_THIS_MEMBER("Sentence Mesh"); }
+
+        void generateMesh();
+    };
+
     struct SentenceText
     {
         std::string text = "";
@@ -78,9 +86,9 @@ namespace pg
         std::string newText;
     };
 
-    struct SentenceSystem : public System<Own<SentenceText>, Ref<UiComponent>, Listener<OnTextChanged>, Listener<UiComponentChangeEvent>, NamedSystem, InitSys, StoragePolicy>
+    struct SentenceSystem : public AbstractRenderer, System<Own<SentenceText>, Ref<UiComponent>, Listener<OnTextChanged>, Listener<UiComponentChangeEvent>, NamedSystem, InitSys, StoragePolicy>
     {
-        SentenceSystem(FontLoader *font) : font(font) { }
+        SentenceSystem(MasterRenderer *renderer, FontLoader *font) : AbstractRenderer(renderer, RenderStage::Render), font(font) { }
 
         virtual std::string getSystemName() const override { return "Sentence System"; }
 
@@ -89,6 +97,10 @@ namespace pg
         virtual void onEvent(const OnTextChanged& event) override;
 
         virtual void onEvent(const UiComponentChangeEvent& event) override;
+
+        virtual void render() override;
+
+        Mesh* getSentenceMesh(SentenceText& sentence, FontLoader *font);
 
         FontLoader *font;
     };

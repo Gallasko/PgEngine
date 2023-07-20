@@ -38,6 +38,7 @@ namespace pg
             delete inputHandler;
 
         SDL_GL_DeleteContext(context);
+        SDL_DestroyWindow(window);
         SDL_Quit();
     }
 
@@ -55,9 +56,11 @@ namespace pg
             flags = SDL_WINDOW_FULLSCREEN | SDL_WINDOW_OPENGL;
         }
 
+        LOG_INFO(DOM, "Initializing SDL...");
+
         if (SDL_Init(SDL_INIT_EVERYTHING) == 0)
         {
-            LOG_INFO(DOM, "Subsystems initialised");
+            LOG_INFO(DOM, "SDL initialized successfully");
 
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -69,28 +72,49 @@ namespace pg
             SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
             SDL_GL_SetAttribute(SDL_GL_BUFFER_SIZE, 32);
             SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-            // SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-            SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
-
+            SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+            // SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
 
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 
-            // WindowSdl
-            window = std::unique_ptr<SDL_Window, SdlWindowDestroyer>(
-                SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, flags));
+            // int err;
 
-            if (window)
+            // LOG_INFO(DOM, "Load OpenGL driver...");
+
+            // #if defined(_WIN32)
+            // err = SDL_GL_LoadLibrary ("opengl32.dll");
+            // #elif defined(__linux__) || defined(__FreeBSD__)
+            // err = SDL_GL_LoadLibrary ("libGL.so");
+            // #else
+            // #error Your platform is not supported
+            // err = 1;
+            // #endif
+
+            // if (err != 0)
+            // {
+            //     LOG_ERROR(DOM, "Unable to load OpenGL driver.");
+            //     return false;
+            // }
+
+            // LOG_INFO(DOM, "OpenGL driver loaded.");
+
+            LOG_INFO(DOM, "Creating WindowSDL...");
+            window = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, flags);
+
+            if (window != NULL)
             {
-                LOG_INFO(DOM, "WindowSdl initialised");
+                LOG_INFO(DOM, "WindowSDL initialised");
             }
             else
             {
-                LOG_ERROR(DOM, "WindowSdl init failed");
+                LOG_ERROR(DOM, "WindowSDL init failed");
                 return false;
             }
+
+            LOG_INFO(DOM, "Creating OpenGL context...");
                 
             // OpenGL context
-            context = SDL_GL_CreateContext(window.get());
+            context = SDL_GL_CreateContext(window);
 
             if (context)
             {
@@ -152,11 +176,11 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
+        masterRenderer = ecs.createSystem<MasterRenderer>();
+
         ecs.createSystem<UiComponentSystem>();
 
-        ecs.createSystem<TextureComponentSystem>();
-
-        masterRenderer = ecs.createSystem<MasterRenderer>();
+        ecs.createSystem<TextureComponentSystem>(masterRenderer);
 
         masterRenderer->registerShader("default", "shader/default.vs", "shader/default.fs");
 
@@ -277,6 +301,6 @@ namespace pg
             LOG_ERROR(DOM, "OpenGL error: " << err);
         }
 
-        SDL_GL_SwapWindow(window.get());
+        SDL_GL_SwapWindow(window);
     }
 }
