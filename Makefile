@@ -16,7 +16,7 @@ DebugActive ?= $(DEBUG)
 CXXFLAGS	:= -std=c++17 -Wall -Wextra -g -pthread
 
 ifeq ($(DebugActive),True)
-CXXFLAGS    += -DDEBUG # --coverage
+CXXFLAGS    += -O0 -DDEBUG --coverage
 else
 CXXFLAGS	+= -O2 -DNDEBUG # -mwindows
 endif
@@ -221,12 +221,6 @@ all: $(OUTPUT) $(MAIN)
 test: $(TEST_OBJECTS) gtest-all.o
 	@echo Building Test ...
 	$(CXX) $(TESTFLAGS) $(INCLUDES) $(TEST_INCLUDE) -o $(TESTMAIN) $(TEST_OBJECTS) gtest-all.o $(LFLAGS) $(LIBS)
-
-	ifeq ($(DebugActive),True)
-		./debug_build/test.exe
-	else
-		./release_build/test.exe
-	endif
 
 # Create the output hierarchy
 $(OUTPUT):

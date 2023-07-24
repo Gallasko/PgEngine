@@ -6,3 +6,5 @@
 log.txt
 gtest-all.o
 simple.json
+*.gcda
+*.gcno

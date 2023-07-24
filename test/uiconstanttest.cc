@@ -125,7 +125,7 @@ namespace pg
             UiAnchor anchor;
 
             EXPECT_EQ(anchor.id, 0);
-            EXPECT_TRUE(anchor.anchorDir == AnchorDir::Top);
+            EXPECT_EQ(anchor.anchorDir, AnchorDir::Top);
             EXPECT_FLOAT_EQ(anchor.anchorPoint, 0.0f);
 
             UiAnchor anchor2 {10, AnchorDir::Bottom, 15.0f};

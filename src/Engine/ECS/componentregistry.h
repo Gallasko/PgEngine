@@ -61,6 +61,22 @@ namespace pg
         virtual ~Copy() {}
     };
 
+    /**
+     * @brief Structure tag used to specify a component as a singleton component
+     * 
+     * When this tag is set for a component. That means that the component should only be created once
+     * and when a system or a component need this component we can use the same refererence everywhere.
+     * 
+     * So when a component with this tag is created we can directly save the ref in the ecs and used
+     * it throughout !
+     * 
+     * @todo make this
+     */
+    struct SingletonComp
+    {
+
+    };
+
     class ComponentRegistry
     {
         struct Storage {};
@@ -313,15 +329,31 @@ namespace pg
 
         virtual ~Own() { LOG_THIS_MEMBER("Own"); }
 
+        /**
+         * @brief Add this owner object to the registry.
+         * 
+         * @param registry The registry where to add the owner object.
+         */
         void setRegistry(ComponentRegistry* registry)
         {
             LOG_THIS_MEMBER("Own");
 
             LOG_INFO("Own", "Type: " << typeid(Type).name() << " get the id: " << registry->getTypeId<Type>());
 
+            // Store a pointer to this owner object in the registry
             registry->store<Type>(this);
         }
 
+        /**
+         * @brief Create a new component of this type in the underlaying sparse set.
+         * 
+         * @tparam Args Types of the arguments to pass to the constructor of the component.
+         * 
+         * @param entity The entity to attach the new component to. 
+         * @param args Arguments to pass to the constructor of the component.
+         * 
+         * @return Type* A pointer to the newly created component. 
+         */
         template <typename... Args>
         inline Type* internalCreateComponent(Entity* entity, Args&&... args)
         {
@@ -330,24 +362,46 @@ namespace pg
             // Create a new component and store it in a sparse set along with the entity id using it
             auto comp = components.addComponent(entity, std::forward<Args>(args)...);
 
+            // Add the component to the entity
             entity->componentList.emplace(_componentId);
 
+            // Call the on component creation callbacks to register the component in potential groups
             for(const auto& callback : onComponentCreation)
                 callback.second(entity);
 
             return comp;
         }
 
+        /**
+         * @brief Remove a component of this type from the underlaying sparse set.
+         * 
+         * @param entity The entity to remove the component from. 
+         */
         inline void internalRemoveComponent(Entity* entity)
         {
             LOG_THIS_MEMBER("Own");
 
-            components.removeComponent(entity);
-
+            // Call the on component deletion callbacks to remove the component from potential groups
             for(const auto& callback : onComponentDeletion)
                 callback.second(entity);
+
+            // Erase the component from the entity
+            auto it = std::find(entity->componentList.begin(), entity->componentList.end(), _componentId);
+            
+            if(it != entity->componentList.end())
+                entity->componentList.erase(it);
+
+            // Remove the component from the sparse set
+            components.removeComponent(entity);
         }
 
+        /**
+         * @brief Get the component of an entity from the underlaying sparse set.
+         * 
+         * @param id The id of the entity that has the component.
+         * 
+         * @return A pointer to the component. 
+         */
         inline Type* getComponent(_unique_id id) const
         {
             return components.atEntity(id);
@@ -360,6 +414,11 @@ namespace pg
             return components.viewComponents();
         }
 
+        /**
+         * @brief Get the id of the component.
+         * 
+         * @return _unique_id the id of the component. 
+         */
         inline _unique_id getId() const
         {
             return _componentId;

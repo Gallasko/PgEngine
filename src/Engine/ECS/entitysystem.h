@@ -26,21 +26,7 @@ namespace pg
     class ComponentRegistry;
     class AbstractSystem;
 
-    /**
-     * @brief Structure tag used to specify a component as a singleton component
-     * 
-     * When this tag is set for a component. That means that the component should only be created once
-     * and when a system or a component need this component we can use the same refererence everywhere.
-     * 
-     * So when a component with this tag is created we can directly save the ref in the ecs and used
-     * it throughout !
-     * 
-     * @todo make this
-     */
-    struct SingletonComp
-    {
-
-    };
+    // Todo add batching for entity and component creation
 
     template <typename Comp>
     struct CompListGetter
@@ -121,7 +107,7 @@ namespace pg
                 deleteEntityFromPool(entity);
         }
 
-        // TODO: Add a getSystem and destroySystem functions
+        // TODO: Add a destroySystem function
         template <class Sys, typename... Args>
         Sys* createSystem(const Args&... args)
         {
@@ -275,8 +261,6 @@ namespace pg
         void executeOnce();
 
         void executeAll();
-
-        // MasterRenderer* getMasterRenderer() { return registry.masterRenderer; }
 
         /** Return the registry of the ECS, mainly for testing purposes */
         inline constexpr const ComponentRegistry* getComponentRegistry() const noexcept { return &registry; }
