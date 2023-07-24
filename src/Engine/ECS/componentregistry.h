@@ -25,6 +25,42 @@ namespace pg
 
     class EntitySystem;
 
+    /**
+     * @brief Structure tag used to specify onCreation member on a component
+     *
+     * @todo find a better class name 
+     */
+    struct Ctor
+    {
+        virtual void onCreation(EntityRef entity) = 0;
+
+        virtual ~Ctor() {}
+    };
+
+    /**
+     * @brief Structure tag used to specify onCreation member on a component
+     *
+     * @todo find a better class name 
+     */
+    struct Dtor
+    {
+        virtual void onDeletion(EntityRef entity) = 0;
+
+        virtual ~Dtor() {}
+    };
+
+    /**
+     * @brief Structure tag used to specify onCreation member on a component
+     *
+     * @todo find a better class name 
+     */
+    struct Copy
+    {
+        virtual void onCopy(EntityRef entity) = 0;
+
+        virtual ~Copy() {}
+    };
+
     class ComponentRegistry
     {
         struct Storage {};
@@ -54,7 +90,14 @@ namespace pg
             }
 #endif
 
-            componentDeleteMap.emplace(id, [owner](Entity* entity){ owner->internalRemoveComponent(entity); });
+            componentDeleteMap.emplace(id, [owner](Entity* entity){
+                if constexpr(std::is_base_of_v<Dtor, Type>)
+                {
+                    auto res = owner->getComponent(entity->id);
+                    res->onDeletion(entity);
+                }
+
+                owner->internalRemoveComponent(entity); });
 
             componentStorageMap.emplace(id, static_cast<Storage*>(static_cast<Delegate*>(owner)));
 

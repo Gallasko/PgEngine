@@ -43,11 +43,13 @@ namespace pg
 
         ComponentCommand item2;
 
-        bool found = componentQueue.try_dequeue(item2);
+        bool found = entityQueue.try_dequeue(item);
 
-        while (found or entityQueue.try_dequeue(item))
+        bool found2 = componentQueue.try_dequeue(item2);
+
+        while (found or found2)
         {
-            while (entityQueue.try_dequeue(item))
+            while (found)
             {
                 if(item.type == EntityCommand::EntityCommandType::creation)
                 {
@@ -58,15 +60,17 @@ namespace pg
                 {
                     ecsRef->deleteEntityFromPool(item.entity);
                 }
+
+                found = entityQueue.try_dequeue(item);
             }
 
-            if(found or item2.type == ComponentCommand::ComponentCommandType::creation)
+            if(found2 and item2.type == ComponentCommand::ComponentCommandType::creation)
             {
                 item2.addInEcs(ecsRef, item2.entity, item2.component);
                 item2.deleteComp(item2.component);
             }
 
-            found = componentQueue.try_dequeue(item2);
+            found2 = componentQueue.try_dequeue(item2);
         }
     }
 }

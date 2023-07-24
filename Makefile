@@ -282,12 +282,6 @@ test: $(TEST_OBJECTS) gtest-all.o
 	@echo Building Test ...
 	$(CXX) $(TESTFLAGS) $(INCLUDES) $(TEST_INCLUDE) -o $(TESTMAIN) $(TEST_OBJECTS) gtest-all.o $(LFLAGS) $(LIBS)
 
-	ifeq ($(DebugActive),True)
-		./debug_build/test
-	else
-		./release_build/test
-	endif
-
 # Create the output hierarchy
 $(OUTPUT):
 	$(MD) $(OUTPUT)

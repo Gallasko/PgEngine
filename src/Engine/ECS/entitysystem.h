@@ -27,30 +27,6 @@ namespace pg
     class AbstractSystem;
 
     /**
-     * @brief Structure tag used to specify onCreation member on a component
-     *
-     * @todo find a better class name 
-     */
-    struct Ctor
-    {
-        virtual void onCreation(EntityRef entity) = 0;
-
-        virtual ~Ctor() {}
-    };
-
-    /**
-     * @brief Structure tag used to specify onCreation member on a component
-     *
-     * @todo find a better class name 
-     */
-    struct Dtor
-    {
-        virtual void onDeletion(EntityRef entity) = 0;
-
-        virtual ~Dtor() {}
-    };
-
-    /**
      * @brief Structure tag used to specify a component as a singleton component
      * 
      * When this tag is set for a component. That means that the component should only be created once
@@ -243,8 +219,6 @@ namespace pg
         {
             LOG_THIS_MEMBER("ECS");
 
-            LOG_MILE("ECS", "here");
-
             try
             {
                 Type* component;
@@ -280,7 +254,16 @@ namespace pg
         template <typename Type>
         void dettach(Entity* entity) const noexcept
         {
-            // Todo
+            auto id = registry.getTypeId<Type>();
+
+            try
+            {
+                registry.detachComponentFromEntity(entity, id);
+            }
+            catch (const std::exception& e)
+            {
+                LOG_ERROR("ECS", "Can't detach component [" << id << "] from entity [" << entity->id << "]: " << e.what());
+            }
         }
 
         template <typename Event>
@@ -288,6 +271,8 @@ namespace pg
 
         template <typename Comp>
         inline const _unique_id& getId() const noexcept { LOG_THIS_MEMBER("ECS"); return registry.getTypeId<Comp>(); }
+
+        void executeOnce();
 
         void executeAll();
 
@@ -321,7 +306,14 @@ namespace pg
             {
                 if(comp.entityHeldType == Entity::EntityHeld::EntityHeldType::id)
                 {
-                    // Todo Remove all attached component
+                    try
+                    {
+                        registry.detachComponentFromEntity(entity, comp.getId());
+                    }
+                    catch (const std::exception& e)
+                    {
+                        LOG_ERROR("ECS", "Can't detach component [" << comp.getId() << "] from entity [" << entity->id << "]: " << e.what());
+                    }
                 }
             }
 

@@ -310,8 +310,8 @@ namespace pg
     struct UiAnchor
     {
         mutable _unique_id id = 0; ///< Unique identifier of the entity oh this anchor
-        AnchorDir anchorDir;       ///< Direction of the anchor point mainly for serialization purposes
-        UiSize anchorPoint;        ///< The anchor point of the corner
+        AnchorDir anchorDir = AnchorDir::Top;       ///< Direction of the anchor point mainly for serialization purposes
+        UiSize anchorPoint = 0.0f;        ///< The anchor point of the corner
 
         // UiAnchor() : id(0), anchorDir(AnchorDir::Top), anchorPoint(0.0f) {}
         // UiAnchor(_unique_id id, const AnchorDir& dir, const UiSize& size) : id(id), anchorDir(dir), anchorPoint(size) {}

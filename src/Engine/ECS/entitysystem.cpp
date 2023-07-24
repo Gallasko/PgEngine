@@ -46,6 +46,20 @@ namespace pg
         }
     }
 
+    void EntitySystem::executeOnce()
+    {
+        LOG_THIS_MEMBER("ECS");
+
+        if (running)
+            return;
+
+        running = true;
+
+        executor.run(taskflow).wait();
+
+        running = false;
+    }
+
     void EntitySystem::executeAll()
     {
         LOG_THIS_MEMBER(DOM);

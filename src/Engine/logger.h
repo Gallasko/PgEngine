@@ -209,6 +209,7 @@ namespace pg
         class LogSink
         {
         friend class Logger;
+        public:
             class Filter
             {
             public:
@@ -221,10 +222,8 @@ namespace pg
                  * @return true if the log need to be filtered out and false if the filter doesn t apply to the log
                  */
                 virtual bool isFiltered(const Logger::Info& log) const = 0;
-            private:
             };
 
-        public:
             class FilterFile : public Filter
             {
             public:

@@ -157,9 +157,9 @@ namespace pg
             sys2.addToRegistry(&reg);
             sys3.addToRegistry(&reg);
 
-            EXPECT_EQ(reg.getTypeId<A>(), 4);
-            EXPECT_EQ(reg.getTypeId<B>(), 6);
-            EXPECT_EQ(reg.getTypeId<C>(), 8);
+            EXPECT_EQ(reg.getTypeId<A>(), 3);
+            EXPECT_EQ(reg.getTypeId<B>(), 4);
+            EXPECT_EQ(reg.getTypeId<C>(), 5);
         }
 
         // ----------------------------------------------------------------------------------------
@@ -183,12 +183,12 @@ namespace pg
             sys3bis.addToRegistry(&reg2);
             sys4.addToRegistry(&reg2);
 
-            EXPECT_EQ(reg.getTypeId<A>(), 4);
-            EXPECT_EQ(reg.getTypeId<B>(), 6);
-            EXPECT_EQ(reg.getTypeId<C>(), 8);
+            EXPECT_EQ(reg.getTypeId<A>(), 3);
+            EXPECT_EQ(reg.getTypeId<B>(), 4);
+            EXPECT_EQ(reg.getTypeId<C>(), 5);
 
-            EXPECT_EQ(reg2.getTypeId<C>(), 4);
-            EXPECT_EQ(reg2.getTypeId<D>(), 6);
+            EXPECT_EQ(reg2.getTypeId<C>(), 3);
+            EXPECT_EQ(reg2.getTypeId<D>(), 4);
         }
 
         // ----------------------------------------------------------------------------------------
@@ -328,13 +328,11 @@ namespace pg
 
             EXPECT_EQ(ecs.getNbEntities(),  0);
 
-            CreateDummy dummy {1};
-
-            ecs.executeAll();
+            ecs.executeOnce();
 
             EXPECT_EQ(ecs.getNbEntities(),  0);
 
-            ecs.executeAll();
+            ecs.executeOnce();
 
             EXPECT_EQ(ecs.getNbEntities(),  1);
 
