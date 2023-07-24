@@ -15,8 +15,10 @@ DebugActive ?= $(DEBUG)
 
 CXXFLAGS	:= -std=c++17 -Wall -Wextra -g -pthread
 
+
+# Todo add a flag to set up code coverage
 ifeq ($(DebugActive),True)
-CXXFLAGS    += -O0 -DDEBUG --coverage
+CXXFLAGS    += -DDEBUG # -O0 --coverage
 else
 CXXFLAGS	+= -O2 -DNDEBUG # -mwindows
 endif
@@ -224,6 +226,8 @@ all: $(OUTPUT) $(MAIN)
 test: $(TEST_OBJECTS) gtest-all.o
 	@echo Building Test ...
 	$(CXX) $(TESTFLAGS) $(INCLUDES) $(TEST_INCLUDE) -o $(TESTMAIN) $(TEST_OBJECTS) gtest-all.o $(LFLAGS) $(LIBS)
+#ld -Ur -o libraries.o --whole-archive $(TEST_OBJECTS)
+#$(CXX) $(TESTFLAGS) $(INCLUDES) $(TEST_INCLUDE) -o $(TESTMAIN) program.o libraries.o $(LFLAGS) $(LIBS)
 
 # Create the output hierarchy
 $(OUTPUT):

@@ -171,6 +171,8 @@ namespace pg
             return;
         }
 
+        LOG_INFO(DOM, "Loaded texture " << name << " from " << texturePath << " with width = " << width << " height = " << height);
+
         unsigned int texture;
 
         glGenTextures(1, &texture);

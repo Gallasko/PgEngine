@@ -24,7 +24,7 @@ namespace pg
     {
     public:
         static TextFile openTextFile(const std::string& filepath) noexcept;
-        static std::vector<TextFile> openTextFolder(const std::string& foldername) noexcept;
+        static std::vector<TextFile> openTextFolder(const std::string& foldername, bool recursive = false) noexcept;
 
         static void writeToFile(const TextFile& file, const std::string& data) noexcept;
     };

@@ -25,7 +25,7 @@ namespace pg
 
         LOG_INFO(DOM, "Window init...");
 
-        window.init(200, 200, false);
+        window.init(300, 300, false);
 
         LOG_INFO(DOM, "Window init done !");
 
@@ -37,11 +37,10 @@ namespace pg
 
         LOG_INFO(DOM, "Starting SDL event loop, waiting for events...");
 
-        for( ;; )
+        while(true)
         {
-            glClear( GL_COLOR_BUFFER_BIT );
-
             SDL_Event event;
+
             while(SDL_PollEvent(&event))
             {
                 window.processEvents(event);

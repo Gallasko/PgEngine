@@ -176,6 +176,8 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
+        glViewport(0, 0, width, height);
+
         masterRenderer = ecs.createSystem<MasterRenderer>();
 
         ecs.createSystem<UiComponentSystem>();
@@ -206,8 +208,8 @@ namespace pg
         auto e = makeUiTexture(&ecs, 160, 90, "menu");
         auto c = e.get<UiComponent>();
 
-        c->setBottomAnchor(screenUi->bottom);
-        c->setRightAnchor(screenUi->right);
+        // c->setBottomAnchor(screenUi->bottom);
+        // c->setRightAnchor(screenUi->right);
 
         ecs.start();
 
@@ -276,8 +278,6 @@ namespace pg
 
         glClearColor(0.1f, 0.3f, 0.7f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
         masterRenderer->setCurrentTime(currentTime);
 

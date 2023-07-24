@@ -32,7 +32,7 @@ namespace pg
         void resetSink()
         {
             nbMessages[Logger::InfoLevel::log]      = 0;
-            nbMessages[Logger::InfoLevel::test]      = 0;
+            nbMessages[Logger::InfoLevel::test]     = 0;
             nbMessages[Logger::InfoLevel::mile]     = 0;
             nbMessages[Logger::InfoLevel::info]     = 0;
             nbMessages[Logger::InfoLevel::alert]    = 0;

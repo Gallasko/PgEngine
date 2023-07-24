@@ -28,9 +28,13 @@ namespace pg
                     return TextFile{filename, ""};
                 }
 
+                LOG_INFO(DOM, "Reading file '" << filename << "'");
+
                 std::fstream file;
 
                 file.open(filename, std::ios::in);
+
+                bool firstLine = false;
 
                 if (file.is_open())
                 {
@@ -39,6 +43,11 @@ namespace pg
                     
                     while(std::getline(file, buffer))
                     {
+                        if(firstLine)
+                            temp += "\n";
+                        else
+                            firstLine = true;
+
                         temp += buffer;
                     }
 
@@ -87,7 +96,7 @@ namespace pg
         return openTxtFile(filepath);
     }
 
-    std::vector<TextFile> FileAccessor::openTextFolder(const std::string& foldername) noexcept
+    std::vector<TextFile> FileAccessor::openTextFolder(const std::string& foldername, bool recursive) noexcept
     {
         LOG_THIS(DOM);
 
@@ -95,10 +104,34 @@ namespace pg
 
         // Todo
 
-        // foreach(const QString& fileName, QDir(foldername.c_str()).entryList() )
-        // {
-        //     folder.push_back(openTxtFile(foldername + fileName.toStdString()));
-        // }
+        fs::path p {foldername};
+
+        if (!fs::exists(p))
+        {
+            LOG_INFO(DOM, "Couldn't open folder '" << foldername << "' : Folder doesn't exist.");
+            return folder;
+        }
+
+        LOG_INFO(DOM, "Opening folder '" << foldername << "'");
+
+        if (recursive)
+        {
+            for (const auto& file : fs::recursive_directory_iterator(foldername))
+            {
+                LOG_INFO(DOM, "Opening file '" << file.path().string() << "'");
+
+                folder.push_back(openTextFile(file.path().string()));
+            }
+        }
+        else
+        {
+            for (const auto& file : fs::directory_iterator(foldername))
+            {
+                LOG_INFO(DOM, "Opening file '" << file.path().string() << "'");
+
+                folder.push_back(openTextFile(file.path().string()));
+            }
+        }
 
         return folder;
     }
@@ -145,12 +178,10 @@ namespace pg
     {
         LOG_THIS(DOM);
 
-        std::vector<TextFile> folder;
+        std::vector<TextFile> folder = FileAccessor::openTextFolder(foldername);
 
-        // foreach(const QString& fileName, QDir(foldername.c_str()).entryList() )
-        // {
-        //     folder.push_back(openTxtFile(foldername + fileName.toStdString()));
-        // }
+        if(folder.size() == 0)
+            folder = ResourceAccessor::openTextFolder(foldername);
 
         return folder;
     }
@@ -158,19 +189,18 @@ namespace pg
     std::string UniversalFileAccessor::getFileName(const TextFile& file) noexcept
     {
         LOG_THIS(DOM);
-        // QFileInfo fileInfo(file.filepath.c_str());
 
-        // return fileInfo.baseName().toStdString();
+        fs::path p {file.filepath};
 
-        return "";
+        return p.filename().string();
     }
 
     std::string UniversalFileAccessor::getFoldername(const TextFile& file) noexcept
     {
         LOG_THIS(DOM);
-        // QFileInfo fileInfo(file.filepath.c_str());
 
-        // return fileInfo.dir().path().toStdString();
-        return "";
+        fs::path p {file.filepath};
+
+        return p.relative_path().remove_filename().string();
     }
 }
