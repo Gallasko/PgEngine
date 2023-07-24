@@ -1,0 +1,15 @@
+print("Executing addition test")
+
+ExpectEq(2 + 3, 5);
+
+ExpectEq(2+3, 5);
+
+ExpectEq(1+5+4+8+6, 24);
+
+ExpectEq(15 + -5, 10);
+
+ExpectEq(10.2 + 14.5, 24.7);
+
+ExpectEq(15.4 + 5, 20.4);
+
+ExpectEq("str" + "ing", "string")

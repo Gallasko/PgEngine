@@ -1,0 +1,15 @@
+print("Executing sub test")
+
+ExpectEq(3 - 2, 1);
+
+ExpectEq(2 - 3, -1);
+
+ExpectEq(3-2, 1);
+
+ExpectEq(15-5-4, 6);
+
+ExpectEq(5 - -5, 10);
+
+ExpectEq(10.2 + 14.5, 24.7);
+
+ExpectEq(15.4 + 5, 20.4);

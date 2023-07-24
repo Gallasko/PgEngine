@@ -108,7 +108,10 @@
         "coroutine": "cpp",
         "resumable": "cpp",
         "stack": "cpp",
-        "filesystem": "cpp"
+        "filesystem": "cpp",
+        "numbers": "cpp",
+        "semaphore": "cpp",
+        "span": "cpp"
     },
     "files.exclude": {
         "**/*.o": true,

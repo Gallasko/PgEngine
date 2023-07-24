@@ -1,7 +1,10 @@
 #include "filemanager.h"
 
 #include <stdexcept>
+#include <iostream>
+#include <filesystem>
 #include <fstream>
+namespace fs = std::filesystem;
 
 #include "../logger.h"
 
@@ -17,45 +20,46 @@ namespace pg
 
             try
             {
-                constexpr auto read_size = std::size_t(4096);
-                auto stream = std::ifstream(filename.data());
-                stream.exceptions(std::ios_base::badbit);
+                fs::path p {filename};
 
-                if (not stream) {
-                    throw std::ios_base::failure("File does not exist");
-                }
-                
-                auto out = std::string();
-                auto buf = std::string(read_size, '\0');
-
-                while (stream.read(& buf[0], read_size)) 
+                if (!fs::exists(p))
                 {
-                    out.append(buf, 0, stream.gcount());
+                    LOG_INFO(DOM, Strfy() << "Couldn't open file '" << filename << "' : File doesn't exist.");
+                    return TextFile{filename, ""};
                 }
 
-                out.append(buf, 0, stream.gcount());
+                std::ifstream ifs(filename.c_str(), std::ios::in);
 
-                return TextFile{filename, out};
+                std::ifstream::pos_type fileSize = ifs.tellg();
+                if (fileSize < 0)
+                    return TextFile{filename, ""};
+
+                ifs.seekg(0, std::ios::beg);
+
+                std::vector<char> bytes(fileSize);
+                ifs.read(&bytes[0], fileSize);
+
+                return TextFile{filename, std::string(&bytes[0], fileSize)};
             }
             catch (const std::exception& e)
             {
-                LOG_INFO(DOM, e.what());
+                LOG_INFO(DOM, Strfy() << "Couldn't open file '" << filename << "' : " << e.what());
 
                 return TextFile{filename, ""};
             }
         }
     }
 
-    TextFile ResourceAccessor::openTextFile(const std::string& filename) noexcept
+    TextFile ResourceAccessor::openTextFile(const std::string& filepath) noexcept
     {
-        LOG_THIS(DOM);
+        LOG_THIS_MEMBER(DOM);
 
-        return openTxtFile(":/" + filename);
+        return openTxtFile(":/" + filepath);
     }
 
     std::vector<TextFile> ResourceAccessor::openTextFolder(const std::string& foldername) noexcept
     {
-        LOG_THIS(DOM);
+        LOG_THIS_MEMBER(DOM);
 
         std::vector<TextFile> folder;
 
@@ -69,16 +73,16 @@ namespace pg
         return folder;
     }
 
-    TextFile FileAccessor::openTextFile(const std::string& filename) noexcept
+    TextFile FileAccessor::openTextFile(const std::string& filepath) noexcept
     {
-        LOG_THIS(DOM);
+        LOG_THIS_MEMBER(DOM);
 
-        return openTxtFile(filename);
+        return openTxtFile(filepath);
     }
 
     std::vector<TextFile> FileAccessor::openTextFolder(const std::string& foldername) noexcept
     {
-        LOG_THIS(DOM);
+        LOG_THIS_MEMBER(DOM);
 
         std::vector<TextFile> folder;
 
@@ -94,7 +98,7 @@ namespace pg
 
     void FileAccessor::writeToFile(const TextFile& file, const std::string& data) noexcept
     {
-        LOG_THIS(DOM);
+        LOG_THIS_MEMBER(DOM);
 
         // Todo
 
@@ -118,4 +122,46 @@ namespace pg
         // }
     }
 
+    TextFile UniversalFileAccessor::openTextFile(const std::string& filepath) noexcept
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        auto file = openTxtFile(filepath);
+
+        if(file.data == "")
+            file = openTxtFile(":/" + filepath);
+
+        return file;
+    }
+
+    std::vector<TextFile> UniversalFileAccessor::openTextFolder(const std::string& foldername) noexcept
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        std::vector<TextFile> folder;
+
+        // foreach(const QString& fileName, QDir(foldername.c_str()).entryList() )
+        // {
+        //     folder.push_back(openTxtFile(foldername + fileName.toStdString()));
+        // }
+
+        return folder;
+    }
+
+    std::string UniversalFileAccessor::getFileName(const TextFile& file) noexcept
+    {
+        // QFileInfo fileInfo(file.filepath.c_str());
+
+        // return fileInfo.baseName().toStdString();
+
+        return "";
+    }
+
+    std::string UniversalFileAccessor::getFoldername(const TextFile& file) noexcept
+    {
+        // QFileInfo fileInfo(file.filepath.c_str());
+
+        // return fileInfo.dir().path().toStdString();
+        return "";
+    }
 }

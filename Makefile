@@ -58,6 +58,7 @@ LIB		:= lib \
 
 # define dependency directory
 DEPENDENCIES := dependencies
+TESTDEPENDENCIES := testdeps
 
 # TODO merge the shader directory inside of the ressource directory
 # define shader directory
@@ -79,6 +80,7 @@ INCLUDEDIRS		 := $(INCLUDE)
 IMPORTDIRS 		 := $(IMPORT)
 LIBDIRS			 := $(LIB)
 DEPENDENCIESDIRS := $(DEPENDENCIES)
+TESTDEPSDIRS	 := $(TESTDEPENDENCIES)
 SHADERDIR 		 := $(SHADER)
 RESSOURCESDIR 	 := $(RESSOURCES)
 BUILDDIR 	  	 := $(BUILD)
@@ -93,6 +95,7 @@ INCLUDEDIRS		 := $(shell find $(INCLUDE) -type d)
 IMPORTDIRS 		 := $(shell find $(IMPORT) -type d)
 LIBDIRS			 := $(shell find $(LIB) -type d)
 DEPENDENCIESDIRS := $(shell find $(DEPENDENCIES) -type d)
+TESTDEPSDIRS	 := $(shell find $(TESTDEPENCIES) -type d)
 SHADERDIR 		 := $(shell find $(SHADER) -type d)
 RESSOURCESDIR 	 := $(shell find $(RESSOURCES) -type d)
 BUILDDIR 	  	 := $(shell find $(BUILD) -type d)

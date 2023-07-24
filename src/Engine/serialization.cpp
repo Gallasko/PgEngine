@@ -804,7 +804,7 @@ namespace pg
         }
 
         if(errorHappened)
-            { LOG_ERROR(DOM, "Error happened when parsing: " + file.filename); }
+            { LOG_ERROR(DOM, "Error happened when parsing: " + file.filepath); }
     }
 
     void Serializer::registerSerialized(const std::string& objectName, const std::stringstream& serializedString)
