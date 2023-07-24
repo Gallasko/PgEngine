@@ -24,26 +24,33 @@ namespace pg
 
                 if (!fs::exists(p))
                 {
-                    LOG_INFO(DOM, Strfy() << "Couldn't open file '" << filename << "' : File doesn't exist.");
+                    LOG_INFO(DOM, "Couldn't open file '" << filename << "' : File doesn't exist.");
                     return TextFile{filename, ""};
                 }
 
-                std::ifstream ifs(filename.c_str(), std::ios::in);
+                std::fstream file;
 
-                std::ifstream::pos_type fileSize = ifs.tellg();
-                if (fileSize < 0)
-                    return TextFile{filename, ""};
+                file.open(filename, std::ios::in);
 
-                ifs.seekg(0, std::ios::beg);
+                if (file.is_open())
+                {
+                    std::string temp;
+                    std::string buffer;
+                    
+                    while(std::getline(file, buffer))
+                    {
+                        temp += buffer;
+                    }
 
-                std::vector<char> bytes(fileSize);
-                ifs.read(&bytes[0], fileSize);
+                    file.close();
 
-                return TextFile{filename, std::string(&bytes[0], fileSize)};
+                    return TextFile{filename, temp};
+                }
+                return TextFile{filename, ""};
             }
             catch (const std::exception& e)
             {
-                LOG_INFO(DOM, Strfy() << "Couldn't open file '" << filename << "' : " << e.what());
+                LOG_INFO(DOM, "Couldn't open file '" << filename << "' : " << e.what());
 
                 return TextFile{filename, ""};
             }
@@ -52,14 +59,14 @@ namespace pg
 
     TextFile ResourceAccessor::openTextFile(const std::string& filepath) noexcept
     {
-        LOG_THIS_MEMBER(DOM);
+        LOG_THIS(DOM);
 
         return openTxtFile(":/" + filepath);
     }
 
     std::vector<TextFile> ResourceAccessor::openTextFolder(const std::string& foldername) noexcept
     {
-        LOG_THIS_MEMBER(DOM);
+        LOG_THIS(DOM);
 
         std::vector<TextFile> folder;
 
@@ -75,14 +82,14 @@ namespace pg
 
     TextFile FileAccessor::openTextFile(const std::string& filepath) noexcept
     {
-        LOG_THIS_MEMBER(DOM);
+        LOG_THIS(DOM);
 
         return openTxtFile(filepath);
     }
 
     std::vector<TextFile> FileAccessor::openTextFolder(const std::string& foldername) noexcept
     {
-        LOG_THIS_MEMBER(DOM);
+        LOG_THIS(DOM);
 
         std::vector<TextFile> folder;
 
@@ -98,7 +105,7 @@ namespace pg
 
     void FileAccessor::writeToFile(const TextFile& file, const std::string& data) noexcept
     {
-        LOG_THIS_MEMBER(DOM);
+        LOG_THIS(DOM);
 
         // Todo
 
@@ -124,7 +131,7 @@ namespace pg
 
     TextFile UniversalFileAccessor::openTextFile(const std::string& filepath) noexcept
     {
-        LOG_THIS_MEMBER(DOM);
+        LOG_THIS(DOM);
 
         auto file = openTxtFile(filepath);
 
@@ -136,7 +143,7 @@ namespace pg
 
     std::vector<TextFile> UniversalFileAccessor::openTextFolder(const std::string& foldername) noexcept
     {
-        LOG_THIS_MEMBER(DOM);
+        LOG_THIS(DOM);
 
         std::vector<TextFile> folder;
 
@@ -150,6 +157,7 @@ namespace pg
 
     std::string UniversalFileAccessor::getFileName(const TextFile& file) noexcept
     {
+        LOG_THIS(DOM);
         // QFileInfo fileInfo(file.filepath.c_str());
 
         // return fileInfo.baseName().toStdString();
@@ -159,6 +167,7 @@ namespace pg
 
     std::string UniversalFileAccessor::getFoldername(const TextFile& file) noexcept
     {
+        LOG_THIS(DOM);
         // QFileInfo fileInfo(file.filepath.c_str());
 
         // return fileInfo.dir().path().toStdString();

@@ -2,6 +2,8 @@
 
 #include "Files/filemanager.h"
 
+#include "mocklogger.h"
+
 namespace pg
 {
     namespace test
@@ -11,6 +13,8 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(universal_file_accessor_test, open_file_in_exe_directory)
         {
+            MockLogger<TerminalSink> logger;
+
             auto file = UniversalFileAccessor::openTextFile("testfile.txt");
 
             EXPECT_EQ(file.filepath, "testfile.txt");
@@ -22,6 +26,8 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(universal_file_accessor_test, file_info_in_exe_directory)
         {
+            MockLogger<TerminalSink> logger;
+
             auto file = UniversalFileAccessor::openTextFile("testfile.txt");
 
             EXPECT_EQ(file.filepath, "testfile.txt");
