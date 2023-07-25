@@ -27,8 +27,8 @@ int main(int argc, char *argv[])
     //terminalSink->addFilter("Input Filter", new Logger::LogSink::FilterScope("Input"));
     // terminalSink->addFilter("Serializer Filter", new Logger::LogSink::FilterFile("src/Engine/serialization.cpp"));
     // terminalSink->addFilter("Renderer Filter", new Logger::LogSink::FilterFile("src/Engine/Renderer/renderer.h"));
-    terminalSink->addFilter("Parser Filter", new pg::Logger::LogSink::FilterScope("Parser"));
-    terminalSink->addFilter("Font Filter", new pg::Logger::LogSink::FilterScope("Font Loader"));
+    // terminalSink->addFilter("Parser Filter", new pg::Logger::LogSink::FilterScope("Parser"));
+    // terminalSink->addFilter("Font Filter", new pg::Logger::LogSink::FilterScope("Font Loader"));
     terminalSink->addFilter("Registry Filter", new pg::Logger::LogSink::FilterScope("Component Registry"));
     // terminalSink->addFilter("Configuration Filter", new Logger::LogSink::FilterFile("src/Engine/configuration.cpp"));
     // terminalSink->addFilter("Editor Filter", new Logger::LogSink::FilterFile("src/app.cpp"));

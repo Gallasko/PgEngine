@@ -29,7 +29,6 @@ namespace pg
     void renderer(MasterRenderer* masterRender, Args... args);
 
     class UiComponent;
-    class TextureComponent;
 
     struct RenderableTexture
     {
@@ -98,6 +97,9 @@ namespace pg
 
         virtual void execute() override;
 
+        inline void startResizing() { resizeMutex.lock(); }
+        inline void stopResizing()  { resizeMutex.unlock(); }
+
         void renderAll();
 
         void registerShader(const std::string& name, OpenGLShaderProgram *shaderProgram);
@@ -133,10 +135,10 @@ namespace pg
         ShaderRef shaderList;
         TextureRef textureList;
 
-        MeshBuilder meshBuilder;
-
         size_t nbRenderedFrames = 0;
 
         std::vector<AbstractRenderer*> renderers;
+
+        std::mutex resizeMutex;
     };
 }

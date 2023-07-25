@@ -12,6 +12,7 @@
 #include "Input/input.h"
 
 #include "UI/texture.h"
+#include "UI/simple2dobject.h"
 
 
 namespace
@@ -45,9 +46,6 @@ namespace pg
     bool Window::init(int width, int height, bool isFullscreen)
     {
         LOG_THIS_MEMBER(DOM);
-
-        // this->width = width;
-        // this->height = height;
 
         int flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL;
 
@@ -184,10 +182,14 @@ namespace pg
 
         ecs.createSystem<TextureComponentSystem>(masterRenderer);
 
+        ecs.createSystem<Simple2DObjectSystem>(masterRenderer);
+
         masterRenderer->registerShader("default", "shader/default.vs", "shader/default.fs");
 
         masterRenderer->registerShader("gui", "shader/default.vs", "shader/default.fs");
         masterRenderer->registerShader("text", "shader/textrendering.vs", "shader/textrendering.fs");
+
+        masterRenderer->registerShader("2DShapes", "shader/simpleshapes.vs", "shader/simpleshapes.fs");
 
         masterRenderer->registerTexture("menu", "res/menu/Menu.png");
 
@@ -201,15 +203,27 @@ namespace pg
 
         screenEntity = ecs.createEntity();
         screenUi = ecs.attach<UiComponent>(screenEntity);
-        screenUi->width = 400;
-        screenUi->height = 400;
+        screenUi->width = 10;
+        screenUi->height = 10;
         screenUi->setZ(-1);
 
-        auto e = makeUiTexture(&ecs, 160, 90, "menu");
-        auto c = e.get<UiComponent>();
+        auto tex = makeUiTexture(&ecs, 160, 90, "menu");
+        auto cTex = tex.get<UiComponent>();
 
-        // c->setBottomAnchor(screenUi->bottom);
-        // c->setRightAnchor(screenUi->right);
+        cTex->setBottomAnchor(screenUi->bottom);
+        cTex->setLeftAnchor(screenUi->left);
+
+        auto s = makeSimple2DShape(&ecs, Shape2D::Triangle, 50, 50, {255.0f, 0.0f, 0.0f});
+        auto c = s.get<UiComponent>();
+
+        c->setTopAnchor(screenUi->top);
+        c->setRightAnchor(screenUi->right);
+
+        auto s2 = makeSimple2DShape(&ecs, Shape2D::Square, 100, 100, {0.0f, 255.0f, 0.0f});
+        auto c2 = s2.get<UiComponent>();
+
+        c2->setTopAnchor(screenUi->top);
+        c2->setLeftAnchor(screenUi->left);
 
         ecs.start();
 
@@ -258,17 +272,27 @@ namespace pg
 
         glViewport(0, 0, width, height);
 
+        if(masterRenderer)
+            masterRenderer->startResizing();
+
         if(screenUi->width != width)
         {
             screenUi->setWidth(width);
-            masterRenderer->setWindowSize(width, height);
+
+            if(masterRenderer)
+                masterRenderer->setWindowSize(width, height);
         }
             
         if(screenUi->height != height)
         {
             screenUi->setHeight(height);
-            masterRenderer->setWindowSize(width, height);
+            
+            if(masterRenderer)
+                masterRenderer->setWindowSize(width, height);
         }
+
+        if(masterRenderer)
+            masterRenderer->stopResizing();
     }
 
     void Window::render()

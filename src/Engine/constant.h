@@ -32,6 +32,7 @@ namespace pg
 		};
 
 		//Vector struct
+		// Todo add an operator [] to vec2 vec3 and vec4 for easier acces and an operator=(float[2])
 		struct Vector2D
 		{
 			float x = 0.0f;

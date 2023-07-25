@@ -8,13 +8,13 @@ namespace fs = std::filesystem;
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
 
-#include "UI/texture.h"
-
 #include "logger.h"
 
 #include "openglobject.h"
 
 #include "Loaders/stb_image.h"
+
+#include "UI/uisystem.h"
 
 namespace pg
 {
@@ -117,6 +117,8 @@ namespace pg
         // Todo Fix in group and ecs ! ( whereaver we are holding pointer of a comp actually ! )
         // Todo hold a ref to the component list and the component index inside of this list instead of the raw pointer to not get invalidated on resize !
 
+        std::lock_guard<std::mutex> lock(resizeMutex);
+
         for (auto renderer : renderers)
         {
             renderer->updateMeshes();
@@ -126,6 +128,8 @@ namespace pg
     void MasterRenderer::renderAll()
     {
         LOG_THIS_MEMBER(DOM);
+
+        std::lock_guard<std::mutex> lock(resizeMutex);
 
         for (auto renderer : renderers)
         {

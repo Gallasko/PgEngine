@@ -37,6 +37,8 @@ namespace pg
 
         LOG_INFO(DOM, "Starting SDL event loop, waiting for events...");
 
+        window.resize(300, 300);
+
         while(true)
         {
             SDL_Event event;

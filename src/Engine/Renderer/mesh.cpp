@@ -21,7 +21,6 @@ namespace pg
             delete VBO; 
             delete EBO;
         }
-        
     }
 
     void OpenGLObject::initialize()
@@ -50,9 +49,4 @@ namespace pg
     }
 
     // Todo add a mutex to protect m_meshes of any race conditions
-
-    Mesh* MeshBuilder::getSimpleMesh(float width, float height, const Simple2DObject::Type& type)
-    {
-
-    }
 }

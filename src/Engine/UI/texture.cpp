@@ -153,14 +153,12 @@ namespace pg
         const int screenWidth = rTable["ScreenWidth"];
         const int screenHeight = rTable["ScreenHeight"];
 
-        glm::mat4 projection;
-        glm::mat4 view;
-        glm::mat4 model;
-        glm::mat4 scale;
+        glm::mat4 projection = glm::mat4(1.0f);
+        glm::mat4 view = glm::mat4(1.0f);
+        glm::mat4 model = glm::mat4(1.0f);
+        glm::mat4 scale = glm::mat4(1.0f);
 
-        // glm::scale(scale, glm::vec3(0.5f, 0.5f, 0.0f));        
-
-        glm::scale(scale, glm::vec3(2.0f / screenWidth, 2.0f / screenHeight, 0.0f));
+        scale = glm::scale(scale, glm::vec3(2.0f / screenWidth, 2.0f / screenHeight, 0.0f));
 
         // TODO why does it need to be scale * 2 ( the scaling now happen in the shader ) <- Done the * 2 is needed to map the -1 <-> 1 space to a 0 <-> 1 space 
         // Need to make a note about that
@@ -197,7 +195,8 @@ namespace pg
 
                 // Todo
                 // view.translate(QVector3D(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, -static_cast<UiSize>(ui->pos.z)));
-                glm::translate(view, glm::vec3(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, 0.0f));
+                view = glm::mat4(1.0f);
+                view = glm::translate(view, glm::vec3(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, 0.0f));
                 // glm::translate(view, glm::vec3(-0.5f , 0.5f, 1.0f));
 
                 shaderProgram->setUniformValue("view", view);
