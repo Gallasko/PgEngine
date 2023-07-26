@@ -42,6 +42,11 @@ namespace pg
 
     struct OnMouseClick {};
 
+    struct OnSDLTextInput
+    {
+        std::string text;
+    };
+
     struct MouseAreaZ
     {
         MouseAreaZ(_unique_id id, CompRef<UiComponent> ui) : id(id), ui(ui) { LOG_THIS_MEMBER("MouseArea"); }
@@ -153,6 +158,8 @@ namespace pg
         Input *inputHandler;
         std::set<MouseAreaZ, std::less<>> mouseAreaHolder;
     };
+
+    
 
     bool operator<(const MouseAreaZ& lhs, const MouseAreaZ& rhs);
     bool operator>(const MouseAreaZ& lhs, const MouseAreaZ& rhs);

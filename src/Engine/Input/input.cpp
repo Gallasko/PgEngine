@@ -24,7 +24,7 @@ namespace pg
 		}
 	}
 
-	Input::InputState Input::registerKeyInput(const SDL_Keycode& key, const Input::InputState& state)
+	Input::InputState Input::registerKeyInput(const SDL_Scancode& key, const Input::InputState& state)
 	{
 		LOG_THIS_MEMBER(DOM);
 
@@ -45,7 +45,7 @@ namespace pg
 			break;
 
 			case Input::InputState::KEYGRABBED:
-				if (it == -1)
+				if (it != -1)
 				{
 					keyContainer.at(it).state = Input::InputState::KEYGRABBED;
 					return Input::InputState::INPUTREGISTERED;
@@ -132,7 +132,7 @@ namespace pg
 		return Input::InputState::INPUTREGISTERED;
 	}
 
-	void Input::grabKey(const SDL_Keycode& key)
+	void Input::grabKey(const SDL_Scancode& key)
 	{
 		LOG_THIS_MEMBER(DOM);
 
@@ -146,7 +146,7 @@ namespace pg
 		registerMouseInput(button, Input::InputState::MOUSEGRABBED);
 	}
 
-	Input::InputState Input::keyState(const SDL_Keycode& key) const
+	Input::InputState Input::keyState(const SDL_Scancode& key) const
 	{
 		LOG_THIS_MEMBER(DOM);
 
@@ -154,21 +154,21 @@ namespace pg
 		return (it != -1) ? keyContainer.at(it).state : Input::InputState::INPUTERROR;
 	}
 
-	bool Input::isKeyPressed(const SDL_Keycode& key) const
+	bool Input::isKeyPressed(const SDL_Scancode& key) const
 	{
 		LOG_THIS_MEMBER(DOM);
 
 		return keyState(key) == Input::InputState::KEYPRESSED;
 	}
 
-	bool Input::isKeyGrabbed(const SDL_Keycode& key) const
+	bool Input::isKeyGrabbed(const SDL_Scancode& key) const
 	{
 		LOG_THIS_MEMBER(DOM);
 
 		return keyState(key) == Input::InputState::KEYGRABBED;
 	}
 
-	bool Input::isKeyReleased(const SDL_Keycode& key) const
+	bool Input::isKeyReleased(const SDL_Scancode& key) const
 	{
 		LOG_THIS_MEMBER(DOM);
 

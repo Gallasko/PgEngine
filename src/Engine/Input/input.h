@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include <SDL_keycode.h>
+#include <SDL_Scancode.h>
 
 namespace pg
 {
@@ -50,23 +50,23 @@ namespace pg
 
 		};
 
-		typedef InputInstance<SDL_Keycode> KeyInstance;
+		typedef InputInstance<SDL_Scancode> KeyInstance;
 		typedef InputInstance<MouseButton> ButtonInstance;
 
 	public:
 		Input() {}
 
-		Input::InputState registerKeyInput(const SDL_Keycode& key, const Input::InputState& state);
+		Input::InputState registerKeyInput(const SDL_Scancode& key, const Input::InputState& state);
 		Input::InputState registerMouseInput(const MouseButton& button, const Input::InputState& state);
 		Input::InputState registerMouseMove(const MousePos& mousePos, const MousePos& mouseDelta);
 
-		void grabKey(const SDL_Keycode& key);
+		void grabKey(const SDL_Scancode& key);
 		void grabMouse(const MouseButton& button);
 
-		Input::InputState keyState(const SDL_Keycode& key) const;
-		bool isKeyPressed(const SDL_Keycode& key) const;
-		bool isKeyGrabbed(const SDL_Keycode& key) const;
-		bool isKeyReleased(const SDL_Keycode& key) const;
+		Input::InputState keyState(const SDL_Scancode& key) const;
+		bool isKeyPressed(const SDL_Scancode& key) const;
+		bool isKeyGrabbed(const SDL_Scancode& key) const;
+		bool isKeyReleased(const SDL_Scancode& key) const;
 
 		Input::InputState buttonState(const MouseButton& button) const;
 		bool isButtonPressed(const MouseButton& button) const;

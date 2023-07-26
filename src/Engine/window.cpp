@@ -8,11 +8,12 @@
 #include "logger.h"
 
 #include "Renderer/renderer.h"
-#include "Ui/uisystem.h"
 #include "Input/input.h"
 
+#include "UI/uisystem.h"
 #include "UI/texture.h"
 #include "UI/simple2dobject.h"
+#include "UI/focusable.h"
 
 #include "Interpreter/pginterpreter.h"
 
@@ -98,7 +99,7 @@ namespace pg
             // LOG_INFO(DOM, "OpenGL driver loaded.");
 
             LOG_INFO(DOM, "Creating WindowSDL...");
-            window = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, flags);
+            window = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, NULL);
 
             if (window != NULL)
             {
@@ -179,6 +180,8 @@ namespace pg
 
         ecs.createSystem<LoggerSystem>();
 
+        ecs.createSystem<FocusableSystem>();
+
         masterRenderer = ecs.createSystem<MasterRenderer>();
 
         ecs.createSystem<UiComponentSystem>();
@@ -192,16 +195,16 @@ namespace pg
 
         ecs.createSystem<MouseLeaveClickSystem>(inputHandler);
 
-        masterRenderer->registerShader("default", "shader/default.vs", "shader/default.fs");
+        // masterRenderer->registerShader("default", "shader/default.vs", "shader/default.fs");
 
-        masterRenderer->registerShader("gui", "shader/default.vs", "shader/default.fs");
-        masterRenderer->registerShader("text", "shader/textrendering.vs", "shader/textrendering.fs");
+        // masterRenderer->registerShader("gui", "shader/default.vs", "shader/default.fs");
+        // masterRenderer->registerShader("text", "shader/textrendering.vs", "shader/textrendering.fs");
 
-        masterRenderer->registerShader("2DShapes", "shader/simpleshapes.vs", "shader/simpleshapes.fs");
+        // masterRenderer->registerShader("2DShapes", "shader/simpleshapes.vs", "shader/simpleshapes.fs");
 
-        masterRenderer->registerTexture("menu", "res/menu/Menu.png");
+        // masterRenderer->registerTexture("menu", "res/menu/Menu.png");
 
-        masterRenderer->setWindowSize(width, height);
+        // masterRenderer->setWindowSize(width, height);
 
         // Create interpreter
         ecs.createSystem<PgInterpreter>();
@@ -222,6 +225,9 @@ namespace pg
         screenUi->height = 10;
         screenUi->setZ(-1);
 
+        ecs.attach<FocusableComponent>(screenEntity);
+        ecs.attach<MouseLeftClickComponent>(screenEntity, makeCallable<OnFocus>(screenEntity.id));
+
         auto tex = makeUiTexture(&ecs, 160, 90, "menu");
         auto cTex = tex.get<UiComponent>();
 
@@ -240,7 +246,9 @@ namespace pg
         c2->setTopAnchor(screenUi->top);
         c2->setLeftAnchor(screenUi->left);
 
-        ecs.attach<MouseLeftClickComponent>(s2.entity, makeCallable<LogEvent>("Left click on the green rectangle"));
+        ecs.attach<FocusableComponent>(s2.entity);
+        ecs.attach<MouseLeftClickComponent>(s2.entity, makeCallable<OnFocus>(s2.entity.id));
+        // ecs.attach<MouseLeftClickComponent>(s2.entity, makeCallable<LogEvent>("Left click on the green rectangle"));
 
         ecs.start();
 
@@ -273,11 +281,11 @@ namespace pg
                 break;
 
             case SDL_KEYUP:
-                inputHandler->registerKeyInput(event.key.keysym.sym, Input::InputState::KEYPRESSED);
+                inputHandler->registerKeyInput(event.key.keysym.scancode, Input::InputState::KEYPRESSED);
                 break;
 
             case SDL_KEYDOWN:
-                inputHandler->registerKeyInput(event.key.keysym.sym, Input::InputState::KEYRELEASED);
+                inputHandler->registerKeyInput(event.key.keysym.scancode, Input::InputState::KEYRELEASED);
                 break;
             
             case SDL_MOUSEBUTTONDOWN:
@@ -289,12 +297,19 @@ namespace pg
                 break;
 
             case SDL_MOUSEMOTION:
-                MousePos currentPos {event.motion.x, event.motion.y};
-                MousePos mouseDelta {(mousePos.x - currentPos.x) * xSensitivity, (currentPos.y - mousePos.y) * ySensitivity};
+                {
+                    MousePos currentPos {event.motion.x, event.motion.y};
+                    MousePos mouseDelta {(mousePos.x - currentPos.x) * xSensitivity, (currentPos.y - mousePos.y) * ySensitivity};
 
-                inputHandler->registerMouseMove(currentPos, mouseDelta);
+                    inputHandler->registerMouseMove(currentPos, mouseDelta);
 
-                mousePos = currentPos;
+                    mousePos = currentPos;
+                }
+                break;
+
+            case SDL_TEXTINPUT:
+                LOG_INFO(DOM, "MESSAGE: Text input: " << std::string(event.text.text));
+                ecs.sendEvent(OnSDLTextInput{std::string(event.text.text)});
                 break;
         }
     }
@@ -341,7 +356,7 @@ namespace pg
 
         masterRenderer->setCurrentTime(currentTime);
 
-        masterRenderer->renderAll();
+        // masterRenderer->renderAll();
 
         inputHandler->updateInput(float(currentTime - lastTime) / 1000);
 
@@ -349,7 +364,7 @@ namespace pg
 
         nbFrame++;
 
-        swapBuffer();
+        // swapBuffer();
     }
 
     void Window::swapBuffer()
