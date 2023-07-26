@@ -30,7 +30,4 @@ namespace pg
     inline std::shared_ptr<Callable<Event, Types...>> makeCallable(Types&&... args) { return std::make_shared<Callable<Event, Types...>>(std::forward<Types>(args)...); }
 
     // Todo make a scriptCallable
-
-// std::function<void(Input*, double)> callback = [](Input*, double){ LOG_ERROR("MouseLeftClickSystem", "Trying to call a empty Mouse Click Component !"); };
-
 }

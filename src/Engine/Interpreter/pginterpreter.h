@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ECS/entitysystem.h"
+
 #include "interpreter.h"
 
 #include <map>
@@ -7,12 +9,33 @@
 
 namespace pg
 {
-    class PgInterpreter
+    struct ExecuteFileScriptEvent
     {
-    public:        
+        std::string filename;
+    };
+
+    struct ExecuteCodeScriptEvent
+    {
+        std::string data;
+    };
+    class PgInterpreter : public System<Listener<ExecuteFileScriptEvent>, Listener<ExecuteCodeScriptEvent>, StoragePolicy, NamedSystem>
+    {
+    public:
         void interpretFromText(const std::string& scriptText);
         void interpretFromFile(const std::string& scriptFile);
         void interpretFromFile(const TextFile& scriptFile);
+
+        virtual std::string getSystemName() const override { return "Pg Interpreter"; }
+
+        virtual void onEvent(const ExecuteFileScriptEvent& event) override
+        {
+            interpretFromFile(event.filename);
+        }
+
+        virtual void onEvent(const ExecuteCodeScriptEvent& event) override
+        {
+            interpretFromText(event.data);
+        }
 
     protected:
         typedef void(*sysFunction)(Interpreter*, const std::string&);

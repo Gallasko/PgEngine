@@ -12,6 +12,8 @@
 
 #include "ECS/entitysystem.h"
 
+#include "Input/inputcomponent.h"
+
 // Todo see if we support multiple window rendering in which case we need to correctly send the events to correct window
 
 namespace pg
@@ -61,5 +63,10 @@ namespace pg
 
         EntityRef screenEntity;
         CompRef<UiComponent> screenUi;
+
+        MousePos mousePos;
+
+        float xSensitivity = 1.0f;
+        float ySensitivity = 1.0f;
     };
 }

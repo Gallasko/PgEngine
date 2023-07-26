@@ -558,4 +558,29 @@ namespace pg
 
         deleteComp = [](Storage* component) { delete static_cast<Type*>(static_cast<Delegate*>(component)); };
     }
+
+    // Todo desactivate logger system in prod (only enable it in debug mode)
+
+    struct LogEvent
+    {
+        LogEvent(const std::string& log) : log(log) {}
+        LogEvent(const LogEvent& rhs) : log(rhs.log) {}
+
+        std::string log;
+    };
+
+    struct LoggerSystem : public System<Listener<LogEvent>, StoragePolicy, NamedSystem>
+    {
+        LoggerSystem() {}
+        virtual ~LoggerSystem() {}
+
+        virtual std::string getSystemName() const override { return "Logger System"; }
+
+        // Todo Set updated to true on add also !
+
+        virtual void onEvent(const LogEvent& event) override
+        {
+            LOG_INFO("Logger System", event.log);
+        }
+    };
 }

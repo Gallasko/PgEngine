@@ -35,7 +35,7 @@ namespace pg
             pressed = true;
         }
 
-        if(not inputHandler->isButtonPressed(SDL_BUTTON_RIGHT))
+        if(not inputHandler->isButtonPressed(SDL_BUTTON_LEFT))
         {
             if(pressed)
             {

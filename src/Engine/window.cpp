@@ -14,6 +14,7 @@
 #include "UI/texture.h"
 #include "UI/simple2dobject.h"
 
+#include "Interpreter/pginterpreter.h"
 
 namespace
 {
@@ -176,6 +177,8 @@ namespace pg
 
         glViewport(0, 0, width, height);
 
+        ecs.createSystem<LoggerSystem>();
+
         masterRenderer = ecs.createSystem<MasterRenderer>();
 
         ecs.createSystem<UiComponentSystem>();
@@ -183,6 +186,11 @@ namespace pg
         ecs.createSystem<TextureComponentSystem>(masterRenderer);
 
         ecs.createSystem<Simple2DObjectSystem>(masterRenderer);
+
+        ecs.createSystem<MouseLeftClickSystem>(inputHandler);
+        ecs.createSystem<MouseRightClickSystem>(inputHandler);
+
+        ecs.createSystem<MouseLeaveClickSystem>(inputHandler);
 
         masterRenderer->registerShader("default", "shader/default.vs", "shader/default.fs");
 
@@ -195,7 +203,14 @@ namespace pg
 
         masterRenderer->setWindowSize(width, height);
 
+        // Create interpreter
+        ecs.createSystem<PgInterpreter>();
+
         // Ecs task scheduling
+
+        ecs.succeed<UiComponentSystem, MouseRightClickSystem>();
+        ecs.succeed<UiComponentSystem, MouseLeftClickSystem>();
+
         ecs.succeed<MasterRenderer, UiComponentSystem>();
 
         // Log taskflow for this window
@@ -224,6 +239,8 @@ namespace pg
 
         c2->setTopAnchor(screenUi->top);
         c2->setLeftAnchor(screenUi->left);
+
+        ecs.attach<MouseLeftClickComponent>(s2.entity, makeCallable<LogEvent>("Left click on the green rectangle"));
 
         ecs.start();
 
@@ -256,10 +273,29 @@ namespace pg
                 break;
 
             case SDL_KEYUP:
-                if(event.key.keysym.sym == SDLK_ESCAPE)
-                    needToQuit = true;
+                inputHandler->registerKeyInput(event.key.keysym.sym, Input::InputState::KEYPRESSED);
                 break;
-                
+
+            case SDL_KEYDOWN:
+                inputHandler->registerKeyInput(event.key.keysym.sym, Input::InputState::KEYRELEASED);
+                break;
+            
+            case SDL_MOUSEBUTTONDOWN:
+                inputHandler->registerMouseInput(event.button.button, Input::InputState::MOUSEPRESS);
+                break;
+
+            case SDL_MOUSEBUTTONUP:
+                inputHandler->registerMouseInput(event.button.button, Input::InputState::MOUSERELEASE);
+                break;
+
+            case SDL_MOUSEMOTION:
+                MousePos currentPos {event.motion.x, event.motion.y};
+                MousePos mouseDelta {(mousePos.x - currentPos.x) * xSensitivity, (currentPos.y - mousePos.y) * ySensitivity};
+
+                inputHandler->registerMouseMove(currentPos, mouseDelta);
+
+                mousePos = currentPos;
+                break;
         }
     }
 
