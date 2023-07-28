@@ -127,7 +127,7 @@ namespace pg
 
     struct ImportStatement : public Statement
     {
-        ImportStatement(const Token& name, const std::queue<ExprPtr>& imports, ExprPtr importName) : Statement(), name(name), imports(imports), importName(importName) {}
+        ImportStatement(const Token& name, const std::queue<ExprPtr>& imports, ExprPtr importName, bool isNamed = false) : Statement(), name(name), imports(imports), importName(importName), isNamed(isNamed) {}
         ~ImportStatement() {}
 
         virtual void accept(Visitor* visitor);
@@ -137,6 +137,8 @@ namespace pg
         Token name;
         std::queue<ExprPtr> imports;
         ExprPtr importName;
+
+        bool isNamed;
     };
 
 }

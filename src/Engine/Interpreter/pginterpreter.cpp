@@ -16,28 +16,28 @@ namespace pg
         const char * const DOM = "PG Interpreter";
     }
 
-    void PgInterpreter::interpretFromText(const std::string& scriptText)
+    ScriptImport PgInterpreter::interpretFromText(const std::string& scriptText)
     {
         auto ast = generateAST(scriptText);
 
-        _interpret(ast);
+        return _interpret(ast);
         // _interpret(scriptText, tokens);
     }
 
-    void PgInterpreter::interpretFromFile(const std::string& scriptFile)
+    ScriptImport PgInterpreter::interpretFromFile(const std::string& scriptFile)
     {
         auto ast = generateASTFromFile(scriptFile);
 
-        _interpret(ast);
+        return _interpret(ast);
 
         // _interpret(scriptFile, tokens);
     }
 
-    void PgInterpreter::interpretFromFile(const TextFile& scriptFile)
+    ScriptImport PgInterpreter::interpretFromFile(const TextFile& scriptFile)
     {
         auto ast = generateASTFromFile(scriptFile);
 
-        _interpret(ast);
+        return _interpret(ast);
     }
 
     ScriptImport PgInterpreter::getAst(const std::string& scriptName, const std::string& filePath)
@@ -72,7 +72,7 @@ namespace pg
 
     }
 
-    void PgInterpreter::_interpret(const ScriptImport& script)
+    ScriptImport PgInterpreter::_interpret(const ScriptImport& script)
     {
         Interpreter interpreter(script, this);
 
@@ -89,11 +89,13 @@ namespace pg
         if(interpreter.hasError())
         {
             LOG_ERROR(DOM, "Interpreter error");
-            return;
+            return script;
         }
 
         importedScripts[script.name] = script;
         importedScripts[script.name].env = env;
+
+        return importedScripts[script.name];
     }
 
     ScriptImport PgInterpreter::generateAST(const std::string& data)
@@ -117,7 +119,7 @@ namespace pg
 
         auto ast = parser.parse();
 
-        Resolver resolver(ast, this);
+        Resolver resolver(ast);
 
         auto symbolTable = resolver.resolve();
 

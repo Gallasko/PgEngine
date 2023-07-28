@@ -11,13 +11,11 @@
 
 namespace pg
 {
-    class PgInterpreter;
-
     //TODO: handle different types of contexts
     class Visitor
     {
     public:
-        Visitor(PgInterpreter *pgInterpreter, std::shared_ptr<Environment> environment = nullptr) : pgInterpreter(pgInterpreter), env(std::make_shared<Environment>(environment)) {}
+        Visitor(std::shared_ptr<Environment> environment = nullptr) : env(std::make_shared<Environment>(environment)) {}
         virtual ~Visitor() {}
 
         virtual std::shared_ptr<Valuable> visit(BinaryExpression *expr) = 0;
@@ -46,17 +44,17 @@ namespace pg
         virtual void visitStatement(ImportStatement *stmt) = 0;
 
     protected:
-        PgInterpreter *pgInterpreter;
         std::shared_ptr<Environment> env;
     };
 
+    class PgInterpreter;
     class Interpreter;
 
     class VisitorInterpreter : public Visitor
     {
     friend class Interpreter;
     public:
-        VisitorInterpreter(PgInterpreter *pgInterpreter, std::shared_ptr<Environment> environment, const std::unordered_map<Expression*, unsigned int>& localsList) : Visitor(pgInterpreter, environment), localsList(localsList) {}
+        VisitorInterpreter(PgInterpreter *interpreter, std::shared_ptr<Environment> environment, const std::unordered_map<Expression*, unsigned int>& localsList) : Visitor(environment), localsList(localsList), interpreter(interpreter) {}
         virtual ~VisitorInterpreter() {}
 
         virtual std::shared_ptr<Valuable> visit(BinaryExpression *expr) override;
@@ -104,6 +102,8 @@ namespace pg
 
         /** Return value in case a return statement was encountered */
         std::shared_ptr<Valuable> returnValue;
+
+        PgInterpreter *interpreter;
     };
 
     std::shared_ptr<Valuable> executeBlock(std::queue<StatementPtr> statements, VisitorInterpreter* visitor, std::shared_ptr<Environment> environment);
@@ -119,7 +119,7 @@ namespace pg
     class Interpreter
     {
     public:
-        Interpreter(const ScriptImport& script, PgInterpreter* pgInterpreter) : localsList(script.symbols), visitor(pgInterpreter, nullptr, localsList), statements(script.ast) {};
+        Interpreter(const ScriptImport& script, PgInterpreter *interpreter) : localsList(script.symbols), visitor(interpreter, nullptr, localsList), statements(script.ast) {};
 
         template<typename Functional>
         void defineSystemFunction(const std::string& name);

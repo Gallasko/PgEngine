@@ -712,7 +712,6 @@ namespace pg
 
                 skipEOL();
                 imports.push(expression());
-                // lExpr = expression();
             }
 
             if(not multipleImport and match(TokenType::AS))

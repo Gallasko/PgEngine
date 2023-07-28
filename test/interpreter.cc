@@ -134,6 +134,24 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        TEST(interpreter_test, import_test)
+        {
+            MockLogger<TerminalSink> logger;
+            MockInterpreter interpreter;
+
+            auto scripts = UniversalFileAccessor::openTextFolder("TestScripts/Import/");
+
+            for(auto script : scripts)
+            {
+                interpreter.interpretFromFile(script);
+            }
+
+            EXPECT_EQ(logger.getNbError(), 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         TEST(interpreter_test, functionnal_test)
         {
             MockLogger logger;

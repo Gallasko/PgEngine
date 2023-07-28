@@ -236,39 +236,28 @@ namespace pg
 
     void VisitorResolver::visitStatement(ImportStatement *stmt)
     {
-        // ClassType enclosingClass = currentClass;
-        // currentClass = ClassType::CLASS;
-
         auto tmpImports = stmt->imports;
 
-        while(tmpImports.size() > 0)
+        if(stmt->isNamed)
         {
-            auto import = tmpImports.front();
-            auto importName = import->getName();
+            LOG_ERROR(DOM, "Named imports are not supported yet.");
+            // auto import = tmpImports.front();
+            // auto importName = import->getName();
 
-            declare(importName);
-            define(importName);
-
-            // auto importedAst = interpreter->getAst(importName);
+            // declare(importName);
+            // define(importName);
         }
+        else
+        {
+            while(tmpImports.size() > 0)
+            {
+                auto import = tmpImports.front();
 
-        // declare(stmt->name.text);
-        // define(stmt->name.text);
+                import->accept(this);
 
-        // scopes.push(std::unordered_map<std::string, bool>());
-        // scopes.top()["this"] = true;
-
-        // auto tmpMethods = stmt->methods;
-
-        // while(tmpMethods.size() > 0)
-        // {        
-        //     resolveFunction(tmpMethods.front().get(), FunctionType::METHOD);
-        //     tmpMethods.pop();
-        // }
-
-        // scopes.pop();
-
-        // currentClass = enclosingClass;
+                tmpImports.pop();
+            }
+        }
     }
 
     void VisitorResolver::declare(const std::string& name)

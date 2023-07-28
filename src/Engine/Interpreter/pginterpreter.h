@@ -21,9 +21,9 @@ namespace pg
     class PgInterpreter : public System<Listener<ExecuteFileScriptEvent>, Listener<ExecuteCodeScriptEvent>, StoragePolicy, NamedSystem>
     {
     public:
-        void interpretFromText(const std::string& scriptText);
-        void interpretFromFile(const std::string& scriptFile);
-        void interpretFromFile(const TextFile& scriptFile);
+        ScriptImport interpretFromText(const std::string& scriptText);
+        ScriptImport interpretFromFile(const std::string& scriptFile);
+        ScriptImport interpretFromFile(const TextFile& scriptFile);
 
         virtual std::string getSystemName() const override { return "Pg Interpreter"; }
 
@@ -55,7 +55,7 @@ namespace pg
         ScriptImport generateASTFromFile(const std::string& filename);
         ScriptImport generateASTFromFile(const TextFile& file);
 
-        void _interpret(const ScriptImport& script);
+        ScriptImport _interpret(const ScriptImport& script);
 
         // Todo store the absolute path of the custom made script file
         // to avoid using the AST of another file when trying to import a script

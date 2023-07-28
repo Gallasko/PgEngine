@@ -20,6 +20,8 @@
 
 namespace pg
 {
+    class VisitorInterpreter;
+
     /**
      * @class Environment
      * 
@@ -34,6 +36,7 @@ namespace pg
      */
     class Environment
     {
+        friend class VisitorInterpreter;
     public:
         /**
          * @brief Construct a new Environment object

@@ -3,6 +3,8 @@
 
 #include "logger.h"
 
+#include "pginterpreter.h"
+
 namespace pg
 {
 
@@ -493,7 +495,35 @@ namespace pg
 
     void VisitorInterpreter::visitStatement(ImportStatement *stmt)
     {
-        
+        auto tmpImports = stmt->imports;
+
+        if(stmt->isNamed)
+        {
+            LOG_ERROR(DOM, "Named imports are not supported yet.");
+            // auto import = tmpImports.front();
+            // auto importName = import->getName();
+        }
+        else
+        {
+            while(tmpImports.size() > 0)
+            {
+                auto import = tmpImports.front();
+
+                auto importName = import->accept(this)->getElement().toString();
+
+                LOG_INFO(DOM, "Importing script: " << importName);
+
+                auto script = interpreter->interpretFromFile(importName);
+
+                for(const auto& element : script.env->variableTable)
+                {
+                    LOG_INFO(DOM, "Adding global var: " << element.first);
+                    globalContext->declareValue(element.first, element.second);
+                }
+
+                tmpImports.pop();
+            }
+        }
     }
 
     std::shared_ptr<Environment> VisitorInterpreter::ancestor(int distance) const
