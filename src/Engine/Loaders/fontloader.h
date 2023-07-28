@@ -65,6 +65,8 @@ namespace pg
 		inline unsigned int getAtlasWidth() const { return atlasWidth; }
 		inline unsigned int getAtlasHeight() const { return atlasHeight; }
 
+		bool isEmpty() const { return nbCharaId == 0; }
+
 	private:
 		std::vector<std::shared_ptr<FontLoader::Font>> charaList;
 		std::unordered_map<std::string, int> charaDict;

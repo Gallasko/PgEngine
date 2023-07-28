@@ -73,7 +73,7 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
-        TextFile file = ResourceAccessor::openTextFile(fontFile);
+        TextFile file = UniversalFileAccessor::openTextFile(fontFile);
 
         FileParser parser(file);
         std::shared_ptr<FontLoader::Font> newChara = nullptr;
@@ -114,6 +114,9 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
+        if (nbCharaId == 0)
+            return nullptr;
+
         if(id < nbCharaId)
             return charaList[id].get();
         else
@@ -123,6 +126,9 @@ namespace pg
     const FontLoader::Font* FontLoader::getChara(const std::string& charaName) const
     {
         LOG_THIS_MEMBER(DOM);
+
+        if (nbCharaId == 0)
+            return nullptr;
 
         auto it = charaDict.find(charaName);
 

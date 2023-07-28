@@ -206,7 +206,7 @@ namespace pg
 
             shaderProgram->setUniformValue("texture1", 0);
 
-            //glActiveTexture(GL_TEXTURE0);
+            glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, texture);
 
             // Todo combine all the call to the same texture into a single draw call using instanced rendering
@@ -250,6 +250,12 @@ namespace pg
         }
 
         LOG_MILE("MeshBuilder", "Creating a new sentence texture mesh: " << meshName);
+
+        if(not font or font->isEmpty())
+        {
+            LOG_ERROR("MeshBuilder", "No font loaded");
+            return nullptr;
+        }
 
         auto mesh = new SentenceMesh();
 
@@ -361,8 +367,8 @@ namespace pg
         ui->setY(y);
 
         // Todo fix this in ui component so it does work, right now if the entity is created during runtime the link is not made correctly
-        ui->setWidth(sentence->textWidth);
-        ui->setHeight(sentence->textHeight);
+        ui->setWidth(&sentence->textWidth);
+        ui->setHeight(&sentence->textHeight);
 
         return CompList<UiComponent, SentenceText>(entity, ui, sentence);
     }

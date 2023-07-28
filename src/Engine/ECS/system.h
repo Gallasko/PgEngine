@@ -325,6 +325,14 @@ namespace pg
         template <typename Type, typename... Types>
         Group<Type, Types...>* registerGroup() const
         {
+            LOG_THIS_MEMBER("System");
+ 
+            if(registry == nullptr)
+            {
+                LOG_ERROR("System", "No registry specified, can't create a group");
+                return nullptr;
+            }
+
             const auto& groupId = registry->getTypeId<Group<Type, Types...>>();
 
             if(registry->hasGroup(groupId))
@@ -340,6 +348,14 @@ namespace pg
 
                 return group;
             }
+        }
+
+        template <typename Type, typename... Types>
+        inline typename ComponentSet<GroupElement<Type, Types...>>::ComponentSetList viewGroup() const
+        {
+            LOG_THIS_MEMBER("System");
+
+            return this->group<Type, Types...>()->elements.viewComponents();
         }
     };
 }

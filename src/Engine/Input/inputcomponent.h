@@ -47,6 +47,11 @@ namespace pg
         std::string text;
     };
 
+    struct OnSDLScanCode
+    {
+        SDL_Scancode key;
+    };
+
     struct MouseAreaZ
     {
         MouseAreaZ(_unique_id id, CompRef<UiComponent> ui) : id(id), ui(ui) { LOG_THIS_MEMBER("MouseArea"); }

@@ -12,6 +12,8 @@
 
 #include "ECS/entitysystem.h"
 
+#include "Loaders/fontloader.h"
+
 #include "Input/inputcomponent.h"
 
 // Todo see if we support multiple window rendering in which case we need to correctly send the events to correct window
@@ -60,6 +62,7 @@ namespace pg
 
         MasterRenderer *masterRenderer = nullptr;
         Input *inputHandler = nullptr;
+        FontLoader *fontLoader = nullptr;
 
         EntityRef screenEntity;
         CompRef<UiComponent> screenUi;

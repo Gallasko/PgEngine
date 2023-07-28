@@ -5,6 +5,7 @@
 #include <string>
 #include <chrono>
 
+#include "ECS/loggersystem.h"
 #include "logger.h"
 
 #include "Renderer/renderer.h"
@@ -14,8 +15,12 @@
 #include "UI/texture.h"
 #include "UI/simple2dobject.h"
 #include "UI/focusable.h"
+#include "UI/textinput.h"
+#include "UI/sentencesystem.h"
 
 #include "Interpreter/pginterpreter.h"
+
+#include "GameElements/Systems/basicsystems.h"
 
 namespace
 {
@@ -39,6 +44,9 @@ namespace pg
 
         if(inputHandler != nullptr)
             delete inputHandler;
+
+        if(fontLoader != nullptr)
+            delete fontLoader;
 
         SDL_GL_DeleteContext(context);
         SDL_DestroyWindow(window);
@@ -99,7 +107,7 @@ namespace pg
             // LOG_INFO(DOM, "OpenGL driver loaded.");
 
             LOG_INFO(DOM, "Creating WindowSDL...");
-            window = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, NULL);
+            window = SDL_CreateWindow(title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, flags);
 
             if (window != NULL)
             {
@@ -178,13 +186,20 @@ namespace pg
 
         glViewport(0, 0, width, height);
 
-        ecs.createSystem<LoggerSystem>();
+        ecs.createSystem<TickingSystem>();
+
+        ecs.createSystem<TerminalLogSystem>();
 
         ecs.createSystem<FocusableSystem>();
 
         masterRenderer = ecs.createSystem<MasterRenderer>();
 
         ecs.createSystem<UiComponentSystem>();
+
+        fontLoader = new FontLoader("res/font/fontmap.ft");
+        ecs.createSystem<SentenceSystem>(masterRenderer, fontLoader);
+
+        ecs.createSystem<FpsSystem>();
 
         ecs.createSystem<TextureComponentSystem>(masterRenderer);
 
@@ -194,22 +209,29 @@ namespace pg
         ecs.createSystem<MouseRightClickSystem>(inputHandler);
 
         ecs.createSystem<MouseLeaveClickSystem>(inputHandler);
+        
+        ecs.createSystem<TextInputSystem>();
 
-        // masterRenderer->registerShader("default", "shader/default.vs", "shader/default.fs");
+        masterRenderer->registerShader("default", "shader/default.vs", "shader/default.fs");
 
-        // masterRenderer->registerShader("gui", "shader/default.vs", "shader/default.fs");
-        // masterRenderer->registerShader("text", "shader/textrendering.vs", "shader/textrendering.fs");
+        masterRenderer->registerShader("gui", "shader/default.vs", "shader/default.fs");
+        masterRenderer->registerShader("text", "shader/textrendering.vs", "shader/textrendering.fs");
 
-        // masterRenderer->registerShader("2DShapes", "shader/simpleshapes.vs", "shader/simpleshapes.fs");
+        masterRenderer->registerShader("2DShapes", "shader/simpleshapes.vs", "shader/simpleshapes.fs");
 
-        // masterRenderer->registerTexture("menu", "res/menu/Menu.png");
+        masterRenderer->registerTexture("font", "res/font/font.png");
 
-        // masterRenderer->setWindowSize(width, height);
+        masterRenderer->registerTexture("menu", "res/menu/Menu.png");
+
+        masterRenderer->setWindowSize(width, height);
 
         // Create interpreter
         ecs.createSystem<PgInterpreter>();
 
         // Ecs task scheduling
+
+        ecs.succeed<MouseRightClickSystem, TickingSystem>();
+        ecs.succeed<MouseLeftClickSystem, TickingSystem>();
 
         ecs.succeed<UiComponentSystem, MouseRightClickSystem>();
         ecs.succeed<UiComponentSystem, MouseLeftClickSystem>();
@@ -240,15 +262,21 @@ namespace pg
         c->setTopAnchor(screenUi->top);
         c->setRightAnchor(screenUi->right);
 
-        auto s2 = makeSimple2DShape(&ecs, Shape2D::Square, 100, 100, {0.0f, 255.0f, 0.0f});
-        auto c2 = s2.get<UiComponent>();
+        // auto s2 = makeSimple2DShape(&ecs, Shape2D::Square, 100, 100, {0.0f, 255.0f, 0.0f});
+        // auto c2 = s2.get<UiComponent>();
 
-        c2->setTopAnchor(screenUi->top);
-        c2->setLeftAnchor(screenUi->left);
+        // c2->setTopAnchor(screenUi->top);
+        // c2->setLeftAnchor(screenUi->left);
 
-        ecs.attach<FocusableComponent>(s2.entity);
-        ecs.attach<MouseLeftClickComponent>(s2.entity, makeCallable<OnFocus>(s2.entity.id));
-        // ecs.attach<MouseLeftClickComponent>(s2.entity, makeCallable<LogEvent>("Left click on the green rectangle"));
+        // ecs.attach<FocusableComponent>(s2.entity);
+        
+        // // ecs.attach<SentenceText>(s2.entity, "Here");
+        // ecs.attach<MouseLeftClickComponent>(s2.entity, makeCallable<LogInfoEvent>("Window", "Left click on the green rectangle"));
+
+        auto text = makeSentence(&ecs, 200, 200, {"Here"});
+        ecs.attach<TextInputComponent>(text.entity, makeCallable<LogInfoEvent>("Window", "Text Input called"), "Here");
+        ecs.attach<FocusableComponent>(text.entity);
+        ecs.attach<MouseLeftClickComponent>(text.entity, makeCallable<OnFocus>(text.entity.id));
 
         ecs.start();
 
@@ -286,6 +314,7 @@ namespace pg
 
             case SDL_KEYDOWN:
                 inputHandler->registerKeyInput(event.key.keysym.scancode, Input::InputState::KEYRELEASED);
+                ecs.sendEvent(OnSDLScanCode{event.key.keysym.scancode});
                 break;
             
             case SDL_MOUSEBUTTONDOWN:
@@ -356,7 +385,7 @@ namespace pg
 
         masterRenderer->setCurrentTime(currentTime);
 
-        // masterRenderer->renderAll();
+        masterRenderer->renderAll();
 
         inputHandler->updateInput(float(currentTime - lastTime) / 1000);
 
@@ -364,7 +393,7 @@ namespace pg
 
         nbFrame++;
 
-        // swapBuffer();
+        swapBuffer();
     }
 
     void Window::swapBuffer()
@@ -377,5 +406,8 @@ namespace pg
         }
 
         SDL_GL_SwapWindow(window);
+
+        // VSync 0 to disable 1 to activate
+        SDL_GL_SetSwapInterval(0);
     }
 }

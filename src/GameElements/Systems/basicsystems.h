@@ -1,6 +1,6 @@
 #pragma once
 
-#include <QDateTime>
+#include <chrono>
 
 #include "logger.h"
 
@@ -21,14 +21,14 @@ struct TickEvent
 
 struct TickingSystem : public System<NamedSystem>
 {
-    TickingSystem(size_t duration = 40) : tickDuration(duration)
+    TickingSystem(int16_t duration = 40) : tickDuration(duration), reminder(0)
     { 
         LOG_THIS_MEMBER("Ticking System");
         
         // Todo replace QDateTime with std::chrono
         // firstTickTime = std::chrono::high_resolution_clock::now();
-        firstTickTime = QDateTime::currentMSecsSinceEpoch();
-        secondTickTime = QDateTime::currentMSecsSinceEpoch();
+        firstTickTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        secondTickTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     }
 
     ~TickingSystem() { LOG_THIS_MEMBER("Ticking System"); stop(); }
@@ -55,31 +55,60 @@ struct TickingSystem : public System<NamedSystem>
     {
         LOG_THIS_MEMBER("Ticking System");
 
-        firstTickTime = QDateTime::currentMSecsSinceEpoch();
-        secondTickTime = QDateTime::currentMSecsSinceEpoch();
+        firstTickTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        secondTickTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
         paused = false;
     }
 
+    // Todo test this step by step to see if the reminder is correctly calculated
     virtual void execute()
     {
         LOG_THIS_MEMBER("Ticking System");
 
-        secondTickTime = QDateTime::currentMSecsSinceEpoch();
-        
-        while(not paused and ((secondTickTime - firstTickTime) >= static_cast<qint64>(tickDuration)))
+        bool triggered = false;
+
+        secondTickTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
+        // To prevent for an overflow
+        if(secondTickTime < firstTickTime)
         {
-            firstTickTime += tickDuration;
+            LOG_MILE("Ticking System", "Overflow detected, reset counters");
+
+            firstTickTime = secondTickTime;
+            reminder = 0;
+            return;
+        }
+
+        auto delta = secondTickTime - firstTickTime - reminder;
+        
+        while(not paused and (delta >= tickDuration))
+        {
+            triggered = true;
+
+            delta -= tickDuration;
 
             ecsRef->sendEvent(TickEvent{tickDuration});
         }
+
+        if(triggered)
+        {
+            firstTickTime = secondTickTime;
+
+            reminder = delta;
+            
+            // This should never happend
+            if(reminder < 0)
+            {
+                LOG_ERROR("Ticking System", "Anormal reminder of less than 0 (" << reminder << ")");
+                reminder = 0;
+            }
+        }
     }
 
-    size_t tickDuration;
+    int16_t tickDuration;
 
-    // Todo change qint64 with std::chrono
-    // std::chrono::high_resolution_clock::time_point firstTickTime, secondTickTime; 
-    qint64 firstTickTime, secondTickTime; 
+    int16_t firstTickTime, secondTickTime, reminder; 
     bool paused = false;
 };
 
@@ -109,7 +138,14 @@ struct FpsSystem : public System<Listener<TickEvent>, NamedSystem, InitSys, Stor
             if (not rendererSys)
                 return;
 
-            auto currentNbOfFrames = rendererSys->nbRenderedFrames;
+            auto currentNbOfFrames = rendererSys->getNbRenderedFrames();
+
+            // In case of overflow of size_t
+            if(currentNbOfFrames < lastNbOfFrames)
+            {
+                lastNbOfFrames = currentNbOfFrames;
+                return;
+            }
 
             auto res = currentNbOfFrames - lastNbOfFrames;
 

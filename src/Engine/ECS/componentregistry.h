@@ -106,14 +106,15 @@ namespace pg
             }
 #endif
 
-            componentDeleteMap.emplace(id, [owner](Entity* entity){
+            componentDeleteMap.emplace(id, [owner](Entity* entity) {
                 if constexpr(std::is_base_of_v<Dtor, Type>)
                 {
                     auto res = owner->getComponent(entity->id);
                     res->onDeletion(entity);
                 }
 
-                owner->internalRemoveComponent(entity); });
+                owner->internalRemoveComponent(entity);
+            });
 
             componentStorageMap.emplace(id, static_cast<Storage*>(static_cast<Delegate*>(owner)));
 

@@ -124,11 +124,13 @@ namespace pg
         RefracRef getParameter() const { return systemParameters; }
 
         inline void addRenderer(AbstractRenderer* renderer) { renderers.push_back(renderer); }
+
+        inline size_t getNbRenderedFrames() const { return nbRenderedFrames; }
         
     private:
         void initializeParameters();
 
-    public:
+    private:
         bool changed = false;
         
         RefracRef systemParameters;
