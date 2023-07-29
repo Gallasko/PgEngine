@@ -20,6 +20,8 @@ namespace pg
     };
     class PgInterpreter : public System<Listener<ExecuteFileScriptEvent>, Listener<ExecuteCodeScriptEvent>, StoragePolicy, NamedSystem>
     {
+    friend class Interpreter;
+    friend class VisitorInterpreter;
     public:
         ScriptImport interpretFromText(const std::string& scriptText);
         ScriptImport interpretFromFile(const std::string& scriptFile);
@@ -37,7 +39,7 @@ namespace pg
             interpretFromText(event.data);
         }
 
-    protected:
+    public:
         typedef void(*sysFunction)(Interpreter*, const std::string&);
 
         template <typename Functional>
@@ -46,6 +48,7 @@ namespace pg
             sysFunctionTable.emplace(name, [](Interpreter *interpreter, const std::string& sysName){ interpreter->defineSystemFunction<Functional>(sysName); });
         }
 
+    protected:
         std::map<std::string, sysFunction> sysFunctionTable;
 
     private:

@@ -54,7 +54,7 @@ namespace pg
     {
     friend class Interpreter;
     public:
-        VisitorInterpreter(PgInterpreter *interpreter, std::shared_ptr<Environment> environment, const std::unordered_map<Expression*, unsigned int>& localsList) : Visitor(environment), localsList(localsList), interpreter(interpreter) {}
+        VisitorInterpreter(PgInterpreter *interpreter, std::shared_ptr<Environment> environment, const std::unordered_map<Expression*, unsigned int>& localsList, const std::string& scriptName) : Visitor(environment), localsList(localsList), interpreter(interpreter), scriptName(scriptName) {}
         virtual ~VisitorInterpreter() {}
 
         virtual std::shared_ptr<Valuable> visit(BinaryExpression *expr) override;
@@ -104,6 +104,11 @@ namespace pg
         std::shared_ptr<Valuable> returnValue;
 
         PgInterpreter *interpreter;
+
+        std::string scriptName;
+
+        // Keep a reference to all imported interpreters to keep their statement ptr valid
+        std::vector<std::shared_ptr<Interpreter>> importedInterpreters;
     };
 
     std::shared_ptr<Valuable> executeBlock(std::queue<StatementPtr> statements, VisitorInterpreter* visitor, std::shared_ptr<Environment> environment);
@@ -119,7 +124,7 @@ namespace pg
     class Interpreter
     {
     public:
-        Interpreter(const ScriptImport& script, PgInterpreter *interpreter) : localsList(script.symbols), visitor(interpreter, nullptr, localsList), statements(script.ast) {};
+        Interpreter(const ScriptImport& script, PgInterpreter *interpreter) : localsList(script.symbols), visitor(interpreter, nullptr, localsList, script.name), statements(script.ast) {};
 
         template<typename Functional>
         void defineSystemFunction(const std::string& name);
@@ -127,8 +132,6 @@ namespace pg
         std::shared_ptr<Environment> interpret();
 
         inline bool hasError() const { return encounteredError; } 
-
-        // inline std::queue<StatementPtr> getStatements() const { return statements; }
 
     private:
         std::unordered_map<Expression*, unsigned int> localsList;

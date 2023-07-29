@@ -2,8 +2,8 @@
 
 #include <stdexcept>
 #include <iostream>
-#include <filesystem>
 #include <fstream>
+#include <filesystem>
 namespace fs = std::filesystem;
 
 #include "../logger.h"
@@ -20,6 +20,7 @@ namespace pg
 
             try
             {
+                // Todo put the path of the file in the textFile struct
                 fs::path p {filename};
 
                 if (!fs::exists(p))
@@ -53,9 +54,9 @@ namespace pg
 
                     file.close();
 
-                    return TextFile{filename, temp};
+                    return TextFile{p.relative_path().string(), temp};
                 }
-                return TextFile{filename, ""};
+                return TextFile{p.relative_path().string(), ""};
             }
             catch (const std::exception& e)
             {
@@ -202,5 +203,12 @@ namespace pg
         fs::path p {file.filepath};
 
         return p.relative_path().remove_filename().string();
+    }
+
+    std::string UniversalFileAccessor::getRelativePath(const TextFile& file) noexcept
+    {
+        LOG_THIS(DOM);
+
+        return file.filepath;
     }
 }

@@ -1,5 +1,8 @@
 #include "pginterpreter.h"
 
+#include <filesystem>
+namespace fs = std::filesystem;
+
 #include "lexer.h"
 #include "parser.h"
 #include "resolver.h"
@@ -14,6 +17,15 @@ namespace pg
     namespace
     {
         const char * const DOM = "PG Interpreter";
+
+        bool stringEndWith(const std::string& fullString, const std::string& ending)
+        {
+            if (fullString.length() >= ending.length())
+                return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+            else
+                return false;
+        }
+
     }
 
     ScriptImport PgInterpreter::interpretFromText(const std::string& scriptText)
@@ -41,35 +53,37 @@ namespace pg
     }
 
     ScriptImport PgInterpreter::getAst(const std::string& scriptName, const std::string& filePath)
-    { 
+    {
+        // Todo look up in our custom lib if the name is in there
+        // if(customScripts.find(scriptName) != customScripts.end()) return customScripts[scriptName];
+
+        // Create path to the script
+        std::string fileToOpen = filePath + scriptName;
+
+        // Append the extension if not already present
+        if(not stringEndWith(scriptName, ".pg"))
+            fileToOpen += ".pg";
+
+        fs::path p {fileToOpen};
+
+        // Check if the script file exist first
+        if (!fs::exists(p))
+        {
+            LOG_ERROR(DOM, "Couldn't load module '" << fileToOpen << "' : File doesn't exist.");
+            return ScriptImport{};
+        }
+
         // Check if an AST is available for the script
-        const auto& it = importedScripts.find(scriptName);
+        // Checking with the relative path to insure unicity
+        const auto& it = importedScripts.find(p.relative_path().string());
         
         if(it != importedScripts.end())
             return it->second;
 
-        // Look for the a file in the current directory of the script
-        // and try to generate his AST
-        auto ast = generateASTFromFile(filePath + "/" + scriptName + ".pg");
+        // Ast was not already creating, proceed to create it
+        auto ast = generateASTFromFile(fileToOpen);
 
-        // Todo: check how to store this AST (maybe be absolute path instead of relative path)
-        // to avoid recreating the same AST for the same script
         return ast;
-
-        /*
-            // Check again if an AST is available for the script because it just got generated
-            const auto& it = importedScripts.find(scriptName);
-        
-            if(it != importedScripts.end())
-                return it->second;
-
-            LOG_ERROR(DOM, Strfy() << "No AST found for script " << scriptName);
-
-            // Send an empty Import indicating that no AST is available
-            return PgInterpreter::ScriptImport{};
-    
-        */
-
     }
 
     ScriptImport PgInterpreter::_interpret(const ScriptImport& script)
@@ -81,9 +95,6 @@ namespace pg
             it.second(&interpreter, it.first);
         }
 
-        // Todo to remove
-        // interpreter.defineSystemFunction<LogInfo>("logInfo");
-
         auto env = interpreter.interpret();
 
         if(interpreter.hasError())
@@ -92,7 +103,10 @@ namespace pg
             return script;
         }
 
-        importedScripts[script.name] = script;
+        if(importedScripts.find(script.name) == importedScripts.end())
+            importedScripts[script.name] = script;
+        
+        // Todo remove this save of the env as the interpreter is created locally here and so the env become useless once we leave this function
         importedScripts[script.name].env = env;
 
         return importedScripts[script.name];
@@ -102,6 +116,8 @@ namespace pg
     {
         ScriptImport script;
         Lexer lexer;
+
+        LOG_INFO(DOM, data);
 
         try
         {
@@ -150,10 +166,12 @@ namespace pg
 
     ScriptImport PgInterpreter::generateASTFromFile(const TextFile& file)
     {
-        auto name = UniversalFileAccessor::getFileName(file);
+        auto name = UniversalFileAccessor::getRelativePath(file);
 
         auto ast = generateAST(file.data);
         ast.name = name;
+
+        importedScripts[name] = ast;
 
         return ast;
     }

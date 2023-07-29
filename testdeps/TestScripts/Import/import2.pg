@@ -1,0 +1,7 @@
+print("Executing import test")
+
+var module = "add"
+
+import module
+
+ExpectEq(sum(1, 2), 3);

@@ -25,6 +25,27 @@
 namespace
 {
     static const char * const DOM = "Window";
+
+    // Todo change and remove
+    class TestPrint : public Function
+    {
+        using Function::Function;
+    public:
+        virtual void setUp() override
+        {
+            setArity(1, 1);
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            auto v = args.front()->getElement();
+            args.pop();
+
+            std::cout << "[Interpreter]: " << v.toString() << std::endl;
+
+            return nullptr;
+        }
+    };
 }
 
 namespace pg
@@ -226,7 +247,7 @@ namespace pg
         masterRenderer->setWindowSize(width, height);
 
         // Create interpreter
-        ecs.createSystem<PgInterpreter>();
+        auto interpreter = ecs.createSystem<PgInterpreter>();
 
         // Ecs task scheduling
 
@@ -277,6 +298,10 @@ namespace pg
         ecs.attach<TextInputComponent>(text.entity, makeCallable<LogInfoEvent>("Window", "Text Input called"), "Here");
         ecs.attach<FocusableComponent>(text.entity);
         ecs.attach<MouseLeftClickComponent>(text.entity, makeCallable<OnFocus>(text.entity.id));
+
+        interpreter->addSystemFunction<TestPrint>("print");
+
+        interpreter->interpretFromFile("TestScripts/Import/import.pg");
 
         ecs.start();
 

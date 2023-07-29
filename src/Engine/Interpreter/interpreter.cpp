@@ -1,6 +1,9 @@
 #include "interpreter.h"
 #include "environment.h"
 
+#include <filesystem>
+namespace fs = std::filesystem;
+
 #include "logger.h"
 
 #include "pginterpreter.h"
@@ -14,8 +17,8 @@ namespace pg
 
         struct EnvironmentSwapper
         {
-            EnvironmentSwapper(std::shared_ptr<Environment>& env, std::shared_ptr<Environment> newEnv) : env(env) { oldEnv = env; env = newEnv; }
-            ~EnvironmentSwapper() { env = oldEnv; }
+            EnvironmentSwapper(std::shared_ptr<Environment>& env, std::shared_ptr<Environment> newEnv) : env(env) { LOG_THIS_MEMBER(DOM); oldEnv = env; env = newEnv; }
+            ~EnvironmentSwapper() { LOG_THIS_MEMBER(DOM); env = oldEnv; }
 
             std::shared_ptr<Environment> oldEnv;
             std::shared_ptr<Environment>& env;
@@ -24,6 +27,8 @@ namespace pg
 
     std::shared_ptr<Valuable> VisitorInterpreter::visit(BinaryExpression *expr)
     {
+        LOG_THIS_MEMBER(DOM);
+
         auto lvalue = expr->leftExpr->accept(this)->getElement();
         auto rvalue = expr->rightExpr->accept(this)->getElement();
 
@@ -157,6 +162,8 @@ namespace pg
 
     std::shared_ptr<Valuable> VisitorInterpreter::visit(LogicExpression *expr)
     {
+        LOG_THIS_MEMBER(DOM);
+
         auto lvalue = expr->leftExpr->accept(this)->getElement();
 
         // Shortcut if the left operand is (true for logic_or) || (false for logic_and)
@@ -180,6 +187,8 @@ namespace pg
 
     std::shared_ptr<Valuable> VisitorInterpreter::visit(UnaryExpression *expr)
     {
+        LOG_THIS_MEMBER(DOM);
+
         auto value = expr->expr->accept(this)->getElement();
 
         switch(expr->op.type)
@@ -209,6 +218,8 @@ namespace pg
 
     std::shared_ptr<Valuable> VisitorInterpreter::visit(PreFixExpression *expr)
     {
+        LOG_THIS_MEMBER(DOM);
+
         auto value = expr->expr->accept(this)->getElement();
 
         switch(expr->op.type)
@@ -253,6 +264,8 @@ namespace pg
 
     std::shared_ptr<Valuable> VisitorInterpreter::visit(PostFixExpression *expr)
     {
+        LOG_THIS_MEMBER(DOM);
+
         auto baseValue = expr->expr->accept(this);
         auto value = baseValue->getElement();
 
@@ -298,16 +311,22 @@ namespace pg
 
     std::shared_ptr<Valuable> VisitorInterpreter::visit(CompoundAtom *expr)
     {
+        LOG_THIS_MEMBER(DOM);
+
         return expr->expr->accept(this);
     }
 
     std::shared_ptr<Valuable> VisitorInterpreter::visit(Atom *expr)
     {
+        LOG_THIS_MEMBER(DOM);
+
         return std::make_shared<Variable>(expr->value);
     }
 
     std::shared_ptr<Valuable> VisitorInterpreter::visit(List *expr)
     {
+        LOG_THIS_MEMBER(DOM);
+
         auto currentEnv = std::make_shared<Environment>(env);
         EnvironmentSwapper swapper(env, currentEnv);
 
@@ -347,16 +366,22 @@ namespace pg
 
     std::shared_ptr<Valuable> VisitorInterpreter::visit(This *expr)
     {
+        LOG_THIS_MEMBER(DOM);
+
         return lookUpVariable(expr->name.text, expr->name, expr);
     }
 
     std::shared_ptr<Valuable> VisitorInterpreter::visit(Var *expr)
-    {    
+    {
+        LOG_THIS_MEMBER(DOM);
+
         return lookUpVariable(expr->name.text, expr->name, expr);
     }
 
     std::shared_ptr<Valuable> VisitorInterpreter::visit(Assign *expr)
     {
+        LOG_THIS_MEMBER(DOM);
+
         auto value = expr->expr->accept(this);
 
         assignVariable(expr->name, expr, value);
@@ -366,6 +391,8 @@ namespace pg
 
     std::shared_ptr<Valuable> VisitorInterpreter::visit(CallExpression *expr)
     {
+        LOG_THIS_MEMBER(DOM);
+
         auto caller = expr->caller->accept(this);
 
         std::queue<ExprPtr> temp = expr->args;
@@ -392,6 +419,8 @@ namespace pg
 
     std::shared_ptr<Valuable> VisitorInterpreter::visit(Get *expr)
     {
+        LOG_THIS_MEMBER(DOM);
+
         auto object = expr->object->accept(this);
 
         if(object->getType() == "ClassInstance")
@@ -402,6 +431,8 @@ namespace pg
 
     std::shared_ptr<Valuable> VisitorInterpreter::visit(Set *expr)
     {
+        LOG_THIS_MEMBER(DOM);
+
         auto object = expr->object->accept(this);
 
         if(object->getType() != "ClassInstance")
@@ -437,11 +468,15 @@ namespace pg
 
     void VisitorInterpreter::visitStatement(FunctionStatement *stmt)
     {
+        LOG_THIS_MEMBER(DOM);
+
         env->declareValue(stmt->name.text, std::make_shared<Function>(env, stmt->name.text, stmt->name, this, stmt->parameters, stmt->body));
     }
 
     void VisitorInterpreter::visitStatement(ClassStatement *stmt)
     {
+        LOG_THIS_MEMBER(DOM);
+
         env->declareValue(stmt->name.text, nullptr);
         
         std::unordered_map<std::string, std::shared_ptr<Function>> methods;
@@ -462,11 +497,15 @@ namespace pg
 
     void VisitorInterpreter::visitStatement(BlockStatement *stmt)
     {
+        LOG_THIS_MEMBER(DOM);
+
         executeBlock(stmt->statements, this, std::make_shared<Environment>(env));
     }
 
     void VisitorInterpreter::visitStatement(IfStatement *stmt)
     {
+        LOG_THIS_MEMBER(DOM);
+
         if(not returnTriggered and stmt->condition->accept(this)->getElement().isTrue())
         {
             stmt->thenBranch->accept(this);
@@ -479,6 +518,8 @@ namespace pg
 
     void VisitorInterpreter::visitStatement(WhileStatement *stmt)
     {
+        LOG_THIS_MEMBER(DOM);
+
         while(not returnTriggered and stmt->condition->accept(this)->getElement().isTrue())
         {
             stmt->body->accept(this);
@@ -487,6 +528,8 @@ namespace pg
 
     void VisitorInterpreter::visitStatement(ReturnStatement *stmt)
     {
+        LOG_THIS_MEMBER(DOM);
+
         if(stmt->value)
             returnValue = stmt->value->accept(this);
 
@@ -495,6 +538,8 @@ namespace pg
 
     void VisitorInterpreter::visitStatement(ImportStatement *stmt)
     {
+        LOG_THIS_MEMBER(DOM);
+
         auto tmpImports = stmt->imports;
 
         if(stmt->isNamed)
@@ -509,17 +554,49 @@ namespace pg
             {
                 auto import = tmpImports.front();
 
+                // Resolve import name
                 auto importName = import->accept(this)->getElement().toString();
 
-                LOG_INFO(DOM, "Importing script: " << importName);
+                std::string scriptPath = "";
 
-                auto script = interpreter->interpretFromFile(importName);
+                fs::path p {scriptName};
 
-                for(const auto& element : script.env->variableTable)
+                // Check if the current script is a file
+                if (fs::exists(p))
                 {
-                    LOG_INFO(DOM, "Adding global var: " << element.first);
+                    // Get the path of the current script file
+                    scriptPath = p.relative_path().remove_filename().string();
+                }
+
+                LOG_INFO(DOM, "Importing script: " << importName << " from " << scriptPath);
+
+                // Get the Ast of the script that we try to import
+                auto scriptAst = interpreter->getAst(importName, scriptPath);
+
+                // Create an interpreter to interpret it
+                auto importedInterpreter = std::make_shared<Interpreter>(scriptAst, interpreter);
+
+                // Add all system function to the imported interpreter
+                for(auto& it : interpreter->sysFunctionTable)
+                {
+                    it.second(importedInterpreter.get(), it.first);
+                }
+
+                // Interpret the imported script to resolve all symbols
+                auto script = importedInterpreter->interpret();
+
+                // Check for any errors
+                if(importedInterpreter->hasError())
+                    throw RuntimeException(stmt->name, "Imported module as some errors");
+
+                // Add all globals symbols from the imported script to this one
+                for(const auto& element : script->variableTable)
+                {
                     globalContext->declareValue(element.first, element.second);
                 }
+
+                // Store a ref to the imported script interpreter to not lose the ref to the symbols
+                importedInterpreters.push_back(importedInterpreter);
 
                 tmpImports.pop();
             }
@@ -528,6 +605,8 @@ namespace pg
 
     std::shared_ptr<Environment> VisitorInterpreter::ancestor(int distance) const
     {
+        LOG_THIS_MEMBER(DOM);
+
         auto currentEnv = env;
         
         for(int i = 0; i < distance; i++)
@@ -538,6 +617,8 @@ namespace pg
 
     std::shared_ptr<Valuable> VisitorInterpreter::lookUpVariable(const std::string& name, const Token& token, Expression* expression) const
     {
+        LOG_THIS_MEMBER(DOM);
+
         if(localsList.empty())
             return globalContext->getValue(name, token);
 
@@ -553,11 +634,15 @@ namespace pg
 
     std::shared_ptr<Valuable> VisitorInterpreter::getAt(int distance, const std::string& name, const Token& token) const
     {
+        LOG_THIS_MEMBER(DOM);
+
         return ancestor(distance)->getValue(name, token);
     }
 
     void VisitorInterpreter::assignVariable(const Token& name, Expression* expression, std::shared_ptr<Valuable> value)
     {
+        LOG_THIS_MEMBER(DOM);
+
         if(localsList.empty())
             return globalContext->assignValue(name.text, name, value);
         
@@ -571,11 +656,15 @@ namespace pg
 
     void VisitorInterpreter::assignAt(int distance, const Token& name, std::shared_ptr<Valuable> value)
     {
+        LOG_THIS_MEMBER(DOM);
+
         ancestor(distance)->assignValue(name.text, name, value);
     }
 
     std::shared_ptr<Valuable> executeBlock(std::queue<StatementPtr> statements, VisitorInterpreter* visitor, std::shared_ptr<Environment> environment)
     {
+        LOG_THIS(DOM);
+
         EnvironmentSwapper swapper(visitor->env, environment);
 
         while(statements.size() > 0)
@@ -601,6 +690,8 @@ namespace pg
 
     std::shared_ptr<Environment> Interpreter::interpret()
     {
+        LOG_THIS_MEMBER(DOM);
+
         while(not statements.empty())
         {
             auto stmt = statements.front();

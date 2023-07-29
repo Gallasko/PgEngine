@@ -37,5 +37,6 @@ namespace pg
 
         static std::string getFileName(const TextFile& file) noexcept;
         static std::string getFoldername(const TextFile& file) noexcept;
+        static std::string getRelativePath(const TextFile& file) noexcept;
     };
 }

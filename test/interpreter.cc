@@ -136,6 +136,7 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(interpreter_test, import_test)
         {
+            // Todo make a test where you try to run two script with the same name but in differents folders and check if they are no conflicts !
             MockLogger<TerminalSink> logger;
             MockInterpreter interpreter;
 
