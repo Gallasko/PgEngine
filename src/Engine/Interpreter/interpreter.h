@@ -49,10 +49,12 @@ namespace pg
 
     class PgInterpreter;
     class Interpreter;
+    class SysModule;
 
     class VisitorInterpreter : public Visitor
     {
     friend class Interpreter;
+    friend class SysModule;
     public:
         VisitorInterpreter(PgInterpreter *interpreter, std::shared_ptr<Environment> environment, const std::unordered_map<Expression*, unsigned int>& localsList, const std::string& scriptName) : Visitor(environment), localsList(localsList), interpreter(interpreter), scriptName(scriptName) {}
         virtual ~VisitorInterpreter() {}
@@ -131,7 +133,7 @@ namespace pg
 
         std::shared_ptr<Environment> interpret();
 
-        inline bool hasError() const { return encounteredError; } 
+        inline bool hasError() const { return encounteredError; }
 
     private:
         std::unordered_map<Expression*, unsigned int> localsList;
@@ -149,6 +151,7 @@ namespace pg
         token.text = name;
 
         auto function = std::make_shared<Functional>(visitor.globalContext, name, token, &visitor, emptyQueue, nullptr);
+        // Todo check staticly if type Functional as a setUp function using SFINAE
         function->setUp();
 
         visitor.globalContext->declareValue(name, function);

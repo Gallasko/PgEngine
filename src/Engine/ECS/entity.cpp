@@ -48,12 +48,61 @@ namespace pg
         }
     }
 
+    void EntityRef::operator=(Entity* ent)
+        {
+            // Check first if the entity exist
+            if(not ent)
+            {
+                // If not make this entity ref a dummy one
+                entity = nullptr;
+                id = 0;
+                ecsRef = nullptr;
+                initialized = false;
+
+                return;
+            }
+
+            // Get id and ecs 
+            id = ent->id;
+            ecsRef = ent->world();
+            
+            // Try to get the entity from the ecs
+            auto ecsEnt = ecsRef->getEntity(id);
+
+            if(id != 0 and ecsEnt)
+            {
+                // If the entity is in the ecs grab it's pointer from there
+                
+                entity = ecsEnt;
+                initialized = true;
+            }
+            else
+            {
+                // Else store the pointer given to us but stay uninitialized
+
+                entity = ent;
+                initialized = false;
+            }
+        }
+
     Entity* EntityRef::operator->() const
     {
         if(initialized)
             return ecsRef->getEntity(id);
         else
+        {
+            // Try to find the entity in the ecs to update this ref
+            auto ent = ecsRef->getEntity(id);
+            
+            // Entity found, updating this entity ref
+            if(id != 0 and ent)
+            {
+                entity = ent;
+                initialized = true;
+            }
+
             return entity;
+        }
     }
 
     EntityRef::operator Entity*() const
@@ -61,6 +110,18 @@ namespace pg
         if(initialized)
             return ecsRef->getEntity(id);
         else
+        {
+            // Try to find the entity in the ecs to update this ref
+            auto ent = ecsRef->getEntity(id);
+            
+            // Entity found, updating this entity ref
+            if(id != 0 and ent)
+            {
+                entity = ent;
+                initialized = true;
+            }
+
             return entity;
+        }
     }
 }

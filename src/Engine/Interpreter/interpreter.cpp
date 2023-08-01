@@ -568,35 +568,48 @@ namespace pg
                     scriptPath = p.relative_path().remove_filename().string();
                 }
 
-                LOG_INFO(DOM, "Importing script: " << importName << " from " << scriptPath);
-
                 // Get the Ast of the script that we try to import
                 auto scriptAst = interpreter->getAst(importName, scriptPath);
 
-                // Create an interpreter to interpret it
-                auto importedInterpreter = std::make_shared<Interpreter>(scriptAst, interpreter);
-
-                // Add all system function to the imported interpreter
-                for(auto& it : interpreter->sysFunctionTable)
+                if(scriptAst.name == "")
                 {
-                    it.second(importedInterpreter.get(), it.first);
+                    if(interpreter->isSysModule(importName))
+                    {
+                        for(auto& it : interpreter->sysModuleTable[importName])
+                        {
+                            auto function = it.second(this, it.first);
+
+                            globalContext->declareValue(it.first, function);
+                        }
+                    }
                 }
-
-                // Interpret the imported script to resolve all symbols
-                auto script = importedInterpreter->interpret();
-
-                // Check for any errors
-                if(importedInterpreter->hasError())
-                    throw RuntimeException(stmt->name, "Imported module as some errors");
-
-                // Add all globals symbols from the imported script to this one
-                for(const auto& element : script->variableTable)
+                else
                 {
-                    globalContext->declareValue(element.first, element.second);
-                }
+                    // Create an interpreter to interpret it
+                    auto importedInterpreter = std::make_shared<Interpreter>(scriptAst, interpreter);
 
-                // Store a ref to the imported script interpreter to not lose the ref to the symbols
-                importedInterpreters.push_back(importedInterpreter);
+                    // Add all system function to the imported interpreter
+                    for(auto& it : interpreter->sysFunctionTable)
+                    {
+                        it.second(importedInterpreter.get(), it.first);
+                    }
+
+                    // Interpret the imported script to resolve all symbols
+                    auto script = importedInterpreter->interpret();
+
+                    // Check for any errors
+                    if(importedInterpreter->hasError())
+                        throw RuntimeException(stmt->name, "Imported module as some errors");
+
+                    // Add all globals symbols from the imported script to this one
+                    for(const auto& element : script->variableTable)
+                    {
+                        globalContext->declareValue(element.first, element.second);
+                    }
+
+                    // Store a ref to the imported script interpreter to not lose the ref to the symbols
+                    importedInterpreters.push_back(importedInterpreter);
+                }
 
                 tmpImports.pop();
             }

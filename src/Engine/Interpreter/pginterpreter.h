@@ -6,6 +6,7 @@
 
 #include <map>
 #include <unordered_map>
+#include <functional>
 
 namespace pg
 {
@@ -18,6 +19,55 @@ namespace pg
     {
         std::string data;
     };
+
+    class SysModule
+    {
+    friend class PgInterpreter;
+    public:
+        virtual ~SysModule() { }
+
+    protected:
+        SysModule() {};
+
+        template <typename Functional>
+        void addSystemFunction(const std::string& name)
+        {
+            auto func = [](VisitorInterpreter *visitor, const std::string& sysName) -> std::shared_ptr<Valuable> {
+                std::queue<ExprPtr> emptyQueue;
+                Token token;
+                token.text = sysName;
+
+                auto function = std::make_shared<Functional>(visitor->globalContext, sysName, token, visitor, emptyQueue, nullptr);
+                // Todo check staticly if type Functional as a setUp function using SFINAE
+                function->setUp();
+
+                return function;
+            };
+
+            sysFunctionTable.emplace(name, func);
+        }
+
+        template <typename Functional, typename... Args>
+        void addSystemFunction(const std::string& name, Args... args)
+        {
+            auto func = [args...](VisitorInterpreter *visitor, const std::string& sysName) -> std::shared_ptr<Valuable> {
+                std::queue<ExprPtr> emptyQueue;
+                Token token;
+                token.text = sysName;
+
+                auto function = std::make_shared<Functional>(visitor->globalContext, sysName, token, visitor, emptyQueue, nullptr);
+                function->setUp(args...);
+
+                return function;
+            };
+
+            sysFunctionTable.emplace(name, func);
+        }
+
+    private:
+        std::map<std::string, std::function<std::shared_ptr<Valuable>(VisitorInterpreter *visitor, const std::string& sysName)>> sysFunctionTable;
+    };
+
     class PgInterpreter : public System<Listener<ExecuteFileScriptEvent>, Listener<ExecuteCodeScriptEvent>, StoragePolicy, NamedSystem>
     {
     friend class Interpreter;
@@ -48,10 +98,18 @@ namespace pg
             sysFunctionTable.emplace(name, [](Interpreter *interpreter, const std::string& sysName){ interpreter->defineSystemFunction<Functional>(sysName); });
         }
 
+        void addSystemModule(const std::string& name, const SysModule& module)
+        {
+            sysModuleTable.emplace(name, module.sysFunctionTable);
+        }
+
     protected:
         std::map<std::string, sysFunction> sysFunctionTable;
+        std::map<std::string, std::map<std::string, std::function<std::shared_ptr<Valuable>(VisitorInterpreter *visitor, const std::string& sysName)>>> sysModuleTable;
 
     private:
+        inline bool isSysModule(const std::string& name) const { return sysModuleTable.find(name) != sysModuleTable.end(); }
+
         ScriptImport getAst(const std::string& script, const std::string& filePath = "");
 
         ScriptImport generateAST(const std::string& data);

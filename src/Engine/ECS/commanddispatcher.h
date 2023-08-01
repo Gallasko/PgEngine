@@ -97,6 +97,8 @@ namespace pg
         {
             LOG_THIS_MEMBER("Command Dispatcher");
 
+            std::lock_guard<std::mutex> lock(mutex);
+
             auto comp = new Type{std::forward<Args>(args)...};
 
             if(not componentQueue.enqueue(ComponentCommand{entity, comp, ComponentCommand::ComponentCommandType::creation}))
@@ -107,6 +109,8 @@ namespace pg
 
             return comp;
         }
+
+        // Todo detach comp
 
         inline bool enqueueCommand(const SysCommand& cmd)
         {
@@ -133,5 +137,7 @@ namespace pg
         moodycamel::ConcurrentQueue<ComponentCommand> componentQueue;
 
         moodycamel::ConcurrentQueue<SysCommand> sysQueue;
+
+        std::mutex mutex;
     };
 }

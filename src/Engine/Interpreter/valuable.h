@@ -243,14 +243,6 @@ namespace pg
         virtual std::shared_ptr<Function> bind(std::shared_ptr<ClassInstance> instance);
 
     protected:
-        /**
-         * @brief Set the Up object
-         * 
-         * Virtual methode to allow system functions to set up themself easely.
-         * It allow the a system function to define the arity for exemple
-         */
-        virtual void setUp() {}
-
         /** The piece of code to be executed when a function call is made */
         virtual std::shared_ptr<Valuable> call(std::queue<std::shared_ptr<Valuable>>& args) const;
 
@@ -401,7 +393,7 @@ namespace pg
     public:
         AtFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body);
 
-        virtual std::shared_ptr<Function> bind(std::shared_ptr<ClassInstance> instance);
+        virtual std::shared_ptr<Function> bind(std::shared_ptr<ClassInstance> instance) override;
 
         virtual ValuablePtr call(ValuableQueue& args) const override;
 
@@ -416,7 +408,7 @@ namespace pg
     public:
         SetFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body);
 
-        virtual std::shared_ptr<Function> bind(std::shared_ptr<ClassInstance> instance);
+        virtual std::shared_ptr<Function> bind(std::shared_ptr<ClassInstance> instance) override;
 
         virtual ValuablePtr call(ValuableQueue& args) const override;
 

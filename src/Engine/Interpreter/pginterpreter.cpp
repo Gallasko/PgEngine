@@ -69,7 +69,7 @@ namespace pg
         // Check if the script file exist first
         if (!fs::exists(p))
         {
-            LOG_ERROR(DOM, "Couldn't load module '" << fileToOpen << "' : File doesn't exist.");
+            LOG_MILE(DOM, "Couldn't load module '" << fileToOpen << "' : File doesn't exist, but it may be a system module.");
             return ScriptImport{};
         }
 

@@ -454,8 +454,8 @@ namespace pg
 
         inline bool empty() const { return component == nullptr; }
 
-        bool initialized;
-        Comp* component;
+        mutable bool initialized;
+        mutable Comp* component;
         _unique_id entityId;
         const EntitySystem* ecsRef;  
     };

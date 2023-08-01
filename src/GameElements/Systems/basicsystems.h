@@ -14,9 +14,9 @@ using namespace pg;
 // Todo add all the logger thing to all those systems and doc too
 struct TickEvent
 {
-    TickEvent(size_t duration) : tick(duration) {}
+    TickEvent(int16_t duration) : tick(duration) {}
 
-    size_t tick;
+    int16_t tick;
 };
 
 struct TickingSystem : public System<NamedSystem>
@@ -162,6 +162,35 @@ struct FpsSystem : public System<Listener<TickEvent>, NamedSystem, InitSys, Stor
     size_t accumulatedTick = 0;
     size_t lastNbOfFrames = 0;
 };
+
+struct TextInputTriggeredEvent
+{
+    TextInputTriggeredEvent(EntityRef entity) : entity(entity) {}
+    TextInputTriggeredEvent(const TextInputTriggeredEvent& other) : entity(other.entity) {}
+    ~TextInputTriggeredEvent() {}
+
+    EntityRef entity;
+};
+
+struct RunScriptFromTextInputSystem : public System<Listener<TextInputTriggeredEvent>, NamedSystem, StoragePolicy>
+{
+    virtual std::string getSystemName() const override { return "Run Script From Text Input System"; }
+
+    void onEvent(const TextInputTriggeredEvent& event) override
+    {
+        LOG_THIS_MEMBER("Run Script From Text Input System");
+
+        if(not event.entity->has<TextInputComponent>())
+        {
+            LOG_ERROR("Run Script From Text Input System", "Entity has no Text Input Component");
+        }
+
+        auto textComp = event.entity->get<TextInputComponent>();
+
+        ecsRef->sendEvent(ExecuteFileScriptEvent{textComp->text});
+    }
+};
+
 
 struct OnClickGainGold { };
 

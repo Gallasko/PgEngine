@@ -218,6 +218,8 @@ namespace pg
                 {
                     component = registry.retrieve<Type>()->internalCreateComponent(entity, std::forward<Args>(args)...);
                 }
+
+                std::cout << running << std::endl;
                 
                 auto res = CompRef<Type>(component, entity.id, this, not running);
                 // auto res = CompRef<Type>(component, entity->id, this, false);
@@ -279,12 +281,16 @@ namespace pg
         {
             LOG_THIS_MEMBER("ECS");
 
+            std::lock_guard<std::mutex> lock(entityMutex);
+
             entityPool.addComponent(entity, *entity);
         }
 
         void deleteEntityFromPool(Entity* entity)
         {
             LOG_THIS_MEMBER("ECS");
+
+            componentMutex.lock();
 
             for(auto& comp : entity->componentList)
             {
@@ -301,6 +307,10 @@ namespace pg
                 }
             }
 
+            componentMutex.unlock();
+
+            std::lock_guard<std::mutex> lock(entityMutex);
+
             entityPool.removeComponent(entity);
         }
 
@@ -312,6 +322,8 @@ namespace pg
             if(component)
             {
                 LOG_MILE("ECS", "addComponentToPool");
+
+                std::lock_guard<std::mutex> lock(componentMutex);
 
                 registry.retrieve<Type>()->internalCreateComponent(entity, *component);
             }
@@ -365,6 +377,12 @@ namespace pg
 
         /** Last task of the mandatory ecs base systems */
         tf::Task basicTask;
+
+        /** Mutex to protect the check of existence of an entity */
+        mutable std::mutex entityMutex;
+
+        /** Mutex to protect the check of existence of an entity */
+        mutable std::mutex componentMutex;
     };
 
     template <typename Comp>
@@ -402,7 +420,12 @@ namespace pg
 
         if(it != componentList.end())
         {
-            return CompRef<Comp>(ecsRef->registry.retrieve<Comp>()->getComponent(id), id, ecsRef, true);
+            auto ent = ecsRef->getEntity(id);
+            auto initialized = id != 0 and ent;
+
+            std::cout << "Comp " << initialized << std::endl;
+
+            return CompRef<Comp>(ecsRef->registry.retrieve<Comp>()->getComponent(id), id, ecsRef, initialized);
         }
 
         LOG_ERROR("Entity", "Entity doesn't have component: " << componentId);
@@ -451,7 +474,19 @@ namespace pg
         if (initialized)
             return ecsRef->getComponent<Comp>(entityId);
         else
-            return component;
+        {
+            // Try to find the component in the ecs to update this ref
+            auto comp = ecsRef->getComponent<Comp>(entityId);
+            
+            // Component found, updating this entity ref
+            if(entityId != 0 and comp)
+            {
+                component = comp;
+                initialized = true;
+            }
+
+           return component;
+        }
     }
 
     template <typename Comp>
@@ -462,7 +497,20 @@ namespace pg
         if (initialized)
             return ecsRef->getComponent<Comp>(entityId);
         else
-            return component;
+        {
+            // Try to find the component in the ecs to update this ref
+            auto comp = ecsRef->getComponent<Comp>(entityId);
+            
+            // Component found, updating this entity ref
+            if(entityId != 0 and comp)
+            {
+                component = comp;
+                initialized = true;
+            }
+
+           return component;
+        }
+
     }
 
     template <typename Type, typename... Types>

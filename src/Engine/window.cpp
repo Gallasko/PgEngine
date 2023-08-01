@@ -31,7 +31,7 @@ namespace
     {
         using Function::Function;
     public:
-        virtual void setUp() override
+        void setUp()
         {
             setArity(1, 1);
         }
@@ -46,6 +46,152 @@ namespace
             return nullptr;
         }
     };
+
+    class CreateRectangle : public Function
+    {
+        using Function::Function;
+    public:
+        void setUp(EntitySystem* ecsRef)
+        {
+            setArity(2, 2);
+
+            this->ecsRef = ecsRef;
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            auto x = args.front()->getElement();
+            args.pop();
+
+            auto y = args.front()->getElement();
+            args.pop();
+
+            std::cout << "[Interpreter]: Creating rec at: (" << x.toString() << ", " << y.toString() << ")" << std::endl;
+
+            auto rec = makeSimple2DShape(ecsRef, Shape2D::Square, 50, 50, {255.0f, 0.0f, 0.0f});
+            auto recUi = rec.get<UiComponent>();
+
+            if(x.isNumber() and y.isNumber())
+            {
+                recUi->setX(x.get<float>());
+                recUi->setY(y.get<float>());
+            }
+            else
+            {
+                LOG_ERROR("CreateRectangle", "Cannot create a new rectangle values passed are not numbers");
+            }
+
+            return nullptr;
+        }
+
+        EntitySystem* ecsRef = nullptr;
+    };
+
+    class AddFilterScopeFunction : public Function
+    {
+        using Function::Function;
+    public:
+        void setUp(std::shared_ptr<Logger::LogSink> sink)
+        {
+            setArity(2, 2);
+            
+            this->sink = sink;
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            auto name = args.front()->getElement();
+            args.pop();
+
+            auto scope = args.front()->getElement();
+            args.pop();
+
+            if(not name.isLitteral() or not scope.isLitteral())
+            {
+                LOG_ERROR("AddFilterScopeFunction", "Cannot create apply a new filter on sink, values passed are not litterals");
+                return nullptr;
+            }
+
+            sink->addFilter(name.toString(), new pg::Logger::LogSink::FilterScope(scope.toString()));
+
+            return nullptr;
+        }
+
+        std::shared_ptr<Logger::LogSink> sink;
+    };
+
+    class AddFilterLevelFunction : public Function
+    {
+        using Function::Function;
+    public:
+        void setUp(std::shared_ptr<Logger::LogSink> sink)
+        {
+            setArity(2, 2);
+            
+            this->sink = sink;
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            auto name = args.front()->getElement();
+            args.pop();
+
+            auto scope = args.front()->getElement();
+            args.pop();
+
+            if(not name.isLitteral() or not scope.isLitteral())
+            {
+                LOG_ERROR("AddFilterLevelFunction", "Cannot create apply a new filter on sink, values passed are not litterals");
+                return nullptr;
+            }
+
+            pg::Logger::InfoLevel logLevel;
+
+            if(scope.toString() == "log")
+                logLevel = pg::Logger::InfoLevel::log;
+            else if(scope.toString() == "info")
+                logLevel = pg::Logger::InfoLevel::info;
+            else if(scope.toString() == "mile")
+                logLevel = pg::Logger::InfoLevel::mile;
+            else if(scope.toString() == "test")
+                logLevel = pg::Logger::InfoLevel::test;
+            else if(scope.toString() == "error")
+                logLevel = pg::Logger::InfoLevel::error;
+            else
+            {
+                LOG_ERROR("AddFilterLevelFunction", "Trying to filter an unknown log level: " << scope.toString());
+                return nullptr;
+            }
+
+            sink->addFilter(name.toString(), new pg::Logger::LogSink::FilterLogLevel(logLevel));
+
+            return nullptr;
+        }
+
+        std::shared_ptr<Logger::LogSink> sink;
+    };
+
+    struct LogModule : public SysModule
+    {
+        LogModule()
+        {
+            terminalSink = pg::Logger::registerSink<pg::TerminalSink>(true);
+            
+            addSystemFunction<TestPrint>("log");
+            addSystemFunction<AddFilterScopeFunction>("addFilterScope", terminalSink);
+            addSystemFunction<AddFilterLevelFunction>("addFilterLevel", terminalSink);
+        }
+
+        std::shared_ptr<Logger::LogSink> terminalSink;
+    };
+
+    struct UiModule : public SysModule
+    {
+        UiModule(EntitySystem *ecsRef)
+        {
+            addSystemFunction<CreateRectangle>("renderSquare", ecsRef);
+        }
+    };
 }
 
 namespace pg
@@ -55,6 +201,17 @@ namespace pg
         LOG_THIS_MEMBER(DOM);
 
         inputHandler = new Input();
+
+        // [Start] Interpreter definition
+        auto interpreter = ecs.createSystem<PgInterpreter>();
+
+        interpreter->addSystemFunction<TestPrint>("print");
+
+        interpreter->addSystemModule("log", LogModule{});
+        interpreter->addSystemModule("ui", UiModule{&ecs});
+
+        interpreter->interpretFromFile("logManager.pg");
+        // [End] Interpreter definition
     }
 
     Window::~Window()
@@ -213,25 +370,9 @@ namespace pg
 
         ecs.createSystem<FocusableSystem>();
 
+        // [Start] Master render definition
+
         masterRenderer = ecs.createSystem<MasterRenderer>();
-
-        ecs.createSystem<UiComponentSystem>();
-
-        fontLoader = new FontLoader("res/font/fontmap.ft");
-        ecs.createSystem<SentenceSystem>(masterRenderer, fontLoader);
-
-        ecs.createSystem<FpsSystem>();
-
-        ecs.createSystem<TextureComponentSystem>(masterRenderer);
-
-        ecs.createSystem<Simple2DObjectSystem>(masterRenderer);
-
-        ecs.createSystem<MouseLeftClickSystem>(inputHandler);
-        ecs.createSystem<MouseRightClickSystem>(inputHandler);
-
-        ecs.createSystem<MouseLeaveClickSystem>(inputHandler);
-        
-        ecs.createSystem<TextInputSystem>();
 
         masterRenderer->registerShader("default", "shader/default.vs", "shader/default.fs");
 
@@ -246,8 +387,29 @@ namespace pg
 
         masterRenderer->setWindowSize(width, height);
 
-        // Create interpreter
-        auto interpreter = ecs.createSystem<PgInterpreter>();
+        // [End] Master render definition
+
+        ecs.createSystem<UiComponentSystem>();
+
+        ecs.createSystem<Simple2DObjectSystem>(masterRenderer);
+
+        ecs.createSystem<TextureComponentSystem>(masterRenderer);
+
+        fontLoader = new FontLoader("res/font/fontmap.ft");
+        ecs.createSystem<SentenceSystem>(masterRenderer, fontLoader);
+
+        makeSentence(&ecs, 200, 50, {"At the start"});
+
+        auto fpsSystem = ecs.createSystem<FpsSystem>();
+
+        ecs.createSystem<MouseLeftClickSystem>(inputHandler);
+        ecs.createSystem<MouseRightClickSystem>(inputHandler);
+
+        ecs.createSystem<MouseLeaveClickSystem>(inputHandler);
+        
+        ecs.createSystem<TextInputSystem>();
+
+        ecs.createSystem<RunScriptFromTextInputSystem>();
 
         // Ecs task scheduling
 
@@ -283,6 +445,25 @@ namespace pg
         c->setTopAnchor(screenUi->top);
         c->setRightAnchor(screenUi->right);
 
+        auto terminalBackground = makeSimple2DShape(&ecs, Shape2D::Square, 350, 200, {4.0f, 16.0f, 32.0f});
+        auto terminalBackgroundC = terminalBackground.get<UiComponent>();
+
+        terminalBackgroundC->setBottomAnchor(screenUi->bottom);
+        terminalBackgroundC->setRightAnchor(screenUi->right);
+
+        auto terminalText = makeSentence(&ecs, 200, 200, {"Here"});
+        auto terminalTextC = terminalText.get<UiComponent>();
+
+        terminalTextC->setBottomAnchor(terminalBackgroundC->bottom);
+        terminalTextC->setLeftAnchor(terminalBackgroundC->left);
+
+        terminalTextC->setBottomMargin(10);
+        terminalTextC->setLeftMargin(10);
+
+        ecs.attach<TextInputComponent>(terminalText.entity, makeCallable<TextInputTriggeredEvent>(terminalText.entity), "Here");
+        ecs.attach<FocusableComponent>(terminalText.entity);
+        ecs.attach<MouseLeftClickComponent>(terminalText.entity, makeCallable<OnFocus>(terminalText.entity.id));
+
         // auto s2 = makeSimple2DShape(&ecs, Shape2D::Square, 100, 100, {0.0f, 255.0f, 0.0f});
         // auto c2 = s2.get<UiComponent>();
 
@@ -294,14 +475,7 @@ namespace pg
         // // ecs.attach<SentenceText>(s2.entity, "Here");
         // ecs.attach<MouseLeftClickComponent>(s2.entity, makeCallable<LogInfoEvent>("Window", "Left click on the green rectangle"));
 
-        auto text = makeSentence(&ecs, 200, 200, {"Here"});
-        ecs.attach<TextInputComponent>(text.entity, makeCallable<LogInfoEvent>("Window", "Text Input called"), "Here");
-        ecs.attach<FocusableComponent>(text.entity);
-        ecs.attach<MouseLeftClickComponent>(text.entity, makeCallable<OnFocus>(text.entity.id));
-
-        interpreter->addSystemFunction<TestPrint>("print");
-
-        interpreter->interpretFromFile("TestScripts/Import/import.pg");
+        makeSentence(&ecs, 200, 250, {"And there"});
 
         ecs.start();
 

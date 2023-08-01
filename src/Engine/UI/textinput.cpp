@@ -35,7 +35,7 @@ namespace pg
 
     void TextInputSystem::onEvent(const OnSDLScanCode& event)
     {
-        if(event.key != SDL_SCANCODE_RETURN)
+        if(event.key != SDL_SCANCODE_RETURN and event.key != SDL_SCANCODE_BACKSPACE)
             return;
 
         for(const auto& entity : viewGroup<TextInputComponent, FocusableComponent>())
@@ -44,16 +44,43 @@ namespace pg
 
             if(focus->focused)
             {
-                auto text = entity->get<TextInputComponent>();
-
-                text->callback->call(world());
-
-                text->text = "";
-
-                if(entity->entity->has<SentenceText>())
+                switch(event.key)
                 {
-                    world()->sendEvent(OnTextChanged{entity->entity->id, text->text});
+                    case SDL_SCANCODE_RETURN:
+                    {
+                        auto text = entity->get<TextInputComponent>();
+
+                        text->callback->call(world());
+
+                        text->text = "";
+
+                        if(entity->entity->has<SentenceText>())
+                        {
+                            world()->sendEvent(OnTextChanged{entity->entity->id, text->text});
+                        }
+                    }
+                    break;
+
+                    case SDL_SCANCODE_BACKSPACE:
+                    {
+                        auto text = entity->get<TextInputComponent>();
+
+                        if(not text->text.empty())
+                            text->text.pop_back();
+
+                        if(entity->entity->has<SentenceText>())
+                        {
+                            world()->sendEvent(OnTextChanged{entity->entity->id, text->text});
+                        }
+                    }
+                    break;
+
+                    default:
+                    {
+                        LOG_ERROR(DOM, "Received unknown scan code: " << event.key);
+                    }
                 }
+                
             }
         }
     }

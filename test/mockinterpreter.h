@@ -8,7 +8,7 @@ namespace pg
     {
         using Function::Function;
     public:
-        virtual void setUp() override
+        void setUp()
         {
             setArity(2, 2);
         }
@@ -31,7 +31,7 @@ namespace pg
     {
         using Function::Function;
     public:
-        virtual void setUp() override
+        void setUp()
         {
             setArity(1, 1);
         }
@@ -51,7 +51,7 @@ namespace pg
     {
         using Function::Function;
     public:
-        virtual void setUp() override
+        void setUp()
         {
             setArity(1, 1);
         }

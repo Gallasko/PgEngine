@@ -21,8 +21,9 @@ namespace pg
 
         virtual void onCreation(EntityRef entity) override
         {
-            entityId = entity->id;
             ecsRef = entity->world();
+
+            entityId = entity->id;
         }
 
         void focus()

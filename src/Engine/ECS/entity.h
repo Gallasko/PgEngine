@@ -145,22 +145,16 @@ namespace pg
 
         void operator=(const EntityRef& rhs);
 
-        void operator=(Entity* ent)
-        {
-            entity = ent;
-            id = ent->id;
-            ecsRef = ent->world();
-        }
+        void operator=(Entity* ent);
 
-        // Todo always check if the component was not initialized in between calls to make sure to update the correct one
         Entity* operator->() const;
 
         operator Entity*() const;
 
         inline bool empty() const { return entity == nullptr; }
 
-        bool initialized;
-        Entity* entity;
+        mutable bool initialized;
+        mutable Entity* entity;
         _unique_id id;
         EntitySystem* ecsRef;  
     };

@@ -417,6 +417,8 @@ namespace pg
 
         if(this->type == UnionType::FLOAT)
             return data.f;
+        else if(this->type == UnionType::INT)
+            return static_cast<float>(data.i);
         else
         {
             LOG_ERROR(DOM, "Error in casting an element to float when defined as " + enumTypeToString(this->type));
@@ -430,6 +432,8 @@ namespace pg
 
         if(this->type == UnionType::INT)
             return data.i;
+        else if(this->type == UnionType::FLOAT)
+            return static_cast<int>(data.f);
         else
         {
             LOG_ERROR(DOM, "Error in casting an element to int when defined as " + enumTypeToString(this->type));

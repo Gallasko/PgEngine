@@ -480,7 +480,7 @@ namespace pg
          */
         constexpr Comp* operator[](const size_t& index) const { LOG_THIS_MEMBER("Component Set"); return componentList[index]; }
 
-        Comp* atEntity(_unique_id id) const { LOG_THIS_MEMBER("Component Set"); return componentList[find(id)]; }
+        Comp* atEntity(_unique_id id) const { LOG_THIS_MEMBER("Component Set"); auto pos = find(id); return pos != 0 ? componentList[pos] : nullptr; }
 
         void reserve(const size_t& size)
         {

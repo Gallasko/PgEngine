@@ -81,6 +81,6 @@ void debugGlErrorCallback(GLenum,
     }
     else
     {
-        LOG_LOG("GL Debug", glLog);
+        LOG_MILE("GL Debug", glLog);
     }
 }

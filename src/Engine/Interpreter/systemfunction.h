@@ -9,7 +9,7 @@ namespace pg
     {
         using Function::Function;
     public:
-        virtual void setUp() override;
+        void setUp();
 
         virtual ValuablePtr call(ValuableQueue& args) const override;
     };
@@ -18,7 +18,7 @@ namespace pg
     {
         using Function::Function;
     public:
-        virtual void setUp() override;
+        void setUp();
 
         virtual ValuablePtr call(ValuableQueue& args) const override;
     };
@@ -27,7 +27,7 @@ namespace pg
     {
         using Function::Function;
     public:
-        virtual void setUp() override;
+        void setUp();
 
         virtual ValuablePtr call(ValuableQueue& args) const override;
     };
