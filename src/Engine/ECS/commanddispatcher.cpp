@@ -14,8 +14,6 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
-        std::lock_guard<std::mutex> lock(mutex);
-
         auto entity = new Entity(ecsRef->registry.idGenerator.generateId(), ecsRef);
 
         if(not entityQueue.enqueue(EntityCommand{entity, EntityCommand::EntityCommandType::creation}))
@@ -31,8 +29,6 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
-        std::lock_guard<std::mutex> lock(mutex);
-
         if(not entityQueue.enqueue(EntityCommand{entity, EntityCommand::EntityCommandType::deletion}))
         {
             LOG_ERROR(DOM, "Could not enqueue the deletion of entity " << entity->id);
@@ -42,8 +38,6 @@ namespace pg
     void CommandDispatcher::process()
     {
         LOG_THIS_MEMBER(DOM);
-
-        std::lock_guard<std::mutex> lock(mutex);
 
         EntityCommand item(nullptr, EntityCommand::EntityCommandType::creation);
 

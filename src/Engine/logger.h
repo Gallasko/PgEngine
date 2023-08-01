@@ -8,6 +8,11 @@
 
 #include <string>
 
+#include <chrono>
+
+// Todo include date when printing log 
+#include "Helpers/date.h"
+
 #include "Files/filemanager.h"
 
 //TODO Create an object to utilize the ctor/dtor and know when we enter and exit the function called

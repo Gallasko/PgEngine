@@ -68,7 +68,7 @@ namespace pg
         std::map<std::string, std::function<std::shared_ptr<Valuable>(VisitorInterpreter *visitor, const std::string& sysName)>> sysFunctionTable;
     };
 
-    class PgInterpreter : public System<Listener<ExecuteFileScriptEvent>, Listener<ExecuteCodeScriptEvent>, StoragePolicy, NamedSystem>
+    class PgInterpreter : public System<Listener<ExecuteFileScriptEvent>, Listener<ExecuteCodeScriptEvent>, NamedSystem>
     {
     friend class Interpreter;
     friend class VisitorInterpreter;
@@ -81,12 +81,45 @@ namespace pg
 
         virtual void onEvent(const ExecuteFileScriptEvent& event) override
         {
-            interpretFromFile(event.filename);
+            std::lock_guard<std::mutex> lock(mutex);
+
+            scriptQueue.emplace(ScriptCallType::FromFile, event.filename);
         }
 
         virtual void onEvent(const ExecuteCodeScriptEvent& event) override
         {
-            interpretFromText(event.data);
+            std::lock_guard<std::mutex> lock(mutex);
+
+            scriptQueue.emplace(ScriptCallType::FromText, event.data);
+        }
+
+        virtual void execute() override
+        {
+            mutex.lock();
+
+            std::queue<ScriptCall> queue;
+            queue.swap(scriptQueue);
+            
+            mutex.unlock();
+
+            while(!queue.empty())
+            {
+                auto script = queue.front();
+
+                switch(script.type)
+                {
+                    case ScriptCallType::FromText:
+                        interpretFromText(script.data);
+                        break;
+                    
+                    case ScriptCallType::FromFile:
+                        interpretFromFile(script.data);
+                        break;
+                }
+
+                queue.pop();
+            }
+
         }
 
     public:
@@ -108,6 +141,19 @@ namespace pg
         std::map<std::string, std::map<std::string, std::function<std::shared_ptr<Valuable>(VisitorInterpreter *visitor, const std::string& sysName)>>> sysModuleTable;
 
     private:
+        enum class ScriptCallType : uint8_t { FromText = 0, FromFile = 1 };
+
+        struct ScriptCall
+        {
+            ScriptCall(const ScriptCallType& type, const std::string& data) : type(type), data(data) { }
+            ScriptCall(const ScriptCall& rhs) : type(rhs.type), data(rhs.data) { }
+            ~ScriptCall() { }
+
+            ScriptCallType type = ScriptCallType::FromText;
+            std::string data;
+        };
+
+    private:
         inline bool isSysModule(const std::string& name) const { return sysModuleTable.find(name) != sysModuleTable.end(); }
 
         ScriptImport getAst(const std::string& script, const std::string& filePath = "");
@@ -121,5 +167,9 @@ namespace pg
         // Todo store the absolute path of the custom made script file
         // to avoid using the AST of another file when trying to import a script
         std::unordered_map<std::string, ScriptImport> importedScripts;
+
+        std::mutex mutex;
+
+        std::queue<ScriptCall> scriptQueue;
     };
 }
