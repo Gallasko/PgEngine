@@ -171,6 +171,28 @@ namespace
         std::shared_ptr<Logger::LogSink> sink;
     };
 
+    class OpenTextFileFunction : public Function
+    {
+        using Function::Function;
+    public:
+        void setUp()
+        {
+            setArity(1, 1);
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            auto name = args.front()->getElement();
+            args.pop();
+
+            auto file = UniversalFileAccessor::openTextFile(name.toString());
+
+            return std::make_shared<Variable>(ElementType { file.data });
+        }
+
+        std::shared_ptr<Logger::LogSink> sink;
+    };
+
     struct LogModule : public SysModule
     {
         LogModule()
@@ -190,6 +212,14 @@ namespace
         UiModule(EntitySystem *ecsRef)
         {
             addSystemFunction<CreateRectangle>("renderSquare", ecsRef);
+        }
+    };
+
+    struct FileModule : public SysModule
+    {
+        FileModule()
+        {
+            addSystemFunction<OpenTextFileFunction>("openTextFile");
         }
     };
 }

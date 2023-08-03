@@ -335,15 +335,17 @@ namespace pg
         auto token = expr->squareBracket;
         token.text = "List Function";
 
+        auto instance = std::make_shared<ClassInstance>(nullptr);
+
         auto get = std::make_shared<AtFunction>(expr->self, currentEnv, "List Get", token, this, emptyQueue, nullptr);
         auto set = std::make_shared<SetFunction>(expr->self, currentEnv, "List Set", token, this, emptyQueue, nullptr);
-
-        auto instance = std::make_shared<ClassInstance>(nullptr);
+        auto size = std::make_shared<SizeFunction>(expr->self, currentEnv, "List Size", token, this, emptyQueue, nullptr, instance);
 
         std::unordered_map<std::string, std::shared_ptr<Function>> methods;
 
         methods["at"] = get->bind(instance);
         methods["set"] = set->bind(instance);
+        methods["size"] = size;
 
         instance->setMethods(methods);
 

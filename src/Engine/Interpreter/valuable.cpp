@@ -313,6 +313,13 @@ namespace pg
         return value;
     }
 
+    SetFunction::SetFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body) :
+        Function(env, name, token, visitor, argsList, body),
+        self(self)
+    {
+        setArity(2, 2);
+    }
+
     std::shared_ptr<Function> SetFunction::bind(std::shared_ptr<ClassInstance> instance)
     {
         std::shared_ptr<Environment> closure = std::make_shared<Environment>(env);
@@ -321,13 +328,6 @@ namespace pg
 
         std::queue<ExprPtr> emptyQueue;
         return std::make_shared<SetFunction>(self, closure, token.text, token, visitor, emptyQueue, nullptr);
-    }
-
-    SetFunction::SetFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body) :
-        Function(env, name, token, visitor, argsList, body),
-        self(self)
-    {
-        setArity(2, 2);
     }
 
     ValuablePtr SetFunction::call(ValuableQueue& args) const
@@ -368,6 +368,20 @@ namespace pg
 
         // Return the value calculated
         return value;
+    }
+
+    SizeFunction::SizeFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<ClassInstance> instance) :
+        Function(env, name, token, visitor, argsList, body),
+        self(self),
+        instance(instance)
+    {
+        setArity(0, 0);
+    }
+
+    ValuablePtr SizeFunction::call(ValuableQueue&) const
+    {
+        // Return the size of the current instance
+        return std::make_shared<Variable>(ElementType { instance->getSize() });
     }
 
 }

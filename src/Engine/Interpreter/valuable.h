@@ -371,6 +371,8 @@ namespace pg
          */
         virtual std::string getType() const override { return "ClassInstance"; }
 
+        inline size_t getSize() const noexcept { return fields.size(); }
+
         std::shared_ptr<Valuable> get(const Token& token) const;
         void set(const Token& token, std::shared_ptr<Valuable> value);
 
@@ -416,6 +418,21 @@ namespace pg
 
     private:
         ExprPtr self;
+    };
+
+    class SizeFunction : public Function
+    {
+    public:
+        SizeFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<ClassInstance> instance);
+
+        virtual ValuablePtr call(ValuableQueue& args) const override;
+
+        virtual std::string getType() const override { return "List"; }
+
+    private:
+        ExprPtr self;
+
+        std::shared_ptr<ClassInstance> instance;
     };
 
     // TODO create it() function -> have 0 argument and return an iterator object !

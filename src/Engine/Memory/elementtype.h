@@ -42,6 +42,7 @@ namespace pg
 
             float f;        ///< Float representation of the element type.
             int i;          ///< Int representation of the element type.
+            size_t l;       ///< Size_t representation of the element type
             std::string s;  ///< String representation of the element type.
             bool b;         ///< Bool representation of the element type.
             // Big Int bi;
@@ -52,6 +53,7 @@ namespace pg
         {
             FLOAT,
             INT,
+            SIZE_T,
             STRING,
             BOOL
         };
@@ -89,6 +91,7 @@ namespace pg
             {
                 case UnionType::FLOAT: this->setValue(other.data.f); break;
                 case UnionType::INT: this->setValue(other.data.i); break;
+                case UnionType::SIZE_T: this->setValue(other.data.l); break;
                 case UnionType::STRING: this->setValue(other.data.s); break;
                 case UnionType::BOOL: this->setValue(other.data.b); break;
             }
@@ -102,6 +105,7 @@ namespace pg
             {
                 case UnionType::FLOAT: this->setValue(other.data.f); break;
                 case UnionType::INT: this->setValue(other.data.i); break;
+                case UnionType::SIZE_T: this->setValue(other.data.l); break;
                 case UnionType::STRING: this->setValue(other.data.s); break;
                 case UnionType::BOOL: this->setValue(other.data.b); break;
             }
@@ -122,6 +126,15 @@ namespace pg
             data.i = value;
             this->type = UnionType::INT;
         }
+
+        void setValue(size_t value)
+        {
+            clearPreviousType();
+            
+            data.l = value;
+            this->type = UnionType::SIZE_T;
+        }
+
 
         void setValue(const char* value)
         {
@@ -148,14 +161,14 @@ namespace pg
         }
 
         template<typename Type>
-        Type get() const
+        inline Type get() const
         {
             return static_cast<Type>(*this);
         }
 
         bool isNumber() const
         {
-            return type == UnionType::INT || type == UnionType::FLOAT;
+            return type == UnionType::INT || type == UnionType::FLOAT || type == UnionType::SIZE_T;
         }
 
         bool isLitteral() const
@@ -197,6 +210,7 @@ namespace pg
 
         explicit operator float() const;
         explicit operator int() const;
+        explicit operator size_t() const;
         explicit operator std::string() const;
         explicit operator bool() const;
 
