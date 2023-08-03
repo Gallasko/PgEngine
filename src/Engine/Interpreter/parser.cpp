@@ -570,71 +570,169 @@ namespace pg
     StatementPtr Parser::forStatement()
     {
         skipEOL();
-        consume("Expect '(' after 'for'.", TokenType::PENTER);
+        const auto& token = consume("Expect '(' after 'for'.", TokenType::PENTER);
         skipEOL();
 
         StatementPtr initializer;
+
+        bool rangeBased = false;
         
         if(match(TokenType::END))
             initializer = nullptr;
         else if(match(TokenType::VAR))
-            initializer = varDeclaration();
+        {
+            auto name = consume("Expected variable name", TokenType::EXPRESSION);
+
+            ExprPtr init = nullptr;
+            if(match(TokenType::EQUAL))
+            {
+                skipEOL();
+                init = expression();
+            }
+
+            initializer = std::make_shared<VariableStatement>(name, init);
+
+            if(check(TokenType::DPOINT))
+            {
+                advance();
+
+                rangeBased = true;
+            }
+            else
+                consume("Expected ; or end of line after a variable definition", TokenType::END, TokenType::EOL);
+        }
         else
             initializer = expressionStatement();
 
-        skipEOL();
-        ExprPtr condition = nullptr;
-        skipEOL();
-
-        if(not check(TokenType::END))
+        if(rangeBased)
         {
-            condition = expression();
             skipEOL();
-        }
 
-        consume("Expect ';' after loop condition.", TokenType::END);
-        skipEOL();
+            ExprPtr range = expression();
 
-        ExprPtr increment = nullptr;
-        skipEOL();
-
-        if(not check(TokenType::PCLOSE))
-        {
-            increment = expression();
             skipEOL();
+
+            consume("Expect ')' after 'for'.", TokenType::PCLOSE);
+            skipEOL();
+
+            std::queue<ExprPtr> emptyQueue;
+
+            auto begin = Token{TokenType::EXPRESSION, "__begin", token.line, token.column};
+
+            ExprPtr beginExpr = std::make_shared<Get>(range, Token{TokenType::EXPRESSION, "at", token.line, token.column});
+            beginExpr = std::make_shared<CallExpression>(beginExpr, begin, emptyQueue);
+
+            auto beginStmt = std::make_shared<VariableStatement>(begin, beginExpr);
+
+            auto beginVar = std::make_shared<Var>(begin);
+
+            ExprPtr currentExpr = std::make_shared<Get>(beginVar, Token{TokenType::EXPRESSION, "current", token.line, token.column});
+            currentExpr = std::make_shared<CallExpression>(currentExpr, begin, emptyQueue);
+
+            ExprPtr nextExpr = std::make_shared<Get>(beginVar, Token{TokenType::EXPRESSION, "next", token.line, token.column});
+            nextExpr = std::make_shared<CallExpression>(nextExpr, begin, emptyQueue);
+
+            auto end = Token{TokenType::EXPRESSION, "__end", token.line, token.column};
+
+            ExprPtr endExpr = std::make_shared<Get>(range, Token{TokenType::EXPRESSION, "at", token.line, token.column});
+            endExpr = std::make_shared<CallExpression>(endExpr, end, emptyQueue);
+
+            auto endStmt = std::make_shared<VariableStatement>(end, endExpr);
+
+            auto endVar = std::make_shared<Var>(end);
+
+            auto conditionToken = Token{TokenType::NOTEQUAL, "!=", token.line, token.column};
+            auto condition = std::make_shared<BinaryExpression>(beginVar, conditionToken, endVar);
+
+            auto& varToken = std::static_pointer_cast<VariableStatement>(initializer)->name;
+            auto varExpr = std::make_shared<Assign>(varToken, currentExpr);
+
+            // Desugaring of 'for' into a basic while loop
+
+            StatementPtr body = statement();
+
+            {
+                std::queue<StatementPtr> q;
+                q.push(std::make_shared<ExpressionStatement>(varExpr));
+                q.push(body);
+                q.push(std::make_shared<ExpressionStatement>(nextExpr));
+
+                body = std::make_shared<BlockStatement>(q);
+            }
+
+            body = std::make_shared<WhileStatement>(condition, body);
+
+            {
+                std::queue<StatementPtr> q;
+                q.push(beginStmt);
+                q.push(endStmt);
+                q.push(initializer);
+                q.push(body);
+
+                body = std::make_shared<BlockStatement>(q);
+            }
+                
+            return body;
         }
-
-        consume("Expect ')' after 'for'.", TokenType::PCLOSE);
-        skipEOL();
-
-        // Desugaring of 'for' into a basic while loop
-
-        StatementPtr body = statement();
-
-        if(increment)
+        else
         {
-            std::queue<StatementPtr> q;
-            q.push(body);
-            q.push(std::make_shared<ExpressionStatement>(increment));
+            skipEOL();
+            ExprPtr condition = nullptr;
+            skipEOL();
 
-            body = std::make_shared<BlockStatement>(q);
+            if(not check(TokenType::END))
+            {
+                condition = expression();
+                skipEOL();
+            }
+
+            consume("Expect ';' after loop condition.", TokenType::END);
+            skipEOL();
+
+            ExprPtr increment = nullptr;
+            skipEOL();
+
+            if(not check(TokenType::PCLOSE))
+            {
+                increment = expression();
+                skipEOL();
+            }
+
+            consume("Expect ')' after 'for'.", TokenType::PCLOSE);
+            skipEOL();
+
+            // Desugaring of 'for' into a basic while loop
+
+            StatementPtr body = statement();
+
+            if(increment)
+            {
+                std::queue<StatementPtr> q;
+                q.push(body);
+                q.push(std::make_shared<ExpressionStatement>(increment));
+
+                body = std::make_shared<BlockStatement>(q);
+            }
+
+            if(condition == nullptr)
+                condition = std::make_shared<Atom>(true);
+
+            body = std::make_shared<WhileStatement>(condition, body);
+
+            if(initializer)
+            {
+                std::queue<StatementPtr> q;
+                q.push(initializer);
+                q.push(body);
+
+                body = std::make_shared<BlockStatement>(q);
+            }
+                
+            return body;
         }
 
-        if(condition == nullptr)
-            condition = std::make_shared<Atom>(true);
-
-        body = std::make_shared<WhileStatement>(condition, body);
-
-        if(initializer)
-        {
-            std::queue<StatementPtr> q;
-            q.push(initializer);
-            q.push(body);
-
-            body = std::make_shared<BlockStatement>(q);
-        }
-            
-        return body;
+        LOG_ERROR(DOM, "Should never reach here");
+        return nullptr;
     }
 
     StatementPtr Parser::ifStatement()

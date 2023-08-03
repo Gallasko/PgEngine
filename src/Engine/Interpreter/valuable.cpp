@@ -384,4 +384,23 @@ namespace pg
         return std::make_shared<Variable>(ElementType { instance->getSize() });
     }
 
+    BeginFunction::BeginFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<ClassInstance> instance) :
+        Function(env, name, token, visitor, argsList, body),
+        self(self),
+        instance(instance)
+    {
+        setArity(0, 0);
+    }
+
+    ValuablePtr BeginFunction::call(ValuableQueue&) const
+    {
+        auto itInstance = std::make_shared<IteratorInstance>(nullptr);
+
+        itInstance->set(Token{TokenType::EXPRESSION, "__it", 0, 0}, std::make_shared<Variable>(ElementType { 0 } ));
+        
+
+        // Return the iterator instance
+        return itInstance;
+    }
+
 }

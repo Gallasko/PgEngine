@@ -388,6 +388,13 @@ namespace pg
         std::unordered_map<std::string, std::shared_ptr<Valuable>> fields;
     };
 
+    class IteratorInstance : public ClassInstance
+    {
+        using ClassInstance::ClassInstance;
+    public:
+        virtual std::string getType() const override { return "IteratorInstance"; }
+    };
+
     struct ListElement;
 
     class AtFunction : public Function
@@ -424,6 +431,21 @@ namespace pg
     {
     public:
         SizeFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<ClassInstance> instance);
+
+        virtual ValuablePtr call(ValuableQueue& args) const override;
+
+        virtual std::string getType() const override { return "List"; }
+
+    private:
+        ExprPtr self;
+
+        std::shared_ptr<ClassInstance> instance;
+    };
+
+    class BeginFunction : public Function
+    {
+    public:
+        BeginFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<ClassInstance> instance);
 
         virtual ValuablePtr call(ValuableQueue& args) const override;
 
