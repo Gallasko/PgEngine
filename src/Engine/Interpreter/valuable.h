@@ -386,7 +386,7 @@ namespace pg
         std::unordered_map<std::string, std::shared_ptr<Valuable>> fields;
     };
 
-    class ListElement;
+    struct ListElement;
 
     class AtFunction : public Function
     {

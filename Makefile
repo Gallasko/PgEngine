@@ -7,8 +7,8 @@
 rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
 
 # define the Cpp compiler to use
-CXX = g++
-
+# CXX = g++
+# CXX = emcc
 DebugActive ?= $(DEBUG)
 
 # define any compile-time flags -mwindows to make the app launch without a command prompt

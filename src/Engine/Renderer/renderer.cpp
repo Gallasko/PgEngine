@@ -168,9 +168,13 @@ namespace pg
         if (not data)
         {
             if(stbi_failure_reason())
+            {
                 LOG_ERROR(DOM, "Failed to load texture: " << stbi_failure_reason());
+            }
             else
+            {
                 LOG_ERROR(DOM, "Failed to load texture: Unknown");
+            }
 
             return;
         }

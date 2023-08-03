@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include <SDL_Scancode.h>
+#include <SDL_scancode.h>
 
 namespace pg
 {

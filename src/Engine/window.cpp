@@ -400,7 +400,7 @@ namespace pg
 
         makeSentence(&ecs, 200, 50, {"At the start"});
 
-        auto fpsSystem = ecs.createSystem<FpsSystem>();
+        ecs.createSystem<FpsSystem>();
 
         ecs.createSystem<MouseLeftClickSystem>(inputHandler);
         ecs.createSystem<MouseRightClickSystem>(inputHandler);
@@ -526,7 +526,7 @@ namespace pg
 
             case SDL_MOUSEMOTION:
                 {
-                    MousePos currentPos {event.motion.x, event.motion.y};
+                    MousePos currentPos {static_cast<float>(event.motion.x), static_cast<float>(event.motion.y)};
                     MousePos mouseDelta {(mousePos.x - currentPos.x) * xSensitivity, (currentPos.y - mousePos.y) * ySensitivity};
 
                     inputHandler->registerMouseMove(currentPos, mouseDelta);

@@ -6,6 +6,10 @@
 #include <SDL.h>
 #endif
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 #include <GL/gl.h>
 
 #include <memory>

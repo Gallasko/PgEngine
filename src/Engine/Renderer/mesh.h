@@ -27,7 +27,7 @@ namespace pg
     };
 
     // Todo remove when Mesh specializations are implemented in their own headers
-    class SentenceText;
+    struct SentenceText;
     class FontLoader;
 
     struct Mesh

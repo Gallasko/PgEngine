@@ -24,7 +24,7 @@ namespace pg
     
     // Forward declarations
     class ComponentRegistry;
-    class AbstractSystem;
+    struct AbstractSystem;
 
     // Todo add batching for entity and component creation
 
@@ -218,8 +218,6 @@ namespace pg
                 {
                     component = registry.retrieve<Type>()->internalCreateComponent(entity, std::forward<Args>(args)...);
                 }
-
-                std::cout << running << std::endl;
                 
                 auto res = CompRef<Type>(component, entity.id, this, not running);
                 // auto res = CompRef<Type>(component, entity->id, this, false);
@@ -423,8 +421,6 @@ namespace pg
             auto ent = ecsRef->getEntity(id);
             auto initialized = id != 0 and ent;
 
-            std::cout << "Comp " << initialized << std::endl;
-
             return CompRef<Comp>(ecsRef->registry.retrieve<Comp>()->getComponent(id), id, ecsRef, initialized);
         }
 
@@ -447,7 +443,7 @@ namespace pg
         {
             if(entityId != 0)
             {
-                auto fetchComponent = rhs.ecsRef->getComponent<Comp>(entityId);
+                auto fetchComponent = rhs.ecsRef->template getComponent<Comp>(entityId);
 
                 if(fetchComponent)
                 {

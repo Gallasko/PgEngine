@@ -15,11 +15,11 @@ namespace pg
     // Forward declaration
     namespace constant
     {
-        class Vector2D;
+        struct Vector2D;
     }
 
     class MasterRenderer;
-    class UiComponentSystem;
+    struct UiComponentSystem;
 
     /**
      * @class UiComponent
@@ -30,7 +30,7 @@ namespace pg
      */
     class UiComponent : public Ctor
     {
-        friend class UiComponentSystem;
+    friend struct UiComponentSystem;
 
         // Type definition
     private:

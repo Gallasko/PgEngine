@@ -25,8 +25,8 @@ namespace pg
     {
         class UiValue
         {
-            friend class UiSize;
-
+        friend class UiSize;
+        public:
             enum class UiSizeOpType
             {
                 ADD,

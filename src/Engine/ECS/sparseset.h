@@ -478,7 +478,7 @@ namespace pg
          * Be careful as the operator doesn't not check the bound of the list, this can throw an out of bound exception
          * Use with nbElement of the sparse set to be in bound
          */
-        constexpr Comp* operator[](const size_t& index) const { LOG_THIS_MEMBER("Component Set"); return componentList[index]; }
+        Comp* operator[](const size_t& index) const { LOG_THIS_MEMBER("Component Set"); return componentList[index]; }
 
         Comp* atEntity(_unique_id id) const { LOG_THIS_MEMBER("Component Set"); auto pos = find(id); return pos != 0 ? componentList[pos] : nullptr; }
 

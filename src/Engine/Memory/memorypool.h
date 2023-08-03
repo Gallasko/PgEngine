@@ -31,16 +31,16 @@ namespace pg
         56, 45, 25, 31, 35, 16,  9, 12,
         44, 24, 15,  8, 23,  7,  6,  5};
 
-    static constexpr int log2_64 (size_t value)
+    static constexpr unsigned int log2_64 (size_t value)
     {
-        value |= value >> 1;
-        value |= value >> 2;
-        value |= value >> 4;
-        value |= value >> 8;
-        value |= value >> 16;
-        value |= value >> 32;
+        value |= value >> 1UL;
+        value |= value >> 2UL;
+        value |= value >> 4UL;
+        value |= value >> 8UL;
+        value |= value >> 16UL;
+        value |= value >> 32UL;
 
-        return tab64[((size_t)((value - (value >> 1))*0x07EDD5E59A4E28C2)) >> 58];
+        return tab64[((size_t)((value - (value >> 1))*0x07EDD5E59A4E28C2)) >> 58UL];
     }
 
     /**

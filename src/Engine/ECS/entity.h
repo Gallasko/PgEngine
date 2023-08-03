@@ -16,7 +16,7 @@ namespace pg
     class CommandDispatcher;
     
     template<typename Type>
-    class CompRef;
+    struct CompRef;
 
     class Entity
     {
@@ -42,7 +42,8 @@ namespace pg
             };
 
             explicit EntityHeld(Entity* entity) : entityHeldId(entity), entityHeldType(EntityHeldType::entity) { }
-            explicit EntityHeld(const _unique_id& id) : entityHeldId(id), entityHeldType(EntityHeldType::id) {}
+            explicit EntityHeld(const _unique_id& id) : entityHeldId(id), entityHeldType(EntityHeldType::id) { }
+            explicit EntityHeld(const EntityHeld& other) : entityHeldId(other.entityHeldId), entityHeldType(other.entityHeldType) { }
 
             constexpr bool operator==(_unique_id id) const
             {

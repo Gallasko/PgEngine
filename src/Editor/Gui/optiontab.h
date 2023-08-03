@@ -17,7 +17,7 @@
 namespace pg
 {
     // Type forwarding
-    class TextureComponent;
+    struct TextureComponent;
     
     namespace editor
     {
