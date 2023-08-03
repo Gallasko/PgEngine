@@ -40,6 +40,18 @@ namespace pg
     {
         auto ast = generateASTFromFile(scriptFile);
 
+        auto queue = ast.ast;
+
+        while(queue.size() > 0)
+        {
+            auto stmt = queue.front();
+
+            if(stmt)
+                std::cout << stmt->prettyPrint() << std::endl;
+
+            queue.pop();
+        }
+
         return _interpret(ast);
 
         // _interpret(scriptFile, tokens);

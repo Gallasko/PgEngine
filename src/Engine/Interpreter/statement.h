@@ -66,7 +66,8 @@ namespace pg
         ~ClassStatement() {}
 
         virtual void accept(Visitor* visitor);
-        virtual std::string prettyPrint() const { return "Class statement : " + name.text; }
+        virtual std::string prettyPrint() const {auto p = methods; std::string res = ""; while(p.size() > 0) { res += p.front()->prettyPrint() + "\n"; p.pop();} return "Class statement :" + name.text + " with methodes: " + "\n" + res; }
+ 
         virtual std::string getType() const { return "ClassStatement"; }
 
         Token name;
@@ -79,7 +80,7 @@ namespace pg
         ~BlockStatement() {}
 
         virtual void accept(Visitor* visitor);
-        virtual std::string prettyPrint() const { return "Statement block"; }
+        virtual std::string prettyPrint() const {auto p = statements; std::string res = ""; while(p.size() > 0) { res += p.front()->prettyPrint() + "\n"; p.pop();} return "Block Statement \n" + res; }
         virtual std::string getType() const { return "BlockStatement"; }
 
         std::queue<StatementPtr> statements;
@@ -91,7 +92,7 @@ namespace pg
         ~IfStatement() {}
 
         virtual void accept(Visitor* visitor);
-        virtual std::string prettyPrint() const { return "If statement, with condition: " + condition->prettyPrint(); } 
+        virtual std::string prettyPrint() const { return "If statement, with condition: " + condition->prettyPrint() + "\n" + thenBranch->prettyPrint() + "\n" + elseBranch->prettyPrint(); } 
         virtual std::string getType() const { return "IfStatement"; }
 
         ExprPtr condition;
@@ -105,7 +106,7 @@ namespace pg
         ~WhileStatement() {}
 
         virtual void accept(Visitor* visitor);
-        virtual std::string prettyPrint() const { return "while statement, with condition: " + condition->prettyPrint(); }
+        virtual std::string prettyPrint() const { return "while statement, with condition: " + condition->prettyPrint() + "\n" + body->prettyPrint(); }
         virtual std::string getType() const { return "WhileStatement"; }
 
         ExprPtr condition;

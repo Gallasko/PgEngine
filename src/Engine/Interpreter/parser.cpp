@@ -136,6 +136,9 @@ namespace pg
             skipEOL();
             auto rExpr = assignment();
 
+            // Todo += desugaring breaks when used on list
+            // var list = [0, 1, 2]; list[0] += 1; << Crashes
+
             // Desugaring operator +=, -=, *= and /=
             switch(op.type)
             {
@@ -576,12 +579,13 @@ namespace pg
         StatementPtr initializer;
 
         bool rangeBased = false;
+        Token name;
         
         if(match(TokenType::END))
             initializer = nullptr;
         else if(match(TokenType::VAR))
         {
-            auto name = consume("Expected variable name", TokenType::EXPRESSION);
+            name = consume("Expected variable name", TokenType::EXPRESSION);
 
             ExprPtr init = nullptr;
             if(match(TokenType::EQUAL))
@@ -617,56 +621,88 @@ namespace pg
 
             std::queue<ExprPtr> emptyQueue;
 
-            auto begin = Token{TokenType::EXPRESSION, "__begin", token.line, token.column};
+            // Create a token for the iterator
+            auto it = Token{TokenType::EXPRESSION, "__it", token.line, token.column};
 
-            ExprPtr beginExpr = std::make_shared<Get>(range, Token{TokenType::EXPRESSION, "at", token.line, token.column});
-            beginExpr = std::make_shared<CallExpression>(beginExpr, begin, emptyQueue);
+            // Get the iterator from the rhs of the : of the for statement
+            ExprPtr itExpr = std::make_shared<Get>(range, Token{TokenType::EXPRESSION, "it", token.line, token.column});
+            itExpr = std::make_shared<CallExpression>(itExpr, it, emptyQueue);    
+
+            // Store the it in a variable named "__it"
+            auto itStmt = std::make_shared<VariableStatement>(it, itExpr);
+
+            // Create a var to get all the other function 
+            auto itVar = std::make_shared<Var>(it);
+
+            // Grab the function "begin" in the iterator and store it in a var name "__begin" 
+            auto begin = Token{TokenType::EXPRESSION, "__begin", token.line, token.column};
+            ExprPtr beginExpr = std::make_shared<Get>(itVar, Token{TokenType::EXPRESSION, "begin", token.line, token.column});
+            beginExpr = std::make_shared<CallExpression>(beginExpr, it, emptyQueue);            
 
             auto beginStmt = std::make_shared<VariableStatement>(begin, beginExpr);
 
             auto beginVar = std::make_shared<Var>(begin);
 
-            ExprPtr currentExpr = std::make_shared<Get>(beginVar, Token{TokenType::EXPRESSION, "current", token.line, token.column});
-            currentExpr = std::make_shared<CallExpression>(currentExpr, begin, emptyQueue);
+            // Grab the function "current" to get the current value of the iterator
+            ExprPtr currentExpr = std::make_shared<Get>(itVar, Token{TokenType::EXPRESSION, "current", token.line, token.column});
+            currentExpr = std::make_shared<CallExpression>(currentExpr, it, emptyQueue);
 
-            ExprPtr nextExpr = std::make_shared<Get>(beginVar, Token{TokenType::EXPRESSION, "next", token.line, token.column});
-            nextExpr = std::make_shared<CallExpression>(nextExpr, begin, emptyQueue);
+            // Grab the function "next" to advance the iterator 
+            ExprPtr nextExpr = std::make_shared<Get>(itVar, Token{TokenType::EXPRESSION, "next", token.line, token.column});
+            nextExpr = std::make_shared<CallExpression>(nextExpr, it, emptyQueue);
 
+            // Grab the function "end" in the iterator and store it in a var name "__end" 
             auto end = Token{TokenType::EXPRESSION, "__end", token.line, token.column};
 
-            ExprPtr endExpr = std::make_shared<Get>(range, Token{TokenType::EXPRESSION, "at", token.line, token.column});
-            endExpr = std::make_shared<CallExpression>(endExpr, end, emptyQueue);
+            ExprPtr endExpr = std::make_shared<Get>(itVar, Token{TokenType::EXPRESSION, "end", token.line, token.column});
+            endExpr = std::make_shared<CallExpression>(endExpr, it, emptyQueue);
 
             auto endStmt = std::make_shared<VariableStatement>(end, endExpr);
 
             auto endVar = std::make_shared<Var>(end);
 
-            auto conditionToken = Token{TokenType::NOTEQUAL, "!=", token.line, token.column};
-            auto condition = std::make_shared<BinaryExpression>(beginVar, conditionToken, endVar);
+            // Grab the name of the variable use in the lhs of the : of the for statement
+            auto var = std::make_shared<Var>(name);
 
+            // And create an expression that assign the value of the iterator (current) to this variable
             auto& varToken = std::static_pointer_cast<VariableStatement>(initializer)->name;
             auto varExpr = std::make_shared<Assign>(varToken, currentExpr);
 
-            // Desugaring of 'for' into a basic while loop
+            // Create the condition expression for the while loop (current != end)
+            auto conditionToken = Token{TokenType::NOTEQUAL, "!=", token.line, token.column + 5};
+            auto condition = std::make_shared<BinaryExpression>(var, conditionToken, endVar);
+
+            // Desugaring of 'range based for' into a basic while loop
 
             StatementPtr body = statement();
 
+            // Body of the while loop
             {
                 std::queue<StatementPtr> q;
+                // Set the named var to the current value of the iterator
                 q.push(std::make_shared<ExpressionStatement>(varExpr));
+                // Execute body
                 q.push(body);
+                // Advance the iterator
                 q.push(std::make_shared<ExpressionStatement>(nextExpr));
 
                 body = std::make_shared<BlockStatement>(q);
             }
 
+            // While loop
             body = std::make_shared<WhileStatement>(condition, body);
 
+            // Init state of the while loop
             {
                 std::queue<StatementPtr> q;
+                // Init the it, begin and end variable (__it, __begin, __end)
+                q.push(itStmt);
                 q.push(beginStmt);
                 q.push(endStmt);
+                
+                // Init the named variable
                 q.push(initializer);
+
                 q.push(body);
 
                 body = std::make_shared<BlockStatement>(q);
