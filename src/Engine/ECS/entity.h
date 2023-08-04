@@ -100,9 +100,6 @@ namespace pg
             return std::find(componentList.begin(), componentList.end(), otherId) != componentList.end();
         }
 
-        // todo
-        // template <typename Component>
-        // inline bool has() const { return ecsRef && has(ecsRef->has<Component>(this)); }
         template <typename Comp>
         inline bool has() const noexcept;
 

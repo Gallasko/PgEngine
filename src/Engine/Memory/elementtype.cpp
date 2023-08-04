@@ -527,7 +527,7 @@ namespace pg
         }
         else
         {
-            throw std::runtime_error(Strfy() << "Operator == between two incompatible operand: " << type << " and " << other.type);
+            return ElementType { false };
         }
     }
 

@@ -61,14 +61,23 @@ namespace pg
     {
         auto ast = generateASTFromFile(scriptFile);
 
+        auto queue = ast.ast;
+
+        while(queue.size() > 0)
+        {
+            auto stmt = queue.front();
+
+            if(stmt)
+                std::cout << stmt->prettyPrint() << std::endl;
+
+            queue.pop();
+        }
+
         return _interpret(ast);
     }
 
     ScriptImport PgInterpreter::getAst(const std::string& scriptName, const std::string& filePath)
     {
-        // Todo look up in our custom lib if the name is in there
-        // if(customScripts.find(scriptName) != customScripts.end()) return customScripts[scriptName];
-
         // Create path to the script
         std::string fileToOpen = filePath + scriptName;
 

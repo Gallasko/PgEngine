@@ -24,7 +24,7 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(universal_file_accessor_test, file_info_in_exe_directory)
         {
-            MockLogger<TerminalSink> logger;
+            MockLogger logger;
 
             auto file = UniversalFileAccessor::openTextFile("testfile.txt");
 
@@ -54,7 +54,7 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(universal_file_accessor_test, file_info_in_exe_sub_directory)
         {
-            MockLogger<TerminalSink> logger;
+            MockLogger logger;
 
             auto file = UniversalFileAccessor::openTextFile("testtextfolder/file1.txt");
 
@@ -73,7 +73,7 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(universal_file_accessor_test, all_files_in_exe_sub_directory)
         {
-            MockLogger<TerminalSink> logger;
+            MockLogger logger;
 
             auto folder = UniversalFileAccessor::openTextFolder("testtextfolder/");
 

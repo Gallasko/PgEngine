@@ -384,7 +384,7 @@ namespace pg
         return std::make_shared<Variable>(ElementType { instance->getSize() });
     }
 
-    BeginFunction::BeginFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<ClassInstance> instance) :
+    BeginFunction::BeginFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<IteratorInstance> instance) :
         Function(env, name, token, visitor, argsList, body),
         self(self),
         instance(instance)
@@ -394,12 +394,94 @@ namespace pg
 
     ValuablePtr BeginFunction::call(ValuableQueue&) const
     {
-        auto itInstance = std::make_shared<IteratorInstance>(nullptr);
-
-        itInstance->set(Token{TokenType::EXPRESSION, "__it", 0, 0}, std::make_shared<Variable>(ElementType { 0 } ));
-        
-
         // Return the iterator instance
+        return std::make_shared<Variable>(ElementType { 0 });
+    }
+
+    EndFunction::EndFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<IteratorInstance> instance) :
+        Function(env, name, token, visitor, argsList, body),
+        self(self),
+        instance(instance)
+    {
+        setArity(0, 0);
+    }
+
+    ValuablePtr EndFunction::call(ValuableQueue&) const
+    {
+        // Return the iterator instance
+        return std::make_shared<Variable>(ElementType { instance->refFields.size() });
+    }
+
+    CurrentFunction::CurrentFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<IteratorInstance> instance) :
+        Function(env, name, token, visitor, argsList, body),
+        self(self),
+        instance(instance)
+    {
+        setArity(0, 0);
+    }
+
+    ValuablePtr CurrentFunction::call(ValuableQueue&) const
+    {
+        if(instance->it == instance->refFields.end())
+            return std::make_shared<Variable>(ElementType { instance->refFields.size() });
+        
+        std::queue<ExprPtr> emptyQueue;
+
+        auto itValue = *(instance->it);
+
+        auto mapValue = std::make_shared<ClassInstance>(nullptr);
+
+        mapValue->set(Token{TokenType::EXPRESSION, "first", token.line, token.column}, std::make_shared<Variable>(ElementType { itValue.first }));
+        mapValue->set(Token{TokenType::EXPRESSION, "second", token.line, token.column}, itValue.second);
+
+        return mapValue;
+    }
+
+    NextFunction::NextFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<IteratorInstance> instance) :
+        Function(env, name, token, visitor, argsList, body),
+        self(self),
+        instance(instance)
+    {
+        setArity(0, 0);
+    }
+
+    ValuablePtr NextFunction::call(ValuableQueue&) const
+    {
+        if(instance->it != instance->refFields.end())
+            ++(instance->it);
+
+        return nullptr;
+    }
+
+    IteratorFunction::IteratorFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<ClassInstance> instance) :
+        Function(env, name, token, visitor, argsList, body),
+        self(self),
+        instance(instance)
+    {
+        setArity(0, 0);
+    }
+
+    ValuablePtr IteratorFunction::call(ValuableQueue& args) const
+    {
+        auto itInstance = std::make_shared<IteratorInstance>(nullptr, instance);
+
+        std::queue<ExprPtr> emptyQueue;
+
+        auto begin = std::make_shared<BeginFunction>(self, env, "It Begin", token, visitor, emptyQueue, nullptr, itInstance);
+        auto end = std::make_shared<EndFunction>(self, env, "It End", token, visitor, emptyQueue, nullptr, itInstance);
+        auto current = std::make_shared<CurrentFunction>(self, env, "It Current", token, visitor, emptyQueue, nullptr, itInstance);
+        auto next = std::make_shared<NextFunction>(self, env, "It Next", token, visitor, emptyQueue, nullptr, itInstance);
+
+        std::unordered_map<std::string, std::shared_ptr<Function>> methods;
+
+        methods["begin"] = begin;
+        methods["end"] = end;
+        methods["current"] = current;
+        methods["next"] = next;
+
+        itInstance->setMethods(methods);
+
+        // Return the value calculated
         return itInstance;
     }
 

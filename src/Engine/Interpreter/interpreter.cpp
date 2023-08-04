@@ -340,11 +340,13 @@ namespace pg
         auto get = std::make_shared<AtFunction>(expr->self, currentEnv, "List Get", token, this, emptyQueue, nullptr);
         auto set = std::make_shared<SetFunction>(expr->self, currentEnv, "List Set", token, this, emptyQueue, nullptr);
         auto size = std::make_shared<SizeFunction>(expr->self, currentEnv, "List Size", token, this, emptyQueue, nullptr, instance);
+        auto it = std::make_shared<IteratorFunction>(expr->self, currentEnv, "List Iterator", token, this, emptyQueue, nullptr, instance);
 
         std::unordered_map<std::string, std::shared_ptr<Function>> methods;
 
         methods["at"] = get->bind(instance);
         methods["set"] = set->bind(instance);
+        methods["it"] = it;
         methods["size"] = size;
 
         instance->setMethods(methods);

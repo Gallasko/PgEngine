@@ -4,8 +4,6 @@
 
 #include "serialization.h"
 
-//TODO set operator helper and a is numeric or is string to create easier check
-
 namespace pg
 {
     /**

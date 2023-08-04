@@ -4,9 +4,6 @@
 
 namespace pg
 {
-
-    // Todo support operator++ and --
-
     namespace
     {
         const char * DOM = "Parser";
@@ -423,7 +420,6 @@ namespace pg
         //TODO see if it is relevant to create a null expression
         //if(match(TokenType::NULL)) return std::make_shared<Atom>(nullptr)
 
-        //TODO currently only support integer types add float types when implemented in lexer
         if(match(TokenType::NUMBER)) return std::make_shared<Atom>(std::stoi(previousToken.text));
         if(match(TokenType::FLOAT)) return std::make_shared<Atom>(std::stof(previousToken.text));
         if(match(TokenType::STRING)) return std::make_shared<Atom>(previousToken.text);

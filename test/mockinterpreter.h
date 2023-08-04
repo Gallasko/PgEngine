@@ -67,6 +67,38 @@ namespace pg
         }
     };
 
+    class MethodPrint : public Function
+    {
+        using Function::Function;
+    public:
+        void setUp()
+        {
+            setArity(1, 1);
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            auto v = args.front();
+            args.pop();
+
+            if(v->getType() == "ClassInstance")
+            {
+                auto obj = std::static_pointer_cast<ClassInstance>(v);
+
+                auto methods = obj->getMethods();
+
+                std::cout << "[Interpreter]: Methods of " << obj->getElement().toString() << std::endl;
+
+                for(auto method : methods)
+                {
+                    std::cout << "[Interpreter]: " << method.first << std::endl;
+                }
+            }
+
+            return nullptr;
+        }
+    };
+
     class MockInterpreter : public PgInterpreter
     {
     public:
@@ -76,6 +108,7 @@ namespace pg
             this->addSystemFunction<ExpectEq>("ExpectEq");
 
             this->addSystemFunction<TestPrint>("print");
+            this->addSystemFunction<MethodPrint>("mPrint");
         }
     };
 }

@@ -137,7 +137,8 @@ namespace pg
         TEST(interpreter_test, import_test)
         {
             // Todo make a test where you try to run two script with the same name but in differents folders and check if they are no conflicts !
-            MockLogger<TerminalSink> logger;
+            // MockLogger<TerminalSink> logger;
+            MockLogger logger;
             MockInterpreter interpreter;
 
             auto scripts = UniversalFileAccessor::openTextFolder("TestScripts/Import/");
@@ -155,7 +156,8 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(interpreter_test, functionnal_test)
         {
-            MockLogger logger;
+            MockLogger<TerminalSink> logger;
+            logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
             MockInterpreter interpreter;
 
             auto scripts = UniversalFileAccessor::openTextFolder("TestScripts/Functionnal/");
@@ -174,7 +176,7 @@ namespace pg
         TEST(interpreter_test, table_test)
         {
             MockLogger logger(true);
-            logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
+            // logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
 
             MockInterpreter interpreter;
 

@@ -337,8 +337,11 @@ namespace pg
         std::unordered_map<std::string, std::shared_ptr<Function>> methods;
     };
 
+    class IteratorInstance;
+
     class ClassInstance : public Valuable
     {
+    friend class IteratorInstance;
     public:
         /** Construct a new Function Valuable object */
         ClassInstance(const Class *klass);
@@ -376,6 +379,9 @@ namespace pg
         std::shared_ptr<Valuable> get(const Token& token) const;
         void set(const Token& token, std::shared_ptr<Valuable> value);
 
+        inline const std::unordered_map<std::string, std::shared_ptr<Function>>& getMethods() const { return boundMethods; }
+        inline const std::unordered_map<std::string, std::shared_ptr<Valuable>>& getFields() const { return fields; }
+
     protected:
         std::shared_ptr<Function> findMethod(const std::string& name) const;
 
@@ -390,9 +396,13 @@ namespace pg
 
     class IteratorInstance : public ClassInstance
     {
-        using ClassInstance::ClassInstance;
     public:
+        IteratorInstance(const Class *klass, std::shared_ptr<ClassInstance> instance) : ClassInstance(klass), refFields(instance->fields), it(refFields.begin()) {}
         virtual std::string getType() const override { return "IteratorInstance"; }
+
+        std::unordered_map<std::string, std::shared_ptr<Valuable>>& refFields;
+
+        std::unordered_map<std::string, std::shared_ptr<Valuable>>::iterator it;
     };
 
     struct ListElement;
@@ -445,7 +455,67 @@ namespace pg
     class BeginFunction : public Function
     {
     public:
-        BeginFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<ClassInstance> instance);
+        BeginFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<IteratorInstance> instance);
+
+        virtual ValuablePtr call(ValuableQueue& args) const override;
+
+        virtual std::string getType() const override { return "List"; }
+
+    private:
+        ExprPtr self;
+
+        std::shared_ptr<IteratorInstance> instance;
+    };
+
+    class EndFunction : public Function
+    {
+    public:
+        EndFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<IteratorInstance> instance);
+
+        virtual ValuablePtr call(ValuableQueue& args) const override;
+
+        virtual std::string getType() const override { return "List"; }
+
+    private:
+        ExprPtr self;
+
+        std::shared_ptr<IteratorInstance> instance;
+    };
+
+    class CurrentFunction : public Function
+    {
+    public:
+        CurrentFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<IteratorInstance> instance);
+
+        virtual ValuablePtr call(ValuableQueue& args) const override;
+
+        virtual std::string getType() const override { return "List"; }
+
+    private:
+        ExprPtr self;
+
+        std::shared_ptr<IteratorInstance> instance;
+    };
+
+    class NextFunction : public Function
+    {
+    public:
+        NextFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<IteratorInstance> instance);
+
+        virtual ValuablePtr call(ValuableQueue& args) const override;
+
+        virtual std::string getType() const override { return "List"; }
+
+    private:
+        ExprPtr self;
+
+        std::shared_ptr<IteratorInstance> instance;
+    };
+
+    class IteratorFunction : public Function
+    {
+    public:
+        IteratorFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<ClassInstance> instance);
 
         virtual ValuablePtr call(ValuableQueue& args) const override;
 

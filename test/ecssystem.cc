@@ -320,7 +320,7 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(system_test, entity_creation_during_runtime)
         {
-            MockLogger<TerminalSink> logger;
+            MockLogger logger;
 
             EntitySystem ecs;
 
