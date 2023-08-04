@@ -94,6 +94,19 @@ namespace pg
                     std::cout << "[Interpreter]: " << method.first << std::endl;
                 }
             }
+            else if(v->getType() == "IteratorInstance")
+            {
+                auto obj = std::static_pointer_cast<IteratorInstance>(v);
+
+                auto methods = obj->getMethods();
+
+                std::cout << "[Interpreter]: Methods of " << obj->getElement().toString() << std::endl;
+
+                for(auto method : methods)
+                {
+                    std::cout << "[Interpreter]: " << method.first << std::endl;
+                }
+            }
 
             return nullptr;
         }

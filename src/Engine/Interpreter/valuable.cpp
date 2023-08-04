@@ -465,19 +465,22 @@ namespace pg
     {
         auto itInstance = std::make_shared<IteratorInstance>(nullptr, instance);
 
+        auto itToken = token;
+        itToken.text = "Iterator Function";
+
         std::queue<ExprPtr> emptyQueue;
 
-        auto begin = std::make_shared<BeginFunction>(self, env, "It Begin", token, visitor, emptyQueue, nullptr, itInstance);
-        auto end = std::make_shared<EndFunction>(self, env, "It End", token, visitor, emptyQueue, nullptr, itInstance);
-        auto current = std::make_shared<CurrentFunction>(self, env, "It Current", token, visitor, emptyQueue, nullptr, itInstance);
-        auto next = std::make_shared<NextFunction>(self, env, "It Next", token, visitor, emptyQueue, nullptr, itInstance);
+        auto current = std::make_shared<CurrentFunction>(self, env, "It Current", itToken, visitor, emptyQueue, nullptr, itInstance);
+        auto begin   = std::make_shared<BeginFunction>(self, env, "It Begin", itToken, visitor, emptyQueue, nullptr, itInstance);
+        auto next    = std::make_shared<NextFunction>(self, env, "It Next", itToken, visitor, emptyQueue, nullptr, itInstance);
+        auto end     = std::make_shared<EndFunction>(self, env, "It End", itToken, visitor, emptyQueue, nullptr, itInstance);
 
         std::unordered_map<std::string, std::shared_ptr<Function>> methods;
 
-        methods["begin"] = begin;
-        methods["end"] = end;
         methods["current"] = current;
+        methods["begin"] = begin;
         methods["next"] = next;
+        methods["end"] = end;
 
         itInstance->setMethods(methods);
 

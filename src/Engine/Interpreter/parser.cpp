@@ -657,12 +657,12 @@ namespace pg
 
             auto endVar = std::make_shared<Var>(end);
 
-            // Grab the name of the variable use in the lhs of the : of the for statement
-            auto var = std::make_shared<Var>(name);
-
             // And create an expression that assign the value of the iterator (current) to this variable
             auto& varToken = std::static_pointer_cast<VariableStatement>(initializer)->name;
             auto varExpr = std::make_shared<Assign>(varToken, currentExpr);
+
+            // Grab the name of the variable use in the lhs of the : of the for statement
+            auto var = std::make_shared<Var>(varToken);
 
             // Create the condition expression for the while loop (current != end)
             auto conditionToken = Token{TokenType::NOTEQUAL, "!=", token.line, token.column + 5};
@@ -675,12 +675,12 @@ namespace pg
             // Body of the while loop
             {
                 std::queue<StatementPtr> q;
-                // Set the named var to the current value of the iterator
-                q.push(std::make_shared<ExpressionStatement>(varExpr));
                 // Execute body
                 q.push(body);
                 // Advance the iterator
                 q.push(std::make_shared<ExpressionStatement>(nextExpr));
+                // Set the named var to the current value of the iterator
+                q.push(std::make_shared<ExpressionStatement>(varExpr));
 
                 body = std::make_shared<BlockStatement>(q);
             }
@@ -698,6 +698,7 @@ namespace pg
                 
                 // Init the named variable
                 q.push(initializer);
+                q.push(std::make_shared<ExpressionStatement>(varExpr));
 
                 q.push(body);
 
