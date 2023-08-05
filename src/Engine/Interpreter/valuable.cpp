@@ -461,7 +461,7 @@ namespace pg
         setArity(0, 0);
     }
 
-    ValuablePtr IteratorFunction::call(ValuableQueue& args) const
+    ValuablePtr IteratorFunction::call(ValuableQueue&) const
     {
         auto itInstance = std::make_shared<IteratorInstance>(nullptr, instance);
 

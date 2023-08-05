@@ -242,6 +242,12 @@ namespace pg
 
         virtual std::shared_ptr<Function> bind(std::shared_ptr<ClassInstance> instance);
 
+        inline std::shared_ptr<Environment> getEnv() const { return env; }
+
+        inline Token getToken() const { return token; }
+
+        inline VisitorInterpreter* getVisitor() const { return visitor; }
+
     protected:
         /** The piece of code to be executed when a function call is made */
         virtual std::shared_ptr<Valuable> call(std::queue<std::shared_ptr<Valuable>>& args) const;

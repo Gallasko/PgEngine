@@ -227,6 +227,18 @@ namespace pg
             case TokenType::INCREMENT:
                 try
                 {
+                    // Specialization to imitate "++it" 
+                    if(expr->expr->accept(this)->getType() == "IteratorInstance")
+                    {
+                        auto it = std::static_pointer_cast<IteratorInstance>(expr->expr->accept(this));
+
+                        ValuableQueue emptyQueue;
+
+                        it->get(Token{TokenType::EXPRESSION, "next", 0, 0})->getValue(emptyQueue);
+
+                        return it->get(Token{TokenType::EXPRESSION, "current", 0, 0})->getValue(emptyQueue);
+                    }
+
                     auto res = std::make_shared<Variable>(value + ElementType{1});
 
                     assignVariable(expr->name, expr, res);
@@ -274,6 +286,18 @@ namespace pg
             case TokenType::INCREMENT:
                 try
                 {
+                    // Specialization to imitate "it++" 
+                    if(baseValue->getType() == "IteratorInstance")
+                    {
+                        auto it = std::static_pointer_cast<IteratorInstance>(baseValue);
+
+                        ValuableQueue emptyQueue;
+
+                        it->get(Token{TokenType::EXPRESSION, "next", 0, 0})->getValue(emptyQueue);
+
+                        return baseValue;
+                    }
+
                     auto res = std::make_shared<Variable>(value + ElementType{1});
 
                     assignVariable(expr->name, expr, res);
@@ -729,6 +753,46 @@ namespace pg
         }
 
         return visitor.env;
+    }
+
+    std::shared_ptr<ClassInstance> addToList(std::shared_ptr<ClassInstance> instance, const Token& token, const SysListElement& arg)
+    {
+        instance->set(Token{TokenType::EXPRESSION, arg.key, token.line, token.column}, std::make_shared<Variable>(arg.value));
+
+        return instance;
+    }
+
+    std::shared_ptr<ClassInstance> makeList(const Function *caller, const std::initializer_list<SysListElement>& list)
+    {
+        std::queue<ExprPtr> emptyQueue;
+
+        auto token = caller->getToken();
+        token.text = "List Function";
+
+        auto instance = std::make_shared<ClassInstance>(nullptr);
+
+        auto self = std::make_shared<This>(Token{TokenType::EXPRESSION, "this", token.line, token.column});
+
+        auto get = std::make_shared<AtFunction>(self, caller->getEnv(), "List Get", token, caller->getVisitor(), emptyQueue, nullptr);
+        auto set = std::make_shared<SetFunction>(self, caller->getEnv(), "List Set", token, caller->getVisitor(), emptyQueue, nullptr);
+        auto size = std::make_shared<SizeFunction>(self, caller->getEnv(), "List Size", token, caller->getVisitor(), emptyQueue, nullptr, instance);
+        auto it = std::make_shared<IteratorFunction>(self, caller->getEnv(), "List Iterator", token, caller->getVisitor(), emptyQueue, nullptr, instance);
+
+        std::unordered_map<std::string, std::shared_ptr<Function>> methods;
+
+        methods["at"] = get->bind(instance);
+        methods["set"] = set->bind(instance);
+        methods["it"] = it;
+        methods["size"] = size;
+
+        instance->setMethods(methods);
+
+        for(const auto& item : list)
+        {
+            addToList(instance, token, item);
+        }
+
+        return instance;
     }
 
 }

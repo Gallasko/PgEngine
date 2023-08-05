@@ -157,4 +157,22 @@ namespace pg
         visitor.globalContext->declareValue(name, function);
     }
 
+    template<typename Type>
+    inline std::shared_ptr<Valuable> makeVariable(const Type& type)
+    {
+        return std::make_shared<Variable>(ElementType { type }); 
+    }
+
+    struct SysListElement
+    {
+        template<typename T>
+        SysListElement(const std::string& str, T&& t) : key(str), value(std::forward<T>(t)) {}
+
+        std::string key;
+        ElementType value;
+    };
+
+    std::shared_ptr<ClassInstance> addToList(std::shared_ptr<ClassInstance> instance, const Token& token, const SysListElement& arg);
+
+    std::shared_ptr<ClassInstance> makeList(const Function *caller, const std::initializer_list<SysListElement>& list);
 }

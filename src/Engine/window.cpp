@@ -81,7 +81,7 @@ namespace
                 LOG_ERROR("CreateRectangle", "Cannot create a new rectangle values passed are not numbers");
             }
 
-            return nullptr;
+            return makeList(this, {{"x", static_cast<UiSize>(recUi->pos.x)}, {"y", static_cast<UiSize>(recUi->pos.y)}, {"w", recUi->width}, {"h", recUi->height}});
         }
 
         EntitySystem* ecsRef = nullptr;
@@ -187,7 +187,36 @@ namespace
 
             auto file = UniversalFileAccessor::openTextFile(name.toString());
 
-            return std::make_shared<Variable>(ElementType { file.data });
+            return makeVariable(file.data);
+        }
+
+        std::shared_ptr<Logger::LogSink> sink;
+    };
+
+    class OpenTextFolderFunction : public Function
+    {
+        using Function::Function;
+    public:
+        void setUp()
+        {
+            setArity(1, 1);
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            auto name = args.front()->getElement();
+            args.pop();
+
+            auto folder = UniversalFileAccessor::openTextFolder(name.toString());
+
+            auto list = makeList(this, {});
+
+            for(auto file : folder)
+            {
+                addToList(list, token, {file.filepath, file.data});
+            }
+
+            return list; 
         }
 
         std::shared_ptr<Logger::LogSink> sink;
@@ -220,6 +249,7 @@ namespace
         FileModule()
         {
             addSystemFunction<OpenTextFileFunction>("openTextFile");
+            addSystemFunction<OpenTextFolderFunction>("openTextFolder");
         }
     };
 }
