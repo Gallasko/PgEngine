@@ -146,7 +146,7 @@ namespace pg
         shaderList[name] = shaderProgram;
     }
 
-    void MasterRenderer::registerShader(const std::string& name, const char* vsPath, const char* fsPath)
+    void MasterRenderer::registerShader(const std::string& name, const std::string& vsPath, const std::string& fsPath)
     {
         LOG_THIS_MEMBER(DOM);
 
@@ -155,13 +155,14 @@ namespace pg
         registerShader(name, shaderProgram);
     }
 
-    //TODO mirror or not the texture
+    // TODO mirror or not the texture
+    // Todo add an argument to specify the type of texture loaded, e.g.: RGBA, RGB, ...
     void MasterRenderer::registerTexture(const std::string& name, const char* texturePath)
     { 
         LOG_THIS_MEMBER(DOM);
 
         int width, height, nrChannels;
-        // Todo change this with our custom file opener  (stbi_load_from_memory)
+        // Todo change this with our custom file opener (stbi_load_from_memory)
 
         unsigned char *data = stbi_load(texturePath, &width, &height, &nrChannels, STBI_rgb_alpha);
 

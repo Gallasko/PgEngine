@@ -103,7 +103,7 @@ namespace pg
         void renderAll();
 
         void registerShader(const std::string& name, OpenGLShaderProgram *shaderProgram);
-        void registerShader(const std::string& name, const char* vsPath, const char* fsPath);
+        void registerShader(const std::string& name, const std::string& vsPath, const std::string& fsPath);
 
         void registerTexture(const std::string& name, unsigned int textureId) { textureList[name] = textureId; }
         void registerTexture(const std::string& name, const char* texturePath);

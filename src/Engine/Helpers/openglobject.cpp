@@ -14,38 +14,20 @@ namespace
 namespace pg
 {
     // Todo change this with our custom file opener
-    OpenGLShaderProgram::OpenGLShaderProgram(const char* vertexPath, const char* fragmentPath)
+    OpenGLShaderProgram::OpenGLShaderProgram(const std::string& vertexPath, const std::string& fragmentPath)
     {
         // 1. retrieve the vertex/fragment source code from filePath
-        std::string vertexCode;
-        std::string fragmentCode;
-        std::ifstream vShaderFile;
-        std::ifstream fShaderFile;
-        // ensure ifstream objects can throw exceptions:
-        vShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
-        fShaderFile.exceptions (std::ifstream::failbit | std::ifstream::badbit);
-        try 
+        auto vertexFile = UniversalFileAccessor::openTextFile(vertexPath);
+        auto fragmentFile = UniversalFileAccessor::openTextFile(fragmentPath);
+
+        if(vertexFile.data == "" or fragmentFile.data == "")
         {
-            // open files
-            vShaderFile.open(vertexPath);
-            fShaderFile.open(fragmentPath);
-            std::stringstream vShaderStream, fShaderStream;
-            // read file's buffer contents into streams
-            vShaderStream << vShaderFile.rdbuf();
-            fShaderStream << fShaderFile.rdbuf();		
-            // close file handlers
-            vShaderFile.close();
-            fShaderFile.close();
-            // convert stream into string
-            vertexCode = vShaderStream.str();
-            fragmentCode = fShaderStream.str();			
+            LOG_ERROR(DOM, "Couldn't open files to create shader: '" << vertexPath << ", " << fragmentPath << "'");
+            return;
         }
-        catch (std::ifstream::failure& e)
-        {
-            LOG_ERROR(DOM, "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ: " << e.what());
-        }
-        const char* vShaderCode = vertexCode.c_str();
-        const char * fShaderCode = fragmentCode.c_str();
+        
+        const char* vShaderCode = vertexFile.data.c_str();
+        const char * fShaderCode = fragmentFile.data.c_str();
         // 2. compile shaders
         unsigned int vertex, fragment;
         // vertex shader

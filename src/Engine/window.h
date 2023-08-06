@@ -25,6 +25,7 @@
 namespace pg
 {
     // Type forwarding
+    class PgInterpreter;
     class MasterRenderer;
     class Input;
     class UiComponent;
@@ -64,6 +65,7 @@ namespace pg
 
         EntitySystem ecs;
 
+        PgInterpreter *interpreter = nullptr;
         MasterRenderer *masterRenderer = nullptr;
         Input *inputHandler = nullptr;
         FontLoader *fontLoader = nullptr;

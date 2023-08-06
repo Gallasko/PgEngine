@@ -9,6 +9,8 @@
 #include "logger.h"
 
 #include "Renderer/renderer.h"
+#include "Renderer/renderermodule.h"
+
 #include "Input/input.h"
 
 #include "UI/uisystem.h"
@@ -263,13 +265,14 @@ namespace pg
         inputHandler = new Input();
 
         // [Start] Interpreter definition
-        auto interpreter = ecs.createSystem<PgInterpreter>();
+        interpreter = ecs.createSystem<PgInterpreter>();
 
         interpreter->addSystemFunction<TestPrint>("print");
 
         interpreter->addSystemModule("log", LogModule{});
         interpreter->addSystemModule("ui", UiModule{&ecs});
 
+        // Script to configure the logger
         interpreter->interpretFromFile("logManager.pg");
         // [End] Interpreter definition
     }
@@ -433,17 +436,9 @@ namespace pg
         // [Start] Master render definition
 
         masterRenderer = ecs.createSystem<MasterRenderer>();
+        interpreter->addSystemModule("renderer", RendererModule{masterRenderer});
 
-        masterRenderer->registerShader("default", "shader/default.vs", "shader/default.fs");
-
-        masterRenderer->registerShader("gui", "shader/default.vs", "shader/default.fs");
-        masterRenderer->registerShader("text", "shader/textrendering.vs", "shader/textrendering.fs");
-
-        masterRenderer->registerShader("2DShapes", "shader/simpleshapes.vs", "shader/simpleshapes.fs");
-
-        masterRenderer->registerTexture("font", "res/font/font.png");
-
-        masterRenderer->registerTexture("menu", "res/menu/Menu.png");
+        interpreter->interpretFromFile("setupRenderer.pg");
 
         masterRenderer->setWindowSize(width, height);
 

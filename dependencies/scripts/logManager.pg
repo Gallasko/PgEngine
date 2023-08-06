@@ -1,0 +1,6 @@
+print("Log manager file")
+
+import "log"
+
+addFilterLevel("Log Filter", "log");
+// addFilterLevel("Mile Filter", "mile");
