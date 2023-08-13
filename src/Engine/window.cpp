@@ -6,6 +6,7 @@
 #include <chrono>
 
 #include "ECS/loggersystem.h"
+#include "ECS/ecsmodule.h"
 #include "logger.h"
 
 #include "Renderer/renderer.h"
@@ -21,6 +22,7 @@
 #include "UI/sentencesystem.h"
 
 #include "Interpreter/pginterpreter.h"
+#include "Interpreter/systemfunction.h"
 
 #include "GameElements/Systems/basicsystems.h"
 
@@ -268,9 +270,11 @@ namespace pg
         interpreter = ecs.createSystem<PgInterpreter>();
 
         interpreter->addSystemFunction<TestPrint>("print");
+        interpreter->addSystemFunction<ToString>("toString");
 
         interpreter->addSystemModule("log", LogModule{});
         interpreter->addSystemModule("ui", UiModule{&ecs});
+        interpreter->addSystemModule("ecs", EcsModule{&ecs});
 
         // Script to configure the logger
         interpreter->interpretFromFile("logManager.pg");

@@ -1,0 +1,13 @@
+import "ecs"
+
+print("In entity script")
+
+var entities = getAllEntities()
+
+print(entities)
+
+for(var entity : entities)
+{
+    print(entity.first)
+    print(entity.second)
+}

@@ -165,11 +165,16 @@ namespace pg
 
     struct SysListElement
     {
+        SysListElement(const std::string& str, ValuablePtr type) : key(str), value(type) {}
+        SysListElement(const std::string& str, std::shared_ptr<ClassInstance> type) : key(str), value(type) {}
+        SysListElement(const std::string& str, const ElementType& type) : key(str), value(makeVariable(type)) {}
+
         template<typename T>
-        SysListElement(const std::string& str, T&& t) : key(str), value(std::forward<T>(t)) {}
+        SysListElement(const std::string& str, T&& t) : key(str), value(makeVariable(std::forward<T>(t))) {}
+
 
         std::string key;
-        ElementType value;
+        ValuablePtr value;
     };
 
     std::shared_ptr<ClassInstance> addToList(std::shared_ptr<ClassInstance> instance, const Token& token, const SysListElement& arg);

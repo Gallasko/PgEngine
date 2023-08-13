@@ -92,6 +92,8 @@ namespace pg
                 return cmdDispatcher.createEntity();
             else
             {
+                std::lock_guard<std::mutex> lock(entityMutex);
+
                 const auto& id = registry.idGenerator.generateId();
                 return entityPool.addComponent(id, id, this);
             }
@@ -265,21 +267,38 @@ namespace pg
         /** Return the registry of the ECS, mainly for testing purposes */
         inline constexpr const ComponentRegistry* getComponentRegistry() const noexcept { return &registry; }
 
-        inline size_t getNbEntities() const { LOG_THIS_MEMBER("ECS"); return entityPool.nbElements() - 1; }
+        inline size_t getNbEntities() const { LOG_THIS_MEMBER("ECS"); std::lock_guard<std::mutex> lock(entityMutex); return entityPool.nbElements() - 1; }
 
-        inline Entity* getEntity(_unique_id id) const { LOG_THIS_MEMBER("ECS"); return entityPool.atEntity(id); }
+        inline Entity* getEntity(_unique_id id) const { LOG_THIS_MEMBER("ECS"); std::lock_guard<std::mutex> lock(entityMutex); return entityPool.atEntity(id); }
 
         template <typename Comp>
         inline Comp* getComponent(_unique_id id) const { LOG_THIS_MEMBER("ECS"); return registry.retrieve<Comp>()->getComponent(id); }
 
-    private:
-        friend void serialize<>(Archive& archive, const EntitySystem& ecs);
-
-        void addEntityToPool(Entity* entity)
+        inline ComponentSet<Entity>::ComponentSetList view() const
         {
             LOG_THIS_MEMBER("ECS");
 
             std::lock_guard<std::mutex> lock(entityMutex);
+
+            return entityPool.viewComponents();
+        }
+
+    private:
+        friend void serialize<>(Archive& archive, const EntitySystem& ecs);
+
+        void freezeEntityPool() noexcept
+        {
+            entityMutex.lock();
+        }
+
+        void unfreezeEntityPool()
+        {
+            entityMutex.unlock();
+        }
+
+        void addEntityToPool(Entity* entity)
+        {
+            LOG_THIS_MEMBER("ECS");
 
             entityPool.addComponent(entity, *entity);
         }
@@ -306,8 +325,6 @@ namespace pg
             }
 
             componentMutex.unlock();
-
-            std::lock_guard<std::mutex> lock(entityMutex);
 
             entityPool.removeComponent(entity);
         }

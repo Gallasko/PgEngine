@@ -15,6 +15,14 @@ namespace pg
     {
         const char * DOM = "Interpreter";
 
+        bool stringEndWith(const std::string& fullString, const std::string& ending)
+        {
+            if (fullString.length() >= ending.length())
+                return (0 == fullString.compare (fullString.length() - ending.length(), ending.length(), ending));
+            else
+                return false;
+        }
+
         struct EnvironmentSwapper
         {
             EnvironmentSwapper(std::shared_ptr<Environment>& env, std::shared_ptr<Environment> newEnv) : env(env) { LOG_THIS_MEMBER(DOM); oldEnv = env; env = newEnv; }
@@ -598,6 +606,36 @@ namespace pg
                     scriptPath = p.relative_path().remove_filename().string();
                 }
 
+                auto tempModuleName = importName;
+                // Append the extension if not already present
+                if(not stringEndWith(tempModuleName, ".pg"))
+                    tempModuleName += ".pg";
+
+                fs::path p2 {tempModuleName};
+
+                LOG_INFO(DOM, p.string() << " " << p2.string());
+
+                // If the imported module and the script file have the same name, try to see if it's not a sys module instead
+                if (fs::exists(p2) and p == p2)
+                {
+                    if(interpreter->isSysModule(importName))
+                    {
+                        for(const auto& it : interpreter->sysModuleTable[importName])
+                        {
+                            auto function = it.second(this, it.first);
+
+                            globalContext->declareValue(it.first, function);
+                        }
+                    }
+                    else
+                    {
+                        throw RuntimeException(stmt->name, "Current module is trying to import itself...");
+                    }
+
+                    tmpImports.pop();
+                    continue;
+                }
+                
                 // Get the Ast of the script that we try to import
                 auto scriptAst = interpreter->getAst(importName, scriptPath);
 
@@ -605,7 +643,7 @@ namespace pg
                 {
                     if(interpreter->isSysModule(importName))
                     {
-                        for(auto& it : interpreter->sysModuleTable[importName])
+                        for(const auto& it : interpreter->sysModuleTable[importName])
                         {
                             auto function = it.second(this, it.first);
 
@@ -738,7 +776,6 @@ namespace pg
         while(not statements.empty())
         {
             auto stmt = statements.front();
-            statements.pop();
 
             try
             {
@@ -750,6 +787,8 @@ namespace pg
                 LOG_ERROR(DOM, e.what());
                 encounteredError = true;
             }
+
+            statements.pop();
         }
 
         return visitor.env;
@@ -757,7 +796,7 @@ namespace pg
 
     std::shared_ptr<ClassInstance> addToList(std::shared_ptr<ClassInstance> instance, const Token& token, const SysListElement& arg)
     {
-        instance->set(Token{TokenType::EXPRESSION, arg.key, token.line, token.column}, std::make_shared<Variable>(arg.value));
+        instance->set(Token{TokenType::EXPRESSION, arg.key, token.line, token.column}, arg.value);
 
         return instance;
     }

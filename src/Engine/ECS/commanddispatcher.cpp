@@ -47,6 +47,8 @@ namespace pg
 
         bool found2 = componentQueue.try_dequeue(item2);
 
+        ecsRef->freezeEntityPool();
+
         while (found or found2)
         {
             while (found)
@@ -72,5 +74,7 @@ namespace pg
 
             found2 = componentQueue.try_dequeue(item2);
         }
+
+        ecsRef->unfreezeEntityPool();
     }
 }
