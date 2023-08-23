@@ -3,6 +3,7 @@
 #include "entitysystem.h"
 
 #include "Interpreter/pginterpreter.h"
+#include "Interpreter/interpretersystem.h"
 
 namespace pg
 {
@@ -44,11 +45,41 @@ namespace pg
         EntitySystem *ecsRef;
     };
 
+    class RegisterNewSystem : public Function
+    {
+        using Function::Function;
+    public:
+        void setUp(EntitySystem *ecsRef)
+        {
+            setArity(1, 1);
+
+            this->ecsRef = ecsRef;
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            auto arg = args.front();
+            args.pop();
+
+            if(arg->getType() == "ClassInstance")
+            {
+                auto sys = std::static_pointer_cast<ClassInstance>(arg);
+
+                ecsRef->createSystem<InterpreterSystem>(env, sys);
+            }
+
+            return nullptr; 
+        }
+
+        EntitySystem *ecsRef;
+    };
+
     struct EcsModule : public SysModule
     {
         EcsModule(EntitySystem *ecsRef)
         {            
             addSystemFunction<GetAllEntityFunction>("getAllEntities", ecsRef);
+            addSystemFunction<RegisterNewSystem>("registerSystem", ecsRef);
         }
     };
 

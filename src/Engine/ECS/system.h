@@ -211,7 +211,7 @@ namespace pg
             LOG_THIS_MEMBER("System");
         }
 
-        ~System()
+        virtual ~System()
         {
             LOG_THIS_MEMBER("System");
         }
@@ -225,7 +225,7 @@ namespace pg
                 this->registry->processEvent(event);
         }
 
-        void addToRegistry(ComponentRegistry *registry)
+        virtual void addToRegistry(ComponentRegistry *registry)
         {
             LOG_THIS_MEMBER("System");
 

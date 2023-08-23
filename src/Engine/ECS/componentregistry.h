@@ -15,6 +15,8 @@
 namespace pg
 {
     class InputSystem;
+    class ClassInstance;
+    class InterpreterSystem;
     // class MasterRenderer;
 
     template <typename Type>
@@ -159,6 +161,8 @@ namespace pg
                 listener->onEvent(static_cast<const Event&>(static_cast<const DelegateEvent&>(event)));
             });
         }
+
+        void addEventListener(_unique_id eventId, InterpreterSystem *listener);
 
         template<typename Event>
         void processEvent(const Event& event)
