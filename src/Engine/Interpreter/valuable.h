@@ -173,6 +173,9 @@ namespace pg
         ElementType value;
     };
 
+    template<typename T>
+    inline std::shared_ptr<Variable> makeVar(const T& value) { return std::make_shared<Variable>(ElementType { value }); } 
+
     /**
      * @struct Arity
      * @brief A structure that holds the number of arguments required for a function/method call

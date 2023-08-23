@@ -84,6 +84,11 @@ namespace pg
                 runningThread.join();
         }
 
+        inline _unique_id generateId() noexcept
+        {
+            return registry.idGenerator.generateId();
+        }
+
         EntityRef createEntity()
         {
             LOG_THIS_MEMBER("ECS");
@@ -286,12 +291,12 @@ namespace pg
     private:
         friend void serialize<>(Archive& archive, const EntitySystem& ecs);
 
-        void freezeEntityPool() noexcept
+        inline void freezeEntityPool() noexcept
         {
             entityMutex.lock();
         }
 
-        void unfreezeEntityPool()
+        inline void unfreezeEntityPool() noexcept
         {
             entityMutex.unlock();
         }

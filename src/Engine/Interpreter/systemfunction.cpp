@@ -23,7 +23,7 @@ namespace pg
         auto v = args.front()->getElement();
         args.pop();
 
-        return std::make_shared<Variable>(ElementType { v.toString() });
+        return makeVar(v.toString());
     }
 
     void LogInfo::setUp()
@@ -53,6 +53,6 @@ namespace pg
 
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(p1.time_since_epoch()).count();
 
-        return std::make_shared<Variable>(ElementType { static_cast<int>(elapsed) });
+        return makeVar(static_cast<int>(elapsed));
     }
 }

@@ -191,7 +191,7 @@ namespace
 
             auto file = UniversalFileAccessor::openTextFile(name.toString());
 
-            return makeVariable(file.data);
+            return makeVar(file.data);
         }
 
         std::shared_ptr<Logger::LogSink> sink;

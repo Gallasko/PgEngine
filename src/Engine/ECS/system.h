@@ -20,20 +20,19 @@ namespace pg
         Sequential  = 1,
         Parallel    = 2,
         Independent = 3,
-        OnEvent     = 4,
-        Storage     = 5
+        Storage     = 4
     };
 
-    struct StoragePolicy { };
-
     struct ManualPolicy { };
-
-    struct IndependentPolicy { };
 
     struct ParallelPolicy
     {
         virtual void parallelExecute(tf::Taskflow&) = 0;
     };
+
+    struct IndependentPolicy { };
+
+    struct StoragePolicy { };
 
     struct InitSys
     {
@@ -67,7 +66,7 @@ namespace pg
 
         _unique_id id;
 
-        std::string name = "Unnamed";
+        std::string name = "UnNamed";
 
         // Todo make function onAdd and onDelete of a component that default to nothing if not used
     };
