@@ -88,6 +88,17 @@ namespace pg
                 }
                 break;
 
+            case TokenType::MOD:
+                try
+                {
+                    return std::make_shared<Variable>(lvalue % rvalue);
+                }
+                catch(const std::exception& e)
+                {
+                    throw RuntimeException(expr->op, e.what());
+                }
+                break;
+
             case TokenType::SUP:
                 try
                 {

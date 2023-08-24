@@ -126,7 +126,7 @@ namespace pg
     {
         auto expr = logicOr();
 
-        while(match(TokenType::EQUAL, TokenType::PLUSEQUAL, TokenType::MINUSEQUAL, TokenType::STAREQUAL, TokenType::DIVIDEQUAL))
+        while(match(TokenType::EQUAL, TokenType::PLUSEQUAL, TokenType::MINUSEQUAL, TokenType::STAREQUAL, TokenType::DIVIDEQUAL, TokenType::MODEQUAL))
         {
             Token op = previousToken;
 
@@ -136,7 +136,7 @@ namespace pg
             // Todo += desugaring breaks when used on list
             // var list = [0, 1, 2]; list[0] += 1; << Crashes
 
-            // Desugaring operator +=, -=, *= and /=
+            // Desugaring operator +=, -=, *=, /= and %=
             switch(op.type)
             {
             case TokenType::PLUSEQUAL:
@@ -153,6 +153,10 @@ namespace pg
 
             case TokenType::DIVIDEQUAL:
                 rExpr = std::make_shared<BinaryExpression>(expr, Token{TokenType::SLASH, "/", op.line, op.column}, rExpr);
+                break;
+
+            case TokenType::MODEQUAL:
+                rExpr = std::make_shared<BinaryExpression>(expr, Token{TokenType::SLASH, "%", op.line, op.column}, rExpr);
                 break;
 
             default:
@@ -285,7 +289,7 @@ namespace pg
     {
         auto expr = unary();
 
-        while(match(TokenType::SLASH, TokenType::STAR))
+        while(match(TokenType::SLASH, TokenType::STAR, TokenType::MOD))
         {
             Token op = previousToken;
             
