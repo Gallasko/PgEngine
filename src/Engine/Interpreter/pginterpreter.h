@@ -73,6 +73,8 @@ namespace pg
     friend class Interpreter;
     friend class VisitorInterpreter;
     public:
+        virtual ~PgInterpreter() { for(auto interpreter : sysInterpreters) delete interpreter; }
+
         ScriptImport interpretFromText(const std::string& scriptText);
         ScriptImport interpretFromFile(const std::string& scriptFile);
         ScriptImport interpretFromFile(const TextFile& scriptFile);
@@ -167,6 +169,9 @@ namespace pg
         // Todo store the absolute path of the custom made script file
         // to avoid using the AST of another file when trying to import a script
         std::unordered_map<std::string, ScriptImport> importedScripts;
+
+        // Hold all the scripts defining some system in the ecs to not invalidate execute functions and such
+        std::vector<Interpreter*> sysInterpreters;
 
         std::mutex mutex;
 

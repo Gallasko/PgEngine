@@ -86,6 +86,10 @@ namespace pg
 
         inline void resetReturnFlags() { returnTriggered = false; }
 
+        inline void setEcsSysFlag() { hasEcsSysFlag = true; }
+        
+        bool hasEcsSys() const;
+
     private:
         std::shared_ptr<Environment> globalContext = env;
         std::unordered_map<Expression*, unsigned int> localsList;
@@ -108,6 +112,8 @@ namespace pg
         PgInterpreter *interpreter;
 
         std::string scriptName;
+
+        mutable bool hasEcsSysFlag = false;
 
         // Keep a reference to all imported interpreters to keep their statement ptr valid
         std::vector<std::shared_ptr<Interpreter>> importedInterpreters;
@@ -134,6 +140,8 @@ namespace pg
         std::shared_ptr<Environment> interpret();
 
         inline bool hasError() const { return encounteredError; }
+
+        inline bool hasEcsSys() const { return visitor.hasEcsSys(); }
 
     private:
         std::unordered_map<Expression*, unsigned int> localsList;

@@ -129,6 +129,11 @@ namespace pg
         if(importedScripts.find(script.name) == importedScripts.end())
             importedScripts[script.name] = script;
         
+        if(interpreter->hasEcsSys())
+            sysInterpreters.push_back(interpreter);
+        else
+            delete interpreter;
+
         // Todo remove this save of the env as the interpreter is created locally here and so the env become useless once we leave this function
         importedScripts[script.name].env = env;
 

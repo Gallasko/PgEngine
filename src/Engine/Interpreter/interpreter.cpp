@@ -753,6 +753,23 @@ namespace pg
         ancestor(distance)->assignValue(name.text, name, value);
     }
 
+    bool VisitorInterpreter::hasEcsSys() const
+    {
+        if(hasEcsSysFlag)
+            return hasEcsSysFlag;
+
+        for(auto interpreter : importedInterpreters)
+        {
+            if(interpreter->hasEcsSys())
+            {
+                hasEcsSysFlag = true;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     std::shared_ptr<Valuable> executeBlock(std::queue<StatementPtr> statements, VisitorInterpreter* visitor, std::shared_ptr<Environment> environment)
     {
         LOG_THIS(DOM);

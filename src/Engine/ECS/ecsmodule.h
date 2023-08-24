@@ -102,7 +102,10 @@ namespace pg
 
                 // Todo enable sys creation during runtime
                 if(not ecsRef->isRunning())
+                {
                     ecsRef->createSystem<InterpreterSystem>(env, sys);
+                    visitor->setEcsSysFlag();
+                }
                 else
                 {
                     LOG_ERROR("Ecs Module", "Trying to instanciate a system while ecs is running");
