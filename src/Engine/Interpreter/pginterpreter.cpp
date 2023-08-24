@@ -109,16 +109,18 @@ namespace pg
 
     ScriptImport PgInterpreter::_interpret(const ScriptImport& script)
     {
-        Interpreter interpreter(script, this);
+        // Todo store the interpreter if a system is defined in it
+        // Else just destroy it
+        Interpreter *interpreter = new Interpreter(script, this);
 
         for(auto& it : sysFunctionTable)
         {
-            it.second(&interpreter, it.first);
+            it.second(interpreter, it.first);
         }
 
-        auto env = interpreter.interpret();
+        auto env = interpreter->interpret();
 
-        if(interpreter.hasError())
+        if(interpreter->hasError())
         {
             LOG_ERROR(DOM, "Interpreter error");
             return script;

@@ -13,6 +13,8 @@ namespace pg
     public:
         void setUp(EntitySystem *ecsRef)
         {
+            LOG_THIS_MEMBER("Ecs Module");
+
             setArity(0, 0);
 
             this->ecsRef = ecsRef;
@@ -20,23 +22,16 @@ namespace pg
 
         virtual ValuablePtr call(ValuableQueue&) const override
         {
-            auto entityList = makeList(this, {});
+            LOG_THIS_MEMBER("Ecs Module");
 
-            for(auto entity : ecsRef->view())
+            auto systemList = makeList(this, {});
+
+            for(auto sys : ecsRef->getSystems())
             {
-                auto compList = makeList(this, {});
-                
-                size_t j = 0;
-                for(const auto& compId : entity->componentList)
-                {
-                    addToList(compList, this->token, {std::to_string(j), compId.getId()});
-                    j++;
-                }
-
-                addToList(entityList, this->token, {std::to_string(entity->id), compList});
+                addToList(systemList, this->token, {std::to_string(sys.first), sys.second->name});
             }
 
-            return entityList; 
+            return systemList; 
         }
 
         EntitySystem *ecsRef;
@@ -48,6 +43,8 @@ namespace pg
     public:
         void setUp(EntitySystem *ecsRef)
         {
+            LOG_THIS_MEMBER("Ecs Module");
+
             setArity(0, 0);
 
             this->ecsRef = ecsRef;
@@ -55,6 +52,8 @@ namespace pg
 
         virtual ValuablePtr call(ValuableQueue&) const override
         {
+            LOG_THIS_MEMBER("Ecs Module");
+
             auto entityList = makeList(this, {});
 
             for(auto entity : ecsRef->view())
@@ -83,6 +82,8 @@ namespace pg
     public:
         void setUp(EntitySystem *ecsRef)
         {
+            LOG_THIS_MEMBER("Ecs Module");
+
             setArity(1, 1);
 
             this->ecsRef = ecsRef;
@@ -90,6 +91,8 @@ namespace pg
 
         virtual ValuablePtr call(ValuableQueue& args) const override
         {
+            LOG_THIS_MEMBER("Ecs Module");
+
             auto arg = args.front();
             args.pop();
 
@@ -97,7 +100,13 @@ namespace pg
             {
                 auto sys = std::static_pointer_cast<ClassInstance>(arg);
 
-                ecsRef->createSystem<InterpreterSystem>(env, sys);
+                // Todo enable sys creation during runtime
+                if(not ecsRef->isRunning())
+                    ecsRef->createSystem<InterpreterSystem>(env, sys);
+                else
+                {
+                    LOG_ERROR("Ecs Module", "Trying to instanciate a system while ecs is running");
+                }
             }
 
             return nullptr; 
@@ -112,6 +121,8 @@ namespace pg
     public:
         void setUp(EntitySystem *ecsRef)
         {
+            LOG_THIS_MEMBER("Ecs Module");
+
             setArity(0, 0);
 
             this->ecsRef = ecsRef;
@@ -119,20 +130,63 @@ namespace pg
 
         virtual ValuablePtr call(ValuableQueue&) const override
         {
+            LOG_THIS_MEMBER("Ecs Module");
+
             return makeVar(ecsRef->generateId());
         }
 
         EntitySystem *ecsRef;
     };
 
+    class NewUniqueIdFromString : public Function
+    {
+        using Function::Function;
+    public:
+        void setUp(EntitySystem *ecsRef)
+        {
+            LOG_THIS_MEMBER("Ecs Module");
+
+            setArity(1, 1);
+
+            this->ecsRef = ecsRef;
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            LOG_THIS_MEMBER("Ecs Module");
+
+            auto arg = args.front();
+            args.pop();
+
+            auto key = arg->getValue()->getElement().toString();
+
+            const auto& it = uniqueIds.find(key);
+
+            if(it != uniqueIds.end())
+                return makeVar(it->second);
+            else
+            {
+                auto id = ecsRef->generateId();
+                uniqueIds.emplace(key, id);
+                return makeVar(id);
+            }
+        }
+
+        EntitySystem *ecsRef;
+        mutable std::unordered_map<std::string, _unique_id> uniqueIds;
+    };
+
     struct EcsModule : public SysModule
     {
         EcsModule(EntitySystem *ecsRef)
         {
+            LOG_THIS_MEMBER("Ecs Module");
+
             addSystemFunction<GetAllSystemFunction>("getAllSystems", ecsRef);
             addSystemFunction<GetAllEntityFunction>("getAllEntities", ecsRef);
             addSystemFunction<RegisterNewSystem>("registerSystem", ecsRef);
             addSystemFunction<NewUniqueId>("generateNewId", ecsRef);
+            addSystemFunction<NewUniqueIdFromString>("getIdFrom", ecsRef);
         }
     };
 

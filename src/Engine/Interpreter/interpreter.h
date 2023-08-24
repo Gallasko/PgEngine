@@ -166,7 +166,6 @@ namespace pg
         template<typename T>
         SysListElement(const std::string& str, T&& t) : key(str), value(makeVar(std::forward<T>(t))) {}
 
-
         std::string key;
         ValuablePtr value;
     };

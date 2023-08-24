@@ -480,6 +480,9 @@ namespace pg
 
         ecs.succeed<MasterRenderer, UiComponentSystem>();
 
+        // Script to configure all the users systems
+        interpreter->interpretFromFile("sysRegister.pg");
+
         // Log taskflow for this window
         ecs.dumbTaskflow();
 

@@ -6,18 +6,22 @@
 
 namespace pg
 {
+    namespace
+    {
+        constexpr const char * const DOM = "Interpreter System";
+    }
 
     class InterpreterSystem : public System<>
     {
     public:
         InterpreterSystem(std::shared_ptr<Environment> env, std::shared_ptr<ClassInstance> sysInstance) : env(env), sysInstance(sysInstance)
         {
-
+            LOG_THIS_MEMBER(DOM);
         }
 
         virtual void addToRegistry(ComponentRegistry *registry) override
         {
-            LOG_THIS_MEMBER("System");
+            LOG_THIS_MEMBER(DOM);
 
             this->registry = registry;
 
@@ -59,7 +63,7 @@ namespace pg
                 }
             }
 
-            if(executionPolicy == ExecutionPolicy::Independent and executionPolicy == ExecutionPolicy::Sequential)
+            if(executionPolicy == ExecutionPolicy::Independent or executionPolicy == ExecutionPolicy::Sequential)
             {
                 //Todo also check for a sysfield name "execute" !
                 const auto& executeIt = sysMethods.find("execute");
@@ -86,13 +90,25 @@ namespace pg
 
         virtual void execute() override
         {
+            LOG_THIS_MEMBER(DOM);
+
+            if(not executeMethod)
+                return;
+
             ValuableQueue emptyQueue;
-            executeMethod->getValue(emptyQueue);
+            try
+            {
+                executeMethod->getValue(emptyQueue);
+            }
+            catch(const std::exception& e)
+            {
+                LOG_ERROR(DOM, e.what());
+            }
         }
 
         void onEvent(_unique_id id, std::shared_ptr<ClassInstance> values)
         {
-
+            LOG_THIS_MEMBER(DOM);
         }
 
     private:

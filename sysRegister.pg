@@ -1,0 +1,20 @@
+import "ecs"
+
+class CustomSystem
+{
+    init()
+    {
+        this.name = "Custom System";
+    }
+
+    execute()
+    {
+        print("In execute: " + this.name);
+    }
+}
+
+var sys = CustomSystem();
+
+print(sys.name)
+
+registerSystem(sys)

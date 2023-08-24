@@ -2,6 +2,8 @@ import "ecs"
 
 print("In entity script")
 
+
+print("Printing all entities")
 var entities = getAllEntities()
 
 print(entities)
@@ -9,5 +11,19 @@ print(entities)
 for(var entity : entities)
 {
     print(entity.first)
-    print(entity.second)
+    
+    for(var comp : entity.second)
+    {
+        print("--> " + toString(comp.first) + ": " + toString(comp.second))
+    }
+}
+
+print("Printing all systems")
+var systems = getAllSystems()
+
+print(systems)
+
+for(var sys : systems)
+{
+    print(toString(sys.first) + ": " + sys.second)
 }

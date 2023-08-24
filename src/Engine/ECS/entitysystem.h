@@ -288,6 +288,10 @@ namespace pg
             return entityPool.viewComponents();
         }
 
+        inline const std::map<_unique_id, AbstractSystem*>& getSystems() const { return systems; }
+
+        inline bool isRunning() const { return running; }
+
     private:
         friend void serialize<>(Archive& archive, const EntitySystem& ecs);
 
