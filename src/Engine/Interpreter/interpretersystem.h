@@ -6,22 +6,17 @@
 
 namespace pg
 {
-    namespace
-    {
-        constexpr const char * const DOM = "Interpreter System";
-    }
-
     class InterpreterSystem : public System<>
     {
     public:
         InterpreterSystem(std::shared_ptr<Environment> env, std::shared_ptr<ClassInstance> sysInstance) : env(env), sysInstance(sysInstance)
         {
-            LOG_THIS_MEMBER(DOM);
+            LOG_THIS_MEMBER("Interpreter System");
         }
 
         virtual void addToRegistry(ComponentRegistry *registry) override
         {
-            LOG_THIS_MEMBER(DOM);
+            LOG_THIS_MEMBER("Interpreter System");
 
             this->registry = registry;
 
@@ -90,25 +85,29 @@ namespace pg
 
         virtual void execute() override
         {
-            LOG_THIS_MEMBER(DOM);
+            LOG_THIS_MEMBER("Interpreter System");
 
             if(not executeMethod)
                 return;
 
             ValuableQueue emptyQueue;
+            
             try
-            {
+            {    
+                auto m = executeMethod->getVisitor()->getMutex();
+                m->lock();
                 executeMethod->getValue(emptyQueue);
+                m->unlock();
             }
             catch(const std::exception& e)
             {
-                LOG_ERROR(DOM, e.what());
+                LOG_ERROR("Interpreter System", e.what());
             }
         }
 
         void onEvent(_unique_id id, std::shared_ptr<ClassInstance> values)
         {
-            LOG_THIS_MEMBER(DOM);
+            LOG_THIS_MEMBER("Interpreter System");
         }
 
     private:

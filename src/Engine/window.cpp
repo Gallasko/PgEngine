@@ -21,6 +21,8 @@
 #include "UI/textinput.h"
 #include "UI/sentencesystem.h"
 
+#include "Systems/coremodule.h"
+
 #include "Interpreter/pginterpreter.h"
 #include "Interpreter/systemfunction.h"
 
@@ -275,6 +277,7 @@ namespace pg
         interpreter->addSystemModule("log", LogModule{});
         interpreter->addSystemModule("ui", UiModule{&ecs});
         interpreter->addSystemModule("ecs", EcsModule{&ecs});
+        interpreter->addSystemModule("core", CoreModule{&ecs});
 
         // Script to configure the logger
         interpreter->interpretFromFile("logManager.pg");

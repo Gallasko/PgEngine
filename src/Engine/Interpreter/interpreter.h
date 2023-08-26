@@ -56,8 +56,19 @@ namespace pg
     friend class Interpreter;
     friend class SysModule;
     public:
-        VisitorInterpreter(PgInterpreter *interpreter, std::shared_ptr<Environment> environment, const std::unordered_map<Expression*, unsigned int>& localsList, const std::string& scriptName) : Visitor(environment), localsList(localsList), interpreter(interpreter), scriptName(scriptName) {}
-        virtual ~VisitorInterpreter() {}
+        VisitorInterpreter(PgInterpreter *interpreter, std::shared_ptr<Environment> environment, const std::unordered_map<Expression*, unsigned int>& localsList, const std::string& scriptName, std::mutex *m = nullptr) : Visitor(environment), localsList(localsList), interpreter(interpreter), scriptName(scriptName)
+        {
+            if(m == nullptr)
+            {
+                mutex = new std::mutex;
+                ownMutex = true;
+            }
+            else
+            {
+                mutex = m;
+            }
+        }
+        virtual ~VisitorInterpreter() {if(ownMutex) delete mutex; }
 
         virtual std::shared_ptr<Valuable> visit(BinaryExpression *expr) override;
         virtual std::shared_ptr<Valuable> visit(LogicExpression *expr) override;
@@ -90,6 +101,8 @@ namespace pg
         
         bool hasEcsSys() const;
 
+        inline std::mutex* getMutex() { return mutex; }
+
     private:
         std::shared_ptr<Environment> globalContext = env;
         std::unordered_map<Expression*, unsigned int> localsList;
@@ -113,7 +126,13 @@ namespace pg
 
         std::string scriptName;
 
+        // Flag to indicate that a ecs system or event was defined in this script and so it needs to be saved to not invalidate the ecs
         mutable bool hasEcsSysFlag = false;
+
+        // Mutex in case of multiple systems or event in the script
+        std::mutex *mutex;
+        // Flag to know which interpreter own the mutex
+        bool ownMutex = false;
 
         // Keep a reference to all imported interpreters to keep their statement ptr valid
         std::vector<std::shared_ptr<Interpreter>> importedInterpreters;
@@ -132,7 +151,7 @@ namespace pg
     class Interpreter
     {
     public:
-        Interpreter(const ScriptImport& script, PgInterpreter *interpreter) : localsList(script.symbols), visitor(interpreter, nullptr, localsList, script.name), statements(script.ast) {};
+        Interpreter(const ScriptImport& script, PgInterpreter *interpreter, std::mutex *m = nullptr) : localsList(script.symbols), visitor(interpreter, nullptr, localsList, script.name, m), statements(script.ast) {};
 
         template<typename Functional>
         void defineSystemFunction(const std::string& name);

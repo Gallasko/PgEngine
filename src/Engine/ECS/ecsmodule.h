@@ -103,7 +103,7 @@ namespace pg
                 // Todo enable sys creation during runtime
                 if(not ecsRef->isRunning())
                 {
-                    ecsRef->createSystem<InterpreterSystem>(env, sys);
+                    ecsRef->createInterpreterSystem(env, sys);
                     visitor->setEcsSysFlag();
                 }
                 else

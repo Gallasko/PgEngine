@@ -1,5 +1,13 @@
 #pragma once
 
+#include <memory>
+
+#include "ECS/entitysystem.h"
+
+#include "Loaders/fontloader.h"
+
+#include "Input/inputcomponent.h"
+
 #ifdef __linux__
 #include <SDL2/SDL.h>
 #elif _WIN32
@@ -11,14 +19,6 @@
 #endif
 
 #include <GL/gl.h>
-
-#include <memory>
-
-#include "ECS/entitysystem.h"
-
-#include "Loaders/fontloader.h"
-
-#include "Input/inputcomponent.h"
 
 // Todo see if we support multiple window rendering in which case we need to correctly send the events to correct window
 

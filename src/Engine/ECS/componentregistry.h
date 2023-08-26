@@ -262,8 +262,6 @@ namespace pg
 
         // Common singleton system
     public:
-        // MasterRenderer* masterRenderer;
-
         mutable UniqueIdGenerator idGenerator;
 
     private:

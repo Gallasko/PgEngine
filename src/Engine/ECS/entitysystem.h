@@ -16,6 +16,8 @@
 #include "logger.h"
 #include "Memory/memorypool.h"
 
+#include "Interpreter/interpretersystem.h"
+
 namespace pg
 {
     // Todo create a queue that hold all entity id that got deleted to reattribute them later on
@@ -53,6 +55,7 @@ namespace pg
     {
     friend class Entity;
     friend class CommandDispatcher;
+    friend struct CoreModule;
     public:
         EntitySystem();
         ~EntitySystem();
@@ -122,6 +125,40 @@ namespace pg
 
             auto system = new Sys(args...);
             system->id = registry.getTypeId<Sys>();
+
+            system->addToRegistry(&registry);
+
+            systems.emplace(system->id, system);
+
+            // Only add the system to the taskflow if the execution policy is set to sequential or independent !
+            if(system->executionPolicy == ExecutionPolicy::Sequential)
+            {
+                auto task = taskflow.emplace([system](){system->execute();}).name(std::to_string(system->id));
+
+                // Put the task after every other basic task
+                task.succeed(basicTask);
+
+                // Register the task in case we need to call precede and succeed
+                tasks[system->id] = task;
+            }
+            else if (system->executionPolicy == ExecutionPolicy::Independent)
+            {
+                auto task = taskflow.emplace([system](){system->execute();}).name(std::to_string(system->id));
+
+                // Register the task in case we need to call precede and succeed
+                tasks[system->id] = task;
+            }
+
+            return system;
+        }
+
+        template <typename... Args>
+        InterpreterSystem* createInterpreterSystem(const Args&... args)
+        {
+            LOG_THIS_MEMBER("ECS");
+
+            auto system = new InterpreterSystem(args...);
+            system->id = registry.idGenerator.generateId();
 
             system->addToRegistry(&registry);
 

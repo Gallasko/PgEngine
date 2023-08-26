@@ -1,15 +1,25 @@
 import "ecs"
+import "core"
 
 class CustomSystem
 {
     init()
     {
         this.name = "Custom System";
+        this.i = 0
     }
 
     execute()
     {
-        print("In execute: " + this.name);
+        this.i += 1
+
+        if(this.i % 10000 == 0)
+            print("In execute: " + this.name);
+    }
+
+    onTickEvent(event)
+    {
+        print("Boom " + toString(event.tick));
     }
 }
 
@@ -18,3 +28,15 @@ var sys = CustomSystem();
 print(sys.name)
 
 registerSystem(sys)
+connectToTick(sys.onTickEvent)
+
+fun onTickE(event)
+{
+    print("Tick");
+    print(event.tick);
+    print("Tock")
+}
+
+sys.onTickEvent("Ticked")
+
+connectToTick(onTickE)

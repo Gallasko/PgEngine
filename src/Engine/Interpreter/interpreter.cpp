@@ -665,7 +665,7 @@ namespace pg
                 else
                 {
                     // Create an interpreter to interpret it
-                    auto importedInterpreter = std::make_shared<Interpreter>(scriptAst, interpreter);
+                    auto importedInterpreter = std::make_shared<Interpreter>(scriptAst, interpreter, mutex);
 
                     // Add all system function to the imported interpreter
                     for(auto& it : interpreter->sysFunctionTable)

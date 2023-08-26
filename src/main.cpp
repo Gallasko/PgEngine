@@ -4,6 +4,10 @@
 #include <stdint.h>
 #include <assert.h>
 
+#include "application.h"
+
+#include "logger.h"
+
 #ifdef __linux__
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
@@ -13,10 +17,6 @@
 #endif
 
 #include <GL/gl.h>
-
-#include "application.h"
-
-#include "logger.h"
 
 //[TODO] Variant using operator* dereferencing to recast to the original type
 int main(int argc, char *argv[])

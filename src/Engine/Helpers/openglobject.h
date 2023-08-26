@@ -1,5 +1,9 @@
 #pragma once
 
+#include <string>
+
+#include "logger.h"
+
 #ifdef __linux__
 #include <SDL2/SDL.h>
 #elif _WIN32
@@ -10,10 +14,6 @@
 #include <GL/gl.h>
 
 #include <glm.hpp>
-
-#include <string>
-
-#include "logger.h"
 
 namespace pg
 {
