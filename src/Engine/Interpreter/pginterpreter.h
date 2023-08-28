@@ -64,6 +64,16 @@ namespace pg
             sysFunctionTable.emplace(name, func);
         }
 
+        template<typename Value>
+        void addSystemVar(const std::string& name, const Value& valuable)
+        {
+            auto val = [valuable](VisitorInterpreter*, const std::string&) -> std::shared_ptr<Valuable> {
+                return makeVar(valuable);
+            };
+
+            sysFunctionTable.emplace(name, val);
+        }
+
     private:
         std::map<std::string, std::function<std::shared_ptr<Valuable>(VisitorInterpreter *visitor, const std::string& sysName)>> sysFunctionTable;
     };

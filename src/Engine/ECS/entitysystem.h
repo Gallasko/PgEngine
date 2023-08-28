@@ -55,7 +55,9 @@ namespace pg
     {
     friend class Entity;
     friend class CommandDispatcher;
+
     friend struct CoreModule;
+    friend struct InputModule;
     public:
         EntitySystem();
         ~EntitySystem();

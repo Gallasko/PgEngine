@@ -187,6 +187,7 @@ namespace pg
     struct SysListElement
     {
         SysListElement(const std::string& str, ValuablePtr type) : key(str), value(type) {}
+        SysListElement(const std::string& str, std::shared_ptr<Function> type) : key(str), value(type) {}
         SysListElement(const std::string& str, std::shared_ptr<ClassInstance> type) : key(str), value(type) {}
         SysListElement(const std::string& str, const ElementType& type) : key(str), value(makeVar(type)) {}
 
@@ -198,6 +199,32 @@ namespace pg
     };
 
     std::shared_ptr<ClassInstance> addToList(std::shared_ptr<ClassInstance> instance, const Token& token, const SysListElement& arg);
+
+    template<typename Functional, typename... Args>
+    std::shared_ptr<Function> makeFun(const Function *caller, const std::string& name, Args&&... args)
+    {
+        std::queue<ExprPtr> emptyQueue;
+        Token token;
+        token.text = name;
+
+        auto function = std::make_shared<Functional>(caller->getEnv(), name, token, caller->getVisitor(), emptyQueue, nullptr);
+        function->setUp(std::forward<Args>(args)...);
+
+        return function;
+    }
+
+    template<typename Functional>
+    std::shared_ptr<Function> makeFun(const Function *caller, const std::string& name)
+    {
+        std::queue<ExprPtr> emptyQueue;
+        Token token;
+        token.text = name;
+
+        auto function = std::make_shared<Functional>(caller->getEnv(), name, token, caller->getVisitor(), emptyQueue, nullptr);
+        function->setUp();
+
+        return function;
+    }
 
     std::shared_ptr<ClassInstance> makeList(const Function *caller, const std::initializer_list<SysListElement>& list);
 }

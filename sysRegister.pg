@@ -19,7 +19,8 @@ class CustomSystem
 
     onTickEvent(event)
     {
-        print("Boom " + toString(event.tick));
+        //print("Boom " + toString(event.tick));
+        print("Boom")
     }
 }
 
@@ -28,7 +29,7 @@ var sys = CustomSystem();
 print(sys.name)
 
 registerSystem(sys)
-connectToTick(sys.onTickEvent)
+//connectToTick(sys.onTickEvent)
 
 fun onTickE(event)
 {
@@ -39,4 +40,42 @@ fun onTickE(event)
 
 sys.onTickEvent("Ticked")
 
-connectToTick(onTickE)
+//connectToTick(onTickE)
+
+import "ui"
+import "input"
+
+var i = 10;
+var square = renderSquare(10, 10)
+
+fun scanRegister(event)
+{
+    if(event.key == SCANCODE_LEFT)
+    {
+        print("------------------------ Left ------------------------")
+        i -= 10
+        square.setX(i)
+        print(i)
+    }
+    else if(event.key == SCANCODE_RIGHT)
+    {
+        print("------------------------ Right ------------------------")
+        i += 10
+        square.setX(i)
+        print(i)
+    }
+    else if(event.key == SCANCODE_UP)
+    {
+        print("------------------------ Up ------------------------")
+    }
+    else if(event.key == SCANCODE_DOWN)
+    {
+        print("------------------------ Down ------------------------")
+    }
+    else if(event.key == SCANCODE_W)
+    {
+        print("------------------------ Up ------------------------")
+    }
+}
+
+connectToScancode(scanRegister)

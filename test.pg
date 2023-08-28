@@ -1,0 +1,29 @@
+import "ui"
+import "input"
+
+var i = 10;
+var square = renderSquare(10, 10)
+
+fun scanRegister(event)
+{
+    if(event.key == SCANCODE_LEFT)
+    {
+        print("------------------------ Left ------------------------")
+    }
+    else if(event.key == SCANCODE_RIGHT)
+    {
+        print("------------------------ Right ------------------------")
+        square.setX(i)
+        i += 10
+    }
+    else if(event.key == SCANCODE_UP)
+    {
+        print("------------------------ Up ------------------------")
+    }
+    else if(event.key == SCANCODE_DOWN)
+    {
+        print("------------------------ Down ------------------------")
+    }
+}
+
+// connectToScancode(scanRegister)

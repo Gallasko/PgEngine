@@ -13,6 +13,7 @@
 #include "Renderer/renderermodule.h"
 
 #include "Input/input.h"
+#include "Input/inputmodule.h"
 
 #include "UI/uisystem.h"
 #include "UI/texture.h"
@@ -53,6 +54,110 @@ namespace
         }
     };
 
+    class SetX : public Function
+    {
+        using Function::Function;
+    public:
+        void setUp(EntitySystem* ecsRef, CompRef<UiComponent> comp)
+        {
+            setArity(1, 1);
+
+            this->ecsRef = ecsRef;
+            this->comp = comp;
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            auto x = args.front()->getElement();
+            args.pop();
+
+            comp->setX(x.get<float>());
+
+            return nullptr;
+        }
+
+        EntitySystem* ecsRef = nullptr;
+        CompRef<UiComponent> comp;
+    };
+
+    class SetY : public Function
+    {
+        using Function::Function;
+    public:
+        void setUp(EntitySystem* ecsRef, CompRef<UiComponent> comp)
+        {
+            setArity(1, 1);
+
+            this->ecsRef = ecsRef;
+            this->comp = comp;
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            auto y = args.front()->getElement();
+            args.pop();
+
+            comp->setY(y.get<float>());
+
+            return nullptr;
+        }
+
+        EntitySystem* ecsRef = nullptr;
+        CompRef<UiComponent> comp;
+    };
+
+    class SetW : public Function
+    {
+        using Function::Function;
+    public:
+        void setUp(EntitySystem* ecsRef, CompRef<UiComponent> comp)
+        {
+            setArity(1, 1);
+
+            this->ecsRef = ecsRef;
+            this->comp = comp;
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            auto w = args.front()->getElement();
+            args.pop();
+
+            comp->setWidth(w.get<float>());
+
+            return nullptr;
+        }
+
+        EntitySystem* ecsRef = nullptr;
+        CompRef<UiComponent> comp;
+    };
+
+    class SetH : public Function
+    {
+        using Function::Function;
+    public:
+        void setUp(EntitySystem* ecsRef, CompRef<UiComponent> comp)
+        {
+            setArity(1, 1);
+
+            this->ecsRef = ecsRef;
+            this->comp = comp;
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            auto h = args.front()->getElement();
+            args.pop();
+
+            comp->setHeight(h.get<float>());
+
+            return nullptr;
+        }
+
+        EntitySystem* ecsRef = nullptr;
+        CompRef<UiComponent> comp;
+    };
+
     class CreateRectangle : public Function
     {
         using Function::Function;
@@ -87,7 +192,17 @@ namespace
                 LOG_ERROR("CreateRectangle", "Cannot create a new rectangle values passed are not numbers");
             }
 
-            return makeList(this, {{"x", static_cast<UiSize>(recUi->pos.x)}, {"y", static_cast<UiSize>(recUi->pos.y)}, {"w", recUi->width}, {"h", recUi->height}});
+            std::cout << "[Interpreter]: Creating rec at: (" << x.toString() << ", " << y.toString() << ")" << std::endl;
+
+            return makeList(this, {
+                {"x", static_cast<UiSize>(recUi->pos.x)},
+                {"y", static_cast<UiSize>(recUi->pos.y)},
+                {"w", recUi->width},
+                {"h", recUi->height},
+                {"setX", makeFun<SetX>(this, "setX", ecsRef, recUi)},
+                {"setY", makeFun<SetY>(this, "setY", ecsRef, recUi)},
+                {"setWidth", makeFun<SetW>(this, "setWidth", ecsRef, recUi)},
+                {"setHeight", makeFun<SetH>(this, "setHeight", ecsRef, recUi)}});
         }
 
         EntitySystem* ecsRef = nullptr;
@@ -278,6 +393,7 @@ namespace pg
         interpreter->addSystemModule("ui", UiModule{&ecs});
         interpreter->addSystemModule("ecs", EcsModule{&ecs});
         interpreter->addSystemModule("core", CoreModule{&ecs});
+        interpreter->addSystemModule("input", InputModule{&ecs});
 
         // Script to configure the logger
         interpreter->interpretFromFile("logManager.pg");
@@ -474,6 +590,8 @@ namespace pg
         ecs.createSystem<RunScriptFromTextInputSystem>();
 
         // Ecs task scheduling
+
+        ecs.succeed<TickingSystem, PgInterpreter>(); 
 
         ecs.succeed<MouseRightClickSystem, TickingSystem>();
         ecs.succeed<MouseLeftClickSystem, TickingSystem>();
