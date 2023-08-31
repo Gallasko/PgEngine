@@ -41,7 +41,7 @@ namespace pg
 
         virtual void generateMesh() = 0;
 
-        OpenGLObject OpenGLMesh;
+        OpenGLObject openGLMesh;
         constant::ModelInfo modelInfo;
         bool initialized = false;
     };

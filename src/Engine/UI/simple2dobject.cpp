@@ -20,29 +20,87 @@ namespace pg
     {
         LOG_THIS_MEMBER("Shape 2D Mesh");
 
-        OpenGLMesh.initialize();
+        openGLMesh.initialize();
 
-        OpenGLMesh.VAO->bind();
+        openGLMesh.VAO->bind();
 
-        OpenGLMesh.VBO->bind();
-        OpenGLMesh.VBO->setUsagePattern(OpenGLBuffer::StaticDraw);
-        OpenGLMesh.VBO->allocate(modelInfo.vertices, modelInfo.nbVertices * sizeof(float));
+        openGLMesh.VBO->bind();
+        openGLMesh.VBO->setUsagePattern(OpenGLBuffer::StaticDraw);
+        openGLMesh.VBO->allocate(modelInfo.vertices, modelInfo.nbVertices * sizeof(float));
 
         // Position attribute
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
-        OpenGLMesh.EBO->bind();
-        OpenGLMesh.EBO->setUsagePattern(OpenGLBuffer::StaticDraw);
-        OpenGLMesh.EBO->allocate(modelInfo.indices, modelInfo.nbIndices * sizeof(unsigned int));
+        openGLMesh.EBO->bind();
+        openGLMesh.EBO->setUsagePattern(OpenGLBuffer::StaticDraw);
+        openGLMesh.EBO->allocate(modelInfo.indices, modelInfo.nbIndices * sizeof(unsigned int));
 
-        OpenGLMesh.VAO->release();
+        openGLMesh.VAO->release();
 
         initialized = true;
     }
 
+    void Simple2DObjectSystem::SimpleSquareMesh::generateMesh()
+    {
+        LOG_THIS_MEMBER("Shape 2D Mesh");
+
+        openGLMesh.initialize();
+
+        openGLMesh.VAO->bind();
+
+        openGLMesh.VBO->bind();
+        openGLMesh.VBO->setUsagePattern(OpenGLBuffer::StaticDraw);
+        openGLMesh.VBO->allocate(modelInfo.vertices, modelInfo.nbVertices * sizeof(float));
+
+        // Position attribute
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+
+        instanceVBO = new OpenGLBuffer(OpenGLBuffer::VertexBuffer);
+        instanceVBO->setUsagePattern(OpenGLBuffer::DynamicDraw);
+        instanceVBO->create();
+
+        instanceVBO->bind();
+
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(5 * sizeof(float)));
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glVertexAttribDivisor(2, 1); // tell OpenGL this is an instanced vertex attribute.
+        glVertexAttribDivisor(3, 1); // tell OpenGL this is an instanced vertex attribute.
+        glVertexAttribDivisor(4, 1); // tell OpenGL this is an instanced vertex attribute.
+
+        openGLMesh.EBO->bind();
+        openGLMesh.EBO->setUsagePattern(OpenGLBuffer::StaticDraw);
+        openGLMesh.EBO->allocate(modelInfo.indices, modelInfo.nbIndices * sizeof(unsigned int));
+
+        openGLMesh.VAO->release();
+
+        initialized = true;
+    }
+
+    Simple2DObjectSystem::SimpleSquareMesh::~SimpleSquareMesh()
+    { 
+        LOG_THIS_MEMBER("Shape 2D Mesh");
+        if(instanceVBO)
+            delete instanceVBO;
+    }
+
     void Simple2DObjectSystem::init()
     {
+        currentSize = 1; 
+
+        bufferData = new float[currentSize * nbAttributes];
+
+        sizeChanged = true;
+
         auto group = registerGroup<UiComponent, Simple2DObject>();
 
         group->addOnGroup([](EntityRef entity) {
@@ -53,18 +111,59 @@ namespace pg
 
             auto sys = entity->world()->getSystem<Simple2DObjectSystem>();
 
-            auto mesh = sys->get2DMesh(*shape);
+            sys->addElement(ui, shape);
 
-            auto rTex = RenderableTexture{entity->id, ui, mesh};
+            // auto mesh = sys->get2DMesh(*shape);
 
-            sys->tempRenderList[static_cast<unsigned int>(shape->shape)].push_back(rTex);
+            // auto rTex = RenderableTexture{entity->id, ui, mesh};
 
-            sys->changed = true;
+            // sys->tempRenderList[static_cast<unsigned int>(shape->shape)].push_back(rTex);
         });
     }
 
     void Simple2DObjectSystem::render()
     {
+        if(changed)
+        {
+            std::lock_guard<std::mutex> lock(modificationMutex);
+
+            LOG_INFO("Simple 2D Object System", "Updating mesh buffer !");
+
+            if(not squareMeshInitialized)
+            {
+                basicSquareMesh.generateMesh();
+
+                squareMeshInitialized = true;
+            }
+
+            basicSquareMesh.openGLMesh.VAO->bind();
+
+            if(sizeChanged)
+            {
+                basicSquareMesh.bind();
+
+                basicSquareMesh.instanceVBO->allocate(bufferData, elementIndex * nbAttributes * sizeof(float));
+                
+                sizeChanged = false;
+            }
+            else
+            {
+                basicSquareMesh.bind();
+
+                basicSquareMesh.instanceVBO->allocate(bufferData, elementIndex * nbAttributes * sizeof(float));
+
+                // basicSquareMesh.instanceVBO->bind();
+                
+                // Todo replace currentSize with elementIndex as the rest is garbage data
+                // glBufferSubData(GL_ARRAY_BUFFER, 0, currentSize * nbAttributes * sizeof(float), bufferData);
+            }
+
+            changed = false;
+        }
+
+        if(not squareMeshInitialized or elementIndex <= 0)
+            return;
+
         LOG_THIS(DOM);
     
         auto rTable = masterRenderer->getParameter();
@@ -80,39 +179,125 @@ namespace pg
 
         auto shaderProgram = masterRenderer->getShader("2DShapes");
 
-        for(const auto& renderList : currentRenderList)
-        {
-            shaderProgram->bind();
+        shaderProgram->bind();
 
-            shaderProgram->setUniformValue("projection", projection);
-            shaderProgram->setUniformValue("model", model);
-            shaderProgram->setUniformValue("scale", scale);
+        shaderProgram->setUniformValue("sWidth", screenWidth);
+        shaderProgram->setUniformValue("sHeight", screenHeight);
 
-            // Todo combine all the call to the same texture into a single draw call using instanced rendering
-            for(const auto& renderableTexture : renderList.second)
-            {
-                UiComponent *ui = renderableTexture.uiRef;
+        shaderProgram->setUniformValue("projection", projection);
+        shaderProgram->setUniformValue("model", model);
+        shaderProgram->setUniformValue("scale", scale);
+        shaderProgram->setUniformValue("view", view);
 
-                auto mesh = renderableTexture.meshRef;
-
-                if(not ui->isVisible() or not mesh)
-                    continue;
-
-                view = glm::mat4(1.0f);
-                view = glm::translate(view, glm::vec3(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, 0.0f));
-
-                shaderProgram->setUniformValue("view", view);
-
-                auto colors = static_cast<Shape2DMesh*>(mesh)->colors;
-
-                shaderProgram->setUniformValue("colors", glm::vec3(colors.x / 255.0f, colors.y / 255.0f, colors.z / 255.0f));
-
-                mesh->bind();
-                glDrawElements(GL_TRIANGLES, mesh->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
-            }
-        }
+        basicSquareMesh.bind();
+        glDrawElementsInstanced(GL_TRIANGLES, basicSquareMesh.modelInfo.nbIndices, GL_UNSIGNED_INT, 0, elementIndex);
 
         shaderProgram->release();
+
+        // for(const auto& renderList : currentRenderList)
+        // {
+        //     shaderProgram->bind();
+
+        //     shaderProgram->setUniformValue("projection", projection);
+        //     shaderProgram->setUniformValue("model", model);
+        //     shaderProgram->setUniformValue("scale", scale);
+
+        //     // Todo combine all the call to the same texture into a single draw call using instanced rendering
+        //     for(const auto& renderableTexture : renderList.second)
+        //     {
+        //         UiComponent *ui = renderableTexture.uiRef;
+
+        //         auto mesh = renderableTexture.meshRef;
+
+        //         if(not ui->isVisible() or not mesh)
+        //             continue;
+
+        //         view = glm::mat4(1.0f);
+        //         view = glm::translate(view, glm::vec3(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, 0.0f));
+
+        //         shaderProgram->setUniformValue("view", view);
+
+        //         auto colors = static_cast<Shape2DMesh*>(mesh)->colors;
+
+        //         shaderProgram->setUniformValue("colors", glm::vec3(colors.x / 255.0f, colors.y / 255.0f, colors.z / 255.0f));
+
+        //         mesh->bind();
+        //         glDrawElements(GL_TRIANGLES, mesh->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
+        //     }
+        // }
+
+        // shaderProgram->release();
+    }
+
+    void Simple2DObjectSystem::addElement(const CompRef<UiComponent>& ui, const CompRef<Simple2DObject>& obj)
+    {
+        LOG_INFO("Simple 2D Object System", "Add element " << ui.entityId<< " to buffer !");
+
+        std::lock_guard<std::mutex> lock (modificationMutex);
+
+        idToIndexMap[ui.entityId] = elementIndex;
+
+        bufferData[elementIndex * nbAttributes + 0] = static_cast<UiSize>(ui->pos.x);
+        bufferData[elementIndex * nbAttributes + 1] = static_cast<UiSize>(ui->pos.y);
+        bufferData[elementIndex * nbAttributes + 2] = static_cast<UiSize>(ui->pos.z);
+
+        bufferData[elementIndex * nbAttributes + 3] = ui->width;
+        bufferData[elementIndex * nbAttributes + 4] = ui->height;
+
+        bufferData[elementIndex * nbAttributes + 5] = obj->colors.x;
+        bufferData[elementIndex * nbAttributes + 6] = obj->colors.y;
+        bufferData[elementIndex * nbAttributes + 7] = obj->colors.z;
+
+        elementIndex++;
+
+        if(elementIndex >= currentSize)
+        {
+            float *temp = new float[2 * currentSize * nbAttributes];
+
+            memcpy(temp, bufferData, currentSize);
+
+            currentSize *= 2;
+
+            delete bufferData;
+
+            bufferData = temp;
+
+            sizeChanged = true;
+        }
+
+        changed = true;
+    }
+
+
+    void Simple2DObjectSystem::onEvent(const UiComponentChangeEvent& event)
+    {
+        auto it = idToIndexMap.find(event.id);
+        
+        if(it == idToIndexMap.end())
+            return;
+
+        std::lock_guard<std::mutex> lock(modificationMutex);
+
+        auto index = it->second;
+
+        auto ui = event.component; 
+
+        bufferData[index * nbAttributes + 0] = static_cast<UiSize>(ui->pos.x);
+        bufferData[index * nbAttributes + 1] = static_cast<UiSize>(ui->pos.y);
+        bufferData[index * nbAttributes + 2] = static_cast<UiSize>(ui->pos.z);
+
+        bufferData[index * nbAttributes + 3] = ui->width;
+        bufferData[index * nbAttributes + 4] = ui->height;
+
+        changed = true;
+
+        // bufferData[index * nbAttributes + 5] = obj->colors.x;
+        // bufferData[index * nbAttributes + 6] = obj->colors.y;
+        // bufferData[index * nbAttributes + 7] = obj->colors.z;
+    }
+
+    void Simple2DObjectSystem::updateMeshes()
+    {
     }
 
     Mesh* Simple2DObjectSystem::get2DMesh(const Simple2DObject& shape)

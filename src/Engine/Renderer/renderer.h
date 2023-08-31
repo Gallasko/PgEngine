@@ -54,7 +54,7 @@ namespace pg
     
         virtual void render() = 0;
 
-        void updateMeshes()
+        virtual void updateMeshes()
         {
             if(changed)
             {

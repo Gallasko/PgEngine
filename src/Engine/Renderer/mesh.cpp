@@ -45,7 +45,7 @@ namespace pg
         if(not initialized)
             generateMesh();
         
-        OpenGLMesh.VAO->bind();
+        openGLMesh.VAO->bind();
     }
 
     // Todo add a mutex to protect m_meshes of any race conditions

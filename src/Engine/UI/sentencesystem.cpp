@@ -25,14 +25,14 @@ namespace pg
     {
         LOG_THIS_MEMBER("Sentence Mesh");
 
-        OpenGLMesh.initialize();
+        openGLMesh.initialize();
 
-        OpenGLMesh.VAO->bind();
+        openGLMesh.VAO->bind();
 
         // position attribute
-        OpenGLMesh.VBO->bind();
-        OpenGLMesh.VBO->setUsagePattern(OpenGLBuffer::StaticDraw);
-        OpenGLMesh.VBO->allocate(modelInfo.vertices, modelInfo.nbVertices * sizeof(float));
+        openGLMesh.VBO->bind();
+        openGLMesh.VBO->setUsagePattern(OpenGLBuffer::StaticDraw);
+        openGLMesh.VBO->allocate(modelInfo.vertices, modelInfo.nbVertices * sizeof(float));
 
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 18 * sizeof(float), (void*)0);
@@ -57,11 +57,11 @@ namespace pg
         glEnableVertexAttribArray(5);
         glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, 18 * sizeof(float), (void*)(17 * sizeof(float)));
 
-        OpenGLMesh.EBO->bind();
-        OpenGLMesh.EBO->setUsagePattern(OpenGLBuffer::StaticDraw);
-        OpenGLMesh.EBO->allocate(modelInfo.indices, modelInfo.nbIndices * sizeof(unsigned int));
+        openGLMesh.EBO->bind();
+        openGLMesh.EBO->setUsagePattern(OpenGLBuffer::StaticDraw);
+        openGLMesh.EBO->allocate(modelInfo.indices, modelInfo.nbIndices * sizeof(unsigned int));
 
-        OpenGLMesh.VAO->release();
+        openGLMesh.VAO->release();
 
         initialized = true;
     }

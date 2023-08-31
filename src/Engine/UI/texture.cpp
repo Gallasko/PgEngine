@@ -51,14 +51,14 @@ namespace pg
     {
         LOG_THIS_MEMBER("Texture Mesh");
 
-        OpenGLMesh.initialize();
+        openGLMesh.initialize();
 
-        OpenGLMesh.VAO->bind();
+        openGLMesh.VAO->bind();
 
         // position attribute
-        OpenGLMesh.VBO->bind();
-        OpenGLMesh.VBO->setUsagePattern(OpenGLBuffer::StreamDraw);
-        OpenGLMesh.VBO->allocate(modelInfo.vertices, modelInfo.nbVertices * sizeof(float));
+        openGLMesh.VBO->bind();
+        openGLMesh.VBO->setUsagePattern(OpenGLBuffer::StreamDraw);
+        openGLMesh.VBO->allocate(modelInfo.vertices, modelInfo.nbVertices * sizeof(float));
 
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
@@ -67,11 +67,11 @@ namespace pg
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
-        OpenGLMesh.EBO->bind();
-        OpenGLMesh.EBO->setUsagePattern(OpenGLBuffer::StreamDraw);
-        OpenGLMesh.EBO->allocate(modelInfo.indices, modelInfo.nbIndices * sizeof(unsigned int));
+        openGLMesh.EBO->bind();
+        openGLMesh.EBO->setUsagePattern(OpenGLBuffer::StreamDraw);
+        openGLMesh.EBO->allocate(modelInfo.indices, modelInfo.nbIndices * sizeof(unsigned int));
 
-        OpenGLMesh.VAO->release();
+        openGLMesh.VAO->release();
 
         initialized = true;
     }
