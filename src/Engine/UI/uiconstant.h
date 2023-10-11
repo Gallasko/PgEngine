@@ -5,12 +5,19 @@
 #include "uniqueid.h"
 #include "logger.h"
 
+#include "ECS/entitysystem.h"
+
 namespace pg
 {
     // namespace
     // {
     //     const char * DOM = "Ui constant";
     // }
+
+    struct UiSizeChangeEvent
+    {
+        _unique_id id;
+    };
 
     enum class UiOrientation
     {
@@ -40,48 +47,19 @@ namespace pg
         public:
             UiValue(const float& pixelSize = 0.0f, const float& scaleValue = 0.0f, std::shared_ptr<UiValue> ref1 = nullptr, std::shared_ptr<UiValue> ref2 = nullptr, const UiSizeOpType& op = UiSizeOpType::NONE) : pixelSize(pixelSize), scaleValue(scaleValue), refSize1(ref1), refSize2(ref2), opType(op) { }
 
-            float returnCurrentSize() const
-            {
-                // TODO
-                // LOG_THIS_MEMBER(DOM);
+            float returnCurrentSize() const;
 
-                const float refSizeValue1 = refSize1 == nullptr ? 0.0f : refSize1->returnCurrentSize();
-                const float refSizeValue2 = refSize2 == nullptr ? 0.0f : refSize2->returnCurrentSize();
+            void setEntity(_unique_id id, EntitySystem *ecs) { entityId = id; ecsRef = ecs; }
 
-                const float refSize1Result = pixelSize + refSizeValue1 * scaleValue;
-
-                //TODO make exception for division by 0
-                switch(opType)
-                {
-                    case UiSizeOpType::ADD:
-                        return refSize1Result + refSizeValue2;
-                        break;
-                    case UiSizeOpType::SUB:
-                        return refSize1Result - refSizeValue2;
-                        break;
-                    case UiSizeOpType::MUL:
-                        return refSize1Result * refSizeValue2;
-                        break;
-                    case UiSizeOpType::DIV:
-                        if(refSizeValue2 == 0.0f)
-                        {
-                            // TODO
-                            LOG_ERROR("Ui Constant", "Division by zero");
-                            return 0.0f;
-                        }
-                        return refSize1Result / refSizeValue2;
-                        break;
-                    case UiSizeOpType::NONE:
-                    default:
-                        return refSize1Result;
-                }
-            }
-
-            void setEntityId(_unique_id id) { entityId = id; }
+            inline _unique_id getEntityId() const { return entityId; }
 
         private:
             /** Entity id of the entity using this UiValue, default to 0 (no entity) */
             _unique_id entityId = 0;
+
+            EntitySystem *ecsRef = nullptr;
+
+            mutable float oldValue = 0.0f;
 
         private:
             float pixelSize = 0.0f;
@@ -267,7 +245,7 @@ namespace pg
             return value->returnCurrentSize();
         }
 
-        void setEntityId(_unique_id id) { value->setEntityId(id); }
+        void setEntity(_unique_id id, EntitySystem *ecs) { value->setEntity(id, ecs); }
 
         _unique_id getEntityId() const { return value->entityId; }
 
@@ -506,18 +484,18 @@ namespace pg
         UiPosition(const UiPosition& pos) : x(pos.x), y(pos.y), z(pos.z) { }
         UiPosition(const UiPosition *pos) : x(&pos->x), y(&pos->y), z(&pos->z) { }
 
-        void setEntityId(_unique_id id)
+        void setEntity(_unique_id id, EntitySystem *ecs)
         {
             entityId = id;
 
             if(x.type == UiPosValue::UiPosType::Value)
-                x.value.size.setEntityId(id);
+                x.value.size.setEntity(id, ecs);
 
             if(y.type == UiPosValue::UiPosType::Value)
-                y.value.size.setEntityId(id);
+                y.value.size.setEntity(id, ecs);
             
             if(z.type == UiPosValue::UiPosType::Value)
-                z.value.size.setEntityId(id);
+                z.value.size.setEntity(id, ecs);
         }
 
         _unique_id getEntityId() const { return entityId; }

@@ -357,15 +357,15 @@ namespace pg
         bottom.id = this->entityId;
         left.id   = this->entityId;
 
-        pos.setEntityId(entityId);
+        pos.setEntity(entityId, ecsRef);
 
-        width.setEntityId(entityId);
-        height.setEntityId(entityId);
+        width.setEntity(entityId, ecsRef);
+        height.setEntity(entityId, ecsRef);
 
-        topMargin.setEntityId(entityId);
-        leftMargin.setEntityId(entityId);
-        rightMargin.setEntityId(entityId);
-        bottomMargin.setEntityId(entityId);
+        topMargin.setEntity(entityId, ecsRef);
+        leftMargin.setEntity(entityId, ecsRef);
+        rightMargin.setEntity(entityId, ecsRef);
+        bottomMargin.setEntity(entityId, ecsRef);
     }
 
     bool UiComponent::inBound(int x, int y) const
@@ -427,6 +427,7 @@ namespace pg
         }
 
         if(ecsRef)
-            ecsRef->sendEvent(UiComponentInternalChangeEvent{});
+            ecsRef->sendEvent(UiComponentChangeEvent{entityId});
+            // ecsRef->sendEvent(UiComponentInternalChangeEvent{});
     }
 }

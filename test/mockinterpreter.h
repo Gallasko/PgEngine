@@ -23,6 +23,11 @@ namespace pg
 
             EXPECT_TRUE((v1 == v2).isTrue());
 
+            if(not (v1 == v2).isTrue())
+            {
+                std::cout << "Expected: " << v1.toString() <<  ", Got: " << v2.toString() << std::endl;
+            }
+
             return nullptr;
         }
     };
@@ -110,6 +115,44 @@ namespace pg
 
             return nullptr;
         }
+    };
+
+    class PostExecutionCallback : public Function
+    {
+        using Function::Function;
+    public:
+        void setUp(std::function<void()> *callback)
+        {
+            func = callback;
+            setArity(1, 1);
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            auto arg = args.front();
+            args.pop();
+
+            std::cout << arg->getType() << std::endl;
+
+            if(arg->getType() == "Function")
+            {
+                auto fun = std::static_pointer_cast<Function>(arg);
+
+                std::cout << "[PostExecutionCallback]: " << std::endl;
+
+                *func = [fun](){
+                    ValuableQueue queue;
+
+                    fun->getValue(queue);
+                };
+
+                visitor->setEcsSysFlag();
+            }
+
+            return nullptr;
+        }
+
+        std::function<void()> *func;
     };
 
     class MockInterpreter : public PgInterpreter

@@ -2,6 +2,8 @@
 
 #include "mockinterpreter.h"
 
+#include "ECS/ecsmodule.h"
+
 #include "mocklogger.h"
 
 namespace pg
@@ -185,6 +187,42 @@ namespace pg
             for(auto script : scripts)
             {
                 interpreter.interpretFromFile(script);
+            }
+
+            EXPECT_EQ(logger.getNbError(), 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        TEST(interpreter_test, ecs_interpreter_module_test)
+        {
+            MockLogger logger(true);
+            // logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
+
+            // MockInterpreter interpreter;
+
+            auto scripts = UniversalFileAccessor::openTextFolder("TestScripts/EcsModule/");
+
+            for(auto script : scripts)
+            {
+                EntitySystem ecs;
+
+                auto interpreter = ecs.createSystem<PgInterpreter>();
+
+                // Empty callback in case Execute callback is never called
+                std::function<void()> callback = [](){};
+
+                interpreter->addSystemModule("ecs", EcsModule{&ecs});
+                interpreter->addSystemFunction<ExpectTrue>("ExpectTrue");
+                interpreter->addSystemFunction<ExpectEq>("ExpectEq");
+                interpreter->addSystemFunction<PostExecutionCallback>("ExecuteCallback", &callback);
+
+                interpreter->interpretFromFile(script);
+
+                ecs.executeOnce();
+
+                callback();
             }
 
             EXPECT_EQ(logger.getNbError(), 0);

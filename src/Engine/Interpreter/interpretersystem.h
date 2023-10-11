@@ -95,9 +95,9 @@ namespace pg
             try
             {    
                 auto m = executeMethod->getVisitor()->getMutex();
-                m->lock();
+                
+                std::lock_guard lock(*m);
                 executeMethod->getValue(emptyQueue);
-                m->unlock();
             }
             catch(const std::exception& e)
             {

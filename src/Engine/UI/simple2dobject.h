@@ -107,6 +107,7 @@ namespace pg
         const size_t nbAttributes = 8; // x, y, z, w(r), h(o), r, g, b 
 
         std::unordered_map<_unique_id, size_t> idToIndexMap;
+        std::mutex tableMutex;
     };
 
     CompList<UiComponent, Simple2DObject> makeSimple2DShape(EntitySystem *ecs, const Shape2D& shape, float width, float height, const constant::Vector3D& colors);

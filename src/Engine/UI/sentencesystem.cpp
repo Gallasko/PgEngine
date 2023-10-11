@@ -82,9 +82,9 @@ namespace pg
 
             auto rTex = RenderableTexture{entity->id, ui, mesh};
 
-            std::lock_guard<std::mutex> lock (sys->modificationMutex);
-
             auto textureId = sys->masterRenderer->getTexture("font");
+
+            std::lock_guard<std::mutex> lock (sys->modificationMutex);
 
             sys->tempRenderList[textureId].push_back(rTex);
             
@@ -111,9 +111,9 @@ namespace pg
 
         LOG_MILE("Sentence Component System", "Modification of id: " << entity->id << " sentence");
 
-        std::lock_guard<std::mutex> lock (sys->modificationMutex);
-
         auto textureId = sys->masterRenderer->getTexture("font");
+
+        std::lock_guard<std::mutex> lock (sys->modificationMutex);
 
         auto first = sys->tempRenderList[textureId].begin();
         auto last = sys->tempRenderList[textureId].end();
@@ -136,7 +136,7 @@ namespace pg
     {
         auto entity = ecsRef->getEntity(event.id);
 
-        if(not entity->has<SentenceText>())
+        if(not entity or not entity->has<SentenceText>() or not entity->has<UiComponent>())
             return;
 
         auto ui = entity->get<UiComponent>();
@@ -152,9 +152,9 @@ namespace pg
 
         LOG_MILE("Sentence Component System", "Modification of id: " << entity->id << " sentence");
 
-        std::lock_guard<std::mutex> lock (sys->modificationMutex);
-
         auto textureId = sys->masterRenderer->getTexture("font");
+
+        std::lock_guard<std::mutex> lock (sys->modificationMutex);
 
         auto first = sys->tempRenderList[textureId].begin();
         auto last = sys->tempRenderList[textureId].end();

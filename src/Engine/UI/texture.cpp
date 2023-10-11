@@ -106,7 +106,7 @@ namespace pg
     {
         auto entity = ecsRef->getEntity(event.id);
 
-        if(not entity->has<TextureComponent>())
+        if(not entity or not entity->has<TextureComponent>() or not entity->has<UiComponent>())
             return;
 
         auto ui = entity->get<UiComponent>();
@@ -124,9 +124,9 @@ namespace pg
 
         LOG_MILE("Texture Component System", "Modification of id: " << entity->id << " texture");
 
-        std::lock_guard<std::mutex> lock (sys->modificationMutex);
-
         auto textureId = sys->masterRenderer->getTexture(tName);
+
+        std::lock_guard<std::mutex> lock (sys->modificationMutex);
 
         auto first = sys->tempRenderList[textureId].begin();
         auto last = sys->tempRenderList[textureId].end();

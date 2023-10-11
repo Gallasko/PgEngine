@@ -233,10 +233,14 @@ namespace pg
     {
         LOG_INFO("Simple 2D Object System", "Add element " << ui.entityId<< " to buffer !");
 
+        {
+            std::lock_guard<std::mutex> lock (tableMutex);
+
+            idToIndexMap[ui.entityId] = elementIndex;
+        }
+
         std::lock_guard<std::mutex> lock (modificationMutex);
-
-        idToIndexMap[ui.entityId] = elementIndex;
-
+        
         bufferData[elementIndex * nbAttributes + 0] = static_cast<UiSize>(ui->pos.x);
         bufferData[elementIndex * nbAttributes + 1] = static_cast<UiSize>(ui->pos.y);
         bufferData[elementIndex * nbAttributes + 2] = static_cast<UiSize>(ui->pos.z);
@@ -271,25 +275,45 @@ namespace pg
 
     void Simple2DObjectSystem::onEvent(const UiComponentChangeEvent& event)
     {
-        auto it = idToIndexMap.find(event.id);
+        size_t index;
+ 
+        {
+            std::lock_guard<std::mutex> lock(tableMutex);
+
+            auto it = idToIndexMap.find(event.id);
         
-        if(it == idToIndexMap.end())
-            return;
+            if(it == idToIndexMap.end())
+                return;
 
-        std::lock_guard<std::mutex> lock(modificationMutex);
+            index = it->second;
+        }
 
-        auto index = it->second;
+        auto entity = ecsRef->getEntity(event.id);
+        
+        if(not entity or not entity->has<UiComponent>())
+            return; 
 
-        auto ui = event.component; 
+        auto ui = entity->get<UiComponent>();
 
-        bufferData[index * nbAttributes + 0] = static_cast<UiSize>(ui->pos.x);
-        bufferData[index * nbAttributes + 1] = static_cast<UiSize>(ui->pos.y);
-        bufferData[index * nbAttributes + 2] = static_cast<UiSize>(ui->pos.z);
+        float x = static_cast<UiSize>(ui->pos.x);
+        float y = static_cast<UiSize>(ui->pos.y);
+        float z = static_cast<UiSize>(ui->pos.z);
 
-        bufferData[index * nbAttributes + 3] = ui->width;
-        bufferData[index * nbAttributes + 4] = ui->height;
+        float w = ui->width;
+        float h = ui->height;
 
-        changed = true;
+        {
+            std::lock_guard<std::mutex> lock(modificationMutex);
+
+            bufferData[index * nbAttributes + 0] = x;
+            bufferData[index * nbAttributes + 1] = y;
+            bufferData[index * nbAttributes + 2] = z;
+
+            bufferData[index * nbAttributes + 3] = w;
+            bufferData[index * nbAttributes + 4] = h;
+
+            changed = true;
+        }
 
         // bufferData[index * nbAttributes + 5] = obj->colors.x;
         // bufferData[index * nbAttributes + 6] = obj->colors.y;

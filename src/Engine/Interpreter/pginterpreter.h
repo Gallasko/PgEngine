@@ -135,12 +135,16 @@ namespace pg
         }
 
     public:
-        typedef void(*sysFunction)(Interpreter*, const std::string&);
-
         template <typename Functional>
         void addSystemFunction(const std::string& name)
         {
             sysFunctionTable.emplace(name, [](Interpreter *interpreter, const std::string& sysName){ interpreter->defineSystemFunction<Functional>(sysName); });
+        }
+
+        template <typename Functional, typename... Args>
+        void addSystemFunction(const std::string& name, const Args&... args)
+        {
+            sysFunctionTable.emplace(name, [args...](Interpreter *interpreter, const std::string& sysName){ interpreter->defineSystemFunction<Functional>(sysName, args...); });
         }
 
         void addSystemModule(const std::string& name, const SysModule& module)
@@ -149,7 +153,7 @@ namespace pg
         }
 
     protected:
-        std::map<std::string, sysFunction> sysFunctionTable;
+        std::map<std::string, std::function<void(Interpreter*, const std::string&)>> sysFunctionTable;
         std::map<std::string, std::map<std::string, std::function<std::shared_ptr<Valuable>(VisitorInterpreter *visitor, const std::string& sysName)>>> sysModuleTable;
 
     private:

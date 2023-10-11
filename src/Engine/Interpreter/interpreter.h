@@ -56,11 +56,11 @@ namespace pg
     friend class Interpreter;
     friend class SysModule;
     public:
-        VisitorInterpreter(PgInterpreter *interpreter, std::shared_ptr<Environment> environment, const std::unordered_map<Expression*, unsigned int>& localsList, const std::string& scriptName, std::mutex *m = nullptr) : Visitor(environment), localsList(localsList), interpreter(interpreter), scriptName(scriptName)
+        VisitorInterpreter(PgInterpreter *interpreter, std::shared_ptr<Environment> environment, const std::unordered_map<Expression*, unsigned int>& localsList, const std::string& scriptName, std::recursive_mutex *m = nullptr) : Visitor(environment), localsList(localsList), interpreter(interpreter), scriptName(scriptName)
         {
             if(m == nullptr)
             {
-                mutex = new std::mutex;
+                mutex = new std::recursive_mutex;
                 ownMutex = true;
             }
             else
@@ -101,7 +101,7 @@ namespace pg
         
         bool hasEcsSys() const;
 
-        inline std::mutex* getMutex() { return mutex; }
+        inline std::recursive_mutex* getMutex() { return mutex; }
 
     private:
         std::shared_ptr<Environment> globalContext = env;
@@ -130,7 +130,7 @@ namespace pg
         mutable bool hasEcsSysFlag = false;
 
         // Mutex in case of multiple systems or event in the script
-        std::mutex *mutex;
+        std::recursive_mutex *mutex;
         // Flag to know which interpreter own the mutex
         bool ownMutex = false;
 
@@ -151,10 +151,13 @@ namespace pg
     class Interpreter
     {
     public:
-        Interpreter(const ScriptImport& script, PgInterpreter *interpreter, std::mutex *m = nullptr) : localsList(script.symbols), visitor(interpreter, nullptr, localsList, script.name, m), statements(script.ast) {};
+        Interpreter(const ScriptImport& script, PgInterpreter *interpreter, std::recursive_mutex *m = nullptr) : localsList(script.symbols), visitor(interpreter, nullptr, localsList, script.name, m), statements(script.ast) {};
 
         template<typename Functional>
         void defineSystemFunction(const std::string& name);
+
+        template<typename Functional, typename... Args>
+        void defineSystemFunction(const std::string& name, const Args&... args);
 
         std::shared_ptr<Environment> interpret();
 
@@ -180,6 +183,20 @@ namespace pg
         auto function = std::make_shared<Functional>(visitor.globalContext, name, token, &visitor, emptyQueue, nullptr);
         // Todo check staticly if type Functional as a setUp function using SFINAE
         function->setUp();
+
+        visitor.globalContext->declareValue(name, function);
+    }
+
+    template<typename Functional, typename... Args>
+    void Interpreter::defineSystemFunction(const std::string& name, const Args&... args)
+    {
+        std::queue<ExprPtr> emptyQueue;
+        Token token;
+        token.text = name;
+
+        auto function = std::make_shared<Functional>(visitor.globalContext, name, token, &visitor, emptyQueue, nullptr);
+        // Todo check staticly if type Functional as a setUp function using SFINAE
+        function->setUp(args...);
 
         visitor.globalContext->declareValue(name, function);
     }

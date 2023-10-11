@@ -27,9 +27,9 @@ namespace pg
                 try
                 {
                     auto m = function->getVisitor()->getMutex();
-                    m->lock();
+                    
+                    std::lock_guard lock(*m);
                     function->getValue(queue);
-                    m->unlock();
                 }
                 catch(const std::exception& e)
                 {
@@ -106,9 +106,9 @@ namespace pg
                 try
                 {
                     auto m = function->getVisitor()->getMutex();
-                    m->lock();
+
+                    std::lock_guard lock(*m);
                     function->getValue(queue);
-                    m->unlock();
                 }
                 catch(const std::exception& e)
                 {
