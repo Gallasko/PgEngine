@@ -100,7 +100,7 @@ namespace pg
 
         bool sizeChanged = false;
 
-        size_t elementIndex = 0;
+        std::atomic<size_t> elementIndex {0};
         size_t currentSize = 0;
 
         float *bufferData = nullptr;

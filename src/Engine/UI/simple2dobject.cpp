@@ -240,21 +240,21 @@ namespace pg
         }
 
         std::lock_guard<std::mutex> lock (modificationMutex);
+
+        auto currentIndex = elementIndex++;
         
-        bufferData[elementIndex * nbAttributes + 0] = static_cast<UiSize>(ui->pos.x);
-        bufferData[elementIndex * nbAttributes + 1] = static_cast<UiSize>(ui->pos.y);
-        bufferData[elementIndex * nbAttributes + 2] = static_cast<UiSize>(ui->pos.z);
+        bufferData[currentIndex * nbAttributes + 0] = static_cast<UiSize>(ui->pos.x);
+        bufferData[currentIndex * nbAttributes + 1] = static_cast<UiSize>(ui->pos.y);
+        bufferData[currentIndex * nbAttributes + 2] = static_cast<UiSize>(ui->pos.z);
 
-        bufferData[elementIndex * nbAttributes + 3] = ui->width;
-        bufferData[elementIndex * nbAttributes + 4] = ui->height;
+        bufferData[currentIndex * nbAttributes + 3] = ui->width;
+        bufferData[currentIndex * nbAttributes + 4] = ui->height;
 
-        bufferData[elementIndex * nbAttributes + 5] = obj->colors.x;
-        bufferData[elementIndex * nbAttributes + 6] = obj->colors.y;
-        bufferData[elementIndex * nbAttributes + 7] = obj->colors.z;
+        bufferData[currentIndex * nbAttributes + 5] = obj->colors.x;
+        bufferData[currentIndex * nbAttributes + 6] = obj->colors.y;
+        bufferData[currentIndex * nbAttributes + 7] = obj->colors.z;
 
-        elementIndex++;
-
-        if(elementIndex >= currentSize)
+        if(currentIndex + 1 >= currentSize)
         {
             float *temp = new float[2 * currentSize * nbAttributes];
 
