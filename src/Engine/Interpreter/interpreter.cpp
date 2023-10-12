@@ -829,6 +829,16 @@ namespace pg
         return instance;
     }
 
+    std::shared_ptr<ClassInstance> addToList(const Function *caller, std::shared_ptr<ClassInstance> instance, const std::vector<SysListElement>& args)
+    {
+        auto token = caller->getToken();
+
+        for(const auto& item : args)
+            addToList(instance, token, item);
+
+        return instance;
+    }
+
     std::shared_ptr<ClassInstance> makeList(const Function *caller, const std::initializer_list<SysListElement>& list)
     {
         std::queue<ExprPtr> emptyQueue;

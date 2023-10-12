@@ -82,7 +82,6 @@ namespace pg
     private:
         ComponentRegistry *registryRef;
         
-
         mutable std::vector<TickListener*> tickListeners;
     };
 

@@ -341,6 +341,41 @@ namespace pg
 
         inline bool isRunning() const { return running; }
 
+        /**
+         * @brief Thread fence for entity creation
+         * 
+         * This method and it's counterpart 'endEntityCompFence' are used to create thread fences
+         * when creating a new entity on the fly *and* attaching new components on it !
+         * To ensure that the entity does not get invalided during the component attach process
+         * (by the command dispatcher because it is his turn in the ecs)
+         * The user need to specify this fence before creating the entity and he needs to remove it when he is done !
+         * 
+         * This allow multiples events and systems to create on the fly and populate entities accross multiples threads without issue !
+         * If the command dispatcher is running those events will wait till it is done and the opposite also apply,
+         * the dispatcher doesn't run until all the fences are raised
+         * 
+         * 
+         * @see endEntityCompFence
+         */
+        void newEntityCompFence()
+        { 
+            std::unique_lock<std::mutex> lock(newEntityMutex);
+
+            while(newDispatcherRunning)
+                newEntityCv.wait(lock, [this]() { return newDispatcherRunning == false; });
+
+            currentNewEntityCounter++;
+        }
+
+        /**
+         * @brief Remove one thread fence
+         * 
+         * This method is used to raise an entity comp fence.
+         * 
+         * @see newEntityCompFence
+         */
+        void endEntityCompFence() { currentNewEntityCounter--; newEntityCv.notify_all(); }
+
     private:
         friend void serialize<>(Archive& archive, const EntitySystem& ecs);
 
@@ -365,8 +400,6 @@ namespace pg
         {
             LOG_THIS_MEMBER("ECS");
 
-            componentMutex.lock();
-
             for(auto& comp : entity->componentList)
             {
                 if(comp.entityHeldType == Entity::EntityHeld::EntityHeldType::id)
@@ -382,8 +415,6 @@ namespace pg
                 }
             }
 
-            componentMutex.unlock();
-
             entityPool.removeComponent(entity);
         }
 
@@ -396,11 +427,8 @@ namespace pg
             {
                 LOG_MILE("ECS", "addComponentToPool");
 
-                std::lock_guard<std::mutex> lock(componentMutex);
-
                 registry.retrieve<Type>()->internalCreateComponent(entity, *component);
             }
-            // entity->componentList.emplace(registry.getTypeId<Type>());
         }
 
         template <typename Type>
@@ -454,8 +482,17 @@ namespace pg
         /** Mutex to protect the check of existence of an entity */
         mutable std::mutex entityMutex;
 
-        /** Mutex to protect the check of existence of an entity */
-        mutable std::mutex componentMutex;
+        /** Atomic counter for entity comp fences */
+        std::atomic<size_t> currentNewEntityCounter{0};
+
+        /** Boolean flag to keep track of the status of the Command Dispatcher */
+        std::atomic<bool> newDispatcherRunning{false};
+
+        /** Mutex used for the entity comp fences */
+        std::mutex newEntityMutex;
+
+        /** Conditional variable used for the entity comp fences */
+        std::condition_variable newEntityCv;
     };
 
     template <typename Comp>
