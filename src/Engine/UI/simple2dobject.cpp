@@ -260,7 +260,7 @@ namespace pg
         {
             float *temp = new float[2 * currentSize * nbAttributes];
 
-            memcpy(temp, bufferData, currentSize);
+            memcpy(temp, bufferData, currentSize * nbAttributes * sizeof(float));
 
             currentSize *= 2;
 
