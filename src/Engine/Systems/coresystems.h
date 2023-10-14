@@ -6,6 +6,8 @@
 #include "Renderer/renderer.h"
 #include "UI/sentencesystem.h"
 
+#include "Interpreter/scriptcallable.h"
+
 namespace pg
 {
     // Todo add all the logger thing to all those systems and doc too
@@ -109,6 +111,59 @@ namespace pg
         bool paused = false;
     };
 
+    struct Timer
+    {
+        size_t interval = 0;
+
+        size_t currentTime = 0;
+
+        bool running = false;
+
+        CallablePtr callback = nullptr;
+    };
+
+    struct TimerSystem : public System<Own<Timer>, Listener<TickEvent>, NamedSystem>
+    {
+        virtual std::string getSystemName() const override { return "Timer System"; }
+
+        virtual void onEvent(const TickEvent& event) override
+        {
+            LOG_THIS_MEMBER("Ticking System");
+
+            currentIncrement += event.tick;
+        }
+
+        virtual void execute()
+        {
+            LOG_THIS_MEMBER("Ticking System");
+
+            if(currentIncrement == 0) return;
+
+            auto currentIncrementLoaded = currentIncrement.exchange(0);
+
+            const auto ecsRef = this->world();
+
+            for(const auto& timer : view<Timer>())
+            {
+                if(timer->running)
+                {
+                    timer->currentTime += currentIncrementLoaded;
+
+                    while(timer->currentTime >= timer->interval)
+                    {
+                        timer->currentTime -= timer->interval;
+
+                        if(timer->callback)
+                            timer->callback->call(ecsRef);
+                    }
+                }
+            }
+
+        }
+
+        std::atomic<size_t> currentIncrement{0};
+    };
+
     struct TextInputTriggeredEvent
     {
         TextInputTriggeredEvent(EntityRef entity) : entity(entity) {}
@@ -122,7 +177,7 @@ namespace pg
     {
         virtual std::string getSystemName() const override { return "Run Script From Text Input System"; }
 
-        void onEvent(const TextInputTriggeredEvent& event) override
+        virtual void onEvent(const TextInputTriggeredEvent& event) override
         {
             LOG_THIS_MEMBER("Run Script From Text Input System");
 

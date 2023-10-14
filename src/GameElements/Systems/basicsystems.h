@@ -16,7 +16,7 @@ struct FpsSystem : public System<Listener<TickEvent>, NamedSystem, InitSys, Stor
         fpsTextId = sentence.entity.id;
     }
 
-    void onEvent(const TickEvent& event) override
+    virtual void onEvent(const TickEvent& event) override
     {
         LOG_THIS_MEMBER("FactorySystem");
 
@@ -76,7 +76,7 @@ struct GoldSystem : public System<Listener<OnClickGainGold>, Listener<OnGoldGain
         goldTextId = sentence.entity.id;
     }
 
-    void onEvent(const OnClickGainGold&) override
+    virtual void onEvent(const OnClickGainGold&) override
     {
         this->gold += clickPower;
 
@@ -85,7 +85,7 @@ struct GoldSystem : public System<Listener<OnClickGainGold>, Listener<OnGoldGain
         ecsRef->sendEvent(OnTextChanged{goldTextId, goldStr.getData()});
     }
 
-    void onEvent(const OnGoldGain& event) override
+    virtual void onEvent(const OnGoldGain& event) override
     {
         this->gold += event.gold;
 
@@ -106,7 +106,7 @@ struct FactorySystem : public System<Listener<BuyFactory>, Listener<TickEvent>, 
 {
     virtual std::string getSystemName() const override { return "Factory System"; }
 
-    void onEvent(const BuyFactory&) override
+    virtual void onEvent(const BuyFactory&) override
     {
         LOG_THIS_MEMBER("FactorySystem");
 
@@ -114,7 +114,7 @@ struct FactorySystem : public System<Listener<BuyFactory>, Listener<TickEvent>, 
         nbFactory += 1;
     }
 
-    void onEvent(const TickEvent& event) override
+    virtual void onEvent(const TickEvent& event) override
     {
         LOG_THIS_MEMBER("FactorySystem");
 

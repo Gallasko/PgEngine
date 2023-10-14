@@ -8,6 +8,8 @@ namespace fs = std::filesystem;
 
 #include "pginterpreter.h"
 
+#include "scriptcallable.h"
+
 namespace pg
 {
 
@@ -32,6 +34,8 @@ namespace pg
             std::shared_ptr<Environment>& env;
         };
     }
+
+    std::shared_ptr<CallableIntepretedFunction> makeCallable(std::shared_ptr<Function> fun) { return std::make_shared<CallableIntepretedFunction>(fun); }
 
     std::shared_ptr<Valuable> VisitorInterpreter::visit(BinaryExpression *expr)
     {
