@@ -220,27 +220,18 @@ namespace pg
 
             auto entity0 = ecs.createEntity();
 
-            std::cout << "1" << std::endl;
-
             EXPECT_EQ(ecs.getNbEntities(), 1);
 
             // Here resize should occur !
             auto entity1 = ecs.createEntity();
 
-            std::cout << "2" << std::endl;
-
-
             EXPECT_EQ(ecs.getNbEntities(), 2);
 
             ecs.removeEntity(entity1);
 
-            std::cout << "3" << std::endl;
-
             EXPECT_EQ(ecs.getNbEntities(), 1);
 
             ecs.removeEntity(entity0);
-
-            std::cout << "4" << std::endl;
 
             EXPECT_EQ(ecs.getNbEntities(), 0);            
         }
@@ -250,6 +241,8 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(system_test, multiple_single_entity_creation_reverse_order)
         {
+            MockLogger<TerminalSink> logger;
+
             EntitySystem ecs;
 
             EXPECT_EQ(ecs.getNbEntities(), 0);

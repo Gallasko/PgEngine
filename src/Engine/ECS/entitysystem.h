@@ -400,6 +400,13 @@ namespace pg
         {
             LOG_THIS_MEMBER("ECS");
 
+            if(entity == nullptr)
+            {
+                LOG_ERROR("ECS", "Entity doesn't exists !");
+                
+                return;
+            }
+
             for(auto& comp : entity->componentList)
             {
                 if(comp.entityHeldType == Entity::EntityHeld::EntityHeldType::id)
