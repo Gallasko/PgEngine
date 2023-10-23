@@ -194,6 +194,177 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        TEST(system_test, single_entity_creation)
+        {
+            EntitySystem ecs;
+
+            EXPECT_EQ(ecs.getNbEntities(), 0);
+
+            auto entity = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 1);
+
+            ecs.removeEntity(entity);
+
+            EXPECT_EQ(ecs.getNbEntities(), 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        TEST(system_test, multiple_single_entity_creation_same_order)
+        {
+            EntitySystem ecs;
+
+            EXPECT_EQ(ecs.getNbEntities(), 0);
+
+            auto entity0 = ecs.createEntity();
+
+            std::cout << "1" << std::endl;
+
+            EXPECT_EQ(ecs.getNbEntities(), 1);
+
+            // Here resize should occur !
+            auto entity1 = ecs.createEntity();
+
+            std::cout << "2" << std::endl;
+
+
+            EXPECT_EQ(ecs.getNbEntities(), 2);
+
+            ecs.removeEntity(entity1);
+
+            std::cout << "3" << std::endl;
+
+            EXPECT_EQ(ecs.getNbEntities(), 1);
+
+            ecs.removeEntity(entity0);
+
+            std::cout << "4" << std::endl;
+
+            EXPECT_EQ(ecs.getNbEntities(), 0);            
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        TEST(system_test, multiple_single_entity_creation_reverse_order)
+        {
+            EntitySystem ecs;
+
+            EXPECT_EQ(ecs.getNbEntities(), 0);
+
+            auto entity0 = ecs.createEntity();
+
+            std::cout << "1" << std::endl;
+
+            EXPECT_EQ(ecs.getNbEntities(), 1);
+
+            // Here resize should occur !
+            auto entity1 = ecs.createEntity();
+
+            std::cout << "2" << std::endl;
+
+            EXPECT_EQ(ecs.getNbEntities(), 2);
+
+            ecs.removeEntity(entity0);
+
+            std::cout << "3" << std::endl;
+
+            EXPECT_EQ(ecs.getNbEntities(), 1);
+
+            ecs.removeEntity(entity1);
+
+            std::cout << "4" << std::endl;
+
+            EXPECT_EQ(ecs.getNbEntities(), 0);            
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        TEST(system_test, multiple_single_entity_creation_with_deletion_of_the_last)
+        {
+            EntitySystem ecs;
+
+            auto entity0 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 1);
+
+            auto entity1 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 2);
+
+            auto entity2 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 3);
+
+            // Delete the last entity
+            ecs.removeEntity(entity2);
+
+            EXPECT_EQ(ecs.getNbEntities(), 2);
+
+            auto entity2bis = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 3);
+
+            // Here resize should occur !
+            auto entity3 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 4);
+
+            ecs.removeEntity(entity0);
+            ecs.removeEntity(entity1);
+            ecs.removeEntity(entity2bis);
+            ecs.removeEntity(entity3);
+
+            EXPECT_EQ(ecs.getNbEntities(), 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        TEST(system_test, multiple_single_entity_creation_with_deletion_in_the_middle)
+        {
+            EntitySystem ecs;
+
+            auto entity0 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 1);
+
+            auto entity1 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 2);
+
+            auto entity2 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 3);
+
+            // Delete the last entity
+            ecs.removeEntity(entity1);
+
+            EXPECT_EQ(ecs.getNbEntities(), 2);
+
+            auto entity1bis = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 3);
+
+            // Here resize should occur !
+            auto entity3 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 4);
+
+            ecs.removeEntity(entity0);
+            ecs.removeEntity(entity1bis);
+            ecs.removeEntity(entity2);
+            ecs.removeEntity(entity3);
+
+            EXPECT_EQ(ecs.getNbEntities(), 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         TEST(system_test, initialization)
         {
             constexpr size_t nbComps = 1000;
