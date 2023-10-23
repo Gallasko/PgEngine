@@ -443,22 +443,14 @@ namespace pg
 
     CompList<UiComponent, Simple2DObject> makeSimple2DShape(EntitySystem *ecs, const Shape2D& shape, float width, float height, const constant::Vector3D& colors)
     {
-        std::cout << "New Shape" << std::endl;
-
         auto entity = ecs->createEntity();
 
-        std::cout << "New Entity" << std::endl;
-
         auto ui = ecs->attach<UiComponent>(entity);
-
-        std::cout << "Add ui comp" << std::endl;
 
         ui->setWidth(width);
         ui->setHeight(height);
 
         auto tex = ecs->attach<Simple2DObject>(entity, shape, width, height, colors);
-
-        std::cout << "Add 2D object" << std::endl;
 
         return CompList<UiComponent, Simple2DObject>(entity, ui, tex);
     }

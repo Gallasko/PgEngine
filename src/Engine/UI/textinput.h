@@ -10,11 +10,11 @@ namespace pg
 {
     struct TextInputComponent
     {
-        TextInputComponent(std::shared_ptr<AbstractCallable> callback, const std::string& defaultText = "") : callback(callback), text(defaultText) { LOG_THIS_MEMBER("TextInputComponent"); }
+        TextInputComponent(CallablePtr callback, const std::string& defaultText = "") : callback(callback), text(defaultText) { LOG_THIS_MEMBER("TextInputComponent"); }
         TextInputComponent(const TextInputComponent& rhs) : callback(rhs.callback) { LOG_THIS_MEMBER("TextInputComponent"); }
         virtual ~TextInputComponent() { LOG_THIS_MEMBER("TextInputComponent"); }
 
-        std::shared_ptr<AbstractCallable> callback;
+        CallablePtr callback;
         
         std::string text;
     };

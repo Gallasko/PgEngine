@@ -29,6 +29,7 @@
 
 #include "Systems/logmodule.h"
 #include "Systems/shape2Dmodule.h"
+#include "Systems/timemodule.h"
 
 #include "GameElements/Systems/basicsystems.h"
 
@@ -114,6 +115,7 @@ namespace pg
         interpreter->addSystemModule("log", LogModule{});
         interpreter->addSystemModule("ui", UiModule{&ecs});
         interpreter->addSystemModule("2Dshapes", Shape2DModule{&ecs});
+        interpreter->addSystemModule("time", TimeModule{&ecs});
         interpreter->addSystemModule("ecs", EcsModule{&ecs});
         interpreter->addSystemModule("core", CoreModule{&ecs});
         interpreter->addSystemModule("input", InputModule{&ecs});
@@ -275,6 +277,8 @@ namespace pg
 
         ecs.createSystem<TickingSystem>();
 
+        ecs.createSystem<TimerSystem>();
+
         ecs.createSystem<TerminalLogSystem>();
 
         ecs.createSystem<FocusableSystem>();
@@ -314,7 +318,9 @@ namespace pg
 
         // Ecs task scheduling
 
-        ecs.succeed<TickingSystem, PgInterpreter>(); 
+        ecs.succeed<TickingSystem, PgInterpreter>();
+
+        ecs.succeed<TimerSystem, TickingSystem>();
 
         ecs.succeed<MouseRightClickSystem, TickingSystem>();
         ecs.succeed<MouseLeftClickSystem, TickingSystem>();
@@ -415,6 +421,7 @@ namespace pg
 
             case SDL_KEYUP:
                 inputHandler->registerKeyInput(event.key.keysym.scancode, Input::InputState::KEYPRESSED);
+                ecs.sendEvent(OnSDLScanCodePressed{event.key.keysym.scancode});
                 break;
 
             case SDL_KEYDOWN:

@@ -15,29 +15,29 @@ namespace pg
 {
     struct MouseLeftClickComponent
     {
-        MouseLeftClickComponent(std::shared_ptr<AbstractCallable> callback) : callback(callback) { LOG_THIS_MEMBER("MouseLeftClickComponent"); }
+        MouseLeftClickComponent(CallablePtr callback) : callback(callback) { LOG_THIS_MEMBER("MouseLeftClickComponent"); }
         MouseLeftClickComponent(const MouseLeftClickComponent& rhs) : callback(rhs.callback) { LOG_THIS_MEMBER("MouseLeftClickComponent"); }
         virtual ~MouseLeftClickComponent() { LOG_THIS_MEMBER("MouseLeftClickComponent"); }
 
-        std::shared_ptr<AbstractCallable> callback;
+        CallablePtr callback;
     };
 
     struct MouseRightClickComponent
     {
-        MouseRightClickComponent(std::shared_ptr<AbstractCallable> callback) : callback(callback) { LOG_THIS_MEMBER("MouseRightClickComponent"); }
+        MouseRightClickComponent(CallablePtr callback) : callback(callback) { LOG_THIS_MEMBER("MouseRightClickComponent"); }
         MouseRightClickComponent(const MouseRightClickComponent& rhs) : callback(rhs.callback) { LOG_THIS_MEMBER("MouseRightClickComponent"); }
         virtual ~MouseRightClickComponent() { LOG_THIS_MEMBER("MouseRightClickComponent"); }
 
-        std::shared_ptr<AbstractCallable> callback;
+        CallablePtr callback;
     };
 
     struct MouseLeaveClickComponent
     {
-        MouseLeaveClickComponent(std::shared_ptr<AbstractCallable> callback) : callback(callback) { LOG_THIS_MEMBER("MouseLeaveClickComponent"); }
+        MouseLeaveClickComponent(CallablePtr callback) : callback(callback) { LOG_THIS_MEMBER("MouseLeaveClickComponent"); }
         MouseLeaveClickComponent(const MouseLeaveClickComponent& rhs) : callback(rhs.callback) { LOG_THIS_MEMBER("MouseLeaveClickComponent"); }
         virtual ~MouseLeaveClickComponent() { LOG_THIS_MEMBER("MouseLeaveClickComponent"); }
 
-        std::shared_ptr<AbstractCallable> callback;
+        CallablePtr callback;
     };
 
     struct OnMouseClick {};
@@ -48,6 +48,11 @@ namespace pg
     };
 
     struct OnSDLScanCode
+    {
+        SDL_Scancode key;
+    };
+
+    struct OnSDLScanCodePressed
     {
         SDL_Scancode key;
     };

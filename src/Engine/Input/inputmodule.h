@@ -164,6 +164,87 @@ namespace pg
         mutable std::vector<KeyListener*> tickListeners;
     };
 
+    class ConnectToScancodeReleased : public Function
+    {
+        using Function::Function;
+    private:
+        struct KeyListener
+        {
+            KeyListener(std::shared_ptr<Function> func) : function(func) {}
+
+            void onEvent(const OnSDLScanCodePressed& event)
+            {
+                std::cout << "Pressed" << std::endl;
+
+                if(not function)
+                    return;
+
+                ValuableQueue queue;
+                auto arg = makeList(function.get(), {{"key", static_cast<int>(event.key)}});
+
+                queue.push(arg);
+
+                try
+                {
+                    auto m = function->getVisitor()->getMutex();
+
+                    std::lock_guard lock(*m);
+                    function->getValue(queue);
+                }
+                catch(const std::exception& e)
+                {
+                    LOG_ERROR("Input Module", e.what());
+                }
+            }
+
+            std::shared_ptr<Function> function;
+        };
+
+    public:
+        virtual ~ConnectToScancodeReleased() { for(auto listener : tickListeners) delete listener; }
+
+        void setUp(ComponentRegistry *registryRef)
+        {
+            LOG_THIS_MEMBER("Input Module");
+
+            setArity(1, 1);
+
+            this->registryRef = registryRef;
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            LOG_THIS_MEMBER("Input Module");
+
+            auto arg = args.front();
+            args.pop();
+
+            if(arg->getType() == "Function")
+            {
+                auto fun = std::static_pointer_cast<Function>(arg);
+
+                auto listener = new KeyListener(fun);
+
+                registryRef->addEventListener<OnSDLScanCodePressed>(listener);
+
+                tickListeners.push_back(listener);
+
+                visitor->setEcsSysFlag();
+            }
+            else
+            {
+                LOG_ERROR("Input Module", "Need to pass a function to be able to listen to an event");
+            }
+
+            return nullptr; 
+        }
+
+    private:
+        ComponentRegistry *registryRef;
+
+        mutable std::vector<KeyListener*> tickListeners;
+    };
+
     struct InputModule : public SysModule
     {
         InputModule(EntitySystem *ecsRef)
@@ -172,6 +253,7 @@ namespace pg
 
             addSystemFunction<ConnectToKeyInput>("connectToKeyInput", &(ecsRef->registry));
             addSystemFunction<ConnectToScancode>("connectToScancode", &(ecsRef->registry));
+            addSystemFunction<ConnectToScancodeReleased>("connectToScancodePressed", &(ecsRef->registry));
 
             addSystemVar("SCANCODE_A", SDL_SCANCODE_A);
             addSystemVar("SCANCODE_B", SDL_SCANCODE_B);
