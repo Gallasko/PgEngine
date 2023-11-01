@@ -74,7 +74,7 @@ namespace pg
         // If the size of the list is too small allocate more space
         if(denseCapacity <= currentSize)
         {
-            LOG_INFO(DOM, "Dense array is too small (" + std::to_string(denseCapacity) + ") to fit the element: " + std::to_string(currentSize) + ", proceed to double the capacity");
+            LOG_INFO(DOM, "Dense array is too small (" << denseCapacity << ") to fit the element: " << currentSize << ", proceed to double the capacity");
             addDenseCapacity(currentSize);
         }
 
@@ -83,7 +83,7 @@ namespace pg
 
         if(sparseCapacity <= id)
         {
-            LOG_INFO(DOM, "Sparse array is too small (" + std::to_string(sparseCapacity) + ") to fit the element: " + std::to_string(id) + ", proceed to increase the capacity");
+            LOG_INFO(DOM, "Sparse array is too small (" << sparseCapacity << ") to fit the element: " << id << ", proceed to increase the capacity");
             addSparseCapacity(id);
         }
 
