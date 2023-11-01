@@ -33,146 +33,106 @@ registerSystem(sys)
 
 sys.onTickEvent("Ticked")
 
-import "2Dshapes"
-import "input"
+// import "2Dshapes"
+// import "input"
+// 
+// var x = 10;
+// var y = 10;
+// 
+// var square = renderSquare(x, y)
+// 
+// var w = 30;
+// var h = 30;
+// 
+// var squareIncrease = true;
+// 
+// fun onTickE(event)
+// {
+//     if(squareIncrease == true)
+//     {
+//         w += 1
+//         h += 1
+//     }
+//     else
+//     {
+//         w -= 1
+//         h -= 1
+//     }
+// 
+//     if(w > 200)
+//     {
+//         squareIncrease = false;
+//     }
+//     else if (w < 25)
+//     {
+//         squareIncrease = true;
+//     }
+// 
+//     square.setWidth(w);
+//     square.setHeight(h);
+// 
+//     print(w)
+// }
+// 
+// connectToTick(onTickE)
 
-var x = 10;
-var y = 10;
+import "time"
 
-var square = renderSquare(x, y)
+// * Works *
+// var timer = newTimer();
+// 
+// fun timePrint()
+// {
+//     print("################# Time #################")
+// }
+// 
+// timer.onTimeout(timePrint)
+// 
+// // timer.start(1000);
+// 
+// timer.setInterval(1000);
+// 
+// timer.start();
 
-var w = 30;
-var h = 30;
+// * Works *
+//fun moveLeft()
+//{
+//    print("------------------------ Left ------------------------")
+//    x -= 60
+//    square.setX(x)
+//    print(x)
+//}
+//fun moveRight()
+//{
+//    print("------------------------ Right ------------------------")
+//    x += 100
+//    square.setX(x)
+//    print(x)
+//}
 
-var squareIncrease = true;
-
-fun onTickE(event)
-{
-    if(squareIncrease == true)
-    {
-        w += 1
-        h += 1
-    }
-    else
-    {
-        w -= 1
-        h -= 1
-    }
-
-    if(w > 200)
-    {
-        squareIncrease = false;
-    }
-    else if (w < 25)
-    {
-        squareIncrease = true;
-    }
-
-    square.setWidth(w);
-    square.setHeight(h);
-
-    print(w)
-}
-
-connectToTick(onTickE)
-
-fun moveLeft()
-{
-    print("------------------------ Left ------------------------")
-    x -= 60
-    square.setX(x)
-    print(x)
-}
-
-fun moveRight()
-{
-    print("------------------------ Right ------------------------")
-    x += 100
-    square.setX(x)
-    print(x)
-}
-
-fun moveUp()
-{
-    print("------------------------ Up ------------------------")
-    y -= 10
-    square.setY(y)
-    print(y)
-}
-
-fun moveDown()
-{
-    print("------------------------ Down ------------------------")
-    y += 50
-    square.setY(y)
-    print(y)
-}
-
-var i = 0;
-var j = 0;
-var done = true;
-
-fun spawnRec()
-{
-    if(done)
-    {
-        done = false;
-        var r = renderSquare(i * 6, j * 6)
-        r.setWidth(5);
-        r.setHeight(5);
-
-        i++;
-        if (i > 25)
-        {
-            i = 0;
-            j++;
-        }
-        done = true;
-    }
-    
-}
-
-fun scanRegister(event)
-{
-    if(event.key == SCANCODE_LEFT)
-    {
-        moveLeft()
-    }
-    else if(event.key == SCANCODE_RIGHT)
-    {
-        moveRight()
-    }
-    else if(event.key == SCANCODE_UP)
-    {
-        moveUp()
-    }
-    else if(event.key == SCANCODE_DOWN)
-    {
-        moveDown()
-    }
-    else if(event.key == SCANCODE_W)
-    {
-        moveUp()
-    }
-    else if(event.key == SCANCODE_A)
-    {
-        moveLeft()
-    }
-    else if(event.key == SCANCODE_S)
-    {
-        moveDown()
-    }
-    else if(event.key == SCANCODE_D)
-    {
-        moveRight()
-    }
-    else if(event.key == SCANCODE_E)
-    {
-        spawnRec();
-    }
-}
-
-connectToScancode(scanRegister)
+// var i = 0;
+// var j = 0;
+// var done = true;
+// 
+// fun spawnRec()
+// {
+//     if(done)
+//     {
+//         done = false;
+//         var r = renderSquare(i * 6, j * 6)
+//         r.setWidth(5);
+//         r.setHeight(5);
+// 
+//         i++;
+//         if (i > 25)
+//         {
+//             i = 0;
+//             j++;
+//         }
+//         done = true;
+//     }
+//     
+// }
 
 // for (var i = 0; i < 25; i++)
 // {
@@ -183,3 +143,14 @@ connectToScancode(scanRegister)
 //         r.setHeight(5);
 //     }
 // }
+
+import "scripts/move.pg"
+
+// connectToScancode(scanRelease)
+// connectToScancodePressed(scanRegister)
+
+import "uitext"
+
+var tex = newUiText(100, 100, "Hello world!")
+
+tex.setText("Changed")

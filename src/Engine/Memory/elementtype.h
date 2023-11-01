@@ -133,7 +133,6 @@ namespace pg
             this->type = UnionType::SIZE_T;
         }
 
-
         void setValue(const char* value)
         {
             clearPreviousType();
@@ -175,6 +174,8 @@ namespace pg
         }
 
         bool isTrue() const;
+
+        std::string getTypeString() const { return enumTypeToString(type); }
 
         ElementType operator+(const ElementType& other) const;
         ElementType operator-(const ElementType& other) const;

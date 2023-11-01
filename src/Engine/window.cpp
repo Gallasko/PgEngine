@@ -30,6 +30,7 @@
 #include "Systems/logmodule.h"
 #include "Systems/shape2Dmodule.h"
 #include "Systems/timemodule.h"
+#include "Systems/sentencemodule.h"
 
 #include "GameElements/Systems/basicsystems.h"
 
@@ -119,7 +120,8 @@ namespace pg
         interpreter->addSystemModule("ecs", EcsModule{&ecs});
         interpreter->addSystemModule("core", CoreModule{&ecs});
         interpreter->addSystemModule("input", InputModule{&ecs});
-
+        interpreter->addSystemModule("uitext", SentenceModule{&ecs});
+        
         // Script to configure the logger
         interpreter->interpretFromFile("logManager.pg");
         // [End] Interpreter definition
@@ -247,8 +249,9 @@ namespace pg
             glViewport(0, 0, width, height);
             // Todo set this or not
             // glEnable(GL_CULL_FACE);
-            // glEnable(GL_BLEND);
-            // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            // glEnable(GL_DEPTH_TEST);
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
             if (glDebugMessageControlARB != NULL)
             {

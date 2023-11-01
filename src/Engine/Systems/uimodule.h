@@ -10,7 +10,7 @@ namespace pg
     {
         using Function::Function;
     public:
-        void setUp(EntitySystem* ecsRef, CompRef<UiComponent> comp)
+        void setUp(EntitySystem* ecsRef, const CompRef<UiComponent>& comp)
         {
             setArity(1, 1);
 
@@ -36,7 +36,7 @@ namespace pg
     {
         using Function::Function;
     public:
-        void setUp(EntitySystem* ecsRef, CompRef<UiComponent> comp)
+        void setUp(EntitySystem* ecsRef, const CompRef<UiComponent>& comp)
         {
             setArity(1, 1);
 
@@ -62,7 +62,7 @@ namespace pg
     {
         using Function::Function;
     public:
-        void setUp(EntitySystem* ecsRef, CompRef<UiComponent> comp)
+        void setUp(EntitySystem* ecsRef, const CompRef<UiComponent>& comp)
         {
             setArity(1, 1);
 
@@ -88,7 +88,7 @@ namespace pg
     {
         using Function::Function;
     public:
-        void setUp(EntitySystem* ecsRef, CompRef<UiComponent> comp)
+        void setUp(EntitySystem* ecsRef, const CompRef<UiComponent>& comp)
         {
             setArity(1, 1);
 

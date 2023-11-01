@@ -4,54 +4,43 @@
 
 #include "Interpreter/pginterpreter.h"
 
+#include "uimodule.h"
+
 namespace pg
 {
-    /*class NewUniqueIdFromString : public Function
+    class SetText : public Function
     {
         using Function::Function;
     public:
-        void setUp(EntitySystem *ecsRef)
+        void setUp(EntitySystem* ecsRef, const CompRef<SentenceText>& comp)
         {
-            LOG_THIS_MEMBER("Ecs Module");
-
             setArity(1, 1);
 
             this->ecsRef = ecsRef;
+            this->comp = comp;
         }
 
         virtual ValuablePtr call(ValuableQueue& args) const override
         {
-            LOG_THIS_MEMBER("Ecs Module");
-
-            auto arg = args.front();
+            auto text = args.front()->getElement();
             args.pop();
 
-            auto key = arg->getValue()->getElement().toString();
+            ecsRef->sendEvent(OnTextChanged{comp.entityId, text.toString()});
 
-            const auto& it = uniqueIds.find(key);
-
-            if(it != uniqueIds.end())
-                return makeVar(it->second);
-            else
-            {
-                auto id = ecsRef->generateId();
-                uniqueIds.emplace(key, id);
-                return makeVar(id);
-            }
+            return nullptr;
         }
 
-        EntitySystem *ecsRef;
-        mutable std::unordered_map<std::string, _unique_id> uniqueIds;
+        EntitySystem* ecsRef = nullptr;
+        CompRef<SentenceText> comp;
     };
 
-
-    class CreateRectangle : public Function
+    class CreateUiText : public Function
     {
         using Function::Function;
     public:
         void setUp(EntitySystem* ecsRef)
         {
-            setArity(2, 2);
+            setArity(3, 3);
 
             this->ecsRef = ecsRef;
         }
@@ -64,32 +53,32 @@ namespace pg
             auto y = args.front()->getElement();
             args.pop();
 
-            std::cout << "[Interpreter]: Creating rec at: (" << x.toString() << ", " << y.toString() << ")" << std::endl;
+            auto sentenceText = args.front()->getElement();
+            args.pop();
 
-            auto rec = makeSimple2DShape(ecsRef, Shape2D::Square, 50, 50, {255.0f, 0.0f, 0.0f});
-            auto recUi = rec.get<UiComponent>();
-
-            if(x.isNumber() and y.isNumber())
+            if(not x.isNumber() or not y.isNumber() or not sentenceText.isLitteral())
             {
-                recUi->setX(x.get<float>());
-                recUi->setY(y.get<float>());
-            }
-            else
-            {
-                LOG_ERROR("CreateRectangle", "Cannot create a new rectangle values passed are not numbers");
+                LOG_ERROR("CreateUiText", "Cannot create a new ui text, values passed are not of the correct type." <<
+                          "\nExpected (number, number, litteral) instead got:  " << 
+                          x.getTypeString() << ", " <<
+                          x.getTypeString() << ", " <<
+                          sentenceText.getTypeString() << "!");
+                return nullptr;
             }
 
-            std::cout << "[Interpreter]: Creating rec at: (" << x.toString() << ", " << y.toString() << ")" << std::endl;
+            ecsRef->newEntityCompFence();
 
-            return makeList(this, {
-                {"x", static_cast<UiSize>(recUi->pos.x)},
-                {"y", static_cast<UiSize>(recUi->pos.y)},
-                {"w", recUi->width},
-                {"h", recUi->height},
-                {"setX", makeFun<SetX>(this, "setX", ecsRef, recUi)},
-                {"setY", makeFun<SetY>(this, "setY", ecsRef, recUi)},
-                {"setWidth", makeFun<SetW>(this, "setWidth", ecsRef, recUi)},
-                {"setHeight", makeFun<SetH>(this, "setHeight", ecsRef, recUi)}});
+            auto text = makeSentence(ecsRef, x.get<float>(), y.get<float>(), {sentenceText.get<std::string>()});
+
+            auto textUi = text.get<UiComponent>();
+
+            auto list = makeList(this, {{"setText", makeFun<SetText>(this, "setText", ecsRef, text.get<SentenceText>())}} );
+
+            auto res = addToList(this, list, uiElementFunctionsList(this, ecsRef, textUi));
+
+            ecsRef->endEntityCompFence();
+
+            return res;
         }
 
         EntitySystem* ecsRef = nullptr;
@@ -99,10 +88,10 @@ namespace pg
     {
         SentenceModule(EntitySystem *ecsRef)
         {
-            LOG_THIS_MEMBER("Core Module");
+            LOG_THIS_MEMBER("Sentence Module");
 
-            addSystemFunction<ConnectToTick>("connectToTick", &(ecsRef->registry));
+            addSystemFunction<CreateUiText>("newUiText", ecsRef);
         }
-    };*/
+    };
 
 }

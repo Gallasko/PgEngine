@@ -103,7 +103,6 @@ namespace pg
                 comp->interval = arg.get<size_t>();
             }
 
-
             if(comp->interval == 0)
             {
                 LOG_ERROR("Timer Module", "Need to set an interval to use a timer");
@@ -163,6 +162,7 @@ namespace pg
             auto timer = ecsRef->attach<Timer>(entity);
 
             auto list = makeList(this, {
+                {"id", entity.id},
                 {"onTimeout", makeFun<OnTimerTimeout>(this, "onTimeout", ecsRef, timer)},
                 {"setInterval", makeFun<TimerInterval>(this, "setInterval", ecsRef, timer)},
                 {"start", makeFun<TimerStart>(this, "start", ecsRef, timer)},
