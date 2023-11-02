@@ -355,6 +355,60 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        TEST(system_test, more_single_entity_creation_with_deletion_in_the_middle)
+        {
+            EntitySystem ecs;
+
+            auto entity0 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 1);
+
+            auto entity1 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 2);
+
+            auto entity2 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 3);
+
+            // Here resize should occur !
+            auto entity3 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 4);
+
+            // Delete an in between entity
+            ecs.removeEntity(entity1);
+
+            EXPECT_EQ(ecs.getNbEntities(), 3);
+
+            auto entity1bis = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 4);
+
+            auto entity4 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 5);
+
+            const auto& allEntities = ecs.view();
+
+            EXPECT_EQ(allEntities[1]->id, 3);
+            EXPECT_EQ(allEntities[2]->id, 6);
+            EXPECT_EQ(allEntities[3]->id, 5);
+            EXPECT_EQ(allEntities[4]->id, 7);
+            EXPECT_EQ(allEntities[5]->id, 8);
+
+            ecs.removeEntity(entity0);
+            ecs.removeEntity(entity1bis);
+            ecs.removeEntity(entity2);
+            ecs.removeEntity(entity3);
+            ecs.removeEntity(entity4);
+
+            EXPECT_EQ(ecs.getNbEntities(), 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         TEST(system_test, initialization)
         {
             constexpr size_t nbComps = 1000;
