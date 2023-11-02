@@ -113,6 +113,13 @@ namespace pg
         {
             LOG_THIS_MEMBER("ECS");
 
+            if(entity == nullptr)
+            {
+                LOG_ERROR("ECS", "Entity doesn't exists !");
+                
+                return;
+            }
+
             if(running)
                 cmdDispatcher.deleteEntity(entity);
             else
@@ -400,12 +407,16 @@ namespace pg
         {
             LOG_THIS_MEMBER("ECS");
 
+            LOG_INFO("ECS", "Deleting entity");
+
             if(entity == nullptr)
             {
                 LOG_ERROR("ECS", "Entity doesn't exists !");
                 
                 return;
             }
+
+            LOG_INFO("ECS", "Deleting components from entity: " << entity->id);
 
             for(auto& comp : entity->componentList)
             {
@@ -422,7 +433,11 @@ namespace pg
                 }
             }
 
+            LOG_INFO("ECS", "Deleting entity: " << entity->id);
+
             entityPool.removeComponent(entity);
+
+            LOG_INFO("ECS", "Entity deleted");
         }
 
         template <typename Type>

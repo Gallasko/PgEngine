@@ -46,17 +46,14 @@ namespace pg
     }
 
     /**
-     * @brief Add an entity and it's component inside of the list
+     * @brief Add an id inside of the set
      * 
-     * @param entity The entity to add to the list
-     * @param component The data of the component to add to the list
+     * @param id The id to add to the set
+     *  
+     * @return size_t The position of the added id in the set
      * 
-     * @return Component* The pointer of the component added inside of the list
-     * 
-     * This function add the component to the list and link the id to the entity id
-     * It also allocate new memory if one the list is too small
-     * 
-     * @todo Tell the management system that this entity (dense[index]) as created this component to update all the other "archtype" using it
+     * This function add an id to the set with respect to the dense <-> sparse linkage
+     * It also allocate new memory if the set is too small
      */
     size_t SparseSet::add(const _unique_id& id)
     {
@@ -81,6 +78,7 @@ namespace pg
         // Link the entity id with the component id through the dense <-> sparse mechanism
         dense[currentSize] = id;
 
+        // Todo implement paging for the sparse array
         if(sparseCapacity <= id)
         {
             LOG_INFO(DOM, "Sparse array is too small (" << sparseCapacity << ") to fit the element: " << id << ", proceed to increase the capacity");
@@ -90,22 +88,14 @@ namespace pg
         // Link the entity id with the component id through the dense <-> sparse mechanism
         sparse[id] = currentSize;
 
-        // Store the component inside of the list
-        // componentList[size] = component;
-
         return currentSize;
-
-        //return component;
     }
 
     /**
-     * @brief Remove a component by entity id
+     * @brief Remove an id in the set
      * 
-     * @param entity The entity to remove the component from.
-     * 
-     * @todo Tell the management system that this entity (dense[index]) as lost this component to update all the other "archtype" using it
-     * @todo Must implement a mutex for each component and entity for multithreaded use !
-     * @todo check that it still work in a multithreaded environment
+     * @param id the id to be removed
+     * @return size_t The index of the removed element
      */
     size_t SparseSet::remove(const _unique_id& id)
     {
@@ -162,18 +152,6 @@ namespace pg
     //     // Decrease the size of the list
     //     size--;
     // }
-
-    /**
-     * @brief Clear the entire list
-     * 
-     * @todo make a sparse set implementation that doesn't delete components on remove but instead reuse dead memory
-     */
-    void SparseSet::clear()
-    {
-        LOG_THIS_MEMBER(DOM);
-
-        size = 1;
-    }
 
     /**
      * @brief Internal helper function used to expend the dense and the component list

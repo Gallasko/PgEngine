@@ -241,34 +241,24 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(system_test, multiple_single_entity_creation_reverse_order)
         {
-            MockLogger<TerminalSink> logger;
-
             EntitySystem ecs;
 
             EXPECT_EQ(ecs.getNbEntities(), 0);
 
             auto entity0 = ecs.createEntity();
 
-            std::cout << "1" << std::endl;
-
             EXPECT_EQ(ecs.getNbEntities(), 1);
 
             // Here resize should occur !
             auto entity1 = ecs.createEntity();
 
-            std::cout << "2" << std::endl;
-
             EXPECT_EQ(ecs.getNbEntities(), 2);
 
             ecs.removeEntity(entity0);
 
-            std::cout << "3" << std::endl;
-
             EXPECT_EQ(ecs.getNbEntities(), 1);
 
             ecs.removeEntity(entity1);
-
-            std::cout << "4" << std::endl;
 
             EXPECT_EQ(ecs.getNbEntities(), 0);            
         }
@@ -333,7 +323,7 @@ namespace pg
 
             EXPECT_EQ(ecs.getNbEntities(), 3);
 
-            // Delete the last entity
+            // Delete an in between entity
             ecs.removeEntity(entity1);
 
             EXPECT_EQ(ecs.getNbEntities(), 2);
@@ -346,6 +336,13 @@ namespace pg
             auto entity3 = ecs.createEntity();
 
             EXPECT_EQ(ecs.getNbEntities(), 4);
+
+            const auto& allEntities = ecs.view();
+
+            EXPECT_EQ(allEntities[1]->id, 3);
+            EXPECT_EQ(allEntities[2]->id, 5);
+            EXPECT_EQ(allEntities[3]->id, 6);
+            EXPECT_EQ(allEntities[4]->id, 7);
 
             ecs.removeEntity(entity0);
             ecs.removeEntity(entity1bis);

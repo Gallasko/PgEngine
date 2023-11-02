@@ -21,11 +21,12 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(sparse_test, initialization)
         {
-            std::cout << "Test initialization" << std::endl;
-
             SparseSet set;
         }
 
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         TEST(sparse_test, iterate)
         {
             SparseSet set;
@@ -35,11 +36,9 @@ namespace pg
                 set.add(i);
             }
 
-            std::cout << set.nbElements() << std::endl;
-
             auto view = set.view();
 
-            for(size_t i = 1; i < set.nbElements(); i++)
+            for (size_t i = 1; i < set.nbElements(); i++)
             {
                 EXPECT_EQ(view[i], i);
             }

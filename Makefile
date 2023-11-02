@@ -20,7 +20,7 @@ CXXFLAGS	:= -std=c++17 -Wall -Wextra -g -pthread -Wa,-mbig-obj
 ifeq ($(DebugActive),True)
 CXXFLAGS    += -DDEBUG # -O0 --coverage
 else
-CXXFLAGS	+= -O2 -DNDEBUG # -mwindows
+CXXFLAGS	+= -O2 -DNDEBUG # -mwindows -flto
 endif
 
 TESTFLAGS := $(CXXFLAGS)
@@ -226,8 +226,8 @@ all: $(OUTPUT) $(MAIN)
 test: $(TEST_OBJECTS) gtest-all.o
 	@echo Building Test ...
 	$(CXX) $(TESTFLAGS) $(INCLUDES) $(TEST_INCLUDE) -o $(TESTMAIN) $(TEST_OBJECTS) gtest-all.o $(LFLAGS) $(LIBS)
-#ld -Ur -o libraries.o --whole-archive $(TEST_OBJECTS)
-#$(CXX) $(TESTFLAGS) $(INCLUDES) $(TEST_INCLUDE) -o $(TESTMAIN) program.o libraries.o $(LFLAGS) $(LIBS)
+# $(CXX) $(TESTFLAGS) $(INCLUDES) $(TEST_INCLUDE) -o $(TESTMAIN) program.o libraries.o $(LFLAGS) $(LIBS)
+# ld -Ur -o libraries.o --whole-archive $(TEST_OBJECTS)
 
 # Create the output hierarchy
 $(OUTPUT):

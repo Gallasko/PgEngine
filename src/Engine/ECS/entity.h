@@ -154,6 +154,6 @@ namespace pg
         mutable bool initialized;
         mutable Entity* entity;
         _unique_id id;
-        EntitySystem* ecsRef;  
+        EntitySystem* ecsRef;
     };
 }
