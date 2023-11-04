@@ -141,7 +141,7 @@ namespace pg
 
         virtual std::shared_ptr<VisitorReference> getVisitorRef() { return std::make_shared<VisitorReference>(*this); }
 
-        void setEnv(std::shared_ptr<Environment> env) { this->env = env; }
+        std::string getScriptName() const { return scriptName; }
 
     private:
         VisitorInterpreter *referee;
