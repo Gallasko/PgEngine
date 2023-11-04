@@ -27,7 +27,7 @@ namespace pg
      * 
      * @brief A class used to represent a scope in the interpreter
      * 
-     * This class as the knowledge of it's parent scope and all the variable defined in this current scope.
+     * This class has the knowledge of it's parent scope and all the variable defined in this current scope.
      * An environment object is then used to interact with stored valuable from it's local list of valuable,
      * or if the valuable is not find locally ask it's parent scope for the valuable.
      * 
@@ -45,6 +45,8 @@ namespace pg
          */
         Environment(std::shared_ptr<Environment> env = nullptr) : enclosing(env) {}
 
+        virtual ~Environment() {}
+
         /** Declare a new valuable in the current scope */
         void declareValue(const std::string& name, std::shared_ptr<Valuable> value);
 
@@ -61,7 +63,7 @@ namespace pg
          */
         inline const std::shared_ptr<Environment>& getEnv() const { return enclosing; }
 
-    private:
+    protected:
         /** A pointer to the parent environment object */
         std::shared_ptr<Environment> enclosing;
 

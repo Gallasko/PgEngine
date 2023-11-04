@@ -60,7 +60,7 @@ namespace pg
 
             if(executionPolicy == ExecutionPolicy::Independent or executionPolicy == ExecutionPolicy::Sequential)
             {
-                //Todo also check for a sysfield name "execute" !
+                // Todo also check for a sysfield name "execute" !
                 const auto& executeIt = sysMethods.find("execute");
 
                 if(executeIt != sysMethods.end())
@@ -92,17 +92,18 @@ namespace pg
 
             ValuableQueue emptyQueue;
             
-            try
-            {    
-                auto m = executeMethod->getVisitor()->getMutex();
+            // try
+            // {    
+            //     auto m = executeMethod->getVisitor()->getMutex();
                 
-                std::lock_guard lock(*m);
-                executeMethod->getValue(emptyQueue);
-            }
-            catch(const std::exception& e)
-            {
-                LOG_ERROR("Interpreter System", e.what());
-            }
+            //     std::lock_guard lock(*m);
+            //     executeMethod->getValue(emptyQueue);
+            // }
+            // catch(const std::exception& e)
+            // {
+            //     LOG_ERROR("Interpreter System", e.what());
+            // }
+
         }
 
         // Todo ?

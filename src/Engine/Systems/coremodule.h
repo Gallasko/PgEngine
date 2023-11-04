@@ -12,7 +12,7 @@ namespace pg
     private:
         struct TickListener
         {
-            TickListener(std::shared_ptr<Function> func) : function(func) {}
+            TickListener(std::shared_ptr<Function> func) : function(makeCallable(func)) {}
 
             void onEvent(const TickEvent& event)
             {
@@ -20,16 +20,13 @@ namespace pg
                     return;
 
                 ValuableQueue queue;
-                auto arg = makeList(function.get(), {{"tick", static_cast<int>(event.tick)}});
+                auto arg = makeList(function->getRef(), {{"tick", static_cast<int>(event.tick)}});
 
                 queue.push(arg);
 
                 try
                 {
-                    auto m = function->getVisitor()->getMutex();
-                    
-                    std::lock_guard lock(*m);
-                    function->getValue(queue);
+                    function->call(queue);
                 }
                 catch(const std::exception& e)
                 {
@@ -37,7 +34,7 @@ namespace pg
                 }
             }
 
-            std::shared_ptr<Function> function;
+            std::shared_ptr<CallableIntepretedFunction> function;
         };
 
     public:
@@ -68,8 +65,6 @@ namespace pg
                 registryRef->addEventListener<TickEvent>(listener);
 
                 tickListeners.push_back(listener);
-
-                visitor->setEcsSysFlag();
             }
             else
             {
