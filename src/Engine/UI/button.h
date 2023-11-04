@@ -7,20 +7,20 @@
 
 // namespace pg
 // {
-//     class TextureComponent;
+//     class Texture2DComponent;
 
 //     // Todo make a is relationship instead of inherit from UiComponent as it is like that with the new ECS
 //     // Todo make it a named component instead of an unamed one
 //     class Button : public UiComponent
 //     {
 //     public:
-//         // Button(EntitySystem *ecs, MouseComponent* onPress, TextureComponent* background = nullptr, Sentence* sentence = nullptr, const UiComponent& frame = UiComponent());
+//         // Button(EntitySystem *ecs, MouseComponent* onPress, Texture2DComponent* background = nullptr, Sentence* sentence = nullptr, const UiComponent& frame = UiComponent());
         
 //         template <typename Type, typename... Args>
-//         Button(EntitySystem *ecs, const Type& object, void(Type::*onPress)(Input*, double), TextureComponent* background = nullptr, Sentence* sentence = nullptr, const UiComponent& frame = UiComponent(), const Args&... args);
+//         Button(EntitySystem *ecs, const Type& object, void(Type::*onPress)(Input*, double), Texture2DComponent* background = nullptr, Sentence* sentence = nullptr, const UiComponent& frame = UiComponent(), const Args&... args);
         
 //         // Constructor for funtion pointer
-//         Button(EntitySystem *ecs, void(*onPress)(Input*, double), TextureComponent* background = nullptr, Sentence* sentence = nullptr, const UiComponent& frame = UiComponent());
+//         Button(EntitySystem *ecs, void(*onPress)(Input*, double), Texture2DComponent* background = nullptr, Sentence* sentence = nullptr, const UiComponent& frame = UiComponent());
 //         Button(EntitySystem *ecs, void(*onPress)(Input*, double), const Sentence::SentenceParameters& sentence, const UiComponent& frame = UiComponent());
 //         Button(EntitySystem *ecs, void(*onPress)(Input*, double), const std::string& textureName, const UiComponent& frame = UiComponent());
 //         Button(EntitySystem *ecs, void(*onPress)(Input*, double), const std::string& textureName, const Sentence::SentenceParameters& sentence, const UiComponent& frame = UiComponent());
@@ -45,7 +45,7 @@
 //         void hide() override;
         
 //     public:
-//         TextureComponent* background = nullptr;
+//         Texture2DComponent* background = nullptr;
 //         Sentence* sentence = nullptr;
 
 //     private:
@@ -61,7 +61,7 @@
 //     };
 
 //     template <typename Type, typename... Args>
-//     Button::Button(EntitySystem *ecs, const Type& object, void(Type::*onPress)(Input*, double), TextureComponent* background, Sentence* sentence, const UiComponent& frame, const Args&... args) : UiComponent(frame), background(background), sentence(sentence), compoundEntity(makeButtonMouseComponent(ecs, this, object, onPress, args...))
+//     Button::Button(EntitySystem *ecs, const Type& object, void(Type::*onPress)(Input*, double), Texture2DComponent* background, Sentence* sentence, const UiComponent& frame, const Args&... args) : UiComponent(frame), background(background), sentence(sentence), compoundEntity(makeButtonMouseComponent(ecs, this, object, onPress, args...))
 //     {
 //         moveUiElements();
 //     }

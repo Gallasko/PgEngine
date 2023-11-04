@@ -62,6 +62,7 @@ namespace pg
 
         virtual ~VisitorInterpreter() {}
 
+        // Visit for expressions
         virtual std::shared_ptr<Valuable> visit(BinaryExpression *expr) override;
         virtual std::shared_ptr<Valuable> visit(LogicExpression *expr) override;
         virtual std::shared_ptr<Valuable> visit(UnaryExpression *expr) override;
@@ -77,6 +78,7 @@ namespace pg
         virtual std::shared_ptr<Valuable> visit(Get *expr) override;
         virtual std::shared_ptr<Valuable> visit(Set *expr) override;
 
+        // Visit for statement
         virtual void visitStatement(ExpressionStatement *stmt) override;
         virtual void visitStatement(VariableStatement *stmt) override;
         virtual void visitStatement(FunctionStatement *stmt) override;

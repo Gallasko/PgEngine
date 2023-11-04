@@ -15,11 +15,11 @@ namespace pg
     static constexpr char const * DOM = "Texture";
 
     template <>
-    void serialize(Archive& archive, const TextureComponent& value)
+    void serialize(Archive& archive, const Texture2DComponent& value)
     {
         LOG_THIS(DOM);
 
-        archive.startSerialization("TextureComponent");
+        archive.startSerialization("Texture2DComponent");
 
         serialize(archive, "textureName", value.textureName);
     
@@ -27,7 +27,7 @@ namespace pg
     }
 
     template <>
-    TextureComponent deserialize(const UnserializedObject& serializedString)
+    Texture2DComponent deserialize(const UnserializedObject& serializedString)
     {
         LOG_THIS(DOM);
 
@@ -37,14 +37,14 @@ namespace pg
             LOG_ERROR(DOM, "Element is null");
         else
         {
-            LOG_INFO(DOM, "Deserializing an TextureComponent");
+            LOG_INFO(DOM, "Deserializing an Texture2DComponent");
 
             auto textureName = deserialize<std::string>(serializedString["textureName"]);
 
-            return TextureComponent{textureName};
+            return Texture2DComponent{textureName};
         }
 
-        return TextureComponent{""};
+        return Texture2DComponent{""};
     }
 
     void TextureMesh::generateMesh()
@@ -76,19 +76,19 @@ namespace pg
         initialized = true;
     }
 
-    void TextureComponentSystem::init()
+    void Texture2DComponentSystem::init()
     {
-        auto group = registerGroup<UiComponent, TextureComponent>();
+        auto group = registerGroup<UiComponent, Texture2DComponent>();
 
         group->addOnGroup([](EntityRef entity) {
             LOG_INFO("Texture Component System", "Add entity " << entity->id << " to ui - tex group !");
 
             auto ui = entity->get<UiComponent>();
-            auto tex = entity->get<TextureComponent>();
+            auto tex = entity->get<Texture2DComponent>();
 
             auto tName = tex->textureName;
 
-            auto sys = entity->world()->getSystem<TextureComponentSystem>();
+            auto sys = entity->world()->getSystem<Texture2DComponentSystem>();
 
             auto mesh = sys->getTextureMesh(ui->width, ui->height, tName);
 
@@ -102,21 +102,21 @@ namespace pg
         });
     }
 
-    void TextureComponentSystem::onEvent(const UiComponentChangeEvent& event)
+    void Texture2DComponentSystem::onEvent(const UiComponentChangeEvent& event)
     {
         auto entity = ecsRef->getEntity(event.id);
 
-        if(not entity or not entity->has<TextureComponent>() or not entity->has<UiComponent>())
+        if(not entity or not entity->has<Texture2DComponent>() or not entity->has<UiComponent>())
             return;
 
         auto ui = entity->get<UiComponent>();
 
         // Todo check if the entity has a sentence text before trying to modify it
-        auto tex = entity->get<TextureComponent>();
+        auto tex = entity->get<Texture2DComponent>();
 
         auto tName = tex->textureName;
 
-        auto sys = entity->world()->getSystem<TextureComponentSystem>();
+        auto sys = entity->world()->getSystem<Texture2DComponentSystem>();
 
         auto mesh = sys->getTextureMesh(ui->width, ui->height, tName);
 
@@ -145,7 +145,7 @@ namespace pg
         sys->changed = true;
     }
 
-    void TextureComponentSystem::render()
+    void Texture2DComponentSystem::render()
     {
         LOG_THIS(DOM);
     
@@ -209,7 +209,7 @@ namespace pg
         shaderProgram->release();
     }
 
-    Mesh* TextureComponentSystem::getTextureMesh(float width, float height, const std::string& name)
+    Mesh* Texture2DComponentSystem::getTextureMesh(float width, float height, const std::string& name)
     {
         LOG_THIS_MEMBER("MeshBuilder");
 
@@ -241,7 +241,7 @@ namespace pg
         return it->second;
     }
 
-    CompList<UiComponent, TextureComponent> makeUiTexture(EntitySystem *ecs, float width, float height, const std::string& name)
+    CompList<UiComponent, Texture2DComponent> makeUiTexture(EntitySystem *ecs, float width, float height, const std::string& name)
     {
         auto entity = ecs->createEntity();
 
@@ -250,8 +250,8 @@ namespace pg
         ui->setWidth(width);
         ui->setHeight(height);
 
-        auto tex = ecs->attach<TextureComponent>(entity, name);
+        auto tex = ecs->attach<Texture2DComponent>(entity, name);
 
-        return CompList<UiComponent, TextureComponent>(entity, ui, tex);
+        return CompList<UiComponent, Texture2DComponent>(entity, ui, tex);
     }
 }

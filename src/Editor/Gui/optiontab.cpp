@@ -11,7 +11,7 @@
 
 #include "optiontab.h"
 
-#include "UI/texture.h"
+#include "2D/texture.h"
 // #include "UI/textinput.h"
 
 #include "Renderer/renderer.h"
@@ -45,7 +45,7 @@ namespace pg
             this->width = width;
             this->height = height;
             
-            // this->backgroundTexture = new TextureComponent(this->width, this->height, "TabTexture");
+            // this->backgroundTexture = new Texture2DComponent(this->width, this->height, "TabTexture");
             // this->backgroundTexture->setTopAnchor(this->top);
             // this->backgroundTexture->setLeftAnchor(this->left);
             // this->backgroundTexture->setRightAnchor(this->right);

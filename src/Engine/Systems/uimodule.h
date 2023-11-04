@@ -58,6 +58,32 @@ namespace pg
         CompRef<UiComponent> comp;
     };
 
+    class SetZ : public Function
+    {
+        using Function::Function;
+    public:
+        void setUp(EntitySystem* ecsRef, const CompRef<UiComponent>& comp)
+        {
+            setArity(1, 1);
+
+            this->ecsRef = ecsRef;
+            this->comp = comp;
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            auto z = args.front()->getElement();
+            args.pop();
+
+            comp->setZ(z.get<float>());
+
+            return nullptr;
+        }
+
+        EntitySystem* ecsRef = nullptr;
+        CompRef<UiComponent> comp;
+    };
+
     class SetW : public Function
     {
         using Function::Function;

@@ -17,7 +17,7 @@
 namespace pg
 {
     // Type forwarding
-    struct TextureComponent;
+    struct Texture2DComponent;
     
     namespace editor
     {
@@ -45,7 +45,7 @@ namespace pg
             }
 
             // ListView listView;
-            TextureComponent* backgroundTexture;
+            Texture2DComponent* backgroundTexture;
         };
 
         template <typename... Args>

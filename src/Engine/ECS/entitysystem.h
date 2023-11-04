@@ -145,13 +145,15 @@ namespace pg
                 auto task = taskflow.emplace([system]()
                 {
                     // Todo time the whole exec of a run of the taskflow
-                    // auto start = std::chrono::steady_clock::now();
+                    auto start = std::chrono::steady_clock::now();
             
                     system->execute();
 
-                    // auto end = std::chrono::steady_clock::now();
+                    auto end = std::chrono::steady_clock::now();
 
-                    // std::cout << "System " << system->name << " execute took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
+                    if(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() >= 3000000)
+                        std::cout << "System " << system->name << " execute took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
+                
                 }).name(std::to_string(system->id));
 
                 // Put the task after every other basic task
@@ -186,7 +188,19 @@ namespace pg
             // Only add the system to the taskflow if the execution policy is set to sequential or independent !
             if(system->executionPolicy == ExecutionPolicy::Sequential)
             {
-                auto task = taskflow.emplace([system](){system->execute();}).name(std::to_string(system->id));
+                auto task = taskflow.emplace([system]()
+                {
+                    // Todo time the whole exec of a run of the taskflow
+                    auto start = std::chrono::steady_clock::now();
+            
+                    system->execute();
+
+                    auto end = std::chrono::steady_clock::now();
+
+                    if(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() >= 3000000)
+                        std::cout << "System " << system->name << " execute took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
+
+                }).name(std::to_string(system->id));
 
                 // Put the task after every other basic task
                 task.succeed(basicTask);

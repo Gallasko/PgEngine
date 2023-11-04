@@ -8,7 +8,7 @@
 #include "UI/sentencesystem.h"
 
 // #include "Input/inputcomponent.h"
-#include "UI/texture.h"
+#include "2D/texture.h"
 #include "Renderer/renderer.h"
 #include "Scene/scenemanager.h"
 

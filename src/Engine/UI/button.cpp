@@ -79,12 +79,12 @@
 //     // Todo fix all of this
 
 //     // TODO create an edge case for a copy of this type of button cause it doesn t have a callback
-//     Button::Button(EntitySystem *ecs, MouseComponent* onPress, TextureComponent* background, Sentence* sentence, const UiComponent& frame) : UiComponent(frame), background(background), sentence(sentence)
+//     Button::Button(EntitySystem *ecs, MouseComponent* onPress, Texture2DComponent* background, Sentence* sentence, const UiComponent& frame) : UiComponent(frame), background(background), sentence(sentence)
 //     {
 //         moveUiElements();
 //     }
 
-//     Button::Button(EntitySystem *ecs, void(*onPress)(Input*, double), TextureComponent* background, Sentence* sentence, const UiComponent& frame) : UiComponent(frame), background(background), sentence(sentence), callback(onPress), compoundEntity(makeButtonMouseComponent(ecs, this, callback))
+//     Button::Button(EntitySystem *ecs, void(*onPress)(Input*, double), Texture2DComponent* background, Sentence* sentence, const UiComponent& frame) : UiComponent(frame), background(background), sentence(sentence), callback(onPress), compoundEntity(makeButtonMouseComponent(ecs, this, callback))
 //     {
 //         moveUiElements();
 //     }
@@ -102,7 +102,7 @@
 
 //     Button::Button(EntitySystem *ecs, void(*onPress)(Input*, double), const std::string& textureName, const UiComponent& frame) : UiComponent(frame), callback(onPress), compoundEntity(makeButtonMouseComponent(ecs, this, callback))
 //     {
-//         // this->background = new TextureComponent(this->width, this->height, textureName);
+//         // this->background = new Texture2DComponent(this->width, this->height, textureName);
 //         ownBackground = true;
 
 //         moveUiElements();
@@ -116,7 +116,7 @@
 //         this->width = this->sentence->width;
 //         this->height = this->sentence->height;
 
-//         // this->background = new TextureComponent(this->width, this->height, textureName);
+//         // this->background = new Texture2DComponent(this->width, this->height, textureName);
 //         ownBackground = true;
 
 //         moveUiElements();
@@ -129,7 +129,7 @@
 
 //     Button::Button(EntitySystem *ecs, const std::function<void(Input*, double)>& onPress, const std::string& textureName, const UiComponent& frame) : Button(ecs, onPress, frame)
 //     {
-//         // this->background = new TextureComponent(this->width, this->height, textureName);
+//         // this->background = new Texture2DComponent(this->width, this->height, textureName);
 //         ownBackground = true;
 
 //         moveUiElements();
@@ -154,7 +154,7 @@
 //         this->width = this->sentence->width;
 //         this->height = this->sentence->height;
 
-//         // this->background = new TextureComponent(this->width, this->height, textureName);
+//         // this->background = new Texture2DComponent(this->width, this->height, textureName);
 //         ownBackground = true;
 
 //         moveUiElements();
@@ -164,7 +164,7 @@
 //     {
 //         if(rhs.ownBackground)
 //         {
-//             // this->background = new TextureComponent(this->width, this->height, rhs.background->textureName);
+//             // this->background = new Texture2DComponent(this->width, this->height, rhs.background->textureName);
 
 //             moveUiElements();
 //         }
