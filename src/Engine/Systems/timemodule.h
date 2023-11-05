@@ -155,8 +155,6 @@ namespace pg
 
         virtual ValuablePtr call(ValuableQueue&) const override
         {
-            ecsRef->newEntityCompFence();
-
             auto entity = ecsRef->createEntity();
 
             auto timer = ecsRef->attach<Timer>(entity);
@@ -167,8 +165,6 @@ namespace pg
                 {"setInterval", makeFun<TimerInterval>(this, "setInterval", ecsRef, timer)},
                 {"start", makeFun<TimerStart>(this, "start", ecsRef, timer)},
                 {"stop", makeFun<TimerStop>(this, "stop", ecsRef, timer)}});
-
-            ecsRef->endEntityCompFence();
 
             return list;
         }

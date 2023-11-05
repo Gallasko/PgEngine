@@ -31,7 +31,7 @@ namespace pg
         LOG_THIS_MEMBER(DOM);
 
         // Add the command dispatcher as the first element of the task flow
-        basicTask = taskflow.emplace([this](){cmdDispatcher.process();}).name("Basic Task");
+        basicTask = taskflow.emplace([this](){ eventDispatcher.process(); cmdDispatcher.process(); }).name("Basic Task");
     }
 
     EntitySystem::~EntitySystem()

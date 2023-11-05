@@ -43,8 +43,6 @@ namespace pg
                 return makeList(this, {});
             }
 
-            ecsRef->newEntityCompFence();
-
             auto tex = makeUiTexture(ecsRef, w.get<float>(), h.get<float>(), name.toString());
             auto texUi = tex.get<UiComponent>();
 
@@ -61,8 +59,6 @@ namespace pg
             auto list = makeList(this, {});
 
             auto res = addToList(this, list, uiElementFunctionsList(this, ecsRef, texUi));
-
-            ecsRef->endEntityCompFence();
 
             return res;
         }

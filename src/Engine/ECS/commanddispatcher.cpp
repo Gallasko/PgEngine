@@ -43,15 +43,6 @@ namespace pg
 
         ComponentCommand item2;
 
-        std::unique_lock<std::mutex> lock(ecsRef->newEntityMutex);
-
-        while(ecsRef->currentNewEntityCounter != 0)
-            ecsRef->newEntityCv.wait(lock, [this]() { return ecsRef->currentNewEntityCounter != 0; });
-
-        ecsRef->newDispatcherRunning = true;
-
-        lock.unlock();
-
         bool found = entityQueue.try_dequeue(item);
 
         bool found2 = componentQueue.try_dequeue(item2);
@@ -60,8 +51,6 @@ namespace pg
         {
             while (found)
             {
-                ecsRef->freezeEntityPool();
-
                 if(item.type == EntityCommand::EntityCommandType::creation)
                 {
                     ecsRef->addEntityToPool(item.entity);
@@ -73,8 +62,6 @@ namespace pg
                 }
 
                 found = entityQueue.try_dequeue(item);
-
-                ecsRef->unfreezeEntityPool();
             }
 
             if(found2 and item2.type == ComponentCommand::ComponentCommandType::creation)
@@ -85,9 +72,5 @@ namespace pg
 
             found2 = componentQueue.try_dequeue(item2);
         }
-
-        ecsRef->newDispatcherRunning = false;
-
-        ecsRef->newEntityCv.notify_all();
     }
 }
