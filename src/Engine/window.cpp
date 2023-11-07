@@ -7,7 +7,6 @@
 
 #include "ECS/loggersystem.h"
 #include "ECS/ecsmodule.h"
-#include "logger.h"
 
 #include "Renderer/renderer.h"
 #include "Renderer/renderermodule.h"
@@ -35,6 +34,9 @@
 #include "Systems/texture2Dmodule.h"
 
 #include "GameElements/Systems/basicsystems.h"
+
+#include "logger.h"
+#include "serialization.h"
 
 namespace
 {
@@ -350,6 +352,8 @@ namespace pg
 
         ecs.attach<FocusableComponent>(screenEntity);
         ecs.attach<MouseLeftClickComponent>(screenEntity, makeCallable<OnFocus>(screenEntity.id));
+
+        Serializer::getSerializer()->serializeObject("ScreenEntity", *screenEntity.entity);
 
         auto tex = makeUiTexture(&ecs, 160, 90, "menu");
         auto cTex = tex.get<UiComponent>();

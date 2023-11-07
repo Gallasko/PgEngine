@@ -5,6 +5,8 @@
 
 #include "Memory/memorypool.h"
 
+#include "serialization.h"
+
 #include "uniqueid.h"
 
 namespace pg
@@ -123,6 +125,8 @@ namespace pg
 
         Entity(_unique_id id, EntitySystem *const ecs) noexcept : id(id), ecsRef(ecs) {}
         ~Entity() noexcept { }
+
+        friend void serialize<>(Archive& archive, const Entity& entity);
 
         // Todo use this destructor but set ecsRef to nullptr when calling it from deleteEntity of the ecs to not destroy the entity multiple time
         // ~Entity() { if(ecsRef) ecsRef->deleteEntity(this); }

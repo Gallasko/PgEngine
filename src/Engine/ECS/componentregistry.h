@@ -9,6 +9,7 @@
 #include "entity.h"
 
 #include "logger.h"
+#include "serialization.h"
 
 #include "uniqueid.h"
 
@@ -79,6 +80,15 @@ namespace pg
 
     };
 
+    template <class T, class = void>
+    struct CanSerialize : std::false_type { };
+
+    template <class T>
+    struct CanSerialize<T, std::void_t<decltype(serialize<const T&>)>> : std::true_type { };
+
+    template <class T>
+    struct CanSerialize<T, std::void_t<decltype(serialize<T>)>> : std::true_type { };
+
     class ComponentRegistry
     {
         struct Storage {};
@@ -116,6 +126,17 @@ namespace pg
                 }
 
                 owner->internalRemoveComponent(entity);
+            });
+
+            componentSerializeMap.emplace(id, [owner](Archive& archive, const Entity* entity) {
+                if constexpr(CanSerialize<Type>::value)
+                {
+                    serialize(archive, owner->getComponent(entity->id));
+                }
+                else
+                {
+                    LOG_ERROR("Component Registy", "Unable to serialize component " << typeid(Type).name() << ", serialze function not defined !");
+                }
             });
 
             componentStorageMap.emplace(id, static_cast<Storage*>(static_cast<Delegate*>(owner)));
@@ -258,6 +279,11 @@ namespace pg
             componentDeleteMap.at(id)(entity);
         }
 
+        inline void serializeComponentFromEntity(Archive& archive, const Entity* entity, _unique_id id) const
+        {
+            componentSerializeMap.at(id)(archive, entity);
+        }
+
         inline EntitySystem* world() const noexcept { return ecsRef; }
 
         // Common singleton system
@@ -269,6 +295,7 @@ namespace pg
 
         std::unordered_map<_unique_id, Storage*> componentStorageMap;
         std::unordered_map<_unique_id, std::function<void(Entity*)>> componentDeleteMap;
+        std::unordered_map<_unique_id, std::function<void(Archive&, const Entity*)>> componentSerializeMap;
         std::unordered_map<_unique_id, Storage*> groupStorageMap;
         std::unordered_map<_unique_id, std::vector<std::function<void(const AbstractEvent&)>>> eventStorageMap;
     };

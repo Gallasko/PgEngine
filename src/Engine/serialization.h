@@ -219,7 +219,7 @@ namespace pg
         ~Serializer();
 
         static std::unique_ptr<Serializer>& getSerializer(const std::string& filename = "serialize.sz")
-        {static std::unique_ptr<Serializer> serializer = std::unique_ptr<Serializer>(new Serializer(filename)); return serializer; }
+            {static std::unique_ptr<Serializer> serializer = std::unique_ptr<Serializer>(new Serializer(filename)); return serializer; }
 
         // Todo make a static_assert to check if ": " is present in the objectName and reject it at compile time
         template <typename Type>
