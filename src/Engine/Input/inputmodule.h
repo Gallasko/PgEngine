@@ -4,6 +4,8 @@
 
 #include "inputcomponent.h"
 
+#include "scriptcallable.h"
+
 namespace pg
 {
     class ConnectToKeyInput : public Function
@@ -12,7 +14,7 @@ namespace pg
     private:
         struct KeyListener
         {
-            KeyListener(std::shared_ptr<Function> func) : function(func) {}
+            KeyListener(std::shared_ptr<Function> func) : function(makeCallable(func)) {}
 
             void onEvent(const OnSDLTextInput& event)
             {
@@ -20,16 +22,13 @@ namespace pg
                     return;
 
                 ValuableQueue queue;
-                auto arg = makeList(function.get(), {{"text", event.text}});
+                auto arg = makeList(function->getRef(), {{"text", event.text}});
 
                 queue.push(arg);
 
                 try
                 {
-                    auto m = function->getVisitor()->getMutex();
-                    
-                    std::lock_guard lock(*m);
-                    function->getValue(queue);
+                    function->call(queue);
                 }
                 catch(const std::exception& e)
                 {
@@ -37,7 +36,7 @@ namespace pg
                 }
             }
 
-            std::shared_ptr<Function> function;
+            std::shared_ptr<CallableIntepretedFunction> function;
         };
 
     public:
@@ -68,8 +67,6 @@ namespace pg
                 registryRef->addEventListener<OnSDLTextInput>(listener);
 
                 tickListeners.push_back(listener);
-
-                visitor->setEcsSysFlag();
             }
             else
             {
@@ -91,7 +88,7 @@ namespace pg
     private:
         struct KeyListener
         {
-            KeyListener(std::shared_ptr<Function> func) : function(func) {}
+            KeyListener(std::shared_ptr<Function> func) : function(makeCallable(func)) {}
 
             void onEvent(const OnSDLScanCode& event)
             {
@@ -99,16 +96,13 @@ namespace pg
                     return;
 
                 ValuableQueue queue;
-                auto arg = makeList(function.get(), {{"key", static_cast<int>(event.key)}});
+                auto arg = makeList(function->getRef(), {{"key", static_cast<int>(event.key)}});
 
                 queue.push(arg);
 
                 try
                 {
-                    auto m = function->getVisitor()->getMutex();
-
-                    std::lock_guard lock(*m);
-                    function->getValue(queue);
+                    function->call(queue);
                 }
                 catch(const std::exception& e)
                 {
@@ -116,7 +110,7 @@ namespace pg
                 }
             }
 
-            std::shared_ptr<Function> function;
+            std::shared_ptr<CallableIntepretedFunction> function;
         };
 
     public:
@@ -147,8 +141,6 @@ namespace pg
                 registryRef->addEventListener<OnSDLScanCode>(listener);
 
                 tickListeners.push_back(listener);
-
-                visitor->setEcsSysFlag();
             }
             else
             {
@@ -170,26 +162,21 @@ namespace pg
     private:
         struct KeyListener
         {
-            KeyListener(std::shared_ptr<Function> func) : function(func) {}
+            KeyListener(std::shared_ptr<Function> func) : function(makeCallable(func)) {}
 
             void onEvent(const OnSDLScanCodePressed& event)
             {
-                std::cout << "Pressed" << std::endl;
-
                 if(not function)
                     return;
 
                 ValuableQueue queue;
-                auto arg = makeList(function.get(), {{"key", static_cast<int>(event.key)}});
+                auto arg = makeList(function->getRef(), {{"key", static_cast<int>(event.key)}});
 
                 queue.push(arg);
 
                 try
                 {
-                    auto m = function->getVisitor()->getMutex();
-
-                    std::lock_guard lock(*m);
-                    function->getValue(queue);
+                    function->call(queue);
                 }
                 catch(const std::exception& e)
                 {
@@ -197,7 +184,7 @@ namespace pg
                 }
             }
 
-            std::shared_ptr<Function> function;
+            std::shared_ptr<CallableIntepretedFunction> function;
         };
 
     public:
@@ -228,8 +215,6 @@ namespace pg
                 registryRef->addEventListener<OnSDLScanCodePressed>(listener);
 
                 tickListeners.push_back(listener);
-
-                visitor->setEcsSysFlag();
             }
             else
             {

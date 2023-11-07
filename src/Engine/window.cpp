@@ -15,11 +15,12 @@
 #include "Input/inputmodule.h"
 
 #include "UI/uisystem.h"
-#include "UI/texture.h"
-#include "UI/simple2dobject.h"
 #include "UI/focusable.h"
 #include "UI/textinput.h"
 #include "UI/sentencesystem.h"
+
+#include "2D/simple2dobject.h"
+#include "2D/texture.h"
 
 #include "Systems/coremodule.h"
 
@@ -30,6 +31,7 @@
 #include "Systems/shape2Dmodule.h"
 #include "Systems/timemodule.h"
 #include "Systems/sentencemodule.h"
+#include "Systems/texture2Dmodule.h"
 
 #include "GameElements/Systems/basicsystems.h"
 
@@ -118,6 +120,7 @@ namespace pg
         interpreter->addSystemModule("log", LogModule{});
         interpreter->addSystemModule("ui", UiModule{&ecs});
         interpreter->addSystemModule("2Dshapes", Shape2DModule{&ecs});
+        interpreter->addSystemModule("2Dtexture", Texture2DModule{&ecs});
         interpreter->addSystemModule("time", TimeModule{&ecs});
         interpreter->addSystemModule("ecs", EcsModule{&ecs});
         interpreter->addSystemModule("core", CoreModule{&ecs});
@@ -303,7 +306,7 @@ namespace pg
 
         ecs.createSystem<Simple2DObjectSystem>(masterRenderer);
 
-        ecs.createSystem<TextureComponentSystem>(masterRenderer);
+        ecs.createSystem<Texture2DComponentSystem>(masterRenderer);
 
         fontLoader = new FontLoader("res/font/fontmap.ft");
         ecs.createSystem<SentenceSystem>(masterRenderer, fontLoader);

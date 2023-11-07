@@ -1,6 +1,6 @@
 #pragma once
 
-#include "UI/simple2dobject.h"
+#include "2D/simple2dobject.h"
 
 #include "Interpreter/pginterpreter.h"
 
@@ -29,8 +29,6 @@ namespace pg
 
             std::cout << "[Interpreter]: Creating rec at: (" << x.toString() << ", " << y.toString() << ")" << std::endl;
 
-            ecsRef->newEntityCompFence();
-
             auto rec = makeSimple2DShape(ecsRef, Shape2D::Square, 50, 50, {255.0f, 0.0f, 0.0f});
             auto recUi = rec.get<UiComponent>();
 
@@ -49,8 +47,6 @@ namespace pg
             auto list = makeList(this, {});
 
             auto res = addToList(this, list, uiElementFunctionsList(this, ecsRef, recUi));
-
-            ecsRef->endEntityCompFence();
 
             return res;
         }

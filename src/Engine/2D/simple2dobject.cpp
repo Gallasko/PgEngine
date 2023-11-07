@@ -127,8 +127,6 @@ namespace pg
         {
             std::lock_guard<std::mutex> lock(modificationMutex);
 
-            LOG_INFO("Simple 2D Object System", "Updating mesh buffer !");
-
             if(not squareMeshInitialized)
             {
                 basicSquareMesh.generateMesh();

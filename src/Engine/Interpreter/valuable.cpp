@@ -69,6 +69,17 @@ namespace pg
     }
 
     /**
+     * @brief Construct a standalone copy of Function object
+     * 
+     * @param visitorRef 
+     * @param base 
+     */
+    Function::Function(std::shared_ptr<VisitorReference> visitorRef, std::shared_ptr<Function> base) : env(base->env), name(base->name), token(base->token), visitor(visitorRef.get()), paramList(base->paramList), body(base->body), arity(base->arity)
+    {
+
+    }
+
+    /**
      * @brief Construct a copy of Function object
      * 
      * @param other The function to copy

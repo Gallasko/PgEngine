@@ -191,6 +191,7 @@ namespace pg
 
     /// Forward Declaration
     class VisitorInterpreter;
+    class VisitorReference;
     class Environment;
 
     class Expression;
@@ -214,6 +215,10 @@ namespace pg
     public:
         /** Construct a new Function Valuable object */
         Function(std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body);
+        
+        /** Construct a standalone copy of Function object */
+        Function(std::shared_ptr<VisitorReference> visitorRef, std::shared_ptr<Function> base);
+
         /** Construct a copy of Function object */
         Function(const Function& other);
 

@@ -488,7 +488,7 @@ namespace pg
          * @param id Id of the entity
          * @return Comp* A pointer to the associated component
          */
-        inline Comp* atEntity(_unique_id id) const { LOG_THIS_MEMBER("Component Set"); auto pos = find(id); LOG_INFO("Component Set", pos); return pos != 0 ? componentList[pos] : nullptr; }
+        inline Comp* atEntity(_unique_id id) const { LOG_THIS_MEMBER("Component Set"); auto pos = find(id); return pos != 0 ? componentList[pos] : nullptr; }
 
         /**
          * @brief Reserve enough space in the set to hold the requested number of objects

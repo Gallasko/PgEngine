@@ -5,7 +5,7 @@
 #include "ECS/entitysystem.h"
 #include "Loaders/fontloader.h"
 #include "UI/button.h"
-#include "UI/texture.h"
+#include "2D/texture.h"
 #include "Renderer/renderer.h"
 #include "Scene/scenemanager.h"
 

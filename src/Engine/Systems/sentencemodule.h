@@ -66,8 +66,6 @@ namespace pg
                 return nullptr;
             }
 
-            ecsRef->newEntityCompFence();
-
             auto text = makeSentence(ecsRef, x.get<float>(), y.get<float>(), {sentenceText.get<std::string>()});
 
             auto textUi = text.get<UiComponent>();
@@ -75,8 +73,6 @@ namespace pg
             auto list = makeList(this, {{"setText", makeFun<SetText>(this, "setText", ecsRef, text.get<SentenceText>())}} );
 
             auto res = addToList(this, list, uiElementFunctionsList(this, ecsRef, textUi));
-
-            ecsRef->endEntityCompFence();
 
             return res;
         }

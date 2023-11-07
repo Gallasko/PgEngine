@@ -2,7 +2,7 @@
 
 #include "Renderer/renderer.h"
 
-#include "uisystem.h"
+#include "UI/uisystem.h"
 #include "constant.h"
 
 #include "logger.h"
@@ -24,11 +24,11 @@ namespace pg
         void generateMesh();
     };
 
-    struct TextureComponent : public Ctor
+    struct Texture2DComponent : public Ctor
     {
-        TextureComponent(const std::string& textureName) : textureName(textureName) { }
-        TextureComponent(const TextureComponent &rhs) : textureName(rhs.textureName) { }
-        virtual ~TextureComponent() {}
+        Texture2DComponent(const std::string& textureName) : textureName(textureName) { }
+        Texture2DComponent(const Texture2DComponent &rhs) : textureName(rhs.textureName) { }
+        virtual ~Texture2DComponent() {}
 
         virtual void onCreation(EntityRef entity) { this->entity = entity; }
 
@@ -45,11 +45,11 @@ namespace pg
         Entity *entity = nullptr;
     };
 
-    struct TextureComponentSystem : public AbstractRenderer, System<Own<TextureComponent>, Listener<UiComponentChangeEvent>, Ref<UiComponent>, NamedSystem, InitSys, StoragePolicy>
+    struct Texture2DComponentSystem : public AbstractRenderer, System<Own<Texture2DComponent>, Listener<UiComponentChangeEvent>, Ref<UiComponent>, NamedSystem, InitSys, StoragePolicy>
     {
-        TextureComponentSystem(MasterRenderer* masterRenderer) : AbstractRenderer(masterRenderer, RenderStage::Render) { }
+        Texture2DComponentSystem(MasterRenderer* masterRenderer) : AbstractRenderer(masterRenderer, RenderStage::Render) { }
 
-        virtual std::string getSystemName() const override { return "Texture System"; }
+        virtual std::string getSystemName() const override { return "Ui Texture System"; }
 
         virtual void render() override;
 
@@ -61,6 +61,6 @@ namespace pg
     };
 
     /** Helper that create an entity with an Ui component and a Texture component */
-    CompList<UiComponent, TextureComponent> makeUiTexture(EntitySystem *ecs, float width, float height, const std::string& name);
+    CompList<UiComponent, Texture2DComponent> makeUiTexture(EntitySystem *ecs, float width, float height, const std::string& name);
 
 }

@@ -50,26 +50,19 @@ namespace pg
     class PgInterpreter;
     class Interpreter;
     class SysModule;
+    class VisitorReference;
 
     class VisitorInterpreter : public Visitor
     {
     friend class Interpreter;
     friend class SysModule;
+    friend class VisitorReference;
     public:
-        VisitorInterpreter(PgInterpreter *interpreter, std::shared_ptr<Environment> environment, const std::unordered_map<Expression*, unsigned int>& localsList, const std::string& scriptName, std::recursive_mutex *m = nullptr) : Visitor(environment), localsList(localsList), interpreter(interpreter), scriptName(scriptName)
-        {
-            if(m == nullptr)
-            {
-                mutex = new std::recursive_mutex;
-                ownMutex = true;
-            }
-            else
-            {
-                mutex = m;
-            }
-        }
-        virtual ~VisitorInterpreter() {if(ownMutex) delete mutex; }
+        VisitorInterpreter(PgInterpreter *interpreter, std::shared_ptr<Environment> environment, const std::unordered_map<Expression*, unsigned int>& localsList, const std::string& scriptName) : Visitor(environment), localsList(localsList), interpreter(interpreter), scriptName(scriptName) {}
 
+        virtual ~VisitorInterpreter() {}
+
+        // Visit for expressions
         virtual std::shared_ptr<Valuable> visit(BinaryExpression *expr) override;
         virtual std::shared_ptr<Valuable> visit(LogicExpression *expr) override;
         virtual std::shared_ptr<Valuable> visit(UnaryExpression *expr) override;
@@ -85,6 +78,7 @@ namespace pg
         virtual std::shared_ptr<Valuable> visit(Get *expr) override;
         virtual std::shared_ptr<Valuable> visit(Set *expr) override;
 
+        // Visit for statement
         virtual void visitStatement(ExpressionStatement *stmt) override;
         virtual void visitStatement(VariableStatement *stmt) override;
         virtual void visitStatement(FunctionStatement *stmt) override;
@@ -101,9 +95,9 @@ namespace pg
         
         bool hasEcsSys() const;
 
-        inline std::recursive_mutex* getMutex() { return mutex; }
+        virtual std::shared_ptr<VisitorReference> getVisitorRef();
 
-    private:
+    protected:
         std::shared_ptr<Environment> globalContext = env;
         std::unordered_map<Expression*, unsigned int> localsList;
 
@@ -115,7 +109,7 @@ namespace pg
 
         void assignVariable(const Token& name, Expression* expression, std::shared_ptr<Valuable> value);
         void assignAt(int distance, const Token& name, std::shared_ptr<Valuable> value);
-            
+
         /** Flag to indicate that a return statement was encountered */
         bool returnTriggered = false;
 
@@ -129,13 +123,30 @@ namespace pg
         // Flag to indicate that a ecs system or event was defined in this script and so it needs to be saved to not invalidate the ecs
         mutable bool hasEcsSysFlag = false;
 
-        // Mutex in case of multiple systems or event in the script
-        std::recursive_mutex *mutex;
-        // Flag to know which interpreter own the mutex
-        bool ownMutex = false;
-
         // Keep a reference to all imported interpreters to keep their statement ptr valid
         std::vector<std::shared_ptr<Interpreter>> importedInterpreters;
+    };
+
+    /**
+     * This class is used to create a new visitor that reference a VisitorInterpreter at a certain point
+     * 
+     * It is mainly used to fake the visitor that it references to allow multiple function concurrently coming from the same script in the ECS
+     */
+    class VisitorReference : public VisitorInterpreter
+    {
+    public:
+        VisitorReference(VisitorInterpreter *referee) : VisitorInterpreter(referee->interpreter, referee->env, referee->localsList, referee->scriptName), referee(referee) {}
+
+        VisitorReference(const VisitorReference& ref) : VisitorInterpreter(ref.referee->interpreter, ref.referee->env, ref.referee->localsList, ref.referee->scriptName), referee(ref.referee) {}
+
+        virtual ~VisitorReference() {}
+
+        virtual std::shared_ptr<VisitorReference> getVisitorRef() { return std::make_shared<VisitorReference>(*this); }
+
+        std::string getScriptName() const { return scriptName; }
+
+    private:
+        VisitorInterpreter *referee;
     };
 
     std::shared_ptr<Valuable> executeBlock(std::queue<StatementPtr> statements, VisitorInterpreter* visitor, std::shared_ptr<Environment> environment);
@@ -151,7 +162,7 @@ namespace pg
     class Interpreter
     {
     public:
-        Interpreter(const ScriptImport& script, PgInterpreter *interpreter, std::recursive_mutex *m = nullptr) : localsList(script.symbols), visitor(interpreter, nullptr, localsList, script.name, m), statements(script.ast) {};
+        Interpreter(const ScriptImport& script, PgInterpreter *interpreter) : localsList(script.symbols), visitor(interpreter, nullptr, localsList, script.name), statements(script.ast) {};
 
         template<typename Functional>
         void defineSystemFunction(const std::string& name);

@@ -137,6 +137,7 @@ namespace pg
         {
             LOG_THIS_MEMBER("Ticking System");
 
+            // Todo here compare and exchange currentIncrement !
             if(currentIncrement == 0) return;
 
             auto currentIncrementLoaded = currentIncrement.exchange(0);

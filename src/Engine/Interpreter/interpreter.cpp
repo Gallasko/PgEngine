@@ -669,7 +669,7 @@ namespace pg
                 else
                 {
                     // Create an interpreter to interpret it
-                    auto importedInterpreter = std::make_shared<Interpreter>(scriptAst, interpreter, mutex);
+                    auto importedInterpreter = std::make_shared<Interpreter>(scriptAst, interpreter);
 
                     // Add all system function to the imported interpreter
                     for(auto& it : interpreter->sysFunctionTable)
@@ -697,6 +697,13 @@ namespace pg
                 tmpImports.pop();
             }
         }
+    }
+
+    std::shared_ptr<VisitorReference> VisitorInterpreter::getVisitorRef()
+    {
+        auto ref = std::make_shared<VisitorReference>(this);
+
+        return ref;
     }
 
     std::shared_ptr<Environment> VisitorInterpreter::ancestor(int distance) const
@@ -800,6 +807,26 @@ namespace pg
 
         return std::make_shared<Variable>(ElementType{0});
     }
+
+    // std::shared_ptr<Valuable> VisitorReference::lookUpVariable(const std::string& name, const Token& token, Expression* expression) const
+    // {
+    //     return referee->lookUpVariable(name, token, expression);
+    // }
+
+    // std::shared_ptr<Valuable> VisitorReference::getAt(int distance, const std::string& name, const Token& token) const
+    // {
+    //     return referee->getAt(distance, name, token);
+    // }
+
+    // void VisitorReference::assignVariable(const Token& name, Expression* expression, std::shared_ptr<Valuable> value)
+    // {
+    //     referee->assignVariable(name, expression, value);
+    // }
+
+    // void VisitorReference::assignAt(int distance, const Token& name, std::shared_ptr<Valuable> value)
+    // {
+    //     referee->assignAt(distance, name, value);
+    // }
 
     std::shared_ptr<Environment> Interpreter::interpret()
     {

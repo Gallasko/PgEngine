@@ -55,9 +55,34 @@ namespace pg
     {
     friend class Entity;
     friend class CommandDispatcher;
-
     friend struct CoreModule;
     friend struct InputModule;
+    
+    private:
+        class EventDispatcher
+        {
+        public:
+            EventDispatcher() {};
+
+            inline bool enqueueEvent(std::function<void()>&& event)
+            {
+                return events.enqueue(event);
+            }
+
+            void process()
+            {
+                std::function<void()> event;
+
+                while(events.try_dequeue(event))
+                {
+                    event();
+                }
+            }
+
+        private:
+            moodycamel::ConcurrentQueue<std::function<void()>> events;
+        };
+
     public:
         EntitySystem();
         ~EntitySystem();
@@ -102,8 +127,6 @@ namespace pg
                 return cmdDispatcher.createEntity();
             else
             {
-                std::lock_guard<std::mutex> lock(entityMutex);
-
                 const auto& id = registry.idGenerator.generateId();
                 return entityPool.addComponent(id, id, this);
             }
@@ -145,13 +168,15 @@ namespace pg
                 auto task = taskflow.emplace([system]()
                 {
                     // Todo time the whole exec of a run of the taskflow
-                    // auto start = std::chrono::steady_clock::now();
+                    auto start = std::chrono::steady_clock::now();
             
                     system->execute();
 
-                    // auto end = std::chrono::steady_clock::now();
+                    auto end = std::chrono::steady_clock::now();
 
-                    // std::cout << "System " << system->name << " execute took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
+                    if(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() >= 3000000)
+                        std::cout << "System " << system->name << " execute took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
+                
                 }).name(std::to_string(system->id));
 
                 // Put the task after every other basic task
@@ -186,7 +211,19 @@ namespace pg
             // Only add the system to the taskflow if the execution policy is set to sequential or independent !
             if(system->executionPolicy == ExecutionPolicy::Sequential)
             {
-                auto task = taskflow.emplace([system](){system->execute();}).name(std::to_string(system->id));
+                auto task = taskflow.emplace([system]()
+                {
+                    // Todo time the whole exec of a run of the taskflow
+                    auto start = std::chrono::steady_clock::now();
+            
+                    system->execute();
+
+                    auto end = std::chrono::steady_clock::now();
+
+                    if(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() >= 3000000)
+                        std::cout << "System " << system->name << " execute took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
+
+                }).name(std::to_string(system->id));
 
                 // Put the task after every other basic task
                 task.succeed(basicTask);
@@ -316,7 +353,19 @@ namespace pg
         }
 
         template <typename Event>
-        inline void sendEvent(Event&& event) { LOG_THIS_MEMBER("ECS"); registry.processEvent(std::forward<Event>(event)); }
+        inline void sendEvent(Event&& event)
+        {
+            LOG_THIS_MEMBER("ECS"); 
+            
+            if(running)
+            {
+                eventDispatcher.enqueueEvent([event, this](){ registry.processEvent(event); });
+            }
+            else
+            {
+                registry.processEvent(std::forward<Event>(event));
+            }
+        }
 
         template <typename Comp>
         inline const _unique_id& getId() const noexcept { LOG_THIS_MEMBER("ECS"); return registry.getTypeId<Comp>(); }
@@ -328,9 +377,9 @@ namespace pg
         /** Return the registry of the ECS, mainly for testing purposes */
         inline constexpr const ComponentRegistry* getComponentRegistry() const noexcept { return &registry; }
 
-        inline size_t getNbEntities() const { LOG_THIS_MEMBER("ECS"); std::lock_guard<std::mutex> lock(entityMutex); return entityPool.nbElements() - 1; }
+        inline size_t getNbEntities() const { LOG_THIS_MEMBER("ECS"); return entityPool.nbElements() - 1; }
 
-        inline Entity* getEntity(_unique_id id) const { LOG_THIS_MEMBER("ECS"); std::lock_guard<std::mutex> lock(entityMutex); return entityPool.atEntity(id); }
+        inline Entity* getEntity(_unique_id id) const { LOG_THIS_MEMBER("ECS"); return entityPool.atEntity(id); }
 
         template <typename Comp>
         inline Comp* getComponent(_unique_id id) const { LOG_THIS_MEMBER("ECS"); return registry.retrieve<Comp>()->getComponent(id); }
@@ -339,8 +388,6 @@ namespace pg
         {
             LOG_THIS_MEMBER("ECS");
 
-            std::lock_guard<std::mutex> lock(entityMutex);
-
             return entityPool.viewComponents();
         }
 
@@ -348,53 +395,8 @@ namespace pg
 
         inline bool isRunning() const { return running; }
 
-        /**
-         * @brief Thread fence for entity creation
-         * 
-         * This method and it's counterpart 'endEntityCompFence' are used to create thread fences
-         * when creating a new entity on the fly *and* attaching new components on it !
-         * To ensure that the entity does not get invalided during the component attach process
-         * (by the command dispatcher because it is his turn in the ecs)
-         * The user need to specify this fence before creating the entity and he needs to remove it when he is done !
-         * 
-         * This allow multiples events and systems to create on the fly and populate entities accross multiples threads without issue !
-         * If the command dispatcher is running those events will wait till it is done and the opposite also apply,
-         * the dispatcher doesn't run until all the fences are raised
-         * 
-         * 
-         * @see endEntityCompFence
-         */
-        void newEntityCompFence()
-        { 
-            std::unique_lock<std::mutex> lock(newEntityMutex);
-
-            while(newDispatcherRunning)
-                newEntityCv.wait(lock, [this]() { return newDispatcherRunning == false; });
-
-            currentNewEntityCounter++;
-        }
-
-        /**
-         * @brief Remove one thread fence
-         * 
-         * This method is used to raise an entity comp fence.
-         * 
-         * @see newEntityCompFence
-         */
-        void endEntityCompFence() { currentNewEntityCounter--; newEntityCv.notify_all(); }
-
     private:
         friend void serialize<>(Archive& archive, const EntitySystem& ecs);
-
-        inline void freezeEntityPool() noexcept
-        {
-            entityMutex.lock();
-        }
-
-        inline void unfreezeEntityPool() noexcept
-        {
-            entityMutex.unlock();
-        }
 
         void addEntityToPool(Entity* entity)
         {
@@ -480,6 +482,8 @@ namespace pg
 
         CommandDispatcher cmdDispatcher;
 
+        EventDispatcher eventDispatcher;
+
         /** Store all systems added to the ECS */
         std::map<_unique_id, AbstractSystem*> systems;
 
@@ -500,21 +504,6 @@ namespace pg
 
         /** Last task of the mandatory ecs base systems */
         tf::Task basicTask;
-
-        /** Mutex to protect the check of existence of an entity */
-        mutable std::mutex entityMutex;
-
-        /** Atomic counter for entity comp fences */
-        std::atomic<size_t> currentNewEntityCounter{0};
-
-        /** Boolean flag to keep track of the status of the Command Dispatcher */
-        std::atomic<bool> newDispatcherRunning{false};
-
-        /** Mutex used for the entity comp fences */
-        std::mutex newEntityMutex;
-
-        /** Conditional variable used for the entity comp fences */
-        std::condition_variable newEntityCv;
     };
 
     template <typename Comp>
