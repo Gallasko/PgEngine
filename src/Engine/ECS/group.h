@@ -112,8 +112,14 @@ namespace pg
         Entity *entity;
     };
 
+    template <typename GroupName>
+    struct OnCompDeletionCheckForGroup
+    {
+        Entity *entity;
+    };
+
     template <typename Type, typename... Types>
-    struct Group : public Listener<OnCompCreatedCheckForGroup<Group<Type, Types...>>>
+    struct Group : public Listener<OnCompCreatedCheckForGroup<Group<Type, Types...>>>, Listener<OnCompDeletionCheckForGroup<Group<Type, Types...>>>
     {
         virtual void onEvent(const OnCompCreatedCheckForGroup<Group<Type, Types...>>& event) override
         {
@@ -141,6 +147,24 @@ namespace pg
             }
         }
 
+        virtual void onEvent(const OnCompDeletionCheckForGroup<Group<Type, Types...>>& event) override
+        {
+            LOG_THIS_MEMBER("Ecs Group");
+
+            auto entity = event.entity;
+            auto& id = entity->id;
+
+            if(isEntityInGroup(entity))
+            {
+                LOG_MILE("Group", "Entity " << id << " is in group " << this->id);
+
+                for(auto callback : onDelGroup)
+                    callback(entity);
+
+                elements.removeComponent(entity);
+            }
+        }
+
         Group(_unique_id id) : id(id) { LOG_THIS_MEMBER("Ecs Group"); }
         virtual ~Group() { LOG_THIS_MEMBER("Ecs Group"); }
 
@@ -163,6 +187,13 @@ namespace pg
             {
                 callback(element->entity);
             }
+        }
+
+        void removeOffGroup(void(*callback)(EntityRef))
+        {
+            LOG_THIS_MEMBER("Ecs Group");
+
+            onDelGroup.push_back(callback);
         }
 
         void process();

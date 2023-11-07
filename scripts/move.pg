@@ -143,6 +143,12 @@ fun scanRegister(event)
     }
 }
 
+import "2Dtexture"
+import "ecs"
+
+var tex;
+var created = false;
+
 fun scanRelease(event)
 {
     if(event.key == SCANCODE_LEFT)
@@ -176,6 +182,25 @@ fun scanRelease(event)
     else if(event.key == SCANCODE_D)
     {
         moveRight()
+    }
+    else if(event.key == SCANCODE_E)
+    {
+        if(!created)
+        {
+            created = true;
+            tex = renderTexture(50, 50, 35, 20, "menu")
+        }
+    }
+    else if(event.key == SCANCODE_Q)
+    {
+        if(created)
+        {
+            created = false;
+
+            print(tex)
+
+            deleteEntityFromId(tex.id);
+        }
     }
 }
 

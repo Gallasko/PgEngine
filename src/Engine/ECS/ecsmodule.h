@@ -141,6 +141,40 @@ namespace pg
         EntitySystem *ecsRef;
     };
 
+    class DeleteEntityFromId : public Function
+    {
+        using Function::Function;
+    public:
+        void setUp(EntitySystem *ecsRef)
+        {
+            LOG_THIS_MEMBER("Ecs Module");
+
+            setArity(1, 1);
+
+            this->ecsRef = ecsRef;
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            LOG_THIS_MEMBER("Ecs Module");
+
+            auto arg = args.front()->getElement();
+            args.pop();
+
+            if(not arg.isNumber())
+            {
+                LOG_ERROR("Ecs Module", "Id given is not a number");
+                return nullptr;
+            }
+
+            ecsRef->removeEntity(ecsRef->getEntity(arg.get<size_t>()));
+
+            return nullptr;
+        }
+
+        EntitySystem *ecsRef;
+    };
+
     class NewUniqueIdFromString : public Function
     {
         using Function::Function;
@@ -190,6 +224,7 @@ namespace pg
             addSystemFunction<RegisterNewSystem>("registerSystem", ecsRef);
             addSystemFunction<NewUniqueId>("generateNewId", ecsRef);
             addSystemFunction<NewUniqueIdFromString>("getIdFrom", ecsRef);
+            addSystemFunction<DeleteEntityFromId>("deleteEntityFromId", ecsRef);            
         }
     };
 

@@ -420,8 +420,10 @@ namespace pg
 
             LOG_INFO("ECS", "Deleting components from entity: " << entity->id);
 
-            for(auto& comp : entity->componentList)
+            while(not entity->componentList.empty())
             {
+                const auto& comp = *entity->componentList.begin();
+
                 if(comp.entityHeldType == Entity::EntityHeld::EntityHeldType::id)
                 {
                     try
@@ -432,6 +434,10 @@ namespace pg
                     {
                         LOG_ERROR("ECS", "Can't detach component [" << comp.getId() << "] from entity [" << entity->id << "]: " << e.what());
                     }
+                }
+                else
+                {
+                    entity->componentList.erase(entity->componentList.begin());
                 }
             }
 
@@ -641,6 +647,11 @@ namespace pg
         setN->onComponentCreation.emplace(id, [](Entity *entity) {
             LOG_INFO("Group", "On component creation for entity " << entity->id << ", sending event !");
             entity->world()->sendEvent(OnCompCreatedCheckForGroup<Group<Type, Types...>>{entity});
+        });
+
+        setN->onComponentDeletion.emplace(id, [](Entity *entity) {
+            LOG_INFO("Group", "On component deletion for entity " << entity->id << ", sending event !");
+            entity->world()->sendEvent(OnCompDeletionCheckForGroup<Group<Type, Types...>>{entity});
         });
     }
 
