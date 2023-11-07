@@ -126,20 +126,6 @@ namespace pg
                 EntitySystem *ecsRef;
             };
 
-/*
-            struct CDSystem : public System<Ref<C>, Own<D>>
-            {
-                virtual void execute() override
-                {
-                    std::cout << "Execute CD System" << std::endl;
-
-                    for(auto entity : view<C, D>())
-                    {
-
-                    }
-                }
-            }
-*/
         }
 
         // ----------------------------------------------------------------------------------------
@@ -454,6 +440,7 @@ namespace pg
             auto entities = new EntityRef[nbComps + 1];
             
             start = std::chrono::steady_clock::now();
+            
             for(size_t i = 0; i < nbComps + 1; i++)
             {
                 // std::cout << "Creating entity: " << i << std::endl;
@@ -461,6 +448,7 @@ namespace pg
                 system->createOwnedComponent<A>(entities[i], i, 15);
                 // std::cout << "Created entity: " << i << std::endl;
             }
+
             end = std::chrono::steady_clock::now();
 
             std::cout << "Creating " << nbComps - 19 << " entities, and adding A took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;

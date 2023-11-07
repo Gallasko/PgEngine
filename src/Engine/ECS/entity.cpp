@@ -11,6 +11,26 @@ namespace pg
         constexpr static const char * const DOM = "Entity";
     }
 
+    template<>
+    void serialize<>(Archive& archive, const Entity& entity)
+    {
+        archive.startSerialization("Entity");
+
+        serialize(archive, "id", entity.id);
+
+        auto ecs = entity.world();
+
+        for(const auto& comp : entity.componentList)
+        {
+            if(comp.entityHeldType == Entity::EntityHeld::EntityHeldType::id)
+            {
+                ecs->getComponentRegistry()->serializeComponentFromEntity(archive, &entity, comp.getId());
+            }
+        }
+
+        archive.endSerialization();
+    }
+
     void EntityRef::operator=(const EntityRef& rhs)
     {
         LOG_THIS_MEMBER(DOM);
