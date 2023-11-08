@@ -22,6 +22,9 @@ namespace pg
         CallablePtr callback;
     };
 
+    template<>
+    void serialize(Archive& archive, const MouseLeftClickComponent& component);
+
     struct MouseRightClickComponent
     {
         MouseRightClickComponent(CallablePtr callback) : callback(callback) { LOG_THIS_MEMBER("MouseRightClickComponent"); }

@@ -249,6 +249,27 @@ namespace pg
         _unique_id entityId = 0;
     };
 
+    template <>
+    void serialize(Archive& archive, const UiSize& value);
+
+    template <>
+    void serialize(Archive& archive, const AnchorDir& value);
+
+    template <>
+    void serialize(Archive& archive, const UiAnchor& value);
+
+    template <>
+    void serialize(Archive& archive, const UiPosition::UiPosValue& value);
+
+    template <>
+    void serialize(Archive& archive, const UiPosition& value);
+
+    template <>
+    void serialize(Archive& archive, const UiFrame& value);
+
+    template <>
+    void serialize(Archive& archive, const UiComponent& value);
+
     struct UiComponentChangeEvent
     {
         _unique_id id;

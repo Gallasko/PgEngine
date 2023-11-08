@@ -4,6 +4,8 @@
 
 #include "entitysystem.h"
 
+#include "serialization.h"
+
 namespace pg
 {
     /**
@@ -21,6 +23,8 @@ namespace pg
          * @param ecsRef Reference to the ecs to send events or manipulate entities
          */
         virtual void call(EntitySystem* const ecsRef) noexcept = 0;
+
+        virtual void serialize(Archive& archive) const noexcept = 0;
     };
 
     typedef std::shared_ptr<AbstractCallable> CallablePtr;
@@ -49,6 +53,15 @@ namespace pg
          * @param ecsRef A reference to an ECS
          */
         inline virtual void call(EntitySystem* const ecsRef) noexcept override { if(ecsRef) ecsRef->sendEvent(event); }
+
+        inline virtual void serialize(Archive& archive) const noexcept override
+        {
+            archive.startSerialization("CallableEvent");
+
+            pg::serialize(archive, "event", event);
+
+            archive.endSerialization();
+        }
 
         /** The event to send */
         Event event;

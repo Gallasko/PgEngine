@@ -12,10 +12,22 @@
 #include <SDL_opengl.h>
 #endif
 
+#include "serialization.h"
+
 namespace pg
 {
     namespace
     {
+    }
+
+    template<>
+    void serialize(Archive& archive, const MouseLeftClickComponent& component)
+    {
+        archive.startSerialization("Mouse Left Click Component");
+
+        component.callback->serialize(archive);
+
+        archive.endSerialization();
     }
 
     void MouseLeftClickSystem::execute()

@@ -42,6 +42,9 @@ namespace pg
         bool focused;
     };
 
+    template<>
+    void serialize(Archive& archive, const FocusableComponent& component);
+
     struct FocusableSystem : public System<Own<FocusableComponent>, Listener<OnFocus>, StoragePolicy, NamedSystem>
     {
         virtual std::string getSystemName() const override { return "Focusable System"; }

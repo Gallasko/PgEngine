@@ -134,6 +134,9 @@ namespace pg
         EntitySystem *const ecsRef = nullptr;
     };
 
+    template<>
+    void serialize(Archive& archive, const Entity& entity);
+
     struct EntityRef
     {
         EntityRef() : initialized(false), entity(nullptr), id(0), ecsRef(nullptr) {}

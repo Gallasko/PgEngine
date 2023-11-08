@@ -21,8 +21,18 @@
 
 #include "Files/filemanager.h"
 
+#include "logger.h"
+
 namespace pg
 {
+    namespace constant
+    {
+        struct Vector2D;
+        struct Vector3D;
+        struct Vector4D;
+        struct ModelInfo;
+    }
+
     // TODO correctly ban ":" from class name "{" for attribute name and ATTRIBUTECONST from any litteral !
     // check and remove any \t not correctly placed
     // Indent always go up one by one so if we skip an increment their is a problem 
@@ -136,7 +146,7 @@ namespace pg
     // TODO make a specialized renderer for std::nullptr_t to catch nullptr error ?; 
 
     template <typename Type>
-    void serialize(Archive& archive, const Type& value);
+    void serialize(Archive&, const Type&) { LOG_ERROR("Serializer", "No serialize function exist for " << typeid(Type).name()); }
 
     // Todo make a static_assert to check if ": " is present in the name and reject it at compile time
     template <typename Type>
@@ -147,12 +157,45 @@ namespace pg
         serialize(archive, value);
     }
 
+    template <>
+    void serialize(Archive& archive, const bool& value);
+
+    template <>
+    void serialize(Archive& archive, const int& value);
+
+    template <>
+    void serialize(Archive& archive, const unsigned int& value);
+
+    template <>
+    void serialize(Archive& archive, const float& value);
+
+    template <>
+    void serialize(Archive& archive, const double& value);
+
+    template <>
+    void serialize(Archive& archive, const size_t& value);
+
+    template <>
+    void serialize(Archive& archive, const std::string& value);
+
     template <typename Type>
     void serialize(Archive& archive, const char* value)
     {
         // Todo store the number of characters in the string
         serialize(archive, std::string(value));
     }
+
+    template <>
+    void serialize(Archive& archive, const constant::Vector2D& vec2D);
+
+    template <>
+    void serialize(Archive& archive, const constant::Vector3D& vec3D);
+
+    template <>
+    void serialize(Archive& archive, const constant::Vector4D& vec4D);
+
+    template <>
+    void serialize(Archive& archive, const constant::ModelInfo& modelInfo);
 
     class UnserializedObject
     {

@@ -80,6 +80,9 @@ namespace pg
         }
     };
 
+    template <>
+    void serialize(Archive& archive, const SentenceText& value);
+
     struct OnTextChanged
     {
         _unique_id entityId;

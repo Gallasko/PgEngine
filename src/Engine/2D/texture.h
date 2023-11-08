@@ -45,6 +45,9 @@ namespace pg
         Entity *entity = nullptr;
     };
 
+    template <>
+    void serialize(Archive& archive, const Texture2DComponent& value);
+
     struct Texture2DComponentSystem : public AbstractRenderer, System<Own<Texture2DComponent>, Listener<UiComponentChangeEvent>, Ref<UiComponent>, NamedSystem, InitSys, StoragePolicy>
     {
         Texture2DComponentSystem(MasterRenderer* masterRenderer) : AbstractRenderer(masterRenderer, RenderStage::Render) { }

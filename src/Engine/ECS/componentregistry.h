@@ -80,15 +80,6 @@ namespace pg
 
     };
 
-    template <class T, class = void>
-    struct CanSerialize : std::false_type { };
-
-    template <class T>
-    struct CanSerialize<T, std::void_t<decltype(serialize<const T&>)>> : std::true_type { };
-
-    template <class T>
-    struct CanSerialize<T, std::void_t<decltype(serialize<T>)>> : std::true_type { };
-
     class ComponentRegistry
     {
         struct Storage {};
@@ -129,14 +120,7 @@ namespace pg
             });
 
             componentSerializeMap.emplace(id, [owner](Archive& archive, const Entity* entity) {
-                if constexpr(CanSerialize<Type>::value)
-                {
-                    serialize(archive, owner->getComponent(entity->id));
-                }
-                else
-                {
-                    LOG_ERROR("Component Registy", "Unable to serialize component " << typeid(Type).name() << ", serialze function not defined !");
-                }
+                serialize(archive, *(owner->getComponent(entity->id)));
             });
 
             componentStorageMap.emplace(id, static_cast<Storage*>(static_cast<Delegate*>(owner)));

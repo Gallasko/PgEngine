@@ -353,6 +353,8 @@ namespace pg
         ecs.attach<FocusableComponent>(screenEntity);
         ecs.attach<MouseLeftClickComponent>(screenEntity, makeCallable<OnFocus>(screenEntity.id));
 
+        Serializer::getSerializer()->serializeObject("Test Focusable", *screenEntity->get<FocusableComponent>());
+
         Serializer::getSerializer()->serializeObject("ScreenEntity", *screenEntity.entity);
 
         auto tex = makeUiTexture(&ecs, 160, 90, "menu");

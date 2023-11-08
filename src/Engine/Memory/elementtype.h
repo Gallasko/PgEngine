@@ -215,4 +215,7 @@ namespace pg
 
         U data;
     };
+
+    template<>
+    void serialize(Archive& archive, const ElementType& element);
 }

@@ -65,6 +65,15 @@ namespace pg
             }
         }
 
+        inline virtual void serialize(Archive& archive) const noexcept override
+        {
+            archive.startSerialization("CallableEvent");
+
+            pg::serialize(archive, "script", visitorRef->getScriptName());
+
+            archive.endSerialization();
+        }
+
         /**
          * @brief Get the underlying Function pointer
          * 

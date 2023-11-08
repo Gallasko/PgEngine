@@ -56,6 +56,7 @@ namespace pg
 
                     return TextFile{p.relative_path().string(), temp};
                 }
+
                 return TextFile{p.relative_path().string(), ""};
             }
             catch (const std::exception& e)
@@ -143,24 +144,21 @@ namespace pg
 
         // Todo
 
-        // try
-        // {
-        //     QFile f(file.filename.c_str());
+        try
+        {
+            std::ofstream p{file.filepath};
 
-        //     if (!f.open(QIODevice::WriteOnly | QIODevice::Text))
-        //     {
-        //         LOG_ERROR(DOM, "Can't open file '" + file.filename + "'.");
-        //         return;
-        //     }
+            if (!p)
+            {
+                LOG_INFO(DOM, "Couldn't open file '" << file.filepath << "' : File is unaccessible");
+            }
 
-        //     f.write(data.c_str());
-
-        //     f.close();
-        // }
-        // catch (const std::exception& e)
-        // {
-        //     LOG_ERROR(DOM, e.what());
-        // }
+            p << data;
+        }
+        catch (const std::exception& e)
+        {
+            LOG_ERROR(DOM, e.what());
+        }
     }
 
     TextFile UniversalFileAccessor::openTextFile(const std::string& filepath) noexcept
