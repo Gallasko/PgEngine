@@ -165,10 +165,10 @@ namespace pg
     {
         LOG_THIS(DOM);
 
-        auto file = openTxtFile(filepath);
+        auto file = FileAccessor::openTextFile(filepath);
 
         if(file.data == "")
-            file = openTxtFile(":/" + filepath);
+            file = ResourceAccessor::openTextFile(filepath);
 
         return file;
     }
@@ -183,6 +183,11 @@ namespace pg
             folder = ResourceAccessor::openTextFolder(foldername);
 
         return folder;
+    }
+
+    void  UniversalFileAccessor::writeToFile(const TextFile& file, const std::string& data) noexcept
+    {
+        FileAccessor::writeToFile(file, data);
     }
 
     std::string UniversalFileAccessor::getFileName(const TextFile& file) noexcept

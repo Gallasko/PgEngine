@@ -18,7 +18,17 @@ namespace pg
     class InputSystem;
     class ClassInstance;
     class InterpreterSystem;
-    // class MasterRenderer;
+    
+    template <class T>                                                  
+    class HasStaticName
+    {       
+        template<class U, class = typename std::enable_if<!std::is_member_pointer<decltype(&U::getType)>::value>::type>
+            static std::true_type check(int);
+        template <class>
+            static std::false_type check(...);
+    public:
+        static constexpr bool value = decltype(check<T>(0))::value;
+    };
 
     template <typename Type>
     struct Own;
@@ -91,42 +101,7 @@ namespace pg
         ~ComponentRegistry();
 
         template <typename Type>
-        void store(Own<Type>* owner) noexcept
-        {
-            LOG_THIS_MEMBER("Component Registry");
-
-            struct Delegate : public Storage, public Own<Type> { };
-
-            const auto& id = getTypeId<Type>();
-
-            // Todo see if there is a performance hit to keep this function or does it get optimized as it should be always false in production code
-            // Block to find if a system is already registered in the ecs
-#ifdef PROD
-            if(const auto& it = componentStorageMap.find(id); it != componentStorageMap.end())
-            {
-                LOG_ERROR("Component Registry", "Trying to recreate a system that already existing with id: " << id << "Exiting");
-                return;
-            }
-#endif
-
-            componentDeleteMap.emplace(id, [owner](Entity* entity) {
-                if constexpr(std::is_base_of_v<Dtor, Type>)
-                {
-                    auto res = owner->getComponent(entity->id);
-                    res->onDeletion(entity);
-                }
-
-                owner->internalRemoveComponent(entity);
-            });
-
-            componentSerializeMap.emplace(id, [owner](Archive& archive, const Entity* entity) {
-                serialize(archive, *(owner->getComponent(entity->id)));
-            });
-
-            componentStorageMap.emplace(id, static_cast<Storage*>(static_cast<Delegate*>(owner)));
-
-            owner->_componentId = id;
-        }
+        void store(Own<Type>* owner) noexcept;
 
         template <typename Type>
         Own<Type>* retrieve() const
@@ -280,6 +255,7 @@ namespace pg
         std::unordered_map<_unique_id, Storage*> componentStorageMap;
         std::unordered_map<_unique_id, std::function<void(Entity*)>> componentDeleteMap;
         std::unordered_map<_unique_id, std::function<void(Archive&, const Entity*)>> componentSerializeMap;
+        std::unordered_map<std::string, std::function<void(const UnserializedObject&, const Entity*)>> componentDeserializeMap;
         std::unordered_map<_unique_id, Storage*> groupStorageMap;
         std::unordered_map<_unique_id, std::vector<std::function<void(const AbstractEvent&)>>> eventStorageMap;
     };

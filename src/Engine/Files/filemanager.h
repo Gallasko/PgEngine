@@ -35,6 +35,8 @@ namespace pg
         static TextFile openTextFile(const std::string& filepath) noexcept;
         static std::vector<TextFile> openTextFolder(const std::string& foldername) noexcept;
 
+        static void writeToFile(const TextFile& file, const std::string& data) noexcept;
+
         static std::string getFileName(const TextFile& file) noexcept;
         static std::string getFoldername(const TextFile& file) noexcept;
         static std::string getRelativePath(const TextFile& file) noexcept;

@@ -478,7 +478,7 @@ namespace pg
         }
     }
 
-    const UnserializedObject& UnserializedObject::operator[](unsigned int id)
+    const UnserializedObject& UnserializedObject::operator[](size_t id)
     {
         if(id < children.size())
             return children.at(id);
@@ -489,7 +489,7 @@ namespace pg
         }
     }
 
-    const UnserializedObject& UnserializedObject::operator[](unsigned int id) const
+    const UnserializedObject& UnserializedObject::operator[](size_t id) const
     {
         if(id < children.size())
             return children.at(id);
@@ -732,7 +732,7 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
-        TextFile file = FileAccessor::openTextFile(filename);
+        TextFile file = UniversalFileAccessor::openTextFile(filename);
         this->file = file;
 
         readFile(file.data);
@@ -745,6 +745,33 @@ namespace pg
         std::lock_guard<std::mutex> lock(mutex);
 
         registerToFile();
+    }
+
+    void Serializer::setFile(const TextFile& file)
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        std::lock_guard<std::mutex> lock(mutex);
+
+        serializedMap.clear();
+
+        this->file = file;
+
+        readFile(file.data);
+    }
+
+    void Serializer::setFile(const std::string& path)
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        std::lock_guard<std::mutex> lock(mutex);
+
+        serializedMap.clear();
+
+        TextFile file = UniversalFileAccessor::openTextFile(path);
+        this->file = file;
+
+        readFile(file.data);
     }
 
     void Serializer::readFile(const std::string& data)
@@ -826,6 +853,6 @@ namespace pg
         for(const auto& serializedString : serializedMap)
             stream << serializedString.first << ": " << serializedString.second;
 
-        FileAccessor::writeToFile(file, stream.str());
+        UniversalFileAccessor::writeToFile(file, stream.str());
     }
 }

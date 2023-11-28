@@ -223,8 +223,10 @@ namespace pg
         const UnserializedObject& operator[](const std::string& key);
         const UnserializedObject& operator[](const std::string& key) const;
 
-        const UnserializedObject& operator[](unsigned int id);
-        const UnserializedObject& operator[](unsigned int id) const;
+        const UnserializedObject& operator[](size_t id);
+        const UnserializedObject& operator[](size_t id) const;
+
+        size_t getNbChildren() const { return children.size(); }
 
     public:
         std::vector<UnserializedObject> children;
@@ -247,26 +249,31 @@ namespace pg
         class ClassSerializer
         {
         friend class Serializer;
-            ClassSerializer(const std::string& objectName) : objectName(objectName) {}
-            ~ClassSerializer() { archive.container << std::endl; auto& serializer = Serializer::getSerializer(); serializer->registerSerialized(objectName, archive.container); }
+            ClassSerializer(Serializer *ser, const std::string& objectName) : serializer(ser), objectName(objectName) {}
+            ~ClassSerializer() { archive.container << std::endl; serializer->registerSerialized(objectName, archive.container); }
         
         public:
             Archive archive;
 
         private:
+            Serializer *serializer;
             std::string objectName;
         };
 
     public:
         Serializer(const TextFile& file);
+        Serializer() {}
         ~Serializer();
+
+        void setFile(const TextFile& file);
+        void setFile(const std::string& path);
 
         static std::unique_ptr<Serializer>& getSerializer(const std::string& filename = "serialize.sz")
             {static std::unique_ptr<Serializer> serializer = std::unique_ptr<Serializer>(new Serializer(filename)); return serializer; }
 
         // Todo make a static_assert to check if ": " is present in the objectName and reject it at compile time
         template <typename Type>
-        void serializeObject(const std::string& objectName, const Type& type) { ClassSerializer ar(objectName); serialize(ar.archive, type); }
+        void serializeObject(const std::string& objectName, const Type& type) { ClassSerializer ar(this, objectName); serialize(ar.archive, type); }
 
         template <typename Type>
         Type deserializeObject(const std::string& objectName) const

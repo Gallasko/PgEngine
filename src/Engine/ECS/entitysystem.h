@@ -558,6 +558,56 @@ namespace pg
         return CompRef<Comp>();
     }
 
+    template <typename Type>
+    void ComponentRegistry::store(Own<Type>* owner) noexcept
+    {
+        LOG_THIS_MEMBER("Component Registry");
+
+        struct Delegate : public Storage, public Own<Type> { };
+
+        const auto& id = getTypeId<Type>();
+
+        // Todo see if there is a performance hit to keep this function or does it get optimized as it should be always false in production code
+        // Block to find if a system is already registered in the ecs
+#ifdef PROD
+        if(const auto& it = componentStorageMap.find(id); it != componentStorageMap.end())
+        {
+            LOG_ERROR("Component Registry", "Trying to recreate a system that already existing with id: " << id << "Exiting");
+            return;
+        }
+#endif
+
+        componentDeleteMap.emplace(id, [owner](Entity* entity) {
+            if constexpr(std::is_base_of_v<Dtor, Type>)
+            {
+                auto res = owner->getComponent(entity->id);
+                res->onDeletion(entity);
+            }
+
+            owner->internalRemoveComponent(entity);
+        });
+
+        componentSerializeMap.emplace(id, [owner](Archive& archive, const Entity* entity) {
+            serialize(archive, *(owner->getComponent(entity->id)));
+        });
+
+        if constexpr(HasStaticName<Type>::value)
+        {
+            componentDeserializeMap.emplace(Type::getType(), [this](const UnserializedObject& serializedStr, const Entity* entity) {
+                if(serializedStr.isNull())
+                    return;
+
+                auto comp = deserialize<Type>(serializedSt  r);
+
+                ecsRef->attach<Type>(entity, comp);
+            });
+        }
+
+        componentStorageMap.emplace(id, static_cast<Storage*>(static_cast<Delegate*>(owner)));
+
+        owner->_componentId = id;
+    }
+
     template <typename Comp>
     void CompRef<Comp>::operator=(const CompRef& rhs)
     {
