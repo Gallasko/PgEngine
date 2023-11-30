@@ -7,7 +7,7 @@ namespace pg
     template<>
     void serialize(Archive& archive, const FocusableComponent& component)
     {
-        archive.startSerialization("Mouse Left Click Component");
+        archive.startSerialization(FocusableComponent::getType());
 
         serialize(archive, "entityId", component.entityId);
 

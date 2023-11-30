@@ -255,7 +255,7 @@ namespace pg
         std::unordered_map<_unique_id, Storage*> componentStorageMap;
         std::unordered_map<_unique_id, std::function<void(Entity*)>> componentDeleteMap;
         std::unordered_map<_unique_id, std::function<void(Archive&, const Entity*)>> componentSerializeMap;
-        std::unordered_map<std::string, std::function<void(const UnserializedObject&, const Entity*)>> componentDeserializeMap;
+        std::unordered_map<std::string, std::function<void(const UnserializedObject&, EntityRef)>> componentDeserializeMap;
         std::unordered_map<_unique_id, Storage*> groupStorageMap;
         std::unordered_map<_unique_id, std::vector<std::function<void(const AbstractEvent&)>>> eventStorageMap;
     };

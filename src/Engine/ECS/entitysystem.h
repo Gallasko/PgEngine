@@ -593,11 +593,11 @@ namespace pg
 
         if constexpr(HasStaticName<Type>::value)
         {
-            componentDeserializeMap.emplace(Type::getType(), [this](const UnserializedObject& serializedStr, const Entity* entity) {
+            componentDeserializeMap.emplace(Type::getType(), [this](const UnserializedObject& serializedStr, EntityRef entity) {
                 if(serializedStr.isNull())
                     return;
 
-                auto comp = deserialize<Type>(serializedSt  r);
+                auto comp = deserialize<Type>(serializedStr);
 
                 ecsRef->attach<Type>(entity, comp);
             });

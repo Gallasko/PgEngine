@@ -19,6 +19,8 @@ namespace pg
         FocusableComponent(const FocusableComponent& rhs) : entityId(rhs.entityId), ecsRef(rhs.ecsRef), alwaysFocus(rhs.alwaysFocus), focused(rhs.alwaysFocus) {}
         ~FocusableComponent() {}
 
+        inline static std::string getType() { return "FocusableComponent"; } 
+
         virtual void onCreation(EntityRef entity) override
         {
             ecsRef = entity->world();

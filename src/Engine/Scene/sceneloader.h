@@ -15,7 +15,7 @@ namespace pg
 {
     struct Scene
     {
-        
+        std::string sceneId;
     };
 
     class SceneLoader : public System<>
@@ -24,15 +24,11 @@ namespace pg
         SceneLoader();
         ~SceneLoader();
 
-        void addPrefab(const std::string& name, const UiCtorFunc& creator);
-
-        Scene* load(const TextFile& sceneFile) const;
-        static void unload(Scene *scene);
+        void load(const TextFile& sceneFile) const;
+        static void unload(const std::string& id);
 
     private:
         Serializer sceneSerializer;
 
-    private:
-        std::unordered_map<std::string, UiCtorFunc> cTorLookupTable; 
     };
 }
