@@ -8,11 +8,24 @@ namespace pg
 {
     struct SceneElementClicked { SceneElementClicked(EntityRef entity) : entity(entity) {} EntityRef entity; };
 
-    struct SceneElement { };
+    struct SaveScene { };
+
+    struct LoadScene { std::string filename; };
+
+    struct NameScene { std::string filename; };
+
+    struct SceneElement : public Ctor
+    {
+        virtual void onCreation(EntityRef ent) override { entity = ent; }
+        
+        EntityRef entity;
+    };
 
     // Todo objectiv with system implementation
     // struct SceneElementSystem : public System<Policy<ExecutionPolicy::Manual>, Own<SceneElement>, Need<MasterRenderer>, Talk<SceneSystem>>
-    struct SceneElementSystem : public System<Listener<SceneElementClicked>, Own<SceneElement>, StoragePolicy, InitSys>
+    struct SceneElementSystem : public System<
+        Listener<SceneElementClicked>, Listener<SaveScene>, Listener<LoadScene>, Listener<NameScene>,
+        Own<SceneElement>, StoragePolicy, InitSys>
     {
         SceneElementSystem() {}
 
@@ -43,6 +56,28 @@ namespace pg
         {
             LOG_INFO("Scene Element", "Entity clicked: " << event.entity.id);
         }
+
+        virtual void onEvent(const SaveScene& event) override
+        {
+            LOG_INFO("Scene Element", "Save current scene named: " << currentScene);
+        }
+
+        virtual void onEvent(const LoadScene& event) override
+        {
+            LOG_INFO("Scene Element", "Load scene: " << event.filename);
+
+            for (const auto& comp : view<SceneElement>())
+            {
+                comp->entity;
+            }
+        }
+
+        virtual void onEvent(const NameScene& event) override
+        {
+            LOG_INFO("Scene Element", "Name the current scene: " << event.filename);
+
+            currentScene = event.filename;
+        }
         
         template <typename Type, typename... Args>
         void addComponent(SceneElement *element, Args... args)
@@ -50,5 +85,7 @@ namespace pg
             // Todo disable every thing on the entity except Rendering to not update the scene element during editing !
             // ecsRef->attach<Type>(element->entity, std::forward<Args>(args)...);
         }
+
+        std::string currentScene;
     };
 }
