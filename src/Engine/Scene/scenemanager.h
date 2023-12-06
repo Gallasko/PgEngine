@@ -4,6 +4,8 @@
 
 #include "Input/inputcomponent.h"
 
+#include "serialization.h"
+
 namespace pg
 {
     struct SceneElementClicked { SceneElementClicked(EntityRef entity) : entity(entity) {} EntityRef entity; };
@@ -27,7 +29,11 @@ namespace pg
         Listener<SceneElementClicked>, Listener<SaveScene>, Listener<LoadScene>, Listener<NameScene>,
         Own<SceneElement>, StoragePolicy, InitSys>
     {
-        SceneElementSystem() {}
+        SceneElementSystem()
+        {
+            currentScene = "newScene.sz";
+            serializer.setFile("newScene.sz");
+        }
 
         virtual void init() override
         {
@@ -60,6 +66,12 @@ namespace pg
         virtual void onEvent(const SaveScene& event) override
         {
             LOG_INFO("Scene Element", "Save current scene named: " << currentScene);
+
+            for (const auto& comp : view<SceneElement>())
+            {
+                if (not comp->entity.empty())
+                    serializer.serializeObject(std::to_string(comp->entity.id), *comp->entity.entity);
+            }
         }
 
         virtual void onEvent(const LoadScene& event) override
@@ -68,7 +80,15 @@ namespace pg
 
             for (const auto& comp : view<SceneElement>())
             {
-                comp->entity;
+                ecsRef->removeEntity(comp->entity);
+            }
+
+            std::unordered_map<_unique_id, _unique_id> idCorrelationMap;
+
+            serializer.setFile(currentScene);
+
+            for (const auto& elem : serializer.getSerializedMap())
+            {
             }
         }
 
@@ -77,6 +97,8 @@ namespace pg
             LOG_INFO("Scene Element", "Name the current scene: " << event.filename);
 
             currentScene = event.filename;
+
+            serializer.setFile(currentScene);
         }
         
         template <typename Type, typename... Args>
@@ -87,5 +109,7 @@ namespace pg
         }
 
         std::string currentScene;
+
+        Serializer serializer;
     };
 }

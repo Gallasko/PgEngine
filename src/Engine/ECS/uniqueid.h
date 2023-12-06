@@ -82,7 +82,10 @@ namespace pg
         }
 
     private:
+        /** Next id to be generated */
         _unique_id currentId = 3;
+
+        /** Mutex for concurrent access */
         std::mutex m;
     };
 }

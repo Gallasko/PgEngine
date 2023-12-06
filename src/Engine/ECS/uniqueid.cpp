@@ -1,27 +1,41 @@
 #include "uniqueid.h"
 
-#include <mutex>
+#include "logger.h"
+
+#include "serialization.h"
 
 namespace pg
 {
-    namespace ecs
+    namespace
     {
-        _unique_id generateId()
-        {
-            static _unique_id uniqueId = 0;
-            static std::mutex mutex;
+        static constexpr const char * const DOM = "Unique id";
+    }
 
-            std::lock_guard<std::mutex> lock(mutex);
-            return uniqueId++;
+    template <>
+    void serialize(Archive& archive, const _unique_id& value)
+    {
+        LOG_THIS(DOM);
+
+        archive.setAttribute(std::to_string(value), "unique id");
+    }
+
+    template <>
+    _unique_id deserialize(const UnserializedObject& serializedString)
+    {
+        LOG_THIS(DOM);
+
+        _unique_id value = 0;
+
+        auto attribute = serializedString.getAsAttribute();
+        if (attribute.name != "_unique_id")
+        {
+            LOG_ERROR(DOM, "Serialized string is not an _unique_id");
+            return value;
         }
 
-        _unique_id generateSystemId()
-        {
-            static _unique_id uniqueId = 0;
-            static std::mutex mutex;
+        std::stringstream sstream(attribute.value);
+        sstream >> value;
 
-            std::lock_guard<std::mutex> lock(mutex);
-            return uniqueId++;
-        }
+        return value;
     }
 }

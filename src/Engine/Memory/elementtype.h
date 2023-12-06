@@ -74,9 +74,10 @@ namespace pg
          * @param value The value to be constructed.
          * 
          * This constructor is explicit to avoid any problems with const char* being implicitly converted to int !
-         * Currently this class only support 4 types of data:
+         * Currently this class only support 5 types of data:
          *  -   float
          *  -   int
+         *  -   size_t
          *  -   string
          *  -   bool
          */
