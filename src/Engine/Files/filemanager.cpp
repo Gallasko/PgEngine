@@ -23,7 +23,7 @@ namespace pg
                 // Todo put the path of the file in the textFile struct
                 fs::path p {filename};
 
-                if (!fs::exists(p))
+                if (not fs::exists(p))
                 {
                     LOG_INFO(DOM, "Couldn't open file '" << filename << "' : File doesn't exist.");
                     return TextFile{filename, ""};
@@ -138,39 +138,65 @@ namespace pg
         return folder;
     }
 
-    void FileAccessor::writeToFile(const TextFile& file, const std::string& data) noexcept
+    bool FileAccessor::writeToFile(const TextFile& file, const std::string& data) noexcept
     {
         LOG_THIS(DOM);
-
-        // Todo
 
         try
         {
             std::ofstream p{file.filepath};
 
-            if (!p)
+            if (not p)
             {
                 LOG_INFO(DOM, "Couldn't open file '" << file.filepath << "' : File is unaccessible");
+                return false;
             }
-
-            p << data;
+            else
+            {
+                p << data;
+            }
         }
         catch (const std::exception& e)
         {
             LOG_ERROR(DOM, e.what());
+            return false;
         }
+
+        return true;
     }
 
+    /**
+     * @brief Universal file accessor for both res file and system files
+     * 
+     * By default, it tries to open files on the system to allow override of the base file for the users
+     * 
+     * If the file does not exist or is empty on the system, it then tries to open it in res file.
+     * 
+     * If is still empty on the res file, then the user wants to write to the system 
+     * so we return the system file path 
+     * 
+     * @param filepath Path to the file to be accessed
+     * @return TextFile Structure representing the accessed file (path and contents)
+     */
     TextFile UniversalFileAccessor::openTextFile(const std::string& filepath) noexcept
     {
         LOG_THIS(DOM);
 
+        TextFile resFile;
+
         auto file = FileAccessor::openTextFile(filepath);
 
         if(file.data == "")
-            file = ResourceAccessor::openTextFile(filepath);
+            resFile = ResourceAccessor::openTextFile(filepath);
 
-        return file;
+        if (resFile.data == "")
+        {
+            return file;
+        }
+        else
+        {
+            return resFile;
+        }
     }
 
     std::vector<TextFile> UniversalFileAccessor::openTextFolder(const std::string& foldername) noexcept
@@ -185,9 +211,9 @@ namespace pg
         return folder;
     }
 
-    void  UniversalFileAccessor::writeToFile(const TextFile& file, const std::string& data) noexcept
+    bool UniversalFileAccessor::writeToFile(const TextFile& file, const std::string& data) noexcept
     {
-        FileAccessor::writeToFile(file, data);
+        return FileAccessor::writeToFile(file, data);
     }
 
     std::string UniversalFileAccessor::getFileName(const TextFile& file) noexcept

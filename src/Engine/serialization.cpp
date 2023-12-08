@@ -786,52 +786,61 @@ namespace pg
         std::string objectName = ""; 
         std::string delimiter = ": ";
         size_t pos;
-        
-        // First line should always be the beginning of a class declaration
-        bool startOfClass = true;
+
+        bool startOfClass;
 
         bool errorHappened = false;
 
         std::istringstream stream(data);
 
-        while(std::getline(stream, line))
+        // First line of the file should always be the version number
+        std::getline(stream, line);
+
+        // Serialization format for version number 1.0
+        if (line == "1.0")
         {
-            if(startOfClass)
+            // First line of data should always be the beginning of a class declaration
+            startOfClass = true;
+
+            while(std::getline(stream, line))
             {
-                pos = line.find(delimiter);
-
-                if(pos == std::string::npos)
+                if(startOfClass)
                 {
-                    errorHappened = true;
-                    break;
-                }
-                
-                objectName = line.substr(0, pos);
+                    pos = line.find(delimiter);
 
-                pos = line.find(delimiter, pos + delimiter.length());
-
-                if(pos != std::string::npos)
-                {
-                    errorHappened = true;
-                    break;
-                }
-
-                serializedString = line + '\n';
-                startOfClass = false;
-            }
-            else
-            {
-                serializedString += line + '\n';
-
-                if(line == "}")
-                {
-                    serializedMap[objectName] = serializedString;
-                    startOfClass = true;
-                }
+                    if(pos == std::string::npos)
+                    {
+                        errorHappened = true;
+                        break;
+                    }
                     
+                    objectName = line.substr(0, pos);
+
+                    pos = line.find(delimiter, pos + delimiter.length());
+
+                    if(pos != std::string::npos)
+                    {
+                        errorHappened = true;
+                        break;
+                    }
+
+                    serializedString = line + '\n';
+                    startOfClass = false;
+                }
+                else
+                {
+                    serializedString += line + '\n';
+
+                    if(line == "}")
+                    {
+                        serializedMap[objectName] = serializedString;
+                        startOfClass = true;
+                    }
+                        
+                }
             }
         }
-
+        
         if(errorHappened)
             { LOG_ERROR(DOM, "Error happened when parsing: " + file.filepath); }
     }
@@ -851,6 +860,9 @@ namespace pg
         LOG_THIS_MEMBER(DOM);
 
         std::ostringstream stream;
+
+        // First line of the serialized file should be the version id of the serializer
+        stream << Serializer::version() << std::endl;
 
         for(const auto& serializedString : serializedMap)
             stream << serializedString.first << ": " << serializedString.second;

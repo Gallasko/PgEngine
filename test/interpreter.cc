@@ -26,7 +26,7 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(interpreter_test, simple_script_opening_test)
         {
-            MockLogger logger(false);
+            MockLogger logger;
 
             MockInterpreter interpreter;
 
@@ -40,7 +40,7 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(interpreter_test, simple_script_from_file_test)
         {
-            MockLogger logger(false);
+            MockLogger logger;
 
             MockInterpreter interpreter;
 
@@ -54,7 +54,7 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(interpreter_test, second_simple_script_from_file_test)
         {
-            MockLogger logger(false);
+            MockLogger logger;
 
             MockInterpreter interpreter;
 
@@ -68,7 +68,7 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(interpreter_test, open_multiple_script_from_file_test)
         {
-            MockLogger logger(false);
+            MockLogger logger;
 
             MockInterpreter interpreter;
 
@@ -158,7 +158,7 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(interpreter_test, functionnal_test)
         {
-            MockLogger<TerminalSink> logger;
+            MockLogger logger;
             logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
             MockInterpreter interpreter;
 
@@ -177,7 +177,7 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(interpreter_test, table_test)
         {
-            MockLogger logger(true);
+            MockLogger logger;
             // logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
 
             MockInterpreter interpreter;
@@ -197,7 +197,7 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(interpreter_test, ecs_interpreter_module_test)
         {
-            MockLogger logger(true);
+            MockLogger logger;
             // logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
 
             // MockInterpreter interpreter;

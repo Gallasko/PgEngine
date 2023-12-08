@@ -244,6 +244,8 @@ namespace pg
     template <typename Type>
     Type deserialize(const UnserializedObject& name);
 
+    // Todo add a version header for serialization
+
     class Serializer
     {
         class ClassSerializer
@@ -286,6 +288,8 @@ namespace pg
         }
 
         const std::unordered_map<std::string, std::string>& getSerializedMap() const { return serializedMap; }
+
+        inline static constexpr const char * version() { return "1.0"; }
 
     private:
         Serializer(const std::string& filename);
