@@ -1,5 +1,8 @@
 #pragma once
 
+#include <sstream>
+#include <cstdint>
+
 #include "sceneloader.h"
 
 #include "Input/inputcomponent.h"
@@ -89,6 +92,44 @@ namespace pg
 
             for (const auto& elem : serializer.getSerializedMap())
             {
+                UnserializedObject serializedString(elem.second, elem.first);
+
+                auto newEntity = ecsRef->createEntity();
+
+                ecsRef->attach<SceneElement>(newEntity);
+
+                _unique_id oldId;
+                std::istringstream iss(elem.first);
+                iss >> oldId;
+
+                idCorrelationMap[oldId] = newEntity.id;
+
+                if (serializedString.isNull())
+                {
+                    LOG_ERROR("Scene Element", "Element is null");
+                }
+                else
+                {
+                    LOG_INFO("Scene Element", "Deserializing an Entity");
+
+                    // Todo Loop over those ref id and correlate them to the correlation map and push them in the entity
+                    auto nbRefId = deserialize<size_t>(serializedString["nbRefId"]);
+
+                    for (const auto& childStr : serializedString.children)
+                    {
+                        const auto& objName = childStr.getObjectName();
+
+                        if (objName.find("idRef"))
+                        {
+                            // Todo
+                        }
+                        else
+                        {
+                            ecsRef->deserializeComponent(newEntity, childStr);
+                        }
+                    }
+                }
+
             }
         }
 

@@ -11,31 +11,31 @@ namespace pg
         static constexpr const char * const DOM = "Unique id";
     }
 
-    template <>
-    void serialize(Archive& archive, const _unique_id& value)
-    {
-        LOG_THIS(DOM);
+    // template <>
+    // void serialize(Archive& archive, const _unique_id& value)
+    // {
+    //     LOG_THIS(DOM);
 
-        archive.setAttribute(std::to_string(value), "unique id");
-    }
+    //     archive.setAttribute(std::to_string(value), "unique id");
+    // }
 
-    template <>
-    _unique_id deserialize(const UnserializedObject& serializedString)
-    {
-        LOG_THIS(DOM);
+    // template <>
+    // _unique_id deserialize(const UnserializedObject& serializedString)
+    // {
+    //     LOG_THIS(DOM);
 
-        _unique_id value = 0;
+    //     _unique_id value = 0;
 
-        auto attribute = serializedString.getAsAttribute();
-        if (attribute.name != "_unique_id")
-        {
-            LOG_ERROR(DOM, "Serialized string is not an _unique_id");
-            return value;
-        }
+    //     auto attribute = serializedString.getAsAttribute();
+    //     if (attribute.name != "_unique_id")
+    //     {
+    //         LOG_ERROR(DOM, "Serialized string is not an _unique_id");
+    //         return value;
+    //     }
 
-        std::stringstream sstream(attribute.value);
-        sstream >> value;
+    //     std::stringstream sstream(attribute.value);
+    //     sstream >> value;
 
-        return value;
-    }
+    //     return value;
+    // }
 }

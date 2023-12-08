@@ -17,6 +17,7 @@ namespace pg
         CallablePtr callback;
         
         std::string text;
+        std::string returnText;
     };
 
     struct TextInputSystem: public System<Own<TextInputComponent>, Ref<FocusableComponent>, Listener<OnSDLTextInput>, Listener<OnSDLScanCode>, NamedSystem, InitSys, StoragePolicy>

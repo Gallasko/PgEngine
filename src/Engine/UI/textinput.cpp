@@ -50,9 +50,11 @@ namespace pg
                     {
                         auto text = entity->get<TextInputComponent>();
 
-                        text->callback->call(world());
+                        text->returnText = text->text;
 
                         text->text = "";
+
+                        text->callback->call(world());
 
                         if(entity->entity->has<SentenceText>())
                         {

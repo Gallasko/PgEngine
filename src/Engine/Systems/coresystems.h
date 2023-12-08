@@ -189,7 +189,9 @@ namespace pg
 
             auto textComp = event.entity->get<TextInputComponent>();
 
-            ecsRef->sendEvent(ExecuteFileScriptEvent{textComp->text});
+            LOG_INFO("Run Script From Text Input System", "Trying to execute script: " << textComp->returnText);
+
+            ecsRef->sendEvent(ExecuteFileScriptEvent{textComp->returnText});
         }
     };
 }

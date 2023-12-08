@@ -56,12 +56,12 @@ namespace pg
 
             auto entityList = makeList(this, {});
 
-            for(auto entity : ecsRef->view())
+            for (auto entity : ecsRef->view())
             {
                 auto compList = makeList(this, {});
                 
                 size_t j = 0;
-                for(const auto& compId : entity->componentList)
+                for (const auto& compId : entity->componentList)
                 {
                     addToList(compList, this->token, {std::to_string(j), compId.getId()});
                     j++;
@@ -71,6 +71,40 @@ namespace pg
             }
 
             return entityList; 
+        }
+
+        EntitySystem *ecsRef;
+    };
+
+    class GetNameFromCompFunction : public Function
+    {
+        using Function::Function;
+    public:
+        void setUp(EntitySystem *ecsRef)
+        {
+            LOG_THIS_MEMBER("Ecs Module");
+
+            setArity(1, 1);
+
+            this->ecsRef = ecsRef;
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            LOG_THIS_MEMBER("Ecs Module");
+
+            auto arg = args.front()->getElement();
+            args.pop();
+
+            if(not arg.isNumber())
+            {
+                LOG_ERROR("Ecs Module", "Id given is not a number");
+                return makeVar(arg);
+            }
+
+            ecsRef->removeEntity(ecsRef->getEntity(arg.get<size_t>()));
+
+            return nullptr;
         }
 
         EntitySystem *ecsRef;

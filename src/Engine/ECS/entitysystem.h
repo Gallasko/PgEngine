@@ -337,6 +337,11 @@ namespace pg
             return CompRef<Type>();
         }
 
+        void deserializeComponent(EntityRef entity, const UnserializedObject& serializedObject) noexcept
+        {
+            registry.deserializeComponentToEntity(serializedObject, entity);
+        }
+
         template <typename Type>
         void dettach(Entity* entity) const noexcept
         {

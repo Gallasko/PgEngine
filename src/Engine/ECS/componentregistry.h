@@ -243,6 +243,11 @@ namespace pg
             componentSerializeMap.at(id)(archive, entity);
         }
 
+        inline void deserializeComponentToEntity(const UnserializedObject& serializedString, EntityRef entity) const
+        {
+            componentDeserializeMap.at(serializedString.getObjectName())(serializedString, entity);
+        }
+
         inline EntitySystem* world() const noexcept { return ecsRef; }
 
         // Common singleton system
