@@ -281,7 +281,7 @@ namespace pg
         Type deserializeObject(const std::string& objectName) const
         { 
             const auto& it = serializedMap.find(objectName); 
-            if(it != serializedMap.end()) 
+            if(it != serializedMap.end())
                 return deserialize<Type>(UnserializedObject(it->second, objectName)); 
             else 
                 return deserialize<Type>(UnserializedObject());

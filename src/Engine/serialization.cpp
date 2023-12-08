@@ -221,7 +221,7 @@ namespace pg
         auto attribute = serializedString.getAsAttribute();
         if (attribute.name != "int")
         {
-            LOG_ERROR(DOM, "Serialized string is not an int");
+            LOG_ERROR(DOM, "Serialized string is not an int: " << attribute.name);
             return value;
         }
 
@@ -241,7 +241,7 @@ namespace pg
         auto attribute = serializedString.getAsAttribute();
         if (attribute.name != "unsigned int")
         {
-            LOG_ERROR(DOM, "Serialized string is not an unsigned int");
+            LOG_ERROR(DOM, "Serialized string is not an unsigned int: " << attribute.name);
             return value;
         }
 
@@ -550,6 +550,13 @@ namespace pg
             // Then calculate the indent of the children
             classChildIndent = nbLeadingSpaces("\t" + currentLine);
 
+            // This can happen if the class is actually a basic type which is only an attribute !
+            if (currentLine.find(ATTRIBUTECONST) != std::string::npos)
+            {
+                isClass = false;
+                return;
+            }
+
             // Check if the name given to the constructor match to the class in the serialized string
             pos = currentLine.find(delimiter);
 
@@ -569,7 +576,7 @@ namespace pg
             }
 
             // Read the next line (For a class their should always be at least 2 lines, one for constructor and the last "}" to indicate the end of the class)
-            if(!std::getline(iss, currentLine))
+            if(not std::getline(iss, currentLine))
             {
                 LOG_ERROR(DOM, "Serialized string doesn't end correctly for object: '" + objectName + "'");
 
@@ -694,7 +701,7 @@ namespace pg
                     // The current line is part of the body of the attribute
                     else if(pos == std::string::npos and lockupAttribute == true)
                     {
-                        // Trim the line by the current number of indent to make it back to the origanl format before making the value an attribute !
+                        // Trim the line by the current number of indent to make it back to the original format before making the value an attribute !
                         tempSerializedString += currentLine.substr(currentIndent) + "\n";
                     }
                     
@@ -802,9 +809,10 @@ namespace pg
             // First line of data should always be the beginning of a class declaration
             startOfClass = true;
 
-            while(std::getline(stream, line))
+            while (std::getline(stream, line))
             {
-                if(startOfClass)
+                LOG_INFO(DOM, line);
+                if (startOfClass)
                 {
                     pos = line.find(delimiter);
 
@@ -817,6 +825,15 @@ namespace pg
                     objectName = line.substr(0, pos);
 
                     pos = line.find(delimiter, pos + delimiter.length());
+
+                    // This can happen if the class is actually a basic type which is only an attribute !
+                    if (line.find(ATTRIBUTECONST) != std::string::npos)
+                    {
+                        serializedString = line;
+
+                        serializedMap[objectName] = serializedString;
+                        continue;
+                    }
 
                     if(pos != std::string::npos)
                     {

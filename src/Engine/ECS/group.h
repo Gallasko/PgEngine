@@ -152,11 +152,10 @@ namespace pg
             LOG_THIS_MEMBER("Ecs Group");
 
             auto entity = event.entity;
-            auto& id = entity->id;
 
             if(isEntityInGroup(entity))
             {
-                LOG_MILE("Group", "Entity " << id << " is in group " << this->id);
+                LOG_MILE("Group", "Entity " << entity->id << " is in group " << this->id);
 
                 for(auto callback : onDelGroup)
                     callback(entity);

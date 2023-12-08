@@ -18,9 +18,10 @@ CXXFLAGS	:= -std=c++17 -Wall -Wextra -g -pthread -Wa,-mbig-obj
 
 # Todo add a flag to set up code coverage
 ifeq ($(DebugActive),True)
-CXXFLAGS    += -DDEBUG # -O0 --coverage
+CXXFLAGS    += -ggdb -DDEBUG # -O0 --coverage
 else
-CXXFLAGS	+= -O2 -DNDEBUG # -mwindows -flto
+# -s : strip executable, -O3 : optimization, -DNDEBUG : remove debug helpers, -mwindows : remove cmd line
+CXXFLAGS	+= -s -O3 -DNDEBUG -mwindows # -flto
 endif
 
 TESTFLAGS := $(CXXFLAGS)

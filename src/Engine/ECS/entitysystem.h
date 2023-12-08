@@ -358,7 +358,7 @@ namespace pg
         }
 
         template <typename Event>
-        inline void sendEvent(Event&& event)
+        void sendEvent(const Event& event)
         {
             LOG_THIS_MEMBER("ECS"); 
             
@@ -368,7 +368,7 @@ namespace pg
             }
             else
             {
-                registry.processEvent(std::forward<Event>(event));
+                registry.processEvent(event);
             }
         }
 
@@ -695,7 +695,7 @@ namespace pg
 
     template <typename Type, typename... Types>
     template <typename Set>
-    inline void Group<Type, Types...>::addEventToSet(Set setN)
+    void Group<Type, Types...>::addEventToSet(Set setN)
     {
         LOG_THIS_MEMBER("Ecs Group");
 
