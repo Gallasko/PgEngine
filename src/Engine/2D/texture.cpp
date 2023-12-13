@@ -19,7 +19,7 @@ namespace pg
     {
         LOG_THIS(DOM);
 
-        archive.startSerialization("Texture2DComponent");
+        archive.startSerialization(Texture2DComponent::getType());
 
         serialize(archive, "textureName", value.textureName);
     
@@ -190,7 +190,7 @@ namespace pg
 
                 auto mesh = renderableTexture.meshRef;
 
-                if(not ui->isVisible() or not mesh)
+                if(not ui or not ui->isVisible() or not mesh)
                     continue;
 
                 // Todo

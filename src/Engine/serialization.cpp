@@ -198,7 +198,7 @@ namespace pg
         auto attribute = serializedString.getAsAttribute();
         if (attribute.name != "bool")
         {
-            LOG_ERROR(DOM, "Serialized string is not a bool");
+            LOG_ERROR(DOM, "Serialized string is not a bool (" << attribute.name << ")");
             return false;
         }
 
@@ -221,7 +221,7 @@ namespace pg
         auto attribute = serializedString.getAsAttribute();
         if (attribute.name != "int")
         {
-            LOG_ERROR(DOM, "Serialized string is not an int: " << attribute.name);
+            LOG_ERROR(DOM, "Serialized string is not an int (" << attribute.name << ")");
             return value;
         }
 
@@ -241,7 +241,7 @@ namespace pg
         auto attribute = serializedString.getAsAttribute();
         if (attribute.name != "unsigned int")
         {
-            LOG_ERROR(DOM, "Serialized string is not an unsigned int: " << attribute.name);
+            LOG_ERROR(DOM, "Serialized string is not an unsigned int (" << attribute.name << ")");
             return value;
         }
 
@@ -261,7 +261,7 @@ namespace pg
         auto attribute = serializedString.getAsAttribute();
         if (attribute.name != "float")
         {
-            LOG_ERROR(DOM, "Serialized string is not a float");
+            LOG_ERROR(DOM, "Serialized string is not a float (" << attribute.name << ")");
             return value;
         }
 
@@ -281,7 +281,7 @@ namespace pg
         auto attribute = serializedString.getAsAttribute();
         if (attribute.name != "double")
         {
-            LOG_ERROR(DOM, "Serialized string is not a double");
+            LOG_ERROR(DOM, "Serialized string is not a double (" << attribute.name << ")");
             return value;
         }
 
@@ -301,7 +301,7 @@ namespace pg
         auto attribute = serializedString.getAsAttribute();
         if (attribute.name != "size_t")
         {
-            LOG_ERROR(DOM, "Serialized string is not a size_t");
+            LOG_ERROR(DOM, "Serialized string is not a size_t (" << attribute.name << ")");
             return value;
         }
 
@@ -328,7 +328,7 @@ namespace pg
 
             if(stringAttribute.name != "string")
             {
-                LOG_ERROR(DOM, "String attribute name is not 'string'");
+                LOG_ERROR(DOM, "String attribute name is not 'string' (" << stringAttribute.name << ")");
                 
                 return std::string();
             }
@@ -397,7 +397,7 @@ namespace pg
         // Check if the isClass is set to true, then it is a class object and not a attribute object so we return a blank attribute and raise an error.
         if (isClass)
         {
-            LOG_ERROR(DOM, "Object is not an attribute");
+            LOG_ERROR(DOM, "Object: " << objectName << " ( " << objectType << ") is not an attribute");
 
             return UnserializedObject::Attribute();
         }
@@ -545,8 +545,6 @@ namespace pg
         }
         else
         {
-            LOG_INFO(DOM, currentLine);
-
             // Then calculate the indent of the children
             classChildIndent = nbLeadingSpaces("\t" + currentLine);
 
@@ -561,10 +559,36 @@ namespace pg
             pos = currentLine.find(delimiter);
 
             // If ":" is not found for the class declaration then it is a unnamed one
-            if(pos == std::string::npos)
+            if (pos == std::string::npos)
+            {
                 tempObjectName = "";
+
+                // This should always be true
+                if (classChildIndent > 0)
+                    pos = classChildIndent - 1;
+                else
+                    pos = 0;
+            }
             else // Else the name of the object is the first part of the string
+            {
                 tempObjectName = trim(currentLine.substr(0, pos));
+                pos += 2;
+            }
+
+            auto endPos = currentLine.find(" {");
+
+            if (endPos == std::string::npos)
+            {
+                LOG_ERROR(DOM, "Error happened when parsing class '" + objectName + "' missing { after class type");
+                
+                isNullObject = true;
+                return;
+            }
+            else
+            {
+                objectType = currentLine.substr(pos, endPos - 1);
+                LOG_INFO(DOM, "Found class type '" + objectType + "'");
+            }
 
             // If the object name doesn't match we throw an error
             if(tempObjectName != objectName)
@@ -584,8 +608,6 @@ namespace pg
                 return;
             }
 
-            LOG_INFO(DOM, currentLine);
-
             // If the second line of the string is "{" then it means that the class doesn't have any children so we can return early.
             const auto trimmed = trim(currentLine);
             if(trimmed == "}")
@@ -598,18 +620,16 @@ namespace pg
 
         }
             
-        while(std::getline(iss, nextLine))
+        while (std::getline(iss, nextLine))
         {
-            LOG_INFO(DOM, "Current line: " + currentLine + ", and current indent: " + std::to_string(currentIndent));
-
             nextIndent = nbLeadingSpaces(nextLine);
-            if(nextIndent > classChildIndent and startOfClass == false and lockupClass == false)
+            if (nextIndent > classChildIndent and startOfClass == false and lockupClass == false)
                 startOfClass = true;
 
-            if(startOfClass)
+            if (startOfClass)
             {
                 // If lockupAttribute is true, then we finished processing the previous attribute
-                if(lockupAttribute)
+                if (lockupAttribute)
                 {
                     children.emplace_back(tempSerializedString, tempAttributeName, false);
                     lockupAttribute = false;
@@ -619,18 +639,21 @@ namespace pg
                 pos = currentLine.find(delimiter);
 
                 // If ":" is not found for the class declaration then it is a unnamed one
-                if(pos == std::string::npos)
+                if (pos == std::string::npos)
+                {
                     tempObjectName = "";
+                }
                 else // Else the name of the object is the first part of the string
+                {
                     tempObjectName = trim(currentLine.substr(0, pos));
-
-                LOG_INFO(DOM, "Child Object name: '" + tempObjectName + "'");
+                }
 
                 // Todo: check if we need to retrive the class name from the serialized object
 
                 // Look up for another ":" if found the serialized string is ill formated
                 pos = currentLine.find(delimiter, pos + delimiter.length());
-                if(pos != std::string::npos)
+    
+                if (pos != std::string::npos)
                 {
                     LOG_ERROR(DOM, "Class string is ill formated, current line possess multiple ':' '" + currentLine + "'");
 
@@ -650,10 +673,8 @@ namespace pg
                     tempSerializedString += currentLine + "\n";
 
                     const auto trimmed = trim(currentLine);
-                    if((classChildIndent == currentIndent) and (trimmed == "}" or trimmed =="},"))
+                    if ((classChildIndent == currentIndent) and (trimmed == "}" or trimmed =="},"))
                     {
-                        LOG_INFO(DOM, "Create a new child object with the name: '" + tempObjectName + "'");
-
                         children.emplace_back(tempSerializedString, tempObjectName);
                         lockupClass = false;
                     }
@@ -811,7 +832,6 @@ namespace pg
 
             while (std::getline(stream, line))
             {
-                LOG_INFO(DOM, line);
                 if (startOfClass)
                 {
                     pos = line.find(delimiter);
@@ -829,7 +849,7 @@ namespace pg
                     // This can happen if the class is actually a basic type which is only an attribute !
                     if (line.find(ATTRIBUTECONST) != std::string::npos)
                     {
-                        serializedString = line;
+                        serializedString = line + '\n';
 
                         serializedMap[objectName] = serializedString;
                         continue;
@@ -881,7 +901,7 @@ namespace pg
         // First line of the serialized file should be the version id of the serializer
         stream << Serializer::version() << std::endl;
 
-        for(const auto& serializedString : serializedMap)
+        for (const auto& serializedString : serializedMap)
             stream << serializedString.first << ": " << serializedString.second;
 
         UniversalFileAccessor::writeToFile(file, stream.str());

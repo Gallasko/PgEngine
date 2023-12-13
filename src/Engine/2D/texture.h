@@ -32,6 +32,8 @@ namespace pg
 
         virtual void onCreation(EntityRef entity) { this->entity = entity; }
 
+        inline static std::string getType() { return "Texture2DComponent"; } 
+
         inline void setTexture(const std::string& textureName)
         {
             if(entity)
@@ -47,6 +49,9 @@ namespace pg
 
     template <>
     void serialize(Archive& archive, const Texture2DComponent& value);
+
+    template <>
+    Texture2DComponent deserialize(const UnserializedObject& serializedString);
 
     struct Texture2DComponentSystem : public AbstractRenderer, System<Own<Texture2DComponent>, Listener<UiComponentChangeEvent>, Ref<UiComponent>, NamedSystem, InitSys, StoragePolicy>
     {

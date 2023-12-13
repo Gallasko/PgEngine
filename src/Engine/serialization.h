@@ -210,6 +210,9 @@ namespace pg
 
         const std::string& getObjectName() const { return objectName; }
 
+        // Todo add
+        const std::string& getObjectType() const { return objectType; }
+
         /**
          * @brief Return the object as an Attribute object.
          * Can only be called if isClass is set to false.
@@ -234,8 +237,9 @@ namespace pg
     private:
         void parseString();
 
-        std::string objectName = "";
-        std::string serializedString = "";
+        std::string objectName;
+        std::string objectType;
+        std::string serializedString;
         
         bool isNullObject = false;
         bool isClass = true;
@@ -280,8 +284,9 @@ namespace pg
         template <typename Type>
         Type deserializeObject(const std::string& objectName) const
         { 
-            const auto& it = serializedMap.find(objectName); 
-            if(it != serializedMap.end())
+            const auto& it = serializedMap.find(objectName);
+
+            if (it != serializedMap.end())
                 return deserialize<Type>(UnserializedObject(it->second, objectName)); 
             else 
                 return deserialize<Type>(UnserializedObject());

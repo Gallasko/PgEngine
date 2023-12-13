@@ -102,15 +102,23 @@ namespace pg
 
         switch (value.type)
         {
-            case UiPosition::UiPosValue::UiPosType::Anchor:
-                serialize(archive, "type",   std::string("anchor"));
-                serialize(archive, "anchor", value.value.anchor);
-                break;
-
             case UiPosition::UiPosValue::UiPosType::Value:
                 serialize(archive, "type",  std::string("value"));
                 serialize(archive, "value", value.value.size);
                 break;
+
+            // Todo
+            // case UiPosition::UiPosValue::UiPosType::Anchor:
+            //     serialize(archive, "type",   std::string("anchor"));
+            //     serialize(archive, "anchor", value.value.anchor);
+            //     break;    
+
+            default:
+            {
+                // TODO:
+                LOG_ERROR(DOM, "UiPosition::UiPosValue != value is not supported for serialization yet !");
+                break;
+            }
         }
 
         archive.endSerialization();
@@ -170,7 +178,7 @@ namespace pg
         // Can't actually serialize anchors here cause they are just pointers to other components
         // So they don't hold the same value each time
 
-        archive.startSerialization("UiComponent");
+        archive.startSerialization(UiComponent::getType());
 
         serialize(archive, "visibility",    value.isVisible());
         serialize(archive, "pos",           value.pos);
@@ -233,6 +241,42 @@ namespace pg
     }
 
     /**
+     * @brief Specialization of the deserialize function for UiPosValue 
+     * 
+     * @param serializedString A serialized string
+     * @return UiPosValue An UiPosValue object contructed via the serialization string
+     */
+    template <>
+    UiPosition::UiPosValue deserialize(const UnserializedObject& serializedString)
+    {
+        LOG_THIS(DOM);
+
+        UiPosition::UiPosValue value;
+
+        if (serializedString.isNull())
+        {
+            LOG_ERROR(DOM, "Element is null");
+        }
+        else
+        {
+            auto type = deserialize<std::string>(serializedString["type"]);
+
+            if (type == "value")
+            {
+                value = deserialize<UiSize>(serializedString["value"]);
+            }
+            else
+            {
+                // Todo
+                LOG_ERROR(DOM, "UiPosition::UiPosValue != value is not supported for serialization yet !");
+            }
+
+        }
+
+        return value;
+    }
+
+    /**
      * @brief Specialization of the deserialize function for UiPosition
      * 
      * @param serializedString A serialized string
@@ -245,15 +289,15 @@ namespace pg
 
         UiPosition pos;
 
-        std::string type = "";
-
         if(serializedString.isNull())
+        {
             LOG_ERROR(DOM, "Element is null");
+        }
         else
         {
-            pos.x = deserialize<UiSize>(serializedString["x"]);
-            pos.y = deserialize<UiSize>(serializedString["y"]);
-            pos.z = deserialize<UiSize>(serializedString["z"]);
+            pos.x = deserialize<UiPosition::UiPosValue>(serializedString["x"]);
+            pos.y = deserialize<UiPosition::UiPosValue>(serializedString["y"]);
+            pos.z = deserialize<UiPosition::UiPosValue>(serializedString["z"]);
         }
 
         return pos;
@@ -272,10 +316,10 @@ namespace pg
 
         UiFrame frame;
 
-        std::string type = "";
-
         if(serializedString.isNull())
+        {
             LOG_ERROR(DOM, "Element is null");
+        }
         else
         {
             LOG_INFO(DOM, "Deserializing an UiFrame");
@@ -301,10 +345,10 @@ namespace pg
 
         UiComponent component;
 
-        std::string type = "";
-
         if(serializedString.isNull())
+        {
             LOG_ERROR(DOM, "Element is null");
+        }
         else
         {
             LOG_INFO(DOM, "Deserializing an UiComponent");

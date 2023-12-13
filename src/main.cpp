@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
     // terminalSink->addFilter("Editor Filter", new Logger::LogSink::FilterFile("src/app.cpp"));
     // terminalSink->addFilter("Log Level Filter", new pg::Logger::LogSink::FilterLogLevel(pg::Logger::InfoLevel::log));
 
-    auto fileSink = pg::Logger::registerSink<pg::FileSink>();
+    // auto fileSink = pg::Logger::registerSink<pg::FileSink>();
 
     // fileSink->addFilter("Parser Filter", new Logger::LogSink::FilterScope("Parser"));
 

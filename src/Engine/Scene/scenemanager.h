@@ -79,6 +79,9 @@ namespace pg
 
         virtual void onEvent(const LoadScene& event) override
         {
+            if (not ecsRef)
+                return;
+
             LOG_INFO("Scene Element", "Load scene: " << event.filename);
 
             for (const auto& comp : view<SceneElement>())
@@ -88,10 +91,11 @@ namespace pg
 
             std::unordered_map<_unique_id, _unique_id> idCorrelationMap;
 
-            serializer.setFile(currentScene);
+            serializer.setFile(event.filename);
 
             for (const auto& elem : serializer.getSerializedMap())
             {
+                LOG_INFO("Scene Element", "Deserializing: " << elem.first);
                 UnserializedObject serializedString(elem.second, elem.first);
 
                 auto newEntity = ecsRef->createEntity();
@@ -110,16 +114,18 @@ namespace pg
                 }
                 else
                 {
-                    LOG_INFO("Scene Element", "Deserializing an Entity");
+                    LOG_INFO("Scene Element", "Deserializing an " << serializedString.getObjectType() << " with " << serializedString.getNbChildren() << " children");
 
                     // Todo Loop over those ref id and correlate them to the correlation map and push them in the entity
-                    auto nbRefId = deserialize<size_t>(serializedString["nbRefId"]);
+                    // auto nbRefId = deserialize<size_t>(serializedString["nbRefId"]);
 
                     for (const auto& childStr : serializedString.children)
                     {
-                        const auto& objName = childStr.getObjectName();
+                        const auto& objType = childStr.getObjectType();
 
-                        if (objName.find("idRef"))
+                        LOG_INFO("Scene Element", "Working on child: " << objType);
+
+                        if (objType.find("idRef") != std::string::npos)
                         {
                             // Todo
                         }
@@ -140,13 +146,6 @@ namespace pg
             currentScene = event.filename;
 
             serializer.setFile(currentScene);
-        }
-        
-        template <typename Type, typename... Args>
-        void addComponent(SceneElement *element, Args... args)
-        {
-            // Todo disable every thing on the entity except Rendering to not update the scene element during editing !
-            // ecsRef->attach<Type>(element->entity, std::forward<Args>(args)...);
         }
 
         std::string currentScene;

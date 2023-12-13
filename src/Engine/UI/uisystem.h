@@ -153,6 +153,8 @@ namespace pg
             bottomMargin.setEntity(entityId, ecsRef);
         }
 
+        inline static std::string getType() { return "UiComponent"; } 
+
         /**
          * @brief Destroy the Ui Component object
          */

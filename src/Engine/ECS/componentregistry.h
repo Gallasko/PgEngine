@@ -245,7 +245,20 @@ namespace pg
 
         inline void deserializeComponentToEntity(const UnserializedObject& serializedString, EntityRef entity) const
         {
-            componentDeserializeMap.at(serializedString.getObjectName())(serializedString, entity);
+            const auto& name = serializedString.getObjectType();
+
+            const auto& it = componentDeserializeMap.find(name);
+
+            LOG_INFO("Component Registry", "Trying to deserialize component: " << name);
+
+            if (it != componentDeserializeMap.end())
+            {
+                it->second(serializedString, entity);
+            }
+            else
+            {
+                LOG_ERROR("Component Registry", "Couldn't deserialize comp: " << name);
+            }
         }
 
         inline EntitySystem* world() const noexcept { return ecsRef; }

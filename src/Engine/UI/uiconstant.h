@@ -323,7 +323,7 @@ namespace pg
             explicit UiPosValue(const UiSize* size) : type(UiPosType::Value) { new(&value.size) UiSize(size); this->size = value.size; }
             explicit UiPosValue(const UiAnchor& anchor) : type(UiPosType::Anchor) { new(&value.anchor) UiAnchor(anchor); this->size = value.anchor.anchorPoint; }
 
-            explicit UiPosValue(const UiPosValue& rhs)
+            UiPosValue(const UiPosValue& rhs)
             { 
                 type = rhs.type;
 
@@ -348,7 +348,7 @@ namespace pg
 
             ~UiPosValue() { clearOldType(); }
 
-            void operator=(const UiPosValue& rhs)
+            UiPosValue& operator=(const UiPosValue& rhs)
             {
                 clearOldType();
 
@@ -369,6 +369,8 @@ namespace pg
                     value.ref = rhs.value.ref;
                     this->size = rhs.size;
                 }
+
+                return *this;
             }
 
             void operator=(const UiPosValue* rhs)

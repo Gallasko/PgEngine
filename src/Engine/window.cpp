@@ -22,16 +22,18 @@
 #include "2D/simple2dobject.h"
 #include "2D/texture.h"
 
-#include "Systems/coremodule.h"
+#include "Scene/scenemanager.h"
 
 #include "Interpreter/pginterpreter.h"
 #include "Interpreter/systemfunction.h"
 
+#include "Systems/coremodule.h"
 #include "Systems/logmodule.h"
 #include "Systems/shape2Dmodule.h"
 #include "Systems/timemodule.h"
 #include "Systems/sentencemodule.h"
 #include "Systems/texture2Dmodule.h"
+#include "Systems/scenemodule.h"
 
 #include "GameElements/Systems/basicsystems.h"
 
@@ -126,6 +128,7 @@ namespace pg
         interpreter->addSystemModule("core", CoreModule{&ecs});
         interpreter->addSystemModule("input", InputModule{&ecs});
         interpreter->addSystemModule("uitext", SentenceModule{&ecs});
+        interpreter->addSystemModule("scene", SceneModule{&ecs});
         
         // Script to configure the logger
         interpreter->interpretFromFile("logManager.pg");
@@ -324,6 +327,8 @@ namespace pg
 
         ecs.createSystem<RunScriptFromTextInputSystem>();
 
+        ecs.createSystem<SceneElementSystem>();
+
         // Ecs task scheduling
 
         ecs.succeed<TickingSystem, PgInterpreter>();
@@ -337,6 +342,8 @@ namespace pg
         ecs.succeed<UiComponentSystem, MouseLeftClickSystem>();
 
         ecs.succeed<MasterRenderer, UiComponentSystem>();
+
+        ecs.succeed<SceneElementSystem, MasterRenderer>();
 
         // Script to configure all the users systems
         interpreter->interpretFromFile("sysRegister.pg");

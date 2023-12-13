@@ -1,0 +1,11 @@
+import "scene"
+
+print("In scene script")
+
+//saveScene()
+
+printScene()
+
+loadScene("sscene.sz")
+
+printScene()
