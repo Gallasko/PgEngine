@@ -67,6 +67,8 @@ namespace pg
             auto file = UniversalFileAccessor::openTextFile("tmpSerializeTest.sz");
 
             EXPECT_EQ(file.data, "1.0\ntest: PGSERIALISEDATTRIBUTE int {5}");
+
+            EXPECT_EQ(logger.getNbError(), 0);
         }
 
         // ----------------------------------------------------------------------------------------
@@ -74,7 +76,7 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(serialize_test, deserialize_int)
         {
-            MockLogger<TerminalSink> logger;
+            MockLogger logger;
             fs::remove("tmpSerializeTest.sz");
 
             Serializer serialize;
@@ -96,12 +98,51 @@ namespace pg
             int ret = serialize.deserializeObject<int>("test");
 
             EXPECT_EQ(ret, 5);
+
+            EXPECT_EQ(logger.getNbError(), 0);
         }
 
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
-        TEST(serialize_test, serialize_custom)
+        TEST(serialize_test, serialize_deserialize)
+        {
+            MockLogger logger;
+            fs::remove("tmpSerializeTest.sz");
+
+            Serializer serialize;
+
+            serialize.setFile("tmpSerializeTest.sz");
+
+            int val = 5;
+
+            serialize.serializeObject("test", val);
+
+            auto map = serialize.getSerializedMap();
+
+            EXPECT_EQ(map.size(), 1);
+
+            auto file = UniversalFileAccessor::openTextFile("tmpSerializeTest.sz");
+
+            EXPECT_EQ(file.data, "1.0\ntest: PGSERIALISEDATTRIBUTE int {5}");
+
+            int ret = serialize.deserializeObject<int>("test");
+
+            EXPECT_EQ(ret, 5);
+            
+            serialize.setFile("tmpSerializeTest.sz");
+
+            ret = serialize.deserializeObject<int>("test");
+        
+            EXPECT_EQ(ret, 5);
+
+            EXPECT_EQ(logger.getNbError(), 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        TEST(serialize_test, serialize_multiple_custom)
         {
             MockLogger logger;
             fs::remove("tmpSerializeTest.sz");
@@ -112,15 +153,21 @@ namespace pg
 
             TestSerializeA val = 5;
 
-            serialize.serializeObject("test", val);
+            serialize.serializeObject("test 1", val);
+
+            TestSerializeA val2 = 35;
+
+            serialize.serializeObject("test 2", val2);
 
             auto map = serialize.getSerializedMap();
 
-            EXPECT_EQ(map.size(), 1);
+            EXPECT_EQ(map.size(), 2);
 
             auto file = UniversalFileAccessor::openTextFile("tmpSerializeTest.sz");
 
-            EXPECT_EQ(file.data, "1.0\ntest: Test Serial A {\n\tdata: PGSERIALISEDATTRIBUTE int {5}\n}");
+            EXPECT_EQ(file.data, "1.0\ntest 2: Test Serial A {\n\tdata: PGSERIALISEDATTRIBUTE int {35}\n}\ntest 1: Test Serial A {\n\tdata: PGSERIALISEDATTRIBUTE int {5}\n}");
+
+            EXPECT_EQ(logger.getNbError(), 0);
         }
 
     }
