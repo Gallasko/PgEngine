@@ -231,7 +231,7 @@ namespace pg
 
     void Simple2DObjectSystem::addElement(const CompRef<UiComponent>& ui, const CompRef<Simple2DObject>& obj)
     {
-        LOG_INFO("Simple 2D Object System", "Add element " << ui.entityId<< " to buffer !");
+        LOG_INFO("Simple 2D Object System", "Add element " << ui.entityId << " to buffer !");
 
         {
             std::lock_guard<std::mutex> lock (tableMutex);

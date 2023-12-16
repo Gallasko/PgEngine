@@ -367,8 +367,8 @@ namespace pg
         auto tex = makeUiTexture(&ecs, 160, 90, "menu");
         auto cTex = tex.get<UiComponent>();
 
-        cTex->setBottomAnchor(screenUi->bottom);
-        cTex->setLeftAnchor(screenUi->left);
+        cTex->setTopAnchor(screenUi->top);
+        cTex->setRightAnchor(screenUi->right);
 
         auto s = makeSimple2DShape(&ecs, Shape2D::Triangle, 50, 50, {255.0f, 0.0f, 0.0f});
         auto c = s.get<UiComponent>();
@@ -376,17 +376,27 @@ namespace pg
         c->setTopAnchor(screenUi->top);
         c->setRightAnchor(screenUi->right);
 
+        Serializer::getSerializer()->serializeObject("Menu tex", *tex.entity);
+
         auto terminalBackground = makeSimple2DShape(&ecs, Shape2D::Square, 350, 200, {4.0f, 16.0f, 32.0f});
         auto terminalBackgroundC = terminalBackground.get<UiComponent>();
 
         terminalBackgroundC->setBottomAnchor(screenUi->bottom);
         terminalBackgroundC->setRightAnchor(screenUi->right);
 
+        Serializer::getSerializer()->serializeObject("Terminal background", *terminalBackground.entity);
+
         auto terminalText = makeSentence(&ecs, 200, 200, {"Here"});
         auto terminalTextC = terminalText.get<UiComponent>();
 
         terminalTextC->setBottomAnchor(terminalBackgroundC->bottom);
         terminalTextC->setLeftAnchor(terminalBackgroundC->left);
+
+        auto testb = makeSimple2DShape(&ecs, Shape2D::Square, 120, 120, {4.0f, 225.0f, 125.0f});
+        auto testbc = testb.get<UiComponent>();
+
+        testbc->setBottomAnchor(screenUi->bottom);
+        testbc->setRightAnchor(screenUi->right);
 
         terminalTextC->setBottomMargin(10);
         terminalTextC->setLeftMargin(10);

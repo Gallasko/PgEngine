@@ -9,67 +9,89 @@ ScreenEntity: Entity {
 	UiComponent {
 		visibility: PGSERIALISEDATTRIBUTE bool {true},
 		pos: UiPosition {
-			x: UiPosValue {
-				type: PGSERIALISEDATTRIBUTE string {value},
-				value: UiSize {
-					value: PGSERIALISEDATTRIBUTE float {0.000000}
+			x: UiSize {
+				value: PGSERIALISEDATTRIBUTE float {0.000000},
+				dir: AnchorDir {
+					dir: PGSERIALISEDATTRIBUTE string {X}
 				}
 			},
-			y: UiPosValue {
-				type: PGSERIALISEDATTRIBUTE string {value},
-				value: UiSize {
-					value: PGSERIALISEDATTRIBUTE float {0.000000}
+			y: UiSize {
+				value: PGSERIALISEDATTRIBUTE float {0.000000},
+				dir: AnchorDir {
+					dir: PGSERIALISEDATTRIBUTE string {Y}
 				}
 			},
-			z: UiPosValue {
-				type: PGSERIALISEDATTRIBUTE string {value},
-				value: UiSize {
-					value: PGSERIALISEDATTRIBUTE float {-1.000000}
+			z: UiSize {
+				value: PGSERIALISEDATTRIBUTE float {-1.000000},
+				dir: AnchorDir {
+					dir: PGSERIALISEDATTRIBUTE string {Z}
 				}
 			}
 		},
 		width: UiSize {
-			value: PGSERIALISEDATTRIBUTE float {10.000000}
+			value: PGSERIALISEDATTRIBUTE float {10.000000},
+			dir: AnchorDir {
+				dir: PGSERIALISEDATTRIBUTE string {Width}
+			}
 		},
 		height: UiSize {
-			value: PGSERIALISEDATTRIBUTE float {10.000000}
+			value: PGSERIALISEDATTRIBUTE float {10.000000},
+			dir: AnchorDir {
+				dir: PGSERIALISEDATTRIBUTE string {Height}
+			}
 		},
 		topMargin: UiSize {
-			value: PGSERIALISEDATTRIBUTE float {0.000000}
+			value: PGSERIALISEDATTRIBUTE float {0.000000},
+			dir: AnchorDir {
+				dir: PGSERIALISEDATTRIBUTE string {TMargin}
+			}
 		},
 		rightMargin: UiSize {
-			value: PGSERIALISEDATTRIBUTE float {0.000000}
+			value: PGSERIALISEDATTRIBUTE float {0.000000},
+			dir: AnchorDir {
+				dir: PGSERIALISEDATTRIBUTE string {RMargin}
+			}
 		},
 		bottomMargin: UiSize {
-			value: PGSERIALISEDATTRIBUTE float {0.000000}
+			value: PGSERIALISEDATTRIBUTE float {0.000000},
+			dir: AnchorDir {
+				dir: PGSERIALISEDATTRIBUTE string {BMargin}
+			}
 		},
 		leftMargin: UiSize {
-			value: PGSERIALISEDATTRIBUTE float {0.000000}
-		},
-		topAnchor: UiAnchor {
-			entityId: PGSERIALISEDATTRIBUTE size_t {0},
-			anchorDir: AnchorDir {
-				dir: PGSERIALISEDATTRIBUTE string {Top}
+			value: PGSERIALISEDATTRIBUTE float {0.000000},
+			dir: AnchorDir {
+				dir: PGSERIALISEDATTRIBUTE string {LMargin}
 			}
 		},
-		leftAnchor: UiAnchor {
-			entityId: PGSERIALISEDATTRIBUTE size_t {0},
-			anchorDir: AnchorDir {
-				dir: PGSERIALISEDATTRIBUTE string {Top}
+		topAnchor: UiSize {
+			value: PGSERIALISEDATTRIBUTE float {0.000000},
+			dir: AnchorDir {
+				dir: PGSERIALISEDATTRIBUTE string {None}
 			}
 		},
-		bottomAnchor: UiAnchor {
-			entityId: PGSERIALISEDATTRIBUTE size_t {0},
-			anchorDir: AnchorDir {
-				dir: PGSERIALISEDATTRIBUTE string {Top}
+		rightAnchor: UiSize {
+			value: PGSERIALISEDATTRIBUTE float {0.000000},
+			dir: AnchorDir {
+				dir: PGSERIALISEDATTRIBUTE string {None}
 			}
 		},
-		rightAnchor: UiAnchor {
-			entityId: PGSERIALISEDATTRIBUTE size_t {0},
-			anchorDir: AnchorDir {
-				dir: PGSERIALISEDATTRIBUTE string {Top}
+		bottomAnchor: UiSize {
+			value: PGSERIALISEDATTRIBUTE float {0.000000},
+			dir: AnchorDir {
+				dir: PGSERIALISEDATTRIBUTE string {None}
 			}
-		}
+		},
+		leftAnchor: UiSize {
+			value: PGSERIALISEDATTRIBUTE float {0.000000},
+			dir: AnchorDir {
+				dir: PGSERIALISEDATTRIBUTE string {None}
+			}
+		},
+		hasTopAnchor: PGSERIALISEDATTRIBUTE bool {false},
+		hasRightAnchor: PGSERIALISEDATTRIBUTE bool {false},
+		hasBottomAnchor: PGSERIALISEDATTRIBUTE bool {false},
+		hasLeftAnchor: PGSERIALISEDATTRIBUTE bool {false}
 	},
 	Mouse Left Click Component {
 		CallableEvent {

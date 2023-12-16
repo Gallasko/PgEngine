@@ -21,8 +21,6 @@ namespace pg
     class MasterRenderer;
     struct UiComponentSystem;
 
-    struct UiComponentInternalChangeEvent { _unique_id parent, child; };
-
     /**
      * @class UiComponent
      *
@@ -36,20 +34,13 @@ namespace pg
 
         // Type definition
     private:
-        // Todo use this struct instead of a plain uisize to avoid possible problems with user
-        // passing a plain float or a deletable uisize where an anchor was expected
-        // struct Anchor
-        // {
-        //     UiSize anchorPoint;
-        // };
-        
         /**
          * @brief A struct describing the two anchor points needed to represent a corner
          */
         struct Corner
         {
-            const UiAnchor* verticalAnchor;       ///< The vertical anchor point of the corner
-            const UiAnchor* horizontalAnchor;     ///< The horizontal anchor point of the corner
+            const UiSize* verticalAnchor;       ///< The vertical anchor point of the corner
+            const UiSize* horizontalAnchor;     ///< The horizontal anchor point of the corner
         };
 
         // Public interface
@@ -58,22 +49,23 @@ namespace pg
         UiPosition pos;
 
         /** The width of the object */
-        UiSize width;
+        UiSize width = AnchorDir::Width;
         /** The height of the object */
-        UiSize height;
+        UiSize height = AnchorDir::Height;
 
         /** The bounding box of the object */
         const UiFrame frame = UiFrame(pos.x, pos.y, pos.z, width, height);
 
         // The 4 anchors points of the object
         /** Top anchor points of the object */
-        const UiAnchor top    = {0, AnchorDir::Top,    pos.y};
+        // Todo make this const
+        UiSize top    = pos.y;
         /** Right anchor points of the object */
-        const UiAnchor right  = {0, AnchorDir::Right,  pos.x + width};
+        UiSize right  = pos.x + width;
         /** Bottom anchor points of the object */
-        const UiAnchor bottom = {0, AnchorDir::Bottom, pos.y + height};
+        UiSize bottom = pos.y + height;
         /** Left anchor points of the object */
-        const UiAnchor left   = {0, AnchorDir::Left,   pos.x};
+        UiSize left   = pos.x;
 
         // The 4 corner points of the object
         /** Top left corner of the object */
@@ -87,20 +79,26 @@ namespace pg
 
         // The margin to the given anchor point
         /** The margin from the top anchor point */
-        UiSize topMargin;
+        UiSize topMargin = AnchorDir::TMargin;
         /** The margin from the right anchor point */
-        UiSize rightMargin;
+        UiSize rightMargin = AnchorDir::RMargin;
         /** The margin from the bottom anchor point */
-        UiSize bottomMargin;
+        UiSize bottomMargin = AnchorDir::BMargin;
         /** The margin from the left anchor point */
-        UiSize leftMargin;
+        UiSize leftMargin = AnchorDir::LMargin;
 
         /**
          * @brief Construct a new Ui Component object
          * 
          * This construct an empty ui component at coord (0.0f, 0.0f, 0.0f) of size 0, 0
          */
-        UiComponent() { }
+        UiComponent()
+        {
+            top = AnchorDir::Top;
+            right = AnchorDir::Right;
+            bottom = AnchorDir::Bottom;
+            left = AnchorDir::Left;
+        }
         
         /**
          * @brief Construct a new Ui Component object
@@ -110,7 +108,13 @@ namespace pg
          * This construct an ui component from a given reference
          * The position and size of the newly created object is automatically updated on the fly
          */
-        UiComponent(const UiFrame& frame) : pos(&frame.pos), width(&frame.w), height(&frame.h) { }
+        UiComponent(const UiFrame& frame) : pos(&frame.pos), width(&frame.w), height(&frame.h)
+        {
+            top = AnchorDir::Top;
+            right = AnchorDir::Right;
+            bottom = AnchorDir::Bottom;
+            left = AnchorDir::Left;
+        }
 
         /**
          * @brief Construct a new Ui Component object
@@ -132,17 +136,17 @@ namespace pg
 
             entityId = entity->id;
 
-            top.id    = entityId;
-            right.id  = entityId;
-            bottom.id = entityId;
-            left.id   = entityId;
+            top.setEntity(entityId, ecsRef);
+            right.setEntity(entityId, ecsRef);
+            bottom.setEntity(entityId, ecsRef);
+            left.setEntity(entityId, ecsRef);
+
+            topAnchor.setEntity(entityId, ecsRef);
+            rightAnchor.setEntity(entityId, ecsRef);
+            bottomAnchor.setEntity(entityId, ecsRef);
+            leftAnchor.setEntity(entityId, ecsRef);
 
             pos.setEntity(entityId, ecsRef);
-
-            top.id    = this->entityId;
-            right.id  = this->entityId;
-            bottom.id = this->entityId;
-            left.id   = this->entityId;
 
             width.setEntity(entityId, ecsRef);
             height.setEntity(entityId, ecsRef);
@@ -162,34 +166,34 @@ namespace pg
 
         // Setter methods for position and size properties
     public:
-        inline void setX(const float& value)                { pos.x = value; update(); }
-        inline void setY(const float& value)                { pos.y = value; update(); }
-        inline void setZ(const float& value)                { pos.z = value; update(); }
+        inline void setX(const float& value)              { pos.x = value; update(); }
+        inline void setY(const float& value)              { pos.y = value; update(); }
+        inline void setZ(const float& value)              { pos.z = value; update(); }
 
-        inline void setX(const UiSize& value)               { pos.x = value; update(); if(ecsRef and value.getEntityId() != 0 and value.getEntityId() != entityId) ecsRef->sendEvent(UiComponentInternalChangeEvent{value.getEntityId(), entityId});}
-        inline void setY(const UiSize& value)               { pos.y = value; update(); if(ecsRef and value.getEntityId() != 0 and value.getEntityId() != entityId) ecsRef->sendEvent(UiComponentInternalChangeEvent{value.getEntityId(), entityId});}
-        inline void setZ(const UiSize& value)               { pos.z = value; update(); if(ecsRef and value.getEntityId() != 0 and value.getEntityId() != entityId) ecsRef->sendEvent(UiComponentInternalChangeEvent{value.getEntityId(), entityId});}
+        inline void setX(const UiSize& value)             { pos.x = value; update(); }
+        inline void setY(const UiSize& value)             { pos.y = value; update(); }
+        inline void setZ(const UiSize& value)             { pos.z = value; update(); }
 
-        inline void setWidth(const float& value)            { width = value; update(); }
-        inline void setHeight(const float& value)           { height = value; update(); }
+        inline void setWidth(const float& value)          { width = value;  update(); }
+        inline void setHeight(const float& value)         { height = value; update(); }
 
-        inline void setWidth(const UiSize& value)           { width = value; update(); if(ecsRef and value.getEntityId() != 0 and value.getEntityId() != entityId) ecsRef->sendEvent(UiComponentInternalChangeEvent{value.getEntityId(), entityId});}
-        inline void setHeight(const UiSize& value)          { height = value; update(); if(ecsRef and value.getEntityId() != 0 and value.getEntityId() != entityId) ecsRef->sendEvent(UiComponentInternalChangeEvent{value.getEntityId(), entityId});}
+        inline void setWidth(const UiSize& value)         { width = value;  update(); }
+        inline void setHeight(const UiSize& value)        { height = value; update(); }
 
-        inline void setTopAnchor(const UiAnchor& anchor)    { topAnchor = &anchor; update(); if(ecsRef and anchor.id != 0 and anchor.id != entityId) ecsRef->sendEvent(UiComponentInternalChangeEvent{anchor.id, entityId});}
-        inline void setRightAnchor(const UiAnchor& anchor)  { rightAnchor = &anchor; update(); if(ecsRef and anchor.id != 0 and anchor.id != entityId) ecsRef->sendEvent(UiComponentInternalChangeEvent{anchor.id, entityId});}
-        inline void setBottomAnchor(const UiAnchor& anchor) { bottomAnchor = &anchor; update(); if(ecsRef and anchor.id != 0 and anchor.id != entityId) ecsRef->sendEvent(UiComponentInternalChangeEvent{anchor.id, entityId});}
-        inline void setLeftAnchor(const UiAnchor& anchor)   { leftAnchor = &anchor; update(); if(ecsRef and anchor.id != 0 and anchor.id != entityId) ecsRef->sendEvent(UiComponentInternalChangeEvent{anchor.id, entityId});}
+        inline void setTopAnchor(const UiSize& anchor)    { topAnchor = &anchor;    hasTopAnchor = true;    update(); }
+        inline void setRightAnchor(const UiSize& anchor)  { rightAnchor = &anchor;  hasRightAnchor = true;  update(); }
+        inline void setBottomAnchor(const UiSize& anchor) { bottomAnchor = &anchor; hasBottomAnchor = true; update(); }
+        inline void setLeftAnchor(const UiSize& anchor)   { leftAnchor = &anchor;   hasLeftAnchor = true;   update(); }
 
-        inline void setTopMargin(const int& value)          { topMargin = value; update(); }
-        inline void setRightMargin(const int& value)        { rightMargin = value; update(); }
-        inline void setBottomMargin(const int& value)       { bottomMargin = value; update(); }
-        inline void setLeftMargin(const int& value)         { leftMargin = value; update(); }
+        inline void setTopMargin(const int& value)        { topMargin = value;    update(); }
+        inline void setRightMargin(const int& value)      { rightMargin = value;  update(); }
+        inline void setBottomMargin(const int& value)     { bottomMargin = value; update(); }
+        inline void setLeftMargin(const int& value)       { leftMargin = value;   update(); }
 
-        inline void setTopMargin(const UiSize& value)       { topMargin = value; update(); if(ecsRef and value.getEntityId() != 0 and value.getEntityId() != entityId) ecsRef->sendEvent(UiComponentInternalChangeEvent{value.getEntityId(), entityId}); }
-        inline void setRightMargin(const UiSize& value)     { rightMargin = value; update(); if(ecsRef and value.getEntityId() != 0 and value.getEntityId() != entityId) ecsRef->sendEvent(UiComponentInternalChangeEvent{value.getEntityId(), entityId});}
-        inline void setBottomMargin(const UiSize& value)    { bottomMargin = value; update(); if(ecsRef and value.getEntityId() != 0 and value.getEntityId() != entityId) ecsRef->sendEvent(UiComponentInternalChangeEvent{value.getEntityId(), entityId});}
-        inline void setLeftMargin(const UiSize& value)      { leftMargin = value; update(); if(ecsRef and value.getEntityId() != 0 and value.getEntityId() != entityId) ecsRef->sendEvent(UiComponentInternalChangeEvent{value.getEntityId(), entityId});}
+        inline void setTopMargin(const UiSize& value)     { topMargin = value;    update(); }
+        inline void setRightMargin(const UiSize& value)   { rightMargin = value;  update(); }
+        inline void setBottomMargin(const UiSize& value)  { bottomMargin = value; update(); }
+        inline void setLeftMargin(const UiSize& value)    { leftMargin = value;   update(); }
 
         inline void fill(UiComponent *component)
         {
@@ -232,19 +236,25 @@ namespace pg
         /** Flag indicating if the uicomponent should be rendered. */
         bool visible = true;
 
+    public:
+        bool hasTopAnchor = false;
+        bool hasRightAnchor = false;
+        bool hasBottomAnchor = false;
+        bool hasLeftAnchor = false;
+
     private:
         friend void serialize<>(Archive& archive, const UiComponent& value);
 
         // Pointer to anchors where this object is tied
 
         /** Pointer to the top attached anchor */
-        const UiAnchor* topAnchor    = nullptr;
+        UiSize topAnchor;
         /** Pointer to the right attached anchor */
-        const UiAnchor* rightAnchor  = nullptr;
+        UiSize rightAnchor;
         /** Pointer to the bottom attached anchor */
-        const UiAnchor* bottomAnchor = nullptr;
+        UiSize bottomAnchor;
         /** Pointer to the left attached anchor */
-        const UiAnchor* leftAnchor   = nullptr;
+        UiSize leftAnchor;
 
         EntitySystem* ecsRef = nullptr;
 
@@ -252,16 +262,7 @@ namespace pg
     };
 
     template <>
-    void serialize(Archive& archive, const UiSize& value);
-
-    template <>
     void serialize(Archive& archive, const AnchorDir& value);
-
-    template <>
-    void serialize(Archive& archive, const UiAnchor& value);
-
-    template <>
-    void serialize(Archive& archive, const UiPosition::UiPosValue& value);
 
     template <>
     void serialize(Archive& archive, const UiPosition& value);
@@ -312,6 +313,8 @@ namespace pg
         {
             std::lock_guard lock(m);
 
+            LOG_INFO("Ui internals", "Entity " << event.parent << " is a parent of " << event.child);
+
             auto& vec = parentalMap[event.parent];
             
             auto it = std::find(vec.begin(), vec.end(), event.child);
@@ -325,6 +328,7 @@ namespace pg
             std::unordered_map<_unique_id, std::vector<_unique_id>>::iterator it;
             std::vector<_unique_id> vec;
 
+            // Todo update all the parent map at once
             {
                 std::lock_guard lock(m);
 
@@ -334,18 +338,17 @@ namespace pg
                 {
                     vec = it->second;
                 }
+
+                // for (const auto& childId : vec)
+                // {
+                //     auto child = atEntity<UiComponent>(childId);
+
+                //     // Todo set dirty only the child UiSize and not the whole ui component itself !
+
+                //     if (child)
+                //         child->setDirty();
+                // }
             }
-
-            // for(auto& it : parentalMap)
-            // {
-            //     std::cout << it.first << ": ";
-            //     for(auto& it2 : it.second)
-            //     {
-            //         std::cout << it2 << " ";
-            //     }
-
-            //     std::cout << std::endl;
-            // }
             
             for(auto& child : vec)
             {

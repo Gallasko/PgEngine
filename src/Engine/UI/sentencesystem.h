@@ -39,7 +39,7 @@ namespace pg
 
         SentenceEffect effect = SentenceEffect::NOEFFCT;
 
-        UiSize textWidth = 0.0f, textHeight = 0.0f;
+        UiSize textWidth, textHeight;
 
         SentenceText() {}
         SentenceText(const SentenceText& other) : 

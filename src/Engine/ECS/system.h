@@ -285,6 +285,15 @@ namespace pg
             this->Own<Type>::internalRemoveComponent(entity);
         }
 
+        template <typename Comp>
+        Comp* atEntity(_unique_id id) const
+        {
+            LOG_THIS_MEMBER("System");
+
+            // Todo enable this only if the system own this comp !
+            return this->Own<Comp>::getComponent(id);
+        }
+
         template <typename Type>
         inline typename ComponentSet<Type>::ComponentSetList view() const
         {
