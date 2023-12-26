@@ -15,16 +15,16 @@ namespace pg
         auto sysMethods = sysInstance->getMethods();
         auto sysFields = sysInstance->getFields();
 
-        const auto& nameIt = sysFields.find("name");
+        const auto& nameIt = std::find(sysFields.begin(), sysFields.end(), "name");
 
         if(nameIt != sysFields.end())
-            this->name = nameIt->second->getValue()->getElement().toString();
+            this->name = nameIt->value->getValue()->getElement().toString();
 
-        const auto& policyIt = sysFields.find("policy");
+        const auto& policyIt = std::find(sysFields.begin(), sysFields.end(), "policy");
 
         if(policyIt != sysFields.end())
         {
-            const auto policy = policyIt->second->getValue()->getElement().toString();
+            const auto policy = policyIt->value->getValue()->getElement().toString();
 
             if(policy == "manual")
             {

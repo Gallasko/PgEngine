@@ -118,7 +118,7 @@ namespace pg
             }
 
             default:
-                op = "none"
+                op = "none";
         }
 
         serialize(archive, "op", op);

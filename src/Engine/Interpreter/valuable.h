@@ -357,6 +357,18 @@ namespace pg
     {
     friend class IteratorInstance;
     public:
+        struct Field
+        {
+            std::string key;
+
+            std::shared_ptr<Valuable> value;
+
+            Field(const std::string& key, std::shared_ptr<Valuable> value) : key(key), value(value) {}
+
+            bool operator==(const std::string& match) const { return match == key; }
+        };
+    
+    public:
         /** Construct a new Function Valuable object */
         ClassInstance(const Class *klass);
         /** Construct a copy of Function object */
@@ -394,7 +406,10 @@ namespace pg
         void set(const Token& token, std::shared_ptr<Valuable> value);
 
         inline const std::unordered_map<std::string, std::shared_ptr<Function>>& getMethods() const { return boundMethods; }
-        inline const std::unordered_map<std::string, std::shared_ptr<Valuable>>& getFields() const { return fields; }
+        inline const std::vector<Field>& getFields() const { return fields; }
+
+        void pushback(std::shared_ptr<Valuable> value);
+        void remove(const std::string &key);
 
     protected:
         std::shared_ptr<Function> findMethod(const std::string& name) const;
@@ -405,18 +420,18 @@ namespace pg
         ElementType name;
 
         std::unordered_map<std::string, std::shared_ptr<Function>> boundMethods;
-        std::unordered_map<std::string, std::shared_ptr<Valuable>> fields;
+        std::vector<Field> fields;
     };
 
     class IteratorInstance : public ClassInstance
     {
     public:
-        IteratorInstance(const Class *klass, std::shared_ptr<ClassInstance> instance) : ClassInstance(klass), refFields(instance->fields), it(refFields.begin()) {}
+        IteratorInstance(const Class *klass, std::shared_ptr<ClassInstance> instance) : ClassInstance(klass), refFields(instance->fields) {}
         virtual std::string getType() const override { return "IteratorInstance"; }
 
-        std::unordered_map<std::string, std::shared_ptr<Valuable>>& refFields;
+        std::vector<Field>& refFields;
 
-        std::unordered_map<std::string, std::shared_ptr<Valuable>>::iterator it;
+        size_t index = 0;
     };
 
     struct ListElement;
@@ -451,10 +466,40 @@ namespace pg
         ExprPtr self;
     };
 
+    class PushbackFunction : public Function
+    {
+    public:
+        PushbackFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<ClassInstance> instance);
+
+        virtual ValuablePtr call(ValuableQueue& args) const override;
+
+        virtual std::string getType() const override { return "List"; }
+
+    private:
+        ExprPtr self;
+
+        std::shared_ptr<ClassInstance> instance;
+    };
+
     class SizeFunction : public Function
     {
     public:
         SizeFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<ClassInstance> instance);
+
+        virtual ValuablePtr call(ValuableQueue& args) const override;
+
+        virtual std::string getType() const override { return "List"; }
+
+    private:
+        ExprPtr self;
+
+        std::shared_ptr<ClassInstance> instance;
+    };
+
+    class EraseFunction : public Function
+    {
+    public:
+        EraseFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<ClassInstance> instance);
 
         virtual ValuablePtr call(ValuableQueue& args) const override;
 

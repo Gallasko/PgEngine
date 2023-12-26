@@ -13,9 +13,9 @@ namespace pg
         {
             UiComponent component;
             
-            EXPECT_FLOAT_EQ(static_cast<UiSize>(component.pos.x),  0.0f);
-            EXPECT_FLOAT_EQ(static_cast<UiSize>(component.pos.y),  0.0f);
-            EXPECT_FLOAT_EQ(static_cast<UiSize>(component.pos.z),  0.0f);
+            EXPECT_FLOAT_EQ(component.pos.x,  0.0f);
+            EXPECT_FLOAT_EQ(component.pos.y,  0.0f);
+            EXPECT_FLOAT_EQ(component.pos.z,  0.0f);
 
             EXPECT_FLOAT_EQ(component.width,  0.0f);
             EXPECT_FLOAT_EQ(component.height, 0.0f);
@@ -37,17 +37,17 @@ namespace pg
             component.setY(3.0f);
             component.setZ(2.0f);
 
-            EXPECT_FLOAT_EQ(static_cast<UiSize>(component.pos.x),  1.0f);
-            EXPECT_FLOAT_EQ(static_cast<UiSize>(component.pos.y),  3.0f);
-            EXPECT_FLOAT_EQ(static_cast<UiSize>(component.pos.z),  2.0f);
+            EXPECT_FLOAT_EQ(component.pos.x,  1.0f);
+            EXPECT_FLOAT_EQ(component.pos.y,  3.0f);
+            EXPECT_FLOAT_EQ(component.pos.z,  2.0f);
 
             component.pos.x =  1.5f;
             component.pos.y =  2.2f;
             component.pos.z = -1.8f;
 
-            EXPECT_FLOAT_EQ(static_cast<UiSize>(component.pos.x),  1.5f);
-            EXPECT_FLOAT_EQ(static_cast<UiSize>(component.pos.y),  2.2f);
-            EXPECT_FLOAT_EQ(static_cast<UiSize>(component.pos.z), -1.8f);
+            EXPECT_FLOAT_EQ(component.pos.x,  1.5f);
+            EXPECT_FLOAT_EQ(component.pos.y,  2.2f);
+            EXPECT_FLOAT_EQ(component.pos.z, -1.8f);
         }
 
         // ----------------------------------------------------------------------------------------
@@ -83,8 +83,8 @@ namespace pg
             component.width  = 5.4f;
             component.height = 2.2f;
 
-            EXPECT_FLOAT_EQ(static_cast<UiSize>(component.pos.x), 2.0f);
-            EXPECT_FLOAT_EQ(static_cast<UiSize>(component.pos.y), 1.5f);
+            EXPECT_FLOAT_EQ(component.pos.x, 2.0f);
+            EXPECT_FLOAT_EQ(component.pos.y, 1.5f);
             EXPECT_FLOAT_EQ(component.width,  5.4f);
             EXPECT_FLOAT_EQ(component.height, 2.2f);
 

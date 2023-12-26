@@ -114,7 +114,7 @@ namespace pg
         };
 
     public:
-        virtual ~ConnectToScancode() { for(auto listener : tickListeners) delete listener; }
+        virtual ~ConnectToScancode() { for(auto listener : keyListeners) delete listener; }
 
         void setUp(ComponentRegistry *registryRef)
         {
@@ -140,7 +140,9 @@ namespace pg
 
                 registryRef->addEventListener<OnSDLScanCode>(listener);
 
-                tickListeners.push_back(listener);
+                keyListeners.push_back(listener);
+
+                // Todo return the id of the listener to be able to remove it later
             }
             else
             {
@@ -153,7 +155,7 @@ namespace pg
     private:
         ComponentRegistry *registryRef;
 
-        mutable std::vector<KeyListener*> tickListeners;
+        mutable std::vector<KeyListener*> keyListeners;
     };
 
     class ConnectToScancodeReleased : public Function
@@ -230,6 +232,236 @@ namespace pg
         mutable std::vector<KeyListener*> tickListeners;
     };
 
+    class ConnectToGamepadPressed : public Function
+    {
+        using Function::Function;
+    private:
+        struct GamepadListener
+        {
+            GamepadListener(std::shared_ptr<Function> func) : function(makeCallable(func)) {}
+
+            void onEvent(const OnSDLGamepadPressed& event)
+            {
+                if(not function)
+                    return;
+
+                ValuableQueue queue;
+                auto arg = makeList(function->getRef(), {{"id", static_cast<int>(event.id)}, {"button", static_cast<int>(event.button)}});
+
+                queue.push(arg);
+
+                try
+                {
+                    function->call(queue);
+                }
+                catch(const std::exception& e)
+                {
+                    LOG_ERROR("Input Module", e.what());
+                }
+            }
+
+            std::shared_ptr<CallableIntepretedFunction> function;
+        };
+
+    public:
+        virtual ~ConnectToGamepadPressed() { for(auto listener : keyListeners) delete listener; }
+
+        void setUp(ComponentRegistry *registryRef)
+        {
+            LOG_THIS_MEMBER("Input Module");
+
+            setArity(1, 1);
+
+            this->registryRef = registryRef;
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            LOG_THIS_MEMBER("Input Module");
+
+            auto arg = args.front();
+            args.pop();
+
+            if(arg->getType() == "Function")
+            {
+                auto fun = std::static_pointer_cast<Function>(arg);
+
+                auto listener = new GamepadListener(fun);
+
+                registryRef->addEventListener<OnSDLGamepadPressed>(listener);
+
+                keyListeners.push_back(listener);
+
+                // Todo return the id of the listener to be able to remove it later
+            }
+            else
+            {
+                LOG_ERROR("Input Module", "Need to pass a function to be able to listen to an event");
+            }
+
+            return nullptr; 
+        }
+
+    private:
+        ComponentRegistry *registryRef;
+
+        mutable std::vector<GamepadListener*> keyListeners;
+    };
+
+    class ConnectToGamepadReleased : public Function
+    {
+        using Function::Function;
+    private:
+        struct GamepadListener
+        {
+            GamepadListener(std::shared_ptr<Function> func) : function(makeCallable(func)) {}
+
+            void onEvent(const OnSDLGamepadReleased& event)
+            {
+                if(not function)
+                    return;
+
+                ValuableQueue queue;
+                auto arg = makeList(function->getRef(), {{"id", static_cast<int>(event.id)}, {"button", static_cast<int>(event.button)}});
+
+                queue.push(arg);
+
+                try
+                {
+                    function->call(queue);
+                }
+                catch(const std::exception& e)
+                {
+                    LOG_ERROR("Input Module", e.what());
+                }
+            }
+
+            std::shared_ptr<CallableIntepretedFunction> function;
+        };
+
+    public:
+        virtual ~ConnectToGamepadReleased() { for(auto listener : keyListeners) delete listener; }
+
+        void setUp(ComponentRegistry *registryRef)
+        {
+            LOG_THIS_MEMBER("Input Module");
+
+            setArity(1, 1);
+
+            this->registryRef = registryRef;
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            LOG_THIS_MEMBER("Input Module");
+
+            auto arg = args.front();
+            args.pop();
+
+            if(arg->getType() == "Function")
+            {
+                auto fun = std::static_pointer_cast<Function>(arg);
+
+                auto listener = new GamepadListener(fun);
+
+                registryRef->addEventListener<OnSDLGamepadReleased>(listener);
+
+                keyListeners.push_back(listener);
+
+                // Todo return the id of the listener to be able to remove it later
+            }
+            else
+            {
+                LOG_ERROR("Input Module", "Need to pass a function to be able to listen to an event");
+            }
+
+            return nullptr; 
+        }
+
+    private:
+        ComponentRegistry *registryRef;
+
+        mutable std::vector<GamepadListener*> keyListeners;
+    };
+
+    class ConnectToGamepadAxis : public Function
+    {
+        using Function::Function;
+    private:
+        struct GamepadListener
+        {
+            GamepadListener(std::shared_ptr<Function> func) : function(makeCallable(func)) {}
+
+            void onEvent(const OnSDLGamepadAxisChanged& event)
+            {
+                if(not function)
+                    return;
+
+                ValuableQueue queue;
+                auto arg = makeList(function->getRef(), {{"id", static_cast<int>(event.id)},
+                                                         {"axis", static_cast<int>(event.axis)},
+                                                         {"value", static_cast<float>(event.value / (float)INT16_MAX)}});
+
+                queue.push(arg);
+
+                try
+                {
+                    function->call(queue);
+                }
+                catch(const std::exception& e)
+                {
+                    LOG_ERROR("Input Module", e.what());
+                }
+            }
+
+            std::shared_ptr<CallableIntepretedFunction> function;
+        };
+
+    public:
+        virtual ~ConnectToGamepadAxis() { for(auto listener : keyListeners) delete listener; }
+
+        void setUp(ComponentRegistry *registryRef)
+        {
+            LOG_THIS_MEMBER("Input Module");
+
+            setArity(1, 1);
+
+            this->registryRef = registryRef;
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            LOG_THIS_MEMBER("Input Module");
+
+            auto arg = args.front();
+            args.pop();
+
+            if(arg->getType() == "Function")
+            {
+                auto fun = std::static_pointer_cast<Function>(arg);
+
+                auto listener = new GamepadListener(fun);
+
+                registryRef->addEventListener<OnSDLGamepadAxisChanged>(listener);
+
+                keyListeners.push_back(listener);
+
+                // Todo return the id of the listener to be able to remove it later
+            }
+            else
+            {
+                LOG_ERROR("Input Module", "Need to pass a function to be able to listen to an event");
+            }
+
+            return nullptr; 
+        }
+
+    private:
+        ComponentRegistry *registryRef;
+
+        mutable std::vector<GamepadListener*> keyListeners;
+    };
+
     struct InputModule : public SysModule
     {
         InputModule(EntitySystem *ecsRef)
@@ -238,7 +470,11 @@ namespace pg
 
             addSystemFunction<ConnectToKeyInput>("connectToKeyInput", &(ecsRef->registry));
             addSystemFunction<ConnectToScancode>("connectToScancode", &(ecsRef->registry));
+            // Todo change this name as it ambiguous
             addSystemFunction<ConnectToScancodeReleased>("connectToScancodePressed", &(ecsRef->registry));
+            addSystemFunction<ConnectToGamepadPressed>("connectToGamepadPressed", &(ecsRef->registry));
+            addSystemFunction<ConnectToGamepadReleased>("connectToGamepadReleased", &(ecsRef->registry));
+            addSystemFunction<ConnectToGamepadAxis>("connectToGamepadAxis", &(ecsRef->registry));
 
             addSystemVar("SCANCODE_A", SDL_SCANCODE_A);
             addSystemVar("SCANCODE_B", SDL_SCANCODE_B);
@@ -482,6 +718,31 @@ namespace pg
             addSystemVar("SCANCODE_APP2", SDL_SCANCODE_APP2);
             addSystemVar("SCANCODE_AUDIOREWIND", SDL_SCANCODE_AUDIOREWIND);
             addSystemVar("SCANCODE_AUDIOFASTFORWARD", SDL_SCANCODE_AUDIOFASTFORWARD);
+
+            addSystemVar("GAMEPAD_A", SDL_CONTROLLER_BUTTON_A);
+            addSystemVar("GAMEPAD_B", SDL_CONTROLLER_BUTTON_B);
+            addSystemVar("GAMEPAD_X", SDL_CONTROLLER_BUTTON_X);
+            addSystemVar("GAMEPAD_Y", SDL_CONTROLLER_BUTTON_Y);
+            addSystemVar("GAMEPAD_BACK", SDL_CONTROLLER_BUTTON_BACK);
+            addSystemVar("GAMEPAD_GUIDE", SDL_CONTROLLER_BUTTON_GUIDE);
+            addSystemVar("GAMEPAD_START", SDL_CONTROLLER_BUTTON_START);
+            addSystemVar("GAMEPAD_LEFTSTICK", SDL_CONTROLLER_BUTTON_LEFTSTICK);
+            addSystemVar("GAMEPAD_RIGHTSTICK", SDL_CONTROLLER_BUTTON_RIGHTSTICK);
+            addSystemVar("GAMEPAD_LEFTSHOULDER", SDL_CONTROLLER_BUTTON_LEFTSHOULDER);
+            addSystemVar("GAMEPAD_RIGHTSHOULDER", SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);
+            addSystemVar("GAMEPAD_DPAD_UP", SDL_CONTROLLER_BUTTON_DPAD_UP);
+            addSystemVar("GAMEPAD_DPAD_DOWN", SDL_CONTROLLER_BUTTON_DPAD_DOWN);
+            addSystemVar("GAMEPAD_DPAD_LEFT", SDL_CONTROLLER_BUTTON_DPAD_LEFT);
+            addSystemVar("GAMEPAD_DPAD_RIGHT", SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
+            addSystemVar("GAMEPAD_MAX", SDL_CONTROLLER_BUTTON_MAX);
+
+            addSystemVar("GAMEPAD_AXIS_LEFTX", SDL_CONTROLLER_AXIS_LEFTX);
+            addSystemVar("GAMEPAD_AXIS_LEFTY", SDL_CONTROLLER_AXIS_LEFTY);
+            addSystemVar("GAMEPAD_AXIS_RIGHTX", SDL_CONTROLLER_AXIS_RIGHTX);
+            addSystemVar("GAMEPAD_AXIS_RIGHTY", SDL_CONTROLLER_AXIS_RIGHTY);
+            addSystemVar("GAMEPAD_AXIS_TRIGGERLEFT", SDL_CONTROLLER_AXIS_TRIGGERLEFT);
+            addSystemVar("GAMEPAD_AXIS_TRIGGERRIGHT", SDL_CONTROLLER_AXIS_TRIGGERRIGHT);
+            addSystemVar("GAMEPAD_AXIS_MAX", SDL_CONTROLLER_AXIS_MAX);
         }
     };
 

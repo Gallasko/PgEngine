@@ -196,7 +196,7 @@ namespace pg
                 // Todo
                 // view.translate(QVector3D(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, -static_cast<UiSize>(ui->pos.z)));
                 view = glm::mat4(1.0f);
-                view = glm::translate(view, glm::vec3(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, 0.0f));
+                view = glm::translate(view, glm::vec3(-1.0f + 2.0f * ui->pos.x / screenWidth, 1.0f + 2.0f * -ui->pos.y / screenHeight, 0.0f));
                 // glm::translate(view, glm::vec3(-0.5f , 0.5f, 1.0f));
 
                 shaderProgram->setUniformValue("view", view);

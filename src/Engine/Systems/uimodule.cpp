@@ -5,11 +5,11 @@ namespace pg
     std::vector<SysListElement> uiElementFunctionsList(const Function *caller, EntitySystem *ecsRef, const CompRef<UiComponent>& comp)
     {
         return {{"id", comp.entityId},
-                {"x", static_cast<UiSize>(comp->pos.x)}, // Todo change with a getter
-                {"y", static_cast<UiSize>(comp->pos.y)}, // Todo change with a getter
-                {"z", static_cast<UiSize>(comp->pos.z)}, // Todo change with a getter
-                {"w", comp->width},                      // Todo change with a getter
-                {"h", comp->height},                     // Todo change with a getter
+                {"x", makeFun<GetX>(caller, "getX", ecsRef, comp)},
+                {"y", makeFun<GetY>(caller, "getY", ecsRef, comp)},
+                {"z", makeFun<GetZ>(caller, "getZ", ecsRef, comp)},
+                {"w", makeFun<GetWidth>(caller, "getWidth", ecsRef, comp)},
+                {"h", makeFun<GetHeight>(caller, "getHeight", ecsRef, comp)},
                 {"setX", makeFun<SetX>(caller, "setX", ecsRef, comp)},
                 {"setY", makeFun<SetY>(caller, "setY", ecsRef, comp)},
                 {"setZ", makeFun<SetY>(caller, "setZ", ecsRef, comp)},

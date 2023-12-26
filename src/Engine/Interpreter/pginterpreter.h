@@ -114,11 +114,11 @@ namespace pg
             
             mutex.unlock();
 
-            while(!queue.empty())
+            while (not queue.empty())
             {
                 auto script = queue.front();
 
-                switch(script.type)
+                switch (script.type)
                 {
                     case ScriptCallType::FromText:
                         interpretFromText(script.data);

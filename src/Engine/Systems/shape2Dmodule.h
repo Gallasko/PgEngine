@@ -14,7 +14,7 @@ namespace pg
     public:
         void setUp(EntitySystem* ecsRef)
         {
-            setArity(2, 2);
+            setArity(4, 4);
 
             this->ecsRef = ecsRef;
         }
@@ -27,12 +27,30 @@ namespace pg
             auto y = args.front()->getElement();
             args.pop();
 
+            auto w = args.front()->getElement();
+            args.pop();
+
+            auto h = args.front()->getElement();
+            args.pop();
+
             std::cout << "[Interpreter]: Creating rec at: (" << x.toString() << ", " << y.toString() << ")" << std::endl;
 
-            auto rec = makeSimple2DShape(ecsRef, Shape2D::Square, 50, 50, {255.0f, 0.0f, 0.0f});
+            float width = 0.0f, height = 0.0f;
+
+            if (not w.isNumber() or not h.isNumber())
+            {
+                LOG_ERROR("CreateRectangle", "Cannot create a new rectangle values passed are not numbers");
+            }
+            else
+            {
+                width = w.get<float>();
+                height = h.get<float>();
+            }
+
+            auto rec = makeSimple2DShape(ecsRef, Shape2D::Square, width, height, {255.0f, 0.0f, 0.0f});
             auto recUi = rec.get<UiComponent>();
 
-            if(x.isNumber() and y.isNumber())
+            if(x.isNumber() and y.isNumber() and w.isNumber() and h.isNumber())
             {
                 recUi->setX(x.get<float>());
                 recUi->setY(y.get<float>());
@@ -41,8 +59,6 @@ namespace pg
             {
                 LOG_ERROR("CreateRectangle", "Cannot create a new rectangle values passed are not numbers");
             }
-
-            std::cout << "[Interpreter]: Creating rec at: (" << x.toString() << ", " << y.toString() << ")" << std::endl;
 
             auto list = makeList(this, {});
 

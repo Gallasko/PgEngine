@@ -103,6 +103,18 @@ namespace
             addSystemFunction<OpenTextFolderFunction>("openTextFolder");
         }
     };
+
+    void getAllControllers(Input *inputHandler)
+    {
+        for (int i = 0; i < SDL_NumJoysticks(); i++)
+        {
+            if (SDL_IsGameController(i))
+            {
+                inputHandler->addGamepad(SDL_GameControllerOpen(i));
+            }
+        }
+    }
+
 }
 
 namespace pg
@@ -117,6 +129,7 @@ namespace pg
         interpreter = ecs.createSystem<PgInterpreter>();
 
         interpreter->addSystemFunction<TestPrint>("print");
+        interpreter->addSystemFunction<DebugPrint>("debugPrint");
         interpreter->addSystemFunction<ToString>("toString");
 
         interpreter->addSystemModule("log", LogModule{});
@@ -141,11 +154,16 @@ namespace pg
 
         ecs.stop();
 
-        if(inputHandler != nullptr)
-            delete inputHandler;
+        if (inputHandler != nullptr)
+        {
+            inputHandler->clearGamepads();
 
-        if(fontLoader != nullptr)
+            delete inputHandler;
+        }
+
+        if (fontLoader != nullptr)
             delete fontLoader;
+
 
         SDL_GL_DeleteContext(context);
         SDL_DestroyWindow(window);
@@ -222,6 +240,21 @@ namespace pg
                 
             // OpenGL context
             context = SDL_GL_CreateContext(window);
+
+            LOG_INFO(DOM, "Getting all connected controllers...");
+
+            getAllControllers(inputHandler);
+
+            LOG_INFO(DOM, "Got all connected controllers");
+
+            if (joystick)
+            {
+                LOG_INFO(DOM, "Name: " << SDL_JoystickNameForIndex(0));
+            }
+            else
+            {
+                LOG_ERROR(DOM, "No joystick");
+            }
 
             if (context)
             {
@@ -475,6 +508,34 @@ namespace pg
 
                     mousePos = currentPos;
                 }
+                break;
+            
+            case SDL_CONTROLLERDEVICEADDED:
+                // Todo
+                LOG_INFO(DOM, "Gamepad added !");
+                break;
+
+            case SDL_CONTROLLERDEVICEREMOVED:
+                // Todo
+                LOG_INFO(DOM, "Gamepad removed !");
+                break;
+
+            case SDL_CONTROLLERBUTTONDOWN:
+                LOG_INFO(DOM, "Button pressed: " << event.cbutton.button);
+
+                ecs.sendEvent(OnSDLGamepadPressed{event.cbutton.which, event.cbutton.button});
+                break;
+
+            case SDL_CONTROLLERBUTTONUP:
+                LOG_INFO(DOM, "Button released: " << event.cbutton.button);
+
+                ecs.sendEvent(OnSDLGamepadReleased{event.cbutton.which, event.cbutton.button});
+                break;
+
+            case SDL_CONTROLLERAXISMOTION:
+                LOG_INFO(DOM, "Axis moved: " << event.caxis.which << " " << event.caxis.axis << " " << event.caxis.value);
+
+                ecs.sendEvent(OnSDLGamepadAxisChanged{event.caxis.which, event.caxis.axis, event.caxis.value});
                 break;
 
             case SDL_TEXTINPUT:

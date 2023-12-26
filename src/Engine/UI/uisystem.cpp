@@ -418,8 +418,8 @@ namespace pg
             return false;
 
         // Lockup x and y only once
-        const float xValue = static_cast<UiSize>(this->pos.x);
-        const float yValue = static_cast<UiSize>(this->pos.y);
+        const float xValue = this->pos.x;
+        const float yValue = this->pos.y;
 
         return x > xValue and x < (xValue + this->width) and y < (yValue + this->height) and y > yValue;
     }

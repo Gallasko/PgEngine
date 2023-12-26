@@ -60,7 +60,7 @@ namespace pg
 
                     if(ui->inBound(mousePos.x, mousePos.y))
                     {
-                        highestZ = static_cast<UiSize>(ui->pos.z);
+                        highestZ = ui->pos.z;
 
                         auto comp = getComponent(mouseArea.id);
 
@@ -104,7 +104,7 @@ namespace pg
 
                     if(ui->inBound(mousePos.x, mousePos.y))
                     {
-                        highestZ = static_cast<UiSize>(ui->pos.z);
+                        highestZ = ui->pos.z;
 
                         auto comp = getComponent(mouseArea.id);
 

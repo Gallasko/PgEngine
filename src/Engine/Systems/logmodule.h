@@ -29,6 +29,47 @@ namespace pg
         }
     };
 
+    class DebugPrint : public Function
+    {
+        using Function::Function;
+    public:
+        void setUp()
+        {
+            setArity(1, 1);
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            // TODO: change this
+
+            auto v = args.front();
+            args.pop();
+
+            std::cout << "[Interpreter]: " << v->getElement().toString() << std::endl;
+
+            if(v->getType() == "ClassInstance")
+            {
+                auto obj = std::static_pointer_cast<ClassInstance>(v);
+
+                const auto& fields = obj->getFields();
+
+                for (const auto& field : fields)
+                {
+                    std::cout << "[Field] " << field.key << " : " << field.value->getElement().toString() << std::endl;
+                }
+
+                const auto& methods = obj->getMethods();
+
+                for (const auto& method : methods)
+                {
+                    std::cout << "[Method] " << method.first << " : " << method.second->getElement().toString() << std::endl;
+                }
+            }
+
+            return nullptr;
+        }
+    };
+
     class AddFilterScopeFunction : public Function
     {
         using Function::Function;
@@ -120,6 +161,7 @@ namespace pg
             terminalSink = pg::Logger::registerSink<pg::TerminalSink>(true);
             
             addSystemFunction<TestPrint>("log");
+            addSystemFunction<DebugPrint>("debugLog");
             addSystemFunction<AddFilterScopeFunction>("addFilterScope", terminalSink);
             addSystemFunction<AddFilterLevelFunction>("addFilterLevel", terminalSink);
         }

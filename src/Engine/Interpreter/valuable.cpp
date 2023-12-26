@@ -246,10 +246,10 @@ namespace pg
 
     std::shared_ptr<Valuable> ClassInstance::get(const Token& token) const
     {
-        const auto it = fields.find(token.text);
+        const auto it = std::find(fields.begin(), fields.end(), token.text);
 
         if(it != fields.end())
-            return it->second;
+            return it->value;
 
         const auto method = findMethod(token.text);
 
@@ -261,7 +261,41 @@ namespace pg
 
     void ClassInstance::set(const Token& token, std::shared_ptr<Valuable> value)
     {
-        fields[token.text] = value;
+        const auto it = std::find(fields.begin(), fields.end(), token.text);
+
+        if(it != fields.end())
+        {
+            it->value = value;
+        }
+        else
+        {
+            fields.emplace_back(token.text, value);
+        }
+    }
+
+    void ClassInstance::pushback(std::shared_ptr<Valuable> value)
+    {
+        auto size = std::to_string(getSize());
+        const auto it = std::find(fields.begin(), fields.end(), size);
+
+        if(it != fields.end())
+        {
+            it->value = value;
+        }
+        else
+        {
+            fields.emplace_back(size, value);
+        }
+    }
+
+    void ClassInstance::remove(const std::string& key)
+    {
+        const auto it = std::find(fields.begin(), fields.end(), key);
+
+        if(it != fields.end())
+        {
+            fields.erase(it);
+        }
     }
 
     std::shared_ptr<Function> ClassInstance::findMethod(const std::string& name) const
@@ -381,6 +415,24 @@ namespace pg
         return value;
     }
 
+    PushbackFunction::PushbackFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<ClassInstance> instance) :
+        Function(env, name, token, visitor, argsList, body),
+        self(self),
+        instance(instance)
+    {
+        setArity(1, 1);
+    }
+
+    ValuablePtr PushbackFunction::call(ValuableQueue& args) const
+    {
+        auto value = args.front();
+
+        instance->pushback(value);
+
+        // Return the value calculated
+        return nullptr;
+    }
+
     SizeFunction::SizeFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<ClassInstance> instance) :
         Function(env, name, token, visitor, argsList, body),
         self(self),
@@ -393,6 +445,24 @@ namespace pg
     {
         // Return the size of the current instance
         return std::make_shared<Variable>(ElementType { instance->getSize() });
+    }
+
+    EraseFunction::EraseFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<ClassInstance> instance) :
+        Function(env, name, token, visitor, argsList, body),
+        self(self),
+        instance(instance)
+    {
+        setArity(1, 1);
+    }
+
+    ValuablePtr EraseFunction::call(ValuableQueue& args) const
+    {
+        auto value = args.front()->getElement();
+
+        instance->remove(value.toString());
+
+        // Return the size of the current instance
+        return nullptr;
     }
 
     BeginFunction::BeginFunction(ExprPtr self, std::shared_ptr<Environment> env, const std::string& name, const Token& token, VisitorInterpreter* visitor, std::queue<ExprPtr> argsList, StatementPtr body, std::shared_ptr<IteratorInstance> instance) :
@@ -433,17 +503,17 @@ namespace pg
 
     ValuablePtr CurrentFunction::call(ValuableQueue&) const
     {
-        if(instance->it == instance->refFields.end())
+        if (instance->index >= instance->refFields.size())
             return std::make_shared<Variable>(ElementType { instance->refFields.size() });
         
         std::queue<ExprPtr> emptyQueue;
 
-        auto itValue = *(instance->it);
+        auto itValue = instance->refFields.at(instance->index);
 
         auto mapValue = std::make_shared<ClassInstance>(nullptr);
 
-        mapValue->set(Token{TokenType::EXPRESSION, "first", token.line, token.column}, std::make_shared<Variable>(ElementType { itValue.first }));
-        mapValue->set(Token{TokenType::EXPRESSION, "second", token.line, token.column}, itValue.second);
+        mapValue->set(Token{TokenType::EXPRESSION, "first", token.line, token.column}, std::make_shared<Variable>(ElementType { itValue.key }));
+        mapValue->set(Token{TokenType::EXPRESSION, "second", token.line, token.column}, itValue.value);
 
         return mapValue;
     }
@@ -458,8 +528,8 @@ namespace pg
 
     ValuablePtr NextFunction::call(ValuableQueue&) const
     {
-        if(instance->it != instance->refFields.end())
-            ++(instance->it);
+        if (instance->index < instance->refFields.size())
+            instance->index++;
 
         return nullptr;
     }

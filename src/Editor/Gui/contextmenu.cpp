@@ -105,7 +105,7 @@ namespace editor
         {
             parentUi->setWidth(addItemC->width);
 
-            for(auto comp : components)
+            for(const auto& comp : components)
             {
                 comp->setWidth(addItemC->width);
             }
@@ -124,7 +124,7 @@ namespace editor
 
         backgroundC->hide();
 
-        for(auto comp : components)
+        for (const auto& comp : components)
         {
             comp->hide();
         }
@@ -150,7 +150,7 @@ namespace editor
 
         backgroundC->show();
         
-        for(auto comp : components)
+        for (const auto& comp : components)
         {
             comp->show();
         }

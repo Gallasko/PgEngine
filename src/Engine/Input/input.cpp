@@ -218,6 +218,27 @@ namespace pg
 		return this->mouseDelta;
 	}
 
+	void Input::addGamepad(SDL_GameController *controller)
+	{
+		gamepadContainer.push_back(controller);
+	}
+
+
+	void Input::removeGamepad()
+	{
+
+	}
+
+	void Input::clearGamepads()
+	{
+		for (const auto& gamepad : gamepadContainer)
+		{
+			SDL_GameControllerClose(gamepad);
+		}
+
+		gamepadContainer.clear();
+	}
+
 	void Input::updateInput(double deltaTime)
 	{
 		LOG_THIS_MEMBER(DOM);

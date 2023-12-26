@@ -60,6 +60,29 @@ namespace pg
         SDL_Scancode key;
     };
 
+    struct OnSDLGamepadPressed
+    {
+        int id;
+
+        unsigned int button;
+    };
+
+    struct OnSDLGamepadReleased
+    {
+        int id;
+
+        unsigned int button;
+    };
+
+    struct OnSDLGamepadAxisChanged
+    {
+        int id;
+
+        unsigned int axis;
+
+        int value;
+    };
+
     struct MouseAreaZ
     {
         MouseAreaZ(_unique_id id, CompRef<UiComponent> ui) : id(id), ui(ui) { LOG_THIS_MEMBER("MouseArea"); }

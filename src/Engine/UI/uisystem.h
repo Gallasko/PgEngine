@@ -286,9 +286,9 @@ namespace pg
 
             inline void operator=(const UiComponent& comp)
             {
-                x = static_cast<UiSize>(comp.pos.x); 
-                y = static_cast<UiSize>(comp.pos.y);
-                z = static_cast<UiSize>(comp.pos.z);
+                x = comp.pos.x; 
+                y = comp.pos.y;
+                z = comp.pos.z;
                 w = comp.width;
                 h = comp.height;
             }

@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <SDL_scancode.h>
+#include <SDL_gamecontroller.h>
 
 namespace pg
 {
@@ -28,7 +29,9 @@ namespace pg
 			KEYRELEASED,
 			MOUSEPRESS,
 			MOUSEGRABBED,
-			MOUSERELEASE
+			MOUSERELEASE,
+			GAMEPADPRESSED,
+			GAMEPADRELEASED
 		};
 
 	private:
@@ -52,13 +55,16 @@ namespace pg
 
 		typedef InputInstance<SDL_Scancode> KeyInstance;
 		typedef InputInstance<MouseButton> ButtonInstance;
+		typedef InputInstance<SDL_GameControllerButton> GamepadButtonInstance;
 
 	public:
 		Input() {}
 
 		Input::InputState registerKeyInput(const SDL_Scancode& key, const Input::InputState& state);
-		Input::InputState registerMouseInput(const MouseButton& button, const Input::InputState& state);
+		Input::InputState registerMouseInput(const MouseButton& button, const Input::InputState& state);		
 		Input::InputState registerMouseMove(const MousePos& mousePos, const MousePos& mouseDelta);
+		Input::InputState registerGamepadInput(const SDL_GameControllerButton& button, const Input::InputState& state);
+		Input::InputState registerGamepadAxisMove(const MouseButton& button, const Input::InputState& state);
 
 		void grabKey(const SDL_Scancode& key);
 		void grabMouse(const MouseButton& button);
@@ -73,8 +79,20 @@ namespace pg
 		bool isButtonGrabbed(const MouseButton& button) const;
 		bool isButtonReleased(const MouseButton& button) const;
 
+		// Todo
+		Input::InputState gamepadButtonState(const MouseButton& button) const;
+		bool isGamepadButtonPressed(const MouseButton& button) const;
+		bool isGamepadButtonGrabbed(const MouseButton& button) const;
+
+		// Todo gamepad axis
+
 		const MousePos& getMousePos() const;
 		const MousePos& getMouseDelta() const;
+
+		void addGamepad(SDL_GameController *controller);
+		void removeGamepad();
+
+		void clearGamepads();
 
 		void updateInput(double deltaTime);
 
@@ -86,6 +104,8 @@ namespace pg
 	private:
 		std::vector<Input::KeyInstance> keyContainer;
 		std::vector<Input::ButtonInstance> buttonContainer;
+		std::vector<SDL_GameController*> gamepadContainer;
+		// Todo game pad button and axis holders
 		MousePos mousePos;
 		MousePos mouseDelta;
 

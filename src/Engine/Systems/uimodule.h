@@ -6,6 +6,111 @@
 
 namespace pg
 {
+    class GetX : public Function
+    {
+        using Function::Function;
+    public:
+        void setUp(EntitySystem* ecsRef, const CompRef<UiComponent>& comp)
+        {
+            setArity(0, 0);
+
+            this->ecsRef = ecsRef;
+            this->comp = comp;
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            return makeVar(comp->pos.x);
+        }
+
+        EntitySystem* ecsRef = nullptr;
+        CompRef<UiComponent> comp;
+    };
+
+    class GetY : public Function
+    {
+        using Function::Function;
+    public:
+        void setUp(EntitySystem* ecsRef, const CompRef<UiComponent>& comp)
+        {
+            setArity(0, 0);
+
+            this->ecsRef = ecsRef;
+            this->comp = comp;
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            return makeVar(comp->pos.y);
+        }
+
+        EntitySystem* ecsRef = nullptr;
+        CompRef<UiComponent> comp;
+    };
+
+    class GetZ : public Function
+    {
+        using Function::Function;
+    public:
+        void setUp(EntitySystem* ecsRef, const CompRef<UiComponent>& comp)
+        {
+            setArity(0, 0);
+
+            this->ecsRef = ecsRef;
+            this->comp = comp;
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            return makeVar(comp->pos.z);
+        }
+
+        EntitySystem* ecsRef = nullptr;
+        CompRef<UiComponent> comp;
+    };
+
+    class GetWidth : public Function
+    {
+        using Function::Function;
+    public:
+        void setUp(EntitySystem* ecsRef, const CompRef<UiComponent>& comp)
+        {
+            setArity(0, 0);
+
+            this->ecsRef = ecsRef;
+            this->comp = comp;
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            return makeVar(comp->width);
+        }
+
+        EntitySystem* ecsRef = nullptr;
+        CompRef<UiComponent> comp;
+    };
+
+    class GetHeight : public Function
+    {
+        using Function::Function;
+    public:
+        void setUp(EntitySystem* ecsRef, const CompRef<UiComponent>& comp)
+        {
+            setArity(0, 0);
+
+            this->ecsRef = ecsRef;
+            this->comp = comp;
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            return makeVar(comp->height);
+        }
+
+        EntitySystem* ecsRef = nullptr;
+        CompRef<UiComponent> comp;
+    };
+
     class SetX : public Function
     {
         using Function::Function;

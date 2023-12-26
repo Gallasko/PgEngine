@@ -386,15 +386,19 @@ namespace pg
 
         auto get = std::make_shared<AtFunction>(expr->self, currentEnv, "List Get", token, this, emptyQueue, nullptr);
         auto set = std::make_shared<SetFunction>(expr->self, currentEnv, "List Set", token, this, emptyQueue, nullptr);
+        auto pushback = std::make_shared<PushbackFunction>(expr->self, currentEnv, "List Pushback", token, this, emptyQueue, nullptr, instance);
         auto size = std::make_shared<SizeFunction>(expr->self, currentEnv, "List Size", token, this, emptyQueue, nullptr, instance);
+        auto erase = std::make_shared<EraseFunction>(expr->self, currentEnv, "List Erase", token, this, emptyQueue, nullptr, instance);
         auto it = std::make_shared<IteratorFunction>(expr->self, currentEnv, "List Iterator", token, this, emptyQueue, nullptr, instance);
 
         std::unordered_map<std::string, std::shared_ptr<Function>> methods;
 
         methods["at"] = get->bind(instance);
         methods["set"] = set->bind(instance);
-        methods["it"] = it;
+        methods["pushback"] = pushback;
         methods["size"] = size;
+        methods["erase"] = erase;
+        methods["it"] = it;
 
         instance->setMethods(methods);
 
@@ -883,15 +887,19 @@ namespace pg
 
         auto get = std::make_shared<AtFunction>(self, caller->getEnv(), "List Get", token, caller->getVisitor(), emptyQueue, nullptr);
         auto set = std::make_shared<SetFunction>(self, caller->getEnv(), "List Set", token, caller->getVisitor(), emptyQueue, nullptr);
+        auto pushback = std::make_shared<PushbackFunction>(self, caller->getEnv(), "List Pushback", token, caller->getVisitor(), emptyQueue, nullptr, instance);
         auto size = std::make_shared<SizeFunction>(self, caller->getEnv(), "List Size", token, caller->getVisitor(), emptyQueue, nullptr, instance);
+        auto erase = std::make_shared<EraseFunction>(self, caller->getEnv(), "List Erase", token, caller->getVisitor(), emptyQueue, nullptr, instance);
         auto it = std::make_shared<IteratorFunction>(self, caller->getEnv(), "List Iterator", token, caller->getVisitor(), emptyQueue, nullptr, instance);
 
         std::unordered_map<std::string, std::shared_ptr<Function>> methods;
 
         methods["at"] = get->bind(instance);
         methods["set"] = set->bind(instance);
-        methods["it"] = it;
+        methods["pushback"] = pushback;
         methods["size"] = size;
+        methods["erase"] = erase;
+        methods["it"] = it;
 
         instance->setMethods(methods);
 

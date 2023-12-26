@@ -53,7 +53,7 @@ namespace pg
 
                 uiComp->fill(entityUiC);
 
-                LOG_INFO("Scene Element System", "Add entity ui (" << entity->id << "): x = " << static_cast<UiSize>(uiComp->pos.x) << ", y = " << static_cast<UiSize>(uiComp->pos.y) << ", w = " << static_cast<UiSize>(uiComp->width) << ", h = " << static_cast<UiSize>(uiComp->height));
+                LOG_INFO("Scene Element System", "Add entity ui (" << entity->id << "): x = " << uiComp->pos.x << ", y = " << uiComp->pos.y << ", w = " << uiComp->width << ", h = " << uiComp->height);
 
                 uiComp->setZ(entityUiC->pos.z + 1);
 

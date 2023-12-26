@@ -243,9 +243,9 @@ namespace pg
 
         auto currentIndex = elementIndex++;
         
-        bufferData[currentIndex * nbAttributes + 0] = static_cast<UiSize>(ui->pos.x);
-        bufferData[currentIndex * nbAttributes + 1] = static_cast<UiSize>(ui->pos.y);
-        bufferData[currentIndex * nbAttributes + 2] = static_cast<UiSize>(ui->pos.z);
+        bufferData[currentIndex * nbAttributes + 0] = ui->pos.x;
+        bufferData[currentIndex * nbAttributes + 1] = ui->pos.y;
+        bufferData[currentIndex * nbAttributes + 2] = ui->pos.z;
 
         bufferData[currentIndex * nbAttributes + 3] = ui->width;
         bufferData[currentIndex * nbAttributes + 4] = ui->height;
@@ -295,9 +295,9 @@ namespace pg
 
         auto ui = entity->get<UiComponent>();
 
-        float x = static_cast<UiSize>(ui->pos.x);
-        float y = static_cast<UiSize>(ui->pos.y);
-        float z = static_cast<UiSize>(ui->pos.z);
+        float x = ui->pos.x;
+        float y = ui->pos.y;
+        float z = ui->pos.z;
 
         float w = ui->width;
         float h = ui->height;
