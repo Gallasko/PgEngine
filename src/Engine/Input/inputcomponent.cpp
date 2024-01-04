@@ -58,7 +58,7 @@ namespace pg
                     if(ui->pos.z < highestZ)
                         break;
 
-                    if(ui->inBound(mousePos.x, mousePos.y))
+                    if(ui->inClipBound(mousePos.x, mousePos.y))
                     {
                         highestZ = ui->pos.z;
 
@@ -102,7 +102,7 @@ namespace pg
                     if(ui->pos.z < highestZ)
                         break;
 
-                    if(ui->inBound(mousePos.x, mousePos.y))
+                    if(ui->inClipBound(mousePos.x, mousePos.y))
                     {
                         highestZ = ui->pos.z;
 

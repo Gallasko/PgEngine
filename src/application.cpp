@@ -39,18 +39,18 @@ namespace pg
 
         window.resize(300, 300);
 
-        while(true)
+        while (true)
         {
             SDL_Event event;
 
-            while(SDL_PollEvent(&event))
+            while (SDL_PollEvent(&event))
             {
                 window.processEvents(event);
             }
 
             window.render();
 
-            if(window.requestQuit())
+            if (window.requestQuit())
                 return 0;
         }
 

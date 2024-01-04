@@ -10,6 +10,7 @@ namespace pg
                 {"z", makeFun<GetZ>(caller, "getZ", ecsRef, comp)},
                 {"w", makeFun<GetWidth>(caller, "getWidth", ecsRef, comp)},
                 {"h", makeFun<GetHeight>(caller, "getHeight", ecsRef, comp)},
+                {"setVisibility", makeFun<SetVisible>(caller, "setVisibility", ecsRef, comp)},
                 {"setX", makeFun<SetX>(caller, "setX", ecsRef, comp)},
                 {"setY", makeFun<SetY>(caller, "setY", ecsRef, comp)},
                 {"setZ", makeFun<SetY>(caller, "setZ", ecsRef, comp)},

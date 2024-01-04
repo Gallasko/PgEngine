@@ -28,6 +28,10 @@ namespace pg
     class ComponentRegistry;
     struct AbstractSystem;
 
+    // Todo add this in a window dependancy
+    // This event is fired when the window is resized
+    struct ResizeEvent { float width, height; };
+
     // Todo add batching for entity and component creation
 
     template <typename Comp>
@@ -706,7 +710,7 @@ namespace pg
 
         setN->onComponentDeletion.emplace(id, [](Entity *entity) {
             LOG_INFO("Group", "On component deletion for entity " << entity->id << ", sending event !");
-            entity->world()->sendEvent(OnCompDeletionCheckForGroup<Group<Type, Types...>>{entity});
+            entity->world()->sendEvent(OnCompDeletionCheckForGroup<Group<Type, Types...>>{entity->id, entity->componentList});
         });
     }
 

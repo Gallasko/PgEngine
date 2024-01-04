@@ -39,8 +39,8 @@ namespace pg
          */
         struct Corner
         {
-            const UiSize* verticalAnchor;       ///< The vertical anchor point of the corner
-            const UiSize* horizontalAnchor;     ///< The horizontal anchor point of the corner
+            UiSize verticalAnchor;       ///< The vertical anchor point of the corner
+            UiSize horizontalAnchor;     ///< The horizontal anchor point of the corner
         };
 
         // Public interface
@@ -86,6 +86,12 @@ namespace pg
         UiSize bottomMargin = AnchorDir::BMargin;
         /** The margin from the left anchor point */
         UiSize leftMargin = AnchorDir::LMargin;
+
+        // The top left point of the clip rectangle of this component
+        Corner clipTopLeft;
+
+        // The bottom right point of the clip rectangle of this component
+        Corner clipBottomRight;
 
         /**
          * @brief Construct a new Ui Component object
@@ -180,6 +186,9 @@ namespace pg
         inline void setWidth(const UiSize& value)         { width = value;  update(); }
         inline void setHeight(const UiSize& value)        { height = value; update(); }
 
+        inline void setVisibility(const bool value)       { visible = value; update(); }
+
+        // Todo manage all case where has...Anchor get removed : (Add user function to remove anchor, when setting xyz ...)
         inline void setTopAnchor(const UiSize& anchor)    { topAnchor = &anchor;    hasTopAnchor = true;    update(); }
         inline void setRightAnchor(const UiSize& anchor)  { rightAnchor = &anchor;  hasRightAnchor = true;  update(); }
         inline void setBottomAnchor(const UiSize& anchor) { bottomAnchor = &anchor; hasBottomAnchor = true; update(); }
@@ -194,6 +203,30 @@ namespace pg
         inline void setRightMargin(const UiSize& value)   { rightMargin = value;  update(); }
         inline void setBottomMargin(const UiSize& value)  { bottomMargin = value; update(); }
         inline void setLeftMargin(const UiSize& value)    { leftMargin = value;   update(); }
+
+        // Used to set a custom clip rect 
+        inline void setClipRect(const Corner& topLeft, const Corner& bottomRight) { isClippedToWindow = false; clipTopLeft = topLeft; clipBottomRight = bottomRight; update(); }
+
+        // Update clip rect when the window is changed (only if the component is clipped to the window)
+        inline void updateWindowRect(const Corner& topLeft, const Corner& bottomRight)
+        {
+            if (isClippedToWindow)
+            {
+                clipTopLeft = topLeft;
+                clipBottomRight = bottomRight;
+                update();
+            }
+        }
+
+        // Set back the clip rect to the window (instead of a custom one)
+        inline void clipBackToWindow(const Corner& topLeft, const Corner& bottomRight)
+        {
+            isClippedToWindow = true;
+            
+            clipTopLeft = topLeft;
+            clipBottomRight = bottomRight;
+            update();
+        }
 
         inline void fill(UiComponent *component)
         {
@@ -220,8 +253,11 @@ namespace pg
 
         // Public helper methods
     public:
-        bool inBound(int x, int y) const;
+        bool inBound(float x, float y) const;
         bool inBound(const constant::Vector2D& vec2) const;
+
+        bool inClipBound(float x, float y) const;
+        bool inClipBound(const constant::Vector2D& vec2) const;
 
         const bool& isVisible() const { return visible; }
 
@@ -256,6 +292,8 @@ namespace pg
         /** Pointer to the left attached anchor */
         UiSize leftAnchor;
 
+        bool isClippedToWindow = true;
+
         EntitySystem* ecsRef = nullptr;
 
         _unique_id entityId = 0;
@@ -278,7 +316,7 @@ namespace pg
         _unique_id id;
     };
 
-    struct UiComponentSystem : public System<Own<UiComponent>, Listener<UiComponentInternalChangeEvent>, Listener<UiSizeChangeEvent>, NamedSystem>
+    struct UiComponentSystem : public System<Own<UiComponent>, Listener<ResizeEvent>, Listener<UiComponentInternalChangeEvent>, Listener<UiSizeChangeEvent>, NamedSystem>
     {
         struct UiOldValue
         {
@@ -308,6 +346,18 @@ namespace pg
         virtual std::string getSystemName() const override { return "Ui System"; }
 
         // Todo Set updated to true on add also !
+
+        virtual void onEvent(const ResizeEvent& event) override
+        {
+            std::lock_guard lock(m);
+
+            LOG_INFO("Ui internals", "Window resizing");
+
+            for (const auto& comp : view<UiComponent>())
+            {
+                comp->updateWindowRect({0.0f, 0.0f}, {event.width, event.height});
+            }
+        }
 
         virtual void onEvent(const UiComponentInternalChangeEvent& event) override
         {

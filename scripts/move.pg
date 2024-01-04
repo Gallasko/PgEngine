@@ -5,7 +5,7 @@ import "input"
 var x = 10;
 var y = 10;
 
-var square = renderSquare(x, y)
+var square = renderSquare(x, y, 50, 50)
 
 // ################# [Start] Left #################
 
@@ -183,26 +183,149 @@ fun scanRelease(event)
     {
         moveRight()
     }
-    else if(event.key == SCANCODE_E)
-    {
-        if(!created)
-        {
-            created = true;
-            tex = renderTexture(50, 50, 35, 20, "menu")
-        }
-    }
-    else if(event.key == SCANCODE_Q)
-    {
-        if(created)
-        {
-            created = false;
-
-            print(tex)
-
-            deleteEntityFromId(tex.id);
-        }
-    }
+//    else if(event.key == SCANCODE_E)
+//    {
+//        if(!created)
+//        {
+//            created = true;
+//            tex = renderTexture(100, 100, 159, 120, "menu")
+//
+//            var tex2 = renderTexture(10, 10, 159, 120, "icon")
+//        }
+//    }
+//    else if(event.key == SCANCODE_Q)
+//    {
+//        if(created)
+//        {
+//            created = false;
+//
+//            print(tex)
+//
+//            deleteEntityFromId(tex.id);
+//        }
+//    }
 }
 
 connectToScancode(scanRelease)
 connectToScancodePressed(scanRegister)
+
+var bulletList = [];
+
+var padPushed = false;
+
+fun padPressed(event)
+{
+    print("Received button press: " + toString(event.button) + " from gamepad: " + toString(event.id))
+
+    if (event.button == GAMEPAD_X and ! padPushed)
+    {
+        padPushed = true;
+        bulletList.pushback(renderSquare(x + 15, y - 45, 20, 40));
+    }
+    else if (event.button == GAMEPAD_Y)
+    {
+        debugPrint(bulletList)
+    }
+    else if (event.button == GAMEPAD_A)
+    {
+        square.setVisibility(false);
+    }
+    else if (event.button == GAMEPAD_B)
+    {
+        square.setVisibility(true);
+    }
+}
+
+fun padReleased(event)
+{
+    print("Received button release: " + toString(event.button) + " from gamepad: " + toString(event.id))
+
+    if (event.button == GAMEPAD_X)
+    {
+        padPushed = false
+    }
+}
+
+fun padAxis(event)
+{
+    print("Received axis change: " + toString(event.axis) + " with value: " + toString(event.value) + " from gamepad: " + toString(event.id))
+
+    if (event.axis == GAMEPAD_AXIS_LEFTX)
+    {
+        if (event.value >= 0.16)
+        {
+            lTimer.stop()
+            rVelocity = 5 * event.value;
+            rTimer.start()
+        }
+        else if (event.value <= -0.16)
+        {
+            rTimer.stop()
+            lVelocity = 5 * event.value;
+            lTimer.start()
+        }
+        else
+        {
+            rTimer.stop()
+            lTimer.stop()
+        }
+    }
+    else if (event.axis == GAMEPAD_AXIS_LEFTY)
+    {
+        if (event.value >= 0.16)
+        {
+            dTimer.stop()
+            uVelocity = 5 * event.value;
+            uTimer.start()
+        }
+        else if (event.value <= -0.16)
+        {
+            uTimer.stop()
+            dVelocity = 5 * event.value;
+            dTimer.start()
+        }
+        else
+        {
+            uTimer.stop()
+            dTimer.stop()
+        }
+    }
+}
+
+fun bulletCallback()
+{
+    //debugPrint(bulletList);
+
+    // We can only erase one element at a time
+    var eraseElem;
+    var erased = false;
+
+    for (var bullet : bulletList)
+    {
+        bullet.second.setY(bullet.second.y() - 5)
+
+        if (bullet.second.y() < 0)
+        {
+            var list = ["id": bullet.second.id, "index": bullet.first];
+            eraseElem = list
+            erased = true
+        }
+    }
+
+    if (erased)
+    {
+        bulletList.erase(eraseElem.index);
+        deleteEntityFromId(eraseElem.id);
+    }
+}
+
+var bulletTimer = newTimer();
+bulletTimer.setInterval(40);
+
+bulletTimer.onTimeout(bulletCallback);
+
+bulletTimer.start();
+
+connectToGamepadPressed(padPressed)
+connectToGamepadReleased(padReleased)
+connectToGamepadAxis(padAxis)

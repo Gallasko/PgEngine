@@ -1,19 +1,11 @@
 #include "listview.h"
 
+#include "scrollable.h"
+
 namespace pg
 {
 
     void ListViewSystem::init()
-    {
-
-    }
-
-    void ListViewSystem::addChild(EntityRef list, EntityRef child)
-    {
-
-    }
-    
-    void ListViewSystem::removeChild(EntityRef list, EntityRef child)
     {
 
     }
@@ -24,9 +16,17 @@ namespace pg
 
         auto ui = ecs->attach<UiComponent>(entity);
 
+        auto scrollable = ecs->attach<Scrollable>(entity);
+
         auto view = ecs->attach<ListView>(entity);
 
-        auto sliderEntity = ecs->createEntity();
+        scrollable->horizontalSlider = ecs->createEntity();
+
+        scrollable->horizontalCursor = ecs->createEntity();
+
+        scrollable->verticalSlider = ecs->createEntity();
+
+        scrollable->verticalCursor = ecs->createEntity();
 
         // make2
 

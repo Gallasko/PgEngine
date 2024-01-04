@@ -75,6 +75,8 @@ namespace pg
 
         MousePos mousePos;
 
+        std::mutex renderMutex;
+
         float xSensitivity = 1.0f;
         float ySensitivity = 1.0f;
     };

@@ -410,7 +410,7 @@ namespace pg
         bottomMargin.setEntity(entityId, ecsRef);
     }
 
-    bool UiComponent::inBound(int x, int y) const
+    bool UiComponent::inBound(float x, float y) const
     {
         LOG_THIS_MEMBER(DOM);
 
@@ -429,6 +429,29 @@ namespace pg
         LOG_THIS_MEMBER(DOM);
 
         return inBound(vec2.x, vec2.y);
+    }
+
+    bool UiComponent::inClipBound(float x, float y) const
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        if(not visible)
+            return false;
+
+        // Lockup x and y only once
+        const float xValue = this->pos.x;
+        const float yValue = this->pos.y;
+
+        return x > clipTopLeft.horizontalAnchor and x < clipBottomRight.horizontalAnchor and
+               y > clipTopLeft.verticalAnchor and y < clipBottomRight.verticalAnchor and
+               x > xValue and x < (xValue + this->width) and y < (yValue + this->height) and y > yValue;
+    }
+
+    bool UiComponent::inClipBound(const constant::Vector2D& vec2) const
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        return inClipBound(vec2.x, vec2.y);
     }
 
     void UiComponent::render(MasterRenderer*)

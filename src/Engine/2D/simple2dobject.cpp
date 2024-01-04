@@ -89,7 +89,8 @@ namespace pg
     Simple2DObjectSystem::SimpleSquareMesh::~SimpleSquareMesh()
     { 
         LOG_THIS_MEMBER("Shape 2D Mesh");
-        if(instanceVBO)
+
+        if (instanceVBO)
             delete instanceVBO;
     }
 
@@ -112,22 +113,26 @@ namespace pg
             auto sys = entity->world()->getSystem<Simple2DObjectSystem>();
 
             sys->addElement(ui, shape);
+        });
 
-            // auto mesh = sys->get2DMesh(*shape);
+        group->removeOfGroup([](EntitySystem* ecsRef, _unique_id id) {
+            LOG_INFO("Simple 2D Object System", "Remove entity " << id << " of ui - 2d shape group !");
 
-            // auto rTex = RenderableTexture{entity->id, ui, mesh};
+            auto sys = ecsRef->getSystem<Simple2DObjectSystem>();
 
-            // sys->tempRenderList[static_cast<unsigned int>(shape->shape)].push_back(rTex);
+            sys->removeElement(id);
         });
     }
 
     void Simple2DObjectSystem::render()
     {
-        if(changed)
+        LOG_THIS_MEMBER(DOM);
+
+        if (changed)
         {
             std::lock_guard<std::mutex> lock(modificationMutex);
 
-            if(not squareMeshInitialized)
+            if (not squareMeshInitialized)
             {
                 basicSquareMesh.generateMesh();
 
@@ -136,13 +141,13 @@ namespace pg
 
             basicSquareMesh.openGLMesh.VAO->bind();
 
-            auto currentSize = elementIndex.load();
+            auto size = visibleElements.load();
 
-            if(sizeChanged)
+            if (sizeChanged)
             {
                 basicSquareMesh.bind();
 
-                basicSquareMesh.instanceVBO->allocate(bufferData, currentSize * nbAttributes * sizeof(float));
+                basicSquareMesh.instanceVBO->allocate(bufferData, size * nbAttributes * sizeof(float));
                 
                 sizeChanged = false;
             }
@@ -150,7 +155,7 @@ namespace pg
             {
                 basicSquareMesh.bind();
 
-                basicSquareMesh.instanceVBO->allocate(bufferData, currentSize * nbAttributes * sizeof(float));
+                basicSquareMesh.instanceVBO->allocate(bufferData, size * nbAttributes * sizeof(float));
 
                 // basicSquareMesh.instanceVBO->bind();
                 
@@ -161,10 +166,8 @@ namespace pg
             changed = false;
         }
 
-        if(not squareMeshInitialized or elementIndex <= 0)
+        if (not squareMeshInitialized or elementIndex <= 0)
             return;
-
-        LOG_THIS(DOM);
     
         auto rTable = masterRenderer->getParameter();
         const int screenWidth = rTable["ScreenWidth"];
@@ -233,60 +236,172 @@ namespace pg
     {
         LOG_INFO("Simple 2D Object System", "Add element " << ui.entityId << " to buffer !");
 
-        {
-            std::lock_guard<std::mutex> lock (tableMutex);
+        idToIndexMap[ui.entityId] = elementIndex;
 
-            idToIndexMap[ui.entityId] = elementIndex;
+        {
+            std::lock_guard<std::mutex> lock (modificationMutex);
+
+            auto currentIndex = elementIndex++;
+
+            auto visible = ui->isVisible();
+            
+            bufferData[currentIndex * nbAttributes + 0] = ui->pos.x;
+            bufferData[currentIndex * nbAttributes + 1] = ui->pos.y;
+            bufferData[currentIndex * nbAttributes + 2] = ui->pos.z;
+
+            bufferData[currentIndex * nbAttributes + 3] = ui->width;
+            bufferData[currentIndex * nbAttributes + 4] = ui->height;
+
+            bufferData[currentIndex * nbAttributes + 5] = obj->colors.x;
+            bufferData[currentIndex * nbAttributes + 6] = obj->colors.y;
+            bufferData[currentIndex * nbAttributes + 7] = obj->colors.z;
+
+            if (visible)
+            {
+                auto index = visibleElements++;
+
+                if (visibleElements != elementIndex)
+                {
+                    swapIndex(currentIndex, index);
+                }
+            }
+
+            if(currentIndex + 1 >= currentSize)
+            {
+                float *temp = new float[2 * currentSize * nbAttributes];
+
+                memcpy(temp, bufferData, currentSize * nbAttributes * sizeof(float));
+
+                currentSize *= 2;
+
+                delete bufferData;
+
+                bufferData = temp;
+
+                sizeChanged = true;
+            }
+
+            changed = true;
         }
+    }
+
+    void Simple2DObjectSystem::removeElement(_unique_id id)
+    {
+        if (elementIndex == 0)
+        {
+            LOG_ERROR(DOM, "This should never be the case");
+            return;
+        }
+        else if (elementIndex == 1)
+        {
+            changed = true;
+            elementIndex = 0;
+            return;
+        }
+
+        auto lastElement = --elementIndex;
+
+        auto prev = idToIndexMap[id];
+
+        bool needToSwap = false;
+
+        // If the element to be deleted was visible we remove it from the visible list
+        if (prev < visibleElements)
+        {
+            visibleElements--;
+
+            // If prev is still less than visible elements then it wasn't the last visible element in the list so we need to swap a visible element at is place
+            needToSwap = prev < visibleElements and elementIndex != visibleElements;
+        }
+
+        idToIndexMap[id] = idToIndexMap[lastElement];
 
         std::lock_guard<std::mutex> lock (modificationMutex);
 
-        auto currentIndex = elementIndex++;
-        
-        bufferData[currentIndex * nbAttributes + 0] = ui->pos.x;
-        bufferData[currentIndex * nbAttributes + 1] = ui->pos.y;
-        bufferData[currentIndex * nbAttributes + 2] = ui->pos.z;
+        // Swap the last element at the removed place
 
-        bufferData[currentIndex * nbAttributes + 3] = ui->width;
-        bufferData[currentIndex * nbAttributes + 4] = ui->height;
+        bufferData[prev * nbAttributes + 0] = bufferData[lastElement * nbAttributes + 0];
+        bufferData[prev * nbAttributes + 1] = bufferData[lastElement * nbAttributes + 1];
+        bufferData[prev * nbAttributes + 2] = bufferData[lastElement * nbAttributes + 2];
 
-        bufferData[currentIndex * nbAttributes + 5] = obj->colors.x;
-        bufferData[currentIndex * nbAttributes + 6] = obj->colors.y;
-        bufferData[currentIndex * nbAttributes + 7] = obj->colors.z;
+        bufferData[prev * nbAttributes + 3] = bufferData[lastElement * nbAttributes + 3];
+        bufferData[prev * nbAttributes + 4] = bufferData[lastElement * nbAttributes + 4];
 
-        if(currentIndex + 1 >= currentSize)
+        bufferData[prev * nbAttributes + 5] = bufferData[lastElement * nbAttributes + 5];
+        bufferData[prev * nbAttributes + 6] = bufferData[lastElement * nbAttributes + 6];
+        bufferData[prev * nbAttributes + 7] = bufferData[lastElement * nbAttributes + 7];
+
+        // The remove item was a visible one so we need to swap a visible one at this place
+        if (needToSwap)
         {
-            float *temp = new float[2 * currentSize * nbAttributes];
-
-            memcpy(temp, bufferData, currentSize * nbAttributes * sizeof(float));
-
-            currentSize *= 2;
-
-            delete bufferData;
-
-            bufferData = temp;
-
-            sizeChanged = true;
+            // We swap the last visible element then
+            swapIndex(prev, visibleElements.load());
         }
 
         changed = true;
     }
 
+    void Simple2DObjectSystem::swapIndex(size_t origin, size_t destination)
+    {
+        auto originId = std::find_if(
+            idToIndexMap.begin(),
+            idToIndexMap.end(),
+            [origin](const auto& mo) {return mo.second == origin; });
+
+        auto destinationId = std::find_if(
+            idToIndexMap.begin(),
+            idToIndexMap.end(),
+            [destination](const auto& mo) {return mo.second == destination; });
+
+        if (originId == idToIndexMap.end() or destinationId == idToIndexMap.end())
+        {
+            LOG_ERROR(DOM, "Error swapping index !");
+            return;
+        }
+
+        idToIndexMap[originId->first] = destination;
+        idToIndexMap[destinationId->first] = origin;
+
+        auto temp0 = bufferData[origin * nbAttributes + 0];
+        auto temp1 = bufferData[origin * nbAttributes + 1];
+        auto temp2 = bufferData[origin * nbAttributes + 2];
+        auto temp3 = bufferData[origin * nbAttributes + 3];
+        auto temp4 = bufferData[origin * nbAttributes + 4];
+        auto temp5 = bufferData[origin * nbAttributes + 5];
+        auto temp6 = bufferData[origin * nbAttributes + 6];
+        auto temp7 = bufferData[origin * nbAttributes + 7];
+
+        bufferData[origin * nbAttributes + 0] = bufferData[destination * nbAttributes + 0];
+        bufferData[origin * nbAttributes + 1] = bufferData[destination * nbAttributes + 1];
+        bufferData[origin * nbAttributes + 2] = bufferData[destination * nbAttributes + 2];
+
+        bufferData[origin * nbAttributes + 3] = bufferData[destination * nbAttributes + 3];
+        bufferData[origin * nbAttributes + 4] = bufferData[destination * nbAttributes + 4];
+
+        bufferData[origin * nbAttributes + 5] = bufferData[destination * nbAttributes + 5];
+        bufferData[origin * nbAttributes + 6] = bufferData[destination * nbAttributes + 6];
+        bufferData[origin * nbAttributes + 7] = bufferData[destination * nbAttributes + 7];
+
+        bufferData[destination * nbAttributes + 0] = temp0;
+        bufferData[destination * nbAttributes + 1] = temp1;
+        bufferData[destination * nbAttributes + 2] = temp2;
+        bufferData[destination * nbAttributes + 3] = temp3;
+        bufferData[destination * nbAttributes + 4] = temp4;
+        bufferData[destination * nbAttributes + 5] = temp5;
+        bufferData[destination * nbAttributes + 6] = temp6;
+        bufferData[destination * nbAttributes + 7] = temp7;
+    }
 
     void Simple2DObjectSystem::onEvent(const UiComponentChangeEvent& event)
     {
         size_t index;
- 
-        {
-            std::lock_guard<std::mutex> lock(tableMutex);
 
-            auto it = idToIndexMap.find(event.id);
-        
-            if(it == idToIndexMap.end())
-                return;
+        auto it = idToIndexMap.find(event.id);
+    
+        if (it == idToIndexMap.end())
+            return;
 
-            index = it->second;
-        }
+        index = it->second;
 
         auto entity = ecsRef->getEntity(event.id);
         
@@ -302,6 +417,8 @@ namespace pg
         float w = ui->width;
         float h = ui->height;
 
+        bool visible = ui->isVisible();
+
         {
             std::lock_guard<std::mutex> lock(modificationMutex);
 
@@ -311,6 +428,22 @@ namespace pg
 
             bufferData[index * nbAttributes + 3] = w;
             bufferData[index * nbAttributes + 4] = h;
+
+            // Swap the element toward visible or not if it is not in the same state as before
+            if (index < visibleElements and not visible)
+            {
+                auto lastVisible = --visibleElements;
+
+                if (index != lastVisible)
+                    swapIndex(index, lastVisible);
+            }
+            else if (index >= visibleElements and visible)
+            {
+                auto lastVisible = visibleElements++;
+
+                if (index != lastVisible)
+                    swapIndex(index, lastVisible);
+            }
 
             changed = true;
         }

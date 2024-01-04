@@ -182,7 +182,7 @@ namespace pg
             {
                 UiComponent *ui = mouseArea.ui;
 
-                if(not ui->inBound(mousePos.x, mousePos.y))
+                if(not ui->inClipBound(mousePos.x, mousePos.y))
                 {
                     auto comp = getComponent(mouseArea.id);
 

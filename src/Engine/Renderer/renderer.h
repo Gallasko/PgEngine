@@ -6,7 +6,7 @@
 
 #include <cstdarg>
 
-#include "ECS/system.h"
+#include "ECS/entitysystem.h"
 
 #include "..\constant.h"
 #include "mesh.h"
@@ -87,7 +87,7 @@ namespace pg
     //[TODO] Multiple FBO -> 1 for a whole screen capture and other for batch rendering on a texture 
     // Add Particle system with instancing already done / create an alternative if needed
 
-    class MasterRenderer : public System<NamedSystem>
+    class MasterRenderer : public System<NamedSystem, Listener<ResizeEvent>>
     {
     public:
         MasterRenderer();
@@ -117,6 +117,15 @@ namespace pg
 
         template <typename Renderable>
         MasterRenderer& operator<<(Renderable* toRender) { renderer(this, toRender); return *this; }
+
+        virtual void onEvent(const ResizeEvent& event) override
+        {
+            LOG_INFO("Ui internals", "Window resizing");
+
+            std::lock_guard<std::mutex> lock(resizeMutex);
+
+            systemParameters["ScreenWidth"] = static_cast<int>(event.width); systemParameters["ScreenHeight"] = static_cast<int>(event.height);
+        }
 
         inline void setWindowSize(const int& width, const int& height) { systemParameters["ScreenWidth"] = width; systemParameters["ScreenHeight"] = height; }
         inline void setCurrentTime(const unsigned int& time) { systemParameters["CurrentTime"] = static_cast<int>(time); }

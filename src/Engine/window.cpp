@@ -247,15 +247,6 @@ namespace pg
 
             LOG_INFO(DOM, "Got all connected controllers");
 
-            if (joystick)
-            {
-                LOG_INFO(DOM, "Name: " << SDL_JoystickNameForIndex(0));
-            }
-            else
-            {
-                LOG_ERROR(DOM, "No joystick");
-            }
-
             if (context)
             {
                 LOG_INFO(DOM, "OpenGL Context initialised");
@@ -431,6 +422,8 @@ namespace pg
         testbc->setBottomAnchor(screenUi->bottom);
         testbc->setRightAnchor(screenUi->right);
 
+        testbc->setBottomMargin(550);
+
         terminalTextC->setBottomMargin(10);
         terminalTextC->setLeftMargin(10);
 
@@ -552,35 +545,29 @@ namespace pg
         this->width = width;
         this->height = height;
 
-        glViewport(0, 0, width, height);
+        std::lock_guard<std::mutex> lock(renderMutex);
 
-        if(masterRenderer)
-            masterRenderer->startResizing();
+        glViewport(0, 0, width, height);
 
         if(screenUi->width != width)
         {
             screenUi->setWidth(width);
-
-            if(masterRenderer)
-                masterRenderer->setWindowSize(width, height);
         }
-            
+        
         if(screenUi->height != height)
         {
             screenUi->setHeight(height);
-            
-            if(masterRenderer)
-                masterRenderer->setWindowSize(width, height);
         }
 
-        if(masterRenderer)
-            masterRenderer->stopResizing();
+        ecs.sendEvent(ResizeEvent{static_cast<float>(width), static_cast<float>(height)});
     }
 
     void Window::render()
     {
         currentTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
         static auto lastTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
+        std::lock_guard<std::mutex> lock(renderMutex);
 
         glClearColor(0.1f, 0.3f, 0.7f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

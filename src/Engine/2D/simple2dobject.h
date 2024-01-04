@@ -89,6 +89,10 @@ namespace pg
 
         void addElement(const CompRef<UiComponent>& ui, const CompRef<Simple2DObject>& obj);
 
+        void removeElement(_unique_id id);
+
+        void swapIndex(size_t origin, size_t destination);
+
         virtual void onEvent(const UiComponentChangeEvent& event) override;
 
         virtual void updateMeshes() override;
@@ -101,13 +105,13 @@ namespace pg
         bool sizeChanged = false;
 
         std::atomic<size_t> elementIndex {0};
+        std::atomic<size_t> visibleElements {0};
         size_t currentSize = 0;
 
         float *bufferData = nullptr;
         const size_t nbAttributes = 8; // x, y, z, w(r), h(o), r, g, b 
 
         std::unordered_map<_unique_id, size_t> idToIndexMap;
-        std::mutex tableMutex;
     };
 
     CompList<UiComponent, Simple2DObject> makeSimple2DShape(EntitySystem *ecs, const Shape2D& shape, float width, float height, const constant::Vector3D& colors);

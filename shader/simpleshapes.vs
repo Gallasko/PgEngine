@@ -19,16 +19,16 @@ out vec3 ourColor;
 void main()
 {
     mat4 posMat = mat4(
-        vec4( 1.0, 0.0, 0.0, 0.0),
-        vec4( 0.0, 1.0, 0.0, 0.0),
-        vec4( 0.0, 0.0, 1.0, 0.0),
-        vec4( -1.0f + 2.0 * aWorldPos.x * (1.0 / sWidth), 1.0 + 2.0 * -(aWorldPos.y) * (1.0 / sHeight), aWorldPos.z, 1.0) );
+        vec4(1.0, 0.0, 0.0, 0.0),
+        vec4(0.0, 1.0, 0.0, 0.0),
+        vec4(0.0, 0.0, 1.0, 0.0),
+        vec4(-1.0f + 2.0 * aWorldPos.x * (1.0 / sWidth), 1.0 + 2.0 * -(aWorldPos.y) * (1.0 / sHeight), aWorldPos.z, 1.0) );
 
     mat4 scaleMat = mat4(
-        vec4( aSize.x, 0.0, 0.0, 0.0),
-        vec4( 0.0, aSize.y, 0.0, 0.0),
-        vec4( 0.0, 0.0, 1.0, 0.0),
-        vec4( 0.0 , 0.0, 0.0, 1.0) );
+        vec4(aSize.x, 0.0, 0.0, 0.0),
+        vec4(0.0, aSize.y, 0.0, 0.0),
+        vec4(0.0, 0.0, 1.0, 0.0),
+        vec4(0.0 , 0.0, 0.0, 1.0) );
 
     gl_Position = projection * posMat * view * scale * scaleMat * model * vec4(aPos.x, aPos.y, aPos.z, 1.0f);
     ourColor = aColors;

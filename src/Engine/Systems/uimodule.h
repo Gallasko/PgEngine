@@ -111,6 +111,32 @@ namespace pg
         CompRef<UiComponent> comp;
     };
 
+    class SetVisible : public Function
+    {
+        using Function::Function;
+    public:
+        void setUp(EntitySystem* ecsRef, const CompRef<UiComponent>& comp)
+        {
+            setArity(1, 1);
+
+            this->ecsRef = ecsRef;
+            this->comp = comp;
+        }
+
+        virtual ValuablePtr call(ValuableQueue& args) const override
+        {
+            auto visibility = args.front()->getElement();
+            args.pop();
+
+            comp->setVisibility(visibility.get<bool>());
+
+            return nullptr;
+        }
+
+        EntitySystem* ecsRef = nullptr;
+        CompRef<UiComponent> comp;
+    };
+
     class SetX : public Function
     {
         using Function::Function;
