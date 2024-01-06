@@ -115,51 +115,66 @@ namespace pg
             EXPECT_FLOAT_EQ(res, 4.0f);
 
             EXPECT_FLOAT_EQ(-value1, -8.0f);
+            
+            value1 = 5.25f;
+            value2 = 0.0f;
+
+            EXPECT_FLOAT_EQ(res, 0.0f);
         }
 
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
-        TEST(ui_anchor_test, initialization)
+        TEST(ui_value_test, operation_with_temp_variable)
         {
-            UiAnchor anchor;
+            UiSize value1 = 1.2f;
 
-            EXPECT_EQ(anchor.id, 0);
-            EXPECT_EQ(anchor.anchorDir, AnchorDir::Top);
-            EXPECT_FLOAT_EQ(anchor.anchorPoint, 0.0f);
+            UiSize res = value1 + 3.8f;
 
-            UiAnchor anchor2 {10, AnchorDir::Bottom, 15.0f};
+            EXPECT_FLOAT_EQ(res, 5.0f);
 
-            EXPECT_EQ(anchor2.id, 10);
-            EXPECT_EQ(anchor2.anchorDir, AnchorDir::Bottom);
-            EXPECT_FLOAT_EQ(anchor2.anchorPoint, 15.0f);
+            UiSize res2 = 5.1f;
 
-            UiSize value = 12.0f;
-            UiAnchor anchor3 {15, AnchorDir::Left, value};
+            UiSize resTemp;
 
-            EXPECT_EQ(anchor3.id, 15);
-            EXPECT_EQ(anchor3.anchorDir, AnchorDir::Left);
-            EXPECT_FLOAT_EQ(anchor3.anchorPoint, 12.0f);
+            {
+                UiSize temp = -1.1f;
+
+                res2 += temp;
+
+                resTemp = temp + 0.5f;
+
+                EXPECT_FLOAT_EQ(resTemp, -0.6f);
+            }
+
+            EXPECT_FLOAT_EQ(resTemp, -0.6f);
+
+            UiSize resTemp2 = 1.1f;
+
+            {
+                UiSize temp = -1.1f;
+
+                UiSize temp2 = 5.4f;
+                
+                resTemp2 += temp * temp2;
+
+                EXPECT_FLOAT_EQ(resTemp2, -4.84f);
+            }
+
+            EXPECT_FLOAT_EQ(resTemp2, -4.84f);
+
+            EXPECT_FLOAT_EQ(res2, 4.0f);
+
+            UiSize res3 = res + 1.2f + res2;
+
+            EXPECT_FLOAT_EQ(res3, 10.2f);
+
+            value1 = -3.2f;
+
+            EXPECT_FLOAT_EQ(res, 0.6f);
+            EXPECT_FLOAT_EQ(res3, 5.8f);
         }
 
-        // ----------------------------------------------------------------------------------------
-        // ---------------------------        Test separator        -------------------------------
-        // ----------------------------------------------------------------------------------------
-        TEST(ui_anchor_test, anchor_value_reference)
-        {
-            UiSize anchorValue = 12.0f;
-            UiAnchor anchor = {12, AnchorDir::Right, anchorValue};
-
-            EXPECT_EQ(anchor.id, 12);
-            EXPECT_EQ(anchor.anchorDir, AnchorDir::Right);
-            EXPECT_FLOAT_EQ(anchor.anchorPoint, 12.0f);
-
-            anchorValue = 7.0f;
-
-            EXPECT_EQ(anchor.id, 12);
-            EXPECT_EQ(anchor.anchorDir, AnchorDir::Right);
-            EXPECT_FLOAT_EQ(anchor.anchorPoint, 7.0f);
-        }
 
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------

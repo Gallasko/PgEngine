@@ -25,7 +25,7 @@ namespace pg
     friend class EntitySystem;
     friend class CommandDispatcher;
     friend class AllocatorPool<Entity>;
-    private:
+    public:
         struct EntityHeld
         {
             union EntityHeldId
