@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "uniqueid.h"
+#include "ECS/uniqueid.h"
 #include "logger.h"
 
 #include "ECS/entitysystem.h"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "sentencesystem.h"
+#include "UI/sentencesystem.h"
 
 #include "Interpreter/pginterpreter.h"
 

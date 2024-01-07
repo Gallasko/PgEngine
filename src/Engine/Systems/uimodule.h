@@ -1,6 +1,6 @@
 #pragma once
 
-#include "uisystem.h"
+#include "UI/uisystem.h"
 
 #include "Interpreter/pginterpreter.h"
 
@@ -18,7 +18,7 @@ namespace pg
             this->comp = comp;
         }
 
-        virtual ValuablePtr call(ValuableQueue& args) const override
+        virtual ValuablePtr call(ValuableQueue&) const override
         {
             return makeVar(comp->pos.x);
         }
@@ -39,7 +39,7 @@ namespace pg
             this->comp = comp;
         }
 
-        virtual ValuablePtr call(ValuableQueue& args) const override
+        virtual ValuablePtr call(ValuableQueue&) const override
         {
             return makeVar(comp->pos.y);
         }
@@ -60,7 +60,7 @@ namespace pg
             this->comp = comp;
         }
 
-        virtual ValuablePtr call(ValuableQueue& args) const override
+        virtual ValuablePtr call(ValuableQueue&) const override
         {
             return makeVar(comp->pos.z);
         }
@@ -81,7 +81,7 @@ namespace pg
             this->comp = comp;
         }
 
-        virtual ValuablePtr call(ValuableQueue& args) const override
+        virtual ValuablePtr call(ValuableQueue&) const override
         {
             return makeVar(comp->width);
         }
@@ -102,7 +102,7 @@ namespace pg
             this->comp = comp;
         }
 
-        virtual ValuablePtr call(ValuableQueue& args) const override
+        virtual ValuablePtr call(ValuableQueue&) const override
         {
             return makeVar(comp->height);
         }
@@ -271,7 +271,7 @@ namespace pg
 
     struct UiModule : public SysModule
     {
-        UiModule(EntitySystem *ecsRef)
+        UiModule(EntitySystem *)
         {
         }
     };

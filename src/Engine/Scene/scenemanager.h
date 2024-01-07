@@ -66,7 +66,7 @@ namespace pg
             LOG_INFO("Scene Element", "Entity clicked: " << event.entity.id);
         }
 
-        virtual void onEvent(const SaveScene& event) override
+        virtual void onEvent(const SaveScene&) override
         {
             LOG_INFO("Scene Element", "Save current scene named: " << currentScene);
 

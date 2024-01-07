@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
     // Enable log in console
     // auto terminalSink = pg::Logger::registerSink<pg::TerminalSink>(true);
     //TODO fix FilterFile
-    //terminalSink->addFilter("Input Filter", new Logger::LogSink::FilterScope("Input"));
+    // terminalSink->addFilter("Input Filter", new Logger::LogSink::FilterScope("Input"));
     // terminalSink->addFilter("Serializer Filter", new Logger::LogSink::FilterFile("src/Engine/serialization.cpp"));
     // terminalSink->addFilter("Renderer Filter", new Logger::LogSink::FilterFile("src/Engine/Renderer/renderer.h"));
     // terminalSink->addFilter("Parser Filter", new pg::Logger::LogSink::FilterScope("Parser"));
@@ -49,6 +49,7 @@ int main(int argc, char *argv[])
     // editor.show();
 
     return app.exec();
+    // return 0;
 }
 
 

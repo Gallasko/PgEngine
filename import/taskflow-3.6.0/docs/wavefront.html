@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Learning from Examples &raquo; Wavefront Parallelism | Taskflow QuickStart</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,400i,600,600i%7CSource+Code+Pro:400,400i,600" />
+  <link rel="stylesheet" href="m-dark+documentation.compiled.css" />
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#22272e" />
+</head>
+<body>
+<header><nav id="navigation">
+  <div class="m-container">
+    <div class="m-row">
+      <span id="m-navbar-brand" class="m-col-t-8 m-col-m-none m-left-m">
+        <a href="https://taskflow.github.io"><img src="taskflow_logo.png" alt="" />Taskflow</a> <span class="m-breadcrumb">|</span> <a href="index.html" class="m-thin">QuickStart</a>
+      </span>
+      <div class="m-col-t-4 m-hide-m m-text-right m-nopadr">
+        <a href="#search" class="m-doc-search-icon" title="Search" onclick="return showSearch()"><svg style="height: 0.9rem;" viewBox="0 0 16 16">
+          <path id="m-doc-search-icon-path" d="m6 0c-3.31 0-6 2.69-6 6 0 3.31 2.69 6 6 6 1.49 0 2.85-0.541 3.89-1.44-0.0164 0.338 0.147 0.759 0.5 1.15l3.22 3.79c0.552 0.614 1.45 0.665 2 0.115 0.55-0.55 0.499-1.45-0.115-2l-3.79-3.22c-0.392-0.353-0.812-0.515-1.15-0.5 0.895-1.05 1.44-2.41 1.44-3.89 0-3.31-2.69-6-6-6zm0 1.56a4.44 4.44 0 0 1 4.44 4.44 4.44 4.44 0 0 1-4.44 4.44 4.44 4.44 0 0 1-4.44-4.44 4.44 4.44 0 0 1 4.44-4.44z"/>
+        </svg></a>
+        <a id="m-navbar-show" href="#navigation" title="Show navigation"></a>
+        <a id="m-navbar-hide" href="#" title="Hide navigation"></a>
+      </div>
+      <div id="m-navbar-collapse" class="m-col-t-12 m-show-m m-col-m-none m-right-m">
+        <div class="m-row">
+          <ol class="m-col-t-6 m-col-m-none">
+            <li><a href="pages.html">Handbook</a></li>
+            <li><a href="namespaces.html">Namespaces</a></li>
+          </ol>
+          <ol class="m-col-t-6 m-col-m-none" start="3">
+            <li><a href="annotated.html">Classes</a></li>
+            <li><a href="files.html">Files</a></li>
+            <li class="m-show-m"><a href="#search" class="m-doc-search-icon" title="Search" onclick="return showSearch()"><svg style="height: 0.9rem;" viewBox="0 0 16 16">
+              <use href="#m-doc-search-icon-path" />
+            </svg></a></li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav></header>
+<main><article>
+  <div class="m-container m-container-inflatable">
+    <div class="m-row">
+      <div class="m-col-l-10 m-push-l-1">
+        <h1>
+          <span class="m-breadcrumb"><a href="Examples.html">Learning from Examples</a> &raquo;</span>
+          Wavefront Parallelism
+        </h1>
+        <nav class="m-block m-default">
+          <h3>Contents</h3>
+          <ul>
+            <li><a href="#WavefrontComputingFormulation">Problem Formulation</a></li>
+            <li><a href="#WavefrontTaskGraph">Wavefront Task Graph</a></li>
+          </ul>
+        </nav>
+<p>We study the wavefront parallelism, which is a common pattern in dynamic programming to sweep elements in a diagonal direction.</p><section id="WavefrontComputingFormulation"><h2><a href="#WavefrontComputingFormulation">Problem Formulation</a></h2><p>The computation starts at a singular point at a corner of a data plan (e.g., grid) and propagates its effect diagonally to other elements. This sweep of computation is known as <em>wavefront</em>. Each point in the wavefront can be computed in parallel. The following example shows a wavefront parallelism in a 2D matrix.</p><img class="m-image" src="wavefront_1.png" alt="Image" style="width: 70%;" /><p>We partition the 9x9 grid into a 3x3 block and assign a task to one block. The wavefront propagates task dependencies from the top-left block all the way to the bottom-right block. Each task precedes two tasks, one to the right and another below.</p></section><section id="WavefrontTaskGraph"><h2><a href="#WavefrontTaskGraph">Wavefront Task Graph</a></h2><p>We can describe the wavefront parallelism in a simple two-level loop. Since we need to address the two tasks upper and left to a task when creating its dependencies, we use a 2D vector to pre-allocate all tasks via <a href="classtf_1_1FlowBuilder.html#acab0b4ac82260f47fdb36a3244ee3aaf" class="m-doc">tf::<wbr />Taskflow::<wbr />placeholder</a>.</p><pre class="m-code"><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;taskflow/taskflow.hpp&gt;</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">tf</span><span class="o">::</span><span class="n">Executor</span><span class="w"> </span><span class="n">executor</span><span class="p">;</span>
+<span class="w">  </span><span class="n">tf</span><span class="o">::</span><span class="n">Taskflow</span><span class="w"> </span><span class="n">taskflow</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">num_blocks</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">tf</span><span class="o">::</span><span class="n">Task</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">node</span><span class="p">(</span><span class="n">num_blocks</span><span class="p">);</span>
+<span class="w">  </span>
+<span class="w">  </span><span class="c1">// create num_blocks*num_blocks placeholder tasks</span>
+<span class="w">  </span><span class="k">for</span><span class="p">(</span><span class="k">auto</span><span class="w"> </span><span class="o">&amp;</span><span class="n">n</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">node</span><span class="p">){</span>
+<span class="w">    </span><span class="k">for</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">&lt;</span><span class="n">num_blocks</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">){</span>
+<span class="w">      </span><span class="n">n</span><span class="p">.</span><span class="n">emplace_back</span><span class="p">(</span><span class="n">taskflow</span><span class="p">.</span><span class="n">placeholder</span><span class="p">());</span>
+<span class="w">    </span><span class="p">}</span><span class="w">   </span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span>
+<span class="w">  </span><span class="c1">// scan each block and create dependencies</span>
+<span class="w">  </span><span class="k">for</span><span class="p">(</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="o">=</span><span class="n">num_blocks</span><span class="p">;</span><span class="w"> </span><span class="o">--</span><span class="n">i</span><span class="o">&gt;=</span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span>
+<span class="w">    </span><span class="k">for</span><span class="p">(</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">j</span><span class="o">=</span><span class="n">num_blocks</span><span class="p">;</span><span class="w"> </span><span class="o">--</span><span class="n">j</span><span class="o">&gt;=</span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span>
+<span class="w">      </span><span class="c1">// deferred task assignment</span>
+<span class="w">      </span><span class="n">node</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">].</span><span class="n">work</span><span class="p">([</span><span class="o">=</span><span class="p">]()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;compute block (%d, %d)&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">);</span><span class="w"> </span><span class="p">});</span><span class="w">  </span>
+<span class="w">      </span>
+<span class="w">      </span><span class="c1">// wavefront dependency</span>
+<span class="w">      </span><span class="k">if</span><span class="p">(</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">num_blocks</span><span class="p">)</span><span class="w"> </span><span class="n">node</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">].</span><span class="n">precede</span><span class="p">(</span><span class="n">node</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">]);</span>
+<span class="w">      </span><span class="k">if</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">num_blocks</span><span class="p">)</span><span class="w"> </span><span class="n">node</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">].</span><span class="n">precede</span><span class="p">(</span><span class="n">node</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">][</span><span class="n">j</span><span class="p">]);</span>
+<span class="w">    </span><span class="p">}</span><span class="w">   </span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="n">executor</span><span class="p">.</span><span class="n">run</span><span class="p">(</span><span class="n">taskflow</span><span class="p">).</span><span class="n">wait</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// dump the taskflow</span>
+<span class="w">  </span><span class="n">taskflow</span><span class="p">.</span><span class="n">dump</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="p">);</span>
+<span class="p">}</span></pre><p>The figure below shows the wavefront parallelism in a 3x3 grid:</p><div class="m-graph"><svg style="width: 60.200rem; height: 20.600rem;" viewBox="0.00 0.00 602.00 206.00">
+<g transform="scale(1 1) rotate(0) translate(4 202)">
+<title>Taskflow</title>
+<g class="m-node m-flat">
+<title>p0x563eef67dc70</title>
+<ellipse cx="27" cy="-99" rx="27" ry="18"/>
+<text text-anchor="middle" x="27" y="-95.12" font-family="Helvetica,sans-Serif" font-size="10.00">B_0_0</text>
+</g>
+<g class="m-node m-flat">
+<title>p0x563eef67dd78</title>
+<ellipse cx="117" cy="-126" rx="27" ry="18"/>
+<text text-anchor="middle" x="117" y="-122.12" font-family="Helvetica,sans-Serif" font-size="10.00">B_0_1</text>
+</g>
+<g class="m-edge">
+<title>p0x563eef67dc70&#45;&gt;p0x563eef67dd78</title>
+<path d="M52.05,-106.38C61.17,-109.18 71.73,-112.42 81.62,-115.45"/>
+<polygon points="80.4,-119.04 90.98,-118.63 82.45,-112.35 80.4,-119.04"/>
+</g>
+<g class="m-node m-flat">
+<title>p0x563eef67e090</title>
+<ellipse cx="117" cy="-72" rx="27" ry="18"/>
+<text text-anchor="middle" x="117" y="-68.12" font-family="Helvetica,sans-Serif" font-size="10.00">B_1_0</text>
+</g>
+<g class="m-edge">
+<title>p0x563eef67dc70&#45;&gt;p0x563eef67e090</title>
+<path d="M52.05,-91.62C61.17,-88.82 71.73,-85.58 81.62,-82.55"/>
+<polygon points="82.45,-85.65 90.98,-79.37 80.4,-78.96 82.45,-85.65"/>
+</g>
+<g class="m-node m-flat">
+<title>p0x563eef67de80</title>
+<ellipse cx="207" cy="-153" rx="27" ry="18"/>
+<text text-anchor="middle" x="207" y="-149.12" font-family="Helvetica,sans-Serif" font-size="10.00">B_0_2</text>
+</g>
+<g class="m-edge">
+<title>p0x563eef67dd78&#45;&gt;p0x563eef67de80</title>
+<path d="M142.05,-133.38C151.17,-136.18 161.73,-139.42 171.62,-142.45"/>
+<polygon points="170.4,-146.04 180.98,-145.63 172.45,-139.35 170.4,-146.04"/>
+</g>
+<g class="m-node m-flat">
+<title>p0x563eef67e198</title>
+<ellipse cx="207" cy="-99" rx="27" ry="18"/>
+<text text-anchor="middle" x="207" y="-95.12" font-family="Helvetica,sans-Serif" font-size="10.00">B_1_1</text>
+</g>
+<g class="m-edge">
+<title>p0x563eef67dd78&#45;&gt;p0x563eef67e198</title>
+<path d="M142.05,-118.62C151.17,-115.82 161.73,-112.58 171.62,-109.55"/>
+<polygon points="172.45,-112.65 180.98,-106.37 170.4,-105.96 172.45,-112.65"/>
+</g>
+<g class="m-edge">
+<title>p0x563eef67e090&#45;&gt;p0x563eef67e198</title>
+<path d="M142.05,-79.38C151.17,-82.18 161.73,-85.42 171.62,-88.45"/>
+<polygon points="170.4,-92.04 180.98,-91.63 172.45,-85.35 170.4,-92.04"/>
+</g>
+<g class="m-node m-flat">
+<title>p0x563eef67e4b0</title>
+<ellipse cx="207" cy="-45" rx="27" ry="18"/>
+<text text-anchor="middle" x="207" y="-41.12" font-family="Helvetica,sans-Serif" font-size="10.00">B_2_0</text>
+</g>
+<g class="m-edge">
+<title>p0x563eef67e090&#45;&gt;p0x563eef67e4b0</title>
+<path d="M142.05,-64.62C151.17,-61.82 161.73,-58.58 171.62,-55.55"/>
+<polygon points="172.45,-58.65 180.98,-52.37 170.4,-51.96 172.45,-58.65"/>
+</g>
+<g class="m-node m-flat">
+<title>p0x563eef67df88</title>
+<ellipse cx="297" cy="-180" rx="27" ry="18"/>
+<text text-anchor="middle" x="297" y="-176.12" font-family="Helvetica,sans-Serif" font-size="10.00">B_0_3</text>
+</g>
+<g class="m-edge">
+<title>p0x563eef67de80&#45;&gt;p0x563eef67df88</title>
+<path d="M232.05,-160.38C241.17,-163.18 251.73,-166.42 261.62,-169.45"/>
+<polygon points="260.4,-173.04 270.98,-172.63 262.45,-166.35 260.4,-173.04"/>
+</g>
+<g class="m-node m-flat">
+<title>p0x563eef67e2a0</title>
+<ellipse cx="297" cy="-126" rx="27" ry="18"/>
+<text text-anchor="middle" x="297" y="-122.12" font-family="Helvetica,sans-Serif" font-size="10.00">B_1_2</text>
+</g>
+<g class="m-edge">
+<title>p0x563eef67de80&#45;&gt;p0x563eef67e2a0</title>
+<path d="M232.05,-145.62C241.17,-142.82 251.73,-139.58 261.62,-136.55"/>
+<polygon points="262.45,-139.65 270.98,-133.37 260.4,-132.96 262.45,-139.65"/>
+</g>
+<g class="m-edge">
+<title>p0x563eef67e198&#45;&gt;p0x563eef67e2a0</title>
+<path d="M232.05,-106.38C241.17,-109.18 251.73,-112.42 261.62,-115.45"/>
+<polygon points="260.4,-119.04 270.98,-118.63 262.45,-112.35 260.4,-119.04"/>
+</g>
+<g class="m-node m-flat">
+<title>p0x563eef67e5b8</title>
+<ellipse cx="297" cy="-72" rx="27" ry="18"/>
+<text text-anchor="middle" x="297" y="-68.12" font-family="Helvetica,sans-Serif" font-size="10.00">B_2_1</text>
+</g>
+<g class="m-edge">
+<title>p0x563eef67e198&#45;&gt;p0x563eef67e5b8</title>
+<path d="M232.05,-91.62C241.17,-88.82 251.73,-85.58 261.62,-82.55"/>
+<polygon points="262.45,-85.65 270.98,-79.37 260.4,-78.96 262.45,-85.65"/>
+</g>
+<g class="m-node m-flat">
+<title>p0x563eef67e3a8</title>
+<ellipse cx="387" cy="-153" rx="27" ry="18"/>
+<text text-anchor="middle" x="387" y="-149.12" font-family="Helvetica,sans-Serif" font-size="10.00">B_1_3</text>
+</g>
+<g class="m-edge">
+<title>p0x563eef67df88&#45;&gt;p0x563eef67e3a8</title>
+<path d="M322.05,-172.62C331.17,-169.82 341.73,-166.58 351.62,-163.55"/>
+<polygon points="352.45,-166.65 360.98,-160.37 350.4,-159.96 352.45,-166.65"/>
+</g>
+<g class="m-edge">
+<title>p0x563eef67e2a0&#45;&gt;p0x563eef67e3a8</title>
+<path d="M322.05,-133.38C331.17,-136.18 341.73,-139.42 351.62,-142.45"/>
+<polygon points="350.4,-146.04 360.98,-145.63 352.45,-139.35 350.4,-146.04"/>
+</g>
+<g class="m-node m-flat">
+<title>p0x563eef67e6c0</title>
+<ellipse cx="387" cy="-99" rx="27" ry="18"/>
+<text text-anchor="middle" x="387" y="-95.12" font-family="Helvetica,sans-Serif" font-size="10.00">B_2_2</text>
+</g>
+<g class="m-edge">
+<title>p0x563eef67e2a0&#45;&gt;p0x563eef67e6c0</title>
+<path d="M322.05,-118.62C331.17,-115.82 341.73,-112.58 351.62,-109.55"/>
+<polygon points="352.45,-112.65 360.98,-106.37 350.4,-105.96 352.45,-112.65"/>
+</g>
+<g class="m-node m-flat">
+<title>p0x563eef67e7c8</title>
+<ellipse cx="477" cy="-126" rx="27" ry="18"/>
+<text text-anchor="middle" x="477" y="-122.12" font-family="Helvetica,sans-Serif" font-size="10.00">B_2_3</text>
+</g>
+<g class="m-edge">
+<title>p0x563eef67e3a8&#45;&gt;p0x563eef67e7c8</title>
+<path d="M412.05,-145.62C421.17,-142.82 431.73,-139.58 441.62,-136.55"/>
+<polygon points="442.45,-139.65 450.98,-133.37 440.4,-132.96 442.45,-139.65"/>
+</g>
+<g class="m-edge">
+<title>p0x563eef67e4b0&#45;&gt;p0x563eef67e5b8</title>
+<path d="M232.05,-52.38C241.17,-55.18 251.73,-58.42 261.62,-61.45"/>
+<polygon points="260.4,-65.04 270.98,-64.63 262.45,-58.35 260.4,-65.04"/>
+</g>
+<g class="m-node m-flat">
+<title>p0x563eef67e8d0</title>
+<ellipse cx="297" cy="-18" rx="27" ry="18"/>
+<text text-anchor="middle" x="297" y="-14.12" font-family="Helvetica,sans-Serif" font-size="10.00">B_3_0</text>
+</g>
+<g class="m-edge">
+<title>p0x563eef67e4b0&#45;&gt;p0x563eef67e8d0</title>
+<path d="M232.05,-37.62C241.17,-34.82 251.73,-31.58 261.62,-28.55"/>
+<polygon points="262.45,-31.65 270.98,-25.37 260.4,-24.96 262.45,-31.65"/>
+</g>
+<g class="m-edge">
+<title>p0x563eef67e5b8&#45;&gt;p0x563eef67e6c0</title>
+<path d="M322.05,-79.38C331.17,-82.18 341.73,-85.42 351.62,-88.45"/>
+<polygon points="350.4,-92.04 360.98,-91.63 352.45,-85.35 350.4,-92.04"/>
+</g>
+<g class="m-node m-flat">
+<title>p0x563eef67e9d8</title>
+<ellipse cx="387" cy="-45" rx="27" ry="18"/>
+<text text-anchor="middle" x="387" y="-41.12" font-family="Helvetica,sans-Serif" font-size="10.00">B_3_1</text>
+</g>
+<g class="m-edge">
+<title>p0x563eef67e5b8&#45;&gt;p0x563eef67e9d8</title>
+<path d="M322.05,-64.62C331.17,-61.82 341.73,-58.58 351.62,-55.55"/>
+<polygon points="352.45,-58.65 360.98,-52.37 350.4,-51.96 352.45,-58.65"/>
+</g>
+<g class="m-edge">
+<title>p0x563eef67e6c0&#45;&gt;p0x563eef67e7c8</title>
+<path d="M412.05,-106.38C421.17,-109.18 431.73,-112.42 441.62,-115.45"/>
+<polygon points="440.4,-119.04 450.98,-118.63 442.45,-112.35 440.4,-119.04"/>
+</g>
+<g class="m-node m-flat">
+<title>p0x563eef67eae0</title>
+<ellipse cx="477" cy="-72" rx="27" ry="18"/>
+<text text-anchor="middle" x="477" y="-68.12" font-family="Helvetica,sans-Serif" font-size="10.00">B_3_2</text>
+</g>
+<g class="m-edge">
+<title>p0x563eef67e6c0&#45;&gt;p0x563eef67eae0</title>
+<path d="M412.05,-91.62C421.17,-88.82 431.73,-85.58 441.62,-82.55"/>
+<polygon points="442.45,-85.65 450.98,-79.37 440.4,-78.96 442.45,-85.65"/>
+</g>
+<g class="m-node m-flat">
+<title>p0x563eef67ebe8</title>
+<ellipse cx="567" cy="-99" rx="27" ry="18"/>
+<text text-anchor="middle" x="567" y="-95.12" font-family="Helvetica,sans-Serif" font-size="10.00">B_3_3</text>
+</g>
+<g class="m-edge">
+<title>p0x563eef67e7c8&#45;&gt;p0x563eef67ebe8</title>
+<path d="M502.05,-118.62C511.17,-115.82 521.73,-112.58 531.62,-109.55"/>
+<polygon points="532.45,-112.65 540.98,-106.37 530.4,-105.96 532.45,-112.65"/>
+</g>
+<g class="m-edge">
+<title>p0x563eef67e8d0&#45;&gt;p0x563eef67e9d8</title>
+<path d="M322.05,-25.38C331.17,-28.18 341.73,-31.42 351.62,-34.45"/>
+<polygon points="350.4,-38.04 360.98,-37.63 352.45,-31.35 350.4,-38.04"/>
+</g>
+<g class="m-edge">
+<title>p0x563eef67e9d8&#45;&gt;p0x563eef67eae0</title>
+<path d="M412.05,-52.38C421.17,-55.18 431.73,-58.42 441.62,-61.45"/>
+<polygon points="440.4,-65.04 450.98,-64.63 442.45,-58.35 440.4,-65.04"/>
+</g>
+<g class="m-edge">
+<title>p0x563eef67eae0&#45;&gt;p0x563eef67ebe8</title>
+<path d="M502.05,-79.38C511.17,-82.18 521.73,-85.42 531.62,-88.45"/>
+<polygon points="530.4,-92.04 540.98,-91.63 532.45,-85.35 530.4,-92.04"/>
+</g>
+</g>
+</svg>
+</div><p>Wavefront parallelism has many variations in different applications, for instance, Smith-Waterman sequencing, video encoding algorithms, image analysis, and pipeline parallelism. The parallel pattern exhibits in a diagonal direction.</p></section>
+      </div>
+    </div>
+  </div>
+</article></main>
+<div class="m-doc-search" id="search">
+  <a href="#!" onclick="return hideSearch()"></a>
+  <div class="m-container">
+    <div class="m-row">
+      <div class="m-col-m-8 m-push-m-2">
+        <div class="m-doc-search-header m-text m-small">
+          <div><span class="m-label m-default">Tab</span> / <span class="m-label m-default">T</span> to search, <span class="m-label m-default">Esc</span> to close</div>
+          <div id="search-symbolcount">&hellip;</div>
+        </div>
+        <div class="m-doc-search-content">
+          <form>
+            <input type="search" name="q" id="search-input" placeholder="Loading &hellip;" disabled="disabled" autofocus="autofocus" autocomplete="off" spellcheck="false" />
+          </form>
+          <noscript class="m-text m-danger m-text-center">Unlike everything else in the docs, the search functionality <em>requires</em> JavaScript.</noscript>
+          <div id="search-help" class="m-text m-dim m-text-center">
+            <p class="m-noindent">Search for symbols, directories, files, pages or
+            modules. You can omit any prefix from the symbol or file path; adding a
+            <code>:</code> or <code>/</code> suffix lists all members of given symbol or
+            directory.</p>
+            <p class="m-noindent">Use <span class="m-label m-dim">&darr;</span>
+            / <span class="m-label m-dim">&uarr;</span> to navigate through the list,
+            <span class="m-label m-dim">Enter</span> to go.
+            <span class="m-label m-dim">Tab</span> autocompletes common prefix, you can
+            copy a link to the result using <span class="m-label m-dim">⌘</span>
+            <span class="m-label m-dim">L</span> while <span class="m-label m-dim">⌘</span>
+            <span class="m-label m-dim">M</span> produces a Markdown link.</p>
+          </div>
+          <div id="search-notfound" class="m-text m-warning m-text-center">Sorry, nothing was found.</div>
+          <ul id="search-results"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="search-v2.js"></script>
+<script src="searchdata-v2.js" async="async"></script>
+<footer><nav>
+  <div class="m-container">
+    <div class="m-row">
+      <div class="m-col-l-10 m-push-l-1">
+        <p>Taskflow handbook is part of the <a href="https://taskflow.github.io">Taskflow project</a>, copyright © <a href="https://tsung-wei-huang.github.io/">Dr. Tsung-Wei Huang</a>, 2018&ndash;2023.<br />Generated by <a href="https://doxygen.org/">Doxygen</a> 1.9.6 and <a href="https://mcss.mosra.cz/">m.css</a>.</p>
+      </div>
+    </div>
+  </div>
+</nav></footer>
+</body>
+</html>

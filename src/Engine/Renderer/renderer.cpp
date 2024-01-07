@@ -10,7 +10,7 @@ namespace fs = std::filesystem;
 
 #include "logger.h"
 
-#include "openglobject.h"
+#include "Helpers/openglobject.h"
 
 #include "Loaders/stb_image.h"
 

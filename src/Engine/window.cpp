@@ -35,90 +35,90 @@
 #include "Systems/texture2Dmodule.h"
 #include "Systems/scenemodule.h"
 
-#include "GameElements/Systems/basicsystems.h"
+// #include "GameElements/Systems/basicsystems.h"
 
 #include "logger.h"
 #include "serialization.h"
 
-namespace
-{
-    static const char * const DOM = "Window";
-
-    class OpenTextFileFunction : public Function
-    {
-        using Function::Function;
-    public:
-        void setUp()
-        {
-            setArity(1, 1);
-        }
-
-        virtual ValuablePtr call(ValuableQueue& args) const override
-        {
-            auto name = args.front()->getElement();
-            args.pop();
-
-            auto file = UniversalFileAccessor::openTextFile(name.toString());
-
-            return makeVar(file.data);
-        }
-
-        std::shared_ptr<Logger::LogSink> sink;
-    };
-
-    class OpenTextFolderFunction : public Function
-    {
-        using Function::Function;
-    public:
-        void setUp()
-        {
-            setArity(1, 1);
-        }
-
-        virtual ValuablePtr call(ValuableQueue& args) const override
-        {
-            auto name = args.front()->getElement();
-            args.pop();
-
-            auto folder = UniversalFileAccessor::openTextFolder(name.toString());
-
-            auto list = makeList(this, {});
-
-            for(auto file : folder)
-            {
-                addToList(list, token, {file.filepath, file.data});
-            }
-
-            return list; 
-        }
-
-        std::shared_ptr<Logger::LogSink> sink;
-    };
-
-    struct FileModule : public SysModule
-    {
-        FileModule()
-        {
-            addSystemFunction<OpenTextFileFunction>("openTextFile");
-            addSystemFunction<OpenTextFolderFunction>("openTextFolder");
-        }
-    };
-
-    void getAllControllers(Input *inputHandler)
-    {
-        for (int i = 0; i < SDL_NumJoysticks(); i++)
-        {
-            if (SDL_IsGameController(i))
-            {
-                inputHandler->addGamepad(SDL_GameControllerOpen(i));
-            }
-        }
-    }
-
-}
-
 namespace pg
 {
+    namespace
+    {
+        static const char * const DOM = "Window";
+
+        class OpenTextFileFunction : public Function
+        {
+            using Function::Function;
+        public:
+            void setUp()
+            {
+                setArity(1, 1);
+            }
+
+            virtual ValuablePtr call(ValuableQueue& args) const override
+            {
+                auto name = args.front()->getElement();
+                args.pop();
+
+                auto file = UniversalFileAccessor::openTextFile(name.toString());
+
+                return makeVar(file.data);
+            }
+
+            std::shared_ptr<Logger::LogSink> sink;
+        };
+
+        class OpenTextFolderFunction : public Function
+        {
+            using Function::Function;
+        public:
+            void setUp()
+            {
+                setArity(1, 1);
+            }
+
+            virtual ValuablePtr call(ValuableQueue& args) const override
+            {
+                auto name = args.front()->getElement();
+                args.pop();
+
+                auto folder = UniversalFileAccessor::openTextFolder(name.toString());
+
+                auto list = makeList(this, {});
+
+                for(auto file : folder)
+                {
+                    addToList(list, token, {file.filepath, file.data});
+                }
+
+                return list; 
+            }
+
+            std::shared_ptr<Logger::LogSink> sink;
+        };
+
+        struct FileModule : public SysModule
+        {
+            FileModule()
+            {
+                addSystemFunction<OpenTextFileFunction>("openTextFile");
+                addSystemFunction<OpenTextFolderFunction>("openTextFolder");
+            }
+        };
+
+        void getAllControllers(Input *inputHandler)
+        {
+            for (int i = 0; i < SDL_NumJoysticks(); i++)
+            {
+                if (SDL_IsGameController(i))
+                {
+                    inputHandler->addGamepad(SDL_GameControllerOpen(i));
+                }
+            }
+        }
+
+    }
+
     Window::Window(const std::string &title) : title(title)
     {
         LOG_THIS_MEMBER(DOM);
@@ -340,7 +340,7 @@ namespace pg
 
         makeSentence(&ecs, 200, 50, {"At the start"});
 
-        ecs.createSystem<FpsSystem>();
+        // ecs.createSystem<FpsSystem>();
 
         ecs.createSystem<MouseLeftClickSystem>(inputHandler);
         ecs.createSystem<MouseRightClickSystem>(inputHandler);

@@ -8,7 +8,7 @@
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
 
-#include "openglobject.h"
+#include "Helpers/openglobject.h"
 
 namespace pg
 {

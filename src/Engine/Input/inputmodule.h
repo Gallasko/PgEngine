@@ -4,7 +4,7 @@
 
 #include "inputcomponent.h"
 
-#include "scriptcallable.h"
+#include "Interpreter/scriptcallable.h"
 
 namespace pg
 {
