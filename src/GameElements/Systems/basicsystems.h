@@ -60,9 +60,9 @@ struct OnClickGainGold { };
 
 struct OnGoldGain
 {
-    OnGoldGain(int64_t gold) : gold(gold) {}
+    OnGoldGain(size_t gold) : gold(gold) {}
 
-    int64_t gold;
+    size_t gold;
 };
 
 struct GoldSystem : public System<Listener<OnClickGainGold>, Listener<OnGoldGain>, NamedSystem, InitSys, StoragePolicy>
@@ -94,9 +94,9 @@ struct GoldSystem : public System<Listener<OnClickGainGold>, Listener<OnGoldGain
         ecsRef->sendEvent(OnTextChanged{goldTextId, goldStr.getData()});
     }
 
-    int64_t clickPower = 1;
+    size_t clickPower = 1;
 
-    std::atomic<int64_t> gold {0};
+    std::atomic<size_t> gold {0};
     _unique_id goldTextId;
 };
 
@@ -126,7 +126,7 @@ struct FactorySystem : public System<Listener<BuyFactory>, Listener<TickEvent>, 
 
             accumulatedTick -= factoryProdDuration;
 
-            ecsRef->sendEvent(OnGoldGain{static_cast<int64_t>(nbFactory * factoryProdValue)});
+            ecsRef->sendEvent(OnGoldGain{static_cast<size_t>(nbFactory * factoryProdValue)});
         }
     }
 

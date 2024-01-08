@@ -111,7 +111,8 @@
         "filesystem": "cpp",
         "numbers": "cpp",
         "semaphore": "cpp",
-        "span": "cpp"
+        "span": "cpp",
+        "hash_map": "cpp"
     },
     "files.exclude": {
         "**/*.o": true,

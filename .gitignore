@@ -11,3 +11,4 @@ simple.json
 /release*
 /CMakeFiles*
 CMakeCache.txt
+/em*

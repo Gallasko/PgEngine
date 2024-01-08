@@ -5,9 +5,22 @@ project(PgEngine VERSION 1.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wextra -g -pthread -Wa,-mbig-obj -ggdb -DDEBUG")
+if (NOT EMSCRIPTEN)
+    set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wextra -g -pthread -Wa,-mbig-obj -ggdb -DDEBUG")
+else()
+    set(CMAKE_C_FLAGS_DEBUG "-Wall -Wextra -g -pthread -ggdb -DDEBUG -DGLEW_STATIC USE_PTHREADS -m32")
+    set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wextra -g -pthread -ggdb -DDEBUG -DGLEW_STATIC USE_PTHREADS -m32")
+endif()
+
 # set(CMAKE_CXX_FLAGS_DEBUG "-std=c++17 -Wall -Wextra -g -pthread -Wa,-mbig-obj -s -O3 -DNDEBUG -mwindows")
-set(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wextra -pthread -Wa,-mbig-obj -s -O3 -DNDEBUG -mwindows")
+
+if (NOT EMSCRIPTEN)
+# set(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wextra -pthread -Wa,-mbig-obj -s -O3 -DNDEBUG -mwindows")
+    set(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wextra -pthread -Wa,-mbig-obj -s -O3 -DNDEBUG")
+else()
+    set(CMAKE_C_FLAGS_RELEASE "-Wall -Wextra -pthread -O3 -DNDEBUG -DGLEW_STATIC -s USE_PTHREADS -m32 -sGL_ENABLE_GET_PROC_ADDRESS")
+    set(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wextra -pthread -O3 -DNDEBUG -DGLEW_STATIC -s USE_PTHREADS -m32 -sGL_ENABLE_GET_PROC_ADDRESS")
+endif()
 
 enable_testing()
 
@@ -38,7 +51,10 @@ find_package(OpenGL REQUIRED)
 
 add_subdirectory(${SDL2_DIR})
 add_subdirectory(${SDL2MIXER_DIR})
-add_subdirectory(${GLEW_DIR})
+
+if (NOT EMSCRIPTEN)
+    add_subdirectory(${GLEW_DIR})
+endif()
 
 # Todo make this work
 # add_subdirectory(${SDL2TTF_DIR})
@@ -50,7 +66,10 @@ add_subdirectory(${GTEST})
 include_directories(${GLM_DIR}/glm)
 include_directories(${SDL2_DIR}/include)
 include_directories(${TASKFLOW_DIR}/taskflow)
-include_directories(${GLEW_DIR}/include)
+
+if (NOT EMSCRIPTEN)
+    include_directories(${GLEW_DIR}/include)
+endif()
 
 add_executable(PgEngine src/main.cpp)
 
@@ -225,5 +244,17 @@ endif()
 
 # target_link_libraries(PgEngine PRIVATE SDL2::SDL2-static SDL2_ttf::SDL2_ttf-static SDL2_mixer::SDL2_mixer-static glm)
 target_link_options(PgEngine PRIVATE -static-libgcc -static-libstdc++)
-target_link_libraries(PgEngine PRIVATE SDL2::SDL2-static SDL2_mixer::SDL2_mixer-static glm libglew_static)
+
+if (EMSCRIPTEN)
+    set_target_properties(PgEngine
+        PROPERTIES SUFFIX ".html"
+        LINK_FLAGS " -s USE_FREETYPE=1 -sGL_ENABLE_GET_PROC_ADDRESS -s DISABLE_EXCEPTION_CATCHING=0 -s DEMANGLE_SUPPORT=1 -s SAFE_HEAP=1 --bind -s WASM=1 -O3 -s LEGACY_GL_EMULATION=0 -s GL_UNSAFE_OPTS=0 -s ASSERTIONS=1 -s GL_ASSERTIONS=1 -s INVOKE_RUN=0 -std=c++17 -s USE_WEBGL2=1 -s FULL_ES3=1 -s USE_GLFW=3 -s OFFSCREENCANVAS_SUPPORT=1")
+
+        #--bind -m32 -s USE_FREETYPE=1 -s USE_WEBGL2=1 -s WASM=0 -s MIN_WEBGL_VERSION=1 -s ABORT_ON_WASM_EXCEPTIONS=1 -g2 -s USE_GLFW=3 -sSAFE_HEAP")
+    
+    target_link_libraries(PgEngine PRIVATE SDL2::SDL2-static SDL2_mixer::SDL2_mixer-static glm)
+else()
+    target_link_libraries(PgEngine PRIVATE SDL2::SDL2-static SDL2_mixer::SDL2_mixer-static glm libglew_static)
+endif()
+
 #target_link_libraries(PgEngine SDL2main SDL2-static SDL2_mixer-static SDL2_ttf-static glm)

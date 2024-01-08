@@ -61,7 +61,7 @@ namespace pg
         }
 
         // Todo test this step by step to see if the reminder is correctly calculated
-        virtual void execute()
+        virtual void execute() override
         {
             LOG_THIS_MEMBER("Ticking System");
 
@@ -133,7 +133,7 @@ namespace pg
             currentIncrement += event.tick;
         }
 
-        virtual void execute()
+        virtual void execute() override
         {
             LOG_THIS_MEMBER("Ticking System");
 

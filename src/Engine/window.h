@@ -8,15 +8,18 @@
 
 #include "Input/inputcomponent.h"
 
-#ifdef __linux__
-#include <SDL2/SDL.h>
-#elif _WIN32
+#ifdef __EMSCRIPTEN__
 #include <SDL.h>
+#include <emscripten.h>
+#else
+    #ifdef __linux__
+    #include <SDL2/SDL.h>
+    #elif _WIN32
+    #include <SDL.h>
+    #endif
 #endif
 
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif
+#include <SDL_mixer.h>
 
 #include <GL/gl.h>
 
@@ -79,5 +82,7 @@ namespace pg
 
         float xSensitivity = 1.0f;
         float ySensitivity = 1.0f;
+
+        Mix_Music* music = nullptr;
     };
 }

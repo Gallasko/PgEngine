@@ -166,7 +166,7 @@ namespace pg
          * 
          * Override of the getType() method of Valuable
          */
-        virtual std::string getType() const { return "Variable"; }
+        virtual std::string getType() const override { return "Variable"; }
 
     private:
         /** The variable stored by this Valuable */

@@ -25,6 +25,8 @@ namespace pg
 
         LOG_INFO(DOM, "Window init...");
 
+        // Todo if init failed exit app !
+
         window.init(300, 300, false);
 
         LOG_INFO(DOM, "Window init done !");

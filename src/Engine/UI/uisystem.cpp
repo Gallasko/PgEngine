@@ -158,7 +158,7 @@ namespace pg
     {
         LOG_THIS(DOM);
 
-        AnchorDir dir;
+        AnchorDir dir = AnchorDir::None;
 
         std::string type = "";
 

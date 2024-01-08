@@ -37,8 +37,11 @@
 #define LOG_THIS_MEMBER(scope)
 #define LOG_TEST(scope, msg)
 #define LOG_MILE(scope, msg)
-#define LOG_INFO(scope, msg)
-#define LOG_ERROR(scope, msg)
+// #define LOG_INFO(scope, msg)
+// #define LOG_ERROR(scope, msg)
+// Let those even in release
+#define LOG_INFO(scope, msg) _SINGLE_LOG(scope, msg, pg::Logger::InfoLevel::info)
+#define LOG_ERROR(scope, msg) _SINGLE_LOG(scope, msg, pg::Logger::InfoLevel::error)
 #endif
 
 //TODO Filter only filter log, info, alert and warning level message -> error and critical are not filtered !

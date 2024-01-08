@@ -28,7 +28,7 @@ namespace pg
 
         virtual void accept(Visitor* visitor);
         virtual std::string prettyPrint() const { return "Expression statement: " + expr->prettyPrint(); }
-        virtual std::string getType() const { return "ExpressionStatement"; }
+        virtual std::string getType() const override { return "ExpressionStatement"; }
 
         ExprPtr expr;
     };
@@ -40,7 +40,7 @@ namespace pg
 
         virtual void accept(Visitor* visitor);
         virtual std::string prettyPrint() const { auto initializerValue = expr != nullptr ? expr->prettyPrint() : "null"; return "Assignment statement, set variable :" + name.text + ", to value: " + initializerValue; }
-        virtual std::string getType() const { return "VariableStatement"; }
+        virtual std::string getType() const override { return "VariableStatement"; }
 
         Token name;
         ExprPtr expr;
@@ -53,7 +53,7 @@ namespace pg
 
         virtual void accept(Visitor* visitor);
         virtual std::string prettyPrint() const {auto p = parameters; std::string res = ""; while(p.size() > 0) { res += p.front()->prettyPrint() + ", "; p.pop();} return "Function statement :" + name.text + " with parameters: " + res; }
-        virtual std::string getType() const { return "FunctionStatement"; }
+        virtual std::string getType() const override { return "FunctionStatement"; }
 
         Token name;
         std::queue<ExprPtr> parameters;
@@ -68,7 +68,7 @@ namespace pg
         virtual void accept(Visitor* visitor);
         virtual std::string prettyPrint() const {auto p = methods; std::string res = ""; while(p.size() > 0) { res += p.front()->prettyPrint() + "\n"; p.pop();} return "Class statement :" + name.text + " with methodes: " + "\n" + res; }
  
-        virtual std::string getType() const { return "ClassStatement"; }
+        virtual std::string getType() const override { return "ClassStatement"; }
 
         Token name;
         std::queue<std::shared_ptr<FunctionStatement>> methods;
@@ -81,7 +81,7 @@ namespace pg
 
         virtual void accept(Visitor* visitor);
         virtual std::string prettyPrint() const {auto p = statements; std::string res = ""; while(p.size() > 0) { res += p.front()->prettyPrint() + "\n"; p.pop();} return "Block Statement \n" + res; }
-        virtual std::string getType() const { return "BlockStatement"; }
+        virtual std::string getType() const override { return "BlockStatement"; }
 
         std::queue<StatementPtr> statements;
     };
@@ -93,7 +93,7 @@ namespace pg
 
         virtual void accept(Visitor* visitor);
         virtual std::string prettyPrint() const { return "If statement, with condition: " + condition->prettyPrint() + "\n" + thenBranch->prettyPrint() + "\n" + elseBranch->prettyPrint(); } 
-        virtual std::string getType() const { return "IfStatement"; }
+        virtual std::string getType() const override { return "IfStatement"; }
 
         ExprPtr condition;
         StatementPtr thenBranch;
@@ -107,7 +107,7 @@ namespace pg
 
         virtual void accept(Visitor* visitor);
         virtual std::string prettyPrint() const { return "while statement, with condition: " + condition->prettyPrint() + "\n" + body->prettyPrint(); }
-        virtual std::string getType() const { return "WhileStatement"; }
+        virtual std::string getType() const override { return "WhileStatement"; }
 
         ExprPtr condition;
         StatementPtr body;
@@ -120,7 +120,7 @@ namespace pg
 
         virtual void accept(Visitor* visitor);
         virtual std::string prettyPrint() const { return "Return statement with value: " + value->prettyPrint(); }
-        virtual std::string getType() const { return "ReturnStatement"; }
+        virtual std::string getType() const override { return "ReturnStatement"; }
 
         Token name;
         ExprPtr value;
@@ -133,7 +133,7 @@ namespace pg
 
         virtual void accept(Visitor* visitor);
         virtual std::string prettyPrint() const {auto p = imports; std::string res = ""; while(p.size() > 0) { res += "[" + p.front()->prettyPrint() + "], "; p.pop();} return "Importing: " + res + (importName != nullptr ? "as" + importName->prettyPrint() : ""); }
-        virtual std::string getType() const { return "ImportStatement"; }
+        virtual std::string getType() const override { return "ImportStatement"; }
 
         Token name;
         std::queue<ExprPtr> imports;

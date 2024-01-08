@@ -164,7 +164,10 @@ namespace pg
         if (fontLoader != nullptr)
             delete fontLoader;
 
+        if (music != nullptr)
+            Mix_FreeMusic(music);
 
+        Mix_CloseAudio();
         SDL_GL_DeleteContext(context);
         SDL_DestroyWindow(window);
         SDL_Quit();
@@ -270,7 +273,26 @@ namespace pg
                 LOG_ERROR(DOM, "GLEW init failed");
                 return false;
             }
-            
+
+            if (Mix_OpenAudio(96000, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 1024) < 0)
+            {
+                LOG_ERROR(DOM, "Erreur initialisation SDL_mixer : " << Mix_GetError());
+                return false;
+            }
+
+            music = Mix_LoadMUS("ouman.mp3");
+
+            if (music == nullptr)
+            {
+                LOG_ERROR(DOM, "Erreur chargement de la musique : " << Mix_GetError());
+                Mix_CloseAudio();
+                return false;
+            }
+
+            Mix_PlayMusic(music, -1);
+
+            Mix_VolumeMusic(MIX_MAX_VOLUME / 10.0f);
+                    
             // Get graphics info
             const GLubyte *renderer = glGetString(GL_RENDERER);
             const GLubyte *version = glGetString(GL_VERSION);
@@ -288,9 +310,12 @@ namespace pg
             if (glDebugMessageControlARB != NULL)
             {
                 glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+
+#ifndef __EMSCRIPTEN__
                 glDebugMessageCallback((GLDEBUGPROCARB)debugGlErrorCallback, NULL);
                 GLuint unusedIds = 0;
                 glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, &unusedIds, GL_TRUE);
+#endif
             }
 
             return true;

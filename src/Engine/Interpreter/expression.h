@@ -43,9 +43,9 @@ namespace pg
         ~BinaryExpression() {}
 
         virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-        virtual std::string prettyPrint() const { return leftExpr->prettyPrint() + " " + op.text + " " + rightExpr->prettyPrint(); }
-        virtual std::string getName() const { return op.text; }
-        virtual std::string getType() const { return "BinaryExpression"; }
+        virtual std::string prettyPrint() const override { return leftExpr->prettyPrint() + " " + op.text + " " + rightExpr->prettyPrint(); }
+        virtual std::string getName() const override { return op.text; }
+        virtual std::string getType() const override { return "BinaryExpression"; }
 
         ExprPtr leftExpr;
         Token op;
@@ -58,9 +58,9 @@ namespace pg
         ~LogicExpression() {}
 
         virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-        virtual std::string prettyPrint() const { return leftExpr->prettyPrint() + " " + op.text + " " + rightExpr->prettyPrint(); }
-        virtual std::string getName() const { return op.text; }
-        virtual std::string getType() const { return "LogicExpression"; }
+        virtual std::string prettyPrint() const override { return leftExpr->prettyPrint() + " " + op.text + " " + rightExpr->prettyPrint(); }
+        virtual std::string getName() const override { return op.text; }
+        virtual std::string getType() const override { return "LogicExpression"; }
 
         ExprPtr leftExpr;
         Token op;
@@ -73,9 +73,9 @@ namespace pg
         ~UnaryExpression() {}
 
         virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-        virtual std::string prettyPrint() const { return op.text + " " + expr->prettyPrint(); }
-        virtual std::string getName() const { return op.text; }
-        virtual std::string getType() const { return "UnaryExpression"; }
+        virtual std::string prettyPrint() const override { return op.text + " " + expr->prettyPrint(); }
+        virtual std::string getName() const override { return op.text; }
+        virtual std::string getType() const override { return "UnaryExpression"; }
 
         Token op;
         ExprPtr expr;
@@ -87,9 +87,9 @@ namespace pg
         ~PreFixExpression() {}
 
         virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-        virtual std::string prettyPrint() const { return name.text + " " + expr->prettyPrint(); }
-        virtual std::string getName() const { return name.text; }
-        virtual std::string getType() const { return "PreFixExpression"; }
+        virtual std::string prettyPrint() const override { return name.text + " " + expr->prettyPrint(); }
+        virtual std::string getName() const override { return name.text; }
+        virtual std::string getType() const override { return "PreFixExpression"; }
         
         Token op;
         Token name;
@@ -102,9 +102,9 @@ namespace pg
         ~PostFixExpression() {}
 
         virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-        virtual std::string prettyPrint() const { return name.text + " " + expr->prettyPrint(); }
-        virtual std::string getName() const { return name.text; }
-        virtual std::string getType() const { return "PostFixExpression"; }
+        virtual std::string prettyPrint() const override { return name.text + " " + expr->prettyPrint(); }
+        virtual std::string getName() const override { return name.text; }
+        virtual std::string getType() const override { return "PostFixExpression"; }
 
         Token op;
         Token name;
@@ -117,9 +117,9 @@ namespace pg
         ~CompoundAtom() {}
 
         virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-        virtual std::string prettyPrint() const { return expr->prettyPrint(); }
-        virtual std::string getName() const { return expr->getName(); }
-        virtual std::string getType() const { return "CompoundAtom"; }
+        virtual std::string prettyPrint() const override { return expr->prettyPrint(); }
+        virtual std::string getName() const override { return expr->getName(); }
+        virtual std::string getType() const override { return "CompoundAtom"; }
 
         ExprPtr expr;
     };
@@ -131,9 +131,9 @@ namespace pg
         ~Atom() {}
 
         virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-        virtual std::string prettyPrint() const { return value.toString(); }
-        virtual std::string getName() const { return value.toString(); }
-        virtual std::string getType() const { return "Atom"; }
+        virtual std::string prettyPrint() const override { return value.toString(); }
+        virtual std::string getName() const override { return value.toString(); }
+        virtual std::string getType() const override { return "Atom"; }
 
         ElementType value;
     };
@@ -144,9 +144,9 @@ namespace pg
         ~List() {}
 
         virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-        virtual std::string prettyPrint() const { auto a = entries; std::string res = ""; while(a.size() > 0) { res += "[" + a.front().key->prettyPrint() + "]: " + a.front().value->prettyPrint() + ", "; a.pop();}  return "List Node with values: " + res; }
-        virtual std::string getName() const { return "List"; }
-        virtual std::string getType() const { return "List"; }
+        virtual std::string prettyPrint() const override { auto a = entries; std::string res = ""; while(a.size() > 0) { res += "[" + a.front().key->prettyPrint() + "]: " + a.front().value->prettyPrint() + ", "; a.pop();}  return "List Node with values: " + res; }
+        virtual std::string getName() const override { return "List"; }
+        virtual std::string getType() const override { return "List"; }
 
         ExprPtr self;
         Token squareBracket;
@@ -159,9 +159,9 @@ namespace pg
         ~This() {}
 
         virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-        virtual std::string prettyPrint() const { return "This."; }
-        virtual std::string getName() const { return name.text; }
-        virtual std::string getType() const { return "This"; }
+        virtual std::string prettyPrint() const override { return "This."; }
+        virtual std::string getName() const override { return name.text; }
+        virtual std::string getType() const override { return "This"; }
 
         Token name;
     };
@@ -172,9 +172,9 @@ namespace pg
         ~Var() {}
 
         virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-        virtual std::string prettyPrint() const { return "Variable '" + name.text + "'."; }
-        virtual std::string getName() const { return name.text; }
-        virtual std::string getType() const { return "Var"; }
+        virtual std::string prettyPrint() const override { return "Variable '" + name.text + "'."; }
+        virtual std::string getName() const override { return name.text; }
+        virtual std::string getType() const override { return "Var"; }
 
         Token name;
     };
@@ -185,9 +185,9 @@ namespace pg
         ~Assign() {}
 
         virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-        virtual std::string prettyPrint() const { return "Assign: " + expr->prettyPrint() + " to variable '" + name.text + "'."; }
-        virtual std::string getName() const { return name.text; }
-        virtual std::string getType() const { return "Assign"; }
+        virtual std::string prettyPrint() const override { return "Assign: " + expr->prettyPrint() + " to variable '" + name.text + "'."; }
+        virtual std::string getName() const override { return name.text; }
+        virtual std::string getType() const override { return "Assign"; }
 
         Token name;
         ExprPtr expr;
@@ -199,9 +199,9 @@ namespace pg
         ~CallExpression() {}
 
         virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-        virtual std::string prettyPrint() const { auto a = args; std::string res = ""; while(a.size() > 0) { res += a.front()->prettyPrint() + ", "; a.pop();}  return "Function call: " + caller->prettyPrint() + " with arguments: " + res; }
-        virtual std::string getName() const { return caller->getName(); }
-        virtual std::string getType() const { return "CallExpression"; }
+        virtual std::string prettyPrint() const override { auto a = args; std::string res = ""; while(a.size() > 0) { res += a.front()->prettyPrint() + ", "; a.pop();}  return "Function call: " + caller->prettyPrint() + " with arguments: " + res; }
+        virtual std::string getName() const override { return caller->getName(); }
+        virtual std::string getType() const override { return "CallExpression"; }
 
         ExprPtr caller;
         Token paren;
@@ -214,9 +214,9 @@ namespace pg
         ~Get() {}
 
         virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-        virtual std::string prettyPrint() const { return "Get property: " + name.text + " of object: " + object->prettyPrint(); }
-        virtual std::string getName() const { return name.text; }
-        virtual std::string getType() const { return "Get"; }
+        virtual std::string prettyPrint() const override { return "Get property: " + name.text + " of object: " + object->prettyPrint(); }
+        virtual std::string getName() const override { return name.text; }
+        virtual std::string getType() const override { return "Get"; }
 
         ExprPtr object;
         Token name;
@@ -228,9 +228,9 @@ namespace pg
         ~Set() {}
 
         virtual std::shared_ptr<Valuable> accept(Visitor* visitor);
-        virtual std::string prettyPrint() const { return "Set property: " + name.text + " of object: " + object->prettyPrint(); }
-        virtual std::string getName() const { return name.text; }
-        virtual std::string getType() const { return "Set"; }
+        virtual std::string prettyPrint() const override { return "Set property: " + name.text + " of object: " + object->prettyPrint(); }
+        virtual std::string getName() const override { return name.text; }
+        virtual std::string getType() const override { return "Set"; }
 
         ExprPtr object;
         Token name;

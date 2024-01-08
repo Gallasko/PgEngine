@@ -8,7 +8,7 @@
 
 namespace pg
 {
-    class CallableIntepretedFunction;
+    struct CallableIntepretedFunction;
 
     class InterpreterSystem : public System<>
     {

@@ -4,13 +4,19 @@
 
 #include "logger.h"
 
-#ifdef __linux__
-#include <SDL2/SDL.h>
-#elif _WIN32
+#ifdef __EMSCRIPTEN__
 #include <SDL.h>
+#include <emscripten.h>
+#else
+    #ifdef __linux__
+    #include <SDL2/SDL.h>
+    #elif _WIN32
+    #include <SDL.h>
+    #endif
 #endif
 
 #include <GL/glew.h>
+
 #include <GL/gl.h>
 
 #include <glm.hpp>
