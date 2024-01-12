@@ -1,0 +1,20 @@
+import "renderer"
+
+print("Setting up renderer...")
+
+print("Loading shaders...")
+
+renderer.loadShader("default", "shader/default.vs", "shader/default.fs");
+renderer.loadShader("gui", "shader/default.vs", "shader/default.fs");
+renderer.loadShader("text", "shader/textrendering.vs", "shader/textrendering.fs");
+renderer.loadShader("2DShapes", "shader/simpleshapes.vs", "shader/simpleshapes.fs");
+
+print("Shaders loaded successfully.")
+
+
+print("Loading textures...")
+
+renderer.loadTexture("font", "res/font/font.png");
+renderer.loadTexture("menu", "res/menu/Menu.png");
+
+print("Textures loaded successfully.")

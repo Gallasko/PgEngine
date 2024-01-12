@@ -32,6 +32,7 @@ namespace pg
 		};
 
 		//Vector struct
+		// Todo add an operator [] to vec2 vec3 and vec4 for easier acces and an operator=(float[2])
 		struct Vector2D
 		{
 			float x = 0.0f;
@@ -592,10 +593,10 @@ namespace pg
 			{
 				vertices = new float[20];
 				//              x                     y                    z                    texpos x             texpos y
-				vertices[0] =  -0.5f; vertices[1] =   0.5f; vertices[2] =  0.0f; vertices[3] =  0.0f; vertices[4] =  0.0f;   
-				vertices[5] =   0.5f; vertices[6] =   0.5f; vertices[7] =  0.0f; vertices[8] =  1.0f; vertices[9] =  0.0f;
-				vertices[10] = -0.5f; vertices[11] = -0.5f; vertices[12] = 0.0f; vertices[13] = 0.0f; vertices[14] = 1.0f;
-				vertices[15] =  0.5f; vertices[16] = -0.5f; vertices[17] = 0.0f; vertices[18] = 1.0f; vertices[19] = 1.0f;
+				vertices[0] =  -0.5f; vertices[1] =   0.5f; vertices[2] =  1.0f; vertices[3] =  0.0f; vertices[4] =  0.0f;   
+				vertices[5] =   0.5f; vertices[6] =   0.5f; vertices[7] =  1.0f; vertices[8] =  1.0f; vertices[9] =  0.0f;
+				vertices[10] = -0.5f; vertices[11] = -0.5f; vertices[12] = 1.0f; vertices[13] = 0.0f; vertices[14] = 1.0f;
+				vertices[15] =  0.5f; vertices[16] = -0.5f; vertices[17] = 1.0f; vertices[18] = 1.0f; vertices[19] = 1.0f;
 
 				indices = new unsigned int[6];
 				indices[0] = 0; indices[1] = 1; indices[2] = 2;

@@ -1,11 +1,6 @@
 #ifndef FONTLOADER_H
 #define FONTLOADER_H
 
-#include <QOpenGLFunctions>
-#include <QOpenGLTexture>
-#include <QOpenGLVertexArrayObject>
-#include <QOpenGLBuffer>
-
 #include <vector>
 #include <string>
 #include <unordered_map>
@@ -15,10 +10,14 @@
 
 namespace pg
 {
+	// Type forwarding
+	class OpenGLVertexArrayObject;
+	class OpenGLBuffer;
+
 	class FontLoader
 	{
 	public:
-		class Font : protected QOpenGLFunctions
+		class Font
 		{
 		friend class FontLoader;
 		public:
@@ -27,7 +26,7 @@ namespace pg
 
 			inline int getId() const { return id; }
 			inline std::string getName() const { return name; }
-			inline QOpenGLVertexArrayObject* getMesh() const { return VAO; }
+			inline OpenGLVertexArrayObject* getMesh() const { return VAO; }
 			
 			inline unsigned int getWidth() const { return width; }
 			inline unsigned int getHeight() const { return height; }
@@ -52,9 +51,9 @@ namespace pg
 
 			constant::SquareInfo modelInfo;
 
-			QOpenGLVertexArrayObject *VAO;
-			QOpenGLBuffer *VBO;
-			QOpenGLBuffer *EBO;
+			OpenGLVertexArrayObject *VAO;
+			OpenGLBuffer *VBO;
+			OpenGLBuffer *EBO;
 		};
 
 		FontLoader(const std::string& fontFile);
@@ -65,6 +64,8 @@ namespace pg
 
 		inline unsigned int getAtlasWidth() const { return atlasWidth; }
 		inline unsigned int getAtlasHeight() const { return atlasHeight; }
+
+		bool isEmpty() const { return nbCharaId == 0; }
 
 	private:
 		std::vector<std::shared_ptr<FontLoader::Font>> charaList;

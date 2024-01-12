@@ -1,0 +1,21 @@
+print("Executing simple loop test")
+
+var i = 0;
+
+while (i < 10)
+{
+    ExpectEq(i, i);
+    i = i + 1;
+}
+
+ExpectEq(i, 10);
+
+var j = 0;
+
+while (j < 10)
+{
+    ExpectEq(j, j);
+    j++;
+}
+
+ExpectEq(j, 10);

@@ -20,20 +20,19 @@ namespace pg
         Sequential  = 1,
         Parallel    = 2,
         Independent = 3,
-        OnEvent     = 4,
-        Storage     = 5
+        Storage     = 4
     };
 
-    struct StoragePolicy { };
-
     struct ManualPolicy { };
-
-    struct IndependentPolicy { };
 
     struct ParallelPolicy
     {
         virtual void parallelExecute(tf::Taskflow&) = 0;
     };
+
+    struct IndependentPolicy { };
+
+    struct StoragePolicy { };
 
     struct InitSys
     {
@@ -67,7 +66,7 @@ namespace pg
 
         _unique_id id;
 
-        std::string name = "Unnamed";
+        std::string name = "UnNamed";
 
         // Todo make function onAdd and onDelete of a component that default to nothing if not used
     };
@@ -211,7 +210,7 @@ namespace pg
             LOG_THIS_MEMBER("System");
         }
 
-        ~System()
+        virtual ~System()
         {
             LOG_THIS_MEMBER("System");
         }
@@ -225,7 +224,7 @@ namespace pg
                 this->registry->processEvent(event);
         }
 
-        void addToRegistry(ComponentRegistry *registry)
+        virtual void addToRegistry(ComponentRegistry *registry)
         {
             LOG_THIS_MEMBER("System");
 
@@ -286,6 +285,15 @@ namespace pg
             this->Own<Type>::internalRemoveComponent(entity);
         }
 
+        template <typename Comp>
+        Comp* atEntity(_unique_id id) const
+        {
+            LOG_THIS_MEMBER("System");
+
+            // Todo enable this only if the system own this comp !
+            return this->Own<Comp>::getComponent(id);
+        }
+
         template <typename Type>
         inline typename ComponentSet<Type>::ComponentSetList view() const
         {
@@ -325,6 +333,14 @@ namespace pg
         template <typename Type, typename... Types>
         Group<Type, Types...>* registerGroup() const
         {
+            LOG_THIS_MEMBER("System");
+ 
+            if(registry == nullptr)
+            {
+                LOG_ERROR("System", "No registry specified, can't create a group");
+                return nullptr;
+            }
+
             const auto& groupId = registry->getTypeId<Group<Type, Types...>>();
 
             if(registry->hasGroup(groupId))
@@ -340,6 +356,14 @@ namespace pg
 
                 return group;
             }
+        }
+
+        template <typename Type, typename... Types>
+        inline typename ComponentSet<GroupElement<Type, Types...>>::ComponentSetList viewGroup() const
+        {
+            LOG_THIS_MEMBER("System");
+
+            return this->group<Type, Types...>()->elements.viewComponents();
         }
     };
 }

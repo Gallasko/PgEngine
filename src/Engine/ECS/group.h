@@ -112,8 +112,16 @@ namespace pg
         Entity *entity;
     };
 
+    template <typename GroupName>
+    struct OnCompDeletionCheckForGroup
+    {
+        _unique_id id;
+
+        std::set<Entity::EntityHeld> compList;
+    };
+
     template <typename Type, typename... Types>
-    struct Group : public Listener<OnCompCreatedCheckForGroup<Group<Type, Types...>>>
+    struct Group : public Listener<OnCompCreatedCheckForGroup<Group<Type, Types...>>>, Listener<OnCompDeletionCheckForGroup<Group<Type, Types...>>>
     {
         virtual void onEvent(const OnCompCreatedCheckForGroup<Group<Type, Types...>>& event) override
         {
@@ -141,6 +149,21 @@ namespace pg
             }
         }
 
+        virtual void onEvent(const OnCompDeletionCheckForGroup<Group<Type, Types...>>& event) override
+        {
+            LOG_THIS_MEMBER("Ecs Group");
+
+            if (registry and std::includes(event.compList.begin(), event.compList.end(), compIdList.begin(), compIdList.end()))
+            {
+                LOG_MILE("Group", "Entity " << event.id << " is in group " << this->id);
+
+                for(auto callback : onDelGroup)
+                    callback(registry->world(), event.id);
+
+                elements.removeComponent(event.id);
+            }
+        }
+
         Group(_unique_id id) : id(id) { LOG_THIS_MEMBER("Ecs Group"); }
         virtual ~Group() { LOG_THIS_MEMBER("Ecs Group"); }
 
@@ -150,6 +173,7 @@ namespace pg
 
             this->registry = registry;
             static_cast<Listener<OnCompCreatedCheckForGroup<Group<Type, Types...>>>*>(this)->setRegistry(registry);
+            static_cast<Listener<OnCompDeletionCheckForGroup<Group<Type, Types...>>>*>(this)->setRegistry(registry);
             registry->storeGroup<Type, Types...>(this);
         }
 
@@ -163,6 +187,13 @@ namespace pg
             {
                 callback(element->entity);
             }
+        }
+
+        void removeOfGroup(void(*callback)(EntitySystem* ecsRef, _unique_id))
+        {
+            LOG_THIS_MEMBER("Ecs Group");
+
+            onDelGroup.push_back(callback);
         }
 
         void process();
@@ -222,6 +253,6 @@ namespace pg
         SetHolder<Type, Types...> *setList[nbOfSets];
 
         std::vector<void(*)(EntityRef)> onAddGroup;
-        std::vector<void(*)(EntityRef)> onDelGroup;
+        std::vector<void(*)(EntitySystem* ecsRef, _unique_id)> onDelGroup;
     };
 }

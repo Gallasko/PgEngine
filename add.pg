@@ -1,0 +1,27 @@
+print("Sum fun file")
+
+import "log"
+import "ui"
+
+fun sum(a, b)
+{
+    return a + b;
+}
+
+var table = [1 : 4, "56" : "hello", 3] 
+
+log(sum(15, 10))
+
+log(table["56"])
+
+var square = renderSquare(150, 350)
+
+log(square.x)
+
+//for(var i = 0; i < 10; i++) renderSquare(150 + i * 50, 350)
+
+// Fix this as this crashes currently
+//for(var i = 0; i < 5; i++)
+//{
+//	renderSquare(100, 100)
+//}

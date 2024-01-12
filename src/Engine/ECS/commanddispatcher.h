@@ -2,7 +2,7 @@
 
 #include "entity.h"
 
-#include "concurrentqueue.h"
+#include "Memory/concurrentqueue.h"
 
 #include "logger.h"
 
@@ -64,6 +64,8 @@ namespace pg
 
             ComponentCommand() : component(nullptr), type(ComponentCommandType::creation) {}
 
+            ComponentCommand(const ComponentCommand& other) : entity(other.entity), component(other.component), type(other.type), addInEcs(other.addInEcs), deleteComp(other.deleteComp) {}
+
             template <typename Type>
             ComponentCommand(EntityRef entity, Type *component, const ComponentCommandType& type) : entity(entity), type(type)
             {
@@ -72,6 +74,15 @@ namespace pg
                 this->component = static_cast<Storage*>(static_cast<Delegate*>(component));
 
                 setupFunctions<Type>();
+            }
+
+            void operator=(const ComponentCommand& other)
+            {
+                entity = other.entity;
+                component = other.component;
+                type = other.type;
+                addInEcs = other.addInEcs;
+                deleteComp = other.deleteComp;
             }
 
             template <typename Type>
@@ -107,6 +118,8 @@ namespace pg
 
             return comp;
         }
+
+        // Todo detach comp
 
         inline bool enqueueCommand(const SysCommand& cmd)
         {

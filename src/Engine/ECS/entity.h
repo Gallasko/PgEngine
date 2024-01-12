@@ -5,6 +5,8 @@
 
 #include "Memory/memorypool.h"
 
+#include "serialization.h"
+
 #include "uniqueid.h"
 
 namespace pg
@@ -16,14 +18,14 @@ namespace pg
     class CommandDispatcher;
     
     template<typename Type>
-    class CompRef;
+    struct CompRef;
 
     class Entity
     {
     friend class EntitySystem;
     friend class CommandDispatcher;
     friend class AllocatorPool<Entity>;
-    private:
+    public:
         struct EntityHeld
         {
             union EntityHeldId
@@ -42,7 +44,8 @@ namespace pg
             };
 
             explicit EntityHeld(Entity* entity) : entityHeldId(entity), entityHeldType(EntityHeldType::entity) { }
-            explicit EntityHeld(const _unique_id& id) : entityHeldId(id), entityHeldType(EntityHeldType::id) {}
+            explicit EntityHeld(const _unique_id& id) : entityHeldId(id), entityHeldType(EntityHeldType::id) { }
+            explicit EntityHeld(const EntityHeld& other) : entityHeldId(other.entityHeldId), entityHeldType(other.entityHeldType) { }
 
             constexpr bool operator==(_unique_id id) const
             {
@@ -99,9 +102,6 @@ namespace pg
             return std::find(componentList.begin(), componentList.end(), otherId) != componentList.end();
         }
 
-        // todo
-        // template <typename Component>
-        // inline bool has() const { return ecsRef && has(ecsRef->has<Component>(this)); }
         template <typename Comp>
         inline bool has() const noexcept;
 
@@ -126,11 +126,16 @@ namespace pg
         Entity(_unique_id id, EntitySystem *const ecs) noexcept : id(id), ecsRef(ecs) {}
         ~Entity() noexcept { }
 
+        friend void serialize<>(Archive& archive, const Entity& entity);
+
         // Todo use this destructor but set ecsRef to nullptr when calling it from deleteEntity of the ecs to not destroy the entity multiple time
         // ~Entity() { if(ecsRef) ecsRef->deleteEntity(this); }
 
         EntitySystem *const ecsRef = nullptr;
     };
+
+    template<>
+    void serialize(Archive& archive, const Entity& entity);
 
     struct EntityRef
     {
@@ -145,23 +150,17 @@ namespace pg
 
         void operator=(const EntityRef& rhs);
 
-        void operator=(Entity* ent)
-        {
-            entity = ent;
-            id = ent->id;
-            ecsRef = ent->world();
-        }
+        void operator=(Entity* ent);
 
-        // Todo always check if the component was not initialized in between calls to make sure to update the correct one
         Entity* operator->() const;
 
         operator Entity*() const;
 
         inline bool empty() const { return entity == nullptr; }
 
-        bool initialized;
-        Entity* entity;
+        mutable bool initialized;
+        mutable Entity* entity;
         _unique_id id;
-        EntitySystem* ecsRef;  
+        EntitySystem* ecsRef;
     };
 }

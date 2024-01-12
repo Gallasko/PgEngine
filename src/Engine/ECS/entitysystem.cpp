@@ -31,7 +31,7 @@ namespace pg
         LOG_THIS_MEMBER(DOM);
 
         // Add the command dispatcher as the first element of the task flow
-        basicTask = taskflow.emplace([this](){cmdDispatcher.process();}).name("Basic Task");
+        basicTask = taskflow.emplace([this](){ eventDispatcher.process(); cmdDispatcher.process(); }).name("Basic Task");
     }
 
     EntitySystem::~EntitySystem()
@@ -44,6 +44,20 @@ namespace pg
         {
             delete sys.second;
         }
+    }
+
+    void EntitySystem::executeOnce()
+    {
+        LOG_THIS_MEMBER("ECS");
+
+        if (running)
+            return;
+
+        running = true;
+
+        executor.run(taskflow).wait();
+
+        running = false;
     }
 
     void EntitySystem::executeAll()

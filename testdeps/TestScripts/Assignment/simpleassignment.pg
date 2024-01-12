@@ -1,0 +1,5 @@
+print("Executing simple assignment test")
+
+var a = 10;
+
+ExpectEq(a, 10);

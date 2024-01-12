@@ -6,6 +6,8 @@
 
 namespace pg
 {
+    // Todo desactivate logger system in prod (only enable it in debug mode)
+
     struct LogInfoEvent
     {
         LogInfoEvent(const std::string& scope, const std::string& log) : scope(scope), log(log) { }
@@ -16,7 +18,7 @@ namespace pg
 
     struct TerminalLogSystem : public System<Listener<LogInfoEvent>, StoragePolicy>
     {
-        void onEvent(const LogInfoEvent& event) override { LOG_THIS_MEMBER("TerminalLogSystem"); LOG_INFO(event.scope, event.log); }
+        virtual void onEvent(const LogInfoEvent& event) override { LOG_THIS_MEMBER("TerminalLogSystem"); LOG_INFO(event.scope, event.log); }
     };
 
 }

@@ -193,17 +193,19 @@ namespace pg
             return 0;
         }
 
-        /** Add an entity and it's component inside of the list */
+        /** Add an id inside of the set */
         size_t add(const _unique_id& id);
 
-        /** Remove a component by entity id */
+        /** Remove an id in the set */
         size_t remove(const _unique_id& id);
 
-        // /** Remove a component by component index*/
-        // void removeAt(const size_t& index);
-
         /** Clear the entire list */
-        inline void clear();
+        inline virtual void clear()
+        {
+            LOG_THIS_MEMBER("Sparse Set");
+
+            size = 1;
+        }
 
         /**
          * @brief Get the current size of the list
@@ -478,40 +480,44 @@ namespace pg
          * Be careful as the operator doesn't not check the bound of the list, this can throw an out of bound exception
          * Use with nbElement of the sparse set to be in bound
          */
-        constexpr Comp* operator[](const size_t& index) const { LOG_THIS_MEMBER("Component Set"); return componentList[index]; }
+        Comp* operator[](const size_t& index) const { LOG_THIS_MEMBER("Component Set"); return componentList[index]; }
 
-        Comp* atEntity(_unique_id id) const { LOG_THIS_MEMBER("Component Set"); return componentList[find(id)]; }
+        /**
+         * @brief Get a component from the entity id
+         * 
+         * @param id Id of the entity
+         * @return Comp* A pointer to the associated component
+         */
+        inline Comp* atEntity(_unique_id id) const { LOG_THIS_MEMBER("Component Set"); auto pos = find(id); return pos != 0 ? componentList[pos] : nullptr; }
 
+        /**
+         * @brief Reserve enough space in the set to hold the requested number of objects
+         * 
+         * @param size The needed size of the set
+         */
         void reserve(const size_t& size)
         {
             LOG_THIS_MEMBER("Component Set");
-            
+
+            if(size < componentCapacity)
+                return;
+
+            size_t targetCapacity = componentCapacity;
+
+            // This small loop make it so sparseCapacity stays as a multiple of 2
+            while(targetCapacity <= size)
             {
-                if(size < componentCapacity)
-                    return;
-
-                size_t targetCapacity = componentCapacity;
-
-                // This small loop make it so sparseCapacity stays as a multiple of 2
-                while(targetCapacity <= size)
-                {
-                    targetCapacity *= 2;
-                }
-
-                Comp** tempComponentList = new Comp*[targetCapacity];
-                    
-                // Todo check if this doens't create memory leaks
-
-                // std::uninitialized_copy_n(tempComponentList, componentCapacity);
-                // std::uninitialized_copy_n(componentList, componentCapacity, tempComponentList);
-
-                memcpy(tempComponentList, componentList, componentCapacity * sizeof(Comp*));
-                delete[] componentList;
-                componentList = tempComponentList;
-                componentCapacity = targetCapacity;
+                targetCapacity *= 2;
             }
+
+            Comp** tempComponentList = new Comp*[targetCapacity];
+
+            memcpy(tempComponentList, componentList, componentCapacity * sizeof(Comp*));
+            delete[] componentList;
+            componentList = tempComponentList;
+            componentCapacity = targetCapacity;
             
-            // pool.reserve(size);
+            pool.reserve(size);
         }
 
         template <typename... Args>
@@ -519,7 +525,6 @@ namespace pg
         {
             LOG_THIS_MEMBER("Component Set");
 
-            // const auto index = add(entity.id);
             const auto index = add(id);
 
             if(index == 0)
@@ -540,22 +545,15 @@ namespace pg
             // Todo: Test if allocating memory in a pool is faster than direct memory allocation with new
             auto component = pool.allocate(std::forward<Args>(args)...);
 
-            // Todo: see if needed for every component created
-            // component->id = Comp::componentId;
-
             componentList[nbComponents++] = component;
 
             return component;
         }
         
         template <typename... Args>
-        Comp* addComponent(const Entity* entity, Args&&... args)
+        inline Comp* addComponent(const Entity* entity, Args&&... args)
         {
             LOG_THIS_MEMBER("Component Set");
-
-            // Todo
-            // Add the component to the entity component list for fast 
-            // entity.componentList[Type::componentId] = comp;
 
             return addComponent(entity->id, std::forward<Args>(args)...);
         }
@@ -565,6 +563,8 @@ namespace pg
             LOG_THIS_MEMBER("Component Set");
 
             const auto index = remove(id);
+
+            LOG_INFO("Component Set", "Removing component with index: " << index << ", current nb components: " << nbComponents);
             
             if(index == 0)
             {
@@ -575,14 +575,14 @@ namespace pg
             pool.release(componentList[index]);
 
             // Swap the last component in the place of the component to be removed
-            componentList[index] = componentList[nbComponents--];
+            componentList[index] = componentList[--nbComponents];
 
             if(nbComponents <= 1)
                 nbComponents = 1; 
         }
 
         // TODO make a sparse set implementation that doesn't delete components on remove but instead reuse dead memory
-        void removeComponent(const Entity* entity)
+        inline void removeComponent(const Entity* entity)
         {
             LOG_THIS_MEMBER("Component Set");
 
@@ -595,7 +595,7 @@ namespace pg
          * @tparam Comp The type of the component to cast the component stored in this list
          * @return ComponentSetList A view of the component list
          * 
-         * Any operation on this view is invalid if the component list is updated
+         * @warning Any operation on this view is invalid if the component list is updated
          */
         inline ComponentSetList viewComponents() const
         {
@@ -604,14 +604,19 @@ namespace pg
             return ComponentSetList(nbComponents, componentList);
         }
 
+        // Todo reimplement clear to correctly free components
+
     private:
         /** The component list holding the data of all the component of this sparse set */
         Comp** componentList;
 
+        /** The allocator pool that store all the component memory in a packed manner */
         AllocatorPool<Comp> pool;
 
+        /** Number of component actually allocated */
         size_t nbComponents = 1;
 
+        /** Current capacity of component in the set */
         size_t componentCapacity = 2;
 
         size_t lastEntityIndex = 0;

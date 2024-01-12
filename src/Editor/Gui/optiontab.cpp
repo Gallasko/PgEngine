@@ -11,8 +11,8 @@
 
 #include "optiontab.h"
 
-#include "UI/texture.h"
-#include "UI/textinput.h"
+#include "2D/texture.h"
+// #include "UI/textinput.h"
 
 #include "Renderer/renderer.h"
 
@@ -22,7 +22,7 @@ namespace pg
     void renderer(MasterRenderer *masterRenderer, pg::editor::OptionTab* optionTab)
     {
         // optionTab->backgroundTexture->render(masterRenderer);
-        optionTab->listView.render(masterRenderer);
+        // optionTab->listView.render(masterRenderer);
     }
 
     namespace editor
@@ -34,32 +34,32 @@ namespace pg
             tab->addTextInput("Height", &component->height);
         }
 
-        template <>
-        void printOption(OptionTab* tab, TextInput* textInput)
-        {
-            printOption<UiComponent*>(tab, textInput);
-        }
+        // template <>
+        // void printOption(OptionTab* tab, TextInput* textInput)
+        // {
+        //     printOption<UiComponent*>(tab, textInput);
+        // }
 
-        OptionTab::OptionTab(int width, int height) : listView(this->frame)
+        OptionTab::OptionTab(int width, int height) //: listView(this->frame)
         {
             this->width = width;
             this->height = height;
             
-            // this->backgroundTexture = new TextureComponent(this->width, this->height, "TabTexture");
+            // this->backgroundTexture = new Texture2DComponent(this->width, this->height, "TabTexture");
             // this->backgroundTexture->setTopAnchor(this->top);
             // this->backgroundTexture->setLeftAnchor(this->left);
             // this->backgroundTexture->setRightAnchor(this->right);
             // this->backgroundTexture->setBottomAnchor(this->bottom);
 
-            listView.setTopAnchor(this->top);
-            listView.setLeftAnchor(this->left);
-            listView.setRightAnchor(this->right);
-            listView.setBottomAnchor(this->bottom);
+            // listView.setTopAnchor(this->top);
+            // listView.setLeftAnchor(this->left);
+            // listView.setRightAnchor(this->right);
+            // listView.setBottomAnchor(this->bottom);
         }
 
         void OptionTab::clear()
         {
-            listView.clear();
+            // listView.clear();
         }
 
         void OptionTab::render(MasterRenderer* masterRenderer)
@@ -71,7 +71,7 @@ namespace pg
         {
             UiComponent::show();
 
-            listView.show();
+            // listView.show();
             // backgroundTexture->show();
         }
 
@@ -79,7 +79,7 @@ namespace pg
         {
             UiComponent::hide();
 
-            listView.hide();
+            // listView.hide();
             // backgroundTexture->hide();
         }
     }

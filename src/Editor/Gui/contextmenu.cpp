@@ -4,8 +4,11 @@
 
 #include "ECS/entitysystem.h"
 #include "Loaders/fontloader.h"
-#include "UI/button.h"
-#include "UI/texture.h"
+#include "UI/uisystem.h"
+#include "UI/sentencesystem.h"
+
+// #include "Input/inputcomponent.h"
+#include "2D/texture.h"
 #include "Renderer/renderer.h"
 #include "Scene/scenemanager.h"
 
@@ -102,7 +105,7 @@ namespace editor
         {
             parentUi->setWidth(addItemC->width);
 
-            for(auto comp : components)
+            for(const auto& comp : components)
             {
                 comp->setWidth(addItemC->width);
             }
@@ -121,7 +124,7 @@ namespace editor
 
         backgroundC->hide();
 
-        for(auto comp : components)
+        for (const auto& comp : components)
         {
             comp->hide();
         }
@@ -137,17 +140,17 @@ namespace editor
 
         parentUi->show();
 
-        currentX = pos.x();
-        currentY = pos.y();
+        currentX = pos.x;
+        currentY = pos.y;
 
         // Todo check for width / height overflow 
 
-        parentUi->setX(pos.x());
-        parentUi->setY(pos.y());
+        parentUi->setX(pos.x);
+        parentUi->setY(pos.y);
 
         backgroundC->show();
         
-        for(auto comp : components)
+        for (const auto& comp : components)
         {
             comp->show();
         }

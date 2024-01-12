@@ -21,6 +21,14 @@ namespace pg
         NUM_TYPES
     };
 
+    struct SentenceMesh : public Mesh
+    {
+        SentenceMesh() : Mesh() { LOG_THIS_MEMBER("Sentence Mesh"); modelInfo = constant::SquareInfo{}; }
+        ~SentenceMesh() { LOG_THIS_MEMBER("Sentence Mesh"); }
+
+        void generateMesh();
+    };
+
     struct SentenceText
     {
         std::string text = "";
@@ -31,7 +39,7 @@ namespace pg
 
         SentenceEffect effect = SentenceEffect::NOEFFCT;
 
-        UiSize textWidth = 0.0f, textHeight = 0.0f;
+        UiSize textWidth, textHeight;
 
         SentenceText() {}
         SentenceText(const SentenceText& other) : 
@@ -72,15 +80,18 @@ namespace pg
         }
     };
 
+    template <>
+    void serialize(Archive& archive, const SentenceText& value);
+
     struct OnTextChanged
     {
         _unique_id entityId;
         std::string newText;
     };
 
-    struct SentenceSystem : public System<Own<SentenceText>, Ref<UiComponent>, Listener<OnTextChanged>, Listener<UiComponentChangeEvent>, NamedSystem, InitSys, StoragePolicy>
+    struct SentenceSystem : public AbstractRenderer, System<Own<SentenceText>, Ref<UiComponent>, Listener<OnTextChanged>, Listener<UiComponentChangeEvent>, NamedSystem, InitSys, StoragePolicy>
     {
-        SentenceSystem(FontLoader *font) : font(font) { }
+        SentenceSystem(MasterRenderer *renderer, FontLoader *font) : AbstractRenderer(renderer, RenderStage::Render), font(font) { }
 
         virtual std::string getSystemName() const override { return "Sentence System"; }
 
@@ -90,61 +101,13 @@ namespace pg
 
         virtual void onEvent(const UiComponentChangeEvent& event) override;
 
+        virtual void render() override;
+
+        Mesh* getSentenceMesh(SentenceText& sentence, FontLoader *font);
+
         FontLoader *font;
     };
 
     /** Helper that create an entity with an Ui component and a Texture component */
     CompList<UiComponent, SentenceText> makeSentence(EntitySystem *ecs, float x, float y, const SentenceText& text);
-
-    //TODO check if in need to be static
-    struct Sentence : public UiComponent, private QOpenGLFunctions
-    {
-        struct SentenceParameters
-        {
-            SentenceText text;
-            float scale;
-            FontLoader *font;
-        };
-
-        Sentence(const SentenceText& sentence, const float& scale, FontLoader *font);
-        Sentence(const SentenceParameters& parameters);
-        Sentence(const Sentence &rhs);
-        virtual ~Sentence();
-
-        void setText(const SentenceText& sentence, FontLoader *font);
-        void setText(const SentenceText& sentence);
-
-        void generateMesh();
-
-        virtual void render(MasterRenderer* masterRenderer);
-
-        float scale = 0.0f;
-
-        SentenceText text;
-        FontLoader *font;
-        int nbChara = 0;
-        
-        constant::ModelInfo modelInfo;
-
-        QOpenGLVertexArrayObject *VAO = nullptr;
-        QOpenGLBuffer *VBO = nullptr;
-        QOpenGLBuffer *EBO = nullptr;
-
-        bool initialised = false;
-    };
-
-    //TODO see if a render all virtual methode is revelent and could be implemented in the base renderer for rendering multiple instance at once
-    //instead of create 2 separates renderer one for the single instance rendering and the other for the multiple rendering
-    //the renderList could take a vector of element and if the methode is not reimplemented could by default call render multiple time !
-
-    // va_args can t take std::vector need to find a workaround
-    /*
-    struct SentenceVectorRenderer : public Renderer
-    {
-        using Renderer::Renderer;
-        virtual ~SentenceVectorRenderer() {}
-
-        void render(MasterRenderer* masterRenderer...);
-    };
-    */
 }

@@ -4,6 +4,7 @@
 #include <iostream>
 // Used for dumping to a file with file sink
 #include <fstream>
+
 namespace pg
 {
     std::vector<Logger::LogSinkPtr> Logger::sinks;

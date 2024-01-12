@@ -21,8 +21,18 @@
 
 #include "Files/filemanager.h"
 
+#include "logger.h"
+
 namespace pg
 {
+    namespace constant
+    {
+        struct Vector2D;
+        struct Vector3D;
+        struct Vector4D;
+        struct ModelInfo;
+    }
+
     // TODO correctly ban ":" from class name "{" for attribute name and ATTRIBUTECONST from any litteral !
     // check and remove any \t not correctly placed
     // Indent always go up one by one so if we skip an increment their is a problem 
@@ -136,7 +146,7 @@ namespace pg
     // TODO make a specialized renderer for std::nullptr_t to catch nullptr error ?; 
 
     template <typename Type>
-    void serialize(Archive& archive, const Type& value);
+    void serialize(Archive&, const Type&) { LOG_ERROR("Serializer", "No serialize function exist for " << typeid(Type).name()); }
 
     // Todo make a static_assert to check if ": " is present in the name and reject it at compile time
     template <typename Type>
@@ -147,12 +157,45 @@ namespace pg
         serialize(archive, value);
     }
 
+    template <>
+    void serialize(Archive& archive, const bool& value);
+
+    template <>
+    void serialize(Archive& archive, const int& value);
+
+    template <>
+    void serialize(Archive& archive, const unsigned int& value);
+
+    template <>
+    void serialize(Archive& archive, const float& value);
+
+    template <>
+    void serialize(Archive& archive, const double& value);
+
+    template <>
+    void serialize(Archive& archive, const size_t& value);
+
+    template <>
+    void serialize(Archive& archive, const std::string& value);
+
     template <typename Type>
     void serialize(Archive& archive, const char* value)
     {
         // Todo store the number of characters in the string
         serialize(archive, std::string(value));
     }
+
+    template <>
+    void serialize(Archive& archive, const constant::Vector2D& vec2D);
+
+    template <>
+    void serialize(Archive& archive, const constant::Vector3D& vec3D);
+
+    template <>
+    void serialize(Archive& archive, const constant::Vector4D& vec4D);
+
+    template <>
+    void serialize(Archive& archive, const constant::ModelInfo& modelInfo);
 
     class UnserializedObject
     {
@@ -167,6 +210,9 @@ namespace pg
 
         const std::string& getObjectName() const { return objectName; }
 
+        // Todo add
+        const std::string& getObjectType() const { return objectType; }
+
         /**
          * @brief Return the object as an Attribute object.
          * Can only be called if isClass is set to false.
@@ -180,8 +226,10 @@ namespace pg
         const UnserializedObject& operator[](const std::string& key);
         const UnserializedObject& operator[](const std::string& key) const;
 
-        const UnserializedObject& operator[](unsigned int id);
-        const UnserializedObject& operator[](unsigned int id) const;
+        const UnserializedObject& operator[](size_t id);
+        const UnserializedObject& operator[](size_t id) const;
+
+        size_t getNbChildren() const { return children.size(); }
 
     public:
         std::vector<UnserializedObject> children;
@@ -189,8 +237,9 @@ namespace pg
     private:
         void parseString();
 
-        std::string objectName = "";
-        std::string serializedString = "";
+        std::string objectName;
+        std::string objectType;
+        std::string serializedString;
         
         bool isNullObject = false;
         bool isClass = true;
@@ -199,43 +248,53 @@ namespace pg
     template <typename Type>
     Type deserialize(const UnserializedObject& name);
 
+    // Todo add a version header for serialization
+
     class Serializer
     {
         class ClassSerializer
         {
         friend class Serializer;
-            ClassSerializer(const std::string& objectName) : objectName(objectName) {}
-            ~ClassSerializer() { archive.container << std::endl; auto& serializer = Serializer::getSerializer(); serializer->registerSerialized(objectName, archive.container); }
+            ClassSerializer(Serializer *ser, const std::string& objectName) : serializer(ser), objectName(objectName) {}
+            ~ClassSerializer() { archive.container << std::endl; serializer->registerSerialized(objectName, archive.container); }
         
         public:
             Archive archive;
 
         private:
+            Serializer *serializer;
             std::string objectName;
         };
 
     public:
         Serializer(const TextFile& file);
+        Serializer() {}
         ~Serializer();
 
+        void setFile(const TextFile& file);
+        void setFile(const std::string& path);
+
         static std::unique_ptr<Serializer>& getSerializer(const std::string& filename = "serialize.sz")
-        {static std::unique_ptr<Serializer> serializer = std::unique_ptr<Serializer>(new Serializer(filename)); return serializer; }
+            {static std::unique_ptr<Serializer> serializer = std::unique_ptr<Serializer>(new Serializer(filename)); return serializer; }
 
         // Todo make a static_assert to check if ": " is present in the objectName and reject it at compile time
         template <typename Type>
-        void serializeObject(const std::string& objectName, const Type& type) { ClassSerializer ar(objectName); serialize(ar.archive, type); }
+        void serializeObject(const std::string& objectName, const Type& type) { ClassSerializer ar(this, objectName); serialize(ar.archive, type); }
 
         template <typename Type>
         Type deserializeObject(const std::string& objectName) const
         { 
-            const auto& it = serializedMap.find(objectName); 
-            if(it != serializedMap.end()) 
+            const auto& it = serializedMap.find(objectName);
+
+            if (it != serializedMap.end())
                 return deserialize<Type>(UnserializedObject(it->second, objectName)); 
             else 
                 return deserialize<Type>(UnserializedObject());
         }
 
         const std::unordered_map<std::string, std::string>& getSerializedMap() const { return serializedMap; }
+
+        inline static constexpr const char * version() { return "1.0"; }
 
     private:
         Serializer(const std::string& filename);

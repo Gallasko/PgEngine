@@ -1,7 +1,9 @@
+#include "Helpers/openglobject.h"
+
 #include "fontloader.h"
 
-#include "../Files/parser.h"
-#include "../logger.h"
+#include "Files/fileparser.h"
+#include "logger.h"
 
 namespace pg
 {
@@ -14,11 +16,9 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
-        initializeOpenGLFunctions(); 
-
-        VAO = new QOpenGLVertexArrayObject();
-        VBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-        EBO = new QOpenGLBuffer(QOpenGLBuffer::IndexBuffer);
+        VAO = new OpenGLVertexArrayObject();
+        VBO = new OpenGLBuffer(OpenGLBuffer::VertexBuffer);
+        EBO = new OpenGLBuffer(OpenGLBuffer::IndexBuffer);
 
         VAO->create();
         VBO->create();
@@ -52,7 +52,7 @@ namespace pg
 
         // position attribute
         VBO->bind();
-        VBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
+        VBO->setUsagePattern(OpenGLBuffer::StreamDraw);
         VBO->allocate(modelInfo.vertices, modelInfo.nbVertices * sizeof(float));
 
         glEnableVertexAttribArray(0);
@@ -63,7 +63,7 @@ namespace pg
         glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
         EBO->bind();
-        EBO->setUsagePattern(QOpenGLBuffer::StreamDraw);
+        EBO->setUsagePattern(OpenGLBuffer::StreamDraw);
         EBO->allocate(modelInfo.indices, modelInfo.nbIndices * sizeof(unsigned int));
 
         VAO->release();
@@ -73,7 +73,7 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
-        TextFile file = ResourceAccessor::openTextFile(fontFile);
+        TextFile file = UniversalFileAccessor::openTextFile(fontFile);
 
         FileParser parser(file);
         std::shared_ptr<FontLoader::Font> newChara = nullptr;
@@ -114,6 +114,9 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
+        if (nbCharaId == 0)
+            return nullptr;
+
         if(id < nbCharaId)
             return charaList[id].get();
         else
@@ -123,6 +126,9 @@ namespace pg
     const FontLoader::Font* FontLoader::getChara(const std::string& charaName) const
     {
         LOG_THIS_MEMBER(DOM);
+
+        if (nbCharaId == 0)
+            return nullptr;
 
         auto it = charaDict.find(charaName);
 

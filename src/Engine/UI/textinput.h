@@ -1,109 +1,36 @@
-/**
- * @file textinput.h
- * @author Pigeon Codeur (pigeoncodeur@gmail.com)
- * @brief Definition of the text input class.
- * @version 0.1
- * @date 2022-06-26
- * 
- * @copyright Copyright (c) 2022
- * 
- */
-
 #pragma once
 
-#include <string>
-#include <functional>
+#include "ECS/entitysystem.h"
 
-#include "uisystem.h"
-#include "Renderer/renderer.h"
 #include "Input/inputcomponent.h"
+
+#include "focusable.h"
 
 namespace pg
 {
-    // Type forwarding
-    class Input;
-    class TextureComponent;
-    // class Sentence;
-    class FontLoader;
-
-    class TextInput : public UiComponent
+    struct TextInputComponent
     {
-        // Typedefs
-    public:
-        /** Definition of a text input callback function */
-        typedef std::function<void(const std::string&)> TextInputCallback;
+        TextInputComponent(CallablePtr callback, const std::string& defaultText = "") : callback(callback), text(defaultText) { LOG_THIS_MEMBER("TextInputComponent"); }
+        TextInputComponent(const TextInputComponent& rhs) : callback(rhs.callback) { LOG_THIS_MEMBER("TextInputComponent"); }
+        virtual ~TextInputComponent() { LOG_THIS_MEMBER("TextInputComponent"); }
 
-        /**
-         * @brief Enum defining what type of character can be typed in the text input
-         * 
-         * Text: Can hold any ascii characters
-         * Numeric: Accept only digits
-         * 
-         */
-        enum class InputMode
-        {
-            TEXT,
-            NUMERIC
-        };
-    
-        // Public Interface
-    public:
-        TextInput(const UiFrame& frame, const std::string& texture, FontLoader* fontLoader, const TextInputCallback& onAccept, const TextInputCallback& onChange = nullptr, const InputMode& mode = InputMode::TEXT);
-        // TextInput(const TextInput& other);
-        virtual ~TextInput();
-
-        void setTexture(const std::string& texture);
-
-        void show() override;
-        void hide() override;
-
-        inline void render(MasterRenderer *masterRenderer) override;
-
-        // Inline functions
-    public:
-        /**
-         * @brief Set the Mode of the text input
-         * 
-         * @param mode The mode to set to the text input
-         */
-        inline void setMode(const InputMode& mode) { this->mode = mode; }
+        CallablePtr callback;
         
-        // Private Interface
-    private:
-        friend void renderer<>(MasterRenderer *masterRenderer, TextInput *textInput);
-
-        void changeTextCallback(Input* inputHandler, double...);
-
-        void focus(Input* inputHandler, double...);
-        void unfocus(Input* inputHandler, double);
-
-        // Private Variables
-    private:
-        /** Hold the accept callback function */
-        TextInputCallback onAccept;
-
-        /** Hold the accept callback function */
-        TextInputCallback onChange;
-
-        /** Hold the mouse input handler */
-        MouseComponent* mouseInput;
-
-        /** Hold the key input handler */
-        KeyComponent* keyInput;
-
-        /** Hold the texture of the text input */
-        TextureComponent *texture;
-        
-        /** Hold the sentence print to the screen */
-        // Sentence *sentence;
-
-        /** Actual text inside the text input */
         std::string text;
+        std::string returnText;
+    };
 
-        /** Boolean to indicate whether the text input is focused or not */
-        bool focused = false;
+    struct TextInputSystem: public System<Own<TextInputComponent>, Ref<FocusableComponent>, Listener<OnSDLTextInput>, Listener<OnSDLScanCode>, NamedSystem, InitSys, StoragePolicy>
+    {
+        virtual void init() override
+        {
+            registerGroup<TextInputComponent, FocusableComponent>();
+        }
 
-        /** Hold what type of character does the text input accept */
-        InputMode mode = InputMode::TEXT;
+        virtual std::string getSystemName() const override { return "Text Input System"; }
+
+        virtual void onEvent(const OnSDLTextInput& event) override;
+
+        virtual void onEvent(const OnSDLScanCode& event) override;
     };
 }

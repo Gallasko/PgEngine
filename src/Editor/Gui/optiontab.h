@@ -12,12 +12,12 @@
 #pragma once
 
 #include "UI/uisystem.h"
-#include "UI/listview.h"
+// #include "UI/listview.h"
 
 namespace pg
 {
     // Type forwarding
-    class TextureComponent;
+    struct Texture2DComponent;
     
     namespace editor
     {
@@ -44,8 +44,8 @@ namespace pg
                 //std::make_shared<>
             }
 
-            ListView listView;
-            TextureComponent* backgroundTexture;
+            // ListView listView;
+            Texture2DComponent* backgroundTexture;
         };
 
         template <typename... Args>

@@ -13,41 +13,22 @@
 
 namespace pg
 {
-    class Scene
+    struct Scene
     {
-    public:
-        Scene(const size_t& nbObjects);
-        ~Scene();
-
-        void addObject(const std::string& name, UiComponent* component);
-
-        void onEnter();
-        void onLeave();
-
-    private:
-        friend void renderer<>(MasterRenderer* masterRenderer, Scene* scene);
-
-        std::vector<UiComponent* > sceneObjects;
-        std::unordered_map<std::string, int> sceneObjectsRefs;
-
-        int nbMaxObjects;
-        int nbAllocatedObjects;
+        std::string sceneId;
     };
 
-    typedef std::function<UiComponent*(const UnserializedObject&)> UiCtorFunc;
-
-    class SceneLoader
+    class SceneLoader : public System<>
     {
     public:
         SceneLoader();
         ~SceneLoader();
 
-        void addPrefab(const std::string& name, const UiCtorFunc& creator);
-
-        Scene* load(const TextFile& sceneFile) const;
-        static void unload(Scene *scene);
+        void load(const TextFile& sceneFile) const;
+        static void unload(const std::string& id);
 
     private:
-        std::unordered_map<std::string, UiCtorFunc> cTorLookupTable; 
+        Serializer sceneSerializer;
+
     };
 }

@@ -26,7 +26,7 @@
                 "command": "bash",
                 "args": [
                     "-c",
-                    "make DEBUG=True PROD=True"
+                    "Z:/Cmake/bin/cmake.EXE --build x:/Document/GitHub/TeclaEatsDesktop/build --config Debug --target all -j 22 --"
                 ]
             },
             "problemMatcher": []
@@ -72,7 +72,7 @@
                 "command": "powershell",
                 "args": [
                     "-c",
-                    "mingw32-make DEBUG=False -j 8"
+                    "Z:/Cmake/bin/cmake.EXE --build x:/Document/GitHub/TeclaEatsDesktop/release --config Release --target PgEngine -j 22 --"
                 ]
             },
             "linux": {

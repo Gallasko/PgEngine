@@ -8,6 +8,11 @@
 
 #include <string>
 
+#include <chrono>
+
+// Todo include date when printing log 
+#include "Helpers/date.h"
+
 #include "Files/filemanager.h"
 
 //TODO Create an object to utilize the ctor/dtor and know when we enter and exit the function called
@@ -32,8 +37,11 @@
 #define LOG_THIS_MEMBER(scope)
 #define LOG_TEST(scope, msg)
 #define LOG_MILE(scope, msg)
-#define LOG_INFO(scope, msg)
-#define LOG_ERROR(scope, msg)
+// #define LOG_INFO(scope, msg)
+// #define LOG_ERROR(scope, msg)
+// Let those even in release
+#define LOG_INFO(scope, msg) _SINGLE_LOG(scope, msg, pg::Logger::InfoLevel::info)
+#define LOG_ERROR(scope, msg) _SINGLE_LOG(scope, msg, pg::Logger::InfoLevel::error)
 #endif
 
 //TODO Filter only filter log, info, alert and warning level message -> error and critical are not filtered !
@@ -70,9 +78,21 @@ namespace pg
             return *this;
         }
 
+        Strfy& operator<<(char* value)
+        {
+            data += value;
+            return *this;
+        }
+
         Strfy& operator<<(const char* value)
         {
             data += value;
+            return *this;
+        }
+
+        Strfy& operator<<(const unsigned char* value)
+        {
+            data += reinterpret_cast<const char*>(value);
             return *this;
         }
 
@@ -112,6 +132,7 @@ namespace pg
          * 
          * A enum class holding the emergency level of the log
          * 
+         * @todo add a debug level
          */
         enum class InfoLevel
         {
@@ -196,6 +217,7 @@ namespace pg
         class LogSink
         {
         friend class Logger;
+        public:
             class Filter
             {
             public:
@@ -208,10 +230,8 @@ namespace pg
                  * @return true if the log need to be filtered out and false if the filter doesn t apply to the log
                  */
                 virtual bool isFiltered(const Logger::Info& log) const = 0;
-            private:
             };
 
-        public:
             class FilterFile : public Filter
             {
             public:

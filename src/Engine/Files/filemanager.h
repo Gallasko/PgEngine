@@ -9,23 +9,36 @@ namespace pg
 {   
     struct TextFile
     {
-        std::string filename;
+        std::string filepath;
         std::string data;
     };
 
     class ResourceAccessor
     {
     public:
-        static TextFile openTextFile(const std::string& filename) noexcept;
+        static TextFile openTextFile(const std::string& filepath) noexcept;
         static std::vector<TextFile> openTextFolder(const std::string& foldername) noexcept;
     };
 
     class FileAccessor
     {
     public:
-        static TextFile openTextFile(const std::string& filename) noexcept;
+        static TextFile openTextFile(const std::string& filepath) noexcept;
+        static std::vector<TextFile> openTextFolder(const std::string& foldername, bool recursive = false) noexcept;
+
+        static bool writeToFile(const TextFile& file, const std::string& data) noexcept;
+    };
+
+    class UniversalFileAccessor
+    {
+    public:
+        static TextFile openTextFile(const std::string& filepath) noexcept;
         static std::vector<TextFile> openTextFolder(const std::string& foldername) noexcept;
 
-        static void writeToFile(const TextFile& file, const std::string& data) noexcept;
+        static bool writeToFile(const TextFile& file, const std::string& data) noexcept;
+
+        static std::string getFileName(const TextFile& file) noexcept;
+        static std::string getFoldername(const TextFile& file) noexcept;
+        static std::string getRelativePath(const TextFile& file) noexcept;
     };
 }

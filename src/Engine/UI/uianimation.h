@@ -23,7 +23,7 @@ namespace pg
         typedef UiPosition OriginPoint; 
 
         template <typename... Args>
-        Sequence(OriginPoint origin = OriginPoint(0, 0, 0), Args... args) : origin(origin) { add(args...); }
+        Sequence(OriginPoint origin = OriginPoint(0.0f, 0.0f, 0.0f), Args... args) : origin(origin) { add(args...); }
 
         template <typename... Args>
         Sequence(const UiKeyPoint& point, Args... args) { add(point); add(args...); }
@@ -56,7 +56,7 @@ namespace pg
 
         inline bool isRunning() const { return running; }
 
-        inline void setLooping(bool looping) { looping = looping; }
+        inline void setLooping(bool looping) { this->looping = looping; }
 
         void start()  { if(pos != nullptr) *pos = animationSequence.getPos(0); elapsedTime = 0; resume(); } 
         void pause()  { running = false; }

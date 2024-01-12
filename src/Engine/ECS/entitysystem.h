@@ -16,6 +16,8 @@
 #include "logger.h"
 #include "Memory/memorypool.h"
 
+#include "Interpreter/interpretersystem.h"
+
 namespace pg
 {
     // Todo create a queue that hold all entity id that got deleted to reattribute them later on
@@ -24,47 +26,13 @@ namespace pg
     
     // Forward declarations
     class ComponentRegistry;
-    class AbstractSystem;
+    struct AbstractSystem;
 
-    /**
-     * @brief Structure tag used to specify onCreation member on a component
-     *
-     * @todo find a better class name 
-     */
-    struct Ctor
-    {
-        virtual void onCreation(EntityRef entity) = 0;
+    // Todo add this in a window dependancy
+    // This event is fired when the window is resized
+    struct ResizeEvent { float width, height; };
 
-        virtual ~Ctor() {}
-    };
-
-    /**
-     * @brief Structure tag used to specify onCreation member on a component
-     *
-     * @todo find a better class name 
-     */
-    struct Dtor
-    {
-        virtual void onDeletion(EntityRef entity) = 0;
-
-        virtual ~Dtor() {}
-    };
-
-    /**
-     * @brief Structure tag used to specify a component as a singleton component
-     * 
-     * When this tag is set for a component. That means that the component should only be created once
-     * and when a system or a component need this component we can use the same refererence everywhere.
-     * 
-     * So when a component with this tag is created we can directly save the ref in the ecs and used
-     * it throughout !
-     * 
-     * @todo make this
-     */
-    struct SingletonComp
-    {
-
-    };
+    // Todo add batching for entity and component creation
 
     template <typename Comp>
     struct CompListGetter
@@ -91,6 +59,34 @@ namespace pg
     {
     friend class Entity;
     friend class CommandDispatcher;
+    friend struct CoreModule;
+    friend struct InputModule;
+    
+    private:
+        class EventDispatcher
+        {
+        public:
+            EventDispatcher() {};
+
+            inline bool enqueueEvent(std::function<void()>&& event)
+            {
+                return events.enqueue(event);
+            }
+
+            void process()
+            {
+                std::function<void()> event;
+
+                while(events.try_dequeue(event))
+                {
+                    event();
+                }
+            }
+
+        private:
+            moodycamel::ConcurrentQueue<std::function<void()>> events;
+        };
+
     public:
         EntitySystem();
         ~EntitySystem();
@@ -122,6 +118,11 @@ namespace pg
                 runningThread.join();
         }
 
+        inline _unique_id generateId() noexcept
+        {
+            return registry.idGenerator.generateId();
+        }
+
         EntityRef createEntity()
         {
             LOG_THIS_MEMBER("ECS");
@@ -139,13 +140,20 @@ namespace pg
         {
             LOG_THIS_MEMBER("ECS");
 
+            if(entity == nullptr)
+            {
+                LOG_ERROR("ECS", "Entity doesn't exists !");
+                
+                return;
+            }
+
             if(running)
                 cmdDispatcher.deleteEntity(entity);
             else
                 deleteEntityFromPool(entity);
         }
 
-        // TODO: Add a getSystem and destroySystem functions
+        // TODO: Add a destroySystem function
         template <class Sys, typename... Args>
         Sys* createSystem(const Args&... args)
         {
@@ -161,7 +169,65 @@ namespace pg
             // Only add the system to the taskflow if the execution policy is set to sequential or independent !
             if(system->executionPolicy == ExecutionPolicy::Sequential)
             {
+                auto task = taskflow.emplace([system]()
+                {
+                    // Todo time the whole exec of a run of the taskflow
+                    auto start = std::chrono::steady_clock::now();
+            
+                    system->execute();
+
+                    auto end = std::chrono::steady_clock::now();
+
+                    if(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() >= 3000000)
+                        std::cout << "System " << system->name << " execute took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
+                
+                }).name(std::to_string(system->id));
+
+                // Put the task after every other basic task
+                task.succeed(basicTask);
+
+                // Register the task in case we need to call precede and succeed
+                tasks[system->id] = task;
+            }
+            else if (system->executionPolicy == ExecutionPolicy::Independent)
+            {
                 auto task = taskflow.emplace([system](){system->execute();}).name(std::to_string(system->id));
+
+                // Register the task in case we need to call precede and succeed
+                tasks[system->id] = task;
+            }
+
+            return system;
+        }
+
+        template <typename... Args>
+        InterpreterSystem* createInterpreterSystem(const Args&... args)
+        {
+            LOG_THIS_MEMBER("ECS");
+
+            auto system = new InterpreterSystem(args...);
+            system->id = registry.idGenerator.generateId();
+
+            system->addToRegistry(&registry);
+
+            systems.emplace(system->id, system);
+
+            // Only add the system to the taskflow if the execution policy is set to sequential or independent !
+            if(system->executionPolicy == ExecutionPolicy::Sequential)
+            {
+                auto task = taskflow.emplace([system]()
+                {
+                    // Todo time the whole exec of a run of the taskflow
+                    auto start = std::chrono::steady_clock::now();
+            
+                    system->execute();
+
+                    auto end = std::chrono::steady_clock::now();
+
+                    if(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() >= 3000000)
+                        std::cout << "System " << system->name << " execute took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
+
+                }).name(std::to_string(system->id));
 
                 // Put the task after every other basic task
                 task.succeed(basicTask);
@@ -243,8 +309,6 @@ namespace pg
         {
             LOG_THIS_MEMBER("ECS");
 
-            LOG_MILE("ECS", "here");
-
             try
             {
                 Type* component;
@@ -277,21 +341,47 @@ namespace pg
             return CompRef<Type>();
         }
 
+        void deserializeComponent(EntityRef entity, const UnserializedObject& serializedObject) noexcept
+        {
+            registry.deserializeComponentToEntity(serializedObject, entity);
+        }
+
         template <typename Type>
         void dettach(Entity* entity) const noexcept
         {
-            // Todo
+            auto id = registry.getTypeId<Type>();
+
+            try
+            {
+                registry.detachComponentFromEntity(entity, id);
+            }
+            catch (const std::exception& e)
+            {
+                LOG_ERROR("ECS", "Can't detach component [" << id << "] from entity [" << entity->id << "]: " << e.what());
+            }
         }
 
         template <typename Event>
-        inline void sendEvent(Event&& event) { LOG_THIS_MEMBER("ECS"); registry.processEvent(std::forward<Event>(event)); }
+        void sendEvent(const Event& event)
+        {
+            LOG_THIS_MEMBER("ECS"); 
+            
+            if(running)
+            {
+                eventDispatcher.enqueueEvent([event, this](){ registry.processEvent(event); });
+            }
+            else
+            {
+                registry.processEvent(event);
+            }
+        }
 
         template <typename Comp>
         inline const _unique_id& getId() const noexcept { LOG_THIS_MEMBER("ECS"); return registry.getTypeId<Comp>(); }
 
-        void executeAll();
+        void executeOnce();
 
-        // MasterRenderer* getMasterRenderer() { return registry.masterRenderer; }
+        void executeAll();
 
         /** Return the registry of the ECS, mainly for testing purposes */
         inline constexpr const ComponentRegistry* getComponentRegistry() const noexcept { return &registry; }
@@ -302,6 +392,17 @@ namespace pg
 
         template <typename Comp>
         inline Comp* getComponent(_unique_id id) const { LOG_THIS_MEMBER("ECS"); return registry.retrieve<Comp>()->getComponent(id); }
+
+        inline ComponentSet<Entity>::ComponentSetList view() const
+        {
+            LOG_THIS_MEMBER("ECS");
+
+            return entityPool.viewComponents();
+        }
+
+        inline const std::map<_unique_id, AbstractSystem*>& getSystems() const { return systems; }
+
+        inline bool isRunning() const { return running; }
 
     private:
         friend void serialize<>(Archive& archive, const EntitySystem& ecs);
@@ -317,15 +418,43 @@ namespace pg
         {
             LOG_THIS_MEMBER("ECS");
 
-            for(auto& comp : entity->componentList)
+            LOG_INFO("ECS", "Deleting entity");
+
+            if(entity == nullptr)
             {
+                LOG_ERROR("ECS", "Entity doesn't exists !");
+                
+                return;
+            }
+
+            LOG_INFO("ECS", "Deleting components from entity: " << entity->id);
+
+            while(not entity->componentList.empty())
+            {
+                const auto& comp = *entity->componentList.begin();
+
                 if(comp.entityHeldType == Entity::EntityHeld::EntityHeldType::id)
                 {
-                    // Todo Remove all attached component
+                    try
+                    {
+                        registry.detachComponentFromEntity(entity, comp.getId());
+                    }
+                    catch (const std::exception& e)
+                    {
+                        LOG_ERROR("ECS", "Can't detach component [" << comp.getId() << "] from entity [" << entity->id << "]: " << e.what());
+                    }
+                }
+                else
+                {
+                    entity->componentList.erase(entity->componentList.begin());
                 }
             }
 
+            LOG_INFO("ECS", "Deleting entity: " << entity->id);
+
             entityPool.removeComponent(entity);
+
+            LOG_INFO("ECS", "Entity deleted");
         }
 
         template <typename Type>
@@ -339,7 +468,6 @@ namespace pg
 
                 registry.retrieve<Type>()->internalCreateComponent(entity, *component);
             }
-            // entity->componentList.emplace(registry.getTypeId<Type>());
         }
 
         template <typename Type>
@@ -368,6 +496,8 @@ namespace pg
         ComponentRegistry registry;
 
         CommandDispatcher cmdDispatcher;
+
+        EventDispatcher eventDispatcher;
 
         /** Store all systems added to the ECS */
         std::map<_unique_id, AbstractSystem*> systems;
@@ -426,12 +556,65 @@ namespace pg
 
         if(it != componentList.end())
         {
-            return CompRef<Comp>(ecsRef->registry.retrieve<Comp>()->getComponent(id), id, ecsRef, true);
+            auto ent = ecsRef->getEntity(id);
+            auto initialized = id != 0 and ent;
+
+            return CompRef<Comp>(ecsRef->registry.retrieve<Comp>()->getComponent(id), id, ecsRef, initialized);
         }
 
         LOG_ERROR("Entity", "Entity doesn't have component: " << componentId);
 
         return CompRef<Comp>();
+    }
+
+    template <typename Type>
+    void ComponentRegistry::store(Own<Type>* owner) noexcept
+    {
+        LOG_THIS_MEMBER("Component Registry");
+
+        struct Delegate : public Storage, public Own<Type> { };
+
+        const auto& id = getTypeId<Type>();
+
+        // Todo see if there is a performance hit to keep this function or does it get optimized as it should be always false in production code
+        // Block to find if a system is already registered in the ecs
+#ifdef PROD
+        if(const auto& it = componentStorageMap.find(id); it != componentStorageMap.end())
+        {
+            LOG_ERROR("Component Registry", "Trying to recreate a system that already existing with id: " << id << "Exiting");
+            return;
+        }
+#endif
+
+        componentDeleteMap.emplace(id, [owner](Entity* entity) {
+            if constexpr(std::is_base_of_v<Dtor, Type>)
+            {
+                auto res = owner->getComponent(entity->id);
+                res->onDeletion(entity);
+            }
+
+            owner->internalRemoveComponent(entity);
+        });
+
+        componentSerializeMap.emplace(id, [owner](Archive& archive, const Entity* entity) {
+            serialize(archive, *(owner->getComponent(entity->id)));
+        });
+
+        if constexpr(HasStaticName<Type>::value)
+        {
+            componentDeserializeMap.emplace(Type::getType(), [this](const UnserializedObject& serializedStr, EntityRef entity) {
+                if(serializedStr.isNull())
+                    return;
+
+                auto comp = deserialize<Type>(serializedStr);
+
+                ecsRef->attach<Type>(entity, comp);
+            });
+        }
+
+        componentStorageMap.emplace(id, static_cast<Storage*>(static_cast<Delegate*>(owner)));
+
+        owner->_componentId = id;
     }
 
     template <typename Comp>
@@ -448,7 +631,7 @@ namespace pg
         {
             if(entityId != 0)
             {
-                auto fetchComponent = rhs.ecsRef->getComponent<Comp>(entityId);
+                auto fetchComponent = rhs.ecsRef->template getComponent<Comp>(entityId);
 
                 if(fetchComponent)
                 {
@@ -475,7 +658,19 @@ namespace pg
         if (initialized)
             return ecsRef->getComponent<Comp>(entityId);
         else
-            return component;
+        {
+            // Try to find the component in the ecs to update this ref
+            auto comp = ecsRef->getComponent<Comp>(entityId);
+            
+            // Component found, updating this entity ref
+            if(entityId != 0 and comp)
+            {
+                component = comp;
+                initialized = true;
+            }
+
+           return component;
+        }
     }
 
     template <typename Comp>
@@ -486,18 +681,36 @@ namespace pg
         if (initialized)
             return ecsRef->getComponent<Comp>(entityId);
         else
-            return component;
+        {
+            // Try to find the component in the ecs to update this ref
+            auto comp = ecsRef->getComponent<Comp>(entityId);
+            
+            // Component found, updating this entity ref
+            if(entityId != 0 and comp)
+            {
+                component = comp;
+                initialized = true;
+            }
+
+           return component;
+        }
+
     }
 
     template <typename Type, typename... Types>
     template <typename Set>
-    inline void Group<Type, Types...>::addEventToSet(Set setN)
+    void Group<Type, Types...>::addEventToSet(Set setN)
     {
         LOG_THIS_MEMBER("Ecs Group");
 
         setN->onComponentCreation.emplace(id, [](Entity *entity) {
             LOG_INFO("Group", "On component creation for entity " << entity->id << ", sending event !");
             entity->world()->sendEvent(OnCompCreatedCheckForGroup<Group<Type, Types...>>{entity});
+        });
+
+        setN->onComponentDeletion.emplace(id, [](Entity *entity) {
+            LOG_INFO("Group", "On component deletion for entity " << entity->id << ", sending event !");
+            entity->world()->sendEvent(OnCompDeletionCheckForGroup<Group<Type, Types...>>{entity->id, entity->componentList});
         });
     }
 

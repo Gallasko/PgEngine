@@ -1,16 +1,33 @@
+#define STB_IMAGE_IMPLEMENTATION
+
 #include "renderer.h"
 
-#include <QImage>
+#include <filesystem>
+namespace fs = std::filesystem;
 
-#include "UI/texture.h"
+#include <glm.hpp>
+#include <gtc/matrix_transform.hpp>
 
 #include "logger.h"
+
+#include "Helpers/openglobject.h"
+
+#include "Loaders/stb_image.h"
+
+#include "UI/uisystem.h"
 
 namespace pg
 {
     namespace
     {
         constexpr static const char * const DOM = "Renderer";
+    }
+
+    AbstractRenderer::AbstractRenderer(MasterRenderer *masterRenderer, const RenderStage& stage) : masterRenderer(masterRenderer), renderStage(stage)
+    {
+        LOG_THIS_MEMBER("AbstractRenderer");
+
+        masterRenderer->addRenderer(this);
     }
 
     void renderer(MasterRenderer* masterRenderer, const std::map<std::string, std::map<std::string, std::vector<RenderableTexture>>>& renderableTextureMap)
@@ -21,15 +38,15 @@ namespace pg
         const int screenWidth = rTable["ScreenWidth"];
         const int screenHeight = rTable["ScreenHeight"];
 
-        QMatrix4x4 projection;
-        QMatrix4x4 view;
-        QMatrix4x4 model;
-        QMatrix4x4 scale;
+        glm::mat4 projection;
+        glm::mat4 view;
+        glm::mat4 model;
+        glm::mat4 scale;
 
-        projection.setToIdentity();
-        model.setToIdentity();
-        scale.setToIdentity();
-        scale.scale(QVector3D(2.0f / screenWidth, 2.0f / screenHeight, 0.0f)); 
+        // glm::scale(scale, glm::vec3(0.5f, 0.5f, 0.0f));        
+
+        glm::scale(scale, glm::vec3(2.0f / screenWidth, 2.0f / screenHeight, 0.0f));
+
         // TODO why does it need to be scale * 2 ( the scaling now happen in the shader ) <- Done the * 2 is needed to map the -1 <-> 1 space to a 0 <-> 1 space 
         // Need to make a note about that
 
@@ -44,11 +61,13 @@ namespace pg
                 // Tex rendering
                 shaderProgram->bind();
 
-                shaderProgram->setUniformValue(shaderProgram->uniformLocation("projection"), projection);
-                shaderProgram->setUniformValue(shaderProgram->uniformLocation("model"), model);
-                shaderProgram->setUniformValue(shaderProgram->uniformLocation("scale"), scale);
+                shaderProgram->setUniformValue("projection", projection);
+                shaderProgram->setUniformValue("model", model);
+                shaderProgram->setUniformValue("scale", scale);
 
-                shaderProgram->setUniformValue(shaderProgram->uniformLocation("time"), static_cast<int>(0 % 314159));
+                shaderProgram->setUniformValue("time", static_cast<int>(0 % 314159));
+
+                shaderProgram->setUniformValue("texture1", 0);
 
                 //glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, texture);
@@ -58,17 +77,17 @@ namespace pg
                 {
                     UiComponent *ui = renderableTexture.uiRef;
 
-                    auto mesh = renderableTexture.meshRef.getMesh();
+                    auto mesh = renderableTexture.meshRef;
 
                     if(not ui->isVisible() or not mesh)
                         continue;
 
-                    view.setToIdentity();
                     // Todo
                     // view.translate(QVector3D(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, -static_cast<UiSize>(ui->pos.z)));
-                    view.translate(QVector3D(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, 0.0f));
+                    glm::translate(view, glm::vec3(-1.0f + 2.0f * ui->pos.x / screenWidth, 1.0f + 2.0f * -ui->pos.y / screenHeight, 0.0f));
+                    // glm::translate(view, glm::vec3(-0.5f , 0.5f, 1.0f));
 
-                    shaderProgram->setUniformValue(shaderProgram->uniformLocation("view"), view);
+                    shaderProgram->setUniformValue("view", view);
 
                     mesh->bind();
                     glDrawElements(GL_TRIANGLES, mesh->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
@@ -79,6 +98,18 @@ namespace pg
         }    
     }
 
+    MasterRenderer::MasterRenderer()
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        initializeParameters();
+    }
+
+    MasterRenderer::~MasterRenderer()
+    {
+        LOG_THIS_MEMBER(DOM);
+    }
+
     void MasterRenderer::execute()
     {
         LOG_THIS_MEMBER(DOM);
@@ -86,52 +117,75 @@ namespace pg
         // Todo Fix in group and ecs ! ( whereaver we are holding pointer of a comp actually ! )
         // Todo hold a ref to the component list and the component index inside of this list instead of the raw pointer to not get invalidated on resize !
 
-        if(changed)
+        std::lock_guard<std::mutex> lock(resizeMutex);
+
+        for (auto renderer : renderers)
         {
-            std::lock_guard<std::mutex> lock(modificationMutex);
-
-            std::lock_guard<std::mutex> lock2(renderMutex);
-
-            currentRenderList = tempRenderList;
-
-            changed = false;
-        }        
+            renderer->updateMeshes();
+        }   
     }
 
     void MasterRenderer::renderAll()
     {
         LOG_THIS_MEMBER(DOM);
 
-        std::lock_guard<std::mutex> lock(renderMutex);
+        std::lock_guard<std::mutex> lock(resizeMutex);
 
-        render(currentRenderList);
+        for (auto renderer : renderers)
+        {
+            renderer->render();
+        }   
 
         nbRenderedFrames++;
     }
 
-    void MasterRenderer::registerShader(const std::string& name, const char* vsPath, const char* fsPath)
+    void MasterRenderer::registerShader(const std::string& name, OpenGLShaderProgram *shaderProgram)
     {
         LOG_THIS_MEMBER(DOM);
 
-        auto shaderProgram = new QOpenGLShaderProgram();
-        shaderProgram->addShaderFromSourceFile(QOpenGLShader::Vertex, vsPath);
-        shaderProgram->addShaderFromSourceFile(QOpenGLShader::Fragment, fsPath);
-        shaderProgram->link();
+        shaderList[name] = shaderProgram;
+    }
+
+    void MasterRenderer::registerShader(const std::string& name, const std::string& vsPath, const std::string& fsPath)
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        auto shaderProgram = new OpenGLShaderProgram(vsPath, fsPath);
 
         registerShader(name, shaderProgram);
     }
 
-    //TODO mirror or not the texture
+    // TODO mirror or not the texture
+    // Todo add an argument to specify the type of texture loaded, e.g.: RGBA, RGB, ...
     void MasterRenderer::registerTexture(const std::string& name, const char* texturePath)
     { 
         LOG_THIS_MEMBER(DOM);
 
-        QImage textureAtlas = QImage(QString(texturePath));
-        textureAtlas = textureAtlas.convertToFormat(QImage::Format_RGBA8888); //.mirrored(); // TODO check mirrored
+        int width, height, nrChannels;
+        // Todo change this with our custom file opener (stbi_load_from_memory)
+
+        unsigned char *data = stbi_load(texturePath, &width, &height, &nrChannels, STBI_rgb_alpha);
+
+        if (not data)
+        {
+            if(stbi_failure_reason())
+            {
+                LOG_ERROR(DOM, "Failed to load texture: " << stbi_failure_reason());
+            }
+            else
+            {
+                LOG_ERROR(DOM, "Failed to load texture: Unknown");
+            }
+
+            return;
+        }
+
+        LOG_INFO(DOM, "Loaded texture " << name << " from " << texturePath << " with width = " << width << " height = " << height);
 
         unsigned int texture;
 
         glGenTextures(1, &texture);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         glBindTexture(GL_TEXTURE_2D, texture);
         // set the texture wrapping parameters
         //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -143,62 +197,12 @@ namespace pg
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         // load image, create texture and generate mipmaps
         
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureAtlas.width(), textureAtlas.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, textureAtlas.bits());
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
 
         registerTexture(name, texture);
-    }
 
-    void MasterRenderer::initializeGlObject(QOpenGLContext *context)
-    {
-        LOG_THIS_MEMBER(DOM);
-
-        initializeOpenGLFunctions(); 
-        extraFunctions = new QOpenGLExtraFunctions(context); 
-
-        instanceVBO = new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer);
-        instanceVBO->create();
-
-        squareObject = new OpenGLObject();
-        squareObject->initialize();
-
-        auto tileVertices = new float[20];
-
-        //                 x                         y                         z                      texpos x                 texpos y
-        tileVertices[0]  = 0.0f; tileVertices[1]  =  0.0f; tileVertices[2]  = 1.0f; tileVertices[3]  = 0.0f; tileVertices[4]  = 0.0f;   
-        tileVertices[5]  = 1.0f; tileVertices[6]  =  0.0f; tileVertices[7]  = 1.0f; tileVertices[8]  = 1.0f; tileVertices[9]  = 0.0f;
-        tileVertices[10] = 1.0f; tileVertices[11] = -1.0f; tileVertices[12] = 1.0f; tileVertices[13] = 0.0f; tileVertices[14] = 1.0f;
-        tileVertices[15] = 0.0f; tileVertices[16] = -1.0f; tileVertices[17] = 1.0f; tileVertices[18] = 1.0f; tileVertices[19] = 1.0f;
-
-        unsigned int nbTileVertices = 20;
-
-        auto tileVerticesIndice = new unsigned int[6];
-
-        tileVerticesIndice[0] = 0; tileVerticesIndice[1] = 1; tileVerticesIndice[2] = 2;
-        tileVerticesIndice[3] = 1; tileVerticesIndice[4] = 2; tileVerticesIndice[5] = 3;
-
-        unsigned int nbOfElements = 6;
-
-        squareObject->VAO->bind();
-
-        // position attribute
-        
-        squareObject->VBO->bind();
-        squareObject->VBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
-        squareObject->VBO->allocate(tileVertices, nbTileVertices * sizeof(float));
-
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-
-        // texture coord attribute
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-
-        squareObject->EBO->bind();
-        squareObject->EBO->setUsagePattern(QOpenGLBuffer::StaticDraw);
-        squareObject->EBO->allocate(tileVerticesIndice, nbOfElements * sizeof(unsigned int));
-
-        squareObject->VAO->release();
+        stbi_image_free(data);
     }
 
     void MasterRenderer::initializeParameters()

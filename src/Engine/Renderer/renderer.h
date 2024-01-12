@@ -4,26 +4,24 @@
 
 #include <mutex>
 
-#include <QOpenGLContext>
-#include <QOpenGLFunctions>
-#include <QOpenGLShaderProgram>
-#include <QOpenGLExtraFunctions>
-
-#include <QMatrix4x4>
 #include <cstdarg>
 
-#include "ECS/system.h"
+#include "ECS/entitysystem.h"
 
 #include "..\constant.h"
-#include "meshbuilder.h"
+#include "mesh.h"
 
 namespace pg
 {
-    typedef constant::RefracTable RefracRef;
-    typedef std::unordered_map<std::string, QOpenGLShaderProgram*> ShaderRef;
-    typedef std::unordered_map<std::string, unsigned int> TextureRef;
-
+    // Forwarding
+    class OpenGLShaderProgram;
+    class OpenGLContext;
     class MasterRenderer;
+
+    // Type def
+    typedef constant::RefracTable RefracRef;
+    typedef std::unordered_map<std::string, OpenGLShaderProgram*> ShaderRef;
+    typedef std::unordered_map<std::string, unsigned int> TextureRef;
 
     // TODO make a specialized renderer for std::nullptr_t to catch nullptr error;
 
@@ -31,40 +29,87 @@ namespace pg
     void renderer(MasterRenderer* masterRender, Args... args);
 
     class UiComponent;
-    class TextureComponent;
 
     struct RenderableTexture
     {
         _unique_id entityId;
         CompRef<UiComponent> uiRef;
-        MeshBuilder::MeshRef meshRef;
+        Mesh* meshRef;
+    };
+
+    enum class RenderStage : uint8_t
+    {
+        PreRender,
+        Render,
+        PostProcess
+    };
+
+    class AbstractRenderer
+    {
+    public:
+        AbstractRenderer(MasterRenderer* masterRenderer, const RenderStage& stage);
+        virtual ~AbstractRenderer() {}
+
+        RenderStage getRenderStage() const { return renderStage; }
+    
+        virtual void render() = 0;
+
+        virtual void updateMeshes()
+        {
+            if(changed)
+            {
+                std::lock_guard<std::mutex> lock(modificationMutex);
+
+                std::lock_guard<std::mutex> lock2(renderMutex);
+
+                currentRenderList = tempRenderList;
+
+                changed = false;
+            }
+        }
+
+    protected:
+        MasterRenderer *masterRenderer;
+    
+        RenderStage renderStage;
+
+        bool changed = false;
+
+        std::mutex modificationMutex;
+        std::mutex renderMutex;
+
+        std::map<unsigned int, std::vector<RenderableTexture>> tempRenderList;
+        std::map<unsigned int, std::vector<RenderableTexture>> currentRenderList;
+
+        std::unordered_map<std::string, Mesh*> meshes;
     };
 
     //[TODO] Multiple FBO -> 1 for a whole screen capture and other for batch rendering on a texture 
     // Add Particle system with instancing already done / create an alternative if needed
 
-    class MasterRenderer : protected QOpenGLFunctions, public System<NamedSystem>
+    class MasterRenderer : public System<NamedSystem, Listener<ResizeEvent>>
     {
     public:
-        MasterRenderer() {}
-        ~MasterRenderer() { delete extraFunctions; delete squareObject; delete instanceVBO; }
+        MasterRenderer();
+        ~MasterRenderer();
 
         virtual std::string getSystemName() const override { return "Renderer System"; }
 
         virtual void execute() override;
 
+        inline void startResizing() { resizeMutex.lock(); }
+        inline void stopResizing()  { resizeMutex.unlock(); }
+
         void renderAll();
 
-        void initialize(QOpenGLContext *m_context) { initializeGlObject(m_context); initializeParameters(); }
-
-        void registerShader(const std::string& name, QOpenGLShaderProgram *shaderProgram) { shaderList[name] = shaderProgram; }
-        void registerShader(const std::string& name, const char* vsPath, const char* fsPath);
+        void registerShader(const std::string& name, OpenGLShaderProgram *shaderProgram);
+        void registerShader(const std::string& name, const std::string& vsPath, const std::string& fsPath);
 
         void registerTexture(const std::string& name, unsigned int textureId) { textureList[name] = textureId; }
         void registerTexture(const std::string& name, const char* texturePath);
 
         //TODO raise exception on none presence of attribute
-        QOpenGLShaderProgram* getShader(const std::string& name) { return shaderList[name]; }
+        OpenGLShaderProgram* getShader(const std::string& name) { return shaderList[name]; }
         unsigned int getTexture(const std::string& name) { return textureList[name]; }
 
         template <typename... Args>
@@ -73,39 +118,38 @@ namespace pg
         template <typename Renderable>
         MasterRenderer& operator<<(Renderable* toRender) { renderer(this, toRender); return *this; }
 
+        virtual void onEvent(const ResizeEvent& event) override
+        {
+            LOG_INFO("Ui internals", "Window resizing");
+
+            std::lock_guard<std::mutex> lock(resizeMutex);
+
+            systemParameters["ScreenWidth"] = static_cast<int>(event.width); systemParameters["ScreenHeight"] = static_cast<int>(event.height);
+        }
+
         inline void setWindowSize(const int& width, const int& height) { systemParameters["ScreenWidth"] = width; systemParameters["ScreenHeight"] = height; }
         inline void setCurrentTime(const unsigned int& time) { systemParameters["CurrentTime"] = static_cast<int>(time); }
 
         RefracRef getParameter() const { return systemParameters; }
 
-        QOpenGLExtraFunctions* getExtraFunctions() const { return extraFunctions; }
-        QOpenGLVertexArrayObject* getSquareVAO() const { return squareObject->VAO; }
-        QOpenGLBuffer* getInstanceVBO() const { return instanceVBO; }
+        inline void addRenderer(AbstractRenderer* renderer) { renderers.push_back(renderer); }
+
+        inline size_t getNbRenderedFrames() const { return nbRenderedFrames; }
         
     private:
-        void initializeGlObject(QOpenGLContext *context);
-
         void initializeParameters();
 
-    public:
+    private:
         bool changed = false;
-
-        std::mutex modificationMutex;
-        std::mutex renderMutex;
-
-        std::map<std::string, std::map<std::string, std::vector<RenderableTexture>>> tempRenderList;
-        std::map<std::string, std::map<std::string, std::vector<RenderableTexture>>> currentRenderList;
-
-        QOpenGLExtraFunctions *extraFunctions;
-        OpenGLObject *squareObject;
-        QOpenGLBuffer *instanceVBO;
         
         RefracRef systemParameters;
         ShaderRef shaderList;
         TextureRef textureList;
 
-        MeshBuilder meshBuilder;
-
         size_t nbRenderedFrames = 0;
+
+        std::vector<AbstractRenderer*> renderers;
+
+        std::mutex resizeMutex;
     };
 }

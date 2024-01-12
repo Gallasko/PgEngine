@@ -9,32 +9,8 @@ namespace pg
 {
     namespace
 	{
-		static constexpr char const * DOM = "Ui System";
+		static constexpr char const * const DOM = "Ui System";
 	}
-
-    template <>
-    UiSize operator-(const UiPosition::UiPosValue& lhs, const UiSize& rhs)
-    {
-        return UiSize(static_cast<UiSize>(lhs), -1.0f, rhs.value);
-    }
-
-    /**
-     * @brief Specialization of the serialize function for UiSize 
-     * 
-     * @param archive A references to the archive
-     * @param value The ui size value
-     */
-    template <>
-    void serialize(Archive& archive, const UiSize& value)
-    {
-        LOG_THIS(DOM);
-
-        archive.startSerialization("UiSize");
-
-        serialize(archive, "value", static_cast<float>(value));
-
-        archive.endSerialization();
-    }
 
     /**
      * @brief Specialization of the serialize function for AnchorDir 
@@ -53,6 +29,8 @@ namespace pg
 
         switch(value)
         {
+            case AnchorDir::None:
+                anchorDirString = "None"; break;
             case AnchorDir::Top:
                 anchorDirString = "Top"; break;
             case AnchorDir::Right:
@@ -61,57 +39,31 @@ namespace pg
                 anchorDirString = "Bottom"; break;
             case AnchorDir::Left:
                 anchorDirString = "Left"; break;
+            case AnchorDir::X:
+                anchorDirString = "X"; break;
+            case AnchorDir::Y:
+                anchorDirString = "Y"; break;
+            case AnchorDir::Z:
+                anchorDirString = "Z"; break;
+            case AnchorDir::Width:
+                anchorDirString = "Width"; break;
+            case AnchorDir::Height:
+                anchorDirString = "Height"; break;
+            case AnchorDir::TMargin:
+                anchorDirString = "TMargin"; break;
+            case AnchorDir::RMargin:
+                anchorDirString = "RMargin"; break;
+            case AnchorDir::BMargin:
+                anchorDirString = "BMargin"; break;
+            case AnchorDir::LMargin:
+                anchorDirString = "LMargin"; break;
+            default:
+                LOG_ERROR(DOM, "Invalid anchor dir value");
+                anchorDirString = "None";
+                break;
         }
 
         serialize(archive, "dir", anchorDirString);
-
-        archive.endSerialization();
-    }
-
-    /**
-     * @brief Specialization of the serialize function for Anchor 
-     * 
-     * @param archive A references to the archive
-     * @param value The anchor value
-     */
-    template <>
-    void serialize(Archive& archive, const UiAnchor& value)
-    {
-        LOG_THIS(DOM);
-
-        archive.startSerialization("UiAnchor");
-
-        serialize(archive, "entityId", value.id);
-        serialize(archive, "anchorDir", value.anchorDir);
-
-        archive.endSerialization();
-    }
-
-    /**
-     * @brief Specialization of the serialize function for UiPosValue 
-     * 
-     * @param archive A references to the archive
-     * @param value The ui pos value
-     */
-    template <>
-    void serialize(Archive& archive, const UiPosition::UiPosValue& value)
-    {
-        LOG_THIS(DOM);
-
-        archive.startSerialization("UiPosValue");
-
-        switch (value.type)
-        {
-            case UiPosition::UiPosValue::UiPosType::Anchor:
-                serialize(archive, "type",   std::string("anchor"));
-                serialize(archive, "anchor", value.value.anchor);
-                break;
-
-            case UiPosition::UiPosValue::UiPosType::Value:
-                serialize(archive, "type",  std::string("value"));
-                serialize(archive, "value", value.value.size);
-                break;
-        }
 
         archive.endSerialization();
     }
@@ -170,7 +122,7 @@ namespace pg
         // Can't actually serialize anchors here cause they are just pointers to other components
         // So they don't hold the same value each time
 
-        archive.startSerialization("UiComponent");
+        archive.startSerialization(UiComponent::getType());
 
         serialize(archive, "visibility",    value.isVisible());
         serialize(archive, "pos",           value.pos);
@@ -182,29 +134,104 @@ namespace pg
         serialize(archive, "bottomMargin",  value.bottomMargin);
         serialize(archive, "leftMargin",    value.leftMargin);
 
-        UiAnchor emptyAnchor = {0, AnchorDir::Top, 0.0f};
+        serialize(archive, "topAnchor", value.topAnchor);
+        serialize(archive, "rightAnchor", value.rightAnchor);
+        serialize(archive, "bottomAnchor", value.bottomAnchor);
+        serialize(archive, "leftAnchor", value.leftAnchor);
 
-        if(value.topAnchor == nullptr)
-            serialize(archive, "topAnchor", emptyAnchor);
-        else
-            serialize(archive, "topAnchor", *value.topAnchor);
-
-        if(value.leftAnchor == nullptr)
-            serialize(archive, "leftAnchor", emptyAnchor);
-        else
-            serialize(archive, "leftAnchor", *value.leftAnchor);
-
-        if(value.bottomAnchor == nullptr)
-            serialize(archive, "bottomAnchor", emptyAnchor);
-        else
-            serialize(archive, "bottomAnchor", *value.bottomAnchor);
-
-        if(value.rightAnchor == nullptr)
-            serialize(archive, "rightAnchor", emptyAnchor);
-        else
-            serialize(archive, "rightAnchor", *value.rightAnchor);
+        serialize(archive, "hasTopAnchor", value.hasTopAnchor);
+        serialize(archive, "hasRightAnchor", value.hasRightAnchor);
+        serialize(archive, "hasBottomAnchor", value.hasBottomAnchor);
+        serialize(archive, "hasLeftAnchor", value.hasLeftAnchor);
 
         archive.endSerialization();
+    }
+
+    /**
+     * @brief Specialization of the deserialize function for AnchorDir
+     * 
+     * @param serializedString A serialized string
+     * @return AnchorDir An AnchorDir object contructed via the serialization string
+     */
+    template <>
+    AnchorDir deserialize(const UnserializedObject& serializedString)
+    {
+        LOG_THIS(DOM);
+
+        AnchorDir dir = AnchorDir::None;
+
+        std::string type = "";
+
+        if(serializedString.isNull())
+            LOG_ERROR(DOM, "Element is null");
+        else
+        {
+            type = deserialize<std::string>(serializedString["dir"]);
+
+            if (type == "None")
+            {
+                dir = AnchorDir::None;
+            }
+            else if (type =="Top")
+            {
+                dir = AnchorDir::Top;
+            }
+            else if (type =="Right")
+            {
+                dir = AnchorDir::Right;
+            }
+            else if (type =="Bottom")
+            {
+                dir = AnchorDir::Bottom;
+            }
+            else if (type =="Left")
+            {
+                dir = AnchorDir::Left;
+            }
+            else if (type =="X")
+            {
+                dir = AnchorDir::X;
+            }
+            else if (type =="Y")
+            {
+                dir = AnchorDir::Y;
+            }
+            else if (type =="Z")
+            {
+                dir = AnchorDir::Z;
+            }
+            else if (type =="Width")
+            {
+                dir = AnchorDir::Width;
+            }
+            else if (type =="Height")
+            {
+                dir = AnchorDir::Height;
+            }
+            else if (type =="TMargin")
+            {
+                dir = AnchorDir::TMargin;
+            }
+            else if (type =="RMargin")
+            {
+                dir = AnchorDir::RMargin;
+            }
+            else if (type =="BMargin")
+            {
+                dir = AnchorDir::BMargin;
+            }
+            else if (type =="LMargin")
+            {
+                dir = AnchorDir::LMargin;
+            }
+            else
+            {
+                LOG_ERROR(DOM, "Invalid anchor dir value");
+                dir = AnchorDir::None;
+            }
+        }
+
+        return dir;
     }
 
     /**
@@ -220,13 +247,13 @@ namespace pg
 
         UiSize size;
 
-        std::string type = "";
-
         if(serializedString.isNull())
             LOG_ERROR(DOM, "Element is null");
         else
         {
-            size = deserialize<float>(serializedString["value"]);
+            size = deserialize<float>(serializedString["floatValue"]);
+
+            // Todo add deserialization for UiValue !
         }
 
         return size;
@@ -245,10 +272,10 @@ namespace pg
 
         UiPosition pos;
 
-        std::string type = "";
-
         if(serializedString.isNull())
+        {
             LOG_ERROR(DOM, "Element is null");
+        }
         else
         {
             pos.x = deserialize<UiSize>(serializedString["x"]);
@@ -272,10 +299,10 @@ namespace pg
 
         UiFrame frame;
 
-        std::string type = "";
-
         if(serializedString.isNull())
+        {
             LOG_ERROR(DOM, "Element is null");
+        }
         else
         {
             LOG_INFO(DOM, "Deserializing an UiFrame");
@@ -301,10 +328,10 @@ namespace pg
 
         UiComponent component;
 
-        std::string type = "";
-
         if(serializedString.isNull())
+        {
             LOG_ERROR(DOM, "Element is null");
+        }
         else
         {
             LOG_INFO(DOM, "Deserializing an UiComponent");
@@ -347,28 +374,43 @@ namespace pg
         this->bottomMargin  = rhs.bottomMargin;
         this->leftMargin    = rhs.leftMargin;
 
+        this->hasTopAnchor = rhs.hasTopAnchor;
+        this->hasRightAnchor = rhs.hasRightAnchor;
+        this->hasBottomAnchor = rhs.hasBottomAnchor;
+        this->hasLeftAnchor = rhs.hasLeftAnchor;
+
+        top = AnchorDir::Top;
+        right = AnchorDir::Right;
+        bottom = AnchorDir::Bottom;
+        left = AnchorDir::Left;
+
         // Copy entity stuff
 
-        this->ecsRef        = rhs.ecsRef;
-        this->entityId      = rhs.entityId;
+        this->ecsRef   = rhs.ecsRef;
+        this->entityId = rhs.entityId;
 
-        top.id    = this->entityId;
-        right.id  = this->entityId;
-        bottom.id = this->entityId;
-        left.id   = this->entityId;
+        top.setEntity(entityId, ecsRef);
+        right.setEntity(entityId, ecsRef);
+        bottom.setEntity(entityId, ecsRef);
+        left.setEntity(entityId, ecsRef);
 
-        pos.setEntityId(entityId);
+        topAnchor.setEntity(entityId, ecsRef);
+        rightAnchor.setEntity(entityId, ecsRef);
+        bottomAnchor.setEntity(entityId, ecsRef);
+        leftAnchor.setEntity(entityId, ecsRef);
 
-        width.setEntityId(entityId);
-        height.setEntityId(entityId);
+        pos.setEntity(entityId, ecsRef);
 
-        topMargin.setEntityId(entityId);
-        leftMargin.setEntityId(entityId);
-        rightMargin.setEntityId(entityId);
-        bottomMargin.setEntityId(entityId);
+        width.setEntity(entityId, ecsRef);
+        height.setEntity(entityId, ecsRef);
+
+        topMargin.setEntity(entityId, ecsRef);
+        leftMargin.setEntity(entityId, ecsRef);
+        rightMargin.setEntity(entityId, ecsRef);
+        bottomMargin.setEntity(entityId, ecsRef);
     }
 
-    bool UiComponent::inBound(int x, int y) const
+    bool UiComponent::inBound(float x, float y) const
     {
         LOG_THIS_MEMBER(DOM);
 
@@ -376,10 +418,10 @@ namespace pg
             return false;
 
         // Lockup x and y only once
-        const float xValue = static_cast<UiSize>(this->pos.x);
-        const float yValue = static_cast<UiSize>(this->pos.y);
+        const float xValue = this->pos.x;
+        const float yValue = this->pos.y;
 
-        return x > xValue && x < (xValue + this->width) && y < (yValue + this->height) && y > yValue;
+        return x > xValue and x < (xValue + this->width) and y < (yValue + this->height) and y > yValue;
     }
 
     bool UiComponent::inBound(const constant::Vector2D& vec2) const
@@ -387,6 +429,29 @@ namespace pg
         LOG_THIS_MEMBER(DOM);
 
         return inBound(vec2.x, vec2.y);
+    }
+
+    bool UiComponent::inClipBound(float x, float y) const
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        if(not visible)
+            return false;
+
+        // Lockup x and y only once
+        const float xValue = this->pos.x;
+        const float yValue = this->pos.y;
+
+        return x > clipTopLeft.horizontalAnchor and x < clipBottomRight.horizontalAnchor and
+               y > clipTopLeft.verticalAnchor and y < clipBottomRight.verticalAnchor and
+               x > xValue and x < (xValue + this->width) and y < (yValue + this->height) and y > yValue;
+    }
+
+    bool UiComponent::inClipBound(const constant::Vector2D& vec2) const
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        return inClipBound(vec2.x, vec2.y);
     }
 
     void UiComponent::render(MasterRenderer*)
@@ -398,35 +463,35 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
         
-        if(topAnchor != nullptr && bottomAnchor != nullptr)
+        if(hasTopAnchor and hasBottomAnchor)
         {
-            this->height = (bottomAnchor->anchorPoint - bottomMargin) - (topAnchor->anchorPoint - topMargin);
-            this->pos.y = topAnchor->anchorPoint + topMargin;
+            this->height = (bottomAnchor - bottomMargin) - (topAnchor - topMargin);
+            this->pos.y = topAnchor + topMargin;
         }
-        else if(topAnchor != nullptr && bottomAnchor == nullptr)
+        else if(hasTopAnchor and not hasBottomAnchor)
         {
-            this->pos.y = topAnchor->anchorPoint + topMargin;
+            this->pos.y = topAnchor + topMargin;
         }
-        else if(topAnchor == nullptr && bottomAnchor != nullptr)
+        else if(not hasTopAnchor and hasBottomAnchor)
         {
-            this->pos.y = (bottomAnchor->anchorPoint - bottomMargin) - this->height;
+            this->pos.y = (bottomAnchor - bottomMargin) - this->height;
         }
 
-        if(rightAnchor != nullptr && leftAnchor != nullptr)
+        if(hasRightAnchor and hasLeftAnchor)
         {
-            this->width = (rightAnchor->anchorPoint - rightMargin) - (leftAnchor->anchorPoint - leftMargin);
-            this->pos.x = leftAnchor->anchorPoint + leftMargin;
+            this->width = (rightAnchor - rightMargin) - (leftAnchor - leftMargin);
+            this->pos.x = leftAnchor + leftMargin;
         }
-        else if(rightAnchor != nullptr && leftAnchor == nullptr)
+        else if(hasRightAnchor and not hasLeftAnchor)
         {
-            this->pos.x = (rightAnchor->anchorPoint - rightMargin) - this->width;
+            this->pos.x = (rightAnchor - rightMargin) - this->width;
         }
-        else if(rightAnchor == nullptr && leftAnchor != nullptr)
+        else if(not hasRightAnchor and hasLeftAnchor)
         {
-            this->pos.x = leftAnchor->anchorPoint + leftMargin;
+            this->pos.x = leftAnchor + leftMargin;
         }
 
         if(ecsRef)
-            ecsRef->sendEvent(UiComponentInternalChangeEvent{});
+            ecsRef->sendEvent(UiComponentChangeEvent{entityId});
     }
 }

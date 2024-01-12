@@ -6,7 +6,12 @@
 namespace pg
 {
     /** A 64bits unsigned value used for identifiers */
+    // Todo fix this for 32 bits systems (Emscripten)
+    #ifdef __EMSCRIPTEN__
+    typedef size_t _unique_id;
+    #else
     typedef uint_fast64_t _unique_id;
+    #endif
 
     /** A fast 32bits unsigned value */
     typedef uint_fast32_t _uint32;
@@ -82,7 +87,10 @@ namespace pg
         }
 
     private:
+        /** Next id to be generated */
         _unique_id currentId = 3;
+
+        /** Mutex for concurrent access */
         std::mutex m;
     };
 }

@@ -173,7 +173,7 @@ namespace pg
         // Todo: create a serializer for a vector/list/map/arrays (serializeList)
         std::string attribute = "[ ";
         
-        for(unsigned int i = 0; i < modelInfo.nbVertices; i++)
+        for (unsigned int i = 0; i < modelInfo.nbVertices; i++)
             attribute += std::to_string(modelInfo.vertices[i]) + " ";
         
         attribute += "]";
@@ -181,7 +181,7 @@ namespace pg
 
         attribute = "[ ";
         
-        for(unsigned int i = 0; i < modelInfo.nbIndices; i++)
+        for (unsigned int i = 0; i < modelInfo.nbIndices; i++)
             attribute += std::to_string(modelInfo.indices[i]) + " ";
         
         attribute += "]";
@@ -196,13 +196,13 @@ namespace pg
         LOG_THIS(DOM);
 
         auto attribute = serializedString.getAsAttribute();
-        if(attribute.name != "bool")
+        if (attribute.name != "bool")
         {
-            LOG_ERROR(DOM, "Serialized string is not a bool");
+            LOG_ERROR(DOM, "Serialized string is not a bool (" << attribute.name << ")");
             return false;
         }
 
-        if(attribute.value == "true")
+        if (attribute.value == "true")
             return true;
         else if (attribute.value == "false")
             return false;
@@ -219,9 +219,9 @@ namespace pg
         int value = 0;
 
         auto attribute = serializedString.getAsAttribute();
-        if(attribute.name != "int")
+        if (attribute.name != "int")
         {
-            LOG_ERROR(DOM, "Serialized string is not an int");
+            LOG_ERROR(DOM, "Serialized string is not an int (" << attribute.name << ")");
             return value;
         }
 
@@ -239,9 +239,9 @@ namespace pg
         unsigned int value = 0;
 
         auto attribute = serializedString.getAsAttribute();
-        if(attribute.name != "unsigned int")
+        if (attribute.name != "unsigned int")
         {
-            LOG_ERROR(DOM, "Serialized string is not an unsigned int");
+            LOG_ERROR(DOM, "Serialized string is not an unsigned int (" << attribute.name << ")");
             return value;
         }
 
@@ -259,9 +259,9 @@ namespace pg
         float value = 0;
 
         auto attribute = serializedString.getAsAttribute();
-        if(attribute.name != "float")
+        if (attribute.name != "float")
         {
-            LOG_ERROR(DOM, "Serialized string is not a float");
+            LOG_ERROR(DOM, "Serialized string is not a float (" << attribute.name << ")");
             return value;
         }
 
@@ -279,9 +279,9 @@ namespace pg
         double value = 0;
 
         auto attribute = serializedString.getAsAttribute();
-        if(attribute.name != "double")
+        if (attribute.name != "double")
         {
-            LOG_ERROR(DOM, "Serialized string is not a double");
+            LOG_ERROR(DOM, "Serialized string is not a double (" << attribute.name << ")");
             return value;
         }
 
@@ -299,9 +299,9 @@ namespace pg
         size_t value = 0;
 
         auto attribute = serializedString.getAsAttribute();
-        if(attribute.name != "size_t")
+        if (attribute.name != "size_t")
         {
-            LOG_ERROR(DOM, "Serialized string is not a size_t");
+            LOG_ERROR(DOM, "Serialized string is not a size_t (" << attribute.name << ")");
             return value;
         }
 
@@ -318,15 +318,17 @@ namespace pg
 
         std::string value;
 
-        if(serializedString.isNull())
+        if (serializedString.isNull())
+        {
             LOG_ERROR(DOM, "Element is null");
+        }
         else
         {
             auto stringAttribute = serializedString.getAsAttribute();
 
             if(stringAttribute.name != "string")
             {
-                LOG_ERROR(DOM, "String attribute name is not 'string'");
+                LOG_ERROR(DOM, "String attribute name is not 'string' (" << stringAttribute.name << ")");
                 
                 return std::string();
             }
@@ -359,7 +361,7 @@ namespace pg
 
     void Archive::setAttribute(const std::string& value, const std::string& type)
     {
-        if(type.find(ATTRIBUTECONST) != std::string::npos)
+        if (type.find(ATTRIBUTECONST) != std::string::npos)
         {
             LOG_ERROR(DOM, "Invalid attribute, " + std::string(ATTRIBUTECONST) + " is present in the string. Archive will not register it !");
 
@@ -375,7 +377,7 @@ namespace pg
         bool firstLine = true;
 
         // Remove any std::endl and replace them with the archive.endl so the parser doesn't mix up classes and attribute !
-        while(std::getline(iss, line))
+        while (std::getline(iss, line))
         {
             if(firstLine)
                 firstLine = false;
@@ -393,9 +395,9 @@ namespace pg
         UnserializedObject::Attribute attribute;
 
         // Check if the isClass is set to true, then it is a class object and not a attribute object so we return a blank attribute and raise an error.
-        if(isClass)
+        if (isClass)
         {
-            LOG_ERROR(DOM, "Object is not an attribute");
+            LOG_ERROR(DOM, "Object: " << objectName << " ( " << objectType << ") is not an attribute");
 
             return UnserializedObject::Attribute();
         }
@@ -403,7 +405,7 @@ namespace pg
         // Lockup for the ATTRIBUTECONST
         auto ATTRIBUTECONSTPos = serializedString.find(ATTRIBUTECONST);
 
-        if(ATTRIBUTECONSTPos == std::string::npos)
+        if (ATTRIBUTECONSTPos == std::string::npos)
         {
             LOG_ERROR(DOM, "The serializedString is missing the 'ATTRIBUTECONST' !");
 
@@ -414,20 +416,20 @@ namespace pg
 
         auto startAttributeValue = serializedString.find("{", ATTRIBUTECONSTPos);
 
-        if(startAttributeValue == std::string::npos)
+        if (startAttributeValue == std::string::npos)
         {
             LOG_ERROR(DOM, "The serializedString is missing the '{' that start the attribute !");
 
             return UnserializedObject::Attribute();
         }
 
-        if(startAttributeValue - ATTRIBUTECONSTPos < 2)
+        if (startAttributeValue - ATTRIBUTECONSTPos < 2)
         {
             LOG_ERROR(DOM, "The serializedString is ill formated 'ATTRIBUTECONST' and '{' should at least be separeted by two characters !");
 
             return UnserializedObject::Attribute();
         }
-        else if(startAttributeValue - ATTRIBUTECONSTPos == 2)
+        else if (startAttributeValue - ATTRIBUTECONSTPos == 2)
         {
             attribute.name = "";
         }
@@ -438,7 +440,7 @@ namespace pg
 
         auto endAttributeValue = serializedString.rfind("}");
 
-        if(endAttributeValue == std::string::npos)
+        if (endAttributeValue == std::string::npos)
         {
             LOG_ERROR(DOM, "The serializedString is missing the '}' that end the attribute !");
 
@@ -455,7 +457,7 @@ namespace pg
         auto isObjectName = [=](UnserializedObject obj) { return obj.objectName == key; }; 
         auto it = std::find_if(children.begin(), children.end(), isObjectName);
 
-        if(it != children.end())
+        if (it != children.end())
             return *it;
         else
         {
@@ -469,7 +471,7 @@ namespace pg
         auto isObjectName = [=](const UnserializedObject& obj) { return obj.objectName == key; }; 
         const auto& it = std::find_if(children.begin(), children.end(), isObjectName);
 
-        if(it != children.end())
+        if (it != children.end())
             return *it;
         else
         {
@@ -478,9 +480,9 @@ namespace pg
         }
     }
 
-    const UnserializedObject& UnserializedObject::operator[](unsigned int id)
+    const UnserializedObject& UnserializedObject::operator[](size_t id)
     {
-        if(id < children.size())
+        if (id < children.size())
             return children.at(id);
         else
         {
@@ -489,9 +491,9 @@ namespace pg
         }
     }
 
-    const UnserializedObject& UnserializedObject::operator[](unsigned int id) const
+    const UnserializedObject& UnserializedObject::operator[](size_t id) const
     {
-        if(id < children.size())
+        if (id < children.size())
             return children.at(id);
         else
         {
@@ -534,7 +536,7 @@ namespace pg
         children.emplace_back();
 
         // Check if their is at least one line in the serialized string
-        if(!std::getline(iss, currentLine))
+        if (not std::getline(iss, currentLine))
         {
             LOG_ERROR(DOM, "Serialized string is empty for object: '" + objectName + "'");
 
@@ -543,19 +545,50 @@ namespace pg
         }
         else
         {
-            LOG_INFO(DOM, currentLine);
-
             // Then calculate the indent of the children
             classChildIndent = nbLeadingSpaces("\t" + currentLine);
+
+            // This can happen if the class is actually a basic type which is only an attribute !
+            if (currentLine.find(ATTRIBUTECONST) != std::string::npos)
+            {
+                isClass = false;
+                return;
+            }
 
             // Check if the name given to the constructor match to the class in the serialized string
             pos = currentLine.find(delimiter);
 
             // If ":" is not found for the class declaration then it is a unnamed one
-            if(pos == std::string::npos)
+            if (pos == std::string::npos)
+            {
                 tempObjectName = "";
+
+                // This should always be true
+                if (classChildIndent > 0)
+                    pos = classChildIndent - 1;
+                else
+                    pos = 0;
+            }
             else // Else the name of the object is the first part of the string
+            {
                 tempObjectName = trim(currentLine.substr(0, pos));
+                pos += 2;
+            }
+
+            auto endPos = currentLine.find(" {");
+
+            if (endPos == std::string::npos)
+            {
+                LOG_ERROR(DOM, "Error happened when parsing class '" + objectName + "' missing { after class type");
+                
+                isNullObject = true;
+                return;
+            }
+            else
+            {
+                objectType = currentLine.substr(pos, endPos - 1);
+                LOG_INFO(DOM, "Found class type '" + objectType + "'");
+            }
 
             // If the object name doesn't match we throw an error
             if(tempObjectName != objectName)
@@ -567,15 +600,13 @@ namespace pg
             }
 
             // Read the next line (For a class their should always be at least 2 lines, one for constructor and the last "}" to indicate the end of the class)
-            if(!std::getline(iss, currentLine))
+            if(not std::getline(iss, currentLine))
             {
                 LOG_ERROR(DOM, "Serialized string doesn't end correctly for object: '" + objectName + "'");
 
                 isNullObject = true;
                 return;
             }
-
-            LOG_INFO(DOM, currentLine);
 
             // If the second line of the string is "{" then it means that the class doesn't have any children so we can return early.
             const auto trimmed = trim(currentLine);
@@ -589,18 +620,16 @@ namespace pg
 
         }
             
-        while(std::getline(iss, nextLine))
+        while (std::getline(iss, nextLine))
         {
-            LOG_INFO(DOM, "Current line: " + currentLine + ", and current indent: " + std::to_string(currentIndent));
-
             nextIndent = nbLeadingSpaces(nextLine);
-            if(nextIndent > classChildIndent and startOfClass == false and lockupClass == false)
+            if (nextIndent > classChildIndent and startOfClass == false and lockupClass == false)
                 startOfClass = true;
 
-            if(startOfClass)
+            if (startOfClass)
             {
                 // If lockupAttribute is true, then we finished processing the previous attribute
-                if(lockupAttribute)
+                if (lockupAttribute)
                 {
                     children.emplace_back(tempSerializedString, tempAttributeName, false);
                     lockupAttribute = false;
@@ -610,18 +639,21 @@ namespace pg
                 pos = currentLine.find(delimiter);
 
                 // If ":" is not found for the class declaration then it is a unnamed one
-                if(pos == std::string::npos)
+                if (pos == std::string::npos)
+                {
                     tempObjectName = "";
+                }
                 else // Else the name of the object is the first part of the string
+                {
                     tempObjectName = trim(currentLine.substr(0, pos));
-
-                LOG_INFO(DOM, "Child Object name: '" + tempObjectName + "'");
+                }
 
                 // Todo: check if we need to retrive the class name from the serialized object
 
                 // Look up for another ":" if found the serialized string is ill formated
                 pos = currentLine.find(delimiter, pos + delimiter.length());
-                if(pos != std::string::npos)
+    
+                if (pos != std::string::npos)
                 {
                     LOG_ERROR(DOM, "Class string is ill formated, current line possess multiple ':' '" + currentLine + "'");
 
@@ -641,10 +673,8 @@ namespace pg
                     tempSerializedString += currentLine + "\n";
 
                     const auto trimmed = trim(currentLine);
-                    if((classChildIndent == currentIndent) and (trimmed == "}" or trimmed =="},"))
+                    if ((classChildIndent == currentIndent) and (trimmed == "}" or trimmed =="},"))
                     {
-                        LOG_INFO(DOM, "Create a new child object with the name: '" + tempObjectName + "'");
-
                         children.emplace_back(tempSerializedString, tempObjectName);
                         lockupClass = false;
                     }
@@ -692,7 +722,7 @@ namespace pg
                     // The current line is part of the body of the attribute
                     else if(pos == std::string::npos and lockupAttribute == true)
                     {
-                        // Trim the line by the current number of indent to make it back to the origanl format before making the value an attribute !
+                        // Trim the line by the current number of indent to make it back to the original format before making the value an attribute !
                         tempSerializedString += currentLine.substr(currentIndent) + "\n";
                     }
                     
@@ -732,7 +762,7 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
-        TextFile file = FileAccessor::openTextFile(filename);
+        TextFile file = UniversalFileAccessor::openTextFile(filename);
         this->file = file;
 
         readFile(file.data);
@@ -747,6 +777,33 @@ namespace pg
         registerToFile();
     }
 
+    void Serializer::setFile(const TextFile& file)
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        std::lock_guard<std::mutex> lock(mutex);
+
+        serializedMap.clear();
+
+        this->file = file;
+
+        readFile(file.data);
+    }
+
+    void Serializer::setFile(const std::string& path)
+    {
+        LOG_THIS_MEMBER(DOM);
+
+        std::lock_guard<std::mutex> lock(mutex);
+
+        serializedMap.clear();
+
+        TextFile file = UniversalFileAccessor::openTextFile(path);
+        this->file = file;
+
+        readFile(file.data);
+    }
+
     void Serializer::readFile(const std::string& data)
     {
         LOG_THIS_MEMBER(DOM);
@@ -757,54 +814,72 @@ namespace pg
         std::string objectName = ""; 
         std::string delimiter = ": ";
         size_t pos;
-        
-        // First line should always be the beginning of a class declaration
-        bool startOfClass = true;
+
+        bool startOfClass;
 
         bool errorHappened = false;
 
         std::istringstream stream(data);
 
-        while(std::getline(stream, line))
+        // First line of the file should always be the version number
+        std::getline(stream, line);
+
+        // Serialization format for version number 1.0
+        if (line == "1.0")
         {
-            if(startOfClass)
+            // First line of data should always be the beginning of a class declaration
+            startOfClass = true;
+
+            while (std::getline(stream, line))
             {
-                pos = line.find(delimiter);
-
-                if(pos == std::string::npos)
+                if (startOfClass)
                 {
-                    errorHappened = true;
-                    break;
-                }
-                
-                objectName = line.substr(0, pos);
+                    pos = line.find(delimiter);
 
-                pos = line.find(delimiter, pos + delimiter.length());
-
-                if(pos != std::string::npos)
-                {
-                    errorHappened = true;
-                    break;
-                }
-
-                serializedString = line + '\n';
-                startOfClass = false;
-            }
-            else
-            {
-                serializedString += line + '\n';
-
-                if(line == "}")
-                {
-                    serializedMap[objectName] = serializedString;
-                    startOfClass = true;
-                }
+                    if(pos == std::string::npos)
+                    {
+                        errorHappened = true;
+                        break;
+                    }
                     
+                    objectName = line.substr(0, pos);
+
+                    pos = line.find(delimiter, pos + delimiter.length());
+
+                    // This can happen if the class is actually a basic type which is only an attribute !
+                    if (line.find(ATTRIBUTECONST) != std::string::npos)
+                    {
+                        serializedString = line + '\n';
+
+                        serializedMap[objectName] = serializedString;
+                        continue;
+                    }
+
+                    if(pos != std::string::npos)
+                    {
+                        errorHappened = true;
+                        break;
+                    }
+
+                    serializedString = line + '\n';
+                    startOfClass = false;
+                }
+                else
+                {
+                    serializedString += line + '\n';
+
+                    if(line == "}")
+                    {
+                        serializedMap[objectName] = serializedString;
+                        startOfClass = true;
+                    }
+                        
+                }
             }
         }
-
+        
         if(errorHappened)
-            { LOG_ERROR(DOM, "Error happened when parsing: " + file.filename); }
+            { LOG_ERROR(DOM, "Error happened when parsing: " + file.filepath); }
     }
 
     void Serializer::registerSerialized(const std::string& objectName, const std::stringstream& serializedString)
@@ -823,9 +898,12 @@ namespace pg
 
         std::ostringstream stream;
 
-        for(const auto& serializedString : serializedMap)
+        // First line of the serialized file should be the version id of the serializer
+        stream << Serializer::version() << std::endl;
+
+        for (const auto& serializedString : serializedMap)
             stream << serializedString.first << ": " << serializedString.second;
 
-        FileAccessor::writeToFile(file, stream.str());
+        UniversalFileAccessor::writeToFile(file, stream.str());
     }
 }

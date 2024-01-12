@@ -15,11 +15,11 @@ namespace pg
     // Forward declaration
     namespace constant
     {
-        class Vector2D;
+        struct Vector2D;
     }
 
     class MasterRenderer;
-    class UiComponentSystem;
+    struct UiComponentSystem;
 
     /**
      * @class UiComponent
@@ -30,24 +30,17 @@ namespace pg
      */
     class UiComponent : public Ctor
     {
-        friend class UiComponentSystem;
+    friend struct UiComponentSystem;
 
         // Type definition
     private:
-        // Todo use this struct instead of a plain uisize to avoid possible problems with user
-        // passing a plain float or a deletable uisize where an anchor was expected
-        // struct Anchor
-        // {
-        //     UiSize anchorPoint;
-        // };
-        
         /**
          * @brief A struct describing the two anchor points needed to represent a corner
          */
         struct Corner
         {
-            const UiAnchor* verticalAnchor;       ///< The vertical anchor point of the corner
-            const UiAnchor* horizontalAnchor;     ///< The horizontal anchor point of the corner
+            UiSize verticalAnchor;       ///< The vertical anchor point of the corner
+            UiSize horizontalAnchor;     ///< The horizontal anchor point of the corner
         };
 
         // Public interface
@@ -56,22 +49,23 @@ namespace pg
         UiPosition pos;
 
         /** The width of the object */
-        UiSize width;
+        UiSize width = AnchorDir::Width;
         /** The height of the object */
-        UiSize height;
+        UiSize height = AnchorDir::Height;
 
         /** The bounding box of the object */
         const UiFrame frame = UiFrame(pos.x, pos.y, pos.z, width, height);
 
         // The 4 anchors points of the object
         /** Top anchor points of the object */
-        const UiAnchor top    = {0, AnchorDir::Top,    pos.y};
+        // Todo make this const
+        UiSize top    = pos.y;
         /** Right anchor points of the object */
-        const UiAnchor right  = {0, AnchorDir::Right,  pos.x + width};
+        UiSize right  = pos.x + width;
         /** Bottom anchor points of the object */
-        const UiAnchor bottom = {0, AnchorDir::Bottom, pos.y + height};
+        UiSize bottom = pos.y + height;
         /** Left anchor points of the object */
-        const UiAnchor left   = {0, AnchorDir::Left,   pos.x};
+        UiSize left   = pos.x;
 
         // The 4 corner points of the object
         /** Top left corner of the object */
@@ -85,20 +79,32 @@ namespace pg
 
         // The margin to the given anchor point
         /** The margin from the top anchor point */
-        UiSize topMargin;
+        UiSize topMargin = AnchorDir::TMargin;
         /** The margin from the right anchor point */
-        UiSize rightMargin;
+        UiSize rightMargin = AnchorDir::RMargin;
         /** The margin from the bottom anchor point */
-        UiSize bottomMargin;
+        UiSize bottomMargin = AnchorDir::BMargin;
         /** The margin from the left anchor point */
-        UiSize leftMargin;
+        UiSize leftMargin = AnchorDir::LMargin;
+
+        // The top left point of the clip rectangle of this component
+        Corner clipTopLeft;
+
+        // The bottom right point of the clip rectangle of this component
+        Corner clipBottomRight;
 
         /**
          * @brief Construct a new Ui Component object
          * 
          * This construct an empty ui component at coord (0.0f, 0.0f, 0.0f) of size 0, 0
          */
-        UiComponent() { }
+        UiComponent()
+        {
+            top = AnchorDir::Top;
+            right = AnchorDir::Right;
+            bottom = AnchorDir::Bottom;
+            left = AnchorDir::Left;
+        }
         
         /**
          * @brief Construct a new Ui Component object
@@ -108,7 +114,13 @@ namespace pg
          * This construct an ui component from a given reference
          * The position and size of the newly created object is automatically updated on the fly
          */
-        UiComponent(const UiFrame& frame) : pos(&frame.pos), width(&frame.w), height(&frame.h) { }
+        UiComponent(const UiFrame& frame) : pos(&frame.pos), width(&frame.w), height(&frame.h)
+        {
+            top = AnchorDir::Top;
+            right = AnchorDir::Right;
+            bottom = AnchorDir::Bottom;
+            left = AnchorDir::Left;
+        }
 
         /**
          * @brief Construct a new Ui Component object
@@ -130,21 +142,28 @@ namespace pg
 
             entityId = entity->id;
 
-            top.id    = entityId;
-            right.id  = entityId;
-            bottom.id = entityId;
-            left.id   = entityId;
+            top.setEntity(entityId, ecsRef);
+            right.setEntity(entityId, ecsRef);
+            bottom.setEntity(entityId, ecsRef);
+            left.setEntity(entityId, ecsRef);
 
-            pos.setEntityId(entityId);
+            topAnchor.setEntity(entityId, ecsRef);
+            rightAnchor.setEntity(entityId, ecsRef);
+            bottomAnchor.setEntity(entityId, ecsRef);
+            leftAnchor.setEntity(entityId, ecsRef);
 
-            width.setEntityId(entityId);
-            height.setEntityId(entityId);
+            pos.setEntity(entityId, ecsRef);
 
-            topMargin.setEntityId(entityId);
-            leftMargin.setEntityId(entityId);
-            rightMargin.setEntityId(entityId);
-            bottomMargin.setEntityId(entityId);
+            width.setEntity(entityId, ecsRef);
+            height.setEntity(entityId, ecsRef);
+
+            topMargin.setEntity(entityId, ecsRef);
+            leftMargin.setEntity(entityId, ecsRef);
+            rightMargin.setEntity(entityId, ecsRef);
+            bottomMargin.setEntity(entityId, ecsRef);
         }
+
+        inline static std::string getType() { return "UiComponent"; } 
 
         /**
          * @brief Destroy the Ui Component object
@@ -153,34 +172,61 @@ namespace pg
 
         // Setter methods for position and size properties
     public:
-        inline void setX(const float& value)                { pos.x = value; update(); }
-        inline void setY(const float& value)                { pos.y = value; update(); }
-        inline void setZ(const float& value)                { pos.z = value; update(); }
+        inline void setX(const float& value)              { pos.x = value; update(); }
+        inline void setY(const float& value)              { pos.y = value; update(); }
+        inline void setZ(const float& value)              { pos.z = value; update(); }
 
-        inline void setX(const UiSize& value)               { pos.x = value; update(); }
-        inline void setY(const UiSize& value)               { pos.y = value; update(); }
-        inline void setZ(const UiSize& value)               { pos.z = value; update(); }
+        inline void setX(const UiSize& value)             { pos.x = value; update(); }
+        inline void setY(const UiSize& value)             { pos.y = value; update(); }
+        inline void setZ(const UiSize& value)             { pos.z = value; update(); }
 
-        inline void setWidth(const float& value)            { width = value; update(); }
-        inline void setHeight(const float& value)           { height = value; update(); }
+        inline void setWidth(const float& value)          { width = value;  update(); }
+        inline void setHeight(const float& value)         { height = value; update(); }
 
-        inline void setWidth(const UiSize& value)           { width = value; update(); }
-        inline void setHeight(const UiSize& value)          { height = value; update(); }
+        inline void setWidth(const UiSize& value)         { width = value;  update(); }
+        inline void setHeight(const UiSize& value)        { height = value; update(); }
 
-        inline void setTopAnchor(const UiAnchor& anchor)    { topAnchor = &anchor; update(); }
-        inline void setRightAnchor(const UiAnchor& anchor)  { rightAnchor = &anchor; update(); }
-        inline void setBottomAnchor(const UiAnchor& anchor) { bottomAnchor = &anchor; update(); }
-        inline void setLeftAnchor(const UiAnchor& anchor)   { leftAnchor = &anchor; update(); }
+        inline void setVisibility(const bool value)       { visible = value; update(); }
 
-        inline void setTopMargin(const int& value)          { topMargin = value; update(); }
-        inline void setRightMargin(const int& value)        { rightMargin = value; update(); }
-        inline void setBottomMargin(const int& value)       { bottomMargin = value; update(); }
-        inline void setLeftMargin(const int& value)         { leftMargin = value; update(); }
+        // Todo manage all case where has...Anchor get removed : (Add user function to remove anchor, when setting xyz ...)
+        inline void setTopAnchor(const UiSize& anchor)    { topAnchor = &anchor;    hasTopAnchor = true;    update(); }
+        inline void setRightAnchor(const UiSize& anchor)  { rightAnchor = &anchor;  hasRightAnchor = true;  update(); }
+        inline void setBottomAnchor(const UiSize& anchor) { bottomAnchor = &anchor; hasBottomAnchor = true; update(); }
+        inline void setLeftAnchor(const UiSize& anchor)   { leftAnchor = &anchor;   hasLeftAnchor = true;   update(); }
 
-        inline void setTopMargin(const UiSize& value)       { topMargin = value; update(); }
-        inline void setRightMargin(const UiSize& value)     { rightMargin = value; update(); }
-        inline void setBottomMargin(const UiSize& value)    { bottomMargin = value; update(); }
-        inline void setLeftMargin(const UiSize& value)      { leftMargin = value; update(); }
+        inline void setTopMargin(const int& value)        { topMargin = value;    update(); }
+        inline void setRightMargin(const int& value)      { rightMargin = value;  update(); }
+        inline void setBottomMargin(const int& value)     { bottomMargin = value; update(); }
+        inline void setLeftMargin(const int& value)       { leftMargin = value;   update(); }
+
+        inline void setTopMargin(const UiSize& value)     { topMargin = value;    update(); }
+        inline void setRightMargin(const UiSize& value)   { rightMargin = value;  update(); }
+        inline void setBottomMargin(const UiSize& value)  { bottomMargin = value; update(); }
+        inline void setLeftMargin(const UiSize& value)    { leftMargin = value;   update(); }
+
+        // Used to set a custom clip rect 
+        inline void setClipRect(const Corner& topLeft, const Corner& bottomRight) { isClippedToWindow = false; clipTopLeft = topLeft; clipBottomRight = bottomRight; update(); }
+
+        // Update clip rect when the window is changed (only if the component is clipped to the window)
+        inline void updateWindowRect(const Corner& topLeft, const Corner& bottomRight)
+        {
+            if (isClippedToWindow)
+            {
+                clipTopLeft = topLeft;
+                clipBottomRight = bottomRight;
+                update();
+            }
+        }
+
+        // Set back the clip rect to the window (instead of a custom one)
+        inline void clipBackToWindow(const Corner& topLeft, const Corner& bottomRight)
+        {
+            isClippedToWindow = true;
+            
+            clipTopLeft = topLeft;
+            clipBottomRight = bottomRight;
+            update();
+        }
 
         inline void fill(UiComponent *component)
         {
@@ -207,8 +253,11 @@ namespace pg
 
         // Public helper methods
     public:
-        bool inBound(int x, int y) const;
+        bool inBound(float x, float y) const;
         bool inBound(const constant::Vector2D& vec2) const;
+
+        bool inClipBound(float x, float y) const;
+        bool inClipBound(const constant::Vector2D& vec2) const;
 
         const bool& isVisible() const { return visible; }
 
@@ -223,34 +272,51 @@ namespace pg
         /** Flag indicating if the uicomponent should be rendered. */
         bool visible = true;
 
+    public:
+        bool hasTopAnchor = false;
+        bool hasRightAnchor = false;
+        bool hasBottomAnchor = false;
+        bool hasLeftAnchor = false;
+
     private:
         friend void serialize<>(Archive& archive, const UiComponent& value);
 
         // Pointer to anchors where this object is tied
 
         /** Pointer to the top attached anchor */
-        const UiAnchor* topAnchor    = nullptr;
+        UiSize topAnchor;
         /** Pointer to the right attached anchor */
-        const UiAnchor* rightAnchor  = nullptr;
+        UiSize rightAnchor;
         /** Pointer to the bottom attached anchor */
-        const UiAnchor* bottomAnchor = nullptr;
+        UiSize bottomAnchor;
         /** Pointer to the left attached anchor */
-        const UiAnchor* leftAnchor   = nullptr;
+        UiSize leftAnchor;
+
+        bool isClippedToWindow = true;
 
         EntitySystem* ecsRef = nullptr;
 
         _unique_id entityId = 0;
     };
 
-    struct UiComponentInternalChangeEvent {};
+    template <>
+    void serialize(Archive& archive, const AnchorDir& value);
+
+    template <>
+    void serialize(Archive& archive, const UiPosition& value);
+
+    template <>
+    void serialize(Archive& archive, const UiFrame& value);
+
+    template <>
+    void serialize(Archive& archive, const UiComponent& value);
 
     struct UiComponentChangeEvent
     {
         _unique_id id;
-        UiComponent *component;
     };
 
-    struct UiComponentSystem : public System<Own<UiComponent>, Listener<UiComponentInternalChangeEvent>, NamedSystem>
+    struct UiComponentSystem : public System<Own<UiComponent>, Listener<ResizeEvent>, Listener<UiComponentInternalChangeEvent>, Listener<UiSizeChangeEvent>, NamedSystem>
     {
         struct UiOldValue
         {
@@ -258,9 +324,9 @@ namespace pg
 
             inline void operator=(const UiComponent& comp)
             {
-                x = static_cast<UiSize>(comp.pos.x); 
-                y = static_cast<UiSize>(comp.pos.y);
-                z = static_cast<UiSize>(comp.pos.z);
+                x = comp.pos.x; 
+                y = comp.pos.y;
+                z = comp.pos.z;
                 w = comp.width;
                 h = comp.height;
             }
@@ -279,31 +345,87 @@ namespace pg
 
         virtual std::string getSystemName() const override { return "Ui System"; }
 
-        // Set updated to true on add also !
+        // Todo Set updated to true on add also !
 
-        virtual void onEvent(const UiComponentInternalChangeEvent&) override
+        virtual void onEvent(const ResizeEvent& event) override
         {
-            updated = true;
+            std::lock_guard lock(m);
+
+            LOG_INFO("Ui internals", "Window resizing");
+
+            for (const auto& comp : view<UiComponent>())
+            {
+                comp->updateWindowRect({0.0f, 0.0f}, {event.width, event.height});
+            }
+        }
+
+        virtual void onEvent(const UiComponentInternalChangeEvent& event) override
+        {
+            std::lock_guard lock(m);
+
+            LOG_INFO("Ui internals", "Entity " << event.parent << " is a parent of " << event.child);
+
+            auto& vec = parentalMap[event.parent];
+            
+            auto it = std::find(vec.begin(), vec.end(), event.child);
+
+            if(it == vec.end())
+                vec.push_back(event.child);
+        }
+
+        virtual void onEvent(const UiSizeChangeEvent& event) override
+        {
+            std::unordered_map<_unique_id, std::vector<_unique_id>>::iterator it;
+            std::vector<_unique_id> vec;
+
+            // Todo update all the parent map at once
+            {
+                std::lock_guard lock(m);
+
+                it = parentalMap.find(event.id);
+                
+                if(it != parentalMap.end())
+                {
+                    vec = it->second;
+                }
+
+                // for (const auto& childId : vec)
+                // {
+                //     auto child = atEntity<UiComponent>(childId);
+
+                //     // Todo set dirty only the child UiSize and not the whole ui component itself !
+
+                //     if (child)
+                //         child->setDirty();
+                // }
+            }
+            
+            for(auto& child : vec)
+            {
+                ecsRef->sendEvent(UiComponentChangeEvent{child});
+            }
         }
 
         virtual void execute() override
         {
-            if(updated)
-            {
-                for(auto comp : view<UiComponent>())
-                {
-                    if(not oldMap[comp->entityId].isEqual(*comp))
-                    {
-                        oldMap[comp->entityId] = *comp;
-                        ecsRef->sendEvent(UiComponentChangeEvent{comp->entityId, comp});
-                    }
-                }
+            // if(updated)
+            // {
+            //     for(auto comp : view<UiComponent>())
+            //     {
+            //         if(not oldMap[comp->entityId].isEqual(*comp))
+            //         {
+            //             oldMap[comp->entityId] = *comp;
+            //             ecsRef->sendEvent(UiComponentChangeEvent{comp->entityId, comp});
+            //         }
+            //     }
 
-                updated = false;
-            }
+            //     updated = false;
+            // }
         }
 
-        std::unordered_map<_unique_id, UiOldValue> oldMap;
+        std::unordered_map<_unique_id, std::vector<_unique_id>> parentalMap;
+
+        std::mutex m;
 
         bool updated = false;
     };

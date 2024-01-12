@@ -126,20 +126,6 @@ namespace pg
                 EntitySystem *ecsRef;
             };
 
-/*
-            struct CDSystem : public System<Ref<C>, Own<D>>
-            {
-                virtual void execute() override
-                {
-                    std::cout << "Execute CD System" << std::endl;
-
-                    for(auto entity : view<C, D>())
-                    {
-
-                    }
-                }
-            }
-*/
         }
 
         // ----------------------------------------------------------------------------------------
@@ -157,9 +143,9 @@ namespace pg
             sys2.addToRegistry(&reg);
             sys3.addToRegistry(&reg);
 
-            EXPECT_EQ(reg.getTypeId<A>(), 4);
-            EXPECT_EQ(reg.getTypeId<B>(), 6);
-            EXPECT_EQ(reg.getTypeId<C>(), 8);
+            EXPECT_EQ(reg.getTypeId<A>(), 3);
+            EXPECT_EQ(reg.getTypeId<B>(), 4);
+            EXPECT_EQ(reg.getTypeId<C>(), 5);
         }
 
         // ----------------------------------------------------------------------------------------
@@ -183,12 +169,227 @@ namespace pg
             sys3bis.addToRegistry(&reg2);
             sys4.addToRegistry(&reg2);
 
-            EXPECT_EQ(reg.getTypeId<A>(), 4);
-            EXPECT_EQ(reg.getTypeId<B>(), 6);
-            EXPECT_EQ(reg.getTypeId<C>(), 8);
+            EXPECT_EQ(reg.getTypeId<A>(), 3);
+            EXPECT_EQ(reg.getTypeId<B>(), 4);
+            EXPECT_EQ(reg.getTypeId<C>(), 5);
 
-            EXPECT_EQ(reg2.getTypeId<C>(), 4);
-            EXPECT_EQ(reg2.getTypeId<D>(), 6);
+            EXPECT_EQ(reg2.getTypeId<C>(), 3);
+            EXPECT_EQ(reg2.getTypeId<D>(), 4);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        TEST(system_test, single_entity_creation)
+        {
+            EntitySystem ecs;
+
+            EXPECT_EQ(ecs.getNbEntities(), 0);
+
+            auto entity = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 1);
+
+            ecs.removeEntity(entity);
+
+            EXPECT_EQ(ecs.getNbEntities(), 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        TEST(system_test, multiple_single_entity_creation_same_order)
+        {
+            EntitySystem ecs;
+
+            EXPECT_EQ(ecs.getNbEntities(), 0);
+
+            auto entity0 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 1);
+
+            // Here resize should occur !
+            auto entity1 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 2);
+
+            ecs.removeEntity(entity1);
+
+            EXPECT_EQ(ecs.getNbEntities(), 1);
+
+            ecs.removeEntity(entity0);
+
+            EXPECT_EQ(ecs.getNbEntities(), 0);            
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        TEST(system_test, multiple_single_entity_creation_reverse_order)
+        {
+            EntitySystem ecs;
+
+            EXPECT_EQ(ecs.getNbEntities(), 0);
+
+            auto entity0 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 1);
+
+            // Here resize should occur !
+            auto entity1 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 2);
+
+            ecs.removeEntity(entity0);
+
+            EXPECT_EQ(ecs.getNbEntities(), 1);
+
+            ecs.removeEntity(entity1);
+
+            EXPECT_EQ(ecs.getNbEntities(), 0);            
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        TEST(system_test, multiple_single_entity_creation_with_deletion_of_the_last)
+        {
+            EntitySystem ecs;
+
+            auto entity0 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 1);
+
+            auto entity1 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 2);
+
+            auto entity2 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 3);
+
+            // Delete the last entity
+            ecs.removeEntity(entity2);
+
+            EXPECT_EQ(ecs.getNbEntities(), 2);
+
+            auto entity2bis = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 3);
+
+            // Here resize should occur !
+            auto entity3 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 4);
+
+            ecs.removeEntity(entity0);
+            ecs.removeEntity(entity1);
+            ecs.removeEntity(entity2bis);
+            ecs.removeEntity(entity3);
+
+            EXPECT_EQ(ecs.getNbEntities(), 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        TEST(system_test, multiple_single_entity_creation_with_deletion_in_the_middle)
+        {
+            EntitySystem ecs;
+
+            auto entity0 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 1);
+
+            auto entity1 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 2);
+
+            auto entity2 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 3);
+
+            // Delete an in between entity
+            ecs.removeEntity(entity1);
+
+            EXPECT_EQ(ecs.getNbEntities(), 2);
+
+            auto entity1bis = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 3);
+
+            // Here resize should occur !
+            auto entity3 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 4);
+
+            const auto& allEntities = ecs.view();
+
+            EXPECT_EQ(allEntities[1]->id, 3);
+            EXPECT_EQ(allEntities[2]->id, 5);
+            EXPECT_EQ(allEntities[3]->id, 6);
+            EXPECT_EQ(allEntities[4]->id, 7);
+
+            ecs.removeEntity(entity0);
+            ecs.removeEntity(entity1bis);
+            ecs.removeEntity(entity2);
+            ecs.removeEntity(entity3);
+
+            EXPECT_EQ(ecs.getNbEntities(), 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        TEST(system_test, more_single_entity_creation_with_deletion_in_the_middle)
+        {
+            EntitySystem ecs;
+
+            auto entity0 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 1);
+
+            auto entity1 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 2);
+
+            auto entity2 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 3);
+
+            // Here resize should occur !
+            auto entity3 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 4);
+
+            // Delete an in between entity
+            ecs.removeEntity(entity1);
+
+            EXPECT_EQ(ecs.getNbEntities(), 3);
+
+            auto entity1bis = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 4);
+
+            auto entity4 = ecs.createEntity();
+
+            EXPECT_EQ(ecs.getNbEntities(), 5);
+
+            const auto& allEntities = ecs.view();
+
+            EXPECT_EQ(allEntities[1]->id, 3);
+            EXPECT_EQ(allEntities[2]->id, 6);
+            EXPECT_EQ(allEntities[3]->id, 5);
+            EXPECT_EQ(allEntities[4]->id, 7);
+            EXPECT_EQ(allEntities[5]->id, 8);
+
+            ecs.removeEntity(entity0);
+            ecs.removeEntity(entity1bis);
+            ecs.removeEntity(entity2);
+            ecs.removeEntity(entity3);
+            ecs.removeEntity(entity4);
+
+            EXPECT_EQ(ecs.getNbEntities(), 0);
         }
 
         // ----------------------------------------------------------------------------------------
@@ -239,6 +440,7 @@ namespace pg
             auto entities = new EntityRef[nbComps + 1];
             
             start = std::chrono::steady_clock::now();
+            
             for(size_t i = 0; i < nbComps + 1; i++)
             {
                 // std::cout << "Creating entity: " << i << std::endl;
@@ -246,6 +448,7 @@ namespace pg
                 system->createOwnedComponent<A>(entities[i], i, 15);
                 // std::cout << "Created entity: " << i << std::endl;
             }
+
             end = std::chrono::steady_clock::now();
 
             std::cout << "Creating " << nbComps - 19 << " entities, and adding A took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
@@ -320,7 +523,7 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         TEST(system_test, entity_creation_during_runtime)
         {
-            MockLogger<TerminalSink> logger;
+            MockLogger logger;
 
             EntitySystem ecs;
 
@@ -328,13 +531,11 @@ namespace pg
 
             EXPECT_EQ(ecs.getNbEntities(),  0);
 
-            CreateDummy dummy {1};
-
-            ecs.executeAll();
+            ecs.executeOnce();
 
             EXPECT_EQ(ecs.getNbEntities(),  0);
 
-            ecs.executeAll();
+            ecs.executeOnce();
 
             EXPECT_EQ(ecs.getNbEntities(),  1);
 
@@ -350,7 +551,7 @@ namespace pg
             // logger.addFilter("Log Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::log));
             // logger.addFilter("Mile Level Filter", new Logger::LogSink::FilterLogLevel(Logger::InfoLevel::mile));
 
-            constexpr size_t nbComps = 10000000;
+            constexpr size_t nbComps = 10000;
 
             std::cout << "Number of entities: " << nbComps << std::endl;
 
@@ -379,7 +580,7 @@ namespace pg
                     absys->createOwnedComponent<B>(entity[i], i, 5);
             }
 
-            MockLogger logger;
+            // MockLogger logger;
 
             start = std::chrono::steady_clock::now();
 

@@ -1,0 +1,35 @@
+#version 330 core
+
+layout (location = 0) in vec3 aPos;
+
+layout (location = 2) in vec3 aWorldPos;
+layout (location = 3) in vec2 aSize;
+layout (location = 4) in vec3 aColors;
+
+uniform mat4 model;
+uniform mat4 scale;
+uniform mat4 view;
+uniform mat4 projection;
+
+uniform int sWidth;
+uniform int sHeight;
+
+out vec3 ourColor;
+
+void main()
+{
+    mat4 posMat = mat4(
+        vec4(1.0, 0.0, 0.0, 0.0),
+        vec4(0.0, 1.0, 0.0, 0.0),
+        vec4(0.0, 0.0, 1.0, 0.0),
+        vec4(-1.0f + 2.0 * aWorldPos.x * (1.0 / sWidth), 1.0 + 2.0 * -(aWorldPos.y) * (1.0 / sHeight), aWorldPos.z, 1.0) );
+
+    mat4 scaleMat = mat4(
+        vec4(aSize.x, 0.0, 0.0, 0.0),
+        vec4(0.0, aSize.y, 0.0, 0.0),
+        vec4(0.0, 0.0, 1.0, 0.0),
+        vec4(0.0 , 0.0, 0.0, 1.0) );
+
+    gl_Position = projection * posMat * view * scale * scaleMat * model * vec4(aPos.x, aPos.y, aPos.z, 1.0f);
+    ourColor = aColors;
+}

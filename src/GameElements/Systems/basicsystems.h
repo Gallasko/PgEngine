@@ -1,88 +1,10 @@
 #pragma once
 
-#include <QDateTime>
-
 #include "logger.h"
 
-#include "ECS/entitysystem.h"
-
-#include "Renderer/renderer.h"
-#include "UI/sentencesystem.h"
+#include "Systems/coresystems.h"
 
 using namespace pg;
-
-// Todo add all the logger thing to all those systems and doc too
-struct TickEvent
-{
-    TickEvent(size_t duration) : tick(duration) {}
-
-    size_t tick;
-};
-
-struct TickingSystem : public System<NamedSystem>
-{
-    TickingSystem(size_t duration = 40) : tickDuration(duration)
-    { 
-        LOG_THIS_MEMBER("Ticking System");
-        
-        // Todo replace QDateTime with std::chrono
-        // firstTickTime = std::chrono::high_resolution_clock::now();
-        firstTickTime = QDateTime::currentMSecsSinceEpoch();
-        secondTickTime = QDateTime::currentMSecsSinceEpoch();
-    }
-
-    ~TickingSystem() { LOG_THIS_MEMBER("Ticking System"); stop(); }
-
-    virtual std::string getSystemName() const override { return "Ticking System"; }
-
-    inline void stop()
-    {
-        LOG_THIS_MEMBER("Ticking System");
-
-        LOG_INFO("Ticking System", "Ticking system stopping ...");
-
-        paused = false;
-    }
-
-    inline void pause()
-    {
-        LOG_THIS_MEMBER("Ticking System");
-
-        paused = true;
-    }
-
-    inline void resume()
-    {
-        LOG_THIS_MEMBER("Ticking System");
-
-        firstTickTime = QDateTime::currentMSecsSinceEpoch();
-        secondTickTime = QDateTime::currentMSecsSinceEpoch();
-
-        paused = false;
-    }
-
-    virtual void execute()
-    {
-        LOG_THIS_MEMBER("Ticking System");
-
-        secondTickTime = QDateTime::currentMSecsSinceEpoch();
-        
-        while(not paused and ((secondTickTime - firstTickTime) >= static_cast<qint64>(tickDuration)))
-        {
-            firstTickTime += tickDuration;
-
-            ecsRef->sendEvent(TickEvent{tickDuration});
-        }
-    }
-
-    size_t tickDuration;
-
-    // Todo change qint64 with std::chrono
-    // std::chrono::high_resolution_clock::time_point firstTickTime, secondTickTime; 
-    qint64 firstTickTime, secondTickTime; 
-    bool paused = false;
-};
-
 struct FpsSystem : public System<Listener<TickEvent>, NamedSystem, InitSys, StoragePolicy>
 {
     virtual std::string getSystemName() const override { return "Fps System"; }
@@ -94,7 +16,7 @@ struct FpsSystem : public System<Listener<TickEvent>, NamedSystem, InitSys, Stor
         fpsTextId = sentence.entity.id;
     }
 
-    void onEvent(const TickEvent& event) override
+    virtual void onEvent(const TickEvent& event) override
     {
         LOG_THIS_MEMBER("FactorySystem");
 
@@ -109,7 +31,14 @@ struct FpsSystem : public System<Listener<TickEvent>, NamedSystem, InitSys, Stor
             if (not rendererSys)
                 return;
 
-            auto currentNbOfFrames = rendererSys->nbRenderedFrames;
+            auto currentNbOfFrames = rendererSys->getNbRenderedFrames();
+
+            // In case of overflow of size_t
+            if(currentNbOfFrames < lastNbOfFrames)
+            {
+                lastNbOfFrames = currentNbOfFrames;
+                return;
+            }
 
             auto res = currentNbOfFrames - lastNbOfFrames;
 
@@ -131,9 +60,9 @@ struct OnClickGainGold { };
 
 struct OnGoldGain
 {
-    OnGoldGain(int64_t gold) : gold(gold) {}
+    OnGoldGain(size_t gold) : gold(gold) {}
 
-    int64_t gold;
+    size_t gold;
 };
 
 struct GoldSystem : public System<Listener<OnClickGainGold>, Listener<OnGoldGain>, NamedSystem, InitSys, StoragePolicy>
@@ -147,7 +76,7 @@ struct GoldSystem : public System<Listener<OnClickGainGold>, Listener<OnGoldGain
         goldTextId = sentence.entity.id;
     }
 
-    void onEvent(const OnClickGainGold&) override
+    virtual void onEvent(const OnClickGainGold&) override
     {
         this->gold += clickPower;
 
@@ -156,7 +85,7 @@ struct GoldSystem : public System<Listener<OnClickGainGold>, Listener<OnGoldGain
         ecsRef->sendEvent(OnTextChanged{goldTextId, goldStr.getData()});
     }
 
-    void onEvent(const OnGoldGain& event) override
+    virtual void onEvent(const OnGoldGain& event) override
     {
         this->gold += event.gold;
 
@@ -165,9 +94,9 @@ struct GoldSystem : public System<Listener<OnClickGainGold>, Listener<OnGoldGain
         ecsRef->sendEvent(OnTextChanged{goldTextId, goldStr.getData()});
     }
 
-    int64_t clickPower = 1;
+    size_t clickPower = 1;
 
-    std::atomic<int64_t> gold {0};
+    std::atomic<size_t> gold {0};
     _unique_id goldTextId;
 };
 
@@ -177,7 +106,7 @@ struct FactorySystem : public System<Listener<BuyFactory>, Listener<TickEvent>, 
 {
     virtual std::string getSystemName() const override { return "Factory System"; }
 
-    void onEvent(const BuyFactory&) override
+    virtual void onEvent(const BuyFactory&) override
     {
         LOG_THIS_MEMBER("FactorySystem");
 
@@ -185,7 +114,7 @@ struct FactorySystem : public System<Listener<BuyFactory>, Listener<TickEvent>, 
         nbFactory += 1;
     }
 
-    void onEvent(const TickEvent& event) override
+    virtual void onEvent(const TickEvent& event) override
     {
         LOG_THIS_MEMBER("FactorySystem");
 
@@ -197,7 +126,7 @@ struct FactorySystem : public System<Listener<BuyFactory>, Listener<TickEvent>, 
 
             accumulatedTick -= factoryProdDuration;
 
-            ecsRef->sendEvent(OnGoldGain{static_cast<int64_t>(nbFactory * factoryProdValue)});
+            ecsRef->sendEvent(OnGoldGain{static_cast<size_t>(nbFactory * factoryProdValue)});
         }
     }
 

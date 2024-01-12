@@ -9,13 +9,26 @@
 #include "entity.h"
 
 #include "logger.h"
+#include "serialization.h"
 
 #include "uniqueid.h"
 
 namespace pg
 {
     class InputSystem;
-    // class MasterRenderer;
+    class ClassInstance;
+    class InterpreterSystem;
+    
+    template <class T>                                                  
+    class HasStaticName
+    {       
+        template<class U, class = typename std::enable_if<!std::is_member_pointer<decltype(&U::getType)>::value>::type>
+            static std::true_type check(int);
+        template <class>
+            static std::false_type check(...);
+    public:
+        static constexpr bool value = decltype(check<T>(0))::value;
+    };
 
     template <typename Type>
     struct Own;
@@ -24,6 +37,58 @@ namespace pg
     struct Group;
 
     class EntitySystem;
+
+    /**
+     * @brief Structure tag used to specify onCreation member on a component
+     *
+     * @todo find a better class name 
+     */
+    struct Ctor
+    {
+        virtual void onCreation(EntityRef entity) = 0;
+
+        virtual ~Ctor() {}
+    };
+
+    /**
+     * @brief Structure tag used to specify onCreation member on a component
+     *
+     * @todo find a better class name 
+     */
+    struct Dtor
+    {
+        virtual void onDeletion(EntityRef entity) = 0;
+
+        virtual ~Dtor() {}
+    };
+
+    /**
+     * @brief Structure tag used to specify onCreation member on a component
+     *
+     * @todo find a better class name 
+     */
+    struct Copy
+    {
+        virtual void onCopy(EntityRef entity) = 0;
+
+        virtual ~Copy() {}
+    };
+
+    /**
+     * @brief Structure tag used to specify a component as a singleton component
+     * 
+     * When this tag is set for a component. That means that the component should only be created once
+     * and when a system or a component need this component we can use the same refererence everywhere.
+     * 
+     * So when a component with this tag is created we can directly save the ref in the ecs and used
+     * it throughout !
+     * 
+     * @todo make this
+     */
+    struct SingletonComp
+    {
+
+    };
 
     class ComponentRegistry
     {
@@ -36,30 +101,7 @@ namespace pg
         ~ComponentRegistry();
 
         template <typename Type>
-        void store(Own<Type>* owner) noexcept
-        {
-            LOG_THIS_MEMBER("Component Registry");
-
-            struct Delegate : public Storage, public Own<Type> { };
-
-            const auto& id = getTypeId<Type>();
-
-            // Todo see if there is a performance hit to keep this function or does it get optimized as it should be always false in production code
-            // Block to find if a system is already registered in the ecs
-#ifdef PROD
-            if(const auto& it = componentStorageMap.find(id); it != componentStorageMap.end())
-            {
-                LOG_ERROR("Component Registry", "Trying to recreate a system that already existing with id: " << id << "Exiting");
-                return;
-            }
-#endif
-
-            componentDeleteMap.emplace(id, [owner](Entity* entity){ owner->internalRemoveComponent(entity); });
-
-            componentStorageMap.emplace(id, static_cast<Storage*>(static_cast<Delegate*>(owner)));
-
-            owner->_componentId = id;
-        }
+        void store(Own<Type>* owner) noexcept;
 
         template <typename Type>
         Own<Type>* retrieve() const
@@ -99,6 +141,8 @@ namespace pg
                 listener->onEvent(static_cast<const Event&>(static_cast<const DelegateEvent&>(event)));
             });
         }
+
+        void addEventListener(_unique_id eventId, InterpreterSystem *listener);
 
         template<typename Event>
         void processEvent(const Event& event)
@@ -194,12 +238,33 @@ namespace pg
             componentDeleteMap.at(id)(entity);
         }
 
+        inline void serializeComponentFromEntity(Archive& archive, const Entity* entity, _unique_id id) const
+        {
+            componentSerializeMap.at(id)(archive, entity);
+        }
+
+        inline void deserializeComponentToEntity(const UnserializedObject& serializedString, EntityRef entity) const
+        {
+            const auto& name = serializedString.getObjectType();
+
+            const auto& it = componentDeserializeMap.find(name);
+
+            LOG_INFO("Component Registry", "Trying to deserialize component: " << name);
+
+            if (it != componentDeserializeMap.end())
+            {
+                it->second(serializedString, entity);
+            }
+            else
+            {
+                LOG_ERROR("Component Registry", "Couldn't deserialize comp: " << name);
+            }
+        }
+
         inline EntitySystem* world() const noexcept { return ecsRef; }
 
         // Common singleton system
     public:
-        // MasterRenderer* masterRenderer;
-
         mutable UniqueIdGenerator idGenerator;
 
     private:
@@ -207,6 +272,8 @@ namespace pg
 
         std::unordered_map<_unique_id, Storage*> componentStorageMap;
         std::unordered_map<_unique_id, std::function<void(Entity*)>> componentDeleteMap;
+        std::unordered_map<_unique_id, std::function<void(Archive&, const Entity*)>> componentSerializeMap;
+        std::unordered_map<std::string, std::function<void(const UnserializedObject&, EntityRef)>> componentDeserializeMap;
         std::unordered_map<_unique_id, Storage*> groupStorageMap;
         std::unordered_map<_unique_id, std::vector<std::function<void(const AbstractEvent&)>>> eventStorageMap;
     };
@@ -270,15 +337,31 @@ namespace pg
 
         virtual ~Own() { LOG_THIS_MEMBER("Own"); }
 
+        /**
+         * @brief Add this owner object to the registry.
+         * 
+         * @param registry The registry where to add the owner object.
+         */
         void setRegistry(ComponentRegistry* registry)
         {
             LOG_THIS_MEMBER("Own");
 
             LOG_INFO("Own", "Type: " << typeid(Type).name() << " get the id: " << registry->getTypeId<Type>());
 
+            // Store a pointer to this owner object in the registry
             registry->store<Type>(this);
         }
 
+        /**
+         * @brief Create a new component of this type in the underlaying sparse set.
+         * 
+         * @tparam Args Types of the arguments to pass to the constructor of the component.
+         * 
+         * @param entity The entity to attach the new component to. 
+         * @param args Arguments to pass to the constructor of the component.
+         * 
+         * @return Type* A pointer to the newly created component. 
+         */
         template <typename... Args>
         inline Type* internalCreateComponent(Entity* entity, Args&&... args)
         {
@@ -287,24 +370,46 @@ namespace pg
             // Create a new component and store it in a sparse set along with the entity id using it
             auto comp = components.addComponent(entity, std::forward<Args>(args)...);
 
+            // Add the component to the entity
             entity->componentList.emplace(_componentId);
 
+            // Call the on component creation callbacks to register the component in potential groups
             for(const auto& callback : onComponentCreation)
                 callback.second(entity);
 
             return comp;
         }
 
+        /**
+         * @brief Remove a component of this type from the underlaying sparse set.
+         * 
+         * @param entity The entity to remove the component from. 
+         */
         inline void internalRemoveComponent(Entity* entity)
         {
             LOG_THIS_MEMBER("Own");
 
-            components.removeComponent(entity);
-
+            // Call the on component deletion callbacks to remove the component from potential groups
             for(const auto& callback : onComponentDeletion)
                 callback.second(entity);
+
+            // Erase the component from the entity
+            auto it = std::find(entity->componentList.begin(), entity->componentList.end(), _componentId);
+            
+            if(it != entity->componentList.end())
+                entity->componentList.erase(it);
+
+            // Remove the component from the sparse set
+            components.removeComponent(entity);
         }
 
+        /**
+         * @brief Get the component of an entity from the underlaying sparse set.
+         * 
+         * @param id The id of the entity that has the component.
+         * 
+         * @return A pointer to the component. 
+         */
         inline Type* getComponent(_unique_id id) const
         {
             return components.atEntity(id);
@@ -317,6 +422,11 @@ namespace pg
             return components.viewComponents();
         }
 
+        /**
+         * @brief Get the id of the component.
+         * 
+         * @return _unique_id the id of the component. 
+         */
         inline _unique_id getId() const
         {
             return _componentId;
@@ -351,8 +461,8 @@ namespace pg
 
         inline bool empty() const { return component == nullptr; }
 
-        bool initialized;
-        Comp* component;
+        mutable bool initialized;
+        mutable Comp* component;
         _unique_id entityId;
         const EntitySystem* ecsRef;  
     };
