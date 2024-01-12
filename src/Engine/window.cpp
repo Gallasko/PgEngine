@@ -168,6 +168,7 @@ namespace pg
             Mix_FreeMusic(music);
 
         Mix_CloseAudio();
+        Mix_Quit();
         SDL_GL_DeleteContext(context);
         SDL_DestroyWindow(window);
         SDL_Quit();
