@@ -12,14 +12,12 @@
 #include <SDL.h>
 #include <emscripten.h>
 #else
-    #ifdef __linux__
-    #include <SDL2/SDL.h>
-    #elif _WIN32
-    #include <SDL.h>
-    #endif
+#ifdef __linux__
+#include <SDL2/SDL.h>
+#elif _WIN32
+#include <SDL.h>
 #endif
-
-#include <SDL_mixer.h>
+#endif
 
 #include <GL/gl.h>
 
@@ -32,6 +30,7 @@ namespace pg
     class MasterRenderer;
     class Input;
     class UiComponent;
+    class AudioSystem;
 
     class Window
     {
@@ -72,6 +71,7 @@ namespace pg
         MasterRenderer *masterRenderer = nullptr;
         Input *inputHandler = nullptr;
         FontLoader *fontLoader = nullptr;
+        AudioSystem *audioSystem = nullptr;
 
         EntityRef screenEntity;
         CompRef<UiComponent> screenUi;
@@ -82,7 +82,5 @@ namespace pg
 
         float xSensitivity = 1.0f;
         float ySensitivity = 1.0f;
-
-        Mix_Music* music = nullptr;
     };
 }

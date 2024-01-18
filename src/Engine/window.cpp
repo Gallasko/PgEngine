@@ -35,6 +35,9 @@
 #include "Systems/texture2Dmodule.h"
 #include "Systems/scenemodule.h"
 
+#include "Audio/audiosystem.h"
+#include "Audio/audiomodule.h"
+
 // #include "GameElements/Systems/basicsystems.h"
 
 #include "logger.h"
@@ -142,6 +145,7 @@ namespace pg
         interpreter->addSystemModule("input", InputModule{&ecs});
         interpreter->addSystemModule("uitext", SentenceModule{&ecs});
         interpreter->addSystemModule("scene", SceneModule{&ecs});
+        interpreter->addSystemModule("audio", AudioModule{&ecs});
         
         // Script to configure the logger
         interpreter->interpretFromFile("logManager.pg");
@@ -164,11 +168,9 @@ namespace pg
         if (fontLoader != nullptr)
             delete fontLoader;
 
-        if (music != nullptr)
-            Mix_FreeMusic(music);
+        if (audioSystem != nullptr)
+            audioSystem->closeSDLMixer();
 
-        Mix_CloseAudio();
-        Mix_Quit();
         SDL_GL_DeleteContext(context);
         SDL_DestroyWindow(window);
         SDL_Quit();
@@ -274,25 +276,6 @@ namespace pg
                 LOG_ERROR(DOM, "GLEW init failed");
                 return false;
             }
-
-            if (Mix_OpenAudio(96000, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 1024) < 0)
-            {
-                LOG_ERROR(DOM, "Erreur initialisation SDL_mixer : " << Mix_GetError());
-                return false;
-            }
-
-            music = Mix_LoadMUS("ouman.mp3");
-
-            if (music == nullptr)
-            {
-                LOG_ERROR(DOM, "Erreur chargement de la musique : " << Mix_GetError());
-                Mix_CloseAudio();
-                return false;
-            }
-
-            Mix_PlayMusic(music, -1);
-
-            Mix_VolumeMusic(MIX_MAX_VOLUME / 10.0f);
                     
             // Get graphics info
             const GLubyte *renderer = glGetString(GL_RENDERER);
@@ -363,6 +346,8 @@ namespace pg
 
         fontLoader = new FontLoader("res/font/fontmap.ft");
         ecs.createSystem<SentenceSystem>(masterRenderer, fontLoader);
+
+        audioSystem = ecs.createSystem<AudioSystem>();
 
         makeSentence(&ecs, 200, 50, {"At the start"});
 

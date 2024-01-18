@@ -93,6 +93,10 @@ target_sources(PgEngine PRIVATE
         src/Engine/2D/texture.cpp
         src/Engine/2D/texture.h
 
+        src/Engine/Audio/audiomodule.h
+        src/Engine/Audio/audiosystem.cpp
+        src/Engine/Audio/audiosystem.h
+
         src/Engine/ECS/callable.h
         src/Engine/ECS/commanddispatcher.cpp
         src/Engine/ECS/commanddispatcher.h
