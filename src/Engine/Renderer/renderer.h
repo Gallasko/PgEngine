@@ -18,10 +18,18 @@ namespace pg
     class OpenGLContext;
     class MasterRenderer;
 
+    struct Texture
+    {
+        unsigned int id;
+        std::string shader;
+
+        operator unsigned int() const { return id; }
+    };
+
     // Type def
     typedef constant::RefracTable RefracRef;
     typedef std::unordered_map<std::string, OpenGLShaderProgram*> ShaderRef;
-    typedef std::unordered_map<std::string, unsigned int> TextureRef;
+    typedef std::unordered_map<std::string, Texture> TextureRef;
 
     // TODO make a specialized renderer for std::nullptr_t to catch nullptr error;
 
@@ -105,12 +113,12 @@ namespace pg
         void registerShader(const std::string& name, OpenGLShaderProgram *shaderProgram);
         void registerShader(const std::string& name, const std::string& vsPath, const std::string& fsPath);
 
-        void registerTexture(const std::string& name, unsigned int textureId) { textureList[name] = textureId; }
-        void registerTexture(const std::string& name, const char* texturePath);
+        void registerTexture(const std::string& name, unsigned int textureId, const std::string& shader = "default");
+        void registerTexture(const std::string& name, const char* texturePath, const std::string& shader = "default");
 
         //TODO raise exception on none presence of attribute
         OpenGLShaderProgram* getShader(const std::string& name) { return shaderList[name]; }
-        unsigned int getTexture(const std::string& name) { return textureList[name]; }
+        const Texture& getTexture(const std::string& name) { return textureList[name]; }
 
         template <typename... Args>
         void render(const Args&... args) { renderer(this, args...); }

@@ -157,7 +157,7 @@ namespace pg
 
     // TODO mirror or not the texture
     // Todo add an argument to specify the type of texture loaded, e.g.: RGBA, RGB, ...
-    void MasterRenderer::registerTexture(const std::string& name, const char* texturePath)
+    void MasterRenderer::registerTexture(const std::string& name, const char* texturePath, const std::string& shader)
     { 
         LOG_THIS_MEMBER(DOM);
 
@@ -200,9 +200,14 @@ namespace pg
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
 
-        registerTexture(name, texture);
+        registerTexture(name, texture, shader);
 
         stbi_image_free(data);
+    }
+
+    void MasterRenderer::registerTexture(const std::string& name, unsigned int textureId, const std::string& shader)
+    {
+        textureList[name] = Texture{textureId, shader};
     }
 
     void MasterRenderer::initializeParameters()
