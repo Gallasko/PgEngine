@@ -49,6 +49,9 @@ namespace pg
 
         inline bool requestQuit() const { return needToQuit; }
 
+    public:
+        EntitySystem ecs;
+
     protected:
         void swapBuffer();
 
@@ -64,8 +67,6 @@ namespace pg
         uint32_t nbFrame = 0;
 
         int width = 1, height = 1;
-
-        EntitySystem ecs;
 
         PgInterpreter *interpreter = nullptr;
         MasterRenderer *masterRenderer = nullptr;

@@ -34,6 +34,17 @@ namespace pg
 
     // Todo add batching for entity and component creation
 
+    template <class T>                                                  
+    class HasOnCreation
+    {       
+        template<class U, class = typename std::enable_if<!std::is_member_pointer<decltype(&U::onCreation)>::value>::type>
+            static std::true_type check(int);
+        template <class>
+            static std::false_type check(...);
+    public:
+        static constexpr bool value = decltype(check<T>(0))::value;
+    };
+
     template <typename Comp>
     struct CompListGetter
     {
@@ -326,7 +337,8 @@ namespace pg
                 auto res = CompRef<Type>(component, entity.id, this, not running);
                 // auto res = CompRef<Type>(component, entity->id, this, false);
 
-                if constexpr(std::is_base_of_v<Ctor, Type>)
+                // if constexpr(std::is_base_of_v<Ctor, Type>)
+                if constexpr(HasOnCreation<Type>::value)
                     res->onCreation(entity);
 
                 // Todo make the systems capable of triggering on a component creation

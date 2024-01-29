@@ -5,8 +5,10 @@
 
 #include "Renderer/renderer.h"
 #include "UI/sentencesystem.h"
+#include "UI/textinput.h"
 
 #include "Interpreter/scriptcallable.h"
+#include "Interpreter/pginterpreter.h"
 
 namespace pg
 {

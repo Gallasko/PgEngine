@@ -30,21 +30,21 @@ namespace pg
         Texture2DComponent(const Texture2DComponent &rhs) : textureName(rhs.textureName) { }
         virtual ~Texture2DComponent() {}
 
-        virtual void onCreation(EntityRef entity) { this->entity = entity; }
+        virtual void onCreation(EntityRef entity) override { this->entity = entity; }
 
         inline static std::string getType() { return "Texture2DComponent"; } 
 
         inline void setTexture(const std::string& textureName)
         {
-            if(entity)
-                entity->world()->sendEvent(TextureChangeEvent{entity->id, this->textureName, textureName});
+            if (not entity.empty())
+                entity.ecsRef->sendEvent(TextureChangeEvent{entity.id, this->textureName, textureName});
             
             this->textureName = textureName;
         }
 
         std::string textureName;
 
-        Entity *entity = nullptr;
+        EntityRef entity;
     };
 
     template <>
@@ -53,7 +53,7 @@ namespace pg
     template <>
     Texture2DComponent deserialize(const UnserializedObject& serializedString);
 
-    struct Texture2DComponentSystem : public AbstractRenderer, System<Own<Texture2DComponent>, Listener<UiComponentChangeEvent>, Ref<UiComponent>, NamedSystem, InitSys, StoragePolicy>
+    struct Texture2DComponentSystem : public AbstractRenderer, System<Own<Texture2DComponent>, Listener<UiComponentChangeEvent>, Listener<TextureChangeEvent>, Ref<UiComponent>, NamedSystem, InitSys, StoragePolicy>
     {
         Texture2DComponentSystem(MasterRenderer* masterRenderer) : AbstractRenderer(masterRenderer, RenderStage::Render) { }
 
@@ -64,6 +64,8 @@ namespace pg
         virtual void init() override;
 
         virtual void onEvent(const UiComponentChangeEvent& event) override;
+
+        virtual void onEvent(const TextureChangeEvent& event) override;
 
         Mesh* getTextureMesh(float width, float height, const std::string& name);
     };
