@@ -27,7 +27,7 @@ namespace pg
     struct Texture2DComponent : public Ctor
     {
         Texture2DComponent(const std::string& textureName) : textureName(textureName) { }
-        Texture2DComponent(const Texture2DComponent &rhs) : textureName(rhs.textureName) { }
+        Texture2DComponent(const Texture2DComponent &rhs) : textureName(rhs.textureName), entity(rhs.entity) { }
         virtual ~Texture2DComponent() {}
 
         virtual void onCreation(EntityRef entity) override { this->entity = entity; }

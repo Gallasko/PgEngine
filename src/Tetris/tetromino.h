@@ -82,6 +82,19 @@ struct GameCanvas : public System<Listener<OnSDLGamepadPressed>, Listener<FallTi
 
     virtual void onEvent(const FallTimeout& event) override;
 
+    bool moveHelper(int x, int y);
+
+    void moveDown();
+    void moveLeft();
+    void moveUp();
+    void moveRight();
+
+    void rotate();
+
+    void setMino(int value, const std::string& texture);
+
+    void startLockTimer();
+
     void spawnTetromino();
 
     CompRef<Timer> timer;

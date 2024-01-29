@@ -263,6 +263,170 @@ void GameCanvas::init()
     }
 }
 
+bool GameCanvas::moveHelper(int x, int y)
+{
+    bool move = true;
+
+    for (uint8_t i = 0; i < 4; i++)
+    {
+        for (uint8_t j = 0; j < 4; j++)
+        {
+            if (currentMino.possibleRotation[currentMino.rotation].pos[i][j] == 1)
+            {
+                if (canvas[currentMino.posX + x + i][currentMino.posY + y - j] != -1)
+                {
+                    move = false;
+                }
+            }
+        }
+    }
+
+    return move;
+}
+
+void GameCanvas::moveDown()
+{
+    bool move = true;
+
+    if (currentMino.posY < 4)
+    {
+        move = false;
+    }
+    else
+    {
+        move = moveHelper(0, -1);
+    }
+
+    if (move)
+    {
+        setMino(-1, "Ghost");
+
+        currentMino.posY--;
+
+        setMino(static_cast<uint8_t>(currentMino.type), tetrominoTypeToString(currentMino.type));
+    }
+    else
+    {
+        startLockTimer();
+    }
+}
+
+void GameCanvas::moveLeft()
+{
+    bool move = true;
+
+    if (currentMino.posX <= 0)
+    {
+        move = false;
+    }
+    else
+    {
+        move = moveHelper(-1, 0);
+    }
+
+    if (move)
+    {
+        setMino(-1, "Ghost");
+
+        currentMino.posX--;
+
+        setMino(static_cast<uint8_t>(currentMino.type), tetrominoTypeToString(currentMino.type));
+    }
+    else
+    {
+        startLockTimer();
+    }
+}
+
+void GameCanvas::moveUp()
+{
+    bool move = true;
+
+    if (currentMino.posY >= 20)
+    {
+        move = false;
+    }
+    else
+    {
+        move = moveHelper(0, 1);
+    }
+
+    if (move)
+    {
+        setMino(-1, "Ghost");
+
+        currentMino.posY++;
+
+        setMino(static_cast<uint8_t>(currentMino.type), tetrominoTypeToString(currentMino.type));
+    }
+    else
+    {
+        startLockTimer();
+    }
+}
+
+void GameCanvas::moveRight()
+{
+    bool move = true;
+
+    if (currentMino.posY > 5)
+    {
+        move = false;
+    }
+    else
+    {
+        move = moveHelper(1, 0);
+    }
+
+    if (move)
+    {
+        setMino(-1, "Ghost");
+
+        currentMino.posX++;
+
+        setMino(static_cast<uint8_t>(currentMino.type), tetrominoTypeToString(currentMino.type));
+    }
+    else
+    {
+        startLockTimer();
+    }
+}
+
+void GameCanvas::rotate()
+{
+    setMino(-1, "Ghost");
+
+    bool placeable = false;
+
+    currentMino.rotation = (currentMino.rotation + 1) % currentMino.nbPossibleRotation;
+
+    placeable = moveHelper(0, 0);
+    
+    while (not placeable)
+    {
+        placeable = moveHelper(0, 1);
+    }
+
+    setMino(static_cast<uint8_t>(currentMino.type), tetrominoTypeToString(currentMino.type));
+
+    // resetLockTimer();
+}
+
+void GameCanvas::setMino(int value, const std::string& texture)
+{
+    for (uint8_t i = 0; i < 4; i++)
+    {
+        for (uint8_t j = 0; j < 4; j++)
+        {
+            if (currentMino.possibleRotation[currentMino.rotation].pos[i][j] == 1)
+            {
+                canvas[currentMino.posX + i][currentMino.posY - j] = value;
+                entityCanvas[currentMino.posX + i][currentMino.posY - j]->get<Texture2DComponent>()->setTexture(texture);
+            }
+        }
+    }
+}
+
 void GameCanvas::onEvent(const OnSDLGamepadPressed& event)
 {
     if (event.button == SDL_CONTROLLER_BUTTON_A)
