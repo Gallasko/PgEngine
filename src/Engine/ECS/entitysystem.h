@@ -337,8 +337,8 @@ namespace pg
                 auto res = CompRef<Type>(component, entity.id, this, not running);
                 // auto res = CompRef<Type>(component, entity->id, this, false);
 
-                // if constexpr(std::is_base_of_v<Ctor, Type>)
-                if constexpr(HasOnCreation<Type>::value)
+                // if constexpr(HasOnCreation<Type>::value)
+                if constexpr(std::is_base_of_v<Ctor, Type>)
                     res->onCreation(entity);
 
                 // Todo make the systems capable of triggering on a component creation
@@ -715,6 +715,8 @@ namespace pg
     {
         LOG_THIS_MEMBER("Ecs Group");
 
+        // Todo fix this ( it is called multiple times when it should be only called once per set)
+        // In case of texture it is called twice once for ui and once for tex comp
         setN->onComponentCreation.emplace(id, [](Entity *entity) {
             LOG_INFO("Group", "On component creation for entity " << entity->id << ", sending event !");
             entity->world()->sendEvent(OnCompCreatedCheckForGroup<Group<Type, Types...>>{entity});

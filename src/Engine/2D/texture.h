@@ -27,24 +27,34 @@ namespace pg
     struct Texture2DComponent : public Ctor
     {
         Texture2DComponent(const std::string& textureName) : textureName(textureName) { }
-        Texture2DComponent(const Texture2DComponent &rhs) : textureName(rhs.textureName), entity(rhs.entity) { }
+        Texture2DComponent(const Texture2DComponent &rhs) : textureName(rhs.textureName), entityId(rhs.entityId), ecsRef(rhs.ecsRef) { }
         virtual ~Texture2DComponent() {}
 
-        virtual void onCreation(EntityRef entity) override { this->entity = entity; }
+        virtual void onCreation(EntityRef entity) override
+        {
+            ecsRef = entity->world();
+
+            entityId = entity->id;
+        }
 
         inline static std::string getType() { return "Texture2DComponent"; } 
 
-        inline void setTexture(const std::string& textureName)
+        void setTexture(const std::string& textureName)
         {
-            if (not entity.empty())
-                entity.ecsRef->sendEvent(TextureChangeEvent{entity.id, this->textureName, textureName});
+            if (ecsRef)
+            {
+                LOG_MILE("Texture", "Set Texture id: " << entityId << ", textureName: " << this->textureName << ", new texture: " << textureName);
+                ecsRef->sendEvent(TextureChangeEvent{entityId, this->textureName, textureName});
+            }
             
             this->textureName = textureName;
         }
 
         std::string textureName;
 
-        EntityRef entity;
+        _unique_id entityId = 0;
+
+        EntitySystem *ecsRef = nullptr;
     };
 
     template <>

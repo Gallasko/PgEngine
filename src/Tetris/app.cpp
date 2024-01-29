@@ -2,6 +2,8 @@
 
 #include "logger.h"
 
+#include "Audio/audiosystem.h"
+
 #include "tetromino.h"
 
 using namespace pg;
@@ -29,7 +31,7 @@ int TetrisApp::exec()
 
     // Todo if init failed exit app !
 
-    window.init(300, 300, false);
+    window.init(300, 700, false);
 
     LOG_INFO(DOM, "Window init done !");
 
@@ -41,11 +43,13 @@ int TetrisApp::exec()
 
     ecs.createSystem<GameCanvas>();
 
+    ecs.sendEvent(StartAudio{"res/audio/mainost.mp3"});
+
     LOG_INFO(DOM, "Initializing engine done !");
 
     LOG_INFO(DOM, "Starting SDL event loop, waiting for events...");
 
-    window.resize(300, 300);
+    window.resize(300, 700);
 
     while (true)
     {

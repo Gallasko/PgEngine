@@ -29,25 +29,25 @@ namespace
                 break;
             }
                 
-            case TetrominoType::J:
+            case TetrominoType::L:
             {
                 return "J";
                 break;
             }
 
-            case TetrominoType::L:
+            case TetrominoType::J:
             {
                 return "L";
                 break;
             }
 
-            case TetrominoType::S:
+            case TetrominoType::Z:
             {
                 return "S";
                 break;
             }
 
-            case TetrominoType::Z:
+            case TetrominoType::S:
             {
                 return "Z";
                 break;
@@ -73,16 +73,19 @@ void Tetromino::setMino(const TetrominoType& type)
 {
     this->type = type;
 
+    posX = 4;
+    posY = 20;
+
     switch (type)
     {
         case TetrominoType::I:
         {
             nbPossibleRotation = 2;
 
-            uint8_t rota0[4][4] = {{0, 0, 1, 0},
-                                   {0, 0, 1, 0},
-                                   {0, 0, 1, 0},
-                                   {0, 0, 1, 0}};
+            uint8_t rota0[4][4] = {{1, 0, 0, 0},
+                                   {1, 0, 0, 0},
+                                   {1, 0, 0, 0},
+                                   {1, 0, 0, 0}};
 
             possibleRotation[0] = rota0;
 
@@ -92,8 +95,6 @@ void Tetromino::setMino(const TetrominoType& type)
                                    {1, 1, 1, 1}};
 
             possibleRotation[1] = rota1;
-            posX = 4;
-            posY = 20;
             break;
         }
         
@@ -103,12 +104,10 @@ void Tetromino::setMino(const TetrominoType& type)
 
             uint8_t rota0[4][4] = {{0, 0, 0, 0},
                                    {0, 0, 0, 0},
-                                   {0, 1, 1, 0},
-                                   {0, 1, 1, 0}};
+                                   {1, 1, 0, 0},
+                                   {1, 1, 0, 0}};
 
             possibleRotation[0] = rota0;
-            posX = 4;
-            posY = 20;
             break;
         }
             
@@ -118,15 +117,15 @@ void Tetromino::setMino(const TetrominoType& type)
 
             uint8_t rota0[4][4] = {{0, 0, 0, 0},
                                    {0, 0, 0, 0},
-                                   {0, 1, 0, 0},
-                                   {0, 1, 1, 1}};
+                                   {1, 0, 0, 0},
+                                   {1, 1, 1, 0}};
 
             possibleRotation[0] = rota0;
 
             uint8_t rota1[4][4] = {{0, 0, 0, 0},
-                                   {0, 0, 1, 0},
-                                   {0, 0, 1, 0},
-                                   {0, 1, 1, 0}};
+                                   {0, 1, 0, 0},
+                                   {0, 1, 0, 0},
+                                   {1, 1, 0, 0}};
 
             possibleRotation[1] = rota1;
 
@@ -138,31 +137,121 @@ void Tetromino::setMino(const TetrominoType& type)
             possibleRotation[2] = rota2;
 
             uint8_t rota3[4][4] = {{0, 0, 0, 0},
-                                   {0, 1, 1, 0},
-                                   {0, 1, 0, 0},
-                                   {0, 1, 0, 0}};
+                                   {1, 1, 0, 0},
+                                   {1, 0, 0, 0},
+                                   {1, 0, 0, 0}};
 
             possibleRotation[3] = rota3;
-            posX = 4;
-            posY = 20;
             break;
         }
 
         case TetrominoType::L:
+        {
+            nbPossibleRotation = 4;
 
+            uint8_t rota0[4][4] = {{0, 0, 0, 0},
+                                   {0, 0, 0, 0},
+                                   {0, 0, 1, 0},
+                                   {1, 1, 1, 0}};
+
+            possibleRotation[0] = rota0;
+
+            uint8_t rota1[4][4] = {{0, 0, 0, 0},
+                                   {1, 1, 0, 0},
+                                   {0, 1, 0, 0},
+                                   {0, 1, 0, 0}};
+
+            possibleRotation[1] = rota1;
+
+            uint8_t rota2[4][4] = {{0, 0, 0, 0},
+                                   {0, 0, 0, 0},
+                                   {1, 1, 1, 0},
+                                   {1, 0, 0, 0}};
+
+            possibleRotation[2] = rota2;
+
+            uint8_t rota3[4][4] = {{0, 0, 0, 0},
+                                   {1, 0, 0, 0},
+                                   {1, 0, 0, 0},
+                                   {1, 1, 0, 0}};
+
+            possibleRotation[3] = rota3;
             break;
+        }
 
         case TetrominoType::S:
+        {
+            nbPossibleRotation = 2;
 
+            uint8_t rota0[4][4] = {{0, 0, 0, 0},
+                                   {0, 0, 0, 0},
+                                   {1, 1, 0, 0},
+                                   {0, 1, 1, 0}};
+
+            possibleRotation[0] = rota0;
+
+            uint8_t rota1[4][4] = {{0, 0, 0, 0},
+                                   {0, 1, 0, 0},
+                                   {1, 1, 0, 0},
+                                   {1, 0, 0, 0}};
+
+            possibleRotation[1] = rota1;
             break;
+        }
 
         case TetrominoType::Z:
+        {
+            nbPossibleRotation = 2;
 
+            uint8_t rota0[4][4] = {{0, 0, 0, 0},
+                                   {0, 0, 0, 0},
+                                   {0, 1, 1, 0},
+                                   {1, 1, 0, 0}};
+
+            possibleRotation[0] = rota0;
+
+            uint8_t rota1[4][4] = {{0, 0, 0, 0},
+                                   {1, 0, 0, 0},
+                                   {1, 1, 0, 0},
+                                   {0, 1, 0, 0}};
+
+            possibleRotation[1] = rota1;
             break;
+        }
 
         case TetrominoType::T:
+        {
+            nbPossibleRotation = 4;
 
+            uint8_t rota0[4][4] = {{0, 0, 0, 0},
+                                   {0, 0, 0, 0},
+                                   {0, 1, 0, 0},
+                                   {1, 1, 1, 0}};
+
+            possibleRotation[0] = rota0;
+
+            uint8_t rota1[4][4] = {{0, 0, 0, 0},
+                                   {0, 1, 0, 0},
+                                   {1, 1, 0, 0},
+                                   {0, 1, 0, 0}};
+
+            possibleRotation[1] = rota1;
+
+            uint8_t rota2[4][4] = {{0, 0, 0, 0},
+                                   {0, 0, 0, 0},
+                                   {1, 1, 1, 0},
+                                   {0, 1, 0, 0}};
+
+            possibleRotation[2] = rota2;
+
+            uint8_t rota3[4][4] = {{0, 0, 0, 0},
+                                   {1, 0, 0, 0},
+                                   {1, 1, 0, 0},
+                                   {1, 0, 0, 0}};
+
+            possibleRotation[3] = rota3;
             break;
+        }
     }
 }
 
@@ -245,6 +334,16 @@ void GameCanvas::init()
 
     timer->running = true;
 
+    auto entity2 = ecsRef->createEntity();
+
+    lockTimer = ecsRef->attach<Timer>(entity2);
+
+    lockTimer->interval = 500;
+
+    lockTimer->callback = makeCallable<LockTimeout>();
+
+    lockTimer->running = false;
+
     for (size_t i = 0; i < 10; i++)
     {
         for (size_t j = 0; j < 24; j++)
@@ -254,7 +353,7 @@ void GameCanvas::init()
             auto ui = tex.get<UiComponent>();
 
             ui->setX(24 * i);
-            ui->setY(480 - 24 * j);
+            ui->setY(600 - 24 * j);
 
             entityCanvas[i][j] = tex.entity;
 
@@ -271,7 +370,7 @@ bool GameCanvas::moveHelper(int x, int y)
     {
         for (uint8_t j = 0; j < 4; j++)
         {
-            if (currentMino.possibleRotation[currentMino.rotation].pos[i][j] == 1)
+            if (currentMino.possibleRotation[currentMino.rotation].pos[j][i] == 1)
             {
                 if (canvas[currentMino.posX + x + i][currentMino.posY + y - j] != -1)
                 {
@@ -280,6 +379,16 @@ bool GameCanvas::moveHelper(int x, int y)
             }
         }
     }
+
+    if (move)
+    {
+        currentMino.posX += x;
+        currentMino.posY += y;
+    }
+
+    std::string movedStr = move ? "YES" : "NO";
+
+    LOG_INFO(DOM, "Move helper moved: " << movedStr);
 
     return move;
 }
@@ -294,18 +403,12 @@ void GameCanvas::moveDown()
     }
     else
     {
-        move = moveHelper(0, -1);
-    }
-
-    if (move)
-    {
         setMino(-1, "Ghost");
-
-        currentMino.posY--;
-
+        move = moveHelper(0, -1);
         setMino(static_cast<uint8_t>(currentMino.type), tetrominoTypeToString(currentMino.type));
     }
-    else
+
+    if (not move)
     {
         startLockTimer();
     }
@@ -313,29 +416,22 @@ void GameCanvas::moveDown()
 
 void GameCanvas::moveLeft()
 {
-    bool move = true;
+    // bool move = true;
 
-    if (currentMino.posX <= 0)
-    {
-        move = false;
-    }
-    else
-    {
-        move = moveHelper(-1, 0);
-    }
-
-    if (move)
+    if (currentMino.posX > 0)
     {
         setMino(-1, "Ghost");
-
-        currentMino.posX--;
-
+        moveHelper(-1, 0);
         setMino(static_cast<uint8_t>(currentMino.type), tetrominoTypeToString(currentMino.type));
     }
-    else
-    {
-        startLockTimer();
-    }
+
+    // if (not move)
+    // {
+    //     startLockTimer();
+    // }
+
+    // resetLockTimer();
+    lockTimer->currentTime = 0;
 }
 
 void GameCanvas::moveUp()
@@ -348,18 +444,12 @@ void GameCanvas::moveUp()
     }
     else
     {
-        move = moveHelper(0, 1);
-    }
-
-    if (move)
-    {
         setMino(-1, "Ghost");
-
-        currentMino.posY++;
-
+        move = moveHelper(0, 1);
         setMino(static_cast<uint8_t>(currentMino.type), tetrominoTypeToString(currentMino.type));
     }
-    else
+
+    if (not move)
     {
         startLockTimer();
     }
@@ -367,29 +457,57 @@ void GameCanvas::moveUp()
 
 void GameCanvas::moveRight()
 {
-    bool move = true;
-
-    if (currentMino.posY > 5)
-    {
-        move = false;
-    }
-    else
-    {
-        move = moveHelper(1, 0);
-    }
-
-    if (move)
+    if (not ((currentMino.type == TetrominoType::I and currentMino.rotation == 1) and currentMino.posX > 5) and not
+            (((currentMino.type == TetrominoType::S and currentMino.rotation == 0) or
+             (currentMino.type == TetrominoType::Z and currentMino.rotation == 0) or
+             (currentMino.type == TetrominoType::T and currentMino.rotation == 0) or
+             (currentMino.type == TetrominoType::T and currentMino.rotation == 2) or
+             (currentMino.type == TetrominoType::J and currentMino.rotation == 0) or
+             (currentMino.type == TetrominoType::J and currentMino.rotation == 2) or
+             (currentMino.type == TetrominoType::L and currentMino.rotation == 0) or
+             (currentMino.type == TetrominoType::L and currentMino.rotation == 2)) and currentMino.posX > 6) and not
+             ((currentMino.type == TetrominoType::O or
+             (currentMino.type == TetrominoType::S and currentMino.rotation == 1) or
+             (currentMino.type == TetrominoType::Z and currentMino.rotation == 1) or
+             (currentMino.type == TetrominoType::T and currentMino.rotation == 1) or
+             (currentMino.type == TetrominoType::T and currentMino.rotation == 3) or
+             (currentMino.type == TetrominoType::J and currentMino.rotation == 1) or
+             (currentMino.type == TetrominoType::J and currentMino.rotation == 3) or
+             (currentMino.type == TetrominoType::L and currentMino.rotation == 1) or
+             (currentMino.type == TetrominoType::L and currentMino.rotation == 3)) and currentMino.posX > 7) and not
+             ((currentMino.type == TetrominoType::I and currentMino.rotation == 0) and currentMino.posX > 8))
     {
         setMino(-1, "Ghost");
-
-        currentMino.posX++;
-
+        moveHelper(1, 0);
         setMino(static_cast<uint8_t>(currentMino.type), tetrominoTypeToString(currentMino.type));
     }
-    else
+
+    lockTimer->currentTime = 0;
+}
+
+void GameCanvas::snapBottom()
+{
+    bool move = true;
+
+    setMino(-1, "Ghost");
+
+    do
     {
-        startLockTimer();
-    }
+        if (currentMino.posY < 4)
+        {
+            move = false;
+        }
+        else
+        {
+            
+            move = moveHelper(0, -1);
+            
+        }
+    } while(move);
+
+    setMino(static_cast<uint8_t>(currentMino.type), tetrominoTypeToString(currentMino.type));
+
+    onEvent(LockTimeout{});
 }
 
 void GameCanvas::rotate()
@@ -400,16 +518,49 @@ void GameCanvas::rotate()
 
     currentMino.rotation = (currentMino.rotation + 1) % currentMino.nbPossibleRotation;
 
-    placeable = moveHelper(0, 0);
-    
-    while (not placeable)
+    int offsetX = 0;
+
+    if ((currentMino.type == TetrominoType::I and currentMino.rotation == 1) and currentMino.posX == 9)
+    {
+        offsetX = -3;
+    }
+    else if ((currentMino.type == TetrominoType::I and currentMino.rotation == 1) and currentMino.posX == 8)
+    {
+        offsetX = -2;
+    }
+    else if ((currentMino.type == TetrominoType::I and currentMino.rotation == 1) and currentMino.posX == 7)
+    {
+        offsetX = -1;
+    }
+    else if(((currentMino.type == TetrominoType::S and currentMino.rotation == 0) or
+             (currentMino.type == TetrominoType::Z and currentMino.rotation == 0) or
+             (currentMino.type == TetrominoType::T and currentMino.rotation == 0) or
+             (currentMino.type == TetrominoType::T and currentMino.rotation == 2) or
+             (currentMino.type == TetrominoType::J and currentMino.rotation == 0) or
+             (currentMino.type == TetrominoType::J and currentMino.rotation == 2) or
+             (currentMino.type == TetrominoType::L and currentMino.rotation == 0) or
+             (currentMino.type == TetrominoType::L and currentMino.rotation == 2)) and currentMino.posX > 7)
+    {
+        offsetX = -1;
+    }
+
+    placeable = moveHelper(offsetX, 0);
+
+    if (not placeable)
+        currentMino.posX += offsetX;
+
+    while (not placeable and currentMino.posY < 20)
     {
         placeable = moveHelper(0, 1);
+
+        if (not placeable)
+            currentMino.posY++;
     }
 
     setMino(static_cast<uint8_t>(currentMino.type), tetrominoTypeToString(currentMino.type));
 
     // resetLockTimer();
+    lockTimer->currentTime = 0;
 }
 
 void GameCanvas::setMino(int value, const std::string& texture)
@@ -418,7 +569,7 @@ void GameCanvas::setMino(int value, const std::string& texture)
     {
         for (uint8_t j = 0; j < 4; j++)
         {
-            if (currentMino.possibleRotation[currentMino.rotation].pos[i][j] == 1)
+            if (currentMino.possibleRotation[currentMino.rotation].pos[j][i] == 1)
             {
                 canvas[currentMino.posX + i][currentMino.posY - j] = value;
                 entityCanvas[currentMino.posX + i][currentMino.posY - j]->get<Texture2DComponent>()->setTexture(texture);
@@ -427,19 +578,154 @@ void GameCanvas::setMino(int value, const std::string& texture)
     }
 }
 
+void GameCanvas::startLockTimer()
+{
+    lockTimer->currentTime = 0;
+
+    lockTimer->running = true;
+}
+
 void GameCanvas::onEvent(const OnSDLGamepadPressed& event)
 {
-    if (event.button == SDL_CONTROLLER_BUTTON_A)
+    if (event.button == SDL_CONTROLLER_BUTTON_START)
     {
-        LOG_INFO(DOM, "Game canvas A Pressed");
+        LOG_INFO(DOM, "Game canvas Start Pressed");
 
-        spawnTetromino();
+        if (not running)
+        {
+            running = true;
+
+            spawnTetromino();
+        }
+    }
+
+    if (event.button == SDL_CONTROLLER_BUTTON_B)
+    {
+        LOG_INFO(DOM, "Game canvas B Pressed");
+
+        rotate();
+    }
+
+    if (event.button == SDL_CONTROLLER_BUTTON_DPAD_UP)
+    {
+        LOG_INFO(DOM, "Game canvas Up Pressed");
+
+        snapBottom();
+    }
+
+    if (event.button == SDL_CONTROLLER_BUTTON_DPAD_DOWN)
+    {
+        LOG_INFO(DOM, "Game canvas Down Pressed");
+
+        moveDown();
+    }
+
+    if (event.button == SDL_CONTROLLER_BUTTON_DPAD_LEFT)
+    {
+        LOG_INFO(DOM, "Game canvas Left Pressed");
+
+        moveLeft();
+    }
+
+    if (event.button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT)
+    {
+        LOG_INFO(DOM, "Game canvas Right Pressed");
+
+        moveRight();
     }
 }
 
 void GameCanvas::onEvent(const FallTimeout& event)
 {
     LOG_INFO(DOM, "Fall timeout: ");
+
+    moveDown();
+}
+
+void GameCanvas::onEvent(const LockTimeout& event)
+{
+    LOG_INFO(DOM, "Lock timeout: ");
+
+    lockTimer->running = false;
+
+    checkClearedLines();
+
+    spawnTetromino();
+}
+
+void GameCanvas::dropOneLine(uint8_t y)
+{
+    for (auto i = 0; i < 10; i++)
+    {
+        canvas[i][y] = canvas[i][y + 1];
+
+        auto ent = entityCanvas[i][y];
+        auto ent1 = entityCanvas[i][y + 1];
+
+        auto tex = ent1->get<Texture2DComponent>();
+
+        ent->get<Texture2DComponent>()->setTexture(tex->textureName);
+        tex->setTexture("Ghost");
+    }
+}
+
+void GameCanvas::dropLines(uint8_t y, uint8_t nb)
+{
+    for (auto j = y; j < 20; j++)
+    {
+        for (auto i = 0; i < 10; i++)
+        {
+            canvas[i][j] = canvas[i][j + nb];
+
+            auto ent = entityCanvas[i][j];
+            auto ent1 = entityCanvas[i][j + nb];
+
+            auto tex = ent1->get<Texture2DComponent>();
+
+            ent->get<Texture2DComponent>()->setTexture(tex->textureName);
+            tex->setTexture("Ghost");
+        }
+    }
+}
+
+void GameCanvas::checkClearedLines()
+{
+    auto yTop = currentMino.posY;
+
+    bool clearedLines [4] = {false, false, false, false};
+
+    for (auto j = 0; j < 4; j++)
+    {
+        bool cleared = true;
+
+        for (auto i = 0; i < 10; i++)
+        {
+            if (canvas[i][yTop - j] != -1)
+                cleared = false;
+        }
+
+        clearedLines[j] = cleared;
+    }
+
+    uint8_t nbDroppedLines = 0;
+
+    for (auto i = 0; i < 4; i++)
+    {
+        if (clearedLines[i])
+        {
+            nbDroppedLines++;
+
+            if (i != 0)
+                dropOneLine(yTop - i);
+        }
+    }
+
+    LOG_INFO(DOM, "Cleared lines: " << nbDroppedLines);
+
+    if (nbDroppedLines > 0)
+    {
+        dropLines(yTop, nbDroppedLines);
+    }
 }
 
 void GameCanvas::spawnTetromino()
@@ -448,20 +734,25 @@ void GameCanvas::spawnTetromino()
 
     auto type = generator.generateTetromino();
 
+    // Set rotation to 0 to always be the correct block
+    currentMino.rotation = 0;
+
     auto ent = entityCanvas[5][5];
 
-    // ecsRef->sendEvent(TextureChangeEvent{ent->id, "Ghost", "I"});
+    // ecsRef->sendEvent(TextureChangeEvent{ent->id, "Ghost", "I"});    
 
     LOG_INFO(DOM, "Got entity: " << ent->id << " but tex comp has id: " << ent->get<Texture2DComponent>().entityId);
 
-    LOG_INFO(DOM, "Entity in tex: " << ent->get<Texture2DComponent>()->entity.id);
+    auto comp = ent->get<Texture2DComponent>();
 
-    if (not ent->get<Texture2DComponent>()->entity.empty())
+    LOG_INFO(DOM, "Entity in comp: " << comp.entityId << " tex: " << comp->entityId);
+
+    if (ent->get<Texture2DComponent>()->ecsRef)
     {
         LOG_INFO(DOM, "Tex entity is correctly loaded");
     }
 
-    ent->get<Texture2DComponent>()->setTexture("I");
+    // ent->get<Texture2DComponent>()->setTexture("I");
 
     LOG_INFO(DOM, "New Tetromino: " << static_cast<uint8_t>(type));
 
@@ -473,15 +764,13 @@ void GameCanvas::spawnTetromino()
     {
         for (auto j = 0; j < 4; j++)
         {
-            if (currentMino.possibleRotation[currentMino.rotation].pos[i][j] != 0)
+            if (currentMino.possibleRotation[currentMino.rotation].pos[j][i] != 0)
             {
                 canvas[currentMino.posX + i][currentMino.posY - j] = static_cast<uint8_t>(currentMino.type);
-                auto ent = entityCanvas[i][j];
+                auto ent = entityCanvas[currentMino.posX + i][currentMino.posY - j];
 
                 ent->get<Texture2DComponent>()->setTexture(tetrominoTypeToString(currentMino.type));
             }
         }
     }
-
-    // currentMino.createTexture(world());
 }

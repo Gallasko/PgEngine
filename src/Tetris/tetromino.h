@@ -72,7 +72,9 @@ struct RandomTetrominoGenerator
 
 struct FallTimeout {};
 
-struct GameCanvas : public System<Listener<OnSDLGamepadPressed>, Listener<FallTimeout>, InitSys>
+struct LockTimeout {};
+
+struct GameCanvas : public System<Listener<OnSDLGamepadPressed>, Listener<FallTimeout>, Listener<LockTimeout>, InitSys>
 {
     GameCanvas() : currentMino(TetrominoType::I) {}
 
@@ -82,6 +84,8 @@ struct GameCanvas : public System<Listener<OnSDLGamepadPressed>, Listener<FallTi
 
     virtual void onEvent(const FallTimeout& event) override;
 
+    virtual void onEvent(const LockTimeout& event) override;
+
     bool moveHelper(int x, int y);
 
     void moveDown();
@@ -89,19 +93,28 @@ struct GameCanvas : public System<Listener<OnSDLGamepadPressed>, Listener<FallTi
     void moveUp();
     void moveRight();
 
+    void snapBottom();
+
     void rotate();
 
     void setMino(int value, const std::string& texture);
 
     void startLockTimer();
 
+    void dropOneLine(uint8_t y);
+    void dropLines(uint8_t y, uint8_t nb);
+    void checkClearedLines();
+
     void spawnTetromino();
 
     CompRef<Timer> timer;
+    CompRef<Timer> lockTimer;
 
     RandomTetrominoGenerator generator;
 
     Tetromino currentMino;
+
+    bool running = false;
 
     // const size_t width = 10, height = 20;
 

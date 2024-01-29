@@ -96,7 +96,17 @@ namespace pg
 
             auto textureId = sys->masterRenderer->getTexture(tName);
 
-            sys->tempRenderList[textureId].push_back(rTex);
+            {
+                const auto id = entity->id;
+                std::lock_guard<std::mutex> lock (sys->modificationMutex);
+
+                // This is here only because we can receive on group event multiple times
+                // Todo remove this once it is fixed
+                auto it = std::find_if(sys->tempRenderList[textureId].begin(), sys->tempRenderList[textureId].end(), [id](const RenderableTexture& rTex) { return rTex.entityId == id; });
+
+                if (it == sys->tempRenderList[textureId].end())
+                    sys->tempRenderList[textureId].push_back(rTex);
+            }
 
             sys->changed = true;
         });
@@ -147,10 +157,10 @@ namespace pg
 
     void Texture2DComponentSystem::onEvent(const TextureChangeEvent& event)
     {
-        LOG_INFO(DOM, "On texture change event: " << event.id << " texture to change : " << event.oldTextureName << " with new texture : " << event.newTextureName);
+        LOG_MILE(DOM, "On texture change event: " << event.id << " texture to change : " << event.oldTextureName << " with new texture : " << event.newTextureName);
         auto entity = ecsRef->getEntity(event.id);
 
-        if(event.oldTextureName == event.newTextureName or not entity or not entity->has<Texture2DComponent>() or not entity->has<UiComponent>())
+        if (event.oldTextureName == event.newTextureName or not entity or not entity->has<Texture2DComponent>() or not entity->has<UiComponent>())
             return;
 
         auto ui = entity->get<UiComponent>();
@@ -161,7 +171,7 @@ namespace pg
 
         auto rTex = RenderableTexture{event.id, ui, mesh};
 
-        LOG_INFO("Texture Component System", "Modification of id: " << entity->id << " texture");
+        LOG_MILE("Texture Component System", "Modification of id: " << entity->id << " texture");
 
         auto oldTextureId = sys->masterRenderer->getTexture(event.oldTextureName);
         auto textureId = sys->masterRenderer->getTexture(event.newTextureName);
