@@ -81,7 +81,7 @@ namespace pg
         auto group = registerGroup<UiComponent, Texture2DComponent>();
 
         group->addOnGroup([](EntityRef entity) {
-            LOG_INFO("Texture Component System", "Add entity " << entity->id << " to ui - tex group !");
+            LOG_MILE("Texture Component System", "Add entity " << entity->id << " to ui - tex group !");
 
             auto ui = entity->get<UiComponent>();
             auto tex = entity->get<Texture2DComponent>();

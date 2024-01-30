@@ -4,6 +4,8 @@
 
 #include "Audio/audiosystem.h"
 
+#include "Systems/basicsystems.h"
+
 #include "tetromino.h"
 
 using namespace pg;
@@ -40,6 +42,8 @@ int TetrisApp::exec()
     window.initEngine();
 
     auto& ecs = window.ecs;
+
+    // ecs.createSystem<FpsSystem>();
 
     ecs.createSystem<GameCanvas>();
 

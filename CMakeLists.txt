@@ -424,6 +424,8 @@ target_sources(TetrisClone PRIVATE
         src/Engine/UI/uisystem.cpp
         src/Engine/UI/uisystem.h
 
+        src/GameElements/Systems/basicsystems.h
+
         src/Tetris/app.h
         src/Tetris/app.cpp
         src/Tetris/tetromino.h
@@ -431,6 +433,7 @@ target_sources(TetrisClone PRIVATE
 )
 
 target_include_directories(TetrisClone PRIVATE src/Engine)
+target_include_directories(TetrisClone PRIVATE src/GameElements)
 target_include_directories(TetrisClone PRIVATE src/Tetris)
 
 if(TARGET SDL2::SDL2main)

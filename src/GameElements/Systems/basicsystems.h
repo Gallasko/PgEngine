@@ -9,11 +9,15 @@ struct FpsSystem : public System<Listener<TickEvent>, NamedSystem, InitSys, Stor
 {
     virtual std::string getSystemName() const override { return "Fps System"; }
 
-    void init() override
+    virtual void init() override
     {
-        auto sentence = makeSentence(ecsRef, 0, 0, {"0"});
+        LOG_INFO("FPS System initialized", "FPS System initializing");
+
+        auto sentence = makeSentence(ecsRef, 500, 0, {"0"});
 
         fpsTextId = sentence.entity.id;
+
+        LOG_INFO("FPS System initialized", "Sentence id: " << fpsTextId);
     }
 
     virtual void onEvent(const TickEvent& event) override

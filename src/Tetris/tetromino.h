@@ -18,7 +18,9 @@ enum class TetrominoType : uint8_t
     L,
     S,
     Z,
-    T
+    T,
+
+    NOMINO
 };
 
 struct TetrominoPos
@@ -38,6 +40,7 @@ struct TetrominoPos
 
 struct Tetromino
 {
+    Tetromino() : type(TetrominoType::NOMINO) {}
     Tetromino(const TetrominoType& type);
 
     void setMino(const TetrominoType& type);
@@ -97,15 +100,23 @@ struct GameCanvas : public System<Listener<OnSDLGamepadPressed>, Listener<FallTi
 
     void rotate();
 
+    void hold();
+
     void setMino(int value, const std::string& texture);
+    void setHoldedMino(int value, const std::string& texture);
 
     void startLockTimer();
+    void resetLockTimer();
 
-    void dropOneLine(uint8_t y);
+    void dropOneLine(uint8_t y, uint8_t nb);
     void dropLines(uint8_t y, uint8_t nb);
     void checkClearedLines();
 
+    void showNext();
+
     void spawnTetromino();
+
+    void printCanvas();
 
     CompRef<Timer> timer;
     CompRef<Timer> lockTimer;
@@ -113,6 +124,10 @@ struct GameCanvas : public System<Listener<OnSDLGamepadPressed>, Listener<FallTi
     RandomTetrominoGenerator generator;
 
     Tetromino currentMino;
+
+    bool swapped = false;
+    Tetromino holdedMino;
+    EntityRef holdedCanvas[4][4];
 
     bool running = false;
 

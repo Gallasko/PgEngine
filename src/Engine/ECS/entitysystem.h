@@ -718,12 +718,12 @@ namespace pg
         // Todo fix this ( it is called multiple times when it should be only called once per set)
         // In case of texture it is called twice once for ui and once for tex comp
         setN->onComponentCreation.emplace(id, [](Entity *entity) {
-            LOG_INFO("Group", "On component creation for entity " << entity->id << ", sending event !");
+            LOG_MILE("Group", "On component creation for entity " << entity->id << ", sending event !");
             entity->world()->sendEvent(OnCompCreatedCheckForGroup<Group<Type, Types...>>{entity});
         });
 
         setN->onComponentDeletion.emplace(id, [](Entity *entity) {
-            LOG_INFO("Group", "On component deletion for entity " << entity->id << ", sending event !");
+            LOG_MILE("Group", "On component deletion for entity " << entity->id << ", sending event !");
             entity->world()->sendEvent(OnCompDeletionCheckForGroup<Group<Type, Types...>>{entity->id, entity->componentList});
         });
     }
