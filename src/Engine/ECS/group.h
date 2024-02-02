@@ -100,7 +100,8 @@ namespace pg
         LOG_THIS("Ecs Group");
 
         const auto& pos = set->find(id);
-        if(pos != 0)
+
+        if (pos != 0)
             element.set(static_cast<const Set*>(set));
         else
             element.toBeDeleted = true;
@@ -109,7 +110,7 @@ namespace pg
     template <typename GroupName>
     struct OnCompCreatedCheckForGroup
     {
-        Entity *entity;
+        EntityRef entity;
     };
 
     template <typename GroupName>
@@ -128,9 +129,9 @@ namespace pg
             LOG_THIS_MEMBER("Ecs Group");
 
             auto entity = event.entity;
-            auto& id = entity->id;
+            auto& id = entity.id;
 
-            if(isEntityInGroup(entity))
+            if (isEntityInGroup(entity) and elements.atEntity(id) == nullptr)
             {
                 LOG_MILE("Group", "Entity " << id << " is in group " << this->id);
 
@@ -235,7 +236,7 @@ namespace pg
             populateList(list, index + 1, sets...);
         }
 
-        inline bool isEntityInGroup(Entity *entity) const
+        inline bool isEntityInGroup(EntityRef entity) const
         {
             LOG_THIS_MEMBER("Ecs Group");
 

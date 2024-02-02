@@ -45,16 +45,12 @@ struct Tetromino
 
     void setMino(const TetrominoType& type);
 
-    void createTexture(EntitySystem *ecsRef);
-
     TetrominoType type;
 
     uint8_t rotation = 0;
 
     uint8_t nbPossibleRotation;
     TetrominoPos possibleRotation[4];
-
-    EntityRef ref[4];
 
     uint8_t posX, posY;
 };
@@ -77,13 +73,14 @@ struct FallTimeout {};
 
 struct LockTimeout {};
 
-struct GameCanvas : public System<Listener<OnSDLGamepadPressed>, Listener<FallTimeout>, Listener<LockTimeout>, InitSys>
+struct GameCanvas : public System<Listener<OnSDLGamepadAxisChanged>, Listener<OnSDLGamepadPressed>, Listener<FallTimeout>, Listener<LockTimeout>, InitSys>
 {
     GameCanvas() : currentMino(TetrominoType::I) {}
 
     virtual void init() override;
 
     virtual void onEvent(const OnSDLGamepadPressed& event) override;
+    virtual void onEvent(const OnSDLGamepadAxisChanged& event) override;
 
     virtual void onEvent(const FallTimeout& event) override;
 
@@ -103,7 +100,8 @@ struct GameCanvas : public System<Listener<OnSDLGamepadPressed>, Listener<FallTi
     void hold();
 
     void setMino(int value, const std::string& texture);
-    void setHoldedMino(int value, const std::string& texture);
+    void setHoldedMino(const std::string& texture);
+    void setNextMinos(const std::string& tex1, const std::string& tex2, const std::string& tex3, const std::string& tex4);
 
     void startLockTimer();
     void resetLockTimer();
@@ -116,7 +114,14 @@ struct GameCanvas : public System<Listener<OnSDLGamepadPressed>, Listener<FallTi
 
     void spawnTetromino();
 
+    void updateClearedLines();
+    void updateScore();
+
     void printCanvas();
+
+    void reset();
+
+    void gameOver();
 
     CompRef<Timer> timer;
     CompRef<Timer> lockTimer;
@@ -129,7 +134,20 @@ struct GameCanvas : public System<Listener<OnSDLGamepadPressed>, Listener<FallTi
     Tetromino holdedMino;
     EntityRef holdedCanvas[4][4];
 
+    Tetromino nextMino[4];
+    EntityRef nextCanvas[4][16];
+
     bool running = false;
+
+    uint64_t nbClearedLines = 0;
+    uint64_t score = 0;
+
+    // Flag to keep track if the last completion was a tetris
+    // For back to back tetris score upgrade
+    bool previousWasTetris = false;
+
+    EntityRef clearedLinesStr;
+    EntityRef scoreStr;
 
     // const size_t width = 10, height = 20;
 

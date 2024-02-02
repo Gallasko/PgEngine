@@ -195,8 +195,6 @@ namespace pg
         std::set<MouseAreaZ, std::less<>> mouseAreaHolder;
     };
 
-    
-
     bool operator<(const MouseAreaZ& lhs, const MouseAreaZ& rhs);
     bool operator>(const MouseAreaZ& lhs, const MouseAreaZ& rhs);
 

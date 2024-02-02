@@ -29,7 +29,13 @@ namespace pg
         void generateMesh();
     };
 
-    struct SentenceText
+    struct OnTextChanged
+    {
+        _unique_id entityId;
+        std::string newText;
+    };
+
+    struct SentenceText : public Ctor
     {
         std::string text = "";
         float scale = 2.0f;
@@ -41,6 +47,10 @@ namespace pg
 
         UiSize textWidth, textHeight;
 
+        _unique_id entityId = 0;
+
+        EntitySystem *ecsRef = nullptr;
+
         SentenceText() {}
         SentenceText(const SentenceText& other) : 
             text(other.text),
@@ -50,12 +60,21 @@ namespace pg
             outline2(other.outline2),
             effect(other.effect),
             textWidth(other.textWidth),
-            textHeight(other.textHeight)
+            textHeight(other.textHeight),
+            entityId(other.entityId),
+            ecsRef(other.ecsRef)
             {}
 
         SentenceText(const std::string& text) : text(text) {}
         SentenceText(const std::string& text, float scale, const constant::Vector4D& color1, const SentenceEffect& effect = SentenceEffect::NOEFFCT) : text(text), scale(scale), mainColor(color1), effect(effect) {}
         SentenceText(const std::string& text, float scale, const constant::Vector4D& color1, const constant::Vector4D& color2, const constant::Vector4D& color3 = constant::Vector4D(255.0f, 255.0f, 255.0f, 180.0f), const SentenceEffect& effect = SentenceEffect::NOEFFCT) : text(text), scale(scale), mainColor(color1), outline1(color2), outline2(color3), effect(effect) {}
+
+        virtual void onCreation(EntityRef entity) override
+        {
+            ecsRef = entity->world();
+
+            entityId = entity->id;
+        }
 
         inline void operator=(const SentenceText &rhs)
         {
@@ -67,6 +86,8 @@ namespace pg
             this->effect     = rhs.effect;
             this->textWidth  = rhs.textWidth;
             this->textHeight = rhs.textHeight;
+            this->entityId   = rhs.entityId;
+            this->ecsRef     = rhs.ecsRef;
         }
 
         inline bool operator==(const SentenceText &rhs) const
@@ -78,16 +99,18 @@ namespace pg
         {
             return !(*this == rhs);
         }
+
+        inline void setText(const std::string &text)
+        {
+            if (ecsRef)
+                ecsRef->sendEvent(OnTextChanged{entityId, text});
+            else
+                this->text = text;
+        }
     };
 
     template <>
     void serialize(Archive& archive, const SentenceText& value);
-
-    struct OnTextChanged
-    {
-        _unique_id entityId;
-        std::string newText;
-    };
 
     struct SentenceSystem : public AbstractRenderer, System<Own<SentenceText>, Ref<UiComponent>, Listener<OnTextChanged>, Listener<UiComponentChangeEvent>, NamedSystem, InitSys, StoragePolicy>
     {

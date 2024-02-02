@@ -266,20 +266,19 @@ void Tetromino::setMino(const TetrominoType& type)
             possibleRotation[3] = rota3;
             break;
         }
-    }
-}
 
-void Tetromino::createTexture(EntitySystem *ecsRef)
-{
-    for (size_t i = 0; i < 4; i++)
-    {
-        // ref[i] = ecsRef->createEntity();
+        default:
+        {
+            nbPossibleRotation = 1;
 
-        auto typeStr = tetrominoTypeToString(type);
+            uint8_t rota0[4][4] = {{0, 0, 0, 0},
+                                   {0, 0, 0, 0},
+                                   {0, 0, 0, 0},
+                                   {0, 0, 0, 0}};
 
-        LOG_INFO(DOM, "Creating texture [" << i << "] of type: " << typeStr);
-
-        makeUiTexture(ecsRef, 24, 24, typeStr);
+            possibleRotation[0] = rota0;
+            break;
+        }
     }
 }
 
@@ -335,7 +334,7 @@ TetrominoType RandomTetrominoGenerator::preview(size_t next)
     if (nextIndex < 7)
         return bag1[nextIndex];
     else 
-        return bag2[nextIndex];
+        return bag2[nextIndex - 7];
 }
 
 void GameCanvas::init()
@@ -344,11 +343,9 @@ void GameCanvas::init()
 
     timer = ecsRef->attach<Timer>(entity);
 
-    timer->interval = 1000;
+    timer->interval = 500;
 
     timer->callback = makeCallable<FallTimeout>();
-
-    timer->running = true;
 
     auto entity2 = ecsRef->createEntity();
 
@@ -366,7 +363,7 @@ void GameCanvas::init()
 
     canvasUi->setZ(0);
 
-    auto nextTex = makeUiTexture(ecsRef, 27 * 16, 40 * 4, "Next");
+    auto nextTex = makeUiTexture(ecsRef, 111 * 4, 40 * 4, "Next");
 
     auto nextUi = nextTex.get<UiComponent>();
 
@@ -389,18 +386,35 @@ void GameCanvas::init()
 
             auto ui = tex.get<UiComponent>();
 
-            ui->setTopAnchor(holdUi->top);
+            ui->setBottomAnchor(holdUi->bottom);
             ui->setLeftAnchor(holdUi->left);
 
-            ui->setTopMargin(52 + 24 * i);
+            ui->setBottomMargin(12 + 24 * i);
             ui->setLeftMargin(12 + 24 * j);
-
-            // ui->setX(300 + 24 * i);
-            // ui->setY(400 + 24 * j);
 
             ui->setZ(0);
 
             holdedCanvas[i][j] = tex.entity;
+        }
+    }
+
+    for (size_t i = 0; i < 4; i++)
+    {
+        for (size_t j = 0; j < 16; j++)
+        {
+            auto tex = makeUiTexture(ecsRef, 24, 24, "Empty");
+
+            auto ui = tex.get<UiComponent>();
+
+            ui->setBottomAnchor(nextUi->bottom);
+            ui->setLeftAnchor(nextUi->left);
+
+            ui->setBottomMargin(12 + 24 * i);
+            ui->setLeftMargin(12 + 24 * j + (static_cast<int>(j / 4) * 12));
+
+            ui->setZ(0);
+
+            nextCanvas[i][j] = tex.entity;
         }
     }
 
@@ -421,6 +435,30 @@ void GameCanvas::init()
             canvas[i][j] = -1;
         }
     }
+
+    auto clStr = makeSentence(ecsRef, 0, 0, {"Lines: 0"});
+
+    auto clUi = clStr.get<UiComponent>();
+
+    clUi->setTopAnchor(holdUi->bottom);
+    clUi->setLeftAnchor(canvasUi->right);
+
+    clUi->setTopMargin(20);
+    clUi->setLeftMargin(10);
+
+    clearedLinesStr = clStr.entity;
+
+    auto scStr = makeSentence(ecsRef, 0, 0, {"Score: 0"});
+
+    auto scUi = scStr.get<UiComponent>();
+
+    scUi->setTopAnchor(clUi->bottom);
+    scUi->setLeftAnchor(canvasUi->right);
+
+    scUi->setTopMargin(20);
+    scUi->setLeftMargin(10);
+
+    scoreStr = scStr.entity;
 }
 
 bool GameCanvas::moveHelper(int x, int y)
@@ -565,6 +603,9 @@ void GameCanvas::snapBottom()
 
 void GameCanvas::rotate()
 {
+    if (not running)
+        return;
+
     setMino(-1, "Empty");
 
     bool placeable = false;
@@ -617,6 +658,9 @@ void GameCanvas::rotate()
 
 void GameCanvas::hold()
 {
+    if (not running)
+        return;
+
     if (swapped)
     {
         return;
@@ -624,15 +668,13 @@ void GameCanvas::hold()
 
     setMino(-1, "Empty");
 
-    setHoldedMino(-1, "Empty");
+    setHoldedMino("Empty");
 
     if (holdedMino.type == TetrominoType::NOMINO)
     {
         holdedMino.setMino(currentMino.type);
 
         spawnTetromino();
-
-        showNext();
     }
     else
     {
@@ -644,7 +686,7 @@ void GameCanvas::hold()
         swapped = true;
     }
 
-    setHoldedMino(static_cast<uint8_t>(holdedMino.type), tetrominoTypeToString(holdedMino.type));
+    setHoldedMino(tetrominoTypeToString(holdedMino.type));
 
     setMino(static_cast<uint8_t>(currentMino.type), tetrominoTypeToString(currentMino.type));
 }
@@ -664,7 +706,7 @@ void GameCanvas::setMino(int value, const std::string& texture)
     }
 }
 
-void GameCanvas::setHoldedMino(int value, const std::string& texture)
+void GameCanvas::setHoldedMino(const std::string& texture)
 {
     for (uint8_t i = 0; i < 4; i++)
     {
@@ -678,9 +720,61 @@ void GameCanvas::setHoldedMino(int value, const std::string& texture)
     }
 }
 
+void GameCanvas::setNextMinos(const std::string& tex1, const std::string& tex2, const std::string& tex3, const std::string& tex4)
+{
+    for (uint8_t i = 0; i < 4; i++)
+    {
+        for (uint8_t j = 0; j < 16; j++)
+        {
+            auto y = j % 4;
+            uint8_t offset = j / 4;
+            switch (offset)
+            {
+                case 0:
+                {
+                    if (nextMino[offset].possibleRotation[nextMino[offset].rotation].pos[y][i] == 1)
+                    {
+                        nextCanvas[i][j]->get<Texture2DComponent>()->setTexture(tex1);
+                    }
+                    break;
+                }
+                case 1:
+                {
+                    if (nextMino[offset].possibleRotation[nextMino[offset].rotation].pos[y][i] == 1)
+                    {
+                        nextCanvas[i][j]->get<Texture2DComponent>()->setTexture(tex2);
+                    }
+                    break;
+                }
+                case 2:
+                {
+                    if (nextMino[offset].possibleRotation[nextMino[offset].rotation].pos[y][i] == 1)
+                    {
+                        nextCanvas[i][j]->get<Texture2DComponent>()->setTexture(tex3);
+                    }
+                    break;
+                }
+                case 3:
+                {
+                    if (nextMino[offset].possibleRotation[nextMino[offset].rotation].pos[y][i] == 1)
+                    {
+                        nextCanvas[i][j]->get<Texture2DComponent>()->setTexture(tex4);
+                    }
+                    break;
+                }
+                default:
+                {
+                    LOG_ERROR(DOM, "SHOULD NEVER HAPPEND !");
+                }
+            }
+        }
+    }
+}
+
 void GameCanvas::startLockTimer()
 {
-    lockTimer->currentTime = 0;
+    if (not lockTimer->running)
+        lockTimer->currentTime = 0;
 
     lockTimer->running = true;
 }
@@ -700,10 +794,19 @@ void GameCanvas::onEvent(const OnSDLGamepadPressed& event)
 
         if (not running)
         {
+            reset();
+
             running = true;
+
+            timer->running = true;
 
             spawnTetromino();
         }
+    }
+
+    if (not running)
+    {
+        return;
     }
 
     if (event.button == SDL_CONTROLLER_BUTTON_X)
@@ -713,14 +816,12 @@ void GameCanvas::onEvent(const OnSDLGamepadPressed& event)
         hold();
     }
 
-
     if (event.button == SDL_CONTROLLER_BUTTON_Y)
     {
         LOG_INFO(DOM, "Game canvas Y Pressed");
 
         printCanvas();
     }
-
 
     if (event.button == SDL_CONTROLLER_BUTTON_B)
     {
@@ -758,6 +859,50 @@ void GameCanvas::onEvent(const OnSDLGamepadPressed& event)
     }
 }
 
+void GameCanvas::onEvent(const OnSDLGamepadAxisChanged& event)
+{
+    if (event.axis == GAMEPAD_AXIS_LEFTX)
+    {
+        if (event.value >= 0.16)
+        {
+            lTimer.stop()
+            rVelocity = 5 * event.value;
+            rTimer.start()
+        }
+        else if (event.value <= -0.16)
+        {
+            rTimer.stop()
+            lVelocity = 5 * event.value;
+            lTimer.start()
+        }
+        else
+        {
+            rTimer.stop()
+            lTimer.stop()
+        }
+    }
+    else if (event.axis == GAMEPAD_AXIS_LEFTY)
+    {
+        if (event.value >= 0.16)
+        {
+            dTimer.stop()
+            uVelocity = 5 * event.value;
+            uTimer.start()
+        }
+        else if (event.value <= -0.16)
+        {
+            uTimer.stop()
+            dVelocity = 5 * event.value;
+            dTimer.start()
+        }
+        else
+        {
+            uTimer.stop()
+            dTimer.stop()
+        }
+    }
+}
+
 void GameCanvas::onEvent(const FallTimeout& event)
 {
     LOG_INFO(DOM, "Fall timeout: ");
@@ -772,6 +917,16 @@ void GameCanvas::onEvent(const LockTimeout& event)
     lockTimer->running = false;
 
     checkClearedLines();
+
+    for (int i = 0; i < 10; i++)
+    {
+        if (canvas[i][20] != -1)
+        {
+            gameOver();
+
+            return;
+        }
+    }
 
     swapped = false;
 
@@ -844,6 +999,7 @@ void GameCanvas::dropLines(uint8_t y, uint8_t nb)
 void GameCanvas::checkClearedLines()
 {
     printCanvas();
+
     auto yTop = currentMino.posY;
 
     uint8_t nbDroppedLines = 0;
@@ -874,14 +1030,44 @@ void GameCanvas::checkClearedLines()
         LOG_INFO(DOM, "Cleared lines: " << nbDroppedLines);
         
         dropLines(yTop + 1, nbDroppedLines);
+
+        nbClearedLines += nbDroppedLines;
+
+        auto multiplier = previousWasTetris and nbClearedLines == 4 ? 2.0f : 1.0f;
+
+        score += nbClearedLines * std::pow(4, multiplier * nbDroppedLines);
+
+        LOG_INFO(DOM, "Score: " << score);
+
+        updateScore();
+
+        if (nbClearedLines == 4)
+        {
+            previousWasTetris = true;
+        }
+        else
+        {
+            previousWasTetris = false;
+        }
     }
+
+    updateClearedLines();
 
     printCanvas();
 }
 
 void GameCanvas::showNext()
 {
+    setNextMinos("Empty", "Empty", "Empty", "Empty");
 
+    for (size_t i = 0; i < 4; i++)
+    {
+        auto next = generator.preview(i);
+        LOG_INFO(DOM, "Next mino i+" << i << ": is " << tetrominoTypeToString(next));
+        nextMino[i].setMino(next);
+    }
+
+    setNextMinos(tetrominoTypeToString(nextMino[0].type), tetrominoTypeToString(nextMino[1].type), tetrominoTypeToString(nextMino[2].type), tetrominoTypeToString(nextMino[3].type));
 }
 
 void GameCanvas::spawnTetromino()
@@ -890,24 +1076,7 @@ void GameCanvas::spawnTetromino()
 
     auto type = generator.generateTetromino();
 
-    auto ent = entityCanvas[5][5];
-
-    // ecsRef->sendEvent(TextureChangeEvent{ent->id, "Ghost", "I"});    
-
-    LOG_INFO(DOM, "Got entity: " << ent->id << " but tex comp has id: " << ent->get<Texture2DComponent>().entityId);
-
-    auto comp = ent->get<Texture2DComponent>();
-
-    LOG_INFO(DOM, "Entity in comp: " << comp.entityId << " tex: " << comp->entityId);
-
-    if (ent->get<Texture2DComponent>()->ecsRef)
-    {
-        LOG_INFO(DOM, "Tex entity is correctly loaded");
-    }
-
-    // ent->get<Texture2DComponent>()->setTexture("I");
-
-    LOG_INFO(DOM, "New Tetromino: " << static_cast<uint8_t>(type));
+    showNext();
 
     currentMino.setMino(type);
 
@@ -926,6 +1095,20 @@ void GameCanvas::spawnTetromino()
             }
         }
     }
+}
+
+void GameCanvas::updateClearedLines()
+{
+    clearedLinesStr->get<SentenceText>()->setText("Lines: " + std::to_string(nbClearedLines));
+
+    auto interval = 500 - static_cast<uint32_t>(nbClearedLines / 10) * 25;
+
+    timer->interval = interval < 50 ? 50 : interval;
+}
+
+void GameCanvas::updateScore()
+{
+    scoreStr->get<SentenceText>()->setText("Score: " + std::to_string(score));
 }
 
 void GameCanvas::printCanvas()
@@ -952,5 +1135,43 @@ void GameCanvas::printCanvas()
         }
 
         LOG_INFO(DOM, line);
+    }
+}
+
+void GameCanvas::reset()
+{
+    score = 0;
+    nbClearedLines = 0;
+
+    updateClearedLines();
+    updateScore();
+
+    for (size_t i = 0; i < 10; i++)
+    {
+        for (size_t j = 0; j < 24; j++)
+        {
+            auto ent = entityCanvas[i][j];
+
+            ent->get<Texture2DComponent>()->setTexture("Empty");
+
+            canvas[i][j] = -1;
+        }
+    }
+}
+
+void GameCanvas::gameOver()
+{
+    running = false;
+
+    timer->running = false;
+
+    for (size_t i = 0; i < 10; i++)
+    {
+        for (size_t j = 0; j < 24; j++)
+        {
+            auto ent = entityCanvas[i][j];
+
+            ent->get<Texture2DComponent>()->setTexture("Ghost");
+        }
     }
 }

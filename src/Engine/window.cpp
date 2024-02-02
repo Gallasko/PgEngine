@@ -477,7 +477,7 @@ namespace pg
 
                     // User resized the window
                     case SDL_WINDOWEVENT_RESIZED:
-                        LOG_MILE(DOM, "MESSAGE: Resizing window... New width: " << event.window.data1 << ", new height: " << event.window.data2);
+                        LOG_INFO(DOM, "MESSAGE: Resizing window... New width: " << event.window.data1 << ", new height: " << event.window.data2);
 
                         this->resize(event.window.data1, event.window.data2);
                         break;
@@ -527,20 +527,14 @@ namespace pg
                 break;
 
             case SDL_CONTROLLERBUTTONDOWN:
-                LOG_INFO(DOM, "Button pressed: " << event.cbutton.button);
-
                 ecs.sendEvent(OnSDLGamepadPressed{event.cbutton.which, event.cbutton.button});
                 break;
 
             case SDL_CONTROLLERBUTTONUP:
-                LOG_INFO(DOM, "Button released: " << event.cbutton.button);
-
                 ecs.sendEvent(OnSDLGamepadReleased{event.cbutton.which, event.cbutton.button});
                 break;
 
             case SDL_CONTROLLERAXISMOTION:
-                LOG_INFO(DOM, "Axis moved: " << event.caxis.which << " " << event.caxis.axis << " " << event.caxis.value);
-
                 ecs.sendEvent(OnSDLGamepadAxisChanged{event.caxis.which, event.caxis.axis, event.caxis.value});
                 break;
 

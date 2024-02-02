@@ -96,17 +96,9 @@ namespace pg
 
             auto textureId = sys->masterRenderer->getTexture(tName);
 
-            {
-                const auto id = entity->id;
-                std::lock_guard<std::mutex> lock (sys->modificationMutex);
+            std::lock_guard<std::mutex> lock (sys->modificationMutex);
 
-                // This is here only because we can receive on group event multiple times
-                // Todo remove this once it is fixed
-                auto it = std::find_if(sys->tempRenderList[textureId].begin(), sys->tempRenderList[textureId].end(), [id](const RenderableTexture& rTex) { return rTex.entityId == id; });
-
-                if (it == sys->tempRenderList[textureId].end())
-                    sys->tempRenderList[textureId].push_back(rTex);
-            }
+            sys->tempRenderList[textureId].push_back(rTex);
 
             sys->changed = true;
         });
