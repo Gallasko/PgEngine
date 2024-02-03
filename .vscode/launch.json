@@ -23,7 +23,7 @@
             "windows": {
                 "MIMode": "gdb",
                 "miDebuggerPath": "gdb.exe",
-                "program": "${workspaceFolder}/debug_build/main.exe"
+                "program": "${workspaceFolder}/debug/TetrisClone.exe"
             }
             // },
             // "preLaunchTask": "build"

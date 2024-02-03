@@ -434,8 +434,8 @@ namespace pg
 
         ComponentSet<Type> components;
 
-        std::map<_unique_id, void(*)(Entity*)> onComponentCreation;
-        std::map<_unique_id, void(*)(Entity*)> onComponentDeletion;
+        std::map<_unique_id, void(*)(EntityRef)> onComponentCreation;
+        std::map<_unique_id, void(*)(EntityRef)> onComponentDeletion;
 
         _unique_id _componentId = 0;
     };

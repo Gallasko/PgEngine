@@ -35,6 +35,8 @@ namespace pg
 
         window.initEngine();
 
+        auto& ecs = window.ecs;
+
         LOG_INFO(DOM, "Initializing engine done !");
 
         LOG_INFO(DOM, "Starting SDL event loop, waiting for events...");

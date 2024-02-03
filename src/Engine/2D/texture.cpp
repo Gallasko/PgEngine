@@ -81,7 +81,7 @@ namespace pg
         auto group = registerGroup<UiComponent, Texture2DComponent>();
 
         group->addOnGroup([](EntityRef entity) {
-            LOG_INFO("Texture Component System", "Add entity " << entity->id << " to ui - tex group !");
+            LOG_MILE("Texture Component System", "Add entity " << entity->id << " to ui - tex group !");
 
             auto ui = entity->get<UiComponent>();
             auto tex = entity->get<Texture2DComponent>();
@@ -95,6 +95,8 @@ namespace pg
             auto rTex = RenderableTexture{entity->id, ui, mesh};
 
             auto textureId = sys->masterRenderer->getTexture(tName);
+
+            std::lock_guard<std::mutex> lock (sys->modificationMutex);
 
             sys->tempRenderList[textureId].push_back(rTex);
 
@@ -141,6 +143,48 @@ namespace pg
 
             ++first;
         }
+
+        sys->changed = true;
+    }
+
+    void Texture2DComponentSystem::onEvent(const TextureChangeEvent& event)
+    {
+        LOG_MILE(DOM, "On texture change event: " << event.id << " texture to change : " << event.oldTextureName << " with new texture : " << event.newTextureName);
+        auto entity = ecsRef->getEntity(event.id);
+
+        if (event.oldTextureName == event.newTextureName or not entity or not entity->has<Texture2DComponent>() or not entity->has<UiComponent>())
+            return;
+
+        auto ui = entity->get<UiComponent>();
+
+        auto sys = entity->world()->getSystem<Texture2DComponentSystem>();
+
+        auto mesh = sys->getTextureMesh(ui->width, ui->height, event.newTextureName);
+
+        auto rTex = RenderableTexture{event.id, ui, mesh};
+
+        LOG_MILE("Texture Component System", "Modification of id: " << entity->id << " texture");
+
+        auto oldTextureId = sys->masterRenderer->getTexture(event.oldTextureName);
+        auto textureId = sys->masterRenderer->getTexture(event.newTextureName);
+
+        std::lock_guard<std::mutex> lock (sys->modificationMutex);
+
+        auto first = sys->tempRenderList[oldTextureId].begin();
+        auto last = sys->tempRenderList[oldTextureId].end();
+
+        while (first != last)
+        {
+            if (first->entityId == event.id)
+            {
+                sys->tempRenderList[oldTextureId].erase(first);
+                break;
+            }
+
+            ++first;
+        }
+
+        sys->tempRenderList[textureId].push_back(rTex);
 
         sys->changed = true;
     }
@@ -196,7 +240,7 @@ namespace pg
                 // Todo
                 // view.translate(QVector3D(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, -static_cast<UiSize>(ui->pos.z)));
                 view = glm::mat4(1.0f);
-                view = glm::translate(view, glm::vec3(-1.0f + 2.0f * ui->pos.x / screenWidth, 1.0f + 2.0f * -ui->pos.y / screenHeight, 0.0f));
+                view = glm::translate(view, glm::vec3(-1.0f + 2.0f * ui->pos.x / screenWidth, 1.0f + 2.0f * -ui->pos.y / screenHeight, ui->pos.z));
                 // glm::translate(view, glm::vec3(-0.5f , 0.5f, 1.0f));
 
                 shaderProgram->setUniformValue("view", view);

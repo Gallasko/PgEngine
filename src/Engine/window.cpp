@@ -287,7 +287,9 @@ namespace pg
             glViewport(0, 0, width, height);
             // Todo set this or not
             // glEnable(GL_CULL_FACE);
-            // glEnable(GL_DEPTH_TEST);
+            glDisable(GL_CULL_FACE);
+            glEnable(GL_DEPTH_TEST);
+            glEnable(GL_ALPHA_TEST);
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -349,8 +351,6 @@ namespace pg
 
         audioSystem = ecs.createSystem<AudioSystem>();
 
-        makeSentence(&ecs, 200, 50, {"At the start"});
-
         // ecs.createSystem<FpsSystem>();
 
         ecs.createSystem<MouseLeftClickSystem>(inputHandler);
@@ -392,55 +392,55 @@ namespace pg
         screenUi->height = 10;
         screenUi->setZ(-1);
 
-        ecs.attach<FocusableComponent>(screenEntity);
-        ecs.attach<MouseLeftClickComponent>(screenEntity, makeCallable<OnFocus>(screenEntity.id));
+        // ecs.attach<FocusableComponent>(screenEntity);
+        // ecs.attach<MouseLeftClickComponent>(screenEntity, makeCallable<OnFocus>(screenEntity.id));
 
-        Serializer::getSerializer()->serializeObject("Test Focusable", *screenEntity->get<FocusableComponent>());
+        // Serializer::getSerializer()->serializeObject("Test Focusable", *screenEntity->get<FocusableComponent>());
 
-        Serializer::getSerializer()->serializeObject("ScreenEntity", *screenEntity.entity);
+        // Serializer::getSerializer()->serializeObject("ScreenEntity", *screenEntity.entity);
 
-        auto tex = makeUiTexture(&ecs, 160, 90, "menu");
-        auto cTex = tex.get<UiComponent>();
+        // auto tex = makeUiTexture(&ecs, 160, 90, "menu");
+        // auto cTex = tex.get<UiComponent>();
 
-        cTex->setTopAnchor(screenUi->top);
-        cTex->setRightAnchor(screenUi->right);
+        // cTex->setTopAnchor(screenUi->top);
+        // cTex->setRightAnchor(screenUi->right);
 
-        auto s = makeSimple2DShape(&ecs, Shape2D::Triangle, 50, 50, {255.0f, 0.0f, 0.0f});
-        auto c = s.get<UiComponent>();
+        // auto s = makeSimple2DShape(&ecs, Shape2D::Triangle, 50, 50, {255.0f, 0.0f, 0.0f});
+        // auto c = s.get<UiComponent>();
 
-        c->setTopAnchor(screenUi->top);
-        c->setRightAnchor(screenUi->right);
+        // c->setTopAnchor(screenUi->top);
+        // c->setRightAnchor(screenUi->right);
 
-        Serializer::getSerializer()->serializeObject("Menu tex", *tex.entity);
+        // Serializer::getSerializer()->serializeObject("Menu tex", *tex.entity);
 
-        auto terminalBackground = makeSimple2DShape(&ecs, Shape2D::Square, 350, 200, {4.0f, 16.0f, 32.0f});
-        auto terminalBackgroundC = terminalBackground.get<UiComponent>();
+        // auto terminalBackground = makeSimple2DShape(&ecs, Shape2D::Square, 350, 200, {4.0f, 16.0f, 32.0f});
+        // auto terminalBackgroundC = terminalBackground.get<UiComponent>();
 
-        terminalBackgroundC->setBottomAnchor(screenUi->bottom);
-        terminalBackgroundC->setRightAnchor(screenUi->right);
+        // terminalBackgroundC->setBottomAnchor(screenUi->bottom);
+        // terminalBackgroundC->setRightAnchor(screenUi->right);
 
-        Serializer::getSerializer()->serializeObject("Terminal background", *terminalBackground.entity);
+        // Serializer::getSerializer()->serializeObject("Terminal background", *terminalBackground.entity);
 
-        auto terminalText = makeSentence(&ecs, 200, 200, {"Here"});
-        auto terminalTextC = terminalText.get<UiComponent>();
+        // auto terminalText = makeSentence(&ecs, 200, 200, {"Here"});
+        // auto terminalTextC = terminalText.get<UiComponent>();
 
-        terminalTextC->setBottomAnchor(terminalBackgroundC->bottom);
-        terminalTextC->setLeftAnchor(terminalBackgroundC->left);
+        // terminalTextC->setBottomAnchor(terminalBackgroundC->bottom);
+        // terminalTextC->setLeftAnchor(terminalBackgroundC->left);
 
-        auto testb = makeSimple2DShape(&ecs, Shape2D::Square, 120, 120, {4.0f, 225.0f, 125.0f});
-        auto testbc = testb.get<UiComponent>();
+        // auto testb = makeSimple2DShape(&ecs, Shape2D::Square, 120, 120, {4.0f, 225.0f, 125.0f});
+        // auto testbc = testb.get<UiComponent>();
 
-        testbc->setBottomAnchor(screenUi->bottom);
-        testbc->setRightAnchor(screenUi->right);
+        // testbc->setBottomAnchor(screenUi->bottom);
+        // testbc->setRightAnchor(screenUi->right);
 
-        testbc->setBottomMargin(550);
+        // testbc->setBottomMargin(550);
 
-        terminalTextC->setBottomMargin(10);
-        terminalTextC->setLeftMargin(10);
+        // terminalTextC->setBottomMargin(10);
+        // terminalTextC->setLeftMargin(10);
 
-        ecs.attach<TextInputComponent>(terminalText.entity, makeCallable<TextInputTriggeredEvent>(terminalText.entity), "Here");
-        ecs.attach<FocusableComponent>(terminalText.entity);
-        ecs.attach<MouseLeftClickComponent>(terminalText.entity, makeCallable<OnFocus>(terminalText.entity.id));
+        // ecs.attach<TextInputComponent>(terminalText.entity, makeCallable<TextInputTriggeredEvent>(terminalText.entity), "Here");
+        // ecs.attach<FocusableComponent>(terminalText.entity);
+        // ecs.attach<MouseLeftClickComponent>(terminalText.entity, makeCallable<OnFocus>(terminalText.entity.id));
 
         // auto s2 = makeSimple2DShape(&ecs, Shape2D::Square, 100, 100, {0.0f, 255.0f, 0.0f});
         // auto c2 = s2.get<UiComponent>();
@@ -453,7 +453,9 @@ namespace pg
         // // ecs.attach<SentenceText>(s2.entity, "Here");
         // ecs.attach<MouseLeftClickComponent>(s2.entity, makeCallable<LogInfoEvent>("Window", "Left click on the green rectangle"));
 
-        makeSentence(&ecs, 200, 250, {"And there"});
+        // makeSentence(&ecs, 200, 250, {"And there"});
+
+        // ecs.sendEvent(StartAudio{"res/mainost.mp3"});
 
         ecs.start();
 
@@ -475,7 +477,7 @@ namespace pg
 
                     // User resized the window
                     case SDL_WINDOWEVENT_RESIZED:
-                        LOG_MILE(DOM, "MESSAGE: Resizing window... New width: " << event.window.data1 << ", new height: " << event.window.data2);
+                        LOG_INFO(DOM, "MESSAGE: Resizing window... New width: " << event.window.data1 << ", new height: " << event.window.data2);
 
                         this->resize(event.window.data1, event.window.data2);
                         break;
@@ -525,20 +527,14 @@ namespace pg
                 break;
 
             case SDL_CONTROLLERBUTTONDOWN:
-                LOG_INFO(DOM, "Button pressed: " << event.cbutton.button);
-
                 ecs.sendEvent(OnSDLGamepadPressed{event.cbutton.which, event.cbutton.button});
                 break;
 
             case SDL_CONTROLLERBUTTONUP:
-                LOG_INFO(DOM, "Button released: " << event.cbutton.button);
-
                 ecs.sendEvent(OnSDLGamepadReleased{event.cbutton.which, event.cbutton.button});
                 break;
 
             case SDL_CONTROLLERAXISMOTION:
-                LOG_INFO(DOM, "Axis moved: " << event.caxis.which << " " << event.caxis.axis << " " << event.caxis.value);
-
                 ecs.sendEvent(OnSDLGamepadAxisChanged{event.caxis.which, event.caxis.axis, event.caxis.value});
                 break;
 
