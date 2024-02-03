@@ -8,7 +8,7 @@ An ecs based Game/Graphical Engine
 
 A full fledge tetris clone using texture, entities and sound effects using this engine
 
-[Tetris clone](tetris.gif)
+![Tetris clone](tetris.gif)
 
 # How to build
 
