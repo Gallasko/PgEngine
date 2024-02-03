@@ -1,3 +1,15 @@
+# Pg Engine
+
+An ecs based Game/Graphical Engine
+
+# Exemple of game possible
+
+## Tetris clone
+
+A full fledge tetris clone using texture, entities and sound effects using this engine
+
+[Tetris clone](tetris.gif)
+
 # How to build
 
 ## Download external depencies
