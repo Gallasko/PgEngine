@@ -16,14 +16,14 @@ A full fledge tetris clone using texture, entities and sound effects using this 
 
 The first step to build is to download the two external depencies of this project:
 - Mingw64 (or any other c++ compiler)
-- QT
+- Cmake
 
 The first step is to install [Mingw 64](https://www.mingw-w64.org/downloads/) 
 
 Once mingw is installed, add the bin folder in your PATH to use make !
 ![Set up mingw in path](docs/mingwpath.png)
 
-The next step is to install QT, please use [this online installer](https://www.qt.io/download-qt-installer)
+The next step is to install Cmake, please use [this online installer](https://www.qt.io/download-qt-installer)
 Only QT open source is mendatory for this project, After the registration step install a version of QT at least equals to 5.11 !
 It should be noted that this application needs to be build with the support for 64bits for QT for the newer version of QT (like the 5.15), it comes pre build with 64bits but for older version (like the 5.11) you will need to compile it yourself against mingw64!
 
