@@ -32,12 +32,20 @@ set(GLEW_DIR "import/glew-cmake")
 
 find_package(OpenGL REQUIRED)
 
-add_subdirectory(${SDL2_DIR})
-add_subdirectory(${SDL2MIXER_DIR})
+if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
+    set(USE_FLAGS "-s USE_SDL=2 -s USE_FREETYPE=1")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${USE_FLAGS}")
+    set(CMAKE_EXECUTABLE_SUFFIX .html)
+else()
+    add_subdirectory(${SDL2_DIR})
+    #find_package(SDL2 REQUIRED)
+endif()
 
-if (NOT EMSCRIPTEN)
+if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
     add_subdirectory(${GLEW_DIR})
 endif()
+
+add_subdirectory(${SDL2MIXER_DIR})
 
 # Todo make this work
 # add_subdirectory(${SDL2TTF_DIR})
@@ -47,29 +55,29 @@ add_subdirectory(${TASKFLOW_DIR})
 add_subdirectory(${GTEST})
 
 include_directories(${GLM_DIR}/glm)
-include_directories(${SDL2_DIR}/include)
 include_directories(${TASKFLOW_DIR}/taskflow)
 
-if (NOT EMSCRIPTEN)
+if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
+    include_directories(${SDL2_DIR}/include)
     include_directories(${GLEW_DIR}/include)
 endif()
 
 
-if (NOT EMSCRIPTEN)
-    set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wextra -g -pthread -Wa,-mbig-obj -ggdb -DDEBUG")
+if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
+    set(CMAKE_C_FLAGS_DEBUG "-Wall -Wextra -g -pthread -ggdb -DDEBUG -DGLEW_STATIC USE_PTHREADS -m32 ${USE_FLAGS}")
+    set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wextra -g -pthread -ggdb -DDEBUG -DGLEW_STATIC USE_PTHREADS -m32 ${USE_FLAGS}")
 else()
-    set(CMAKE_C_FLAGS_DEBUG "-Wall -Wextra -g -pthread -ggdb -DDEBUG -DGLEW_STATIC USE_PTHREADS -m32")
-    set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wextra -g -pthread -ggdb -DDEBUG -DGLEW_STATIC USE_PTHREADS -m32")
+    set(CMAKE_CXX_FLAGS_DEBUG "-Wall -Wextra -g -pthread -Wa,-mbig-obj -ggdb -DDEBUG")
 endif()
 
 # set(CMAKE_CXX_FLAGS_DEBUG "-std=c++17 -Wall -Wextra -g -pthread -Wa,-mbig-obj -s -O3 -DNDEBUG -mwindows")
 
-if (NOT EMSCRIPTEN)
+if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
 # set(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wextra -pthread -Wa,-mbig-obj -s -O3 -DNDEBUG -mwindows")
-    set(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wextra -pthread -Wa,-mbig-obj -s -O3 -DNDEBUG")
+    set(CMAKE_C_FLAGS_RELEASE "-Wall -Wextra -pthread -O3 -DNDEBUG -DGLEW_STATIC -s USE_PTHREADS -m32 -sGL_ENABLE_GET_PROC_ADDRESS ${USE_FLAGS}")
+    set(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wextra -pthread -O3 -DNDEBUG -DGLEW_STATIC -s USE_PTHREADS -m32 -sGL_ENABLE_GET_PROC_ADDRESS ${USE_FLAGS}")
 else()
-    set(CMAKE_C_FLAGS_RELEASE "-Wall -Wextra -pthread -O3 -DNDEBUG -DGLEW_STATIC -s USE_PTHREADS -m32 -sGL_ENABLE_GET_PROC_ADDRESS")
-    set(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wextra -pthread -O3 -DNDEBUG -DGLEW_STATIC -s USE_PTHREADS -m32 -sGL_ENABLE_GET_PROC_ADDRESS")
+    set(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wextra -pthread -Wa,-mbig-obj -s -O3 -DNDEBUG")
 endif()
 
 add_executable(PgEngine src/main.cpp)
@@ -251,14 +259,14 @@ endif()
 # target_link_libraries(PgEngine PRIVATE SDL2::SDL2-static SDL2_ttf::SDL2_ttf-static SDL2_mixer::SDL2_mixer-static glm)
 target_link_options(PgEngine PRIVATE -static-libgcc -static-libstdc++)
 
-if (EMSCRIPTEN)
+if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
     set_target_properties(PgEngine
         PROPERTIES SUFFIX ".html"
         LINK_FLAGS " -s USE_FREETYPE=1 -sGL_ENABLE_GET_PROC_ADDRESS -s DISABLE_EXCEPTION_CATCHING=0 -s DEMANGLE_SUPPORT=1 -s SAFE_HEAP=1 --bind -s WASM=1 -O3 -s LEGACY_GL_EMULATION=0 -s GL_UNSAFE_OPTS=0 -s ASSERTIONS=1 -s GL_ASSERTIONS=1 -s INVOKE_RUN=0 -std=c++17 -s USE_WEBGL2=1 -s FULL_ES3=1 -s USE_GLFW=3 -s OFFSCREENCANVAS_SUPPORT=1")
 
         #--bind -m32 -s USE_FREETYPE=1 -s USE_WEBGL2=1 -s WASM=0 -s MIN_WEBGL_VERSION=1 -s ABORT_ON_WASM_EXCEPTIONS=1 -g2 -s USE_GLFW=3 -sSAFE_HEAP")
     
-    target_link_libraries(PgEngine PRIVATE SDL2::SDL2-static SDL2_mixer::SDL2_mixer-static glm)
+    target_link_libraries(PgEngine PRIVATE SDL2_mixer::SDL2_mixer-static glm)
 else()
     target_link_libraries(PgEngine PRIVATE SDL2::SDL2-static SDL2_mixer::SDL2_mixer-static glm libglew_static)
 endif()
@@ -445,14 +453,14 @@ endif()
 # target_link_libraries(PgEngine PRIVATE SDL2::SDL2-static SDL2_ttf::SDL2_ttf-static SDL2_mixer::SDL2_mixer-static glm)
 target_link_options(TetrisClone PRIVATE -static-libgcc -static-libstdc++)
 
-if (EMSCRIPTEN)
+if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
     set_target_properties(TetrisClone
         PROPERTIES SUFFIX ".html"
         LINK_FLAGS " -s USE_FREETYPE=1 -sGL_ENABLE_GET_PROC_ADDRESS -s DISABLE_EXCEPTION_CATCHING=0 -s DEMANGLE_SUPPORT=1 -s SAFE_HEAP=1 --bind -s WASM=1 -O3 -s LEGACY_GL_EMULATION=0 -s GL_UNSAFE_OPTS=0 -s ASSERTIONS=1 -s GL_ASSERTIONS=1 -s INVOKE_RUN=0 -std=c++17 -s USE_WEBGL2=1 -s FULL_ES3=1 -s USE_GLFW=3 -s OFFSCREENCANVAS_SUPPORT=1")
 
         #--bind -m32 -s USE_FREETYPE=1 -s USE_WEBGL2=1 -s WASM=0 -s MIN_WEBGL_VERSION=1 -s ABORT_ON_WASM_EXCEPTIONS=1 -g2 -s USE_GLFW=3 -sSAFE_HEAP")
     
-    target_link_libraries(TetrisClone PRIVATE SDL2::SDL2-static SDL2_mixer::SDL2_mixer-static glm)
+    target_link_libraries(TetrisClone PRIVATE SDL2_mixer::SDL2_mixer-static glm)
 else()
     target_link_libraries(TetrisClone PRIVATE SDL2::SDL2-static SDL2_mixer::SDL2_mixer-static glm libglew_static)
 endif()

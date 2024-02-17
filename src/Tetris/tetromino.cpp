@@ -861,46 +861,46 @@ void GameCanvas::onEvent(const OnSDLGamepadPressed& event)
 
 void GameCanvas::onEvent(const OnSDLGamepadAxisChanged& event)
 {
-    if (event.axis == GAMEPAD_AXIS_LEFTX)
-    {
-        if (event.value >= 0.16)
-        {
-            lTimer.stop()
-            rVelocity = 5 * event.value;
-            rTimer.start()
-        }
-        else if (event.value <= -0.16)
-        {
-            rTimer.stop()
-            lVelocity = 5 * event.value;
-            lTimer.start()
-        }
-        else
-        {
-            rTimer.stop()
-            lTimer.stop()
-        }
-    }
-    else if (event.axis == GAMEPAD_AXIS_LEFTY)
-    {
-        if (event.value >= 0.16)
-        {
-            dTimer.stop()
-            uVelocity = 5 * event.value;
-            uTimer.start()
-        }
-        else if (event.value <= -0.16)
-        {
-            uTimer.stop()
-            dVelocity = 5 * event.value;
-            dTimer.start()
-        }
-        else
-        {
-            uTimer.stop()
-            dTimer.stop()
-        }
-    }
+    // if (event.axis == GAMEPAD_AXIS_LEFTX)
+    // {
+    //     if (event.value >= 0.16)
+    //     {
+    //         lTimer.stop()
+    //         rVelocity = 5 * event.value;
+    //         rTimer.start()
+    //     }
+    //     else if (event.value <= -0.16)
+    //     {
+    //         rTimer.stop()
+    //         lVelocity = 5 * event.value;
+    //         lTimer.start()
+    //     }
+    //     else
+    //     {
+    //         rTimer.stop()
+    //         lTimer.stop()
+    //     }
+    // }
+    // else if (event.axis == GAMEPAD_AXIS_LEFTY)
+    // {
+    //     if (event.value >= 0.16)
+    //     {
+    //         dTimer.stop()
+    //         uVelocity = 5 * event.value;
+    //         uTimer.start()
+    //     }
+    //     else if (event.value <= -0.16)
+    //     {
+    //         uTimer.stop()
+    //         dVelocity = 5 * event.value;
+    //         dTimer.start()
+    //     }
+    //     else
+    //     {
+    //         uTimer.stop()
+    //         dTimer.stop()
+    //     }
+    // }
 }
 
 void GameCanvas::onEvent(const FallTimeout& event)
