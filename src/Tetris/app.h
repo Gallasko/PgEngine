@@ -12,7 +12,7 @@ public:
     int exec();
 
 private:
-    pg::Window window;
+    std::string appName;
 };
 
 #endif

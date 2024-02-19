@@ -22,7 +22,7 @@
 namespace pg
 {
     /** Static index table for log2 of a 64bits integer */
-    static constexpr unsigned int tab64[64] = {
+    static constexpr uint64_t tab64[64] = {
         63,  0, 58,  1, 59, 47, 53,  2,
         60, 39, 48, 27, 54, 33, 42,  3,
         61, 51, 37, 40, 49, 18, 28, 20,
@@ -33,7 +33,7 @@ namespace pg
         44, 24, 15,  8, 23,  7,  6,  5};
 
     /** Static lookup of the log2 of a 64bits integer */
-    static constexpr unsigned int log2_64 (size_t value)
+    static constexpr uint64_t log2_64 (uint64_t value)
     {
         value |= value >> 1UL;
         value |= value >> 2UL;
@@ -42,7 +42,7 @@ namespace pg
         value |= value >> 16UL;
         value |= value >> 32UL;
 
-        return tab64[((size_t)((value - (value >> 1))*0x07EDD5E59A4E28C2)) >> 58UL];
+        return tab64[((uint64_t)((value - (value >> 1))*0x07EDD5E59A4E28C2)) >> 58UL];
     }
 
     /**
@@ -157,7 +157,7 @@ namespace pg
 
             if(index >= size) reserve(index);
 
-            const unsigned int n = log2_64(index + 1);
+            const uint64_t n = log2_64(index + 1);
             const size_t containerSize = N >= 2 ? N : n == 0 ? 0 : 1 << n;
 
             LOG_MILE("Memory Pool", "Allocate internal, n: " << n <<
@@ -230,7 +230,7 @@ namespace pg
                 return nullptr;
             }
 
-            const unsigned int n = log2_64(index + 1);
+            const uint64_t n = log2_64(index + 1);
             const size_t containerSize = N >= 2 ? N : n == 0 ? 0 : 1 << n;
 
             const size_t listPos = N >= 2 ? index / containerSize : n;

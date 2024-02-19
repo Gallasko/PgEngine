@@ -5,9 +5,10 @@
 #include <iostream>
 
 #ifdef __EMSCRIPTEN__
-#include <SDL.h>
-#include <SDL_opengl.h>
 #include <emscripten.h>
+#include <SDL2/SDL.h>
+#include <SDL_opengles2.h>
+// #include <GLES2/gl2.h>
 #else
     #ifdef __linux__
     #include <SDL2/SDL.h>

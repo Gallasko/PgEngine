@@ -5,8 +5,8 @@
 #include "../logger.h"
 
 #ifdef __EMSCRIPTEN__
-#include <SDL.h>
 #include <emscripten.h>
+#include <SDL2/SDL.h>
 #else
 	#ifdef __linux__
 	#include <SDL2/SDL.h>

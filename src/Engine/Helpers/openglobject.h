@@ -5,21 +5,24 @@
 #include "logger.h"
 
 #ifdef __EMSCRIPTEN__
-#include <SDL.h>
+#define GL_GLEXT_PROTOTYPES 1
 #include <emscripten.h>
+#include <SDL2/SDL.h>
+#include <SDL_opengl.h>
+// #include <SDL_opengl_glext.h>
+// #include <GLFW/glfw3.h>
 #else
-    #ifdef __linux__
-    #include <SDL2/SDL.h>
-    #elif _WIN32
-    #include <SDL.h>
-    #endif
+#ifdef __linux__
+#include <SDL2/SDL.h>
+#elif _WIN32
+#include <SDL.h>
+#endif
+#include <GL/glew.h>
+#include <GL/gl.h>
 #endif
 
-#include <GL/glew.h>
-
-#include <GL/gl.h>
-
 #include <glm.hpp>
+
 
 namespace pg
 {

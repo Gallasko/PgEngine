@@ -8,20 +8,24 @@
 
 #include "Input/inputcomponent.h"
 
+// Todo see if we support multiple window rendering in which case we need to correctly send the events to correct window
+
 #ifdef __EMSCRIPTEN__
-#include <SDL.h>
+#define GL_GLEXT_PROTOTYPES 1
 #include <emscripten.h>
+#include <SDL2/SDL.h>
+#include <SDL_opengles2.h>
+// #include <SDL_opengl_glext.h>
+// #   include <GLES2/gl2.h>
+// #include <GLFW/glfw3.h>
 #else
 #ifdef __linux__
 #include <SDL2/SDL.h>
 #elif _WIN32
 #include <SDL.h>
 #endif
-#endif
-
 #include <GL/gl.h>
-
-// Todo see if we support multiple window rendering in which case we need to correctly send the events to correct window
+#endif
 
 namespace pg
 {
@@ -30,7 +34,7 @@ namespace pg
     class MasterRenderer;
     class Input;
     class UiComponent;
-    class AudioSystem;
+    struct AudioSystem;
 
     class Window
     {

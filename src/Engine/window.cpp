@@ -126,7 +126,11 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
+        LOG_INFO(DOM, "Window creation...");
+
         inputHandler = new Input();
+
+        LOG_INFO(DOM, "Initializing interpreter");
 
         // [Start] Interpreter definition
         interpreter = ecs.createSystem<PgInterpreter>();
@@ -150,13 +154,19 @@ namespace pg
         // Script to configure the logger
         interpreter->interpretFromFile("logManager.pg");
         // [End] Interpreter definition
+
+        LOG_INFO(DOM, "Window creation done");
     }
 
     Window::~Window()
     {
         LOG_THIS_MEMBER(DOM);
 
+        LOG_INFO(DOM, "Window destruction...");
+
         ecs.stop();
+
+        LOG_INFO(DOM, "ECS stopped");
 
         if (inputHandler != nullptr)
         {
@@ -174,6 +184,8 @@ namespace pg
         SDL_GL_DeleteContext(context);
         SDL_DestroyWindow(window);
         SDL_Quit();
+
+        LOG_INFO(DOM, "Window destruction done");
     }
 
     bool Window::init(int width, int height, bool isFullscreen)
@@ -190,13 +202,20 @@ namespace pg
         LOG_INFO(DOM, "Initializing SDL...");
 
         if (SDL_Init(SDL_INIT_EVERYTHING) == 0)
+        // if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) == 0)
         {
             LOG_INFO(DOM, "SDL initialized successfully");
 
+
+#ifdef __EMSCRIPTEN__
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+#else
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-
+            
             SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
             SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
             SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
@@ -207,6 +226,7 @@ namespace pg
             // SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
 
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+#endif
 
             // int err;
 
@@ -247,11 +267,9 @@ namespace pg
             // OpenGL context
             context = SDL_GL_CreateContext(window);
 
-            LOG_INFO(DOM, "Getting all connected controllers...");
-
-            getAllControllers(inputHandler);
-
-            LOG_INFO(DOM, "Got all connected controllers");
+#ifdef __EMSCRIPTEN__
+            auto rdr = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+#endif
 
             if (context)
             {
@@ -259,7 +277,7 @@ namespace pg
             }
             else
             {
-                LOG_ERROR(DOM, "OpenGL Context init failed");
+                LOG_ERROR(DOM, "OpenGL Context init failed: " << SDL_GetError());
                 return false;
             }
 
@@ -276,33 +294,43 @@ namespace pg
                 LOG_ERROR(DOM, "GLEW init failed");
                 return false;
             }
-                    
+
+            LOG_INFO(DOM, "Getting all connected controllers...");
+
+            getAllControllers(inputHandler);
+
+            LOG_INFO(DOM, "Got all connected controllers");
+
+#ifndef __EMSCRIPTEN__
             // Get graphics info
             const GLubyte *renderer = glGetString(GL_RENDERER);
             const GLubyte *version = glGetString(GL_VERSION);
 
             LOG_INFO(DOM, "Renderer: " << renderer);
             LOG_INFO(DOM, "OpenGL version supported " << version);
-
+#endif
+            
+            LOG_INFO(DOM, "Setting gl functions...");
             glViewport(0, 0, width, height);
             // Todo set this or not
-            // glEnable(GL_CULL_FACE);
+            glEnable(GL_CULL_FACE);
             glDisable(GL_CULL_FACE);
             glEnable(GL_DEPTH_TEST);
             glEnable(GL_ALPHA_TEST);
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            LOG_INFO(DOM, "GL functions set");
 
+#ifndef __EMSCRIPTEN__
             if (glDebugMessageControlARB != NULL)
             {
                 glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 
-#ifndef __EMSCRIPTEN__
                 glDebugMessageCallback((GLDEBUGPROCARB)debugGlErrorCallback, NULL);
                 GLuint unusedIds = 0;
                 glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, &unusedIds, GL_TRUE);
-#endif
             }
+#endif
 
             return true;
         }
@@ -349,7 +377,8 @@ namespace pg
         fontLoader = new FontLoader("res/font/fontmap.ft");
         ecs.createSystem<SentenceSystem>(masterRenderer, fontLoader);
 
-        audioSystem = ecs.createSystem<AudioSystem>();
+        // Todo fix for emscripten
+        //audioSystem = ecs.createSystem<AudioSystem>();
 
         // ecs.createSystem<FpsSystem>();
 
@@ -493,11 +522,13 @@ namespace pg
                 break;
 
             case SDL_KEYDOWN:
+                LOG_INFO(DOM, "Key pressed : " << event.key.keysym.scancode);
                 inputHandler->registerKeyInput(event.key.keysym.scancode, Input::InputState::KEYRELEASED);
                 ecs.sendEvent(OnSDLScanCode{event.key.keysym.scancode});
                 break;
             
             case SDL_MOUSEBUTTONDOWN:
+                LOG_INFO(DOM, "Button pressed : " << event.button.button);
                 inputHandler->registerMouseInput(event.button.button, Input::InputState::MOUSEPRESS);
                 break;
 
@@ -527,6 +558,7 @@ namespace pg
                 break;
 
             case SDL_CONTROLLERBUTTONDOWN:
+                LOG_INFO(DOM, "Gamepad Button pressed : " << event.cbutton.button);
                 ecs.sendEvent(OnSDLGamepadPressed{event.cbutton.which, event.cbutton.button});
                 break;
 
@@ -575,6 +607,8 @@ namespace pg
         static auto lastTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
         std::lock_guard<std::mutex> lock(renderMutex);
+
+        // SDL_GL_MakeCurrent(window, context);
 
         glClearColor(0.1f, 0.3f, 0.7f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

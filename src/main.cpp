@@ -9,20 +9,20 @@
 #include "logger.h"
 
 #ifdef __EMSCRIPTEN__
+#define GL_GLEXT_PROTOTYPES 1
+#include <emscripten.h>
+#include <SDL2/SDL.h>
+#include <SDL_opengles2.h>
+#else
+#ifdef __linux__
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_opengl.h>
+#elif _WIN32
 #include <SDL.h>
 #include <SDL_opengl.h>
-#include <emscripten.h>
-#else
-    #ifdef __linux__
-    #include <SDL2/SDL.h>
-    #include <SDL2/SDL_opengl.h>
-    #elif _WIN32
-    #include <SDL.h>
-    #include <SDL_opengl.h>
-    #endif
 #endif
-
 #include <GL/gl.h>
+#endif
 
 //[TODO] Variant using operator* dereferencing to recast to the original type
 int main(int argc, char *argv[])
