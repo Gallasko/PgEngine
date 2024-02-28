@@ -32,6 +32,34 @@ namespace pg
                 }
             }
         }
+
+        void addId(_unique_id id, const constant::Vector2D& startPos, const constant::Vector2D& endPos)
+        {
+            auto endX = endPos.x < (pos.x + 1) * size.x ? endPos.x : (pos.x + 1) * size.x;
+            auto endY = endPos.y < (pos.y + 1) * size.y ? endPos.y : (pos.y + 1) * size.y;
+
+            for (auto y = startPos.y; y < endY; y++)
+            {
+                for (auto x = startPos.x; x < endX; x++)
+                {
+                    cells[x + y * size.x].ids.insert(id);
+                }
+            }
+        }
+
+        void removeId(_unique_id id, const constant::Vector2D& startPos, const constant::Vector2D& endPos)
+        {
+            auto endX = endPos.x < (pos.x + 1) * size.x ? endPos.x : (pos.x + 1) * size.x;
+            auto endY = endPos.y < (pos.y + 1) * size.y ? endPos.y : (pos.y + 1) * size.y;
+
+            for (auto y = startPos.y; y < endY; y++)
+            {
+                for (auto x = startPos.x; x < endX; x++)
+                {
+                    cells[x + y * size.x].ids.erase(id);
+                }
+            }
+        }
         
         /** Position of the page in the grid */
         const constant::Vector2D pos;
