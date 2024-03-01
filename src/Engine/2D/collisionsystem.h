@@ -10,8 +10,10 @@ namespace pg
 {
     struct CollisionCell
     {
-        CollisionCell(const constant::Vector2D& pos, const constant::Vector2D& size) : pos(pos), size(size) {}
-        
+        CollisionCell(const constant::Vector2D& pagePos, const constant::Vector2D& pos, const constant::Vector2D& size) : pagePos(pagePos), pos(pos), size(size) {}
+
+        /** Position of the associated page */
+        const constant::Vector2D pagePos;        
         /** Position of the cell */
         const constant::Vector2D pos;
         /** Size of the cell */
@@ -44,7 +46,7 @@ namespace pg
             {
                 for (auto y = 0; y < size.y; y++)
                 {
-                    cells.emplace_back(constant::Vector2D{pos.x + x, pos.y + y}, cellSize);
+                    cells.emplace_back(pos, constant::Vector2D{pos.x + x, pos.y + y}, cellSize);
                 }
             }
         }
@@ -63,21 +65,23 @@ namespace pg
                 }
             }
         }
-
-        // void removeId(_unique_id id, const constant::Vector2D& startPos, const constant::Vector2D& endPos)
-        // {
-        //     auto endX = endPos.x < (pos.x + 1) * size.x ? endPos.x : (pos.x + 1) * size.x;
-        //     auto endY = endPos.y < (pos.y + 1) * size.y ? endPos.y : (pos.y + 1) * size.y;
-
-        //     for (auto y = startPos.y; y < endY; y++)
-        //     {
-        //         for (auto x = startPos.x; x < endX; x++)
-        //         {
-        //             cells[x + y * size.x].ids.erase(id);
-        //         }
-        //     }
-        // }
         
+        inline bool isEmpty()
+        {
+            bool ret = true;
+
+            for (auto& cell : cells)
+            {
+                if (not cell.ids.empty())
+                {
+                    ret = false;
+                    break;
+                }
+            }
+
+            return ret;
+        }
+
         /** Position of the page in the grid */
         const constant::Vector2D pos;
         
@@ -88,11 +92,13 @@ namespace pg
         /** Absolute size of a single cell */
         const constant::Vector2D cellSize;
         
+        /** Array of cell managed by this page */
         std::vector<CollisionCell> cells;
     };
 
     struct CollisionSystem : public System<Own<CollisionComponent>, Ref<UiComponent>, InitSys>
     {
+        virtual void init() override;
 
         void addComponentInGrid(UiComponent* pos, CollisionComponent* comp)
         {
@@ -104,42 +110,44 @@ namespace pg
 
             int startingXPos = xPagePos;
 
-            int remainingWidth = pos->width;
-            int remainingHeight = pos->height;
-
-            do
+            for (int remainingHeight = pos->height; remainingHeight > 0; remainingHeight -= (pageSize.y * cellSize.y) - normalizedY)
             {
-                do
+                for (int remainingWidth = pos->width; remainingWidth > 0; remainingWidth -= (pageSize.x * cellSize.x) - normalizedX)
                 {
                     auto key = Strfy() << xPagePos << "_" << yPagePos;
                     loadedPages[key.getData()].addId(*comp, {normalizedX, normalizedY}, {normalizedX + remainingWidth, normalizedY + remainingHeight});
 
                     xPagePos++;
 
-                    remainingWidth -= (pageSize.x * cellSize.x) - normalizedX;
-
                     normalizedX = xPagePos * (pageSize.x * cellSize.x);
-                } while (remainingWidth > 0);
+                }
 
                 xPagePos = startingXPos;
 
                 normalizedX = pos->pos.x - xPagePos * (pageSize.x * cellSize.x);
-                remainingWidth = pos->width;
 
                 yPagePos++;
 
-                remainingHeight -= (pageSize.y * cellSize.y) - normalizedY;
-
-                normalizedX = yPagePos * (pageSize.y * cellSize.y);
-
-            } while (remainingHeight > 0);
+                normalizedY = yPagePos * (pageSize.y * cellSize.y);
+            }
         }
 
         void removeComponentFromGrid(CollisionComponent* comp)
         {
+            std::set<std::string> affectedPages;
+
             for (auto cell : comp->cells)
             {
+                auto key = Strfy() << cell->pagePos.x << "_" << cell->pagePos.y;
+                affectedPages.insert(key.getData());
+
                 cell->ids.erase(comp->entityId);
+            }
+
+            for (const auto& page : affectedPages)
+            {
+                if (loadedPages[page].isEmpty())
+                    loadedPages.erase(page);
             }
 
             comp->cells.clear();

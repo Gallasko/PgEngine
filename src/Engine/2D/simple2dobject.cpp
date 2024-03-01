@@ -166,7 +166,9 @@ namespace pg
             changed = false;
         }
 
-        if (not squareMeshInitialized or elementIndex <= 0)
+        auto elemIndex = elementIndex.load();
+
+        if (not squareMeshInitialized or elemIndex <= 0)
             return;
     
         auto rTable = masterRenderer->getParameter();
@@ -193,7 +195,7 @@ namespace pg
         shaderProgram->setUniformValue("view", view);
 
         basicSquareMesh.bind();
-        glDrawElementsInstanced(GL_TRIANGLES, basicSquareMesh.modelInfo.nbIndices, GL_UNSIGNED_INT, 0, elementIndex);
+        glDrawElementsInstanced(GL_TRIANGLES, basicSquareMesh.modelInfo.nbIndices, GL_UNSIGNED_INT, 0, elemIndex);
 
         shaderProgram->release();
 
@@ -353,7 +355,7 @@ namespace pg
             idToIndexMap.end(),
             [destination](const auto& mo) {return mo.second == destination; });
 
-        if (originId == idToIndexMap.end() or destinationId == idToIndexMap.end())
+        if (originId == idToIndexMap.end() or destinationId == idToIndexMap.end() or originId->second != origin or destinationId->second != destination)
         {
             LOG_ERROR(DOM, "Error swapping index !");
             return;
