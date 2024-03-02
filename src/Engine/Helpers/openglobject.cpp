@@ -6,6 +6,8 @@
 
 #include "logger.h"
 
+#include "Files/filemanager.h"
+
 namespace
 {
     static const char* const DOM = "Opengl Objects";
@@ -129,18 +131,26 @@ namespace pg
         if (type != "PROGRAM")
         {
             glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-            if (!success)
+
+            if (not success)
             {
                 glGetShaderInfoLog(shader, 1024, NULL, infoLog);
+
+                printf("Shader compilation failed: %s\n", infoLog);
+
                 LOG_ERROR(DOM, "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << &infoLog[0] << "\n -- --------------------------------------------------- -- ");
             }
         }
         else
         {
             glGetProgramiv(shader, GL_LINK_STATUS, &success);
-            if (!success)
+
+            if (not success)
             {
                 glGetProgramInfoLog(shader, 1024, NULL, infoLog);
+
+                printf("Program compilation failed: %s\n", infoLog);
+
                 LOG_ERROR(DOM, "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << &infoLog[0] << "\n -- --------------------------------------------------- -- ");
             }
         }

@@ -25,13 +25,80 @@ TetrisApp::~TetrisApp()
     LOG_THIS_MEMBER(DOM);
 }
 
-#ifdef __EMSCRIPTEN__
-
+std::thread *initThread;
 pg::Window *mainWindow = nullptr;
+std::atomic<bool> initialized = {false};
+bool init = false;
+bool running = true;
+
+void initWindow(const std::string& appName)
+{
+    mainWindow = new pg::Window(appName);
+
+    LOG_INFO(DOM, "Window init...");
+
+    // Todo if init failed exit app !
+
+    // mainWindow->init(300, 700, false);
+
+    // LOG_INFO(DOM, "Window init done !");
+
+    // LOG_INFO(DOM, "Initializing engine ...");
+
+    // mainWindow->initEngine();
+
+    // auto& ecs = mainWindow->ecs;
+
+    // // ecs.createSystem<FpsSystem>();
+
+    // ecs.createSystem<GameCanvas>();
+
+    initialized = true;
+
+    // while (running)
+    // {
+    //     SDL_Event event;
+
+    //     while (SDL_PollEvent(&event))
+    //     {
+    //         printf("Got a sdl event...\n");
+    //         mainWindow->processEvents(event);
+    //     }
+    // }
+}
 
 void mainloop()
-{
-    LOG_INFO(DOM, "Main loop");
+{    
+    if (not initialized.load())
+        return;
+
+    if (not init)
+    {
+        printf("Joining thread...\n");
+        initThread->join();
+        printf("Thread joined...\n");
+        init = true;
+
+        mainWindow->init(600, 700, false);
+
+        printf("Window init done !");
+
+        printf("Initializing engine ...");
+
+        mainWindow->initEngine();
+
+        printf("Engine initialized ...");
+
+        mainWindow->ecs.createSystem<GameCanvas>();
+
+        printf("Canvas initialized ...");
+
+        mainWindow->ecs.start();
+
+        mainWindow->resize(600, 700);
+
+        printf("Engine initialized");
+    }
 
     SDL_Event event;
 
@@ -42,21 +109,23 @@ void mainloop()
 
     mainWindow->render();
 
-    // if (mainWindow->requestQuit())
-    //     return 0;
+    if (mainWindow->requestQuit())
+        std::terminate();
 }
-
-#endif
 
 int TetrisApp::exec()
 {   
 #ifdef __EMSCRIPTEN__
+    printf("Start init thread...\n");
+    initThread = new std::thread(initWindow, appName);
+    printf("Detach init thread...\n");
 
-    mainWindow = new pg::Window(appName);
+    emscripten_set_main_loop(mainloop, 0, 1);
 
-    LOG_INFO(DOM, "Window init...");
+#else
+    LOG_THIS_MEMBER(DOM);
 
-    // Todo if init failed exit app !
+    initWindow(appName);
 
     mainWindow->init(300, 700, false);
 
@@ -64,55 +133,36 @@ int TetrisApp::exec()
 
     LOG_INFO(DOM, "Initializing engine ...");
 
+    // mainWindow->audioSystem = ecs.createSystem<AudioSystem>();
+
     mainWindow->initEngine();
 
-    emscripten_set_main_loop(mainloop, 0, 1);
-
-#else
-    LOG_THIS_MEMBER(DOM);
-
-    pg::Window window(appName);
-
-    LOG_INFO(DOM, "Window init...");
-
-    // Todo if init failed exit app !
-
-    window.init(300, 700, false);
-
-    LOG_INFO(DOM, "Window init done !");
-
-    LOG_INFO(DOM, "Initializing engine ...");
-
-    window.initEngine();
-
-    // auto& ecs = window.ecs;
-
-    // ecs.createSystem<FpsSystem>();
-
-    // ecs.createSystem<GameCanvas>();
-
-    // ecs.sendEvent(StartAudio{"res/audio/mainost.mp3"});
+    mainWindow->ecs.createSystem<GameCanvas>();
 
     LOG_INFO(DOM, "Initializing engine done !");
 
     LOG_INFO(DOM, "Starting SDL event loop, waiting for events...");
 
-    window.resize(300, 700);
+    mainWindow->ecs.start();
 
-    while (true)
+    mainWindow->resize(300, 700);
+
+    while (running)
     {
         SDL_Event event;
 
         while (SDL_PollEvent(&event))
         {
-            window.processEvents(event);
+            mainWindow->processEvents(event);
         }
 
-        window.render();
+        mainWindow->render();
 
-        if (window.requestQuit())
-            return 0;
+        if (mainWindow->requestQuit())
+            break;
     }
+
+    delete mainWindow;
 #endif
 
     return 0;

@@ -20,7 +20,9 @@ set(BUILD_SHARED_LIBS OFF)
 set(SDL2_DISABLE_INSTALL ON)
 set(SDL_TEST OFF)
 
-add_compile_options(-DGLEW_STATIC)
+if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
+    add_compile_options(-DGLEW_STATIC)
+endif()
 
 set(SDL2_DIR "import/SDL2-2.28.5")
 set(SDL2MIXER_DIR "import/SDL2_mixer-2.6.3")
@@ -34,7 +36,7 @@ find_package(OpenGL REQUIRED)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
     set(USE_FLAGS "-sUSE_SDL=2 -sUSE_SDL_MIXER=2 -sUSE_FREETYPE=1 -fwasm-exceptions -sUSE_PTHREADS=1")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${USE_FLAGS}")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${USE_FLAGS} --preload-file res --preload-file scripts --preload-file shader --preload-file setupRenderer.pg --use-preload-plugins")
     set(CMAKE_EXECUTABLE_SUFFIX .html)
 else()
     add_subdirectory(${SDL2_DIR})
@@ -76,8 +78,8 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
 # set(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wextra -pthread -Wa,-mbig-obj -s -O3 -DNDEBUG -mwindows")
 # set(CMAKE_C_FLAGS_RELEASE "-Wall -Wextra -pthread -O3 -DNDEBUG -DGLEW_STATIC -sUSE_PTHREADS -m32 -sGL_ENABLE_GET_PROC_ADDRESS ${USE_FLAGS}")
 # set(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wextra -pthread -O3 -DNDEBUG -DGLEW_STATIC -sUSE_PTHREADS -m32 -sGL_ENABLE_GET_PROC_ADDRESS ${USE_FLAGS}")
-set(CMAKE_C_FLAGS_RELEASE "-Wall -Wextra -pthread -m32 ${USE_FLAGS}")
-set(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wextra -pthread -m32 ${USE_FLAGS}")
+set(CMAKE_C_FLAGS_RELEASE "-Wall -Wextra -pthread -O3 -DNDEBUG -m32 ${USE_FLAGS}")
+set(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wextra -pthread -O3 -DNDEBUG -m32 ${USE_FLAGS}")
 else()
     set(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wextra -pthread -Wa,-mbig-obj -s -O3 -DNDEBUG")
 endif()
@@ -268,7 +270,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
 
         #--bind -m32 -s USE_FREETYPE=1 -s USE_WEBGL2=1 -s WASM=0 -s MIN_WEBGL_VERSION=1 -s ABORT_ON_WASM_EXCEPTIONS=1 -g2 -s USE_GLFW=3 -sSAFE_HEAP")
     
-    target_link_libraries(PgEngine PRIVATE SDL2_mixer::SDL2_mixer-static glm)
+    target_link_libraries(PgEngine PRIVATE glm)
 else()
     target_link_libraries(PgEngine PRIVATE SDL2::SDL2-static SDL2_mixer::SDL2_mixer-static glm libglew_static)
 endif()
@@ -458,8 +460,8 @@ endif()
 if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
     set_target_properties(TetrisClone
         PROPERTIES SUFFIX ".html"
-        LINK_FLAGS "-pthread -sPTHREAD_POOL_SIZE=12 -s PROXY_TO_PTHREAD=1 -s ALLOW_MEMORY_GROWTH=1 -s FULL_ES2=1 ${USE_FLAGS}")
-        #  -s PROXY_TO_PTHREAD=1 -s ALLOW_MEMORY_GROWTH=1 -s USE_GLFW=3 -s USE_WEBGL2=1 
+        LINK_FLAGS "-pthread -s ALLOW_MEMORY_GROWTH=1 -s USE_WEBGL2=1 -s FULL_ES3=1 -s SAFE_HEAP=1 -s ASSERTIONS=2 -O3 ${USE_FLAGS}")
+        #  -sPTHREAD_POOL_SIZE=30 -s PROXY_TO_PTHREAD=1 -s ALLOW_MEMORY_GROWTH=1 -s USE_GLFW=3 -s USE_WEBGL2=1 -s GL_ASSERTIONS=1 -s WASM=1
         # LINK_FLAGS " -s USE_FREETYPE=1 -sGL_ENABLE_GET_PROC_ADDRESS -s DISABLE_EXCEPTION_CATCHING=0 -s DEMANGLE_SUPPORT=1 -s SAFE_HEAP=1 --bind -s WASM=1 -O3 -s LEGACY_GL_EMULATION=0 -s GL_UNSAFE_OPTS=0 -s ASSERTIONS=1 -s GL_ASSERTIONS=1 -s INVOKE_RUN=0 -std=c++17 -s USE_WEBGL2=1 -s FULL_ES3=1 -s USE_GLFW=3 -s OFFSCREENCANVAS_SUPPORT=1")
 
         #--bind -m32 -s USE_FREETYPE=1 -s USE_WEBGL2=1 -s WASM=0 -s MIN_WEBGL_VERSION=1 -s ABORT_ON_WASM_EXCEPTIONS=1 -g2 -s USE_GLFW=3 -sSAFE_HEAP")

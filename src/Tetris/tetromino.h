@@ -73,13 +73,14 @@ struct FallTimeout {};
 
 struct LockTimeout {};
 
-struct GameCanvas : public System<Listener<OnSDLGamepadAxisChanged>, Listener<OnSDLGamepadPressed>, Listener<FallTimeout>, Listener<LockTimeout>, InitSys>
+struct GameCanvas : public System<Listener<OnSDLGamepadAxisChanged>, Listener<OnSDLGamepadPressed>, Listener<OnSDLScanCodePressed>, Listener<FallTimeout>, Listener<LockTimeout>, InitSys>
 {
     GameCanvas() : currentMino(TetrominoType::I) {}
 
     virtual void init() override;
 
     virtual void onEvent(const OnSDLGamepadPressed& event) override;
+    virtual void onEvent(const OnSDLScanCodePressed& event) override;
     virtual void onEvent(const OnSDLGamepadAxisChanged& event) override;
 
     virtual void onEvent(const FallTimeout& event) override;

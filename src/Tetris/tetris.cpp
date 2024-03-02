@@ -6,15 +6,14 @@
 
 #include "app.h"
 
-#include "logger.h"
+// #include "logger.h"
 
 #ifdef __EMSCRIPTEN__
-#define GL_GLEXT_PROTOTYPES 1
 #include <emscripten.h>
 #include <SDL2/SDL.h>
 #include <SDL_opengles2.h>
 // #include <SDL_opengl_glext.h>
-// #include <GLES2/gl2.h>
+#include <GLES2/gl2.h>
 // #include <GLFW/glfw3.h>
 #else
 #ifdef __linux__

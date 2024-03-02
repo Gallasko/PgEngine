@@ -67,8 +67,6 @@ namespace pg
 
                 return makeVar(file.data);
             }
-
-            std::shared_ptr<Logger::LogSink> sink;
         };
 
         class OpenTextFolderFunction : public Function
@@ -96,8 +94,6 @@ namespace pg
 
                 return list; 
             }
-
-            std::shared_ptr<Logger::LogSink> sink;
         };
 
         struct FileModule : public SysModule
@@ -201,8 +197,8 @@ namespace pg
 
         LOG_INFO(DOM, "Initializing SDL...");
 
-        if (SDL_Init(SDL_INIT_EVERYTHING) == 0)
-        // if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) == 0)
+        // if (SDL_Init(SDL_INIT_EVERYTHING) == 0)
+        if (SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) == 0)
         {
             LOG_INFO(DOM, "SDL initialized successfully");
 
@@ -267,10 +263,6 @@ namespace pg
             // OpenGL context
             context = SDL_GL_CreateContext(window);
 
-#ifdef __EMSCRIPTEN__
-            auto rdr = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-#endif
-
             if (context)
             {
                 LOG_INFO(DOM, "OpenGL Context initialised");
@@ -312,13 +304,20 @@ namespace pg
             
             LOG_INFO(DOM, "Setting gl functions...");
             glViewport(0, 0, width, height);
+            printf("Enable cull face");
             // Todo set this or not
-            glEnable(GL_CULL_FACE);
+            // glEnable(GL_CULL_FACE);
+            // printf("Enable cull face");
             glDisable(GL_CULL_FACE);
+            printf("Enable cull face");
             glEnable(GL_DEPTH_TEST);
+            printf("Enable cull face");
             glEnable(GL_ALPHA_TEST);
+            printf("Enable cull face");
             glEnable(GL_BLEND);
+            printf("Enable cull face");
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            printf("Enable cull face");
             LOG_INFO(DOM, "GL functions set");
 
 #ifndef __EMSCRIPTEN__
@@ -347,7 +346,7 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
-        glViewport(0, 0, width, height);
+        // glViewport(0, 0, width, height);
 
         ecs.createSystem<TickingSystem>();
 
@@ -378,7 +377,7 @@ namespace pg
         ecs.createSystem<SentenceSystem>(masterRenderer, fontLoader);
 
         // Todo fix for emscripten
-        //audioSystem = ecs.createSystem<AudioSystem>();
+        audioSystem = ecs.createSystem<AudioSystem>();
 
         // ecs.createSystem<FpsSystem>();
 
@@ -434,19 +433,19 @@ namespace pg
         // cTex->setTopAnchor(screenUi->top);
         // cTex->setRightAnchor(screenUi->right);
 
-        // auto s = makeSimple2DShape(&ecs, Shape2D::Triangle, 50, 50, {255.0f, 0.0f, 0.0f});
-        // auto c = s.get<UiComponent>();
+        auto s = makeSimple2DShape(&ecs, Shape2D::Triangle, 50, 50, {255.0f, 0.0f, 0.0f});
+        auto c = s.get<UiComponent>();
 
-        // c->setTopAnchor(screenUi->top);
-        // c->setRightAnchor(screenUi->right);
+        c->setTopAnchor(screenUi->top);
+        c->setRightAnchor(screenUi->right);
 
         // Serializer::getSerializer()->serializeObject("Menu tex", *tex.entity);
 
-        // auto terminalBackground = makeSimple2DShape(&ecs, Shape2D::Square, 350, 200, {4.0f, 16.0f, 32.0f});
-        // auto terminalBackgroundC = terminalBackground.get<UiComponent>();
+        auto terminalBackground = makeSimple2DShape(&ecs, Shape2D::Square, 350, 200, {4.0f, 16.0f, 32.0f});
+        auto terminalBackgroundC = terminalBackground.get<UiComponent>();
 
-        // terminalBackgroundC->setBottomAnchor(screenUi->bottom);
-        // terminalBackgroundC->setRightAnchor(screenUi->right);
+        terminalBackgroundC->setBottomAnchor(screenUi->bottom);
+        terminalBackgroundC->setRightAnchor(screenUi->right);
 
         // Serializer::getSerializer()->serializeObject("Terminal background", *terminalBackground.entity);
 
@@ -456,8 +455,11 @@ namespace pg
         // terminalTextC->setBottomAnchor(terminalBackgroundC->bottom);
         // terminalTextC->setLeftAnchor(terminalBackgroundC->left);
 
-        // auto testb = makeSimple2DShape(&ecs, Shape2D::Square, 120, 120, {4.0f, 225.0f, 125.0f});
-        // auto testbc = testb.get<UiComponent>();
+        auto testb = makeSimple2DShape(&ecs, Shape2D::Square, 120, 120, {4.0f, 225.0f, 125.0f});
+        auto testbc = testb.get<UiComponent>();
+
+        testbc->setX(50);
+        testbc->setY(100);
 
         // testbc->setBottomAnchor(screenUi->bottom);
         // testbc->setRightAnchor(screenUi->right);
@@ -471,22 +473,26 @@ namespace pg
         // ecs.attach<FocusableComponent>(terminalText.entity);
         // ecs.attach<MouseLeftClickComponent>(terminalText.entity, makeCallable<OnFocus>(terminalText.entity.id));
 
-        // auto s2 = makeSimple2DShape(&ecs, Shape2D::Square, 100, 100, {0.0f, 255.0f, 0.0f});
-        // auto c2 = s2.get<UiComponent>();
+        auto s2 = makeSimple2DShape(&ecs, Shape2D::Square, 100, 100, {0.0f, 255.0f, 0.0f});
+        auto c2 = s2.get<UiComponent>();
 
-        // c2->setTopAnchor(screenUi->top);
-        // c2->setLeftAnchor(screenUi->left);
+        c2->setTopAnchor(screenUi->top);
+        c2->setLeftAnchor(screenUi->left);
 
         // ecs.attach<FocusableComponent>(s2.entity);
         
         // // ecs.attach<SentenceText>(s2.entity, "Here");
         // ecs.attach<MouseLeftClickComponent>(s2.entity, makeCallable<LogInfoEvent>("Window", "Left click on the green rectangle"));
 
-        // makeSentence(&ecs, 200, 250, {"And there"});
+        makeSentence(&ecs, 0, 0, {"And there"});
 
-        // ecs.sendEvent(StartAudio{"res/mainost.mp3"});
+        // ecs.sendEvent(StartAudio{"res/audio/mainost.mp3"});
 
-        ecs.start();
+        printf("Starting ecs \n");
+
+        // ecs.start();
+
+        printf("Ecs started \n");
 
         return true;
     }
@@ -638,6 +644,8 @@ namespace pg
         SDL_GL_SwapWindow(window);
 
         // VSync 0 to disable 1 to activate
+#ifndef __EMSCRIPTEN__
         SDL_GL_SetSwapInterval(0);
+#endif
     }
 }

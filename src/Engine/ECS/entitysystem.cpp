@@ -26,7 +26,8 @@ namespace pg
         LOG_THIS(DOM);
     }
 
-    EntitySystem::EntitySystem() : registry(this), cmdDispatcher(this)
+    // Todo set executor depending on the configuration / env !
+    EntitySystem::EntitySystem() : registry(this), cmdDispatcher(this), executor(2)
     {
         LOG_THIS_MEMBER(DOM);
 

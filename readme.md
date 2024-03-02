@@ -25,11 +25,21 @@ Once mingw is installed, add the bin folder in your PATH to use make !
 
 The next step is to install Cmake
 
+### For windows, linux and apple
 Once those depencies are resolved, you can build the application with:
 - `cmake --build release --config Release --target all` in release mode
 - `cmake --build debug --config Debug --target all` in debug mode
 
 Or use the different task set up for vscode
+
+### For webassembly
+- `mkdir em`
+- `cd em`
+- `emcmake cmake ..`
+- `cmake --build . --target all -j 11`
+
+To test and deploy web build
+- `emrun .\PgEngine.html`
 
 ## Profiling App
 

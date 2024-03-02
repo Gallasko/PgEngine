@@ -7,6 +7,9 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #include <SDL2/SDL.h>
+// #include <SDL_opengl_glext.h>
+// #include <GLES2/gl2.h>
+// #include <GLFW/glfw3.h>
 #else
 	#ifdef __linux__
 	#include <SDL2/SDL.h>

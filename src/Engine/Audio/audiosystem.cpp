@@ -13,11 +13,19 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
+        // if (not Mix_Init(MIX_INIT_MP3))
+        // {
+        //     printf("Error audio: %s\n", Mix_GetError());
+        // }
+
         if (Mix_OpenAudio(96000, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 1024) < 0)
         {
+            printf("Error audio: %s\n", Mix_GetError());
             LOG_ERROR(DOM, "Erreur initialisation SDL_mixer : " << Mix_GetError());
             return;
         }
+
+        printf("Audio is initialized\n");
 
         setNumberOfChannel(BASE_NUMBER_OF_CHANNELS);
     }
@@ -107,13 +115,16 @@ namespace pg
 
         if (music == nullptr)
         {
+            printf("Error audio: %s\n", Mix_GetError());
             LOG_ERROR(DOM, "Erreur chargement de la musique : " << Mix_GetError());
             return;
         }
 
         Mix_PlayMusic(music, event.loops);
 
-        Mix_VolumeMusic(MIX_MAX_VOLUME * masterVolume * musicVolume);
+        // Todo
+        // Mix_VolumeMusic(MIX_MAX_VOLUME * masterVolume * musicVolume);
+        // Mix_VolumeMusic(MIX_MAX_VOLUME);
     }
 
     void AudioSystem::onEvent(const StopAudio&)

@@ -7,6 +7,8 @@
 #include <random>
 #include <algorithm>
 
+#include "Audio/audiosystem.h"
+
 using namespace pg;
 
 namespace
@@ -901,6 +903,81 @@ void GameCanvas::onEvent(const OnSDLGamepadAxisChanged& event)
     //         dTimer.stop()
     //     }
     // }
+}
+
+void GameCanvas::onEvent(const OnSDLScanCodePressed& event)
+{
+    // Todo merge this function with GameCanvas::onEvent(const OnSDLGamepadPressed& event)
+    if (event.key == SDL_SCANCODE_RETURN)
+    {
+        ecsRef->sendEvent(StartAudio{"res/audio/mainost.ogg"});
+        LOG_INFO(DOM, "Game canvas Start Pressed");
+
+        if (not running)
+        {
+            reset();
+
+            running = true;
+
+            timer->running = true;
+
+            spawnTetromino();
+        }
+    }
+
+    if (not running)
+    {
+        return;
+    }
+
+    if (event.key == SDL_SCANCODE_Q)
+    {
+        LOG_INFO(DOM, "Game canvas X Pressed");
+
+        hold();
+    }
+
+    if (event.key == SDL_SCANCODE_E)
+    {
+        LOG_INFO(DOM, "Game canvas Y Pressed");
+
+        printCanvas();
+    }
+
+    if (event.key == SDL_SCANCODE_SPACE)
+    {
+        LOG_INFO(DOM, "Game canvas B Pressed");
+
+        rotate();
+    }
+
+    if (event.key == SDL_SCANCODE_W)
+    {
+        LOG_INFO(DOM, "Game canvas Up Pressed");
+
+        snapBottom();
+    }
+
+    if (event.key == SDL_SCANCODE_S)
+    {
+        LOG_INFO(DOM, "Game canvas Down Pressed");
+
+        moveDown();
+    }
+
+    if (event.key == SDL_SCANCODE_A)
+    {
+        LOG_INFO(DOM, "Game canvas Left Pressed");
+
+        moveLeft();
+    }
+
+    if (event.key == SDL_SCANCODE_D)
+    {
+        LOG_INFO(DOM, "Game canvas Right Pressed");
+
+        moveRight();
+    }
 }
 
 void GameCanvas::onEvent(const FallTimeout& event)
