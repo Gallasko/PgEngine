@@ -23,7 +23,8 @@ namespace pg
             auto v = args.front()->getElement();
             args.pop();
 
-            std::cout << "[Interpreter]: " << v.toString() << std::endl;
+            // Todo
+            // std::cout << "[Interpreter]: " << v.toString() << std::endl;
 
             return nullptr;
         }

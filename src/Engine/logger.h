@@ -15,9 +15,6 @@
 
 #include "Files/filemanager.h"
 
-//TODO Create an object to utilize the ctor/dtor and know when we enter and exit the function called
-//     instead of only calling the _log() at the start of the function
-
 #define _CONCAT_(x, y) x ## y
 #define CONCAT(x, y) _CONCAT_(x, y)
 

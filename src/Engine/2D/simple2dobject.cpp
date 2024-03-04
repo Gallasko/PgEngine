@@ -236,10 +236,10 @@ namespace pg
     {
         LOG_INFO("Simple 2D Object System", "Add element " << ui.entityId << " to buffer !");
 
-        idToIndexMap[ui.entityId] = elementIndex;
-
         {
             std::lock_guard<std::mutex> lock (modificationMutex);
+
+            idToIndexMap[ui.entityId] = elementIndex;
 
             auto currentIndex = elementIndex++;
 
@@ -301,6 +301,8 @@ namespace pg
 
         auto lastElement = --elementIndex;
 
+        std::lock_guard<std::mutex> lock (modificationMutex);
+
         auto prev = idToIndexMap[id];
 
         bool needToSwap = false;
@@ -315,8 +317,6 @@ namespace pg
         }
 
         idToIndexMap[id] = idToIndexMap[lastElement];
-
-        std::lock_guard<std::mutex> lock (modificationMutex);
 
         // Swap the last element at the removed place
 
@@ -396,13 +396,6 @@ namespace pg
     {
         size_t index;
 
-        auto it = idToIndexMap.find(event.id);
-    
-        if (it == idToIndexMap.end())
-            return;
-
-        index = it->second;
-
         auto entity = ecsRef->getEntity(event.id);
         
         if(not entity or not entity->has<UiComponent>())
@@ -421,6 +414,13 @@ namespace pg
 
         {
             std::lock_guard<std::mutex> lock(modificationMutex);
+
+            auto it = idToIndexMap.find(event.id);
+    
+            if (it == idToIndexMap.end())
+                return;
+
+            index = it->second;
 
             bufferData[index * nbAttributes + 0] = x;
             bufferData[index * nbAttributes + 1] = y;

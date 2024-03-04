@@ -66,7 +66,7 @@ namespace pg
             auto v = args.front()->getElement();
             args.pop();
 
-            std::cout << "[Interpreter]: " << v.toString() << std::endl;
+            // std::cout << "[Interpreter]: " << v.toString() << std::endl;
 
             return nullptr;
         }
@@ -92,12 +92,12 @@ namespace pg
 
                 auto methods = obj->getMethods();
 
-                std::cout << "[Interpreter]: Methods of " << obj->getElement().toString() << std::endl;
+                // std::cout << "[Interpreter]: Methods of " << obj->getElement().toString() << std::endl;
 
-                for(auto method : methods)
-                {
-                    std::cout << "[Interpreter]: " << method.first << std::endl;
-                }
+                // for(auto method : methods)
+                // {
+                //     std::cout << "[Interpreter]: " << method.first << std::endl;
+                // }
             }
             else if(v->getType() == "IteratorInstance")
             {
@@ -105,12 +105,12 @@ namespace pg
 
                 auto methods = obj->getMethods();
 
-                std::cout << "[Interpreter]: Methods of " << obj->getElement().toString() << std::endl;
+                // std::cout << "[Interpreter]: Methods of " << obj->getElement().toString() << std::endl;
 
-                for(auto method : methods)
-                {
-                    std::cout << "[Interpreter]: " << method.first << std::endl;
-                }
+                // for(auto method : methods)
+                // {
+                //     std::cout << "[Interpreter]: " << method.first << std::endl;
+                // }
             }
 
             return nullptr;
