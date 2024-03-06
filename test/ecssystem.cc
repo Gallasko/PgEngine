@@ -41,12 +41,12 @@ namespace pg
 
             struct ASystem : public System<Own<A>>
             {                
-                virtual void execute() { std::cout << "Execute A System" << std::endl; }
+                virtual void execute() { }
             };
 
             struct ABSystem : public System<Ref<A>, Own<B>>
             {
-                virtual void execute() { std::cout << "Execute B System" << std::endl; }
+                virtual void execute() { }
             };
 
             struct C
@@ -85,7 +85,7 @@ namespace pg
 
             struct DSystem : public System<Own<D>>
             {                
-                virtual void execute() { std::cout << "Execute D System" << std::endl; }
+                virtual void execute() { }
             };
 
             struct EEvent
@@ -408,7 +408,7 @@ namespace pg
 
             auto end = std::chrono::steady_clock::now();
 
-            std::cout << "Ecs creation took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
+            // std::cout << "Ecs creation took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
 
             // Todo make a test with that to verify that component id are not shared between ECS
             // To get an id of a component you need to interact with the registry
@@ -418,7 +418,7 @@ namespace pg
             auto system = ecs.createSystem<ASystem>();
             end = std::chrono::steady_clock::now();
 
-            std::cout << "System A creation took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
+            // std::cout << "System A creation took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
 
             // std::cout << A::componentId << " " << B::componentId << " " << C::componentId << std::endl;
 
@@ -435,8 +435,6 @@ namespace pg
             auto comp1 = system2->createRefferedComponent<A>(entity2, 10, 5);
             auto comp2 = system2->createOwnedComponent<B>(entity3, 12, 4);
 
-            std::cout << "Creating entities..." << std::endl;
-
             auto entities = new EntityRef[nbComps + 1];
             
             start = std::chrono::steady_clock::now();
@@ -451,7 +449,7 @@ namespace pg
 
             end = std::chrono::steady_clock::now();
 
-            std::cout << "Creating " << nbComps - 19 << " entities, and adding A took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
+            // std::cout << "Creating " << nbComps - 19 << " entities, and adding A took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
 
             start = std::chrono::steady_clock::now();
             for(size_t i = 0; i < nbComps + 1; i++)
@@ -461,41 +459,39 @@ namespace pg
             }
             end = std::chrono::steady_clock::now();
 
-            std::cout << "Adding C to " << nbComps + 1 << " entities took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
+            // std::cout << "Adding C to " << nbComps + 1 << " entities took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
 
-            std::cout << "Entity " << entities[555]->id << " has: [";
-            for (auto& comp : entities[555]->componentList)
-            {
-                std::cout << std::to_string(comp.getId()) << ", ";
-            }
+            // std::cout << "Entity " << entities[555]->id << " has: [";
+            // for (auto& comp : entities[555]->componentList)
+            // {
+            //     std::cout << std::to_string(comp.getId()) << ", ";
+            // }
 
-            std::cout << "]" << std::endl;
+            // std::cout << "]" << std::endl;
 
             start = std::chrono::steady_clock::now(); 
             system3->execute();
             end = std::chrono::steady_clock::now();
 
-            std::cout << "System C execution took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
+            // std::cout << "System C execution took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
 
             start = std::chrono::steady_clock::now();
             system3->execute();
             end = std::chrono::steady_clock::now();
 
-            std::cout << "System C execution took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
+            // std::cout << "System C execution took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
 
             start = std::chrono::steady_clock::now();
             system3->execute();
             end = std::chrono::steady_clock::now();
 
-            std::cout << "System C execution took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
+            // std::cout << "System C execution took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
 
             start = std::chrono::steady_clock::now();
             system3->execute();
             end = std::chrono::steady_clock::now();
 
-            std::cout << "System C execution took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
-
-            std::cout << "End" << std::endl;
+            // std::cout << "System C execution took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
 
             delete[] entities;
         }

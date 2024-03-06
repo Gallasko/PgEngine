@@ -45,10 +45,11 @@ namespace pg
         while(queue.size() > 0)
         {
             auto stmt = queue.front();
-
-            if(stmt)
-                std::cout << stmt->prettyPrint() << std::endl;
-
+// Todo
+#ifdef DEBUG
+            // if(stmt)
+            //     std::cout << stmt->prettyPrint() << std::endl;
+#endif
             queue.pop();
         }
 
@@ -66,10 +67,11 @@ namespace pg
         while(queue.size() > 0)
         {
             auto stmt = queue.front();
-
-            if(stmt)
-                std::cout << stmt->prettyPrint() << std::endl;
-
+// Todo
+#ifdef DEBUG
+            // if(stmt)
+            //     std::cout << stmt->prettyPrint() << std::endl;
+#endif
             queue.pop();
         }
 
