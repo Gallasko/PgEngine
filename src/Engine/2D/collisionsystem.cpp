@@ -2,6 +2,11 @@
 
 namespace pg
 {
+    CollisionSystem::CollisionSystem() : pageSize(5, 5), cellSize(5, 5)
+    {
+
+    }
+
     void CollisionSystem::init()
     {
         auto group = registerGroup<UiComponent, CollisionComponent>();

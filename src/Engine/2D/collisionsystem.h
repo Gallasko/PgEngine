@@ -53,12 +53,12 @@ namespace pg
 
         void addId(CollisionComponent& comp, const constant::Vector2D& startPos, const constant::Vector2D& endPos)
         {
-            auto endX = endPos.x < (pos.x + 1) * size.x ? endPos.x : (pos.x + 1) * size.x;
-            auto endY = endPos.y < (pos.y + 1) * size.y ? endPos.y : (pos.y + 1) * size.y;
+            int endX = endPos.x / cellSize.x < (pos.x + 1) * size.x ? endPos.x / cellSize.x : (pos.x + 1) * size.x;
+            int endY = endPos.y / cellSize.y < (pos.y + 1) * size.y ? endPos.y / cellSize.y : (pos.y + 1) * size.y;
 
-            for (auto y = startPos.y; y < endY; y++)
+            for (int y = startPos.y / cellSize.y; y < endY; y++)
             {
-                for (auto x = startPos.x; x < endX; x++)
+                for (int x = startPos.x / cellSize.x; x < endX; x++)
                 {
                     cells[x + y * size.x].ids.insert(comp.entityId);
                     comp.cells.emplace_back(&cells[x + y * size.x]);
@@ -98,37 +98,63 @@ namespace pg
 
     struct CollisionSystem : public System<Own<CollisionComponent>, Ref<UiComponent>, InitSys>
     {
+        // Todo make a ctor that load properties (pageSize, cellSi) from serialization
+        CollisionSystem();
+
         virtual void init() override;
 
         void addComponentInGrid(UiComponent* pos, CollisionComponent* comp)
         {
-            int xPagePos = pos->pos.x / (pageSize.x * cellSize.x);
-            int yPagePos = pos->pos.y / (pageSize.y * cellSize.y);
+            if (pos->height  == 0 or pos->width == 0)
+            {
+                LOG_INFO("Collision System", "Object has no area so no collision needed");
+                return;
+            }
 
-            int normalizedX = pos->pos.x - xPagePos * (pageSize.x * cellSize.x);
-            int normalizedY = pos->pos.y - yPagePos * (pageSize.y * cellSize.y);
+            auto pWidth = (pageSize.x * cellSize.x);
+            auto pHeight = (pageSize.y * cellSize.y);
+
+            int xPagePos = pos->pos.x / pWidth;
+            int yPagePos = pos->pos.y / pHeight;
+
+            int startY = pos->pos.y - yPagePos * pHeight;
+
+            int usedWidth = 0, usedHeight = 0;
 
             int startingXPos = xPagePos;
 
-            for (int remainingHeight = pos->height; remainingHeight > 0; remainingHeight -= (pageSize.y * cellSize.y) - normalizedY)
+            for (int remainingHeight = pos->height; remainingHeight > 0; remainingHeight -= usedHeight)
             {
-                for (int remainingWidth = pos->width; remainingWidth > 0; remainingWidth -= (pageSize.x * cellSize.x) - normalizedX)
+                int startX = pos->pos.x - xPagePos * pWidth;
+
+                for (int remainingWidth = pos->width; remainingWidth > 0; remainingWidth -= usedWidth)
                 {
                     auto key = Strfy() << xPagePos << "_" << yPagePos;
-                    loadedPages[key.getData()].addId(*comp, {normalizedX, normalizedY}, {normalizedX + remainingWidth, normalizedY + remainingHeight});
+                    
+                    auto keyStr = key.getData();
+
+                    auto it = loadedPages.find(keyStr);
+                    if (it == loadedPages.end())
+                    {
+                        it = loadedPages.emplace(keyStr, CollisionPage{{xPagePos, yPagePos}, pageSize, cellSize}).first;
+                    }
+
+                    it->second.addId(*comp, {startX, startY}, {startX + remainingWidth, startY + remainingHeight});
+
+                    usedWidth = ((xPagePos + 1) * pWidth) - startX;
 
                     xPagePos++;
 
-                    normalizedX = xPagePos * (pageSize.x * cellSize.x);
+                    startX = xPagePos * pWidth;
                 }
 
                 xPagePos = startingXPos;
 
-                normalizedX = pos->pos.x - xPagePos * (pageSize.x * cellSize.x);
+                usedHeight = ((yPagePos + 1) * pHeight) - startY;
 
                 yPagePos++;
 
-                normalizedY = yPagePos * (pageSize.y * cellSize.y);
+                startY = yPagePos * pHeight;
             }
         }
 
@@ -146,7 +172,7 @@ namespace pg
 
             for (const auto& page : affectedPages)
             {
-                if (loadedPages[page].isEmpty())
+                if (loadedPages.at(page).isEmpty())
                     loadedPages.erase(page);
             }
 
