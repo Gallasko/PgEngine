@@ -11,7 +11,37 @@
 namespace
 {
     static const char* const DOM = "Opengl Objects";
+
+    GLenum glCheckError_(const char *file, int line)
+    {
+        GLenum errorCode;
+        while ((errorCode = glGetError()) != GL_NO_ERROR)
+        {
+            std::string error;
+            switch (errorCode)
+            {
+                case GL_INVALID_ENUM:                  error = "INVALID_ENUM"; break;
+                case GL_INVALID_VALUE:                 error = "INVALID_VALUE"; break;
+                case GL_INVALID_OPERATION:             error = "INVALID_OPERATION"; break;
+                case GL_STACK_OVERFLOW:                error = "STACK_OVERFLOW"; break;
+                case GL_STACK_UNDERFLOW:               error = "STACK_UNDERFLOW"; break;
+                case GL_OUT_OF_MEMORY:                 error = "OUT_OF_MEMORY"; break;
+                case GL_INVALID_FRAMEBUFFER_OPERATION: error = "INVALID_FRAMEBUFFER_OPERATION"; break;
+            }
+
+            LOG_ERROR(DOM, error << " | " << file << " (" << line << ")");
+        }
+        return errorCode;
+    }
 }
+
+#ifdef DEBUG
+#define glCheckError() glCheckError_(__FILE__, __LINE__) 
+#else
+#define LOG_THIS(scope) 
+#define glCheckError() 
+#endif
+
 
 namespace pg
 {
@@ -58,6 +88,8 @@ namespace pg
     void OpenGLShaderProgram::bind() const
     { 
         glUseProgram(ID); 
+
+        glCheckError();
     }
     // release the shader
     // ------------------------------------------------------------------------
@@ -69,59 +101,83 @@ namespace pg
     // ------------------------------------------------------------------------
     void OpenGLShaderProgram::setUniformValue(const std::string &name, bool value) const
     {         
-        glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value); 
+        glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
+
+        glCheckError();
     }
     // ------------------------------------------------------------------------
     void OpenGLShaderProgram::setUniformValue(const std::string &name, int value) const
     { 
-        glUniform1i(glGetUniformLocation(ID, name.c_str()), value); 
+        glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
+
+        glCheckError();
     }
     // ------------------------------------------------------------------------
     void OpenGLShaderProgram::setUniformValue(const std::string &name, float value) const
     { 
-        glUniform1f(glGetUniformLocation(ID, name.c_str()), value); 
+        glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
+
+        glCheckError();
     }
     // ------------------------------------------------------------------------
     void OpenGLShaderProgram::setUniformValue(const std::string &name, const glm::vec2 &value) const
     { 
-        glUniform2fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]); 
+        glUniform2fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
+
+        glCheckError();
     }
     void OpenGLShaderProgram::setUniformValue(const std::string &name, float x, float y) const
     { 
-        glUniform2f(glGetUniformLocation(ID, name.c_str()), x, y); 
+        glUniform2f(glGetUniformLocation(ID, name.c_str()), x, y);
+
+        glCheckError();
     }
     // ------------------------------------------------------------------------
     void OpenGLShaderProgram::setUniformValue(const std::string &name, const glm::vec3 &value) const
     { 
-        glUniform3fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]); 
+        glUniform3fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
+
+        glCheckError();
     }
     void OpenGLShaderProgram::setUniformValue(const std::string &name, float x, float y, float z) const
     { 
-        glUniform3f(glGetUniformLocation(ID, name.c_str()), x, y, z); 
+        glUniform3f(glGetUniformLocation(ID, name.c_str()), x, y, z);
+
+        glCheckError();
     }
     // ------------------------------------------------------------------------
     void OpenGLShaderProgram::setUniformValue(const std::string &name, const glm::vec4 &value) const
     { 
-        glUniform4fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]); 
+        glUniform4fv(glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
+
+        glCheckError();
     }
     void OpenGLShaderProgram::setUniformValue(const std::string &name, float x, float y, float z, float w) const
     { 
-        glUniform4f(glGetUniformLocation(ID, name.c_str()), x, y, z, w); 
+        glUniform4f(glGetUniformLocation(ID, name.c_str()), x, y, z, w);
+
+        glCheckError();
     }
     // ------------------------------------------------------------------------
     void OpenGLShaderProgram::setUniformValue(const std::string &name, const glm::mat2 &mat) const
     {
         glUniformMatrix2fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
+
+        glCheckError();
     }
     // ------------------------------------------------------------------------
     void OpenGLShaderProgram::setUniformValue(const std::string &name, const glm::mat3 &mat) const
     {
         glUniformMatrix3fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
+
+        glCheckError();
     }
     // ------------------------------------------------------------------------
     void OpenGLShaderProgram::setUniformValue(const std::string &name, const glm::mat4 &mat) const
     {
         glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
+
+        glCheckError();
     }
 
     void OpenGLShaderProgram::checkCompileErrors(GLuint shader, std::string type)
@@ -136,8 +192,6 @@ namespace pg
             {
                 glGetShaderInfoLog(shader, 1024, NULL, infoLog);
 
-                printf("Shader compilation failed: %s\n", infoLog);
-
                 LOG_ERROR(DOM, "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << &infoLog[0] << "\n -- --------------------------------------------------- -- ");
             }
         }
@@ -148,8 +202,6 @@ namespace pg
             if (not success)
             {
                 glGetProgramInfoLog(shader, 1024, NULL, infoLog);
-
-                printf("Program compilation failed: %s\n", infoLog);
 
                 LOG_ERROR(DOM, "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << &infoLog[0] << "\n -- --------------------------------------------------- -- ");
             }

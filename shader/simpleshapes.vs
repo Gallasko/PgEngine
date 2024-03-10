@@ -11,8 +11,8 @@ uniform mat4 scale;
 uniform mat4 view;
 uniform mat4 projection;
 
-uniform int sWidth;
-uniform int sHeight;
+uniform float sWidth;
+uniform float sHeight;
 
 out vec3 ourColor;
 

@@ -115,5 +115,4 @@ namespace pg
     };
 
     CompList<UiComponent, Simple2DObject> makeSimple2DShape(EntitySystem *ecs, const Shape2D& shape, float width, float height, const constant::Vector3D& colors);
-
 }

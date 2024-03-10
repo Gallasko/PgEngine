@@ -303,21 +303,20 @@ namespace pg
 #endif
             
             LOG_INFO(DOM, "Setting gl functions...");
-            glViewport(0, 0, width, height);
-            printf("Enable cull face");
+            // glViewport(0, 0, width, height);
             // Todo set this or not
             // glEnable(GL_CULL_FACE);
-            // printf("Enable cull face");
+            printf("Enable cull face");
             glDisable(GL_CULL_FACE);
-            printf("Enable cull face");
-            glEnable(GL_DEPTH_TEST);
-            printf("Enable cull face");
+            LOG_INFO(DOM, "Disable cull face");
+            // printf("Enable cull face");
+            // glEnable(GL_DEPTH_TEST);
+            // LOG_INFO(DOM, "Enable depth testing");
             glEnable(GL_ALPHA_TEST);
-            printf("Enable cull face");
+            LOG_INFO(DOM, "Enable alpha testing");
             glEnable(GL_BLEND);
-            printf("Enable cull face");
+            LOG_INFO(DOM, "Enable blending");
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            printf("Enable cull face");
             LOG_INFO(DOM, "GL functions set");
 
 #ifndef __EMSCRIPTEN__
@@ -641,11 +640,11 @@ namespace pg
             LOG_ERROR(DOM, "OpenGL error: " << err);
         }
 
-        SDL_GL_SwapWindow(window);
-
-        // VSync 0 to disable 1 to activate
+                // VSync 0 to disable 1 to activate
 #ifndef __EMSCRIPTEN__
         SDL_GL_SetSwapInterval(0);
 #endif
+
+        SDL_GL_SwapWindow(window);
     }
 }

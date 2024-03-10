@@ -34,6 +34,8 @@ namespace pg
                 return nullptr;
             }
 
+            LOG_INFO("Register Shader Function", "Register Shader: " << name.toString());
+
             masterRenderer->registerShader(name.toString(), vsPath.toString(), fsPath.toString());
 
             return nullptr; 
@@ -68,7 +70,7 @@ namespace pg
             // auto type = args.front()->getElement();
             // args.pop();
             // TextureType tType;
-            // if (type == "RGBA") tType == "RGBA"; 
+            // if (type == "RGBA") tType == "RGBA";
 
             // if(not name.isLitteral() and not path.isLitteral() and not type.isLitteral())
             if(not name.isLitteral() and not path.isLitteral())

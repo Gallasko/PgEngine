@@ -128,6 +128,8 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
+        static size_t nbElements = 0;
+
         if (changed)
         {
             std::lock_guard<std::mutex> lock(modificationMutex);
@@ -163,10 +165,12 @@ namespace pg
                 // glBufferSubData(GL_ARRAY_BUFFER, 0, currentSize * nbAttributes * sizeof(float), bufferData);
             }
 
+            nbElements = elementIndex.load();
+
             changed = false;
         }
 
-        if (not squareMeshInitialized or elementIndex <= 0)
+        if (not squareMeshInitialized or nbElements <= 0)
             return;
     
         auto rTable = masterRenderer->getParameter();
@@ -184,8 +188,8 @@ namespace pg
 
         shaderProgram->bind();
 
-        shaderProgram->setUniformValue("sWidth", screenWidth);
-        shaderProgram->setUniformValue("sHeight", screenHeight);
+        shaderProgram->setUniformValue("sWidth", static_cast<float>(screenWidth));
+        shaderProgram->setUniformValue("sHeight", static_cast<float>(screenHeight));
 
         shaderProgram->setUniformValue("projection", projection);
         shaderProgram->setUniformValue("model", model);
@@ -193,43 +197,9 @@ namespace pg
         shaderProgram->setUniformValue("view", view);
 
         basicSquareMesh.bind();
-        glDrawElementsInstanced(GL_TRIANGLES, basicSquareMesh.modelInfo.nbIndices, GL_UNSIGNED_INT, 0, elementIndex);
+        glDrawElementsInstanced(GL_TRIANGLES, basicSquareMesh.modelInfo.nbIndices, GL_UNSIGNED_INT, 0, nbElements);
 
         shaderProgram->release();
-
-        // for(const auto& renderList : currentRenderList)
-        // {
-        //     shaderProgram->bind();
-
-        //     shaderProgram->setUniformValue("projection", projection);
-        //     shaderProgram->setUniformValue("model", model);
-        //     shaderProgram->setUniformValue("scale", scale);
-
-        //     // Todo combine all the call to the same texture into a single draw call using instanced rendering
-        //     for(const auto& renderableTexture : renderList.second)
-        //     {
-        //         UiComponent *ui = renderableTexture.uiRef;
-
-        //         auto mesh = renderableTexture.meshRef;
-
-        //         if(not ui->isVisible() or not mesh)
-        //             continue;
-
-        //         view = glm::mat4(1.0f);
-        //         view = glm::translate(view, glm::vec3(-1.0f + 2.0f * static_cast<UiSize>(ui->pos.x) / screenWidth, 1.0f + 2.0f * -static_cast<UiSize>(ui->pos.y) / screenHeight, 0.0f));
-
-        //         shaderProgram->setUniformValue("view", view);
-
-        //         auto colors = static_cast<Shape2DMesh*>(mesh)->colors;
-
-        //         shaderProgram->setUniformValue("colors", glm::vec3(colors.x / 255.0f, colors.y / 255.0f, colors.z / 255.0f));
-
-        //         mesh->bind();
-        //         glDrawElements(GL_TRIANGLES, mesh->modelInfo.nbIndices, GL_UNSIGNED_INT, 0);
-        //     }
-        // }
-
-        // shaderProgram->release();
     }
 
     void Simple2DObjectSystem::addElement(const CompRef<UiComponent>& ui, const CompRef<Simple2DObject>& obj)
@@ -320,16 +290,10 @@ namespace pg
 
         // Swap the last element at the removed place
 
-        bufferData[prev * nbAttributes + 0] = bufferData[lastElement * nbAttributes + 0];
-        bufferData[prev * nbAttributes + 1] = bufferData[lastElement * nbAttributes + 1];
-        bufferData[prev * nbAttributes + 2] = bufferData[lastElement * nbAttributes + 2];
-
-        bufferData[prev * nbAttributes + 3] = bufferData[lastElement * nbAttributes + 3];
-        bufferData[prev * nbAttributes + 4] = bufferData[lastElement * nbAttributes + 4];
-
-        bufferData[prev * nbAttributes + 5] = bufferData[lastElement * nbAttributes + 5];
-        bufferData[prev * nbAttributes + 6] = bufferData[lastElement * nbAttributes + 6];
-        bufferData[prev * nbAttributes + 7] = bufferData[lastElement * nbAttributes + 7];
+        for (auto i = 0; i < nbAttributes; i++)
+        {
+            bufferData[prev * nbAttributes + i] = bufferData[lastElement * nbAttributes + i];
+        }
 
         // The remove item was a visible one so we need to swap a visible one at this place
         if (needToSwap)
@@ -362,34 +326,22 @@ namespace pg
         idToIndexMap[originId->first] = destination;
         idToIndexMap[destinationId->first] = origin;
 
-        auto temp0 = bufferData[origin * nbAttributes + 0];
-        auto temp1 = bufferData[origin * nbAttributes + 1];
-        auto temp2 = bufferData[origin * nbAttributes + 2];
-        auto temp3 = bufferData[origin * nbAttributes + 3];
-        auto temp4 = bufferData[origin * nbAttributes + 4];
-        auto temp5 = bufferData[origin * nbAttributes + 5];
-        auto temp6 = bufferData[origin * nbAttributes + 6];
-        auto temp7 = bufferData[origin * nbAttributes + 7];
+        float temp[nbAttributes];
 
-        bufferData[origin * nbAttributes + 0] = bufferData[destination * nbAttributes + 0];
-        bufferData[origin * nbAttributes + 1] = bufferData[destination * nbAttributes + 1];
-        bufferData[origin * nbAttributes + 2] = bufferData[destination * nbAttributes + 2];
+        for (auto i = 0; i < nbAttributes; i++)
+        {
+            temp[i] = bufferData[origin * nbAttributes + i];
+        }
 
-        bufferData[origin * nbAttributes + 3] = bufferData[destination * nbAttributes + 3];
-        bufferData[origin * nbAttributes + 4] = bufferData[destination * nbAttributes + 4];
+        for (auto i = 0; i < nbAttributes; i++)
+        {
+            bufferData[origin * nbAttributes + i] = bufferData[destination * nbAttributes + i];
+        }
 
-        bufferData[origin * nbAttributes + 5] = bufferData[destination * nbAttributes + 5];
-        bufferData[origin * nbAttributes + 6] = bufferData[destination * nbAttributes + 6];
-        bufferData[origin * nbAttributes + 7] = bufferData[destination * nbAttributes + 7];
-
-        bufferData[destination * nbAttributes + 0] = temp0;
-        bufferData[destination * nbAttributes + 1] = temp1;
-        bufferData[destination * nbAttributes + 2] = temp2;
-        bufferData[destination * nbAttributes + 3] = temp3;
-        bufferData[destination * nbAttributes + 4] = temp4;
-        bufferData[destination * nbAttributes + 5] = temp5;
-        bufferData[destination * nbAttributes + 6] = temp6;
-        bufferData[destination * nbAttributes + 7] = temp7;
+        for (auto i = 0; i < nbAttributes; i++)
+        {
+            bufferData[destination * nbAttributes + i] = temp[i];
+        }
     }
 
     void Simple2DObjectSystem::onEvent(const UiComponentChangeEvent& event)

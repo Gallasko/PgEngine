@@ -37,7 +37,11 @@ find_package(OpenGL REQUIRED)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
     set(USE_FLAGS "-sUSE_SDL=2 -sUSE_SDL_MIXER=2 -sUSE_FREETYPE=1 -fwasm-exceptions -sUSE_PTHREADS=1")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${USE_FLAGS} --preload-file res --preload-file scripts --preload-file shader --preload-file setupRenderer.pg --use-preload-plugins")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${USE_FLAGS} --use-preload-plugins \
+        --preload-file res \
+        --preload-file scripts \
+        --preload-file shader \
+        --preload-file setupRenderer.pg")
     set(CMAKE_EXECUTABLE_SUFFIX .html)
 else()
     add_subdirectory(${SDL2_DIR})

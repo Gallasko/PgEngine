@@ -206,7 +206,7 @@ namespace pg
 
             shaderProgram->setUniformValue("texture1", 0);
 
-            glActiveTexture(GL_TEXTURE0);
+            // glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, texture);
 
             // Todo combine all the call to the same texture into a single draw call using instanced rendering

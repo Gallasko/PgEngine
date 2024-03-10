@@ -8,6 +8,9 @@
 
 #include "tetromino.h"
 
+#include "2D/simple2dobject.h"
+#include "2D/texture.h"
+
 using namespace pg;
 
 namespace
@@ -89,7 +92,15 @@ void mainloop()
 
         printf("Engine initialized ...");
 
-        mainWindow->ecs.createSystem<GameCanvas>();
+        // mainWindow->ecs.createSystem<GameCanvas>();
+
+        auto tex = makeUiTexture(&mainWindow->ecs, 296, 197, "menu");
+
+        tex.get<UiComponent>()->setY(250);
+
+        auto tex2 = makeUiTexture(&mainWindow->ecs, 143, 73, "font");
+
+        tex2.get<UiComponent>()->setY(500);
 
         printf("Canvas initialized ...");
 
@@ -137,7 +148,13 @@ int TetrisApp::exec()
 
     mainWindow->initEngine();
 
-    mainWindow->ecs.createSystem<GameCanvas>();
+    // mainWindow->ecs.createSystem<GameCanvas>();
+
+    auto testRect = makeSimple2DShape(&mainWindow->ecs, Shape2D::Square, 50, 50, {255.0f, 0.0f, 0.0f});
+
+    auto tex = makeUiTexture(&mainWindow->ecs, 296, 197, "menu");
+
+    tex.get<UiComponent>()->setY(250);
 
     LOG_INFO(DOM, "Initializing engine done !");
 

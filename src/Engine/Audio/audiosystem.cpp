@@ -123,7 +123,7 @@ namespace pg
         Mix_PlayMusic(music, event.loops);
 
         // Todo
-        // Mix_VolumeMusic(MIX_MAX_VOLUME * masterVolume * musicVolume);
+        Mix_VolumeMusic(MIX_MAX_VOLUME * masterVolume * musicVolume);
         // Mix_VolumeMusic(MIX_MAX_VOLUME);
     }
 
