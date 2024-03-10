@@ -23,11 +23,114 @@ namespace pg
         constexpr static const char * const DOM = "Renderer";
     }
 
-    AbstractRenderer::AbstractRenderer(MasterRenderer *masterRenderer, const RenderStage& stage) : masterRenderer(masterRenderer), renderStage(stage)
+    BaseAbstractRenderer::BaseAbstractRenderer(MasterRenderer *masterRenderer, const RenderStage& stage) : masterRenderer(masterRenderer), renderStage(stage)
     {
-        LOG_THIS_MEMBER("AbstractRenderer");
+        LOG_THIS_MEMBER("Base Abstract Renderer");
 
         masterRenderer->addRenderer(this);
+    }
+
+     void AbstractInstanceRenderer::removeElement(_unique_id id)
+    {
+        if (elementIndex == 0)
+        {
+            LOG_ERROR(DOM, "This should never be the case");
+            return;
+        }
+        else if (elementIndex == 1)
+        {
+            changed = true;
+            elementIndex = 0;
+            return;
+        }
+
+        auto lastElement = --elementIndex;
+
+        std::lock_guard<std::mutex> lock (modificationMutex);
+
+        auto prev = idToIndexMap[id];
+
+        bool needToSwap = false;
+
+        // If the element to be deleted was visible we remove it from the visible list
+        if (prev < visibleElements)
+        {
+            visibleElements--;
+
+            // If prev is still less than visible elements then it wasn't the last visible element in the list so we need to swap a visible element at is place
+            needToSwap = prev < visibleElements and elementIndex != visibleElements;
+        }
+
+        idToIndexMap[id] = idToIndexMap[lastElement];
+
+        // Swap the last element at the removed place
+        for (size_t i = 0; i < nbAttributes; i++)
+        {
+            bufferData[prev * nbAttributes + i] = bufferData[lastElement * nbAttributes + i];
+        }
+
+        // The remove item was a visible one so we need to swap a visible one at this place
+        if (needToSwap)
+        {
+            // We swap the last visible element then
+            swapIndex(prev, visibleElements.load());
+        }
+
+        changed = true;
+    }
+
+    void AbstractInstanceRenderer::increaseSize()
+    {
+        float *temp = new float[2 * currentSize * nbAttributes];
+
+        memcpy(temp, bufferData, currentSize * nbAttributes * sizeof(float));
+
+        currentSize *= 2;
+
+        delete bufferData;
+
+        bufferData = temp;
+
+        sizeChanged = true;
+    }
+
+    void AbstractInstanceRenderer::swapIndex(size_t origin, size_t destination)
+    {
+        auto originId = std::find_if(
+            idToIndexMap.begin(),
+            idToIndexMap.end(),
+            [origin](const auto& mo) {return mo.second == origin; });
+
+        auto destinationId = std::find_if(
+            idToIndexMap.begin(),
+            idToIndexMap.end(),
+            [destination](const auto& mo) {return mo.second == destination; });
+
+        if (originId == idToIndexMap.end() or destinationId == idToIndexMap.end())
+        {
+            LOG_ERROR("Abstract Instance Renderer", "Error swapping index !");
+            return;
+        }
+
+        idToIndexMap[originId->first] = destination;
+        idToIndexMap[destinationId->first] = origin;
+
+        float temp[nbAttributes];
+
+        for (size_t i = 0; i < nbAttributes; i++)
+        {
+            temp[i] = bufferData[origin * nbAttributes + i];
+        }
+
+        for (size_t i = 0; i < nbAttributes; i++)
+        {
+            bufferData[origin * nbAttributes + i] = bufferData[destination * nbAttributes + i];
+        }
+
+        for (size_t i = 0; i < nbAttributes; i++)
+        {
+            bufferData[destination * nbAttributes + i] = temp[i];
+        }
     }
 
     void renderer(MasterRenderer* masterRenderer, const std::map<std::string, std::map<std::string, std::vector<RenderableTexture>>>& renderableTextureMap)

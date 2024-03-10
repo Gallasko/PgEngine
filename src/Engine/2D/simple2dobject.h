@@ -56,7 +56,7 @@ namespace pg
         Entity *entity = nullptr;
     };
 
-    struct Simple2DObjectSystem : public AbstractRenderer, System<Own<Simple2DObject>, Ref<UiComponent>, Listener<UiComponentChangeEvent>, NamedSystem, InitSys, StoragePolicy>
+    struct Simple2DObjectSystem : public AbstractInstanceRenderer, System<Own<Simple2DObject>, Ref<UiComponent>, Listener<UiComponentChangeEvent>, NamedSystem, InitSys, StoragePolicy>
     {
         struct SimpleSquareMesh : public Mesh
         {
@@ -78,8 +78,8 @@ namespace pg
             OpenGLBuffer *instanceVBO = nullptr;
         };
 
-        Simple2DObjectSystem(MasterRenderer* masterRenderer) : AbstractRenderer(masterRenderer, RenderStage::Render) { }
-        virtual ~Simple2DObjectSystem() { if(bufferData) delete[] bufferData; }
+        Simple2DObjectSystem(MasterRenderer* masterRenderer) : AbstractInstanceRenderer(masterRenderer, RenderStage::Render, 8) { }
+        virtual ~Simple2DObjectSystem() { }
 
         virtual std::string getSystemName() const override { return "Shape 2D System"; }
 
@@ -89,10 +89,6 @@ namespace pg
 
         void addElement(const CompRef<UiComponent>& ui, const CompRef<Simple2DObject>& obj);
 
-        void removeElement(_unique_id id);
-
-        void swapIndex(size_t origin, size_t destination);
-
         virtual void onEvent(const UiComponentChangeEvent& event) override;
 
         virtual void updateMeshes() override;
@@ -101,17 +97,6 @@ namespace pg
 
         SimpleSquareMesh basicSquareMesh;
         bool squareMeshInitialized = false;
-
-        bool sizeChanged = false;
-
-        std::atomic<size_t> elementIndex {0};
-        std::atomic<size_t> visibleElements {0};
-        size_t currentSize = 0;
-
-        float *bufferData = nullptr;
-        const size_t nbAttributes = 8; // x, y, z, w(r), h(o), r, g, b 
-
-        std::unordered_map<_unique_id, size_t> idToIndexMap;
     };
 
     CompList<UiComponent, Simple2DObject> makeSimple2DShape(EntitySystem *ecs, const Shape2D& shape, float width, float height, const constant::Vector3D& colors);

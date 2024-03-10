@@ -44,17 +44,35 @@ namespace pg
         PostProcess
     };
 
-    class AbstractRenderer
+    class BaseAbstractRenderer
     {
     public:
-        AbstractRenderer(MasterRenderer* masterRenderer, const RenderStage& stage);
+        BaseAbstractRenderer(MasterRenderer* masterRenderer, const RenderStage& stage);
+        virtual ~BaseAbstractRenderer() {}
+
+        RenderStage getRenderStage() const { return renderStage; }
+    
+        virtual void render() = 0;
+
+        virtual void updateMeshes() = 0;
+
+    protected:
+        MasterRenderer *masterRenderer;
+    
+        RenderStage renderStage;
+    };
+
+    class AbstractRenderer : public BaseAbstractRenderer
+    {
+    public:
+        AbstractRenderer(MasterRenderer* masterRenderer, const RenderStage& stage) : BaseAbstractRenderer(masterRenderer, stage) {}
         virtual ~AbstractRenderer() {}
 
         RenderStage getRenderStage() const { return renderStage; }
     
         virtual void render() = 0;
 
-        virtual void updateMeshes()
+        virtual void updateMeshes() override
         {
             if(changed)
             {
@@ -69,10 +87,6 @@ namespace pg
         }
 
     protected:
-        MasterRenderer *masterRenderer;
-    
-        RenderStage renderStage;
-
         bool changed = false;
 
         std::mutex modificationMutex;
@@ -82,6 +96,32 @@ namespace pg
         std::map<unsigned int, std::vector<RenderableTexture>> currentRenderList;
 
         std::unordered_map<std::string, Mesh*> meshes;
+    };
+
+    class AbstractInstanceRenderer : public AbstractRenderer
+    {
+    public:
+        AbstractInstanceRenderer(MasterRenderer* masterRenderer, const RenderStage& stage, size_t nbAttributes) : AbstractRenderer(masterRenderer, stage),  nbAttributes(nbAttributes) {}
+
+        virtual ~AbstractInstanceRenderer() { if(bufferData) delete[] bufferData; }
+
+        virtual void removeElement(_unique_id id);
+
+        virtual void increaseSize();
+
+        virtual void swapIndex(size_t origin, size_t destination);
+
+    protected:
+        bool sizeChanged = false;
+
+        std::atomic<size_t> elementIndex {0};
+        std::atomic<size_t> visibleElements {0};
+        size_t currentSize = 0;
+
+        float *bufferData = nullptr;
+        const size_t nbAttributes; // x, y, z, w(r), h(o), r, g, b 
+
+        std::unordered_map<_unique_id, size_t> idToIndexMap;
     };
 
     //[TODO] Multiple FBO -> 1 for a whole screen capture and other for batch rendering on a texture 
@@ -132,7 +172,7 @@ namespace pg
 
         RefracRef getParameter() const { return systemParameters; }
 
-        inline void addRenderer(AbstractRenderer* renderer) { renderers.push_back(renderer); }
+        inline void addRenderer(BaseAbstractRenderer* renderer) { renderers.push_back(renderer); }
 
         inline size_t getNbRenderedFrames() const { return nbRenderedFrames; }
         
@@ -148,7 +188,7 @@ namespace pg
 
         size_t nbRenderedFrames = 0;
 
-        std::vector<AbstractRenderer*> renderers;
+        std::vector<BaseAbstractRenderer*> renderers;
 
         std::mutex resizeMutex;
     };
