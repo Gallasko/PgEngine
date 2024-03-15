@@ -22,7 +22,7 @@ namespace pg
         std::set<_unique_id> ids;
     };
 
-    struct CollisionComponent : public Ctor
+    struct CollisionComponent : public Ctor, Dtor
     {
         virtual void onCreation(EntityRef entity) override
         {
@@ -30,6 +30,8 @@ namespace pg
 
             entityId = entity->id;
         }
+
+        virtual void onDeletion(EntityRef entity) override;
 
         EntitySystem* ecsRef = nullptr;
 
@@ -51,14 +53,14 @@ namespace pg
             }
         }
 
-        void addId(CollisionComponent& comp, const constant::Vector2D& startPos, const constant::Vector2D& endPos)
+        void addId(CollisionComponent& comp, const constant::Vector2D& startPos, const constant::Vector2D& objSize)
         {
-            int endX = endPos.x / cellSize.x < (pos.x + 1) * size.x ? endPos.x / cellSize.x : (pos.x + 1) * size.x;
-            int endY = endPos.y / cellSize.y < (pos.y + 1) * size.y ? endPos.y / cellSize.y : (pos.y + 1) * size.y;
+            int endX = objSize.x < cellSize.x * size.x ? (objSize.x / cellSize.x) + 1 : size.x;
+            int endY = objSize.y < cellSize.y * size.y ? (objSize.y / cellSize.y) + 1 : size.y;
 
             for (int y = startPos.y / cellSize.y; y < endY; y++)
             {
-                for (int x = startPos.x / cellSize.x; x < endX; x++)
+                for (int x = startPos.x / cellSize.x - pos.x * size.x; x < endX; x++)
                 {
                     cells[x + y * size.x].ids.insert(comp.entityId);
                     comp.cells.emplace_back(&cells[x + y * size.x]);
@@ -66,20 +68,17 @@ namespace pg
             }
         }
         
-        inline bool isEmpty()
+        inline bool isEmpty() const
         {
-            bool ret = true;
-
-            for (auto& cell : cells)
+            for (const auto& cell : cells)
             {
                 if (not cell.ids.empty())
                 {
-                    ret = false;
-                    break;
+                    return false;
                 }
             }
 
-            return ret;
+            return true;
         }
 
         /** Position of the page in the grid */
@@ -96,6 +95,12 @@ namespace pg
         std::vector<CollisionCell> cells;
     };
 
+    struct Collision
+    {
+        _unique_id collided;
+        _unique_id collider;
+    };
+
     struct CollisionSystem : public System<Own<CollisionComponent>, Ref<UiComponent>, InitSys>
     {
         // Todo make a ctor that load properties (pageSize, cellSi) from serialization
@@ -103,81 +108,13 @@ namespace pg
 
         virtual void init() override;
 
-        void addComponentInGrid(UiComponent* pos, CollisionComponent* comp)
-        {
-            if (pos->height  == 0 or pos->width == 0)
-            {
-                LOG_INFO("Collision System", "Object has no area so no collision needed");
-                return;
-            }
+        void addComponentInGrid(UiComponent* pos, CollisionComponent* comp);
 
-            auto pWidth = (pageSize.x * cellSize.x);
-            auto pHeight = (pageSize.y * cellSize.y);
+        void removeComponentFromGrid(CollisionComponent* comp);
 
-            int xPagePos = pos->pos.x / pWidth;
-            int yPagePos = pos->pos.y / pHeight;
+        std::set<_unique_id> getCollisionList(UiComponent* pos, CollisionComponent* comp);
 
-            int startY = pos->pos.y - yPagePos * pHeight;
-
-            int usedWidth = 0, usedHeight = 0;
-
-            int startingXPos = xPagePos;
-
-            for (int remainingHeight = pos->height; remainingHeight > 0; remainingHeight -= usedHeight)
-            {
-                int startX = pos->pos.x - xPagePos * pWidth;
-
-                for (int remainingWidth = pos->width; remainingWidth > 0; remainingWidth -= usedWidth)
-                {
-                    auto key = Strfy() << xPagePos << "_" << yPagePos;
-                    
-                    auto keyStr = key.getData();
-
-                    auto it = loadedPages.find(keyStr);
-                    if (it == loadedPages.end())
-                    {
-                        it = loadedPages.emplace(keyStr, CollisionPage{{xPagePos, yPagePos}, pageSize, cellSize}).first;
-                    }
-
-                    it->second.addId(*comp, {startX, startY}, {startX + remainingWidth, startY + remainingHeight});
-
-                    usedWidth = ((xPagePos + 1) * pWidth) - startX;
-
-                    xPagePos++;
-
-                    startX = xPagePos * pWidth;
-                }
-
-                xPagePos = startingXPos;
-
-                usedHeight = ((yPagePos + 1) * pHeight) - startY;
-
-                yPagePos++;
-
-                startY = yPagePos * pHeight;
-            }
-        }
-
-        void removeComponentFromGrid(CollisionComponent* comp)
-        {
-            std::set<std::string> affectedPages;
-
-            for (auto cell : comp->cells)
-            {
-                auto key = Strfy() << cell->pagePos.x << "_" << cell->pagePos.y;
-                affectedPages.insert(key.getData());
-
-                cell->ids.erase(comp->entityId);
-            }
-
-            for (const auto& page : affectedPages)
-            {
-                if (loadedPages.at(page).isEmpty())
-                    loadedPages.erase(page);
-            }
-
-            comp->cells.clear();
-        }
+        bool testCollision(UiComponent* obj1, UiComponent* obj2) const;
 
         constant::Vector2D pageSize;
         constant::Vector2D cellSize;

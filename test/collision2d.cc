@@ -2,6 +2,8 @@
 
 #include "2D/collisionsystem.h"
 
+#include "mocklogger.h"
+
 namespace pg
 {
     namespace test
@@ -79,6 +81,8 @@ namespace pg
         TEST(system_collision_2d, page_overlap_but_size_less_than_page_size)
         {
             EntitySystem ecs;
+
+            MockLogger<TerminalSink> logger;
 
             ecs.createSystem<UiComponentSystem>();
 
