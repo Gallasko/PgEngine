@@ -211,7 +211,10 @@ namespace pg
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-            
+
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+#endif
+
             SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
             SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
             SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
@@ -220,9 +223,6 @@ namespace pg
             SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
             SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
             // SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
-
-            SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
-#endif
 
             // int err;
 
@@ -432,19 +432,19 @@ namespace pg
         // cTex->setTopAnchor(screenUi->top);
         // cTex->setRightAnchor(screenUi->right);
 
-        auto s = makeSimple2DShape(&ecs, Shape2D::Triangle, 50, 50, {255.0f, 0.0f, 0.0f});
-        auto c = s.get<UiComponent>();
+        // auto s = makeSimple2DShape(&ecs, Shape2D::Triangle, 50, 50, {255.0f, 0.0f, 0.0f});
+        // auto c = s.get<UiComponent>();
 
-        c->setTopAnchor(screenUi->top);
-        c->setRightAnchor(screenUi->right);
+        // c->setTopAnchor(screenUi->top);
+        // c->setRightAnchor(screenUi->right);
 
         // Serializer::getSerializer()->serializeObject("Menu tex", *tex.entity);
 
-        auto terminalBackground = makeSimple2DShape(&ecs, Shape2D::Square, 350, 200, {4.0f, 16.0f, 32.0f});
-        auto terminalBackgroundC = terminalBackground.get<UiComponent>();
+        // auto terminalBackground = makeSimple2DShape(&ecs, Shape2D::Square, 350, 200, {4.0f, 16.0f, 32.0f});
+        // auto terminalBackgroundC = terminalBackground.get<UiComponent>();
 
-        terminalBackgroundC->setBottomAnchor(screenUi->bottom);
-        terminalBackgroundC->setRightAnchor(screenUi->right);
+        // terminalBackgroundC->setBottomAnchor(screenUi->bottom);
+        // terminalBackgroundC->setRightAnchor(screenUi->right);
 
         // Serializer::getSerializer()->serializeObject("Terminal background", *terminalBackground.entity);
 
@@ -454,11 +454,11 @@ namespace pg
         // terminalTextC->setBottomAnchor(terminalBackgroundC->bottom);
         // terminalTextC->setLeftAnchor(terminalBackgroundC->left);
 
-        auto testb = makeSimple2DShape(&ecs, Shape2D::Square, 120, 120, {4.0f, 225.0f, 125.0f});
-        auto testbc = testb.get<UiComponent>();
+        // auto testb = makeSimple2DShape(&ecs, Shape2D::Square, 120, 120, {4.0f, 225.0f, 125.0f});
+        // auto testbc = testb.get<UiComponent>();
 
-        testbc->setX(50);
-        testbc->setY(100);
+        // testbc->setX(50);
+        // testbc->setY(100);
 
         // testbc->setBottomAnchor(screenUi->bottom);
         // testbc->setRightAnchor(screenUi->right);
@@ -472,18 +472,18 @@ namespace pg
         // ecs.attach<FocusableComponent>(terminalText.entity);
         // ecs.attach<MouseLeftClickComponent>(terminalText.entity, makeCallable<OnFocus>(terminalText.entity.id));
 
-        auto s2 = makeSimple2DShape(&ecs, Shape2D::Square, 100, 100, {0.0f, 255.0f, 0.0f});
-        auto c2 = s2.get<UiComponent>();
+        // auto s2 = makeSimple2DShape(&ecs, Shape2D::Square, 100, 100, {0.0f, 255.0f, 0.0f});
+        // auto c2 = s2.get<UiComponent>();
 
-        c2->setTopAnchor(screenUi->top);
-        c2->setLeftAnchor(screenUi->left);
+        // c2->setTopAnchor(screenUi->top);
+        // c2->setLeftAnchor(screenUi->left);
 
         // ecs.attach<FocusableComponent>(s2.entity);
         
         // // ecs.attach<SentenceText>(s2.entity, "Here");
         // ecs.attach<MouseLeftClickComponent>(s2.entity, makeCallable<LogInfoEvent>("Window", "Left click on the green rectangle"));
 
-        makeSentence(&ecs, 0, 0, {"And there"});
+        // makeSentence(&ecs, 0, 0, {"And there"});
 
         // ecs.sendEvent(StartAudio{"res/audio/mainost.mp3"});
 
@@ -593,12 +593,12 @@ namespace pg
 
         glViewport(0, 0, width, height);
 
-        if(screenUi->width != width)
+        if (screenUi->width != width)
         {
             screenUi->setWidth(width);
         }
         
-        if(screenUi->height != height)
+        if (screenUi->height != height)
         {
             screenUi->setHeight(height);
         }

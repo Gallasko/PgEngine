@@ -70,11 +70,11 @@ namespace pg
 
         RenderStage getRenderStage() const { return renderStage; }
     
-        virtual void render() = 0;
+        virtual void render() override = 0;
 
         virtual void updateMeshes() override
         {
-            if(changed)
+            if (changed)
             {
                 std::lock_guard<std::mutex> lock(modificationMutex);
 
@@ -87,7 +87,7 @@ namespace pg
         }
 
     protected:
-        bool changed = false;
+        bool changed = true;
 
         std::mutex modificationMutex;
         std::mutex renderMutex;
@@ -101,9 +101,18 @@ namespace pg
     class AbstractInstanceRenderer : public AbstractRenderer
     {
     public:
-        AbstractInstanceRenderer(MasterRenderer* masterRenderer, const RenderStage& stage, size_t nbAttributes) : AbstractRenderer(masterRenderer, stage),  nbAttributes(nbAttributes) {}
+        AbstractInstanceRenderer(MasterRenderer* masterRenderer, const RenderStage& stage, size_t nbAttributes) : AbstractRenderer(masterRenderer, stage),  nbAttributes(nbAttributes)
+        {
+            currentSize = 1; 
+
+            bufferData = new float[currentSize * nbAttributes];
+
+            sizeChanged = true;
+        }
 
         virtual ~AbstractInstanceRenderer() { if(bufferData) delete[] bufferData; }
+
+        virtual void updateMeshes() override { }
 
         virtual void removeElement(_unique_id id);
 
@@ -164,11 +173,17 @@ namespace pg
 
             std::lock_guard<std::mutex> lock(resizeMutex);
 
-            systemParameters["ScreenWidth"] = static_cast<int>(event.width); systemParameters["ScreenHeight"] = static_cast<int>(event.height);
+            systemParameters["ScreenWidth"] = static_cast<int>(event.width);
+            systemParameters["ScreenHeight"] = static_cast<int>(event.height);
         }
 
-        inline void setWindowSize(const int& width, const int& height) { systemParameters["ScreenWidth"] = width; systemParameters["ScreenHeight"] = height; }
-        inline void setCurrentTime(const unsigned int& time) { systemParameters["CurrentTime"] = static_cast<int>(time); }
+        void setWindowSize(int width, int height)
+        { 
+            systemParameters["ScreenWidth"] = width;
+            systemParameters["ScreenHeight"] = height;
+        }
+
+        void setCurrentTime(const unsigned int& time) { systemParameters["CurrentTime"] = static_cast<int>(time); }
 
         RefracRef getParameter() const { return systemParameters; }
 
@@ -180,8 +195,6 @@ namespace pg
         void initializeParameters();
 
     private:
-        bool changed = false;
-        
         RefracRef systemParameters;
         ShaderRef shaderList;
         TextureRef textureList;

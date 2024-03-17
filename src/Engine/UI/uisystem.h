@@ -161,6 +161,8 @@ namespace pg
             leftMargin.setEntity(entityId, ecsRef);
             rightMargin.setEntity(entityId, ecsRef);
             bottomMargin.setEntity(entityId, ecsRef);
+
+            update();
         }
 
         inline static std::string getType() { return "UiComponent"; } 

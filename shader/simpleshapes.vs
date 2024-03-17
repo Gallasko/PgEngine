@@ -2,9 +2,9 @@
 
 layout (location = 0) in vec3 aPos;
 
-layout (location = 2) in vec3 aWorldPos;
-layout (location = 3) in vec2 aSize;
-layout (location = 4) in vec3 aColors;
+layout (location = 1) in vec3 aWorldPos;
+layout (location = 2) in vec2 aSize;
+layout (location = 3) in vec3 aColors;
 
 uniform mat4 model;
 uniform mat4 scale;
@@ -28,7 +28,7 @@ void main()
         vec4(aSize.x, 0.0, 0.0, 0.0),
         vec4(0.0, aSize.y, 0.0, 0.0),
         vec4(0.0, 0.0, 1.0, 0.0),
-        vec4(0.0 , 0.0, 0.0, 1.0) );
+        vec4(0.0 , 0.0, 0.0, 1.0));
 
     gl_Position = projection * posMat * view * scale * scaleMat * model * vec4(aPos.x, aPos.y, aPos.z, 1.0f);
     ourColor = aColors;

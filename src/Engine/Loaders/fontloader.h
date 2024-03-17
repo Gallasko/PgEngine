@@ -26,13 +26,12 @@ namespace pg
 
 			inline int getId() const { return id; }
 			inline std::string getName() const { return name; }
-			inline OpenGLVertexArrayObject* getMesh() const { return VAO; }
 			
 			inline unsigned int getWidth() const { return width; }
 			inline unsigned int getHeight() const { return height; }
 			inline unsigned int getOffset() const { return yOffset; }
 
-			inline constant::SquareInfo getModelInfo() const { return modelInfo; }
+			inline const constant::Vector4D& getTextureLimit() const { return textureLimit; }
 
 		protected:
 			inline void setId(int id) { this->id = id; }
@@ -49,11 +48,7 @@ namespace pg
 			unsigned int height = 0;
 			unsigned int yOffset = 0;
 
-			constant::SquareInfo modelInfo;
-
-			OpenGLVertexArrayObject *VAO;
-			OpenGLBuffer *VBO;
-			OpenGLBuffer *EBO;
+			constant::Vector4D textureLimit;
 		};
 
 		FontLoader(const std::string& fontFile);

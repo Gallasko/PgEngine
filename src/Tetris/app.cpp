@@ -82,7 +82,7 @@ void mainloop()
         printf("Thread joined...\n");
         init = true;
 
-        mainWindow->init(600, 700, false);
+        mainWindow->init(300, 700, false);
 
         printf("Window init done !");
 
@@ -94,17 +94,23 @@ void mainloop()
 
         // mainWindow->ecs.createSystem<GameCanvas>();
 
-        auto tex = makeUiTexture(&mainWindow->ecs, 296, 197, "menu");
+        makeSentence(&mainWindow->ecs, 0, 0, {"Hello World"});
 
-        tex.get<UiComponent>()->setY(250);
+        makeSentence(&mainWindow->ecs, 200, 150, {"Hi yours truly"});
 
-        auto tex2 = makeUiTexture(&mainWindow->ecs, 143, 73, "font");
+        // auto tex = makeUiTexture(&mainWindow->ecs, 296, 197, "menu");
 
-        tex2.get<UiComponent>()->setY(500);
+        // tex.get<UiComponent>()->setY(250);
+
+        // auto tex2 = makeUiTexture(&mainWindow->ecs, 143, 73, "font");
+
+        // tex2.get<UiComponent>()->setY(500);
 
         printf("Canvas initialized ...");
 
         mainWindow->ecs.start();
+
+        mainWindow->render();
 
         mainWindow->resize(600, 700);
 
@@ -138,7 +144,7 @@ int TetrisApp::exec()
 
     initWindow(appName);
 
-    mainWindow->init(300, 700, false);
+    mainWindow->init(600, 500, false);
 
     LOG_INFO(DOM, "Window init done !");
 
@@ -150,11 +156,27 @@ int TetrisApp::exec()
 
     // mainWindow->ecs.createSystem<GameCanvas>();
 
-    auto testRect = makeSimple2DShape(&mainWindow->ecs, Shape2D::Square, 50, 50, {255.0f, 0.0f, 0.0f});
+    // auto testRect = makeSimple2DShape(&mainWindow->ecs, Shape2D::Square, 50, 50, {255.0f, 0.0f, 0.0f});
 
-    auto tex = makeUiTexture(&mainWindow->ecs, 296, 197, "menu");
+    // auto tex = makeUiTexture(&mainWindow->ecs, 296, 197, "menu");
 
-    tex.get<UiComponent>()->setY(250);
+    // tex.get<UiComponent>()->setY(250);
+
+    makeSentence(&mainWindow->ecs, 200, 120, {"I am me"});
+
+    auto rem = makeSentence(&mainWindow->ecs, 0, 0, {"Hello World!"});
+
+    makeSentence(&mainWindow->ecs, 0, 120, {"Hola ?!"});
+
+    auto test = makeSentence(&mainWindow->ecs, 200, 150, {"Hi yours truly"});
+
+    test.get<SentenceText>()->setText("I am me");
+
+    mainWindow->ecs.removeEntity(rem.entity);
+
+    makeSentence(&mainWindow->ecs, 200, 180, {"I am me"});
+
+    // auto sys = mainWindow->ecs.getSystem<SentenceSystem>();
 
     LOG_INFO(DOM, "Initializing engine done !");
 
@@ -162,7 +184,7 @@ int TetrisApp::exec()
 
     mainWindow->ecs.start();
 
-    mainWindow->resize(300, 700);
+    mainWindow->resize(600, 500);
 
     while (running)
     {

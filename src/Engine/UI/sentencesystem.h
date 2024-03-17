@@ -35,7 +35,22 @@ namespace pg
         std::string newText;
     };
 
-    struct SentenceText : public Ctor
+    struct Letter
+    {
+        Letter(_unique_id id, const FontLoader::Font * const font) : id(id), font(font) { }
+        Letter(const Letter& rhs) : id(rhs.id), font(rhs.font) { }
+
+        void operator=(const Letter& rhs)
+        {
+            id = rhs.id;
+            font = rhs.font;
+        }
+
+        _unique_id id;
+        const FontLoader::Font * font;
+    };
+
+    struct SentenceText : public Ctor, public Dtor
     {
         std::string text = "";
         float scale = 2.0f;
@@ -46,6 +61,8 @@ namespace pg
         SentenceEffect effect = SentenceEffect::NOEFFCT;
 
         UiSize textWidth, textHeight;
+
+        std::vector<Letter> letters;
 
         _unique_id entityId = 0;
 
@@ -76,6 +93,8 @@ namespace pg
             entityId = entity->id;
         }
 
+        virtual void onDeletion(EntityRef entity) override;
+
         inline void operator=(const SentenceText &rhs)
         {
             this->text       = rhs.text;
@@ -86,6 +105,7 @@ namespace pg
             this->effect     = rhs.effect;
             this->textWidth  = rhs.textWidth;
             this->textHeight = rhs.textHeight;
+            this->letters    = rhs.letters;
             this->entityId   = rhs.entityId;
             this->ecsRef     = rhs.ecsRef;
         }
@@ -112,9 +132,35 @@ namespace pg
     template <>
     void serialize(Archive& archive, const SentenceText& value);
 
-    struct SentenceSystem : public AbstractRenderer, System<Own<SentenceText>, Ref<UiComponent>, Listener<OnTextChanged>, Listener<UiComponentChangeEvent>, NamedSystem, InitSys, StoragePolicy>
+    struct SentenceSystem : public AbstractInstanceRenderer, System<Own<SentenceText>, Ref<UiComponent>, Listener<OnTextChanged>, Listener<UiComponentChangeEvent>, NamedSystem, InitSys, StoragePolicy>
     {
-        SentenceSystem(MasterRenderer *renderer, FontLoader *font) : AbstractRenderer(renderer, RenderStage::Render), font(font) { }
+        struct SimpleSquareMesh : public Mesh
+        {
+            SimpleSquareMesh() : Mesh()
+            { 
+                LOG_THIS_MEMBER("Shape 2D Mesh");
+                modelInfo.vertices = new float[12];
+				//              x                     y                              z  
+				modelInfo.vertices[0] =   0.0f; modelInfo.vertices[1] =   0.0f; modelInfo.vertices[2] =  1.0f;
+				modelInfo.vertices[3] =   1.0f; modelInfo.vertices[4] =   0.0f; modelInfo.vertices[5] =  1.0f;
+				modelInfo.vertices[6] =   0.0f; modelInfo.vertices[7] =  -1.0f; modelInfo.vertices[8] =  1.0f;
+				modelInfo.vertices[9] =   1.0f; modelInfo.vertices[10] = -1.0f; modelInfo.vertices[11] = 1.0f;
+
+				modelInfo.indices = new unsigned int[6];
+				modelInfo.indices[0] = 0; modelInfo.indices[1] = 1; modelInfo.indices[2] = 2;
+				modelInfo.indices[3] = 1; modelInfo.indices[4] = 2; modelInfo.indices[5] = 3;
+
+				modelInfo.nbVertices = 12;
+				modelInfo.nbIndices = 6;
+            }
+            virtual ~SimpleSquareMesh();
+
+            void generateMesh();
+
+            OpenGLBuffer *instanceVBO = nullptr;
+        };
+
+        SentenceSystem(MasterRenderer *renderer, FontLoader *font) : AbstractInstanceRenderer(renderer, RenderStage::Render, 22), font(font) { }
 
         virtual std::string getSystemName() const override { return "Sentence System"; }
 
@@ -126,9 +172,16 @@ namespace pg
 
         virtual void render() override;
 
-        Mesh* getSentenceMesh(SentenceText& sentence, FontLoader *font);
+        void addElement(const CompRef<UiComponent>& ui, const CompRef<SentenceText>& obj);
+
+        void generateLetters(SentenceText& sentence, FontLoader *font);
+
+        SimpleSquareMesh basicSquareMesh;
+        bool squareMeshInitialized = false;
 
         FontLoader *font;
+
+        std::atomic<_unique_id> nextLetterId = {0};
     };
 
     /** Helper that create an entity with an Ui component and a Texture component */

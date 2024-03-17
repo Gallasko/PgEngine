@@ -113,7 +113,8 @@
         "semaphore": "cpp",
         "span": "cpp",
         "hash_map": "cpp",
-        "alignedvector3": "cpp"
+        "alignedvector3": "cpp",
+        "fft": "cpp"
     },
     "files.exclude": {
         "**/*.o": true,

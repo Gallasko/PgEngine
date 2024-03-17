@@ -55,9 +55,7 @@ namespace pg
 
         // Position attribute
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
         instanceVBO = new OpenGLBuffer(OpenGLBuffer::VertexBuffer);
         instanceVBO->setUsagePattern(OpenGLBuffer::DynamicDraw);
@@ -65,17 +63,17 @@ namespace pg
 
         instanceVBO->bind();
 
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
         glEnableVertexAttribArray(3);
-        glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-        glEnableVertexAttribArray(4);
-        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(5 * sizeof(float)));
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(5 * sizeof(float)));
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glVertexAttribDivisor(1, 1); // tell OpenGL this is an instanced vertex attribute.
         glVertexAttribDivisor(2, 1); // tell OpenGL this is an instanced vertex attribute.
         glVertexAttribDivisor(3, 1); // tell OpenGL this is an instanced vertex attribute.
-        glVertexAttribDivisor(4, 1); // tell OpenGL this is an instanced vertex attribute.
 
         openGLMesh.EBO->bind();
         openGLMesh.EBO->setUsagePattern(OpenGLBuffer::StaticDraw);
@@ -96,12 +94,6 @@ namespace pg
 
     void Simple2DObjectSystem::init()
     {
-        currentSize = 1; 
-
-        bufferData = new float[currentSize * nbAttributes];
-
-        sizeChanged = true;
-
         auto group = registerGroup<UiComponent, Simple2DObject>();
 
         group->addOnGroup([](EntityRef entity) {
@@ -158,11 +150,6 @@ namespace pg
                 basicSquareMesh.bind();
 
                 basicSquareMesh.instanceVBO->allocate(bufferData, size * nbAttributes * sizeof(float));
-
-                // basicSquareMesh.instanceVBO->bind();
-                
-                // Todo replace currentSize with elementIndex as the rest is garbage data
-                // glBufferSubData(GL_ARRAY_BUFFER, 0, currentSize * nbAttributes * sizeof(float), bufferData);
             }
 
             nbElements = elementIndex.load();

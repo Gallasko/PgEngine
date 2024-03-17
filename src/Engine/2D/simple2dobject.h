@@ -63,12 +63,19 @@ namespace pg
             SimpleSquareMesh() : Mesh()
             { 
                 LOG_THIS_MEMBER("Shape 2D Mesh");
-                modelInfo = constant::SquareInfo{};
+                modelInfo.vertices = new float[12];
+				//              x                     y                              z  
+				modelInfo.vertices[0] =   0.0f; modelInfo.vertices[1] =   0.0f; modelInfo.vertices[2] =  1.0f;
+				modelInfo.vertices[3] =   1.0f; modelInfo.vertices[4] =   0.0f; modelInfo.vertices[5] =  1.0f;
+				modelInfo.vertices[6] =   0.0f; modelInfo.vertices[7] =  -1.0f; modelInfo.vertices[8] =  1.0f;
+				modelInfo.vertices[9] =   1.0f; modelInfo.vertices[10] = -1.0f; modelInfo.vertices[11] = 1.0f;
 
-                modelInfo.vertices[0] =  0.0f; modelInfo.vertices[1] =   0.0f;
-				modelInfo.vertices[5] =  1.0f; modelInfo.vertices[6] =   0.0f;
-				modelInfo.vertices[10] = 0.0f; modelInfo.vertices[11] = -1.0f;
-				modelInfo.vertices[15] = 1.0f; modelInfo.vertices[16] = -1.0f;
+				modelInfo.indices = new unsigned int[6];
+				modelInfo.indices[0] = 0; modelInfo.indices[1] = 1; modelInfo.indices[2] = 2;
+				modelInfo.indices[3] = 1; modelInfo.indices[4] = 2; modelInfo.indices[5] = 3;
+
+				modelInfo.nbVertices = 12;
+				modelInfo.nbIndices = 6;
                 
             }
             virtual ~SimpleSquareMesh();

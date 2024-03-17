@@ -44,9 +44,9 @@ namespace pg
             return;
         }
 
-        auto lastElement = --elementIndex;
-
         std::lock_guard<std::mutex> lock (modificationMutex);
+
+        auto lastElement = --elementIndex;
 
         auto prev = idToIndexMap[id];
 
@@ -66,8 +66,11 @@ namespace pg
         // Swap the last element at the removed place
         for (size_t i = 0; i < nbAttributes; i++)
         {
+            // bufferData[prev * nbAttributes + i] = bufferData[lastElement * nbAttributes + i];
             bufferData[prev * nbAttributes + i] = bufferData[lastElement * nbAttributes + i];
         }
+
+        idToIndexMap[lastElement] = prev;
 
         // The remove item was a visible one so we need to swap a visible one at this place
         if (needToSwap)
