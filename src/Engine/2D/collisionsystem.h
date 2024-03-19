@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ECS/system.h"
+#include "ECS/callable.h"
 
 #include "UI/uisystem.h"
 
@@ -24,6 +25,9 @@ namespace pg
 
     struct CollisionComponent : public Ctor, Dtor
     {
+        CollisionComponent() {}
+        CollisionComponent(CallablePtr callback) : callback(callback) {}
+
         virtual void onCreation(EntityRef entity) override
         {
             ecsRef = entity->world();
@@ -32,6 +36,10 @@ namespace pg
         }
 
         virtual void onDeletion(EntityRef entity) override;
+
+        CallablePtr callback = nullptr;
+
+        std::set<_unique_id> collidedIds;
 
         EntitySystem* ecsRef = nullptr;
 
@@ -95,13 +103,7 @@ namespace pg
         std::vector<CollisionCell> cells;
     };
 
-    struct Collision
-    {
-        _unique_id collided;
-        _unique_id collider;
-    };
-
-    struct CollisionSystem : public System<Own<CollisionComponent>, Ref<UiComponent>, InitSys>
+    struct CollisionSystem : public System<Own<CollisionComponent>, Ref<UiComponent>, Listener<UiComponentChangeEvent>, InitSys>
     {
         // Todo make a ctor that load properties (pageSize, cellSi) from serialization
         CollisionSystem();
@@ -112,13 +114,19 @@ namespace pg
 
         void removeComponentFromGrid(CollisionComponent* comp);
 
-        std::set<_unique_id> getCollisionList(UiComponent* pos, CollisionComponent* comp);
+        std::set<_unique_id> resolveCollisionList(UiComponent* pos, CollisionComponent* comp);
 
         bool testCollision(UiComponent* obj1, UiComponent* obj2) const;
+
+        virtual void onEvent(const UiComponentChangeEvent& event) override;
+
+        virtual void execute() override;
 
         constant::Vector2D pageSize;
         constant::Vector2D cellSize;
 
         std::unordered_map<std::string, CollisionPage> loadedPages;
+
+        std::map<_unique_id, std::set<_unique_id>> detectedCollisions;
     };
 }

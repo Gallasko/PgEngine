@@ -99,12 +99,7 @@ namespace pg
             startY = yPagePos * pHeight;
         }
 
-        auto list = getCollisionList(pos, comp);
-
-        for (auto id : list)
-        {
-            ecsRef->sendEvent(Collision{id, comp->entityId});
-        }
+        resolveCollisionList(pos, comp);
     }
 
     void CollisionSystem::removeComponentFromGrid(CollisionComponent* comp)
@@ -130,7 +125,7 @@ namespace pg
         comp->cells.clear();
     }
 
-    std::set<_unique_id> CollisionSystem::getCollisionList(UiComponent* pos, CollisionComponent* comp)
+    std::set<_unique_id> CollisionSystem::resolveCollisionList(UiComponent* pos, CollisionComponent* comp)
     {
         LOG_THIS_MEMBER(DOM);
 
@@ -160,7 +155,8 @@ namespace pg
 
                 if (test)
                 {
-                    collidedIds.insert(id);
+                    detectedCollisions[comp->entityId].insert(id);
+                    detectedCollisions[id].insert(comp->entityId);
                 }
             }
         }
@@ -185,5 +181,41 @@ namespace pg
                obj1Xmin < obj2XMax &&
                obj1YMax > obj2YMin &&
                obj1YMin < obj2YMax;
+    }
+
+     void CollisionSystem::onEvent(const UiComponentChangeEvent& event)
+    {
+        auto entity = ecsRef->getEntity(event.id);
+        
+        if(not entity or not entity->has<UiComponent>() or not entity->has<CollisionComponent>())
+            return;
+
+        auto ui = entity->get<UiComponent>();
+        auto comp = entity->get<CollisionComponent>();
+
+        // removeComponentFromGrid(comp);
+        // addComponentInGrid(ui, comp);
+    }
+
+    void CollisionSystem::execute()
+    {
+        for (const auto& collision : detectedCollisions)
+        {
+            auto entity = ecsRef->getEntity(collision.first);
+
+            if (not entity->has<CollisionComponent>())
+                continue;
+
+            auto comp = entity->get<CollisionComponent>();
+
+            comp->collidedIds.clear();
+
+            comp->collidedIds = collision.second;
+
+            if (comp->callback)
+                comp->callback->call(ecsRef); 
+        }
+
+        detectedCollisions.clear();
     }
 }
