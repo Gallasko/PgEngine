@@ -15,7 +15,7 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
-        if(std::getline(stream, nextLine))
+        if (std::getline(stream, nextLine))
         {
             return nextLine;
         }
@@ -31,7 +31,7 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
         
-        for(std::string line; std::getline(stream, line);)
+        for (std::string line; std::getline(stream, line);)
             std::for_each(callbacks.begin(), callbacks.end(), [&line](const FileParser::ParsingCallback& element) { executeCallback(line, element); });
     }
 
@@ -39,7 +39,7 @@ namespace pg
     {
         LOG_THIS(DOM);
 
-        if(std::regex_search(line, callback.pattern))
+        if (std::regex_search(line, callback.pattern))
             callback.callback(line);
     }
 
