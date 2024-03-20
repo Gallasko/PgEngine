@@ -193,8 +193,8 @@ namespace pg
         auto ui = entity->get<UiComponent>();
         auto comp = entity->get<CollisionComponent>();
 
-        // removeComponentFromGrid(comp);
-        // addComponentInGrid(ui, comp);
+        removeComponentFromGrid(comp);
+        addComponentInGrid(ui, comp);
     }
 
     void CollisionSystem::execute()
