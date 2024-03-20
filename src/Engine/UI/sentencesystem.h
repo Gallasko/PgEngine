@@ -181,6 +181,8 @@ namespace pg
 
         FontLoader *font;
 
+        moodycamel::ConcurrentQueue<_unique_id> availableIds;
+
         std::atomic<_unique_id> nextLetterId = {0};
     };
 

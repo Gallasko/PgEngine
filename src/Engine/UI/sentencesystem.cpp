@@ -26,13 +26,14 @@ namespace pg
         archive.endSerialization();
     }
 
-    void SentenceText::onDeletion(EntityRef entity) 
+    void SentenceText::onDeletion(EntityRef) 
     {
         auto sys = ecsRef->getSystem<SentenceSystem>();
 
         for (const auto& letter : letters)
         {
             sys->removeElement(letter.id);
+            sys->availableIds.enqueue(letter.id);
         }
     }
 
@@ -186,6 +187,7 @@ namespace pg
         for (const auto& letter : sentence->letters)
         {
             removeElement(letter.id);
+            availableIds.enqueue(letter.id);
         }
 
         sentence->letters.clear();
@@ -223,8 +225,6 @@ namespace pg
         {
             std::lock_guard<std::mutex> lock(modificationMutex);
 
-            LOG_INFO(DOM, "-------------------- Modification of sentence pos of sentence id: " << event.id << " --------------------");
-
             for (const auto& letter : obj->letters)
             {
                 auto it = idToIndexMap.find(letter.id);
@@ -247,8 +247,6 @@ namespace pg
 
                 if(obj->outline2.w == 0.0f)
                     outO += 1.0 * obj->scale;
-
-                LOG_INFO(DOM, "Putting: " << fontInfo->getName() << " at " << x + currentX + outO << ", " << y + o + outO << " with size = " << w - outO << ", " << w - outO);
 
                  // World pos (x, y, z) 3 floats
                 bufferData[index * nbAttributes + 0] = x + currentX + outO;
@@ -395,8 +393,6 @@ namespace pg
                 if(obj->outline2.w == 0.0f)
                     outO += 1.0 * obj->scale;
 
-                LOG_INFO(DOM, "Putting: " << fontInfo->getName() << " at " << x + currentX + outO << ", " << y + o + outO << " with size = " << w - outO << ", " << w - outO);
-
                  // World pos (x, y, z) 3 floats
                 bufferData[currentIndex * nbAttributes + 0] = x + currentX + outO;
                 bufferData[currentIndex * nbAttributes + 1] = y + o + outO;
@@ -471,7 +467,14 @@ namespace pg
             // const auto letter = font->getChara(sentence.text[i]);
             const auto letter = font->getChara(std::string(1, sentence.text.at(i)));
 
-            auto id = nextLetterId++;
+            _unique_id id;
+
+            bool found = availableIds.try_dequeue(id);
+
+            if (not found)
+            {
+                id = nextLetterId++;
+            }
 
             sentence.letters.emplace_back(id, letter);
 
