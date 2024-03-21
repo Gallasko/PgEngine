@@ -48,3 +48,5 @@ To profile the Taskflow scheduling of the application, you need to enable the pr
 On windows:
 - `$env:TF_ENABLE_PROFILER=simple.json`
 
+Create all the uml using:
+https://plantuml.com/fr/sequence-diagram

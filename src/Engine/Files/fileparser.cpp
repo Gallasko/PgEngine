@@ -41,7 +41,7 @@ namespace pg
     {
         LOG_THIS(DOM);
 
-        if(std::regex_search(line, callback.pattern))
+        if (std::regex_search(line, callback.pattern))
             callback.callback(line);
     }
 

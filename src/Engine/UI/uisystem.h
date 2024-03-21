@@ -391,6 +391,14 @@ namespace pg
                     vec = it->second;
                 }
 
+                // Put all children in a set to only call the change event once per id
+                for(auto& child : vec)
+                {
+                    updatedId.insert(child);
+                }
+
+                updated = true;
+
                 // for (const auto& childId : vec)
                 // {
                 //     auto child = atEntity<UiComponent>(childId);
@@ -402,14 +410,27 @@ namespace pg
                 // }
             }
             
-            for(auto& child : vec)
-            {
-                ecsRef->sendEvent(UiComponentChangeEvent{child});
-            }
+            // for(auto& child : vec)
+            // {
+            //     ecsRef->sendEvent(UiComponentChangeEvent{child});
+            // }
         }
 
         virtual void execute() override
         {
+            if (updated)
+            {
+                std::lock_guard lock(m);
+
+                for(auto& child : updatedId)
+                {
+                    ecsRef->sendEvent(UiComponentChangeEvent{child});
+                }
+
+                updatedId.clear();
+
+                updated = false;
+            }
             // if(updated)
             // {
             //     for(auto comp : view<UiComponent>())
@@ -424,6 +445,8 @@ namespace pg
             //     updated = false;
             // }
         }
+
+        std::set<_unique_id> updatedId;
 
         std::unordered_map<_unique_id, std::vector<_unique_id>> parentalMap;
 

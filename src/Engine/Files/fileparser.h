@@ -21,7 +21,7 @@ namespace pg
         };
 
     public:
-        FileParser(const TextFile& file) : file(file), stream(file.data) {}
+        FileParser(const TextFile& file) : file(file), stream(file.data, std::ios::binary) {}
         ~FileParser() {}
         
         void addCallback(const std::regex& regex, const std::function<void(const std::string&)>& callback) { callbacks.emplace_back(regex, callback); }
