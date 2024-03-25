@@ -85,7 +85,7 @@ namespace pg
     }
 
     Simple2DObjectSystem::SimpleSquareMesh::~SimpleSquareMesh()
-    { 
+    {
         LOG_THIS_MEMBER("Shape 2D Mesh");
 
         if (instanceVBO)
@@ -94,6 +94,8 @@ namespace pg
 
     void Simple2DObjectSystem::init()
     {
+        LOG_THIS_MEMBER(DOM);
+
         auto group = registerGroup<UiComponent, Simple2DObject>();
 
         group->addOnGroup([](EntityRef entity) {
@@ -191,6 +193,8 @@ namespace pg
 
     void Simple2DObjectSystem::addElement(const CompRef<UiComponent>& ui, const CompRef<Simple2DObject>& obj)
     {
+        LOG_THIS_MEMBER(DOM);
+
         LOG_INFO("Simple 2D Object System", "Add element " << ui.entityId << " to buffer !");
 
         {
@@ -234,6 +238,8 @@ namespace pg
 
     void Simple2DObjectSystem::onEvent(const UiComponentChangeEvent& event)
     {
+        LOG_THIS_MEMBER(DOM);
+
         size_t index;
 
         auto entity = ecsRef->getEntity(event.id);
@@ -295,11 +301,12 @@ namespace pg
 
     void Simple2DObjectSystem::updateMeshes()
     {
+        LOG_THIS_MEMBER(DOM);
     }
 
     Mesh* Simple2DObjectSystem::get2DMesh(const Simple2DObject& shape)
     {
-        LOG_THIS_MEMBER("MeshBuilder");
+        LOG_THIS_MEMBER(DOM);
 
         std::string meshName = "";
 
@@ -414,6 +421,8 @@ namespace pg
 
     CompList<UiComponent, Simple2DObject> makeSimple2DShape(EntitySystem *ecs, const Shape2D& shape, float width, float height, const constant::Vector3D& colors)
     {
+        LOG_THIS(DOM);
+
         auto entity = ecs->createEntity();
 
         auto ui = ecs->attach<UiComponent>(entity);

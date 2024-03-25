@@ -9,6 +9,8 @@ namespace pg
 
     void CollisionComponent::onDeletion(EntityRef)
     {
+        LOG_THIS_MEMBER("Collision Component");
+
         auto sys = ecsRef->getSystem<CollisionSystem>();
 
         sys->removeComponentFromGrid(this);        
@@ -16,11 +18,13 @@ namespace pg
 
     CollisionSystem::CollisionSystem() : pageSize(5, 5), cellSize(5, 5)
     {
-
+        LOG_THIS_MEMBER(DOM);
     }
 
     void CollisionSystem::init()
     {
+        LOG_THIS_MEMBER(DOM);
+
         auto group = registerGroup<UiComponent, CollisionComponent>();
 
         group->addOnGroup([](EntityRef entity) {
@@ -167,6 +171,8 @@ namespace pg
     // TODO this only test collision for AABB to AABB for now, need to expend on it !
     bool CollisionSystem::testCollision(UiComponent* obj1, UiComponent* obj2) const
     {
+        LOG_THIS_MEMBER(DOM);
+
         auto obj1Xmin = obj1->pos.x;
         auto obj1XMax = obj1->pos.x + obj1->width;
         auto obj1YMin = obj1->pos.y;
@@ -185,6 +191,8 @@ namespace pg
 
      void CollisionSystem::onEvent(const UiComponentChangeEvent& event)
     {
+        LOG_THIS_MEMBER(DOM);
+
         auto entity = ecsRef->getEntity(event.id);
         
         if(not entity or not entity->has<UiComponent>() or not entity->has<CollisionComponent>())
@@ -199,6 +207,8 @@ namespace pg
 
     void CollisionSystem::execute()
     {
+        LOG_THIS_MEMBER(DOM);
+
         for (const auto& collision : detectedCollisions)
         {
             auto entity = ecsRef->getEntity(collision.first);

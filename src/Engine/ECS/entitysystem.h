@@ -211,6 +211,54 @@ namespace pg
             return system;
         }
 
+        template <class Sys, class DerivedSys, typename... Args>
+        DerivedSys* createMockSystem(const Args&... args)
+        {
+            LOG_THIS_MEMBER("ECS");
+
+            auto sys = new DerivedSys(args...);
+
+            Sys* system = static_cast<Sys*>(sys);
+            system->id = registry.getTypeId<Sys>();
+
+            system->addToRegistry(&registry);
+
+            systems.emplace(system->id, system);
+
+            // Only add the system to the taskflow if the execution policy is set to sequential or independent !
+            if(system->executionPolicy == ExecutionPolicy::Sequential)
+            {
+                auto task = taskflow.emplace([system]()
+                {
+                    // Todo time the whole exec of a run of the taskflow
+                    auto start = std::chrono::steady_clock::now();
+            
+                    system->execute();
+
+                    auto end = std::chrono::steady_clock::now();
+
+                    if(std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() >= 3000000)
+                        std::cout << "System " << system->name << " execute took: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << std::endl;
+                
+                }).name(std::to_string(system->id));
+
+                // Put the task after every other basic task
+                task.succeed(basicTask);
+
+                // Register the task in case we need to call precede and succeed
+                tasks[system->id] = task;
+            }
+            else if (system->executionPolicy == ExecutionPolicy::Independent)
+            {
+                auto task = taskflow.emplace([system](){system->execute();}).name(std::to_string(system->id));
+
+                // Register the task in case we need to call precede and succeed
+                tasks[system->id] = task;
+            }
+
+            return sys;
+        }
+
         template <typename... Args>
         InterpreterSystem* createInterpreterSystem(const Args&... args)
         {
