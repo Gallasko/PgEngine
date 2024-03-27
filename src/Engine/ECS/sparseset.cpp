@@ -3,6 +3,7 @@
 #include "logger.h"
 
 #include <iostream>
+#include <cstring>
 
 namespace pg
 {

@@ -25,6 +25,15 @@ Once mingw is installed, add the bin folder in your PATH to use make !
 
 The next step is to install Cmake
 
+### Linux
+- `sudo apt install cmake`
+- `sudo apt-get install libgl1-mesa-dev`
+- `sudo apt-get install libsdl2-dev`
+- `mkdir release`
+- `cd release`
+- `cmake -S ../ -B .`
+- `cmake --build . --target all -j 11`
+
 ### For windows, linux and apple
 Once those depencies are resolved, you can build the application with:
 - `cmake --build release --config Release --target all` in release mode

@@ -13,3 +13,4 @@ simple.json
 CMakeCache.txt
 /em*
 /debug*
+/linux*

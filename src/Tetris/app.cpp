@@ -154,7 +154,7 @@ int TetrisApp::exec()
 
     mainWindow->initEngine();
 
-    // mainWindow->ecs.createSystem<GameCanvas>();
+    mainWindow->ecs.createSystem<GameCanvas>();
 
     // auto testRect = makeSimple2DShape(&mainWindow->ecs, Shape2D::Square, 50, 50, {255.0f, 0.0f, 0.0f});
 

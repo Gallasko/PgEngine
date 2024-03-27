@@ -8,7 +8,7 @@
 
 #include "ECS/entitysystem.h"
 
-#include "..\constant.h"
+#include "constant.h"
 #include "mesh.h"
 
 namespace pg

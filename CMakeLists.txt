@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.18)
 #cmake_minimum_required(VERSION 3.13)
 
 project(PgEngine VERSION 1.0)
@@ -86,7 +86,8 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
 set(CMAKE_C_FLAGS_RELEASE "-Wall -Wextra -pthread -O3 -DNDEBUG -m32 ${USE_FLAGS}")
 set(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wextra -pthread -O3 -DNDEBUG -m32 ${USE_FLAGS}")
 else()
-    set(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wextra -pthread -Wa,-mbig-obj -s -O3 -DNDEBUG")
+# set(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wextra -pthread -Wa,-mbig-obj -s -O3 -DNDEBUG")
+    set(CMAKE_CXX_FLAGS_RELEASE "-Wall -Wextra -pthread -s -O3 -DNDEBUG")
 endif()
 
 add_executable(PgEngine src/main.cpp)

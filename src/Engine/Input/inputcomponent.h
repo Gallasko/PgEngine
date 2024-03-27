@@ -2,7 +2,7 @@
 
 #include "input.h"
 
-#include "../constant.h"
+#include "constant.h"
 
 #include "ECS/entitysystem.h"
 #include "ECS/callable.h"
