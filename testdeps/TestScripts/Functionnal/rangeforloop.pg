@@ -1,0 +1,93 @@
+print("Range for loop test")
+
+class Iterator
+{
+	begin()
+	{
+		return this.start
+	}
+
+	end()
+	{
+		return this.finish
+	}
+
+	current()
+	{
+		return this.i
+	}
+
+	next()
+	{
+		this.i = this.i + 1
+	}
+	
+	reset()
+	{
+		this.i = this.start
+	}
+}
+
+class Math
+{
+    add(a, b)
+    {
+        return a + b
+    }
+
+    multiply(a, b)
+    {
+        return a * b
+    }
+
+	begin()
+	{
+		var it = Iterator()
+
+		it.start = this.start
+		it.finish = this.finish
+		it.i = this.start
+				
+		return it
+	}
+
+	end()
+	{
+		var it = Iterator()
+
+		it.start = this.start
+		it.finish = this.finish
+		it.i = this.start
+				
+		return it
+	}
+
+    getIt()
+    {
+		var it = Iterator()
+
+		it.start = this.start
+		it.finish = this.finish
+		it.i = this.start
+				
+		return it
+    }
+}
+
+var mathObj = Math()
+
+mathObj.start = 0
+mathObj.finish = 1000
+
+fun loop(it)
+{
+  logInfo(it)
+
+  for(; it.current() < it.end(); it.next())
+  {
+    var name = "val" + toString(it.current());
+    //logInfo(name)
+  }
+}
+
+loop(mathObj.getIt())

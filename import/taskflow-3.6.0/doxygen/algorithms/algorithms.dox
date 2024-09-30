@@ -1,0 +1,20 @@
+namespace tf {
+
+/** @page Algorithms Taskflow Algorithms
+
+  %Taskflow defines a set of algorithm primitives to perform common parallel algorithms:
+  
+  + @subpage PartitioningAlgorithm
+  + @subpage ParallelIterations
+  + @subpage ParallelTransforms
+  + @subpage ParallelReduction
+  + @subpage ParallelSort
+  + @subpage ParallelScan
+  + @subpage ParallelFind
+  + @subpage TaskParallelPipeline
+  + @subpage TaskParallelScalablePipeline
+  + @subpage TaskParallelPipelineWithTokenDependencies
+  + @subpage DataParallelPipeline
+*/
+
+}

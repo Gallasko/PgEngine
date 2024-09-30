@@ -1,0 +1,6 @@
+print("Executing for loop test")
+
+for (var i = 0; i < 10; i++)
+{
+    ExpectEq(i, i);
+}

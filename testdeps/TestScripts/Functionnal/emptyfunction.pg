@@ -1,0 +1,16 @@
+print("Empty functions test")
+
+fun sum() { }
+
+fun nothing()
+{
+
+}
+
+fun notafun( ) 
+{ }
+
+fun notafun2( ) 
+{
+
+}

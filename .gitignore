@@ -1,0 +1,16 @@
+/Archive
+/output*
+/debug_build*
+/release_build*
+/build*
+log.txt
+gtest-all.o
+simple.json
+*.gcda
+*.gcno
+/release*
+/CMakeFiles*
+CMakeCache.txt
+/em*
+/debug*
+/linux*

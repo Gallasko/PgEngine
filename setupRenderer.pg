@@ -1,0 +1,52 @@
+import "renderer"
+
+print("Setting up renderer...")
+
+print("Loading shaders...")
+
+loadShader("simpleTexture", "shader/default.vs", "shader/default.fs");
+loadShader("atlasTexture", "shader/atlastexture.vs", "shader/atlastexture.fs");
+loadShader("gui", "shader/default.vs", "shader/default.fs");
+loadShader("text", "shader/textrendering.vs", "shader/textrendering.fs");
+loadShader("2DShapes", "shader/simpleshapes.vs", "shader/simpleshapes.fs");
+
+print("Shaders loaded successfully.")
+
+print("Loading textures...")
+
+loadTexture("player", "res/Gmtk/Player.png")
+loadAtlasTexture("tiles", "res/Gmtk/tiles.png", "res/Gmtk/tiles.ft");
+loadAtlasTexture("transi", "res/Gmtk/transi.png", "res/Gmtk/transi.ft");
+loadAtlasTexture("ui", "res/Gmtk/buttonUi.png", "res/Gmtk/ui.ft");
+loadTexture("baseBullet", "res/Gmtk/baseBullet.png");
+loadTexture("back", "res/Gmtk/back.png");
+loadTexture("doodles", "res/Gmtk/doodles.png");
+
+loadTexture("font", "res/font/font.png");
+loadTexture("menu", "res/menu/menutest.png");
+loadTexture("icon", "res/menu/Menu2.png");
+loadAtlasTexture("keys", "res/key/Keys.png", "res/key/key.ft");
+
+loadTexture("I", "res/TetrisRes/tiles/I.png");
+loadTexture("O", "res/TetrisRes/tiles/O.png");
+loadTexture("S", "res/TetrisRes/tiles/S.png");
+loadTexture("Z", "res/TetrisRes/tiles/Z.png");
+loadTexture("J", "res/TetrisRes/tiles/J.png");
+loadTexture("L", "res/TetrisRes/tiles/L.png");
+loadTexture("T", "res/TetrisRes/tiles/T.png");
+loadTexture("Empty", "res/TetrisRes/tiles/Empty.png");
+loadTexture("Ghost", "res/TetrisRes/tiles/Ghost.png");
+loadTexture("Canvas", "res/TetrisRes/tiles/TetrisCanvas.png");
+loadTexture("Hold", "res/TetrisRes/tiles/Hold.png");
+loadTexture("Next", "res/TetrisRes/tiles/Next.png");
+
+loadTexture("titlescreenBackground", "res/TetrisRes/tiles/Titlescreen.png");
+loadTexture("playButton", "res/TetrisRes/tiles/TetrisPlayButton.png");
+loadTexture("optionButton", "res/TetrisRes/tiles/TetrisOptionButton.png");
+loadTexture("highscoreButton", "res/TetrisRes/tiles/TetrisHighscoreButton.png");
+loadTexture("arrow", "res/TetrisRes/tiles/arrow.png");
+loadTexture("selectedButton", "res/TetrisRes/tiles/selectedButton.png");
+
+//titlescreenBackground
+
+print("Textures loaded successfully.")

@@ -1,0 +1,180 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "type": "shell",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "windows": {
+                "command": "powershell",
+                "args": [
+                    "-c",
+                    "cmake --build ${workspaceFolder}/debug --config Debug --target PgEngine -j 8 --"
+                ]
+            },
+            "linux": {
+                "command": "bash",
+                "args": [
+                    "-c",
+                    "make DEBUG=True PROD=True"
+                ]
+            },
+            "osx": {
+                "command": "bash",
+                "args": [
+                    "-c",
+                    "cmake --build ${workspaceFolder}/build --config Debug --target all -j 22 --"
+                ]
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "test",
+            "type": "shell",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "windows": {
+                "command": "powershell",
+                "args": [
+                    "-c",
+                    // "cmake --build x:/Document/GitHub/TeclaEatsDesktop/release --config Release --target t1 -j 22 --"
+                    "cmake --build ${workspaceFolder}/release --config Release --target t1 -j 22 --"
+                ]
+            },
+            "linux": {
+                "command": "bash",
+                "args": [
+                    "-c",
+                    "make DEBUG=True PROD=True"
+                ]
+            },
+            "osx": {
+                "command": "bash",
+                "args": [
+                    "-c",
+                    "make DEBUG=True PROD=True"
+                ]
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "release",
+            "type": "shell",
+            "group": {
+                "kind": "release",
+                "isDefault": false
+            },
+            "windows": {
+                "command": "powershell",
+                "args": [
+                    "-c",
+                    // "cmake --build x:/Document/GitHub/TeclaEatsDesktop/release --config Release --target PgEngine TetrisClone -j 22 --"
+                    // "cmake --build ${workspaceFolder}/release --config Release --target PgEngine TetrisClone -j 22 --"
+                    "cmake --build ${workspaceFolder}/release --config Release --target PgEngine Brackeys -j 22 --"
+                ]
+            },
+            "linux": {
+                "command": "bash",
+                "args": [
+                    "-c",
+                    "make DEBUG=False"
+                ]
+            },
+            "osx": {
+                "command": "bash",
+                "args": [
+                    "-c",
+                    "make DEBUG=False"
+                ]
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "em",
+            "type": "shell",
+            "group": {
+                "kind": "em",
+                "isDefault": false
+            },
+            "windows": {
+                "command": "powershell",
+                "isShellCommand": true,
+                "showOutput": "always",
+                "args": [
+                    "-c",
+                    "cd ${workspaceFolder}/em; emcmake cmake .; cmake --build . --config Release --target Gmtk -j 22 --"
+                ]
+            },
+            "linux": {
+                "command": "bash",
+                "args": [
+                    "-c",
+                    "make DEBUG=False"
+                ]
+            },
+            "osx": {
+                "command": "bash",
+                "args": [
+                    "-c",
+                    "make DEBUG=False"
+                ]
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "build & run",
+            "type": "shell",
+            "windows": {
+                "command": "powershell",
+                "args": [
+                    "-c",
+                    "'mingw32-make run'"
+                ]
+            },
+            "linux": {
+                "command": "bash",
+                "args": [
+                    "-c",
+                    "'make run'"
+                ]
+            },
+            "osx": {
+                "command": "bash",
+                "args": [
+                    "-c",
+                    "'make run'"
+                ]
+            }
+        },
+        {
+            "label": "clean",
+            "type": "shell",
+            "windows": {
+                "command": "powershell",
+                "args": [
+                    "-c",
+                    "'mingw32-make clean'"
+                ]
+            },
+            "linux": {
+                "command": "bash",
+                "args": [
+                    "-c",
+                    "'make clean'"
+                ]
+            },
+            "osx": {
+                "command": "bash",
+                "args": [
+                    "-c",
+                    "'make clean'"
+                ]
+            }
+        }
+    ]
+}

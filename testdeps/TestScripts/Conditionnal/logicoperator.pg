@@ -1,0 +1,35 @@
+print("Testing logic operator")
+
+ExpectEq(true, true);
+ExpectEq(false, false);
+
+ExpectEq(!true, false);
+ExpectEq(!false, true);
+
+var b1 = true;
+
+ExpectEq(b1, true);
+
+ExpectEq(!b1, false);
+
+ExpectEq(not b1, false);
+
+var b2 = false;
+
+ExpectEq(b2, false);
+
+ExpectEq(!b2, true);
+
+ExpectEq(not b2, true);
+
+ExpectEq(b1 || b2, true);
+ExpectEq(b1 or b2, true);
+
+ExpectEq(b1 && b2, false);
+ExpectEq(b1 and b2, false);
+
+ExpectEq(not b1 or b2, false);
+ExpectEq(b1 && not b2, true);
+
+
+

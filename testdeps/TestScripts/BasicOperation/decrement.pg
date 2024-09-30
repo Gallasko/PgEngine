@@ -1,0 +1,43 @@
+print("Executing post decrement test")
+
+var a = 5;
+
+ExpectEq(a--, 5);
+
+ExpectEq(a, 4);
+
+var b = 5;
+
+var c = b--;
+
+ExpectEq(c, 5);
+
+ExpectEq(b, 4);
+
+var e = 10;
+
+var f = --e;
+
+ExpectEq(f, 9);
+
+ExpectEq(e, 9);
+
+// Todo implement all of this a--b -> a - (-b)
+//var g = 15;
+
+//var h = 17;
+
+// Todo need to implement this
+// var i = g--h;
+
+//ExpectEq(g, 15);
+//ExpectEq(h, 17);
+// ExpectEq(i, 32);
+
+//var j = 12;
+//var k = 16;
+//var l = j---k;
+
+//ExpectEq(j, 11);
+//ExpectEq(k, 16);
+//ExpectEq(l, -4);

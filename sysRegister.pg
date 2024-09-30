@@ -1,0 +1,197 @@
+import "ecs"
+import "core"
+
+// class CustomSystem
+// {
+//     init()
+//     {
+//         this.name = "Custom System";
+//         this.i = 0
+//     }
+// 
+//     execute()
+//     {
+//         this.i += 1
+// 
+//         if(this.i % 10000 == 0)
+//             print("In execute: " + this.name);
+//     }
+// 
+//     onTickEvent(event)
+//     {
+//         //print("Boom " + toString(event.tick));
+//         print("Boom")
+//     }
+// }
+// 
+// var sys = CustomSystem();
+// 
+// print(sys.name)
+// 
+// registerSystem(sys)
+// //connectToTick(sys.onTickEvent)
+// 
+// sys.onTickEvent("Ticked")
+
+// import "2Dshapes"
+// import "input"
+// 
+// var x = 10;
+// var y = 10;
+// 
+// var square = renderSquare(x, y)
+// 
+// var w = 30;
+// var h = 30;
+// 
+// var squareIncrease = true;
+// 
+// fun onTickE(event)
+// {
+//     if(squareIncrease == true)
+//     {
+//         w += 1
+//         h += 1
+//     }
+//     else
+//     {
+//         w -= 1
+//         h -= 1
+//     }
+// 
+//     if(w > 200)
+//     {
+//         squareIncrease = false;
+//     }
+//     else if (w < 25)
+//     {
+//         squareIncrease = true;
+//     }
+// 
+//     square.setWidth(w);
+//     square.setHeight(h);
+// 
+//     print(w)
+// }
+// 
+// connectToTick(onTickE)
+
+import "time"
+
+// * Works *
+// var timer = newTimer();
+// 
+// fun timePrint()
+// {
+//     print("################# Time #################")
+// }
+// 
+// timer.onTimeout(timePrint)
+// 
+// // timer.start(1000);
+// 
+// timer.setInterval(1000);
+// 
+// timer.start();
+
+// * Works *
+//fun moveLeft()
+//{
+//    print("------------------------ Left ------------------------")
+//    x -= 60
+//    square.setX(x)
+//    print(x)
+//}
+//fun moveRight()
+//{
+//    print("------------------------ Right ------------------------")
+//    x += 100
+//    square.setX(x)
+//    print(x)
+//}
+
+// var i = 0;
+// var j = 0;
+// var done = true;
+// 
+// fun spawnRec()
+// {
+//     if(done)
+//     {
+//         done = false;
+//         var r = renderSquare(i * 6, j * 6)
+//         r.setWidth(5);
+//         r.setHeight(5);
+// 
+//         i++;
+//         if (i > 25)
+//         {
+//             i = 0;
+//             j++;
+//         }
+//         done = true;
+//     }
+//     
+// }
+
+// for (var i = 0; i < 25; i++)
+// {
+//     for (var j = 0; j < 25; j++)
+//     {
+//         var r = renderSquare(i * 6, j * 6)
+//         r.setWidth(5);
+//         r.setHeight(5);
+//     }
+// }
+
+// import "scripts/move.pg"
+
+// import "2Dtexture"
+// 
+// renderTexture(220, 220, 66 * 4, 126 * 4, "Canvas");
+// 
+// renderTexture(100, 100, 24, 24, "I");
+// renderTexture(124, 100, 24, 24, "I");
+// renderTexture(148, 100, 24, 24, "I");
+// renderTexture(172, 100, 24, 24, "I");
+// 
+// renderTexture(100, 50, 24, 24, "O");
+// renderTexture(124, 50, 24, 24, "O");
+// renderTexture(100, 74, 24, 24, "O");
+// renderTexture(124, 74, 24, 24, "O");
+// 
+// renderTexture(150, 74, 24, 24, "T");
+// renderTexture(174, 74, 24, 24, "T");
+// renderTexture(174, 50, 24, 24, "T");
+// renderTexture(198, 74, 24, 24, "T");
+// 
+// renderTexture(124, 130, 24, 24, "J");
+// renderTexture(124, 154, 24, 24, "J");
+// renderTexture(124, 178, 24, 24, "J");
+// renderTexture(100, 178, 24, 24, "J");
+// 
+// renderTexture(148, 130, 24, 24, "L");
+// renderTexture(148, 154, 24, 24, "L");
+// renderTexture(148, 178, 24, 24, "L");
+// renderTexture(172, 178, 24, 24, "L");
+// 
+// renderTexture(24 + 172, 130, 24, 24, "S"); 
+// renderTexture(24 + 172, 154, 24, 24, "S");
+// renderTexture(24 + 196, 154, 24, 24, "S");
+// renderTexture(24 + 196, 178, 24, 24, "S");
+// 
+// renderTexture(72 + 196, 130, 24, 24, "Z");
+// renderTexture(72 + 196, 154, 24, 24, "Z");
+// renderTexture(72 + 172, 154, 24, 24, "Z");
+// renderTexture(72 + 172, 178, 24, 24, "Z");
+
+// connectToScancode(scanRelease)
+// connectToScancodePressed(scanRegister)
+
+// import "uitext"
+
+// var tex = newUiText(100, 100, "Hello world!")
+// var tex1 = newUiText(150, 150, "Hello Neko !")
+// var tex2 = newUiText(20, 20, "Hello Neko !")
+
+// tex.setText("Changed")

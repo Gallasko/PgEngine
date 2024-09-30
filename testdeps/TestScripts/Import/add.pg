@@ -1,0 +1,6 @@
+print("Sum fun file")
+
+fun sum(a, b)
+{
+    return a + b;
+}

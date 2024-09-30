@@ -1,0 +1,8 @@
+print("Log manager file")
+
+import "log"
+
+addFilterLevel("Log Filter", "log");
+addFilterScope("GL Filter", "GL Debug")
+addFilterLevel("Mile Filter", "mile");
+addFilterLevel("info Filter", "info");
