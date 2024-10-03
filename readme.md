@@ -42,6 +42,7 @@ The first step to build is to download the two external depencies of this projec
 - `sudo apt install cmake`
 - `sudo apt-get install libgl1-mesa-dev`
 - `sudo apt-get install libsdl2-dev`
+- `sudo apt-get install libsdl2-ttf-dev`
 - `mkdir release`
 - `cd release`
 - `cmake -S ../ -B .`

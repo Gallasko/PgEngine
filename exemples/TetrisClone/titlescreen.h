@@ -7,22 +7,63 @@
 using namespace pg;
 
 struct PlayClicked {};
+struct HighscoreClicked {};
 struct OptionClicked {};
+struct KeyBindPressed
+{ 
+    KeyBindPressed(const TetrisConfig& key, size_t pos) : key(key), pos(pos) {}
+    KeyBindPressed(const KeyBindPressed& other) : key(other.key), pos(other.pos) {}    
 
-#include "2D/animator2d.h"
+    KeyBindPressed& operator=(const KeyBindPressed& other)
+    {
+        key = other.key;
+        pos = other.pos;
+
+        return *this;
+    }
+
+    TetrisConfig key;
+    size_t pos;
+};
+
 #include "2D/texture.h"
 
 struct TitleScreen : public Scene
 {
     virtual void init() override;
 
-    virtual void startUp() override { startedUp = true; }
+    CompRef<UiComponent> playButtonUi;
+    CompRef<UiComponent> optionButtonUi;
+    CompRef<UiComponent> highscoreButtonUi;
 
-    bool startedUp = false;
+    void moveCursor();
 
-    CompRef<UiComponent> logoText[5];
+    void hideHighscore();
+    void showHighscore();
 
-    bool startTransi = false;
+    void hideOption();
+    void setTextureForOption(const SDL_Scancode& code, size_t option);
+    void showOption();
 
-    CompRef<Texture2DAnimationComponent> transi;
+    int cursorPos = 1;
+    CompRef<UiComponent> cursorUi;
+
+    bool highscoreShown = false;
+
+    CompRef<UiComponent> highscoreTitleComp;
+    EntityRef highscoreTable[10];
+
+    bool optionShown = false;
+
+    CompRef<UiComponent> optionTitleComp;
+    CompRef<UiComponent> commandsText[8];
+    EntityRef commands[8];
+    SDL_Scancode currentCode[8];
+    CompRef<UiComponent> modifyBindingComp;
+    CompRef<UiComponent> modifingBindingComp;
+
+    EntityRef buttonText;
+
+    bool waitingForKey = false;
+    KeyBindPressed waitedKey = {TetrisConfig::Start, 0};
 };

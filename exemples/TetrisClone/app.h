@@ -3,11 +3,11 @@
 
 #include "window.h"
 
-class GmtkApp
+class TetrisApp
 {
 public:
-    GmtkApp(const std::string& appName);
-    ~GmtkApp();
+    TetrisApp(const std::string& appName);
+    ~TetrisApp();
 
     int exec();
 

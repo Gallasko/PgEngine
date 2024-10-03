@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
 #ifdef __EMSCRIPTEN__
     printf("Starting program...\n");
 #endif
-    GmtkApp app("Gmtk game");
+    TetrisApp app("Tetris clone");
 
     return app.exec();
 }

@@ -53,6 +53,7 @@ if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
     add_subdirectory(${GLEW_DIR})
 endif()
 
+set(LINKER_FLAGS "")
 
 # Todo make this work
 # add_subdirectory(${SDL2TTF_DIR})
@@ -71,8 +72,13 @@ if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
 endif()
 
 if(UNIX AND NOT APPLE)
-    find_package(SDL_ttf REQUIRED)
-    set(TTF_LIBS SDL2_ttf)
+    list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/sdl2)
+    find_package(SDL2_ttf REQUIRED)
+    set(TTF_LIBS SDL2_ttf::SDL2_ttf)
+    # find_package(SDL2_ttf REQUIRED)
+    # set(TTF_LIBS SDL2_ttf)
+    # Add SDL2 CMake modules
+
 else()
     find_package(SDL2_ttf CONFIG REQUIRED)
     set(TTF_LIBS SDL2_ttf::SDL2_ttf)
@@ -221,7 +227,14 @@ else()
     # target_link_libraries(PgEngine PRIVATE SDL2::SDL2-static SDL2_ttf::SDL2_ttf-static SDL2_mixer::SDL2_mixer-static glm)
     target_link_options(PgEngineSrc PRIVATE -static-libgcc -static-libstdc++)
 
-    target_link_libraries(PgEngineSrc PRIVATE SDL2::SDL2-static SDL2_ttf::SDL2_ttf-static SDL2_mixer::SDL2_mixer-static glm libglew_static)
+    # target_link_libraries(PgEngineSrc PRIVATE SDL2::SDL2-static SDL2_ttf::SDL2_ttf-static SDL2_mixer::SDL2_mixer-static glm libglew_static)
+    if(UNIX AND NOT APPLE)
+        target_link_libraries(PgEngineSrc PRIVATE SDL2::SDL2-static SDL2::TTF SDL2_mixer::SDL2_mixer-static glm libglew_static)
+    else()
+        target_link_libraries(PgEngineSrc PRIVATE SDL2::SDL2-static SDL2_ttf::SDL2_ttf-static SDL2_mixer::SDL2_mixer-static glm libglew_static)
+    endif()
+    
+    # target_link_libraries(PgEngineSrc PRIVATE $<IF:$<TARGET_EXISTS:SDL2_ttf::SDL2_ttf>,SDL2_ttf::SDL2_ttf,SDL2_ttf::SDL2_ttf-static>)
 
     # find_package(PgEngineSrc REQUIRED)
 
@@ -229,11 +242,7 @@ else()
 
     target_include_directories(PgEngineSrc PUBLIC src/Editor)
 
-    add_executable(TetrisClone src/Tetris/tetris.cpp)
-
-    add_executable(Gmtk src/GMTK/gmtk.cpp)
-
-    add_executable(Brackeys src/Brackeys/brackeys.cpp)
+    add_executable(TetrisClone exemples/TetrisClone/tetris.cpp)
 
     target_sources(PgEngine PRIVATE
         src/application.cpp
@@ -249,34 +258,15 @@ else()
     #target_link_libraries(PgEngine SDL2main SDL2-static SDL2_mixer-static SDL2_ttf-static glm)
 
     target_sources(TetrisClone PRIVATE
-        src/Tetris/app.cpp
-        src/Tetris/tetromino.cpp
-        src/Tetris/keyconfig.cpp
-        src/Tetris/titlescreen.cpp
+        exemples/TetrisClone/app.cpp
+        exemples/TetrisClone/tetromino.cpp
+        exemples/TetrisClone/keyconfig.cpp
+        exemples/TetrisClone/titlescreen.cpp
         )
 
-    target_include_directories(TetrisClone PRIVATE src/Tetris)
+    target_include_directories(TetrisClone PRIVATE exemples/TetrisClone)
 
     target_link_libraries(TetrisClone PRIVATE PgEngineSrc)
-
-    target_sources(Gmtk PRIVATE
-        src/GMTK/app.cpp
-        src/GMTK/game.cpp
-        src/GMTK/titlescreen.cpp
-        )
-
-    target_include_directories(Gmtk PRIVATE src/GMTK)
-
-    target_link_libraries(Gmtk PRIVATE PgEngineSrc)
-
-    target_sources(Brackeys PRIVATE
-        src/Brackeys/app.cpp
-        src/Brackeys/game.cpp
-        )
-
-    target_include_directories(Brackeys PRIVATE src/Brackeys)
-
-    target_link_libraries(Brackeys PRIVATE PgEngineSrc)
 
     # enable_testing()
 
@@ -290,24 +280,24 @@ else()
 
     add_executable(t1 test/maintest.cc)
 
-    target_sources(t1 PRIVATE
-        test/mocksentencesystem.h
-        test/sentencesystem.cc
-        test/collision2d.cc
-        test/ecssystem.cc
-        test/filemanager.cc
-        test/interpreter.cc
-        test/mock2dsimpleshape.h
-        test/mockinterpreter.h
-        test/mocklogger.h
-        test/mockloggertest.cc
-        test/renderer.cc
-        test/serialize.cc
-        test/simple2dobject.cc
-        test/taskflow.cc
-        test/uiconstanttest.cc
-        test/uisystemtest.cc
-    )
+    # target_sources(t1 PRIVATE
+    #     test/mocksentencesystem.h
+    #     test/sentencesystem.cc
+    #     test/collision2d.cc
+    #     test/ecssystem.cc
+    #     test/filemanager.cc
+    #     test/interpreter.cc
+    #     test/mock2dsimpleshape.h
+    #     test/mockinterpreter.h
+    #     test/mocklogger.h
+    #     test/mockloggertest.cc
+    #     test/renderer.cc
+    #     test/serialize.cc
+    #     test/simple2dobject.cc
+    #     test/taskflow.cc
+    #     test/uiconstanttest.cc
+    #     test/uisystemtest.cc
+    # )
 
     target_link_libraries(t1 PRIVATE gtest gtest_main PgEngineSrc)
 
