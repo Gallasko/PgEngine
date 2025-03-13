@@ -19,6 +19,9 @@ set(BUILD_SHARED_LIBS OFF)
 set(SDL2_DISABLE_INSTALL ON)
 set(SDL_TEST OFF)
 
+set(TINYGLTF_HEADER_ONLY OFF CACHE INTERNAL "" FORCE)
+set(TINYGLTF_INSTALL OFF CACHE INTERNAL "" FORCE)
+
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
     add_compile_options(-DGLEW_STATIC)
 endif()
@@ -66,7 +69,7 @@ add_subdirectory(${GLM_DIR})
 
 include_directories(${GLM_DIR}/glm)
 include_directories(${TASKFLOW_DIR}/taskflow)
-include_directories(${GLTF_DIR}/include)
+include_directories(${GLTF_DIR})
 
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
     include_directories(${SDL2_DIR}/include)
@@ -218,7 +221,7 @@ else()
     target_link_options(PgEngineSrc PRIVATE -static-libgcc -static-libstdc++)
 
     # target_link_libraries(PgEngineSrc PRIVATE SDL2::SDL2-static SDL2_ttf::SDL2_ttf-static SDL2_mixer::SDL2_mixer-static glm libglew_static)
-    target_link_libraries(PgEngineSrc PRIVATE SDL2::SDL2-static SDL2_mixer::SDL2_mixer-static glm libglew_static freetype)
+    target_link_libraries(PgEngineSrc PRIVATE SDL2::SDL2-static SDL2_mixer::SDL2_mixer-static glm libglew_static freetype tinygltf)
 
     add_executable(PgEngine src/main.cpp)
     

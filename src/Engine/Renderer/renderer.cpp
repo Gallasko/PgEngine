@@ -18,6 +18,71 @@ namespace fs = std::filesystem;
 
 #include "2D/position.h"
 
+/// TODO create system to load gltf
+
+#include "tiny_gltf.h"
+
+// Load glTF model
+GLuint shaderProgram, VAO, VBO, EBO;
+std::vector<float> vertices;
+std::vector<unsigned int> indices;
+void LoadGLTF(const std::string& filename) {
+    tinygltf::Model model;
+    tinygltf::TinyGLTF loader;
+    std::string err, warn;
+
+    if (!loader.LoadBinaryFromFile(&model, &err, &warn, filename)) {
+        std::cerr << "Failed to load GLB: " << err << std::endl;
+        return;
+    }
+    if (!warn.empty()) std::cerr << "Warning: " << warn << std::endl;
+
+    for (const auto& mesh : model.meshes) {
+        for (const auto& primitive : mesh.primitives) {
+            if (primitive.mode != TINYGLTF_MODE_TRIANGLES) {
+                std::cerr << "Only triangle mode supported!" << std::endl;
+                continue;
+            }
+
+            // POSITION Attribute
+            const tinygltf::Accessor& posAccessor = model.accessors[primitive.attributes.at("POSITION")];
+            const tinygltf::BufferView& posView = model.bufferViews[posAccessor.bufferView];
+            const tinygltf::Buffer& posBuffer = model.buffers[posView.buffer];
+
+            const float* positions = reinterpret_cast<const float*>(&posBuffer.data[posView.byteOffset + posAccessor.byteOffset]);
+            size_t vertexCount = posAccessor.count;
+
+            for (size_t i = 0; i < vertexCount; i++) {
+                vertices.push_back(positions[i * 3]);
+                vertices.push_back(positions[i * 3 + 1]);
+                vertices.push_back(positions[i * 3 + 2]);
+            }
+
+            // INDEX Buffer
+            if (primitive.indices >= 0) {
+                const tinygltf::Accessor& idxAccessor = model.accessors[primitive.indices];
+                const tinygltf::BufferView& idxView = model.bufferViews[idxAccessor.bufferView];
+                const tinygltf::Buffer& idxBuffer = model.buffers[idxView.buffer];
+
+                if (idxAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
+                    const uint16_t* indexData = reinterpret_cast<const uint16_t*>(&idxBuffer.data[idxView.byteOffset + idxAccessor.byteOffset]);
+                    indices.insert(indices.end(), indexData, indexData + idxAccessor.count);
+                } else if (idxAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
+                    const uint32_t* indexData = reinterpret_cast<const uint32_t*>(&idxBuffer.data[idxView.byteOffset + idxAccessor.byteOffset]);
+                    indices.insert(indices.end(), indexData, indexData + idxAccessor.count);
+                } else {
+                    std::cerr << "Unsupported index type!" << std::endl;
+                }
+            }
+        }
+    }
+
+    std::cout << "Loaded GLB model with " << vertices.size() / 3 << " vertices and " << indices.size() << " indices." << std::endl;
+}
+
+
+/// ---- [END] ----
+
 namespace pg
 {
     namespace
@@ -99,6 +164,75 @@ namespace pg
         masterRenderer->addRenderer(this);
     }
 
+    // Vertex Shader
+    const char* vertexShaderSource = R"(
+    #version 330 core
+    layout (location = 0) in vec3 aPos;
+    uniform mat4 transform;
+    void main() {
+        gl_Position = transform * vec4(aPos, 1.0);
+    })";
+    
+    // Fragment Shader
+    const char* fragmentShaderSource = R"(
+    #version 330 core
+    out vec4 FragColor;
+    void main() {
+        FragColor = vec4(1.0, 0.5, 0.2, 1.0); // Orange color
+    })";
+
+    // Compile shader function
+    GLuint CompileShader(GLenum type, const char* source) {
+        GLuint shader = glCreateShader(type);
+        glShaderSource(shader, 1, &source, NULL);
+        glCompileShader(shader);
+
+        int success;
+        char infoLog[512];
+        glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+        if (!success) {
+            glGetShaderInfoLog(shader, 512, NULL, infoLog);
+            std::cerr << "Shader compilation error: " << infoLog << std::endl;
+        }
+        return shader;
+    }
+
+    // Initialize OpenGL buffers
+    void SetupOpenGL() {
+        glGenVertexArrays(1, &VAO);
+        glGenBuffers(1, &VBO);
+        glGenBuffers(1, &EBO);
+
+        glBindVertexArray(VAO);
+
+        // VBO (Vertex Data)
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+
+        // EBO (Index Data)
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+        // Position attribute
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(0);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+
+        // Compile shaders
+        GLuint vertexShader = CompileShader(GL_VERTEX_SHADER, vertexShaderSource);
+        GLuint fragmentShader = CompileShader(GL_FRAGMENT_SHADER, fragmentShaderSource);
+
+        shaderProgram = glCreateProgram();
+        glAttachShader(shaderProgram, vertexShader);
+        glAttachShader(shaderProgram, fragmentShader);
+        glLinkProgram(shaderProgram);
+
+        glDeleteShader(vertexShader);
+        glDeleteShader(fragmentShader);
+    }
+
     MasterRenderer::MasterRenderer(const std::string& noneTexturePath)
     {
         LOG_THIS_MEMBER(DOM);
@@ -109,6 +243,10 @@ namespace pg
         }
 
         initializeParameters();
+
+        LoadGLTF("Merchant_Tea_Pot.glb");
+
+        SetupOpenGL();
     }
 
     MasterRenderer::~MasterRenderer()
@@ -302,6 +440,19 @@ namespace pg
         {
             processRenderCall(call);
         }
+
+        float scale = 0.05f;
+
+        // Transformation matrix
+        glm::mat4 transform = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
+        glUseProgram(shaderProgram);
+        GLuint transformLoc = glGetUniformLocation(shaderProgram, "transform");
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, &transform[0][0]);
+        // glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
+
+        glBindVertexArray(VAO);
+        // glDrawArrays(GL_TRIANGLES, 0, vertices.size() / 3);
+        glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
         
         nbRenderedFrames++;
 
