@@ -40,6 +40,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
 # set(USE_FLAGS "-sUSE_SDL=2 -sUSE_SDL_MIXER=2 -sUSE_SDL_TTF=2 -sUSE_FREETYPE=1 -fwasm-exceptions -sUSE_PTHREADS=1")
 set(USE_FLAGS "-sUSE_SDL=2 -sUSE_SDL_MIXER=2 -sUSE_FREETYPE=1 -fwasm-exceptions -sUSE_PTHREADS=1")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${USE_FLAGS} --use-preload-plugins \
+        --preload-file res/tiled/LEVELS/Level_0001.json \
         --preload-file res \
         --preload-file scripts \
         --preload-file shader \
@@ -207,36 +208,57 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
     target_include_directories(PgEngineSrc PUBLIC src/GameElements)
     target_include_directories(PgEngineSrc PUBLIC src/Editor)
 
-    add_executable(GameOff src/GameOff/main.cpp)
+    # add_executable(GameOff src/GameOff/main.cpp)
 
-    target_include_directories(GameOff PUBLIC src/GameOff)
+    # target_include_directories(GameOff PUBLIC src/GameOff)
 
-    target_sources(GameOff PRIVATE
-        src/GameOff/achievement.cpp
-        src/GameOff/application.cpp
-        src/GameOff/character.cpp
-        src/GameOff/characustomizationscene.cpp
-        src/GameOff/fightscene.cpp
-        src/GameOff/gamefacts.cpp
-        src/GameOff/inventory.cpp
-        src/GameOff/item.cpp
-        src/GameOff/location.cpp
-        src/GameOff/locationscene.cpp
-        src/GameOff/mainscene.cpp
-        src/GameOff/managenerator.cpp
-        src/GameOff/nexusscene.cpp
-        src/GameOff/skilltree.cpp
-        src/GameOff/passives.cpp
-        src/GameOff/spells.cpp
+    # target_sources(GameOff PRIVATE
+    #     src/GameOff/achievement.cpp
+    #     src/GameOff/application.cpp
+    #     src/GameOff/character.cpp
+    #     src/GameOff/characustomizationscene.cpp
+    #     src/GameOff/fightscene.cpp
+    #     src/GameOff/gamefacts.cpp
+    #     src/GameOff/inventory.cpp
+    #     src/GameOff/item.cpp
+    #     src/GameOff/location.cpp
+    #     src/GameOff/locationscene.cpp
+    #     src/GameOff/mainscene.cpp
+    #     src/GameOff/managenerator.cpp
+    #     src/GameOff/nexusscene.cpp
+    #     src/GameOff/skilltree.cpp
+    #     src/GameOff/passives.cpp
+    #     src/GameOff/spells.cpp
+    # )
+
+    # target_link_libraries(GameOff PRIVATE PgEngineSrc)
+
+    # set_target_properties(GameOff
+    #     PROPERTIES SUFFIX ".html"
+    #     LINK_FLAGS "-lidbfs.js -s FORCE_FILESYSTEM=1 -sPTHREAD_POOL_SIZE=4 -pthread -s ALLOW_MEMORY_GROWTH=1 -s USE_WEBGL2=1 -s FULL_ES3=1 -s SAFE_HEAP=1 -s ASSERTIONS=1 -O3 ${USE_FLAGS}")
+
+    # target_link_libraries(GameOff PRIVATE glm)
+
+    add_executable(PixelJam src/PixelJam/main.cpp)
+
+    target_include_directories(PixelJam PUBLIC src/PixelJam)
+
+    target_sources(PixelJam PRIVATE
+        src/PixelJam/application.cpp
+        src/PixelJam/Characters/player.cpp
+        src/PixelJam/config.cpp
+        src/PixelJam/Tiled_Lib/TiledLoader.cpp
+        src/PixelJam/Tiled_Lib/TileMapAtlasLoader.cpp
+        src/PixelJam/Room/room.cpp
     )
 
-    target_link_libraries(GameOff PRIVATE PgEngineSrc)
+    target_link_libraries(PixelJam PRIVATE PgEngineSrc)
 
-    set_target_properties(GameOff
+    set_target_properties(PixelJam
         PROPERTIES SUFFIX ".html"
         LINK_FLAGS "-lidbfs.js -s FORCE_FILESYSTEM=1 -sPTHREAD_POOL_SIZE=4 -pthread -s ALLOW_MEMORY_GROWTH=1 -s USE_WEBGL2=1 -s FULL_ES3=1 -s SAFE_HEAP=1 -s ASSERTIONS=1 -O3 ${USE_FLAGS}")
 
-    target_link_libraries(GameOff PRIVATE glm)
+    target_link_libraries(PixelJam PRIVATE glm)
 
     # add_executable(PgEngine src/main.cpp)
 

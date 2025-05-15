@@ -314,7 +314,7 @@ namespace pg
     {
         archive.startSerialization("PosAnchor");
 
-        serialize(archive, "id", value.id);
+        // serialize(archive, "id", value.id); // Todo fix this
         serialize(archive, "type", AnchorTypeToStringMap.at(value.type)); // Use the map for conversion
         serialize(archive, "value", value.value);
 
@@ -327,7 +327,7 @@ namespace pg
     {
         PosAnchor data;
 
-        defaultDeserialize(serializedString, "id", data.id);
+        // defaultDeserialize(serializedString, "id", data.id); // Todo fix this
         std::string typeStr;
         defaultDeserialize(serializedString, "type", typeStr);
         data.type = StringToAnchorTypeMap.at(typeStr); // Use the map for conversion
@@ -342,7 +342,7 @@ namespace pg
     {
         archive.startSerialization("PosConstrain");
 
-        serialize(archive, "id", value.id);
+        // serialize(archive, "id", value.id); // Todo fix this
         serialize(archive, "type", AnchorTypeToStringMap.at(value.type)); // Use the map for conversion
         serialize(archive, "opType", PosOpTypeToStringMap.at(value.opType)); // Use the map for conversion
         serialize(archive, "opValue", value.opValue);
@@ -356,7 +356,7 @@ namespace pg
     {
         PosConstrain data;
 
-        defaultDeserialize(serializedString, "id", data.id);
+        // defaultDeserialize(serializedString, "id", data.id); // Todo fix this
         std::string typeStr;
         defaultDeserialize(serializedString, "type", typeStr);
         data.type = StringToAnchorTypeMap.at(typeStr); // Use the map for conversion

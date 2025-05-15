@@ -429,9 +429,9 @@ void initGame() {
     // mainWindow->ecs.createSystem<InspectorSystem>();
     auto ttfSys = mainWindow->ecs.createSystem<TTFTextSystem>(mainWindow->masterRenderer);
 
-    ttfSys->registerFont("res/font/Inter/static/Inter_28pt-Light.ttf");
-    ttfSys->registerFont("res/font/Inter/static/Inter_28pt-Bold.ttf");
-    ttfSys->registerFont("res/font/Inter/static/Inter_28pt-Italic.ttf");
+    ttfSys->registerFont("/res/font/Inter/static/Inter_28pt-Light.ttf");
+    ttfSys->registerFont("/res/font/Inter/static/Inter_28pt-Bold.ttf");
+    ttfSys->registerFont("/res/font/Inter/static/Inter_28pt-Italic.ttf");
 
     mainWindow->masterRenderer->processTextureRegister();
 
@@ -468,8 +468,9 @@ void initGame() {
     //MapData map;
     TiledLoader loader;
     int factor = 2;
-    const MapData map = loader.loadMap("res/tiled/LEVELS/Level_0001.json", factor);
-
+    printf("Loading map...\n");
+    const MapData map = loader.loadMap("/res/tiled/LEVELS/Level_0001.json", factor);
+    printf("Map loaded\n");
     for (const auto &tileset: map.tilesets)
     {
         mainWindow->masterRenderer->registerAtlasTexture(tileset.name, tileset.imagePath.c_str(), "", std::make_unique<TileMapAtlasLoader>(tileset));
