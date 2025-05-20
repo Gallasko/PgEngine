@@ -24,7 +24,7 @@ MapData TiledLoader::loadMap(const std::string &path, int scaleFactor) {
     std::cout << "------MAP LOADING------" << std::endl;
     std::cout << "Loading map: " << path << std::endl;
 
-    fs::path pathToUse = fs::path("res/tiled/Tiled_Levels.tiled-project");
+    fs::path pathToUse = fs::path("/res/tiled/Tiled_Levels.tiled-project");
     tson::Project project{pathToUse};
 
     tson::Tileson t{&project};

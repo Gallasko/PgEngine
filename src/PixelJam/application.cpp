@@ -116,7 +116,7 @@ struct TestSystem : public System<InitSys, QueuedListener<OnMouseClick>, Listene
     }
 
     virtual void init() override {
-        ecsRef->sendEvent(StartAudio{"res/audio/OST/Normal.mp3", -1});
+        ecsRef->sendEvent(StartAudio{"/res/audio/OST/Normal.ogg", -1});
 
         testVar = 0;
 

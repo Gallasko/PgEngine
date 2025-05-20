@@ -130,7 +130,7 @@ namespace pg
         if (invincibility)
             return;
 
-        ecsRef->sendEvent(PlaySoundEffect{"res/audio/SFX/Player_Hurt.mp3", 0});
+        ecsRef->sendEvent(PlaySoundEffect{"/res/audio/SFX/Player_Hurt.ogg", 0});
 
         cursor->get<CameraShakeComponent>()->shake(150.f, 25.f);
 
@@ -209,7 +209,7 @@ namespace pg
             if (not window)
                 return;
 
-            ecsRef->sendEvent(PlaySoundEffect{"res/audio/SFX/Shot1.mp3", 0});
+            ecsRef->sendEvent(PlaySoundEffect{"/res/audio/SFX/Shot1.ogg", 0});
 
             // Todo I should only need to get the main camera and use mousePosToWorldPos of the main camera instead !
             // auto windowWidth = window->get<PositionComponent>()->width;
@@ -496,7 +496,7 @@ namespace pg
 
         dodgeTimer->start();
 
-        ecsRef->sendEvent(PlaySoundEffect{"res/audio/SFX/Dodge.mp3", 0}); // PlaySoundEffect
+        ecsRef->sendEvent(PlaySoundEffect{"/res/audio/SFX/Dodge.ogg", 0}); // PlaySoundEffect
 
         // Zoom for dodging
 
