@@ -36,6 +36,8 @@
 #include "Database/enemydatabase.h"
 #include "Room/room.h"
 
+#include "Audio/audiosystem.h"
+
 using namespace pg;
 
 namespace {
@@ -114,6 +116,8 @@ struct TestSystem : public System<InitSys, QueuedListener<OnMouseClick>, Listene
     }
 
     virtual void init() override {
+        ecsRef->sendEvent(StartAudio{"res/audio/OST/Normal.mp3", -1});
+
         testVar = 0;
 
         auto window = ecsRef->getEntity("__MainWindow");
@@ -184,6 +188,11 @@ struct TestSystem : public System<InitSys, QueuedListener<OnMouseClick>, Listene
 
             if (enemy->health <= 0)
             {
+                auto ai = ecsRef->getComponent<AIStateComponent>(enemy->entityId);
+
+                if (ai->isBoss)
+                    ecsRef->sendEvent(GameEnd{true});
+
                 auto weapon = ecsRef->getComponent<WeaponComponent>(enemy->entityId);
                 auto pos = ecsRef->getComponent<PositionComponent>(enemy->entityId);
 
@@ -286,6 +295,13 @@ struct TestSystem : public System<InitSys, QueuedListener<OnMouseClick>, Listene
                 epos->setX(x + dx * repulsionStrength);
                 epos->setY(y + dy * repulsionStrength);
             }
+        });
+
+        makeCollisionHandlePair(ecsRef, [&](PlayerFlag* player, SpikeFlag* spike){
+            if (player->inDodge)
+                return;
+
+            ecsRef->sendEvent(PlayerHitEvent{1});
         });
 
         makeCollisionHandlePair(ecsRef, [&](PlayerFlag*, TestGridFlag* wall) {
@@ -421,7 +437,7 @@ struct TestSystem : public System<InitSys, QueuedListener<OnMouseClick>, Listene
 
                 if (tile.isHole)
                 {
-                    LOG_INFO("TILED", "Is Hole " << std::to_string(++holeCount));
+                    //LOG_INFO("TILED", "Is Hole " << std::to_string(++holeCount));
                     ecsRef->attach<CollisionComponent>(tex.entity, 0);
                     ecsRef->attach<HoleFlag>(tex.entity);
                 }
@@ -440,7 +456,7 @@ struct TestSystem : public System<InitSys, QueuedListener<OnMouseClick>, Listene
         if (event.win)
         {
             endText->get<TTFText>()->setText("You win !");
-        }    
+        }
         else
         {
             endText->get<TTFText>()->setText("Game Over !");
@@ -540,7 +556,7 @@ struct TestSystem : public System<InitSys, QueuedListener<OnMouseClick>, Listene
 };
 
 struct FlagSystem : public System<StoragePolicy, Own<WallFlag>, Own<PlayerFlag>, Own<AllyBulletFlag>, Own<CollectibleFlag>,
-    Own<EnemyFlag>, Own<EnemyBulletFlag>, Own<WeaponComponent>, Own<TestGridFlag>, Own<HoleFlag>>
+    Own<EnemyFlag>, Own<EnemyBulletFlag>, Own<WeaponComponent>, Own<TestGridFlag>, Own<HoleFlag>, Own<SpikeFlag>>
 {
 };
 
@@ -636,7 +652,7 @@ void initGame() {
 
     AsepriteLoader aseprite_loader;
 
-    std::vector<std::string> animToLoad = {"main-char", "pistol", "shotgun", "bazooka", "sniper", "raider", "raider-variant-001", "raider-variant-002", "bullet_hit"};
+    std::vector<std::string> animToLoad = {"main-char", "pistol", "shotgun", "bazooka", "sniper", "raider", "raider-variant-001", "raider-variant-002", "bullet_hit", "Gold_Pile"};
 
     std::unordered_map<std::string, AsepriteFile> anims;
 
@@ -717,26 +733,17 @@ void initGame() {
         roomSystem->addDoor(door);
     }
 
-    std::cout << "---PRINT SPIKES---" << std::endl;
+
     for (const auto &spike : map.spikes) {
-        //std::cout << "Spike: " << spike << std::endl;
-        RoomSpike room_spike{};
-        room_spike.spike = spike;
+        RoomSpike room_spike {spike, map.spike_images};
         roomSystem->addSpike(room_spike);
     }
-    std::cout << "---PRINT SPIKES--- END" << std::endl;
 
-    std::cout << "---PRINT SPIKES IMAGES---" << std::endl;
-    for (const auto &spike : map.spike_images) {
-        std::cout << "Spike Image: " << spike << std::endl;
-    }
-    std::cout << "---PRINT SPIKES IMAGES--- END" << std::endl;
 
-    std::cout << "---PRINT GOLDS---" << std::endl;
     for (const auto &g : map.golds) {
-        std::cout << "gold: " << g << std::endl;
+        roomSystem->addGold(g);
     }
-    std::cout << "---PRINT GOLDS--- END" << std::endl;
+
 
     for (const auto &spawner : map.spawners)
     {

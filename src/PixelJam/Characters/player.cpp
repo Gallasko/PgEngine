@@ -4,6 +4,8 @@
 #include "2D/texture.h"
 #include "2D/animator2d.h"
 
+#include "Audio/audiosystem.h"
+
 namespace pg
 {
     Weapon getBaseWeapon()
@@ -63,7 +65,9 @@ namespace pg
 
         playerEnt.get<Texture2DComponent>()->setViewport(1);
 
-        std::vector<size_t> collidableLayer = {0, 3, 5, 6};
+        constexpr size_t spikeLayer = 12;
+
+        std::vector<size_t> collidableLayer = {0, 3, 5, 6, spikeLayer};
 
         ecsRef->attach<CollisionComponent>(playerEnt.entity, 1, 1.0, collidableLayer);
 
@@ -125,6 +129,8 @@ namespace pg
     {
         if (invincibility)
             return;
+
+        ecsRef->sendEvent(PlaySoundEffect{"res/audio/SFX/Player_Hurt.mp3", 0});
 
         cursor->get<CameraShakeComponent>()->shake(150.f, 25.f);
 
@@ -202,6 +208,8 @@ namespace pg
 
             if (not window)
                 return;
+
+            ecsRef->sendEvent(PlaySoundEffect{"res/audio/SFX/Shot1.mp3", 0});
 
             // Todo I should only need to get the main camera and use mousePosToWorldPos of the main camera instead !
             // auto windowWidth = window->get<PositionComponent>()->width;
@@ -488,6 +496,8 @@ namespace pg
 
         dodgeTimer->start();
 
+        ecsRef->sendEvent(PlaySoundEffect{"res/audio/SFX/Dodge.mp3", 0}); // PlaySoundEffect
+
         // Zoom for dodging
 
         // auto camera = cursor->get<FollowCamera2D>();
@@ -528,6 +538,14 @@ namespace pg
 
     void PlayerSystem::onProcessEvent(const SpawnPlayerEvent& event)
     {
+        health = 5.0f;
+        auto weaponEnt = player->get<WeaponComponent>();
+        
+        if (weaponEnt) weaponEnt->weapon = getBaseWeapon();
+
+        updateHealthUi();
+        updateWeaponUi();
+
         player->get<PositionComponent>()->setX(event.x);
         player->get<PositionComponent>()->setY(event.y);
 
@@ -658,6 +676,8 @@ namespace pg
         // auto playerFlag = player->get<PlayerFlag>();
 
         // LOG_INFO("Player", "tick");
+
+        //std::cout << player.get<PositionComponent>()->x << " " << player.get<PositionComponent>()->y << std::endl;
 
         if (not player->get<PlayerFlag>()->inDodge)
             return;
