@@ -8,6 +8,7 @@
 #include "Scene/scenemanager.h"
 
 #include "2D/simple2dobject.h"
+#include "2D/animator2d.h"
 
 #include "UI/ttftext.h"
 #include "UI/progressbar.h"
@@ -22,6 +23,8 @@
 #include "UI/prefab.h"
 
 #include "config.h"
+#include "Aseprite_Lib/AsepriteFileAtlasLoader.h"
+#include "Aseprite_Lib/AsepriteLoader.h"
 
 #include "Characters/player.h"
 #include "Characters/enemy.h"
@@ -91,19 +94,59 @@ struct SceneLoader : public System<Listener<SceneToLoad>, StoragePolicy, InitSys
     }
 };
 
-struct TestSystem : public System<InitSys, QueuedListener<OnMouseClick>, Listener<OnSDLScanCode> > {
+constexpr float repulsionStrength = 1.f;
+
+struct ReloadGame {};
+
+struct TestSystem : public System<InitSys, QueuedListener<OnMouseClick>, Listener<OnSDLScanCode>, Listener<GameEnd>, QueuedListener<ReloadGame>,
+    Ref<EnemyFlag>, Ref<EnemyBulletFlag>, Ref<AllyBulletFlag>, Ref<CollectibleFlag>>
+{
     int testVar = 0;
     MapData mapData;
 
-    TestSystem(const MapData &mapData) : mapData(mapData) {
+    std::unordered_map<std::string, AsepriteFile> anims;
+
+    EntityRef endText;
+    EntityRef obscureScreen;
+    EntityRef pressAnyKeyText;
+
+    TestSystem(const MapData &mapData, const std::unordered_map<std::string, AsepriteFile>& anims) : mapData(mapData), anims(anims) {
     }
 
     virtual void init() override {
         testVar = 0;
 
+        auto window = ecsRef->getEntity("__MainWindow");
+        auto windowAnchor = window->get<UiAnchor>();
+
+        // Todo why does z > 0 doesn't work ?
+        auto endTextEnt = makeTTFText(ecsRef, 50.f, 50.f, 0.0f, "res/font/Inter/static/Inter_28pt-Light.ttf", "Game Over", 0.8f);
+
+        endTextEnt.get<PositionComponent>()->setVisibility(false);
+
+        endTextEnt.get<TTFText>()->setViewport(2);
+
+        endTextEnt.get<UiAnchor>()->centeredIn(windowAnchor);
+
+        endText = endTextEnt.entity;
+
+        auto obscureScreenEnt = makeUiSimple2DShape(ecsRef, Shape2D::Square, 1000.f, 1000.f, {0.f, 0.f, 0.f, 128.f});
+
+        ecsRef->attach<MouseLeftClickComponent>(obscureScreenEnt.entity, makeCallable<ReloadGame>());
+
+        obscureScreenEnt.get<PositionComponent>()->setVisibility(false);
+
+        obscureScreenEnt.get<Simple2DObject>()->setViewport(2);
+
+        obscureScreenEnt.get<UiAnchor>()->fillIn(windowAnchor);
+
+        obscureScreen = obscureScreenEnt.entity;
+
         // makeCollisionHandle(ecsRef, [](Entity*, Entity*) { LOG_INFO(DOM, "Collision with a wall! "); },
         //     [](Entity* ent) { return ent->has<WallFlag>(); });
         // makeCollisionHandle(ecsRef, [](Entity *, Entity *) { LOG_INFO(DOM, "Collision ! "); });
+
+        // Todo possibility to add multiple colliders on an entity : for example player feet only for the walls and the whole body for the bullets
 
         makeCollisionHandlePair(ecsRef, [](PlayerFlag *, CollectibleFlag *) {
             LOG_INFO(DOM, "Collectible collected! ");
@@ -130,18 +173,44 @@ struct TestSystem : public System<InitSys, QueuedListener<OnMouseClick>, Listene
         makeCollisionHandlePair(ecsRef, [&](AllyBulletFlag *bullet, EnemyFlag *enemy) {
             LOG_INFO(DOM, "Bullet hit an enemy! ");
 
+            if (enemy->invicibilityTimeLeft > 0)
+            {
+                ecsRef->removeEntity(bullet->entityId);
+                return;
+            }
+
             enemy->health -= bullet->damage;
+            enemy->invicibilityTimeLeft = ENEMYINVICIBILITYTIMEMS;
 
             if (enemy->health <= 0)
             {
                 auto weapon = ecsRef->getComponent<WeaponComponent>(enemy->entityId);
                 auto pos = ecsRef->getComponent<PositionComponent>(enemy->entityId);
 
-                if (weapon and pos)
+                if (weapon and pos and (not (weapon->weapon.ammo == 0)))
                 {
-                    auto collectibleEnt = makeUiSimple2DShape(ecsRef, Shape2D::Square, 25.f, 25.f, {125.f, 0.f, 125.f, 255.f});
+                    std::string textureName = "";
 
-                    collectibleEnt.get<Simple2DObject>()->setViewport(1);
+                    switch (weapon->weapon.pattern)
+                    {
+                        case BulletPattern::Radial:
+                            textureName = anims["pistol"].frames[0].textureName;
+                            break;
+
+                        case BulletPattern::Cone:
+                            textureName = anims["shotgun"].frames[0].textureName;
+                            break;
+
+                        case BulletPattern::AtPlayer:
+                        default:
+                            textureName = anims["sniper"].frames[0].textureName;
+                            break;
+                    }
+
+                    // auto collectibleEnt = makeUiSimple2DShape(ecsRef, Shape2D::Square, 25.f, 25.f, {125.f, 0.f, 125.f, 255.f});
+                    auto collectibleEnt = makeUiTexture(ecsRef, 64.0f, 64.0f, textureName);
+
+                    collectibleEnt.get<Texture2DComponent>()->setViewport(1);
 
                     collectibleEnt.get<PositionComponent>()->setX(pos->x + pos->width / 2.f - 12.5f);
                     collectibleEnt.get<PositionComponent>()->setY(pos->y + pos->height / 2.f - 12.5f);
@@ -158,46 +227,114 @@ struct TestSystem : public System<InitSys, QueuedListener<OnMouseClick>, Listene
             ecsRef->removeEntity(bullet->entityId);
         });
 
-        const float repulsionStrength = 1.f;
+        // Todo make a macro for LOG_INFO and LOG_ERROR with a single argument that use a default DOM
 
-        // makeCollisionHandlePair(ecsRef, [&](PlayerFlag* player, WallFlag* wall){
-        //     // get both entities’ positions
-        //     auto wallEnt  = wall->ecsRef->getEntity(wall->entityId);
-        //     auto playerEnt = player->ecsRef->getEntity(player->entityId);
-        //     auto wpos     = wallEnt->get<PositionComponent>();
-        //     auto epos     = playerEnt->get<PositionComponent>();
+        // Todo we need this because sweep move is bugged
+        makeCollisionHandlePair(ecsRef, [&](PlayerFlag* player, WallFlag* wall) {
+            // get both entities’ positions
+            auto wallEnt  = wall->ecsRef->getEntity(wall->entityId);
+            auto playerEnt = player->ecsRef->getEntity(player->entityId);
+            auto wpos     = wallEnt->get<PositionComponent>();
+            auto epos     = playerEnt->get<PositionComponent>();
 
-        //     // compute normalized vector from wall→enemy
-        //     float dx = epos->x - wpos->x;
-        //     float dy = epos->y - wpos->y;
-        //     float len = std::sqrt(dx*dx + dy*dy);
-        //     if (len > 0.f) {
-        //         dx /= len;
-        //         dy /= len;
-        //         // shove enemy out
-        //         epos->setX(epos->x + dx * repulsionStrength);
-        //         epos->setY(epos->y + dy * repulsionStrength);
-        //     }
-        // });
+            // compute normalized vector from wall→enemy
 
-        makeCollisionHandlePair(ecsRef, [&](PlayerFlag*, TestGridFlag* wall){
+            float x = epos->x;
+            float y = epos->y;
+
+            float wx = wpos->x;
+            float wy = wpos->y;
+
+            float dx = x - wx;
+            float dy = y - wy;
+            float len = std::sqrt(dx * dx + dy * dy);
+
+            if (len > 1e-5f)
+            {
+                dx /= len;
+                dy /= len;
+                // shove enemy out
+                epos->setX(x + dx * repulsionStrength);
+                epos->setY(y + dy * repulsionStrength);
+            }
+        });
+
+        makeCollisionHandlePair(ecsRef, [&](PlayerFlag* player, HoleFlag* hole){
+            // get both entities’ positions
+            auto wallEnt  = hole->ecsRef->getEntity(hole->entityId);
+            auto playerEnt = player->ecsRef->getEntity(player->entityId);
+            auto wpos     = wallEnt->get<PositionComponent>();
+            auto epos     = playerEnt->get<PositionComponent>();
+
+            // compute normalized vector from wall→enemy
+
+            float x = epos->x;
+            float y = epos->y;
+
+            float wx = wpos->x;
+            float wy = wpos->y;
+
+            float dx = x - wx;
+            float dy = y - wy;
+            float len = std::sqrt(dx * dx + dy * dy);
+
+            if (len > 1e-5f)
+            {
+                dx /= len;
+                dy /= len;
+                // shove enemy out
+                epos->setX(x + dx * repulsionStrength);
+                epos->setY(y + dy * repulsionStrength);
+            }
+        });
+
+        makeCollisionHandlePair(ecsRef, [&](PlayerFlag*, TestGridFlag* wall) {
             // get both entities’ positions
             auto wallEnt = wall->ecsRef->getEntity(wall->entityId);
 
             wallEnt->get<Simple2DObject>()->setColors({255.f, 0.f, 0.f, 255.f});
         });
 
-        makeCollisionHandlePair(ecsRef, [&](AllyBulletFlag*, TestGridFlag* wall){
+        makeCollisionHandlePair(ecsRef, [&](AllyBulletFlag*, TestGridFlag* wall) {
             // get both entities’ positions
             auto wallEnt = wall->ecsRef->getEntity(wall->entityId);
 
             wallEnt->get<Simple2DObject>()->setColors({0.f, 0.f, 125.f, 255.f});
         });
 
+        makeCollisionHandlePair(ecsRef, [&](PlayerFlag* player, EnemyBulletFlag* bullet) {
+            if (player->inDodge)
+                return;
+            
+            ecsRef->sendEvent(PlayerHitEvent{bullet->damage});
+
+            ecsRef->removeEntity(bullet->entityId);
+        });
+
         // Enemy <-> Wall: push enemy out of the wall
         makeCollisionHandlePair(ecsRef, [&](EnemyFlag* enemy, WallFlag* wall){
             // get both entities’ positions
             auto wallEnt  = wall->ecsRef->getEntity(wall->entityId);
+            auto enemyEnt = enemy->ecsRef->getEntity(enemy->entityId);
+            auto wpos     = wallEnt->get<PositionComponent>();
+            auto epos     = enemyEnt->get<PositionComponent>();
+
+            // compute normalized vector from wall→enemy
+            float dx = epos->x - wpos->x;
+            float dy = epos->y - wpos->y;
+            float len = std::sqrt(dx*dx + dy*dy);
+            if (len > 0.f) {
+                dx /= len;
+                dy /= len;
+                // shove enemy out
+                epos->setX(epos->x + dx * repulsionStrength);
+                epos->setY(epos->y + dy * repulsionStrength);
+            }
+        });
+
+        makeCollisionHandlePair(ecsRef, [&](EnemyFlag* enemy, HoleFlag* hole){
+            // get both entities’ positions
+            auto wallEnt  = hole->ecsRef->getEntity(hole->entityId);
             auto enemyEnt = enemy->ecsRef->getEntity(enemy->entityId);
             auto wpos     = wallEnt->get<PositionComponent>();
             auto epos     = enemyEnt->get<PositionComponent>();
@@ -260,7 +397,7 @@ struct TestSystem : public System<InitSys, QueuedListener<OnMouseClick>, Listene
         size_t scaledTileWidth = mapData.tileWidthInSPixels;
         size_t scaledTileHeight = mapData.tileHeightInSPixels;
 
-        int count = 0;
+        int holeCount = 0;
 
         for (const auto &layer: mapData.layers)
         {
@@ -281,6 +418,13 @@ struct TestSystem : public System<InitSys, QueuedListener<OnMouseClick>, Listene
                     ecsRef->attach<CollisionComponent>(tex.entity, 0);
                     ecsRef->attach<WallFlag>(tex.entity);
                 }
+
+                if (tile.isHole)
+                {
+                    LOG_INFO("TILED", "Is Hole " << std::to_string(++holeCount));
+                    ecsRef->attach<CollisionComponent>(tex.entity, 0);
+                    ecsRef->attach<HoleFlag>(tex.entity);
+                }
             }
 
             z++;
@@ -291,67 +435,112 @@ struct TestSystem : public System<InitSys, QueuedListener<OnMouseClick>, Listene
         printf("Loaded Map\n");
     }
 
+    virtual void onEvent(const GameEnd &event) override
+    {
+        if (event.win)
+        {
+            endText->get<TTFText>()->setText("You win !");
+        }    
+        else
+        {
+            endText->get<TTFText>()->setText("Game Over !");
+        }
+
+        endText->get<PositionComponent>()->setVisibility(true);
+        obscureScreen->get<PositionComponent>()->setVisibility(true);
+    }
+
+    virtual void onProcessEvent(const ReloadGame &event) override
+    {
+        LOG_INFO("TILED", "Trying to reloading Game");
+
+        for (auto* enemy : view<EnemyFlag>())
+        {
+            ecsRef->removeEntity(enemy->entityId);
+        }
+
+        for (auto* enemyBullet : view<EnemyBulletFlag>())
+        {
+            ecsRef->removeEntity(enemyBullet->entityId);
+        }
+
+        for (auto* playerBullet : view<AllyBulletFlag>())
+        {
+            ecsRef->removeEntity(playerBullet->entityId);
+        }
+
+        for (auto* collectible : view<CollectibleFlag>())
+        {
+            ecsRef->removeEntity(collectible->entityId);
+        }
+
+        endText->get<PositionComponent>()->setVisibility(false);
+        obscureScreen->get<PositionComponent>()->setVisibility(false);
+
+        ecsRef->sendEvent(ResetRoomEvent{}); //ResetRoomEvent
+    }
+
     virtual void onProcessEvent(const OnMouseClick &event) override
     {
-        if (event.button == SDL_BUTTON_RIGHT)
-        {
-            if (testVar == 0)
-            {
-                auto wallEnt = makeUiSimple2DShape(ecsRef, Shape2D::Square, 50.f, 50.f, {0.f, 0.f, 255.f, 255.f});
+        // if (event.button == SDL_BUTTON_RIGHT)
+        // {
+        //     if (testVar == 0)
+        //     {
+        //         auto wallEnt = makeUiSimple2DShape(ecsRef, Shape2D::Square, 50.f, 50.f, {0.f, 0.f, 255.f, 255.f});
 
-                wallEnt.get<Simple2DObject>()->setViewport(1);
+        //         wallEnt.get<Simple2DObject>()->setViewport(1);
 
-                wallEnt.get<PositionComponent>()->setX(event.pos.x - 25.f);
-                wallEnt.get<PositionComponent>()->setY(event.pos.y - 25.f);
-                wallEnt.get<PositionComponent>()->setZ(10);
+        //         wallEnt.get<PositionComponent>()->setX(event.pos.x - 25.f);
+        //         wallEnt.get<PositionComponent>()->setY(event.pos.y - 25.f);
+        //         wallEnt.get<PositionComponent>()->setZ(10);
 
-                ecsRef->attach<CollisionComponent>(wallEnt.entity, 0);
-                ecsRef->attach<WallFlag>(wallEnt.entity);
-            }
-            else if (testVar == 1)
-            {
-                auto collectibleEnt = makeUiSimple2DShape(ecsRef, Shape2D::Square, 25.f, 25.f,
-                                                          {125.f, 0.f, 125.f, 255.f});
+        //         ecsRef->attach<CollisionComponent>(wallEnt.entity, 0);
+        //         ecsRef->attach<WallFlag>(wallEnt.entity);
+        //     }
+        //     else if (testVar == 1)
+        //     {
+        //         auto collectibleEnt = makeUiSimple2DShape(ecsRef, Shape2D::Square, 25.f, 25.f,
+        //                                                   {125.f, 0.f, 125.f, 255.f});
 
-                collectibleEnt.get<PositionComponent>()->setX(event.pos.x - 12.5f);
-                collectibleEnt.get<PositionComponent>()->setY(event.pos.y - 12.5f);
+        //         collectibleEnt.get<PositionComponent>()->setX(event.pos.x - 12.5f);
+        //         collectibleEnt.get<PositionComponent>()->setY(event.pos.y - 12.5f);
 
-                ecsRef->attach<CollisionComponent>(collectibleEnt.entity, 3);
-                ecsRef->attach<CollectibleFlag>(collectibleEnt.entity);
-            }
-            else if (testVar == 2)
-            {
-                auto enemyEnt = makeSimple2DShape(ecsRef, Shape2D::Square, 50.f, 50.f, {255.f, 0.f, 0.f, 255.f});
+        //         ecsRef->attach<CollisionComponent>(collectibleEnt.entity, 3);
+        //         ecsRef->attach<CollectibleFlag>(collectibleEnt.entity);
+        //     }
+        //     else if (testVar == 2)
+        //     {
+        //         auto enemyEnt = makeSimple2DShape(ecsRef, Shape2D::Square, 50.f, 50.f, {255.f, 0.f, 0.f, 255.f});
 
-                enemyEnt.get<PositionComponent>()->setX(event.pos.x - 25.f);
-                enemyEnt.get<PositionComponent>()->setY(event.pos.y - 25.f);
-                enemyEnt.get<PositionComponent>()->setZ(10.f);
+        //         enemyEnt.get<PositionComponent>()->setX(event.pos.x - 25.f);
+        //         enemyEnt.get<PositionComponent>()->setY(event.pos.y - 25.f);
+        //         enemyEnt.get<PositionComponent>()->setZ(10.f);
 
-                ecsRef->attach<CollisionComponent>(enemyEnt.entity, 4);
-                ecsRef->attach<EnemyFlag>(enemyEnt.entity);
-            }
-        }
+        //         ecsRef->attach<CollisionComponent>(enemyEnt.entity, 4);
+        //         ecsRef->attach<EnemyFlag>(enemyEnt.entity);
+        //     }
+        // }
     }
 
     virtual void onEvent(const OnSDLScanCode &event) override {
-        if (event.key == SDL_SCANCODE_1) {
-            LOG_INFO(DOM, "TestSystem: 1 pressed");
-            testVar = 0;
-        } else if (event.key == SDL_SCANCODE_2) {
-            LOG_INFO(DOM, "TestSystem: 2 pressed");
-            testVar = 1;
-        } else if (event.key == SDL_SCANCODE_3) {
-            LOG_INFO(DOM, "TestSystem: 3 pressed");
-            testVar = 2;
-        } else if (event.key == SDL_SCANCODE_4) {
-            LOG_INFO(DOM, "TestSystem: 4 pressed");
-            ecsRef->sendEvent(StartSpawnWaveEvent{});
-        }
+        // if (event.key == SDL_SCANCODE_1) {
+        //     LOG_INFO(DOM, "TestSystem: 1 pressed");
+        //     testVar = 0;
+        // } else if (event.key == SDL_SCANCODE_2) {
+        //     LOG_INFO(DOM, "TestSystem: 2 pressed");
+        //     testVar = 1;
+        // } else if (event.key == SDL_SCANCODE_3) {
+        //     LOG_INFO(DOM, "TestSystem: 3 pressed");
+        //     testVar = 2;
+        // } else if (event.key == SDL_SCANCODE_4) {
+        //     LOG_INFO(DOM, "TestSystem: 4 pressed");
+        //     ecsRef->sendEvent(StartSpawnWaveEvent{});
+        // }
     }
 };
 
 struct FlagSystem : public System<StoragePolicy, Own<WallFlag>, Own<PlayerFlag>, Own<AllyBulletFlag>, Own<CollectibleFlag>,
-    Own<EnemyFlag>, Own<EnemyBulletFlag>, Own<WeaponComponent>, Own<TestGridFlag>>
+    Own<EnemyFlag>, Own<EnemyBulletFlag>, Own<WeaponComponent>, Own<TestGridFlag>, Own<HoleFlag>>
 {
 };
 
@@ -398,7 +587,14 @@ void initGame() {
 
     printf("Engine initialized ...\n");
 
+    mainWindow->ecs.createSystem<Texture2DAnimatorSystem>();
+
     mainWindow->ecs.createSystem<FollowCamera2DSystem>(mainWindow->masterRenderer);
+    mainWindow->ecs.createSystem<CameraShakeSystem>();
+
+    mainWindow->ecs.succeed<FollowCamera2DSystem, CameraShakeSystem>();
+    mainWindow->ecs.succeed<FollowCamera2DSystem, PositionComponent>();
+    mainWindow->ecs.succeed<MasterRenderer, FollowCamera2DSystem>();
 
     mainWindow->ecs.createSystem<FlagSystem>();
 
@@ -408,22 +604,21 @@ void initGame() {
 
     mainWindow->ecs.createSystem<MoveDirSystem>();
 
-    mainWindow->ecs.createSystem<ConfiguredKeySystem<GameKeyConfig> >(scancodeMap);
+    mainWindow->ecs.createSystem<TweenSystem>();
+
+    mainWindow->ecs.createSystem<ConfiguredKeySystem<GameKeyConfig>>(scancodeMap);
 
     mainWindow->ecs.createSystem<CollisionSystem>();
 
     mainWindow->ecs.createSystem<CollisionHandlerSystem>();
+
+    mainWindow->ecs.succeed<CollisionHandlerSystem, CollisionSystem>();
 
     mainWindow->ecs.succeed<MoveToSystem, CollisionSystem>();
 
     // mainWindow->ecs.succeed<CollisionSystem, PositionComponent>();
     mainWindow->ecs.succeed<PositionComponent, CollisionSystem>();
     mainWindow->ecs.succeed<MasterRenderer, CollisionSystem>();
-
-    mainWindow->ecs.createSystem<PlayerSystem>();
-
-    mainWindow->ecs.createSystem<EnemyAISystem>();
-    mainWindow->ecs.createSystem<EnemySpawnSystem>();
 
     // mainWindow->ecs.createSystem<ContextMenu>();
     // mainWindow->ecs.createSystem<InspectorSystem>();
@@ -439,6 +634,25 @@ void initGame() {
 
     mainWindow->ecs.createSystem<SceneLoader>();
 
+    AsepriteLoader aseprite_loader;
+
+    std::vector<std::string> animToLoad = {"main-char", "pistol", "shotgun", "bazooka", "sniper", "raider", "raider-variant-001", "raider-variant-002", "bullet_hit"};
+
+    std::unordered_map<std::string, AsepriteFile> anims;
+
+    for (const auto &animName : animToLoad)
+    {
+        const auto anim = aseprite_loader.loadAnim("res/sprites/" + animName + ".json");
+
+        mainWindow->masterRenderer->registerAtlasTexture(anim.filename, anim.metadata.imagePath.c_str(), "", std::make_unique<AsepriteFileAtlasLoader>(anim));
+
+        anims[animName] = anim;
+    }
+
+    mainWindow->ecs.createSystem<PlayerSystem>(anims["main-char"]);
+
+    mainWindow->ecs.createSystem<EnemyAISystem>();
+    mainWindow->ecs.createSystem<EnemySpawnSystem>(anims);
 
     // auto worldFacts = mainWindow->ecs.createSystem<WorldFacts>();
 
@@ -505,9 +719,24 @@ void initGame() {
 
     std::cout << "---PRINT SPIKES---" << std::endl;
     for (const auto &spike : map.spikes) {
-        std::cout << "Spike: " << spike << std::endl;
+        //std::cout << "Spike: " << spike << std::endl;
+        RoomSpike room_spike{};
+        room_spike.spike = spike;
+        roomSystem->addSpike(room_spike);
     }
     std::cout << "---PRINT SPIKES--- END" << std::endl;
+
+    std::cout << "---PRINT SPIKES IMAGES---" << std::endl;
+    for (const auto &spike : map.spike_images) {
+        std::cout << "Spike Image: " << spike << std::endl;
+    }
+    std::cout << "---PRINT SPIKES IMAGES--- END" << std::endl;
+
+    std::cout << "---PRINT GOLDS---" << std::endl;
+    for (const auto &g : map.golds) {
+        std::cout << "gold: " << g << std::endl;
+    }
+    std::cout << "---PRINT GOLDS--- END" << std::endl;
 
     for (const auto &spawner : map.spawners)
     {
@@ -518,7 +747,7 @@ void initGame() {
 
     roomSystem->startLevel();
 
-    mainWindow->ecs.createSystem<TestSystem>(map);
+    mainWindow->ecs.createSystem<TestSystem>(map, anims);
 
     mainWindow->ecs.start();
 

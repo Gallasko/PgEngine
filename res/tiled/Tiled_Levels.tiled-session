@@ -3,17 +3,20 @@
         "height": 4300,
         "width": 2
     },
-    "activeFile": "",
+    "activeFile": "LEVELS/Level_0001.json",
+    "automapping.whileDrawing": false,
     "expandedProjectPaths": [
-        ".",
+        "LEVELS",
         "EXPORTS",
         "Templates",
-        "LEVELS"
+        "TEMPLATES",
+        "."
     ],
     "file.lastUsedOpenFilter": "All Files (*)",
     "fileStates": {
         "": {
-            "scaleInDock": 3
+            "scaleInDock": 3,
+            "scaleInEditor": 3
         },
         ":/automap-tiles.tsx": {
             "scaleInDock": 1
@@ -44,15 +47,31 @@
         "EXPORTS/Level_Debug.json#Water": {
             "scaleInDock": 1
         },
+        "LEVELS/Level_0001.json": {
+            "expandedObjectLayers": [
+                16
+            ],
+            "scale": 3,
+            "selectedLayer": 4,
+            "viewCenter": {
+                "x": 560.1666666666666,
+                "y": 1200
+            }
+        },
         "LEVELS/Level_0001.json#PROTO_BASE": {
-            "scaleInEditor": 4
+            "scaleInDock": 2,
+            "scaleInEditor": 3
+        },
+        "LEVELS/Level_0001.json#Prod": {
+            "scaleInDock": 4,
+            "scaleInEditor": 5.5
         },
         "LEVELS/Level_DEV_0001.json": {
             "scale": 1.5,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 299.66666666666663,
-                "y": 221
+                "x": 206,
+                "y": 159.99999999999997
             }
         },
         "LEVELS/Level_DEV_0001.json#Beach": {
@@ -75,6 +94,14 @@
         "LEVELS/Level_DEV_0001.json#Water": {
             "scaleInDock": 5.5,
             "scaleInEditor": 1
+        },
+        "LEVELS/RULES/Rules.tmj": {
+            "scale": 0.33,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 107.57575757575773,
+                "y": 1080.3030303030303
+            }
         },
         "Level_Debug.json": {
             "scale": 4,
@@ -127,8 +154,9 @@
         }
     },
     "last.exportedFilePath": "C:/Users/nicol/Desktop/Projets/Big_Catto/Pixel_Jam_2025/Pixel_Jam_Levels/LEVELS",
-    "last.imagePath": "C:/Users/nicol/Desktop/Projets/Big_Catto/PgEngine/PgEngine/release/res/tiled/SOURCES/PROTO",
-    "last.objectTemplatePath": "C:/Users/nicol/Desktop/Projets/Big_Catto/PgEngine/PgEngine/release/res/tiled/TEMPLATES",
+    "last.externalTilesetPath": "C:/Users/nicol/Desktop/Projets/Big_Catto/PgEngine/PgEngine/res/tiled/SOURCES/Prod",
+    "last.imagePath": "C:/Users/nicol/Desktop/Projets/Big_Catto/PgEngine/PgEngine/res/tiled/SOURCES/Prod",
+    "last.objectTemplatePath": "C:/Users/nicol/Desktop/Projets/Big_Catto/PgEngine/PgEngine/res/tiled/TEMPLATES",
     "map.height": 50,
     "map.lastUsedExportFilter": "JSON map files (*.tmj *.json)",
     "map.lastUsedFormat": "json",
@@ -136,16 +164,21 @@
     "map.tileWidth": 16,
     "map.width": 50,
     "openFiles": [
+        "LEVELS/Level_0001.json",
+        "LEVELS/Level_DEV_0001.json"
     ],
     "project": "Tiled_Levels.tiled-project",
-    "property.type": "SpawnData",
+    "property.type": "bool",
     "recentFiles": [
         "LEVELS/Level_DEV_0001.json",
+        "LEVELS/Level_0001.json",
+        "LEVELS/RULES/Rules.tmj",
         "Level_Debug.json",
         "EXPORTS/Level_Debug.json",
         "Level_Debug.tmx"
     ],
     "tileset.embedInMap": true,
+    "tileset.lastUsedFilter": "All Files (*)",
     "tileset.tileSize": {
         "height": 16,
         "width": 16

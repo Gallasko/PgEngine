@@ -153,7 +153,7 @@ namespace pg
         auto group = registerGroup<PositionComponent, CollisionComponent>();
 
         group->addOnGroup([this](EntityRef entity) {
-            LOG_INFO(DOM, "Add entity " << entity->id << " to ui - collision group !");
+            LOG_MILE(DOM, "Add entity " << entity->id << " to ui - collision group !");
 
             auto ui = entity->get<PositionComponent>();
             auto collision = entity->get<CollisionComponent>();
@@ -642,7 +642,50 @@ namespace pg
             return res;
 
         constant::Vector2D dir = { delta.x / moveLen, delta.y / moveLen };
-        auto cells = collision->traverseGridCells(center, dir, moveLen);
+
+        // 1) decide which X offsets to use
+        bool xZero = fabs(dir.x) < EPSILON;
+        bool yZero = fabs(dir.y) < EPSILON;
+
+        // build lists of candidate offsets
+        std::vector<float> offsX, offsY;
+
+        // if non‑zero, pick a single side; else emit both
+        if (not xZero)
+            offsX.push_back(dir.x > 0 ? +half.x : -half.x);
+        else
+        {
+            offsX.push_back(+half.x);
+            offsX.push_back(-half.x);
+        }
+
+        if (not yZero)
+            offsY.push_back(dir.y > 0 ? +half.y : -half.y);
+        else
+        { 
+            offsY.push_back(+half.y);
+            offsY.push_back(-half.y);
+        }
+
+        // now build a unique set of ray origins
+        std::set<std::pair<float,float>> origins;
+
+        for (float ox : offsX)
+        {
+            for (float oy : offsY)
+            {
+                origins.emplace(center.x + ox, center.y + oy);
+            }
+        }
+
+        // traverse from *each* origin, collecting cells
+        std::unordered_set<PagePos> cells;
+        for (auto [rx, ry] : origins)
+        {
+            auto partial = collision->traverseGridCells({rx, ry}, dir, moveLen);
+
+            cells.insert(partial.begin(), partial.end());
+        }
 
         // 3) for each wall in those cells, do a ray vs. inflated‐AABB test
         float bestT = 1.0f;  // fraction of delta
@@ -656,8 +699,6 @@ namespace pg
                 for (auto wallId : collision->getCellEntities(cellPos, layer))
                 {
                     auto wallEntity = ecsRef->getEntity(wallId);
-
-                    LOG_INFO(DOM, "Checking wall: " << wallId);
 
                     if (not wallEntity or not wallEntity->has<PositionComponent>() or not wallEntity->has<CollisionComponent>())
                         continue;
@@ -699,6 +740,7 @@ namespace pg
 
         // 4) apply movement up to just before contact
         float safeT = bestT > 0 ? bestT - 1e-3f : 0.f;
+        // float safeT = bestT > 0 ? bestT - 0.2 : 0.f;
 
         if (safeT < 0) safeT = 0;
 

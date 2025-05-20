@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 
+
 #include "Weapons/weapon.h"
 
 // T Pixels : Tiled Pixels. So raw data from Tiled. For example a Tile size is 16x16 TPixels
@@ -47,14 +48,8 @@ struct TileSet {
      * The path the texture atlas. Local to the std::filesystem::current_path().
      */
     std::string imagePath;
-    /*!
-     * Number of tiles horizontally
-     */
-    int width;
-    /*!
-     * Number of tiles vertically
-     */
-    int height;
+    int imageWidthInPixels;
+    int imageHeightInPixels;
     int tileCount;
     int columns;
     /*!
@@ -91,30 +86,30 @@ struct TiledRect {
         TileRectTilesSpace result;
         result.topLeftCornerX = static_cast<int>(topLeftCornerX / tileSizeX);
         result.topLeftCornerY = static_cast<int>(topLeftCornerY / tileSizeY);
-        result.widthInTiles   = static_cast<int>(width / tileSizeX);
-        result.heightInTiles  = static_cast<int>(height / tileSizeY);
+        result.widthInTiles = static_cast<int>(width / tileSizeX);
+        result.heightInTiles = static_cast<int>(height / tileSizeY);
         return result;
     }
 };
-inline std::ostream& operator<<(std::ostream& os, const TiledRect& rect) {
+
+inline std::ostream &operator<<(std::ostream &os, const TiledRect &rect) {
     os << "TiledRect {\n"
-       << "  topLeftCornerX: " << rect.topLeftCornerX << "\n"
-       << "  topLeftCornerY: " << rect.topLeftCornerY << "\n"
-       << "  width: " << rect.width << "\n"
-       << "  height: " << rect.height << "\n"
-       << "}";
+            << "  topLeftCornerX: " << rect.topLeftCornerX << "\n"
+            << "  topLeftCornerY: " << rect.topLeftCornerY << "\n"
+            << "  width: " << rect.width << "\n"
+            << "  height: " << rect.height << "\n"
+            << "}";
     return os;
 }
 
 
-
-inline std::ostream& operator<<(std::ostream& os, const TileRectTilesSpace& rect) {
+inline std::ostream &operator<<(std::ostream &os, const TileRectTilesSpace &rect) {
     os << "TileRectTilesSpace {\n"
-       << "  topLeftCornerX (tile space): " << rect.topLeftCornerX << "\n"
-       << "  topLeftCornerY (tile space): " << rect.topLeftCornerY << "\n"
-       << "  width in tiles: " << rect.widthInTiles << "\n"
-       << "  height in tiles: " << rect.heightInTiles << "\n"
-       << "}";
+            << "  topLeftCornerX (tile space): " << rect.topLeftCornerX << "\n"
+            << "  topLeftCornerY (tile space): " << rect.topLeftCornerY << "\n"
+            << "  width in tiles: " << rect.widthInTiles << "\n"
+            << "  height in tiles: " << rect.heightInTiles << "\n"
+            << "}";
     return os;
 }
 
@@ -123,11 +118,11 @@ struct RoomTrigger {
     int roomIndex;
 };
 
-inline std::ostream& operator<<(std::ostream& os, const RoomTrigger& trigger) {
+inline std::ostream &operator<<(std::ostream &os, const RoomTrigger &trigger) {
     os << "RoomTrigger {\n"
-       << "  rectInSPixels: " << trigger.rectInSPixels << "\n"
-       << "  roomIndex: " << trigger.roomIndex << "\n"
-       << "}";
+            << "  rectInSPixels: " << trigger.rectInSPixels << "\n"
+            << "  roomIndex: " << trigger.roomIndex << "\n"
+            << "}";
     return os;
 }
 
@@ -135,35 +130,54 @@ struct Door {
     TiledRect rectInSPixels;
     TileRectTilesSpace rectTilesSpace;
     int roomIndex;
+    bool vertical;
 };
 
-inline std::ostream& operator<<(std::ostream& os, const Door& trigger) {
+inline std::ostream &operator<<(std::ostream &os, const Door &trigger) {
     os << "Door {\n"
-       << "  rectInSPixels: " << trigger.rectInSPixels << "\n"
-    << "  rectIn Tile: " << trigger.rectTilesSpace << "\n"
-       << "  roomIndex: " << trigger.roomIndex << "\n"
-       << "}";
+            << "  rectInSPixels: " << trigger.rectInSPixels << "\n"
+            << "  rectIn Tile: " << trigger.rectTilesSpace << "\n"
+            << "  roomIndex: " << trigger.roomIndex << "\n"
+    << "  vertical: " << trigger.vertical << "\n"
+            << "}";
     return os;
 }
 
 struct Spike {
     TiledRect rectInSPixels;
     TileRectTilesSpace rectTilesSpace;
+    // in seconds
     float inDuration;
+    // in seconds
     float showingDuration;
+    // in seconds
     float outDuration;
+    // in seconds
     float timerOffset;
 };
 
-inline std::ostream& operator<<(std::ostream& os, const Spike& trigger) {
+inline std::ostream &operator<<(std::ostream &os, const Spike &trigger) {
     os << "Spike {\n"
-       << "  rectInSPixels: " << trigger.rectInSPixels << "\n"
-    << "  rectIn Tile: " << trigger.rectTilesSpace << "\n"
-    << "  inDuration: " << trigger.inDuration << "\n"
-    << "  showingDuration: " << trigger.showingDuration << "\n"
-    << "  outDuration: " << trigger.outDuration << "\n"
-    << "  timerOffset: " << trigger.timerOffset << "\n"
-       << "}";
+            << "  rectInSPixels: " << trigger.rectInSPixels << "\n"
+            << "  rectIn Tile: " << trigger.rectTilesSpace << "\n"
+            << "  inDuration: " << trigger.inDuration << "\n"
+            << "  showingDuration: " << trigger.showingDuration << "\n"
+            << "  outDuration: " << trigger.outDuration << "\n"
+            << "  timerOffset: " << trigger.timerOffset << "\n"
+            << "}";
+    return os;
+}
+
+struct SpikeImage {
+    std::string textureName;
+    int spikeStep;
+};
+
+inline std::ostream &operator<<(std::ostream &os, const SpikeImage &spike) {
+    os << "SpikeImage {\n"
+            << "  Texture name: " << spike.textureName << "\n"
+            << "  Step : " << spike.spikeStep << "\n"
+            << "}";
     return os;
 }
 
@@ -178,11 +192,11 @@ struct SpawnData {
     float spawnProba;
 };
 
-inline std::ostream& operator<<(std::ostream& os, const SpawnData& data) {
+inline std::ostream &operator<<(std::ostream &os, const SpawnData &data) {
     os << "SpawnData {\n"
-       << "  enemyId: " << data.enemyId << "\n"
-       << "  spawnProba (weight): " << data.spawnProba << "\n"
-       << "}";
+            << "  enemyId: " << data.enemyId << "\n"
+            << "  spawnProba (weight): " << data.spawnProba << "\n"
+            << "}";
     return os;
 }
 
@@ -196,16 +210,29 @@ struct Spawner {
     float posYInSPixels;
 };
 
-inline std::ostream& operator<<(std::ostream& os, const Spawner& spawner) {
+inline std::ostream &operator<<(std::ostream &os, const Spawner &spawner) {
     os << "Spawner {\n"
-       << "  roomIndex: " << spawner.roomIndex << "\n"
-       << "  posXInSPixels: " << spawner.posXInSPixels << "\n"
-       << "  posYInSPixels: " << spawner.posYInSPixels << "\n"
-       << "  spawns: [\n";
-    for (const auto& spawn : spawner.spawns) {
+            << "  roomIndex: " << spawner.roomIndex << "\n"
+            << "  posXInSPixels: " << spawner.posXInSPixels << "\n"
+            << "  posYInSPixels: " << spawner.posYInSPixels << "\n"
+            << "  spawns: [\n";
+    for (const auto &spawn: spawner.spawns) {
         os << "    " << spawn << "\n";
     }
     os << "  ]\n}";
+    return os;
+}
+
+struct Gold {
+    float posXInSPixels;
+    float posYInSPixels;
+};
+
+inline std::ostream &operator<<(std::ostream &os, const Gold &spawner) {
+    os << "Gold {\n"
+
+            << "  posXInSPixels: " << spawner.posXInSPixels << "\n"
+            << "  posYInSPixels: " << spawner.posYInSPixels << "\n";
     return os;
 }
 
@@ -232,21 +259,21 @@ struct WeaponData {
     int id;
 };
 
-inline std::ostream& operator<<(std::ostream& os, const WeaponData& data) {
+inline std::ostream &operator<<(std::ostream &os, const WeaponData &data) {
     os << "WeaponData {\n"
-       << "  name: " << data.name << "\n"
-       << "  damage: " << data.damage << "\n"
-       << "  projectileSpeed: " << data.projectileSpeed << "\n"
-       << "  projectileLifeTime: " << data.projectileLifeTime << "\n"
-       << "  projectileSize: " << data.projectileSize << "\n"
-       << "  pattern: " << static_cast<int>(data.pattern) << "\n"
-       << "  bulletCount: " << data.bulletCount << "\n"
-       << "  bulletSpreadAngle: " << data.bulletSpreadAngle << "\n"
-       << "  reloadTimeMs: " << data.reloadTimeMs << "\n"
-       << "  barrelSize: " << data.barrelSize << "\n"
-       << "  ammo: " << data.ammo << "\n"
-       << "  id: " << data.id << "\n"
-       << "}";
+            << "  name: " << data.name << "\n"
+            << "  damage: " << data.damage << "\n"
+            << "  projectileSpeed: " << data.projectileSpeed << "\n"
+            << "  projectileLifeTime: " << data.projectileLifeTime << "\n"
+            << "  projectileSize: " << data.projectileSize << "\n"
+            << "  pattern: " << static_cast<int>(data.pattern) << "\n"
+            << "  bulletCount: " << data.bulletCount << "\n"
+            << "  bulletSpreadAngle: " << data.bulletSpreadAngle << "\n"
+            << "  reloadTimeMs: " << data.reloadTimeMs << "\n"
+            << "  barrelSize: " << data.barrelSize << "\n"
+            << "  ammo: " << data.ammo << "\n"
+            << "  id: " << data.id << "\n"
+            << "}";
     return os;
 }
 
@@ -256,11 +283,11 @@ struct RoomData {
     int nbEnemy;
 };
 
-inline std::ostream& operator<<(std::ostream& os, const RoomData& data) {
+inline std::ostream &operator<<(std::ostream &os, const RoomData &data) {
     os << "RoomData {\n"
-       << "  roomIndex: " << data.roomIndex << "\n"
-       << "  nbEnemy: " << data.nbEnemy << "\n"
-       << "}";
+            << "  roomIndex: " << data.roomIndex << "\n"
+            << "  nbEnemy: " << data.nbEnemy << "\n"
+            << "}";
     return os;
 }
 
@@ -274,8 +301,8 @@ struct EnemyData {
     float idealDistance = 250.f; // px
     float orbitThreshold = 20.f; // px
     float attackDistance = 200.f;
-    int cooldownTime = 1000; // ms
-    int wideUpTime = 500;
+    float cooldownTime = 1000.0f; // ms
+    float wideUpTime = 500.0f;
 
     bool isBoss;
     int hp;
@@ -294,7 +321,8 @@ inline std::ostream &operator<<(std::ostream &os, const EnemyData &data) {
     os << "EnemyData {\n"
             << "  name: " << data.name << "\n"
             << "  Id: " << data.objId << "\n"
-    << "  isBoss: " << data.isBoss << "\n"
+            << "  isBoss: " << data.isBoss << "\n"
+            << "  HP: " << data.hp << "\n"
             << "  chaseSpeed: " << data.chaseSpeed << "\n"
             << "  idealDistance: " << data.idealDistance << "\n"
             << "  orbitThreshold: " << data.orbitThreshold << "\n"
@@ -349,6 +377,11 @@ struct MapData {
      * All the spikes.
      */
     std::vector<Spike> spikes;
+    /*!
+     * All the spikes images
+     */
+    std::vector<SpikeImage> spike_images;
+    std::vector<Gold> golds;
     /*!
      *
      */
