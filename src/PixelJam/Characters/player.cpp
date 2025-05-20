@@ -110,12 +110,12 @@ namespace pg
         dodgeTimer->interval = dashDuration;
         dodgeTimer->callback = makeCallable<PlayerDodgeEndEvent>();
 
-        auto playerHealthUi = makeTTFText(ecsRef, 0, 0, 0, "res/font/Inter/static/Inter_28pt-Light.ttf", "Health: " + std::to_string(static_cast<int>(health)), 0.4);
+        auto playerHealthUi = makeTTFText(ecsRef, 0, 0, 0, "/res/font/Inter/static/Inter_28pt-Light.ttf", "Health: " + std::to_string(static_cast<int>(health)), 0.4);
         playerHealthUi.get<TTFText>()->setViewport(2);
 
         uiElements["HealthUI"] = playerHealthUi.entity;
 
-        auto playerRemainingBulletUi = makeTTFText(ecsRef, 220, 0, 0, "res/font/Inter/static/Inter_28pt-Light.ttf", "Ammo: infinity", 0.4);
+        auto playerRemainingBulletUi = makeTTFText(ecsRef, 220, 0, 0, "/res/font/Inter/static/Inter_28pt-Light.ttf", "Ammo: infinity", 0.4);
         playerRemainingBulletUi.get<TTFText>()->setViewport(2);
 
         uiElements["BulletUi"] = playerRemainingBulletUi.entity;

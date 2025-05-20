@@ -130,10 +130,12 @@ namespace pg
     {
         auto f = [fontPath, size, this](size_t oldId)
         {
+            printf("INFO::FREETYPE: Loading font '%s'\n", fontPath.c_str());
             // Initialize and load a font face.
             FT_Face face;
             if (FT_New_Face(ft, fontPath.c_str(), 0, &face)) {
                 LOG_ERROR("TTFText", "Failed to load font");
+                printf("ERROR::FREETYPE: Failed to load font '%s'\n", fontPath.c_str());
                 return OpenGLTexture{};
             }
 
@@ -155,6 +157,7 @@ namespace pg
             for (unsigned char c = 32; c < 127; c++) {
                 if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
                     LOG_ERROR("TTFText", "Failed to load Glyph for: " << c);
+                    printf("ERROR::FREETYPE: Failed to load Glyph '%c'\n", c);
                     continue;
                 }
 
@@ -213,7 +216,10 @@ namespace pg
                 glBindTexture(GL_TEXTURE_2D, texture);
             }
 
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, atlasWidth, atlasHeight, 0, GL_RED, GL_UNSIGNED_BYTE, atlasBuffer.data());
+            // glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, atlasWidth, atlasHeight, 0, GL_RED, GL_UNSIGNED_BYTE, atlasBuffer.data());
+// #ifdef __EMSCRIPTEN__
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, atlasWidth, atlasHeight, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, atlasBuffer.data());
+// #endif
             // Set texture parameters.
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -285,7 +291,7 @@ namespace pg
 
             auto entity = ecsRef->getEntity(entityId);
 
-            if (not entity)
+            if (not entity or not entity->has<PositionComponent>() or not entity->has<TTFText>())
             {
                 textUpdateQueue.pop();
                 continue;
@@ -295,6 +301,8 @@ namespace pg
             auto obj = entity->get<TTFText>();
 
             LOG_MILE("TTFText", "Updating entity " << entityId << ", with text: " << obj->text);
+
+            printf("Updating entity %d, with text: %s\n", entityId, obj->text.c_str());
 
             if (entity->has<TTFTextCall>())
             {

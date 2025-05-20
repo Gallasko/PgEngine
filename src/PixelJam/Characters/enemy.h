@@ -464,7 +464,7 @@ namespace pg
             if (fired == false)
             {
                 // Todo fix ttf may be off by one when loading the atlas
-                auto ent = makeOutlinedTTFText(ecsRef, pos->x - pos->width / 2.0f, pos->y - 10, 6, "res/font/Inter/static/Inter_28pt-Light.ttf", "Out of ammo", 0.3, {255, 176, 176, 255}, {0, 0, 0, 255}, 2, 1);
+                auto ent = makeOutlinedTTFText(ecsRef, pos->x - pos->width / 2.0f, pos->y - 10, 6, "/res/font/Inter/static/Inter_28pt-Light.ttf", "Out of ammo", 0.3, {255, 176, 176, 255}, {0, 0, 0, 255}, 2, 1);
                 
                 // Todo add the possibility to make composed tween (here I want to fade out the text AND move it up)
                 ecsRef->attach<TweenComponent>(ent.entity, TweenComponent {

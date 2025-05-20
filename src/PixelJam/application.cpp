@@ -120,7 +120,7 @@ struct TestSystem : public System<InitSys, QueuedListener<OnMouseClick>, Listene
         auto windowAnchor = window->get<UiAnchor>();
 
         // Todo why does z > 0 doesn't work ?
-        auto endTextEnt = makeTTFText(ecsRef, 50.f, 50.f, 0.0f, "res/font/Inter/static/Inter_28pt-Light.ttf", "Game Over", 0.8f);
+        auto endTextEnt = makeTTFText(ecsRef, 50.f, 50.f, 0.0f, "/res/font/Inter/static/Inter_28pt-Light.ttf", "Game Over", 0.8f);
 
         endTextEnt.get<PositionComponent>()->setVisibility(false);
 

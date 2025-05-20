@@ -72,7 +72,7 @@ void debugGlErrorCallback(GLenum,
     if(type == GL_DEBUG_TYPE_ERROR)
     {
         LOG_ERROR("GL Debug", glLog);
-
+        printf("GL Error: %s\n", glLog.c_str());
     }
     else if (type == GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR || type == GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR 
           || type == GL_DEBUG_TYPE_PORTABILITY || type == GL_DEBUG_TYPE_PERFORMANCE)

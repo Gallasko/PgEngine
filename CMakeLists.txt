@@ -245,8 +245,11 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
 
     target_sources(PixelJam PRIVATE
         src/PixelJam/application.cpp
+        src/PixelJam/Characters/enemy.cpp
         src/PixelJam/Characters/player.cpp
         src/PixelJam/config.cpp
+        src/PixelJam/Aseprite_Lib/AsepriteLoader.cpp
+        src/PixelJam/Aseprite_Lib/AsepriteFileAtlasLoader.cpp
         src/PixelJam/Tiled_Lib/TiledLoader.cpp
         src/PixelJam/Tiled_Lib/TileMapAtlasLoader.cpp
         src/PixelJam/Room/room.cpp

@@ -65,18 +65,18 @@ namespace pg
         vertex = glCreateShader(GL_VERTEX_SHADER);
         glShaderSource(vertex, 1, &vShaderCode, NULL);
         glCompileShader(vertex);
-        checkCompileErrors(vertex, "VERTEX");
+        checkCompileErrors(vertex, "VERTEX", vertexPath);
         // fragment Shader
         fragment = glCreateShader(GL_FRAGMENT_SHADER);
         glShaderSource(fragment, 1, &fShaderCode, NULL);
         glCompileShader(fragment);
-        checkCompileErrors(fragment, "FRAGMENT");
+        checkCompileErrors(fragment, "FRAGMENT", fragmentPath);
         // shader Program
         ID = glCreateProgram();
         glAttachShader(ID, vertex);
         glAttachShader(ID, fragment);
         glLinkProgram(ID);
-        checkCompileErrors(ID, "PROGRAM");
+        checkCompileErrors(ID, "PROGRAM", "program");
         // delete the shaders as they're linked into our program now and no longer necessary
         glDeleteShader(vertex);
         glDeleteShader(fragment);
@@ -179,7 +179,7 @@ namespace pg
         glCheckError();
     }
 
-    void OpenGLShaderProgram::checkCompileErrors(GLuint shader, std::string type)
+    void OpenGLShaderProgram::checkCompileErrors(GLuint shader, std::string type, const std::string& path)
     {
         GLint success;
         GLchar infoLog[1024];
@@ -191,7 +191,11 @@ namespace pg
             {
                 glGetShaderInfoLog(shader, 1024, NULL, infoLog);
 
-                LOG_ERROR(DOM, "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << &infoLog[0] << "\n -- --------------------------------------------------- -- ");
+                LOG_ERROR(DOM, "ERROR::SHADER_COMPILATION_ERROR of file: " << path << " of type: " << type << "\n" << &infoLog[0] << "\n -- --------------------------------------------------- -- ");
+
+                auto str = pg::Strfy() << "ERROR::SHADER_COMPILATION_ERROR of file: " << path << " of type: " << type << "\n" << &infoLog[0] << "\n -- --------------------------------------------------- -- ";
+
+                printf("ERROR::SHADER_COMPILATION_ERROR of type: %s\n", str.getData().c_str());
             }
         }
         else
@@ -202,7 +206,11 @@ namespace pg
             {
                 glGetProgramInfoLog(shader, 1024, NULL, infoLog);
 
-                LOG_ERROR(DOM, "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << &infoLog[0] << "\n -- --------------------------------------------------- -- ");
+                LOG_ERROR(DOM, "ERROR::PROGRAM_LINKING_ERROR of file: " << path << " of type: " << type << "\n" << &infoLog[0] << "\n -- --------------------------------------------------- -- ");
+            
+                auto str = pg::Strfy() << "ERROR::PROGRAM_LINKING_ERROR of file: " << path << " of type: " << type << "\n" << &infoLog[0] << "\n -- --------------------------------------------------- -- ";
+
+                printf("ERROR::PROGRAM_LINKING_ERROR of type: %s\n", str.getData().c_str());
             }
         }
     }

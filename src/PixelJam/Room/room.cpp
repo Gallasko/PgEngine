@@ -2,6 +2,7 @@
 
 namespace pg
 {
+    
     void drawDebugGrid(EntitySystem* ecs, int worldW, int worldH)
     {
         // fetch grid sizes
