@@ -171,7 +171,17 @@ namespace pg
         }
 
         Group(_unique_id id) : id(id) { LOG_THIS_MEMBER("Ecs Group"); }
-        virtual ~Group() { LOG_THIS_MEMBER("Ecs Group"); }
+
+        virtual ~Group()
+        {
+            LOG_THIS_MEMBER("Ecs Group");
+
+            if (setListProcessed)
+            {
+                for (size_t i = 0; i < nbOfSets; i++)
+                    delete setList[i];
+            }
+        }
 
         void setRegistry(ComponentRegistry* registry)
         {
@@ -275,6 +285,7 @@ namespace pg
         std::set<_unique_id> compIdList;
 
         constexpr static size_t nbOfSets = sizeof...(Types) + 1;
+        bool setListProcessed = false;
         SetHolder<Type, Types...> *setList[nbOfSets];
 
         std::vector<std::function<void(EntityRef)>> onAddGroup;

@@ -81,6 +81,9 @@ namespace pg
 
         OpenGLState & operator=(OpenGLState&& rhs)
         {
+            if (this == &rhs)
+                return *this;
+
             scissorEnabled = std::move(rhs.scissorEnabled);
             scissorBound = std::move(rhs.scissorBound);
 
@@ -159,6 +162,9 @@ namespace pg
 
         RenderCall & operator=(RenderCall&& other)
         {
+            if (&other == this)
+                return *this;
+
             key       = std::move(other.key);
             data      = std::move(other.data);
             batchable = std::move(other.batchable);

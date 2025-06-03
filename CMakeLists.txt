@@ -67,7 +67,7 @@ else()
         # -Wdouble-promotion
 
             # Only add -ftime-trace if compiler is Clang
-            set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wnon-virtual-dtor -Woverloaded-virtual -Wfloat-equal -pedantic -pthread -O0 -ggdb -DDEBUG")
+            set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wnon-virtual-dtor -Woverloaded-virtual -Wfloat-equal -pedantic -pthread -Og -DDEBUG")
 
             if (${ENABLE_TIME_TRACE})
                 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")

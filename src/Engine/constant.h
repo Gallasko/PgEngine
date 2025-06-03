@@ -247,6 +247,8 @@ namespace pg
 
             Vector4D(const Vector4D& vec) : x(vec.x), y(vec.y), z(vec.z), w(vec.w)  {}
 
+            ~Vector4D() {}
+
             inline void operator=(const Vector4D &rhs)
             {
                 this->x = rhs.x;

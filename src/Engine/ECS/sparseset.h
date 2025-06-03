@@ -461,13 +461,13 @@ namespace pg
             componentList[0] = nullptr;
         };
 
-        virtual ~ComponentSet()
+        virtual ~ComponentSet() override
         {
             LOG_THIS_MEMBER("Component Set");
 
             LOG_INFO("Component Set", "Removing component set for: " << typeid(Comp).name());
 
-            for(size_t i = 1; i < nbComponents; i++)
+            for (size_t i = 1; i < nbComponents; i++)
                 pool.release(componentList[i]);
 
             delete[] componentList;

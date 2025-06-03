@@ -761,24 +761,21 @@ namespace pg
         }
 
         template <typename Type>
-        void addComponentToPool(EntityRef entity, Type* component)
+        void addComponentToPool(EntityRef entity, const Type& component)
         {
             LOG_THIS_MEMBER("ECS");
 
-            if (component)
+            LOG_MILE("ECS", "addComponentToPool");
+
+            // Todo add a mechanism to avoid creating a component that is already attached to the entity
+
+            try
             {
-                LOG_MILE("ECS", "addComponentToPool");
-
-                // Todo add a mechanism to avoid creating a component that is already attached to the entity
-
-                try
-                {
-                    registry.retrieve<Type>()->internalCreateComponent(entity, *component);
-                }
-                catch (const std::exception& e)
-                {
-                    LOG_ERROR("ECS", "Can't attach component [" << typeid(Type).name() << "]: " << e.what() << " (No system own this component ?)");
-                }
+                registry.retrieve<Type>()->internalCreateComponent(entity, component);
+            }
+            catch (const std::exception& e)
+            {
+                LOG_ERROR("ECS", "Can't attach component [" << typeid(Type).name() << "]: " << e.what() << " (No system own this component ?)");
             }
         }
 
@@ -1167,6 +1164,7 @@ namespace pg
         checkGroupTypeExistence<Type, Types...>();
 
         populateList(setList, 0, registry->retrieve<Type>(), registry->retrieve<Types>()...);
+        setListProcessed = true;
 
         size_t smallestSetIndex = 0;
 
@@ -1206,10 +1204,6 @@ namespace pg
                 elements.addComponent(id, element);
         }
 
-        // Todo add this on ~Group() !
-        // for(size_t i = 0; i < nbOfSets; i++)
-        //     delete setList[i];
-
         // Add support for thread pools by passing a pool in this function and add the task inside of this pool
         // checkEntityInGroup<Type, Types...>(this->registry->getThreadPool(), elements);
 
@@ -1234,8 +1228,12 @@ namespace pg
         LOG_THIS_MEMBER("Command Dispatcher");
 
         addInEcs = [](EntitySystem* ecs, EntityRef entity, void* component) {
-            ecs->addComponentToPool(entity, static_cast<Type*>(component));
-            delete static_cast<Type*>(component);
+            if (component)
+            {
+                ecs->addComponentToPool(entity, *static_cast<Type*>(component));
+
+                delete static_cast<Type*>(component);
+            }
         };
     }
 }

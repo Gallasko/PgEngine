@@ -226,6 +226,8 @@ void initGame()
 
     auto inspector = mainWindow->ecs.createSystem<InspectorSystem>();
 
+    // Todo add a registerDefaultDrawer that override and show the default way to draw a component
+
     inspector->registerCustomDrawer("Entity", [](InspectorSystem* sys, SerializedInfoHolder& parent) {
         LOG_INFO("Inspector", "Custom drawer for Entity");
 
@@ -263,7 +265,8 @@ void initGame()
     mainWindow->ecs.createSystem<EntityFinder>();
     mainWindow->ecs.createSystem<DragSystem>();
 
-    mainWindow->ecs.start();
+    // mainWindow->ecs.start();
+    mainWindow->ecs.executeOnce();
 
     mainWindow->render();
 

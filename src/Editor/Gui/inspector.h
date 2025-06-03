@@ -243,7 +243,7 @@ namespace pg
             // Todo maybe add a function to add special detach function for certain type of components
             // Or maybe move this to the component registry
             template <typename Comp, typename... Args>
-            void registerAttachableComponent(const std::string& name, Args&&... args)
+            void registerNamedAttachableComponent(const std::string& name, Args&&... args)
             {
                 attachableComponentMap.emplace(name, [this, args...](EntityRef ent) {
                     ecsRef->template attach<Comp>(ent, args...);
@@ -257,7 +257,7 @@ namespace pg
             {
                 const std::string& name = Comp::getType();
 
-                registerAttachableComponent<Comp>(name, args...);
+                registerNamedAttachableComponent<Comp>(name, args...);
             }
 
             virtual void execute() override;
