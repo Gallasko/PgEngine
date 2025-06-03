@@ -100,8 +100,8 @@
                     "--config",
                     "Release",
                     "--target",
-                    "TugOfWar",
-                    // "PgEngine",
+                    // "TugOfWar",
+                    "PgEngine",
                     "-j",
                     "8"
                 ]

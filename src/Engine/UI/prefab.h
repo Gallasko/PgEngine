@@ -8,6 +8,8 @@ namespace pg
 {
     struct ClearPrefabEvent { std::set<_unique_id> ids; };
 
+    struct AddPrefabEntityEvent { _unique_id prefabId; _unique_id entityId; std::string name; };
+
     struct SetMainEntityEvent { _unique_id prefabId; _unique_id entityId; };
 
     // Todo fix prefab runtime
@@ -78,11 +80,9 @@ namespace pg
             }
         }
 
-        void addToPrefab(EntityRef entity)
+        void addToPrefab(EntityRef entity, const std::string& name = "")
         {
-            setCompForPrefab(entity);
-
-            childrenIds.insert(entity.id);
+            ecsRef->sendEvent(AddPrefabEntityEvent{id, entity->id, name});
         }
 
         void setMainEntity(EntityRef entity)
@@ -121,12 +121,33 @@ namespace pg
             }
         }
 
+        EntityRef getChild(const std::string& name) const
+        {
+            auto it = childrenNames.find(name);
+
+            if (it != childrenNames.end())
+            {
+                return ecsRef->getEntity(it->second);
+            }
+
+            LOG_ERROR("Prefab", "Child with name '" << name << "' not found in prefab " << id << "!");
+            return nullptr;
+        }
+
+        EntityRef getMainEntity() const
+        {
+            return ecsRef->getEntity(mainEntityId);
+        }
+
         EntitySystem *ecsRef = nullptr;
 
         _unique_id id = 0;
 
         // Todo make it simpler to find a specific child in a prefab
         std::set<_unique_id> childrenIds;
+
+        std::unordered_map<std::string, _unique_id> childrenNames;
+        _unique_id mainEntityId = 0;
 
         // Data to keep track
 
@@ -138,7 +159,7 @@ namespace pg
         bool deleteEntityUponRelease = true;
     };
 
-    struct PrefabSystem : public System<Own<Prefab>, Ref<PositionComponent>, Listener<EntityChangedEvent>, QueuedListener<ClearPrefabEvent>, QueuedListener<SetMainEntityEvent>, InitSys>
+    struct PrefabSystem : public System<Own<Prefab>, Ref<PositionComponent>, Listener<EntityChangedEvent>, QueuedListener<ClearPrefabEvent>, QueuedListener<AddPrefabEntityEvent>, QueuedListener<SetMainEntityEvent>, InitSys>
     {
         virtual void init() override
         {
@@ -227,6 +248,29 @@ namespace pg
             }
         }
 
+        virtual void onProcessEvent(const AddPrefabEntityEvent& event) override
+        {
+            auto prefabEnt = ecsRef->getEntity(event.prefabId);
+            auto entity = ecsRef->getEntity(event.entityId);
+
+            if (not prefabEnt or not entity or not prefabEnt->has<Prefab>())
+            {
+                LOG_ERROR("Prefab System", "Failed to add entity " << event.entityId << " to prefab " << event.prefabId << " !");
+                return;
+            }
+
+            auto prefab = prefabEnt->get<Prefab>();
+
+            prefab->setCompForPrefab(entity);
+
+            prefab->childrenIds.insert(event.entityId);
+
+            if (event.name != "")
+            {
+                prefab->childrenNames[event.name] = event.entityId;
+            }
+        }
+
         virtual void onProcessEvent(const SetMainEntityEvent& event) override
         {
             auto prefabEnt = ecsRef->getEntity(event.prefabId);
@@ -252,6 +296,7 @@ namespace pg
             auto prefab = prefabEnt->get<Prefab>();
 
             prefab->addToPrefab(ent);
+            prefab->mainEntityId = event.entityId;
         }
 
         virtual void execute() override
