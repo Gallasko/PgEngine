@@ -128,6 +128,12 @@ namespace pg
 
         LOG_INFO(DOM, "Ecs stopped");
 
+        cmdDispatcher.process();
+
+        LOG_INFO(DOM, "Last cmd processed...");
+
+        LOG_INFO(DOM, "Deleting systems...");
+
         for (auto& sys : systems)
         {
             sys.second->removeFromRegistry();
