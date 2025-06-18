@@ -265,8 +265,8 @@ void initGame()
     mainWindow->ecs.createSystem<EntityFinder>();
     mainWindow->ecs.createSystem<DragSystem>();
 
-    // mainWindow->ecs.start();
-    mainWindow->ecs.executeOnce();
+    mainWindow->ecs.start();
+    // mainWindow->ecs.executeOnce();
 
     mainWindow->render();
 
