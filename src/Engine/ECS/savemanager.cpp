@@ -157,17 +157,26 @@ namespace pg
 
         std::cout << "Saving data to disk..." << std::endl;
 
+#ifdef __EMSCRIPTEN__
+        std::cout << "Data saved syncing to IndexedDB..." << currentSave.file.filepath << std::endl;
+        auto tempFile = UniversalFileAccessor::openTextFile("/save/system.sz");
+        Serializer tempSerializer;
+        tempSerializer.setFile(tempFile);
+        tempSerializer.serializeObject("savedata", currentSave.data);
+
+        EM_ASM(
+            FS.syncfs(false, function (err) {
+                if (err) {
+                    console.error("Save sync error:", err);
+                } else {
+                    console.log("Save successfully synced to IndexedDB");
+                }
+            });
+        );
+#else
         serializer.serializeObject("savedata", currentSave.data);
+#endif
 
         std::cout << "Data saved syncing..." << std::endl;
-
-// Todo this don't work !
-// #ifdef __EMSCRIPTEN__
-//         EM_ASM(
-//             FS.syncfs(function (err) {
-//                 assert(!err);
-//             });
-//         );
-// #endif
     }
 }

@@ -17,6 +17,19 @@ namespace
     static const char* const DOM = "Engine";
 }
 
+#ifdef __EMSCRIPTEN__
+static bool fsReady = false;
+extern "C"
+{
+    EMSCRIPTEN_KEEPALIVE void filesystem_ready_callback()
+    {
+        // Resume your engine logic here
+        printf("Filesystem is ready, continuing engine initialization\n");
+        fsReady = true;
+    }
+}
+#endif
+
 Engine::Engine(const std::string& name, const EngineConfig& engineConfig)
     : appName(name), config(engineConfig)
 {
@@ -100,6 +113,8 @@ void Engine::setupFilesystem()
                 } else {
                     console.log("Filesystem initialized and synced for folder: /" + saveFolder);
                 }
+
+                Module._filesystem_ready_callback();
             });
         } catch (e) {
             console.error("Filesystem setup error:", e);
@@ -178,15 +193,37 @@ void Engine::initializeECS()
     }
 }
 
+bool initialized = false;
+
 #ifdef __EMSCRIPTEN__
 static void mainLoopCallback(void* arg)
 {
     void** args = static_cast<void**>(arg);
     Engine* engine = static_cast<Engine*>(args[0]);
 
-    if (not engine->windowReady.load())
+    if (not fsReady)
     {
-        printf("Window not ready, returning early\n");
+        printf("FS not ready, returning early\n");
+        return;
+    }
+
+    if (not engine->initThread and not initialized)
+    {
+        initialized = true;
+
+        engine->initThread = new std::thread([engine]()
+        { 
+            printf("Window init thread started...\n");
+
+            engine->initializeWindow(); 
+
+            printf("Window init thread completed\n");
+        });
+    }
+
+    if (not engine->windowReady.load() or not fsReady)
+    {
+        printf("Window not ready\n");
         return;
     }
 
@@ -266,7 +303,7 @@ static void mainLoopCallback(void* arg)
             printf("Quit event received, syncing filesystem...\n");
 
             EM_ASM({
-                var saveFolder = UTF8ToString($0);
+                var saveFolder = "/" + UTF8ToString($0);
 
                 FS.syncfs(false, function (err)
                 {
@@ -303,15 +340,6 @@ int Engine::exec()
 #ifdef __EMSCRIPTEN__
     printf("Starting Emscripten build...\n");
     
-    initThread = new std::thread([this]()
-    { 
-        printf("Window init thread started...\n");
-
-        this->initializeWindow(); 
-
-        printf("Window init thread completed\n");
-    });
-
     Uint32 windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN;
 
     if (config.resizable)

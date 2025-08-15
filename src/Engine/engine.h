@@ -69,14 +69,15 @@ namespace pg
         std::thread* initThread = nullptr;
 
     public:
+        void initializeWindow();
         void initializeECS();
 #else
     private:
+        void initializeWindow();
         void initializeECS();
 #endif
 
     private:
-        void initializeWindow();
         void setupFilesystem();
         std::string constructSavePath() const;
     };

@@ -14,6 +14,15 @@ namespace pg
 
     struct TextFile
     {
+        TextFile(const std::string& filepath, const std::string& data) : filepath(filepath), data(data) {}
+        TextFile() {}
+
+        TextFile(const TextFile& other) : filepath(other.filepath), data(other.data) {}
+        TextFile(TextFile&& other) { filepath = std::move(other.filepath); data = std::move(other.data); }
+        TextFile& operator=(const TextFile& other) { filepath = other.filepath; data = other.data; return *this; }
+        TextFile& operator=(TextFile&& other) { filepath = std::move(other.filepath); data = std::move(other.data); return *this; }
+        ~TextFile() {}
+
         std::string filepath;
         std::string data;
     };

@@ -161,8 +161,7 @@ namespace pg
         interpreter->addSystemModule("scene", SceneModule{&ecs});
         interpreter->addSystemModule("audio", AudioModule{&ecs});
 
-        // Script to configure the logger
-        interpreter->interpretFromFile("logManager.pg");
+        
         // [End] Interpreter definition
 
         LOG_INFO(DOM, "Window creation done");
@@ -201,6 +200,9 @@ namespace pg
     bool Window::init(int width, int height, bool isFullscreen, SDL_Window* sdlWindow)
     {
         LOG_THIS_MEMBER(DOM);
+
+        // Script to configure the logger
+        interpreter->interpretFromFile("logManager.pg");
 
         this->width = width;
         this->height = height;
