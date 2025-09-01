@@ -10,7 +10,7 @@
 
 #include "Interpreter/pginterpreter.h"
 #include "Systems/logmodule.h"
-#include "gamemodule.h"
+#include "achievementmodule.h"
 
 #include <iomanip>
 #include <sstream>
@@ -574,9 +574,10 @@ namespace pg
         auto windowEnt = ecsRef->getEntity("__MainWindow");
         auto windowAnchor = windowEnt->get<UiAnchor>();
 
-        auto listView = makeListView(this, 1, 1, 240, 1);
+        auto listView = makeVerticalLayout(this, 1, 1, 240, 1);
 
-        auto listViewComp = listView.get<ListView>();
+        auto listViewComp = listView.get<VerticalLayout>();
+        listViewComp->setScrollable(true);
         listViewComp->spacing = 8;
 
         auto listViewUi = listView.get<UiAnchor>();
@@ -1489,9 +1490,9 @@ namespace pg
         // Create a new UI text entity using your existing TTFText helper.
         // We start with an empty text; it'll be updated in execute().
         auto textEntity = makeTTFText(this, 0, 0, 1, theme.values["resourcedisplay.font"].get<std::string>(), "", theme.values["resourcedisplay.scale"].get<float>());
-        textEntity.get<PositionComponent>()->setVisibility(false);
+        // textEntity.get<PositionComponent>()->setVisibility(false);
 
-        resLayout->get<ListView>()->addEntity(textEntity.entity);
+        resLayout->get<VerticalLayout>()->addEntity(textEntity.entity);
 
         // Create a ResourceDisplayEntry and add it to the list.
         ResourceDisplayEntry entry;
@@ -1625,7 +1626,7 @@ namespace pg
                 // anchor->setRightAnchor(layoutAnchor->right);
 
                 // Optionally add the view to a ListView layout dedicated to generators.
-                resLayout->get<ListView>()->addEntity(viewEnt);
+                resLayout->get<VerticalLayout>()->addEntity(viewEnt);
             }
 
             auto ent1 = generatorViews[gen->id + "_gen"];

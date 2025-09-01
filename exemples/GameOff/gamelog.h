@@ -5,6 +5,7 @@
 #include "UI/sizer.h"
 
 #include "UI/ttftext.h"
+#include "2D/simple2dobject.h"
 
 namespace pg
 {

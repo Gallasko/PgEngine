@@ -105,6 +105,7 @@
                     // "GMTK2025",
                     "ColumbaEngineEditor",
                     // "PixelJam",
+                    "GameOff",
                     "-j",
                     "8"
                 ]

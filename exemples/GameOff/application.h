@@ -1,7 +1,7 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
-#include "window.h"
+#include "engine.h"
 
 class GameApp
 {
@@ -12,7 +12,7 @@ public:
     int exec();
 
 private:
-    std::string appName;
+    pg::Engine engine;
 };
 
 #endif

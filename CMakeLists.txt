@@ -520,20 +520,9 @@ if(NOT BUILD_STATIC_LIB AND BUILD_EXAMPLES)
         target_sources(GameOff PRIVATE
             exemples/GameOff/achievement.cpp
             exemples/GameOff/application.cpp
-            exemples/GameOff/character.cpp
-            exemples/GameOff/characustomizationscene.cpp
-            exemples/GameOff/fightscene.cpp
             exemples/GameOff/gamefacts.cpp
-            exemples/GameOff/inventory.cpp
-            exemples/GameOff/item.cpp
-            exemples/GameOff/location.cpp
-            exemples/GameOff/locationscene.cpp
-            exemples/GameOff/mainscene.cpp
             exemples/GameOff/managenerator.cpp
             exemples/GameOff/nexusscene.cpp
-            exemples/GameOff/skilltree.cpp
-            exemples/GameOff/passives.cpp
-            exemples/GameOff/spells.cpp
             exemples/GameOff/theme.cpp
         )
 
