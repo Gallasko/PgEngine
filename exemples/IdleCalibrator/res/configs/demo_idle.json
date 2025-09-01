@@ -1,0 +1,92 @@
+{
+  "generators": [
+    {
+      "name": "Cookie Clicker",
+      "baseCost": 10,
+      "costGrowth": 1.15,
+      "baseYield": 0.5,
+      "threshold": {
+        "every": 10,
+        "prodMult": 2.0
+      }
+    },
+    {
+      "name": "Grandma",
+      "baseCost": 100,
+      "costGrowth": 1.12,
+      "baseYield": 2.5,
+      "threshold": {
+        "every": 25,
+        "prodMult": 1.5
+      }
+    },
+    {
+      "name": "Farm",
+      "baseCost": 1000,
+      "costGrowth": 1.10,
+      "baseYield": 12.0,
+      "threshold": {
+        "every": 50,
+        "prodMult": 1.2
+      }
+    },
+    {
+      "name": "Factory",
+      "baseCost": 10000,
+      "costGrowth": 1.08,
+      "baseYield": 60.0,
+      "threshold": {
+        "every": 100,
+        "prodMult": 1.1
+      }
+    }
+  ],
+  "events": [
+    {
+      "time": 300,
+      "type": "multiplier",
+      "value": 2.0,
+      "description": "5-minute bonus!"
+    },
+    {
+      "time": 600,
+      "type": "multiplier",
+      "value": 1.5,
+      "description": "10-minute boost!"
+    }
+  ],
+  "goals": [
+    {
+      "type": "currency",
+      "target": 10000,
+      "time": 600,
+      "description": "Reach $10k in 10 minutes"
+    },
+    {
+      "type": "currency", 
+      "target": 1000000,
+      "time": 3600,
+      "description": "Reach $1M in 1 hour"
+    },
+    {
+      "type": "generator_level",
+      "generator": "Cookie Clicker",
+      "target": 100,
+      "time": 1800,
+      "description": "Get 100 Cookie Clickers in 30 minutes"
+    }
+  ],
+  "calibration": {
+    "maxIterations": 100,
+    "targetTime": 3600,
+    "targetCurrency": 1000000,
+    "enabledParams": {
+      "baseCost": true,
+      "costGrowth": true,
+      "baseYield": true
+    },
+    "algorithm": "genetic",
+    "populationSize": 20,
+    "mutationRate": 0.1
+  }
+}

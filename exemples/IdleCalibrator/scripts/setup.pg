@@ -1,0 +1,33 @@
+#!/usr/bin/env pgscript
+
+# Idle Game Calibrator Setup Script
+# This script sets up the development environment for the Idle Game Calibrator
+
+print("Setting up Idle Game Calibrator development environment...")
+
+# Create build directory
+mkdir -p build
+
+# Check if nlohmann/json is available
+if (!pkg_config_exists("nlohmann_json")) {
+    print("Warning: nlohmann_json not found via pkg-config")
+    print("You may need to install nlohmann-json3-dev package")
+    print("  Ubuntu/Debian: sudo apt install nlohmann-json3-dev")
+    print("  Fedora: sudo dnf install json-devel")
+}
+
+# Check if pgengine is available
+if (!pkg_config_exists("pgengine")) {
+    print("Error: ColumbaEngine (pgengine) not found")
+    print("Make sure ColumbaEngine is properly installed and pkg-config can find it")
+    exit(1)
+}
+
+print("Environment check complete!")
+print("To build:")
+print("  cd build")
+print("  cmake ..")
+print("  make -j$(nproc)")
+print("")
+print("To run:")
+print("  ./IdleCalibrator")

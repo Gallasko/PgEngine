@@ -1,0 +1,12 @@
+# Texture Placeholder
+# 
+# The IdleCalibrator system uses Color() for UI elements instead of texture files.
+# This placeholder file indicates where texture resources would be placed if needed.
+#
+# Texture files that could be added:
+# - button_normal.png
+# - button_hover.png
+# - panel_bg.png
+# - slider.png
+#
+# The current implementation uses programmatic colors for simplicity.

@@ -639,6 +639,19 @@ if(NOT BUILD_STATIC_LIB AND BUILD_EXAMPLES)
 
         target_link_libraries(BoxBouncer PRIVATE ColumbaEngine)
 
+        ###
+
+        add_executable(IdleCalibrator exemples/IdleCalibrator/src/main.cpp)
+
+        target_include_directories(IdleCalibrator PUBLIC exemples/IdleCalibrator/src)
+
+        target_sources(IdleCalibrator PRIVATE
+            exemples/IdleCalibrator/src/application.cpp
+            exemples/IdleCalibrator/src/systems/idlecalibratorsystem.cpp
+        )
+
+        target_link_libraries(IdleCalibrator PRIVATE ColumbaEngine)
+
         # Only build tests if not building static lib only
         enable_testing()
 
