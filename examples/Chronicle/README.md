@@ -59,7 +59,9 @@ window opens. On the Life scene, confirming an activity starts the months (one e
 `--month-ms`), and they stop when its term ends, waiting for the next choice. The running
 row's rule fills through each month in the month's own time. `SPACE` pauses or resumes work
 under way (a paused month keeps what it ran), and the head of *At work now* says which:
-`RUNNING`, `PAUSED · SPACE` in red, or `IDLE` between two works. At nothing no key runs the
+`RUNNING`, `PAUSED · SPACE` in red, or `IDLE` between two works. A work that is stopped (by
+the key, or by a part that fails) has a *Go on* button under its row (`LifeScene::resumes`): a
+phone has no key. At nothing no key runs the
 months: *Pass a month*, the button standing in *At work now* in the running row's place, passes
 one. `M` passes one month at any time (a dev key), `T` switches the theme, `R` reduced motion, `S` saves, `N` starts
 a new life. The life is also saved on its own, with no line in the log: after every month, every choice, every thing done

@@ -683,6 +683,8 @@ namespace chronicle
 
                 onMonth();
             }
+            else if (e.tag == BeginTag and resumes())
+                pause(false);
             else if (e.tag == BeginTag and not chosen.empty())
                 onConfirm(ActivityActivatedEvent{ActivitiesList, chosen});
         });
@@ -879,7 +881,7 @@ namespace chronicle
             background->get<PositionComponent>()->setHeight(height);
         }
 
-        guideFitted = guideRoom();
+        guideFitted = guideRoom() + resumeRoom();
 
         if (phone)
             fitPhone(width, height);
@@ -1104,10 +1106,23 @@ namespace chronicle
         // tap finds the task where the first did. The button waits there, greyed
         const bool waits = phone and idle and not begins and leads and not ended;
 
+        // A work that is stopped has the same button under its row, to go on: a key is not
+        // something every screen has
+        const bool stopped = resumes();
+
         // A first life has its guide to say it, on a leaf of its own
         show("guide", leads and not guiding() and not waits);
         show("skip", idle and not begins and not leads);
-        show("begin", begins or waits);
+        show("begin", begins or waits or stopped);
+
+        if (stopped)
+        {
+            if (auto begin = piece<Button>("begin"))
+            {
+                begin->setLabel(ecsRef, "Go on");
+                begin->setMonths(ecsRef, -1);
+            }
+        }
 
         if (waits)
         {
@@ -1186,7 +1201,7 @@ namespace chronicle
 
     float LifeScene::workingHeight() const
     {
-        return (save.running.empty() ? PanelChrome + SkipButton : RunningPanel) + guideRoom();
+        return (save.running.empty() ? PanelChrome + SkipButton : RunningPanel) + guideRoom() + resumeRoom();
     }
 
     bool LifeScene::guiding() const
@@ -1202,6 +1217,18 @@ namespace chronicle
     float LifeScene::guideRoom() const
     {
         return guideSaid() ? GuideLine : 0.0f;
+    }
+
+    bool LifeScene::resumes() const
+    {
+        // A work stopped, by the key or by a part that fails. At nothing the months do not run on
+        // their own: there is nothing to go on with
+        return not save.running.empty() and paused and not ended;
+    }
+
+    float LifeScene::resumeRoom() const
+    {
+        return resumes() ? SkipButton : 0.0f;
     }
 
     bool LifeScene::led() const
@@ -1600,7 +1627,7 @@ namespace chronicle
         }
 
         // The line of a life led with no guide came or went: what stands under "At work now" follows
-        if (std::abs(guideRoom() - guideFitted) > 0.5f)
+        if (std::abs(guideRoom() + resumeRoom() - guideFitted) > 0.5f)
             fit(windowWidth, windowHeight);
 
         // Found again every time: a page built again has other tiles, a list that scrolled other
@@ -2373,8 +2400,8 @@ namespace chronicle
 
             if (pace == "paused")
             {
-                // The key that goes on, where the head has the room to say it
-                working->setAside(ecs, workRoom() == 0 ? "PAUSED" : "PAUSED \xC2\xB7 SPACE");
+                // The key that goes on, where the head has the room to say it and the screen a key
+                working->setAside(ecs, workRoom() == 0 or phone ? "PAUSED" : "PAUSED \xC2\xB7 SPACE");
                 working->setAsideColor(ecs, "status-loss");
             }
             else
@@ -3343,7 +3370,7 @@ namespace chronicle
                 parts += parts.empty() ? name : " and " + name;
             }
 
-            appendLog({save.age, parts + " is failing: the months stop. SPACE goes on", LogKind::Note, "", ""});
+            appendLog({save.age, parts + " is failing: the months stop. Press Go on, or SPACE", LogKind::Note, "", ""});
         }
 
         sinceMonth = 0.0f;
@@ -3534,6 +3561,9 @@ namespace chronicle
         paused = on;
 
         publishPace();
+
+        // The button that goes on comes with the stop, and goes with it
+        showWorkButtons();
     }
 
     void LifeScene::publishRules()

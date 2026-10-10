@@ -168,6 +168,8 @@ namespace chronicle
         void showWorkButtons();        // At nothing: the button that begins what is chosen, or the one that passes a month
         bool guideSaid() const;        // The guide line is up: a life led to its first work, with no guide to say so
         float guideRoom() const;       // What the guide line takes of "At work now", 0 when it is not up
+        bool resumes() const;          // His work is stopped: "At work now" has a button that goes on
+        float resumeRoom() const;      // What that button takes of the panel, 0 when it is not up
         bool led() const;              // A life that has done nothing yet and is at nothing: the page leads it to its first work
         std::string firstWork() const; // The first activity of the list he may begin that takes months, "" for none
         void lead();                   // That work chosen for him; not in a first life, whose guide has him choose it

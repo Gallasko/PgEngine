@@ -1890,8 +1890,8 @@ namespace pg
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
         // Work that leaves him unfed stops the months at the first month that takes from his
-        // Vitality: the head of "At work now" says it is paused, the log says why and which key
-        // goes on.
+        // Vitality: the head of "At work now" says it is paused, the log says why and what goes on:
+        // a button under the work, for a screen with no key, or SPACE.
         TEST(lifescene_test, a_failing_part_pauses_the_work)
         {
             MockLogger logger;
@@ -1924,7 +1924,14 @@ namespace pg
             // The month's own lines, then the pause's, last
             ASSERT_GT(life->save.log.size(), logEntries);
             EXPECT_EQ(life->save.log.back().kind, LogKind::Note);
-            EXPECT_EQ(life->save.log.back().text, "Vitality is failing: the months stop. SPACE goes on");
+            EXPECT_EQ(life->save.log.back().text, "Vitality is failing: the months stop. Press Go on, or SPACE");
+
+            // The button that goes on is under the work, live
+            auto begin = life->piece<Button>("begin");
+            ASSERT_NE(begin, nullptr);
+            EXPECT_TRUE(f.pos(life->named("begin"))->visible);
+            EXPECT_EQ(begin->spec.label, "Go on");
+            EXPECT_FALSE(f.ecs.getEntity(begin->face.id)->get<ButtonState>()->disabled);
 
             // Stopped, no month passes
             const int monthsIn = life->save.monthsIn;
@@ -1934,11 +1941,27 @@ namespace pg
 
             EXPECT_EQ(life->save.monthsIn, monthsIn);
 
-            // SPACE goes on; a second failing month does not stop it again, nor write the line again
+            // SPACE goes on, and the button leaves; SPACE again stops the work, and the button is back
             f.ecs.sendEvent(OnSDLScanCode{SDL_SCANCODE_SPACE, 0});
             f.settle();
 
             EXPECT_FALSE(life->paused);
+            EXPECT_FALSE(f.pos(life->named("begin"))->visible);
+
+            f.ecs.sendEvent(OnSDLScanCode{SDL_SCANCODE_SPACE, 0});
+            f.settle();
+
+            ASSERT_TRUE(life->paused);
+            EXPECT_TRUE(f.pos(life->named("begin"))->visible);
+
+            // Pressed, it goes on as the key does: a second failing month does not stop it again,
+            // nor write the line again
+            f.ecs.sendEvent(ButtonActivatedEvent{begin->face.id, "life.begin"});
+            f.settle();
+
+            EXPECT_FALSE(life->paused);
+            EXPECT_EQ(life->save.running, "yard");
+            EXPECT_FALSE(f.pos(life->named("begin"))->visible);
 
             const size_t afterPause = life->save.log.size();
 
@@ -1949,7 +1972,7 @@ namespace pg
             EXPECT_EQ(life->save.monthsIn, monthsIn + 1);
 
             for (size_t i = afterPause; i < life->save.log.size(); ++i)
-                EXPECT_EQ(life->save.log[i].text.find("SPACE goes on"), std::string::npos);
+                EXPECT_EQ(life->save.log[i].text.find("the months stop"), std::string::npos);
         }
 
         // ----------------------------------------------------------------------------------------

@@ -12,6 +12,8 @@ the `CHANGELOG.md` at the root of the repository.
   Town), and one of them at a time under it. Tap a task, a stat or a place to read about it; tap
   twice to begin a task, or use Begin.
 - **Taps work.** A quick tap on a touch screen was not seen as a click.
+- **A Go on button.** When the months stop (a stat is failing), a *Go on* button stands under
+  the work. Before, only the Space key went on, and a phone has none.
 
 ### Changed
 
