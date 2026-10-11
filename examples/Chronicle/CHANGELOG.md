@@ -3,16 +3,17 @@
 What changed in the game, build by build, as a player sees it. The engine's own changes are in
 the `CHANGELOG.md` at the root of the repository.
 
-## 0.5 - Unreleased
+## 0.5 - 2026-10-11
 
 ### New
 
-- **Walks outside the town.** The Hedgerows are the first
-  of four places to walk to (the Hedgerows, Mill Pond, the Hollow Woods, the Quarry Road). A
-  walk is a tile like any other, in a new *Adventure* group, with its months written on it. When
-  you begin it you are taken there: the stay is a number of days, and you spend them one choice
-  at a time (gather, study the place, rest, seek a beast or watch it, go home). A work is a tile
-  with its name and its days; hover it to read what it is, what it costs and what it gives.
+- **Walks outside the town.** The Hedgerows are the first of four places to walk to (the
+  Hedgerows, Mill Pond, the Hollow Woods, the Quarry Road). The Hedgerows have a tile from the
+  start, right under your work: tiles that take you out of the town have a look of their own, a
+  red frame and their mark. When you begin it you are taken there: the stay is a number of
+  days, and you spend them one choice at a time (gather, study the place, rest, seek a beast or
+  watch it, go home). A work is a tile with its name and its days; hover it to read what it is,
+  what it costs and what it gives. Mill Pond shows once you have walked the Hedgerows.
 - **Fights.** A beast you seek is fought turn by turn. Each beast has a small panel of its own
   across the top, the size of yours, with you and your turn under it: its name, how it stands,
   and the move it is about to make, by its name alone (*Bite*). Hover the move to read what it
@@ -30,17 +31,23 @@ the `CHANGELOG.md` at the root of the repository.
   with Intelligence, and Magister Orin's assistant knows a *Binding word* that costs a beast its
   move. The streets teach a *Feint*. Nobody else sees these in a fight.
 - **The record, and walking it again.** Everything you do on a walk is written down. When you
-  are home the record is kept, and the new *Adventure* tab walks it again for you, once or
+  are home the record is kept, five to a place, and it can be walked again for you, once or
   several times in a row: no choice to make, no fight to play, and what the beasts drop is
-  rolled again each time. The tab lists every place you know of, the open ones first (they
-  leave the Life tab once it is there): what kind of walk it is, its months and days, what it
-  gives, how well you know it, and for a closed one what it asks and what you are short of.
-  *Set out for …* starts a new walk to the place chosen. Under it, a table of the walks you
-  have kept of that place, the best first, each with its cost, what it brings and a *Walk*
-  button; the one chosen fills *Walk it again*: how many times, when to stop, and four figures
-  for what the walks take, use, bring and teach. While a queue runs the form gives way to *At
-  work now*. A small count at the tab's corner says a new place has opened. A queue can stop on its own: when the bag is short, when you hold
-  enough of something, or at an age.
+  rolled again each time.
+- **The Adventure tab** comes with your first walk, and the walks leave the Life page for it.
+  Tabs that are not there leave no gap, and once you know the town they read Life, Town,
+  Adventure. A small count at the tab's corner says a new place has opened.
+  - *Where to walk* lists every place you know of, the open ones first: what kind of walk it
+    is, its months and days, what it gives, how well you know it, and for a closed one what it
+    asks and what you are short of. *Set out for the Hedgerows · 1 mo* starts a new walk to the
+    place chosen.
+  - *Records* is a table of the walks you have kept of that place, the best first: when it was
+    walked and in how many steps, what it costs in months and Vitality, what it brings, and a
+    *Walk* button that walks it once.
+  - *Walk it again* is filled by the record chosen: how many times, when to stop (never, when
+    the bag is short, when you hold enough of something, at an age), and four figures for what
+    the walks take, use, bring and teach, with *Walk once* and *Queue*. While a queue runs it
+    gives way to *At work now*: which walk of how many, and a way to stop after this one.
 - **Knowledge.** Studying a place and watching a beast are kept by the world, from life to life:
   beasts get cheaper to find, you see their vitality and what they will do next, then their
   weakness, and a place you know well lets you stay longer.
@@ -53,6 +60,8 @@ the `CHANGELOG.md` at the root of the repository.
   built of what your walks brought back. It opens the Hollow Woods to every later life.
 - **Events on the way.** Now and then something waits for an answer: a nest in the hedge, a
   hunter by a cold fire. What you choose is written in the record.
+- **Two new tasks.** *Race the Rooftops* (Dexterity and Renown, on the streets, from 11) for
+  who means to live by quick hands, and *Keep the Night Offices* (Discipline) at the Collegium.
 
 ### Changed
 
@@ -62,21 +71,13 @@ the `CHANGELOG.md` at the root of the repository.
   two years for the rest. It turns red in the last six months.
 - **Sharp on a dense screen.** In a browser on a 4K monitor or a phone the game was drawn small
   and stretched. It is drawn at the screen's own resolution now.
-- **The first walk is one press away.** *Gather at the Hedges* is gone: the Hedgerows have their
-  tile from the start, and it takes you there. Tiles that take you out of the town have a look
-  of their own, a red frame and their mark.
-- **The Adventure tab** comes with your first walk. Tabs that are not there leave no gap, and
-  once you know the town they read Life, Town, Adventure.
 - **The market is in town.** What is sold, bought and brewed at the market is on the Town page
   only: it no longer shows on the Life page before the town is known, and the *Go to the Market*
-  tile is gone (the Town tab goes there). The walks stand in its place, right under your work.
-- **One walk at a time.** Mill Pond has no tile until you have walked the Hedgerows.
+  tile is gone (the Town tab goes there).
 - **Shorter tooltips.** A task no longer lists "Room for Rations" among what it asks while the
   store has room.
-- **Two new tasks.** *Race the Rooftops* (Dexterity and Renown, on the streets, from 11) for
-  who means to live by quick hands, and *Keep the Night Offices* (Discipline) at the Collegium.
 - **One Vitality.** Your Vitality is the same number at home, on a walk and in a fight: a boy
-  has 40, where he had 8 at home and 40 in the field. A month with nothing to eat takes 5, and
+  has 40, where he had 8. A month with nothing to eat takes 5, and
   5 come back every two months (every month with a room at the inn). Work that builds Vitality
   brings 5, old age takes 5 every two months, and being carried home from a walk costs 5 of the
   most it can be. A save from before is brought to the new count when it is opened.
@@ -92,7 +93,9 @@ the `CHANGELOG.md` at the root of the repository.
   walk, could leave pieces of the page drawn over each other at the top left, and they stayed.
   Nothing is left behind now, at any size.
 
-## 0.4.1 - Unreleased
+## 0.4.1 - 2026-10-11
+
+Not tagged on its own: 0.5 has all of it.
 
 ### New
 
