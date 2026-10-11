@@ -159,9 +159,19 @@ namespace pg
             found2 = queues->entityDQueue.try_dequeue(item2);
         }
 
+        // An entity made and removed in the same pass is not in the pool yet: its creation is
+        // still in the queue below. Removed here, nothing would be removed, and it would be made
+        // right after and stay for good, with whatever it holds. It is made with its components
+        // first, then removed, so that what goes with it goes too (a prefab's children, a
+        // layout's rows: their components say so when they are destroyed).
+        std::vector<_unique_id> madeThisPass;
+
         for (auto entity : entitiesToBeDeleted)
         {
-            ecsRef->deleteEntityFromPool(entity);
+            if (entity != nullptr and entity->id != 0 and ecsRef->getEntity(entity->id) == nullptr)
+                madeThisPass.push_back(entity->id);
+            else
+                ecsRef->deleteEntityFromPool(entity);
         }
 
         // Then try to create all the new entities requested
@@ -173,7 +183,7 @@ namespace pg
             found1 = queues->entityCQueue.try_dequeue(item1);
         }
 
-        // Finally try to create all the components requested
+        // Then try to create all the components requested
         while (found3)
         {
             // We need to use the id of the entity here as the ref could hold an outdated pointer to the entity.
@@ -184,6 +194,13 @@ namespace pg
             item3.clear();
 
             found3 = queues->componentCQueue.try_dequeue(item3);
+        }
+
+        // Finally what was made only to be removed: one that was already gone is not found
+        for (auto id : madeThisPass)
+        {
+            if (auto entity = ecsRef->getEntity(id))
+                ecsRef->deleteEntityFromPool(entity);
         }
     }
 }

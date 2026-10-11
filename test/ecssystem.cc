@@ -7,6 +7,8 @@
 #include "ECS/system.h"
 #include "ECS/componentregistry.h"
 #include "ECS/entitysystem.h"
+#include "2D/position.h"
+#include "UI/prefab.h"
 
 #include "mocklogger.h"
 
@@ -94,6 +96,66 @@ namespace pg
                 virtual void execute() override { }
 
                 int last = -1;
+            };
+
+            struct MakeAndRemove
+            {
+                bool withChild = false;
+            };
+
+            // Makes an entity and removes it before the pass is over, as a widget laid twice in a
+            // pass does with what it made the first time
+            struct MakeAndRemoveSystem : public System<QueuedListener<MakeAndRemove>>
+            {
+                virtual void onProcessEvent(const MakeAndRemove& event) override
+                {
+                    auto made = ecsRef->createEntity();
+                    ecsRef->attach<PositionComponent>(made);
+
+                    this->made = made.id;
+
+                    if (event.withChild)
+                    {
+                        auto prefab = ecsRef->attach<Prefab>(made);
+                        auto child = ecsRef->createEntity();
+
+                        ecsRef->attach<PositionComponent>(child);
+                        prefab->addToPrefab(child);
+
+                        this->child = child.id;
+                    }
+
+                    auto kept = ecsRef->createEntity();
+                    ecsRef->attach<PositionComponent>(kept);
+
+                    this->kept = kept.id;
+
+                    ecsRef->removeEntity(made);
+                }
+
+                virtual void execute() override { }
+
+                _unique_id made = 0;
+                _unique_id child = 0;
+                _unique_id kept = 0;
+            };
+
+            // Makes two entities during a pass and keeps their handles
+            struct MakeOnly : public System<QueuedListener<MakeAndRemove>>
+            {
+                virtual void onProcessEvent(const MakeAndRemove&) override
+                {
+                    made = ecsRef->createEntity();
+                    ecsRef->attach<PositionComponent>(made);
+
+                    kept = ecsRef->createEntity();
+                    ecsRef->attach<PositionComponent>(kept);
+                }
+
+                virtual void execute() override { }
+
+                EntityRef made;
+                EntityRef kept;
             };
 
             struct C
@@ -1398,6 +1460,80 @@ namespace pg
             ecs.executeOnce();
 
             EXPECT_GT(ping->last, reached);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // An entity made and removed in the same pass is gone once the pass is over. Its creation
+        // was still queued when its removal was run: it used to be made right after, and stay.
+        // What it holds goes with it: a prefab made and removed in a pass takes its children.
+        TEST(system_test, an_entity_made_and_removed_in_a_pass_is_gone)
+        {
+            MockLogger logger;
+            EntitySystem ecs;
+
+            ecs.createSystem<PositionComponentSystem>();
+            ecs.createSystem<PrefabSystem>();
+            auto maker = ecs.createSystem<MakeAndRemoveSystem>();
+
+            ecs.executeOnce();
+
+            ecs.sendEvent(MakeAndRemove{false});
+
+            for (int i = 0; i < 3; ++i)
+                ecs.executeOnce();
+
+            ASSERT_NE(maker->made, 0u);
+            EXPECT_EQ(ecs.getEntity(maker->made), nullptr);
+            EXPECT_NE(ecs.getEntity(maker->kept), nullptr);
+
+            const _unique_id first = maker->made;
+
+            ecs.sendEvent(MakeAndRemove{true});
+
+            for (int i = 0; i < 4; ++i)
+                ecs.executeOnce();
+
+            ASSERT_NE(maker->made, first);
+            EXPECT_EQ(ecs.getEntity(maker->made), nullptr);
+            EXPECT_EQ(ecs.getEntity(maker->child), nullptr);
+            EXPECT_NE(ecs.getEntity(maker->kept), nullptr);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Made during a pass and removed before the next one (an ecs stepped by hand, and something
+        // answering an event between two steps): the entity is not in the pool yet, and is gone
+        // all the same once the next pass has run.
+        TEST(system_test, an_entity_made_in_a_pass_and_removed_before_the_next_is_gone)
+        {
+            MockLogger logger;
+            EntitySystem ecs;
+
+            ecs.createSystem<PositionComponentSystem>();
+            ecs.createSystem<PrefabSystem>();
+            auto maker = ecs.createSystem<MakeOnly>();
+
+            ecs.executeOnce();
+
+            ecs.sendEvent(MakeAndRemove{});
+            ecs.executeOnce();
+
+            // Made in that pass: asked for, and not in the pool until the dispatcher runs
+            ASSERT_NE(maker->made.id, 0u);
+
+            if (ecs.getEntity(maker->made.id) == nullptr)
+                ecs.removeEntity(maker->made);
+            else
+                ecs.removeEntity(maker->made.id);
+
+            for (int i = 0; i < 3; ++i)
+                ecs.executeOnce();
+
+            EXPECT_EQ(ecs.getEntity(maker->made.id), nullptr);
+            EXPECT_NE(ecs.getEntity(maker->kept.id), nullptr);
         }
 
     }

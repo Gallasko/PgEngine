@@ -593,7 +593,11 @@ namespace pg
             return;
         }
 
-        if (running)
+        // An entity made during a pass is not in the pool until the dispatcher has run: removed
+        // between two passes (an ecs stepped by hand) it goes through the dispatcher too, which
+        // makes it and then removes it. Taken out of the pool here, nothing would be removed,
+        // and it would be made at the next pass and stay
+        if (running or (entity->id != 0 and getEntity(entity->id) == nullptr))
             cmdDispatcher.deleteEntity(entity);
         else
             deleteEntityFromPool(entity);

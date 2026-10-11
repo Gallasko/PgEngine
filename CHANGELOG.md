@@ -7,6 +7,14 @@ All notable changes to ColumbaEngine are documented here. The project is in earl
 First tagged release. Everything below describes the state of the engine at the point of tagging rather than a delta.
 
 ### Fixed
+- ECS: an entity made and removed in the same pass was not removed. Its creation was still queued when
+  the removals were run, so nothing was removed and it was made right after, for good, with whatever
+  it held. `CommandDispatcher::process` now makes such an entity with its components, then removes
+  it, so that what goes with it goes too (a prefab's children, a layout's rows). The same for an
+  entity made during a pass and removed before the next one, in an ecs stepped by hand:
+  `EntitySystem::removeEntity` sends it through the dispatcher instead of taking it out of a pool it
+  is not in yet. In Chronicle a widget laid twice in a pass (a window being dragged) left its first
+  parts standing.
 - Layouts: an entity added to a layout that was removed before taking it was left standing. An add is
   a queued event, so a layout destroyed in the frame it was filled (a page built and built again at
   once, as when a window is dragged by its edge) never held its rows, and `clearOnDeletion` destroyed
