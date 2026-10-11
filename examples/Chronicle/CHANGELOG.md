@@ -81,6 +81,10 @@ the `CHANGELOG.md` at the root of the repository.
   5 come back every two months (every month with a room at the inn). Work that builds Vitality
   brings 5, old age takes 5 every two months, and being carried home from a walk costs 5 of the
   most it can be. A save from before is brought to the new count when it is opened.
+- The anonymous play statistics now say more of the walks and of the end of a life: how often
+  each place was walked, by hand and by a record, the fights met and how they ended (won, lost,
+  fled, left to fight on by himself), the walks he was carried home from, the longest queue, and
+  which works of a class and of old age were done. Counts, as before: nothing of who plays.
 - **The page is no longer built again for nothing.** When a task ends, only the tiles that
   changed are made again: the others stay where they are, and a tile you had chosen stays
   chosen. When the window changes size, what is on the page takes its new width where it

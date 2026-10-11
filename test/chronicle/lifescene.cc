@@ -1842,6 +1842,39 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // The works of the end of a life, which the digest names one by one once they are done: the
+        // ways into a class and what opens at their age or later. Not a boy's work, a walk, nor
+        // what is bought.
+        TEST(lifescene_test, the_works_of_the_end_of_a_life_are_the_digests_to_name)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = f.life(LifeFixture::mockup());
+            ASSERT_NE(life, nullptr);
+
+            const auto late = life->lateWorks();
+            auto has = [&](const std::string& id) { return std::find(late.begin(), late.end(), id) != late.end(); };
+
+            for (const char* id : {"keep", "collegium", "hand", "greenwood", "serve", "campaign", "captain", "ritual", "vault", "silence", "woodking", "tales", "garden", "teach"})
+                EXPECT_TRUE(has(id)) << id;
+
+            for (const char* id : {"carters", "yard", "mara", "explore", "buy.rations", "buy.reagents", "walk.hedgerows"})
+                EXPECT_FALSE(has(id)) << id;
+
+            // A work of his class done, and one that is not of the end of a life
+            life->save.done["serve"] = 2;
+            life->save.done["yard"] = 3;
+
+            const std::string digest = life->save.digest(late);
+
+            EXPECT_NE(digest.find("\"did.serve\":2"), std::string::npos);
+            EXPECT_EQ(digest.find("did.yard"), std::string::npos);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // The save counts what the player pressed in this life, for the analytics: the tiles chosen,
         // the works begun, the things done on the spot and the months passed by the button. A new
         // life counts from nothing.
@@ -5922,6 +5955,9 @@ namespace pg
             EXPECT_FALSE(life->paused);
             EXPECT_EQ(life->save.stats["walked.hedgerows"], 1);
             EXPECT_EQ(life->save.walksByHand, 1);
+            EXPECT_EQ(life->save.walkedAt["hedgerows"], 1);
+            EXPECT_EQ(life->save.carried, 0);
+            EXPECT_EQ(life->save.fights, 0);
 
             life->onMonth();
             f.settle();
@@ -6302,6 +6338,10 @@ namespace pg
             EXPECT_TRUE(life->save.walking.empty());
             EXPECT_EQ(life->save.queue.left, 0);
             EXPECT_EQ(life->save.walksByRecord, 2);
+            EXPECT_EQ(life->save.replayedAt["hedgerows"], 2);
+            EXPECT_EQ(life->save.queued, 3);
+            EXPECT_NE(life->save.digest().find("\"queued\":3,"), std::string::npos);
+            EXPECT_NE(life->save.digest().find("\"replay.hedgerows\":2}"), std::string::npos);
             EXPECT_EQ(life->save.stats["berries"], berries + 2 * gathered);
             EXPECT_EQ(life->save.stats["walked.hedgerows"], 3);
 
@@ -6367,6 +6407,10 @@ namespace pg
 
             // The fight has the screen
             ASSERT_EQ(life->walkScreen, "fight");
+
+            // Counted for the analytics as he comes to it, not yet as ended
+            EXPECT_EQ(life->save.fights, 1);
+            EXPECT_EQ(life->save.fightsWon + life->save.fightsLost + life->save.fightsFled, 0);
             ASSERT_FALSE(walkPart(life, "moves").empty());
             EXPECT_TRUE(walkPart(life, "seeks").empty());
             EXPECT_EQ(walkPart(life, "turn")->get<Label>()->spec.text, "TURN 1");
@@ -6492,6 +6536,12 @@ namespace pg
             }
 
             EXPECT_EQ(again->save.knowledge["fights.rat"], 1);
+
+            // One fight, kept through the save, ended once and in the hands of his stance: the way
+            // back and what came after it counted nothing more
+            EXPECT_EQ(again->save.fights, 1);
+            EXPECT_EQ(again->save.fightsWon + again->save.fightsLost + again->save.fightsFled, 1);
+            EXPECT_EQ(again->save.fightsAuto, 1);
 
             std::remove(path.c_str());
         }

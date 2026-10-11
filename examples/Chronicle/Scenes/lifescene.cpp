@@ -71,6 +71,7 @@ namespace chronicle
         constexpr const char * const GiftTag = "life.gift.";   // Followed by the place's id: the ending's buttons
         constexpr float GiftGap = 6.0f;            // Between two of them
         constexpr int MonthsAYear = 12;
+        constexpr float LateFromAge = 16.0f;       // The age the classes open at: what opens then or later is the end of a life, for the analytics
         const std::string PlaceGloss = "place/";
         const std::string SaidFact = "said.";                    // Followed by a guide step's id: 1 once the world has been told it
 
@@ -5092,6 +5093,25 @@ namespace chronicle
         return ok;
     }
 
+    std::vector<std::string> LifeScene::lateWorks() const
+    {
+        // As the rules have them: the way into a class, and what opens at the age the classes do
+        // or later (a class's own works, old age's). A walk is not one of them: the digest counts
+        // those by place
+        std::vector<std::string> late;
+
+        for (const auto& a : activities)
+        {
+            const std::string id = textOf(a.fields, "id");
+            const auto from = a.fields.find("fromAge");
+
+            if (id.rfind("walk.", 0) != 0 and (boolOf(a.fields, "enters") or (from != a.fields.end() and floatOf(from->second) >= LateFromAge)))
+                late.push_back(id);
+        }
+
+        return late;
+    }
+
     void LifeScene::tellAnalytics(const std::string& event)
     {
         auto analytics = ecsRef->getSystem<Analytics>();
@@ -5100,7 +5120,7 @@ namespace chronicle
             return;
 
         // Where the life stands, and which of the three pages it is read on
-        analytics->note(Analytics::withFields(save.digest(), std::string("\"page\":\"") + (phone ? "phone" : compact ? "compact" : "full") + "\""));
+        analytics->note(Analytics::withFields(save.digest(lateWorks()), std::string("\"page\":\"") + (phone ? "phone" : compact ? "compact" : "full") + "\""));
 
         if (not event.empty())
             analytics->send(event);

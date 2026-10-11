@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <filesystem>
+#include <map>
 #include <sstream>
 
 #include "logger.h"
@@ -223,6 +224,15 @@ namespace pg
         serialize(archive, "recorded", value.recorded);
         serialize(archive, "walksByHand", value.walksByHand);
         serialize(archive, "walksByRecord", value.walksByRecord);
+        serialize(archive, "walkedAt", value.walkedAt);
+        serialize(archive, "replayedAt", value.replayedAt);
+        serialize(archive, "carried", value.carried);
+        serialize(archive, "queued", value.queued);
+        serialize(archive, "fights", value.fights);
+        serialize(archive, "fightsWon", value.fightsWon);
+        serialize(archive, "fightsLost", value.fightsLost);
+        serialize(archive, "fightsFled", value.fightsFled);
+        serialize(archive, "fightsAuto", value.fightsAuto);
         serialize(archive, "vitalityIn", value.vitalityIn);
         serialize(archive, "running", value.running);
         serialize(archive, "monthsIn", value.monthsIn);
@@ -273,6 +283,15 @@ namespace pg
         defaultDeserialize(serialized, "recorded", data.recorded);
         defaultDeserialize(serialized, "walksByHand", data.walksByHand);
         defaultDeserialize(serialized, "walksByRecord", data.walksByRecord);
+        defaultDeserialize(serialized, "walkedAt", data.walkedAt);
+        defaultDeserialize(serialized, "replayedAt", data.replayedAt);
+        defaultDeserialize(serialized, "carried", data.carried);
+        defaultDeserialize(serialized, "queued", data.queued);
+        defaultDeserialize(serialized, "fights", data.fights);
+        defaultDeserialize(serialized, "fightsWon", data.fightsWon);
+        defaultDeserialize(serialized, "fightsLost", data.fightsLost);
+        defaultDeserialize(serialized, "fightsFled", data.fightsFled);
+        defaultDeserialize(serialized, "fightsAuto", data.fightsAuto);
         defaultDeserialize(serialized, "running", data.running);
         defaultDeserialize(serialized, "monthsIn", data.monthsIn);
         defaultDeserialize(serialized, "stats", data.stats);
@@ -456,7 +475,7 @@ namespace chronicle
         return earned;
     }
 
-    std::string LifeSave::digest() const
+    std::string LifeSave::digest(const std::vector<std::string>& late) const
     {
         const int terms = termsDone();
 
@@ -469,6 +488,16 @@ namespace chronicle
                 ++deeds;
         }
 
+        // What the world knows of the lands outside the town, added up: the places studied and
+        // the beasts watched
+        int known = 0;
+
+        for (const auto& [key, level] : knowledge)
+        {
+            if (key.rfind("study.", 0) == 0 or key.rfind("observe.", 0) == 0)
+                known += level;
+        }
+
         char years[16];
         std::snprintf(years, sizeof(years), "%.2f", age);
 
@@ -479,7 +508,32 @@ namespace chronicle
              << ",\"terms\":" << terms << ",\"deeds\":" << deeds << ",\"log\":" << log.size() << ",\"lives\":" << lives
              << ",\"picks\":" << picks << ",\"begun\":" << begun << ",\"atOnce\":" << atOnce << ",\"skips\":" << skips << ",\"guide\":" << guide << ",\"guideSkipped\":" << guideSkipped
              << ",\"town\":" << townLevels() << ",\"townKnown\":" << (townKnown ? 1 : 0)
-             << ",\"walks\":" << walksByHand << ",\"replays\":" << walksByRecord << ",\"records\":" << recipes.size() << ",\"onWalk\":" << (walk.under() ? 1 : 0) << "}";
+             << ",\"walks\":" << walksByHand << ",\"replays\":" << walksByRecord << ",\"records\":" << recipes.size() << ",\"onWalk\":" << (walk.under() ? 1 : 0)
+             << ",\"fights\":" << fights << ",\"fightsWon\":" << fightsWon << ",\"fightsLost\":" << fightsLost << ",\"fightsFled\":" << fightsFled << ",\"fightsAuto\":" << fightsAuto
+             << ",\"carried\":" << carried << ",\"queued\":" << queued << ",\"known\":" << known;
+
+        // Place by place, the ones he went to alone: in the order of their names, so that two
+        // digests of the same life read the same
+        for (const auto& [zone, times] : std::map<std::string, int>(walkedAt.begin(), walkedAt.end()))
+        {
+            if (times > 0)
+                line << ",\"walk." << zone << "\":" << times;
+        }
+
+        for (const auto& [zone, times] : std::map<std::string, int>(replayedAt.begin(), replayedAt.end()))
+        {
+            if (times > 0)
+                line << ",\"replay." << zone << "\":" << times;
+        }
+
+        // The works of the end of a life he has done, in the order the rules list them
+        for (const auto& id : late)
+        {
+            if (auto it = done.find(id); it != done.end() and it->second > 0)
+                line << ",\"did." << id << "\":" << it->second;
+        }
+
+        line << "}";
 
         return line.str();
     }

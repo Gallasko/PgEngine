@@ -205,7 +205,17 @@ of this game told apart by their `chronicle.` prefix:
   life of this browser has explored the town, and `town` the levels of its places added up (0 to
   30). `walks` and `replays` are the walks outside the town he made by hand and the ones a record
   made for him in this life, `records` the records he keeps, `onWalk` 1 while he is on site (a
-  digest from before 0.5 has none of the four). `guideSkipped` is the step
+  digest from before 0.5 has none of the four). The same place by place: `walk.<zone>` and
+  `replay.<zone>` (`"walk.hedgerows":2,"replay.hedgerows":5`), a key only for a place he went
+  to. `carried` counts the walks he was carried home from and `queued` is the longest queue he
+  set going. `fights` are the fights he came to on walks made by hand (a record plays none),
+  `fightsWon`, `fightsLost` and `fightsFled` how they ended, and `fightsAuto` the ones that
+  ended in the hands of his stance. `known` is what the world knows of the lands outside,
+  added up: the places studied and the beasts watched, life after life. The works of the end
+  of a life he has done are named one by one with how often, `did.<id>` (`"did.serve":2,
+  "did.campaign":1`): the ways into a class, and every work that opens at 16 or later, a
+  class's own and old age's (`LifeScene::lateWorks`, from the rules' `enters` and `fromAge`);
+  a work he has not done has no key. `guideSkipped` is the step
   that was being said when the player pressed *Skip tutorial* (0 when he did not): `guide` then
   reads 10. `deeds` counts the deeds
   alone, not the lore read nor the guide's words.

@@ -59,6 +59,15 @@ namespace chronicle
         int recorded = 0;              // The records made in this life, a replaced one counted: the next one's id
         int walksByHand = 0;           // What the player did in this life, for the analytics: the walks he made himself,
         int walksByRecord = 0;         // and the ones a record made for him
+        std::unordered_map<std::string, int> walkedAt;          // The same by place: zone -> the walks he made there himself,
+        std::unordered_map<std::string, int> replayedAt;        // and the ones a record made
+        int carried = 0;               // The walks he was carried home from
+        int queued = 0;                // The longest queue he set going
+        int fights = 0;                // The fights he came to, a walk by a record's not counted: no fight is played there,
+        int fightsWon = 0;             // how they ended,
+        int fightsLost = 0;
+        int fightsFled = 0;
+        int fightsAuto = 0;            // and the ones that ended in the hands of his stance
 
         // What a point of Vitality is worth in this save: 5, the points a fight counts in (a boy
         // has 40). A save written before had 1 (a boy had 8): it is brought to 5 when it is read
@@ -112,8 +121,10 @@ namespace chronicle
 
         // Where the life stands, in one short line of JSON for the analytics: his age, the world's
         // month, which life this is, his path, the work at hand, how much he has done, what the
-        // player pressed to get there, and the step of the guide he is past. Nothing of his name.
-        std::string digest() const;
+        // player pressed to get there, the step of the guide he is past, his walks and his fights.
+        // `late` names the works of the end of a life (the scene knows them from the rules): each
+        // one he has done is written with how often, "did.<id>". Nothing of his name.
+        std::string digest(const std::vector<std::string>& late = {}) const;
 
         bool save(const std::string& path) const;
         bool load(const std::string& path);

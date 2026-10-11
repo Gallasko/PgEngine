@@ -82,6 +82,7 @@ namespace chronicle
         bool saveNow();                // Writes the save (not with --no-save)
         void autoSave();               // The same with no line in the log: after a month, a choice, a thing done at once, a new life
         void tellAnalytics(const std::string& event = "");   // Where the life stands, kept by the analytics for its next row; with an event, a row now
+        std::vector<std::string> lateWorks() const;          // The works of the end of a life, for the digest: the ways into a class, and what opens at their age or later
         void newLife();                // A fresh life, rebuilt and republished
         void beginAgain();             // From the ending: it closes, the next life begins and says how the last one ended
 

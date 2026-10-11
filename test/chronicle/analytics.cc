@@ -88,24 +88,53 @@ namespace pg
 
             EXPECT_EQ(digest.find("{\"age\":7.00,\"world\":0,"), 0u);
             EXPECT_NE(digest.find("\"running\":\"carters\",\"monthsIn\":2,\"terms\":3,\"deeds\":1,"), std::string::npos);
-            EXPECT_NE(digest.find(",\"lives\":3,\"picks\":4,\"begun\":2,\"atOnce\":1,\"skips\":5,\"guide\":4,\"guideSkipped\":0,\"town\":0,\"townKnown\":0,\"walks\":0,\"replays\":0,\"records\":0,\"onWalk\":0}"), std::string::npos);
+            EXPECT_NE(digest.find(",\"lives\":3,\"picks\":4,\"begun\":2,\"atOnce\":1,\"skips\":5,\"guide\":4,\"guideSkipped\":0,\"town\":0,\"townKnown\":0,\"walks\":0,\"replays\":0,\"records\":0,\"onWalk\":0,\"fights\":0,\"fightsWon\":0,\"fightsLost\":0,\"fightsFled\":0,\"fightsAuto\":0,\"carried\":0,\"queued\":0,\"known\":0}"), std::string::npos);
             EXPECT_EQ(digest.find(life.name), std::string::npos);
 
             // A first life starts a month before 7, its guide at its first step
             EXPECT_EQ(freshLife(true).digest().find("{\"age\":6.92,\"world\":0,"), 0u);
-            EXPECT_NE(freshLife(true).digest().find(",\"guide\":0,\"guideSkipped\":0,\"town\":0,\"townKnown\":0,\"walks\":0,\"replays\":0,\"records\":0,\"onWalk\":0}"), std::string::npos);
+            EXPECT_NE(freshLife(true).digest().find(",\"guide\":0,\"guideSkipped\":0,\"town\":0,\"townKnown\":0,\"walks\":0,\"replays\":0,\"records\":0,\"onWalk\":0,\"fights\":0,\"fightsWon\":0,\"fightsLost\":0,\"fightsFled\":0,\"fightsAuto\":0,\"carried\":0,\"queued\":0,\"known\":0}"), std::string::npos);
 
             // Skipped at its third step: past the last, and where he left it
             life.guide = 10;
             life.guideSkipped = 3;
 
-            EXPECT_NE(life.digest().find(",\"guide\":10,\"guideSkipped\":3,\"town\":0,\"townKnown\":0,\"walks\":0,\"replays\":0,\"records\":0,\"onWalk\":0}"), std::string::npos);
+            EXPECT_NE(life.digest().find(",\"guide\":10,\"guideSkipped\":3,\"town\":0,\"townKnown\":0,\"walks\":0,\"replays\":0,\"records\":0,\"onWalk\":0,\"fights\":0,\"fightsWon\":0,\"fightsLost\":0,\"fightsFled\":0,\"fightsAuto\":0,\"carried\":0,\"queued\":0,\"known\":0}"), std::string::npos);
 
             // The town: whether a life has explored it, and the levels of its places added up
             life.townKnown = true;
             life.town = {{"market", 2}, {"mill", 1}};
 
-            EXPECT_NE(life.digest().find(",\"town\":3,\"townKnown\":1,\"walks\":0,\"replays\":0,\"records\":0,\"onWalk\":0}"), std::string::npos);
+            EXPECT_NE(life.digest().find(",\"town\":3,\"townKnown\":1,\"walks\":0,\"replays\":0,\"records\":0,\"onWalk\":0,\"fights\":0,\"fightsWon\":0,\"fightsLost\":0,\"fightsFled\":0,\"fightsAuto\":0,\"carried\":0,\"queued\":0,\"known\":0}"), std::string::npos);
+
+            // His walks, place by place, and his fights: a place he never went to has no key, and
+            // what the world knows is the places studied and the beasts watched, added up
+            life.walksByHand = 3;
+            life.walksByRecord = 4;
+            life.walkedAt = {{"millpond", 1}, {"hedgerows", 2}};
+            life.replayedAt = {{"hedgerows", 4}};
+            life.carried = 1;
+            life.queued = 3;
+            life.fights = 5;
+            life.fightsWon = 3;
+            life.fightsLost = 1;
+            life.fightsFled = 1;
+            life.fightsAuto = 2;
+            life.knowledge = {{"study.hedgerows", 2}, {"observe.rat", 1}, {"visit.hedgerows", 6}, {"fights.rat", 5}};
+
+            EXPECT_NE(life.digest().find(",\"walks\":3,\"replays\":4,\"records\":0,\"onWalk\":0,\"fights\":5,\"fightsWon\":3,\"fightsLost\":1,\"fightsFled\":1,\"fightsAuto\":2,"
+                                         "\"carried\":1,\"queued\":3,\"known\":3,\"walk.hedgerows\":2,\"walk.millpond\":1,\"replay.hedgerows\":4}"), std::string::npos);
+
+            // The works of the end of a life he has done, in the order they are named: one he has
+            // not done has no key, and neither has a work that is not one of them
+            life.done["campaign"] = 1;
+            life.done["serve"] = 2;
+
+            const std::string late = life.digest({"keep", "serve", "campaign", "captain"});
+
+            EXPECT_NE(late.find(",\"replay.hedgerows\":4,\"did.serve\":2,\"did.campaign\":1}"), std::string::npos);
+            EXPECT_EQ(late.find("did.mill"), std::string::npos);
+            EXPECT_EQ(late.find("did.captain"), std::string::npos);
 
             // The rules read it with his stats, and it is never written among them
             EXPECT_EQ(life.character().at("town_known").get<int>(), 1);

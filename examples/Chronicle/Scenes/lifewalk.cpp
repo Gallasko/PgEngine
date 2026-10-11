@@ -619,6 +619,28 @@ namespace chronicle
         if (not askWalk("act", act, "", answer))
             return;
 
+        // For the analytics: a fight he came to, and how one ended (in his hands or his stance's)
+        const bool fought = not textOf(save.walk.fight, "mob").empty();
+        const bool wasOver = not textOf(save.walk.fight, "over").empty();
+        const bool fighting = not textOf(answer.state.fight, "mob").empty();
+        const std::string outcome = textOf(answer.state.fight, "over");
+
+        if (fighting and not fought)
+            ++save.fights;
+
+        if (fighting and not outcome.empty() and not (fought and wasOver))
+        {
+            if (outcome == "won")
+                ++save.fightsWon;
+            else if (outcome == "fled")
+                ++save.fightsFled;
+            else
+                ++save.fightsLost;
+
+            if (intOf(answer.state.fight, "auto") > 0)
+                ++save.fightsAuto;
+        }
+
         walk = answer;
         save.walk = answer.state;
 
@@ -699,6 +721,12 @@ namespace chronicle
         }
 
         ++save.walksByHand;
+
+        if (not zone.empty())
+            ++save.walkedAt[zone];
+
+        if (carried)
+            ++save.carried;
 
         save.walk = WalkState{};
         walk = RuleWalk{};
@@ -3150,7 +3178,10 @@ namespace chronicle
         save.lastWalk = false;
 
         if (beginReplay())
+        {
             ++save.begun;
+            save.queued = std::max(save.queued, std::max(1, count));
+        }
 
         publish();
         fillAdventure();
@@ -3257,6 +3288,12 @@ namespace chronicle
             takeStats(answer.after);
             writeEntries(answer.entries);
             ++save.walksByRecord;
+
+            for (const auto& r : save.recipes)
+            {
+                if (r.id == save.walking)
+                    ++save.replayedAt[textOf(r.fields, "zone")];
+            }
         }
 
         const bool more = save.queue.left > 0 and not save.lastWalk;
