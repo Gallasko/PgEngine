@@ -1821,9 +1821,58 @@ namespace pg
             f.rules.done = {};
             f.rules.lives = 2;
 
-            // (the hedges are among them: the task that opens the first walk outside the town, and
-            // the walk itself, locked until it is done)
-            EXPECT_EQ(listed(7.0f, boy()), (std::vector<std::string>{"carters", "mill", "messages", "kitchen", "hedges", "letters", "explore", "keep", "collegium", "hand", "walk.hedgerows"}));
+            // (the first walk outside the town is among them, open: no task stands before it)
+            EXPECT_EQ(listed(7.0f, boy()), (std::vector<std::string>{"carters", "mill", "messages", "kitchen", "letters", "explore", "keep", "collegium", "hand", "walk.hedgerows"}));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Quick hands and a name for them, on the streets; and the Collegium's own drill
+        TEST(rules_test, the_rooftops_and_the_night_offices)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            f.rules.lives = 2;
+
+            auto brings = [](const RuleActivity& a) {
+                std::vector<std::string> stats;
+
+                for (const auto& g : a.gains)
+                    stats.push_back(g.at("stat").toString());
+
+                return stats;
+            };
+
+            ElementMap lad = boy();
+            lad["dex"] = ElementType{8};
+
+            RuleActivity rooftops = activityAt(f.rules, 12.0f, lad, "rooftops");
+
+            EXPECT_EQ(textOf(rooftops.fields, "group"), "The streets");
+            EXPECT_TRUE(rooftops.fields.at("listed").get<bool>());
+            EXPECT_FALSE(rooftops.fields.at("locked").get<bool>());
+            EXPECT_EQ(brings(rooftops), (std::vector<std::string>{"dex", "renown"}));
+
+            // Slow hands are not asked up there
+            lad["dex"] = ElementType{6};
+            EXPECT_TRUE(activityAt(f.rules, 12.0f, lad, "rooftops").fields.at("locked").get<bool>());
+
+            // A scholar of the Collegium has its offices to keep
+            ElementMap scholar = boy();
+            scholar["collegium"] = ElementType{1};
+
+            RuleActivity vigil = activityAt(f.rules, 18.5f, scholar, "vigil");
+
+            EXPECT_EQ(textOf(vigil.fields, "group"), "The Collegium");
+            EXPECT_EQ(textOf(vigil.fields, "path"), "mage");
+            EXPECT_TRUE(vigil.fields.at("listed").get<bool>());
+            EXPECT_FALSE(vigil.fields.at("locked").get<bool>());
+            EXPECT_EQ(brings(vigil), (std::vector<std::string>{"discipline"}));
+
+            // And it is no one else's
+            EXPECT_FALSE(activityAt(f.rules, 18.5f, boy(), "vigil").fields.at("listed").get<bool>());
         }
 
         // ----------------------------------------------------------------------------------------

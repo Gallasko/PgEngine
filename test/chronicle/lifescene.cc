@@ -1367,7 +1367,7 @@ namespace pg
             f.settle();
 
             ASSERT_NE(list->find(&f.ecs, "carters"), nullptr);
-            EXPECT_EQ(list->find(&f.ecs, "carters")->spec.until, "CLOSES THIS MONTH");
+            EXPECT_EQ(list->find(&f.ecs, "carters")->spec.closes, 0);
 
             f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "carters"});
             f.settle();
@@ -1530,8 +1530,9 @@ namespace pg
 
             // At 17 his prime is far from its end: the carters say nothing
             ASSERT_NE(list->find(&f.ecs, "carters"), nullptr);
-            EXPECT_EQ(list->find(&f.ecs, "carters")->spec.until, "");
-            EXPECT_FALSE(list->find(&f.ecs, "carters")->until.has_value());
+            EXPECT_EQ(list->find(&f.ecs, "carters")->spec.closes, -1);
+            ASSERT_TRUE(list->find(&f.ecs, "carters")->closing.has_value());
+            EXPECT_FALSE(f.pos(list->find(&f.ecs, "carters")->closing->entity)->visible);
 
             // A year and a half from 30, a month at a time: three months of work, begun by 29.75
             life->save.age = 28.5f;
@@ -1542,18 +1543,23 @@ namespace pg
 
             ActivityRow* carters = list->find(&f.ecs, "carters");
             ASSERT_NE(carters, nullptr);
-            EXPECT_EQ(carters->spec.until, "CLOSES 10/11");
+
+            // Fourteen months to begin it, counted on its tile under a stopwatch
+            EXPECT_EQ(carters->spec.closes, 14);
             EXPECT_FALSE(carters->spec.urgent);
-            ASSERT_TRUE(carters->until.has_value());
-            EXPECT_EQ(carters->until->spec.text, "CLOSES 10/11");
+            ASSERT_TRUE(carters->closing.has_value());
+            EXPECT_EQ(carters->closing->spec.text, "14 mo");
+            EXPECT_TRUE(f.pos(carters->closing->entity)->visible);
+            EXPECT_FALSE(carters->until.has_value());
 
             life->onMonth();
             f.settle();
 
             carters = list->find(&f.ecs, "carters");
             ASSERT_NE(carters, nullptr);
-            // A month on, the date it closes on is the same date
-            EXPECT_EQ(carters->spec.until, "CLOSES 10/11");
+            // A month on, a month fewer
+            EXPECT_EQ(carters->spec.closes, 13);
+            EXPECT_EQ(carters->closing->spec.text, "13 mo");
 
             // Half a year left: urgent
             life->save.age = 29.25f - 1.0f / 12.0f;
@@ -1563,13 +1569,14 @@ namespace pg
 
             carters = list->find(&f.ecs, "carters");
             ASSERT_NE(carters, nullptr);
-            EXPECT_EQ(carters->spec.until, "CLOSES 4/11");
+            EXPECT_EQ(carters->spec.closes, 6);
             EXPECT_TRUE(carters->spec.urgent);
+            EXPECT_EQ(f.pos(carters->closing->entity)->visible, true);
 
             // An old man's work is listed by now, and is never closed
             ActivityRow* tales = list->find(&f.ecs, "tales");
             ASSERT_NE(tales, nullptr);
-            EXPECT_EQ(tales->spec.until, "");
+            EXPECT_EQ(tales->spec.closes, -1);
             EXPECT_FALSE(tales->until.has_value());
 
             // At work, the running row says nothing of its closing
@@ -5747,7 +5754,7 @@ namespace pg
         // opens its screen over the page, and what he did there is kept as a record.
         namespace
         {
-            // A later life that has helped at the hedges: the Hedgerows are open to it. Its dice are its own
+            // A later life: the Hedgerows are open to it from its first day. Its dice are its own
             LifeScene* walker(LifeFixture& f, int seed = 40)
             {
                 LifeSceneOptions opt = LifeFixture::mockup();
@@ -5759,11 +5766,6 @@ namespace pg
 
                 if (not life)
                     return nullptr;
-
-                f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "hedges"});
-                f.settle();
-                life->onMonth();
-                f.settle();
 
                 return life;
             }
@@ -5805,8 +5807,22 @@ namespace pg
             LifeScene* life = walker(f);
             ASSERT_NE(life, nullptr);
 
-            ASSERT_EQ(life->save.stats["hedges_known"], 1);
             ASSERT_TRUE(life->save.running.empty());
+
+            // Its tile says it takes him out of the town, with nothing to do before it; the
+            // Adventure page has no tab while he has never been on a walk
+            auto first = life->piece<ActivityList>("activities")->find(&f.ecs, "walk.hedgerows");
+
+            ASSERT_NE(first, nullptr);
+            EXPECT_TRUE(first->spec.adventure);
+            EXPECT_EQ(first->spec.state, ActivityState::Idle);
+            EXPECT_EQ(first->ground->get<ThemeComponent>()->element, "activity.kind.adventure");
+            ASSERT_FALSE(first->frame.empty());
+            EXPECT_EQ(first->frame->get<ThemeComponent>()->element, "activity.adventure.frame");
+            EXPECT_EQ(first->mark.spec.name, "adventure");
+            EXPECT_EQ(life->piece<ActivityList>("activities")->find(&f.ecs, "hedges"), nullptr);
+            EXPECT_FALSE(life->piece<ActivityList>("activities")->find(&f.ecs, "carters")->spec.adventure);
+            EXPECT_FALSE(life->piece<Tabs>("tabs")->tabs[2].shown);
 
             // Begun as any work is: he is there, and no month runs while the days are chosen
             f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "walk.hedgerows"});
@@ -5847,7 +5863,7 @@ namespace pg
             answerEvents(f, life);
 
             ASSERT_FALSE(life->save.walk.record.empty());
-            EXPECT_GE(life->save.stats["berries"], 5);   // The three he was given, and what he picked
+            EXPECT_GE(life->save.stats["berries"], 2);   // What he picked: two at the least
             EXPECT_GE(walkPart(life, "record")->get<EventLog>()->size(), 1u);
             EXPECT_LE(std::atoi(walkPart(life, "daysLeft")->get<Label>()->spec.text.c_str()), 6);
 
@@ -5923,7 +5939,7 @@ namespace pg
             f.settle();
             ASSERT_TRUE(life->save.running.empty());
 
-            // Its tab is there now that he has somewhere to walk to, and its page has his record
+            // Its tab is there now that he has been on a walk, and its page has his record
             auto tabs = life->piece<Tabs>("tabs");
             ASSERT_NE(tabs, nullptr);
             ASSERT_EQ(tabs->spec.items.size(), 3u);
@@ -5952,7 +5968,7 @@ namespace pg
 
             const int berries = life->save.stats["berries"];
             const int firewood = life->save.stats["firewood"];
-            const int gathered = berries - 3;   // What the record picked: the hedges gave him three before it
+            const int gathered = berries;   // What the record picked: he held none before it
 
             f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.many"});
             f.settle();
@@ -6645,6 +6661,121 @@ namespace pg
             // Every work there is has one
             for (const char* id : {"gather.wortleaf", "gather.firewood", "study", "rest"})
                 EXPECT_NE(registry->find(std::string("walk/work/") + id), nullptr) << id;
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A tab that is not shown leaves no gap: the Adventure page come before the town stands
+        // next to Life, and once the town is known too the row reads Life, Town, Adventure.
+        TEST(lifescene_test, a_tab_not_shown_leaves_no_gap)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = f.life(LifeFixture::first());
+            ASSERT_NE(life, nullptr);
+
+            auto tabs = life->piece<Tabs>("tabs");
+            ASSERT_NE(tabs, nullptr);
+            ASSERT_EQ(tabs->spec.items.size(), 3u);
+
+            // A first life: neither the town nor a walk
+            EXPECT_TRUE(tabs->tabs[0].shown);
+            EXPECT_FALSE(tabs->tabs[1].shown);
+            EXPECT_FALSE(tabs->tabs[2].shown);
+
+            auto face = [&](int i) { return f.pos(tabs->tabs[i].face); };
+            const float next = face(0)->x + face(0)->width + 16.0f;
+
+            // He has been on a walk, and does not know the town yet
+            life->save.walksByHand = 1;
+            life->markAdventure();
+            f.settle();
+
+            EXPECT_TRUE(tabs->tabs[2].shown);
+            EXPECT_FALSE(tabs->tabs[1].shown);
+            EXPECT_NEAR(face(2)->x, next, 0.5f);
+            EXPECT_TRUE(face(2)->visible);
+            EXPECT_FALSE(face(1)->visible);
+
+            // The town is known: it takes its place, and the Adventure page stands after it
+            tabs->setShown(&f.ecs, 1, true);
+            f.settle();
+
+            EXPECT_NEAR(face(1)->x, next, 0.5f);
+            EXPECT_NEAR(face(2)->x, face(1)->x + face(1)->width + 16.0f, 0.5f);
+
+            // And gone again, the row closes up
+            tabs->setShown(&f.ecs, 1, false);
+            f.settle();
+
+            EXPECT_NEAR(face(2)->x, next, 0.5f);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // What is sold and bought at the market is on the Town page and nowhere else: while he
+        // does not know the town it has no tile at all, whatever he holds to sell.
+        TEST(lifescene_test, the_market_is_never_on_the_life_page)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::first();
+            opt.lives = 2;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            // Berries from a walk, wortleaf to brew, and no town yet
+            life->save.townKnown = false;
+            life->save.stats.erase("town_known");
+            life->save.stats["berries"] = 8;
+            life->save.stats["wortleaf"] = 4;
+            life->onMonth();
+            f.settle();
+
+            auto list = life->piece<ActivityList>("activities");
+            ASSERT_NE(list, nullptr);
+
+            for (const auto& group : list->spec.groups)
+            {
+                for (const auto& row : group.rows)
+                {
+                    EXPECT_NE(row.id.rfind("sell.", 0), 0u) << row.id;
+                    EXPECT_NE(row.id.rfind("buy.", 0), 0u) << row.id;
+                    EXPECT_NE(row.id, "brew.remedy");
+                }
+            }
+
+            EXPECT_EQ(stall(f, life, "sell.berries"), nullptr);
+
+            // The town known: they are at its market, and still not on the Life page
+            life->save.townKnown = true;
+            life->save.stats["town_known"] = 1;
+            life->onMonth();
+            f.settle();
+
+            EXPECT_NE(stall(f, life, "sell.berries"), nullptr);
+            EXPECT_NE(stall(f, life, "brew.remedy"), nullptr);
+
+            for (const auto& group : list->spec.groups)
+            {
+                for (const auto& row : group.rows)
+                    EXPECT_NE(row.id.rfind("sell.", 0), 0u) << row.id;
+            }
+
+            // What a task asks is said in its gloss, but not the room a store still has
+            auto registry = f.ecs.getSystem<GlossRegistry>();
+            ASSERT_NE(registry, nullptr);
+
+            const GlossSpec* kitchen = registry->find("activity/kitchen");
+            ASSERT_NE(kitchen, nullptr);
+
+            for (const auto& row : kitchen->rows)
+                EXPECT_EQ(row.label.find("Room for"), std::string::npos) << row.label;
         }
 
         // ----------------------------------------------------------------------------------------

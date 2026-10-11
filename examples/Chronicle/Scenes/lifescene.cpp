@@ -2546,7 +2546,7 @@ namespace chronicle
 
             std::string id, field;
 
-            if (not splitPath(rest, {"state", "count", "until"}, id, field) or id == "running")
+            if (not splitPath(rest, {"state", "count", "closes"}, id, field) or id == "running")
                 return;
 
             // In the choice, or at the market
@@ -2570,11 +2570,11 @@ namespace chronicle
                 }
                 else
                 {
-                    // When it closes, and whether that is near: activity.<id>.urgent came with it
+                    // The months left to begin it, and whether that is few: activity.<id>.urgent came before it
                     auto facts = ecs->getSystem<WorldFacts>();
                     const std::string urgent = "activity." + id + ".urgent";
 
-                    row->setUntil(ecs, v.toString(), facts and facts->getFact<bool>(urgent, false));
+                    row->setCloses(ecs, intOf(v), facts and facts->getFact<bool>(urgent, false));
                 }
             }
         }));
@@ -2798,7 +2798,12 @@ namespace chronicle
 
             stood.push_back(id);
 
-            const bool onTown = save.townKnown and not (textOf(a.fields, "place") + textOf(a.fields, "raises")).empty();
+            const bool onTown = not (textOf(a.fields, "place") + textOf(a.fields, "raises")).empty();
+
+            // A town he does not know has no page: what is done there is not on the Life page either
+            if (onTown and not save.townKnown)
+                continue;
+
             const bool inView = onTown ? townShown : not townShown and not adventureShown;
 
             if (filledBefore and not inView)
@@ -2809,8 +2814,8 @@ namespace chronicle
         // path's) has no row
         std::vector<ActivityGroup> groups;
 
-        // What is done at a place of the town stands on the Town page once the town is known:
-        // the market's rows, what is bought on the spot, and the works that raise a place
+        // What is done at a place of the town stands on the Town page, never on this one: the
+        // market's rows, what is bought and sold on the spot, and the works that raise a place
         std::vector<ActivityRowSpec> stalls;
         std::vector<ActivityRowSpec> works;
 
@@ -2826,7 +2831,12 @@ namespace chronicle
 
             const std::string group = textOf(a.fields, "group");
             const bool raising = not textOf(a.fields, "raises").empty();
-            const bool inTown = save.townKnown and (raising or not textOf(a.fields, "place").empty());
+            const bool inTown = raising or not textOf(a.fields, "place").empty();
+
+            // What is done at a place of the town (its market, its works) is on the Town page and
+            // nowhere else: while he does not know the town, it has no row at all
+            if (inTown and not save.townKnown and textOf(a.fields, "id") != save.running)
+                continue;
 
             if (not inTown and (groups.empty() or groups.back().label != group))
                 groups.push_back({group, {}});
@@ -2850,10 +2860,13 @@ namespace chronicle
             }
             else
             {
-                // When it closes, once that is near: nothing to say of the one he is at
-                row.until = textOf(a.fields, "until");
+                // The months he still has to begin it, counted down on its tile: nothing to say of the one he is at
+                row.closes = closesOf(a);
                 row.urgent = boolOf(a.fields, "urgent");
             }
+
+            // A walk takes him out of the town: its tile says so
+            row.adventure = not textOf(a.fields, "zone").empty();
 
             for (const auto& g : a.gains)
                 row.gains.push_back({textOf(g, "label"), intOf(g, "amount")});
@@ -2870,9 +2883,6 @@ namespace chronicle
                 req.needed = intOf(r, "needed");
                 row.requirements.push_back(req);
             }
-
-            if (row.state != ActivityState::Running)
-                row.until = tileNote(a, row.urgent);
 
             if (inTown)
                 (raising ? works : stalls).push_back(row);
@@ -2934,13 +2944,11 @@ namespace chronicle
         chosenList.clear();
     }
 
-    std::string LifeScene::tileNote(const RuleActivity& activity, bool& urgent) const
+    int LifeScene::closesOf(const RuleActivity& activity) const
     {
-        // When it closes, once that is near, and nothing else: what it asks of him (an age, a
-        // stat, coin, room) is its gloss's to say, and its ground says that he cannot do it yet
-        urgent = boolOf(activity.fields, "urgent");
-
-        return textOf(activity.fields, "until");
+        // -1 for what does not close, or not soon: what it asks of him (an age, a stat, coin) is
+        // its gloss's to say, and its ground says that he cannot do it yet
+        return activity.fields.count("closesIn") > 0 ? intOf(activity.fields, "closesIn") : -1;
     }
 
     void LifeScene::refreshHoldings()
@@ -3752,11 +3760,9 @@ namespace chronicle
                 setFact("activity." + id + ".count", textOf(a.fields, "tally"));
 
                 // When it closes, month by month: nothing to say of the one he is at
-                bool urgent = false;
-                const std::string note = tileNote(a, urgent);
-
-                setFact("activity." + id + ".urgent", urgent);
-                setFact("activity." + id + ".until", id == save.running ? std::string() : note);
+                setFact("activity." + id + ".urgent", boolOf(a.fields, "urgent"));
+                setFact("activity." + id + ".until", id == save.running ? std::string() : textOf(a.fields, "until"));
+                setFact("activity." + id + ".closes", id == save.running ? -1 : closesOf(a));
 
                 for (size_t i = 0; i < a.requires.size(); ++i)
                     setFact("activity." + id + ".requirement." + std::to_string(i), intOf(a.requires[i], "current"));
@@ -4932,12 +4938,25 @@ namespace chronicle
             for (const auto& c : a.costs)
                 gloss.rows.push_back({textOf(c, "name"), signedText(-intOf(c, "amount")), "loss"});
 
-            if (not a.requires.empty())
+            // What he has of it against what it asks: met in the gain's colour, short in the loss's.
+            // The room a thing he holds still has is not said while there is some (its ledger
+            // line says how full it is): only once there is none, and that is what stops him
+            std::vector<GlossRow> asked;
+
+            for (const auto& r : a.requires)
+            {
+                const bool short_ = intOf(r, "current") < intOf(r, "needed");
+
+                if (boolOf(r, "room") and not short_)
+                    continue;
+
+                asked.push_back({textOf(r, "label"), std::to_string(intOf(r, "current")) + " / " + std::to_string(intOf(r, "needed")), short_ ? "loss" : "gain"});
+            }
+
+            if (not asked.empty())
                 gloss.rows.push_back({"IT ASKS", "", "", true});
 
-            // What he has of it against what it asks: met in the gain's colour, short in the loss's
-            for (const auto& r : a.requires)
-                gloss.rows.push_back({textOf(r, "label"), std::to_string(intOf(r, "current")) + " / " + std::to_string(intOf(r, "needed")), intOf(r, "current") < intOf(r, "needed") ? "loss" : "gain"});
+            gloss.rows.insert(gloss.rows.end(), asked.begin(), asked.end());
 
             // A footnote only for the work he is at: what a locked one still asks is in red above
             if (textOf(a.fields, "id") == save.running)

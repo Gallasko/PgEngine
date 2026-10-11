@@ -72,14 +72,15 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
-        TEST(mark_test, twenty_eight_names)
+        TEST(mark_test, twenty_nine_names)
         {
             MockLogger logger;
 
-            EXPECT_EQ(markNames().size(), 28u);
+            EXPECT_EQ(markNames().size(), 29u);
             EXPECT_EQ(markNames().front(), "strength");
             EXPECT_EQ(markNames().back(), "cross");
             EXPECT_TRUE(isMarkName("time"));
+            EXPECT_TRUE(isMarkName("chrono"));
             EXPECT_FALSE(isMarkName("clock"));
 
             // The guide's pointing hand, among the meta marks

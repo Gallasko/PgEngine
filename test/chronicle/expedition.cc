@@ -80,7 +80,7 @@ namespace pg
             ElementMap gatherer()
             {
                 return {{"str", ElementType{6}}, {"dex", ElementType{6}}, {"int", ElementType{6}}, {"vit", ElementType{40}}, {"vitmax", ElementType{40}},
-                        {"coin", ElementType{0}}, {"rations", ElementType{12}}, {"hedges_known", ElementType{1}}};
+                        {"coin", ElementType{0}}, {"rations", ElementType{12}}};
             }
 
             // A youth who can fight: the Hollow Woods are open to him
@@ -904,37 +904,38 @@ namespace pg
 
             std::vector<RuleActivity> activities;
 
-            w.character.erase("hedges_known");
             ASSERT_TRUE(w.rules.activities(8.0f, w.character, activities));
 
             const RuleActivity* hedgerows = nullptr;
-            const RuleActivity* hedges = nullptr;
+            const RuleActivity* pond = nullptr;
 
             for (const auto& a : activities)
             {
                 if (textOf(a.fields, "id") == "walk.hedgerows")
                     hedgerows = &a;
 
-                if (textOf(a.fields, "id") == "hedges")
-                    hedges = &a;
+                if (textOf(a.fields, "id") == "walk.millpond")
+                    pond = &a;
+
+                // No task stands before the first walk: its tile takes him there
+                EXPECT_NE(textOf(a.fields, "id"), "hedges");
             }
 
             ASSERT_NE(hedgerows, nullptr);
-            ASSERT_NE(hedges, nullptr);
+            ASSERT_NE(pond, nullptr);
 
             EXPECT_EQ(textOf(hedgerows->fields, "group"), "Adventure");
             EXPECT_EQ(textOf(hedgerows->fields, "zone"), "hedgerows");
             EXPECT_EQ(intOf(hedgerows->fields, "months"), 1);
 
-            // Shown, greyed, with what it asks: something to plan toward
+            // The first walk asks nothing of him: listed, and open
             EXPECT_EQ(intOf(hedgerows->fields, "listed"), 1);
-            EXPECT_EQ(intOf(hedgerows->fields, "locked"), 1);
+            EXPECT_EQ(intOf(hedgerows->fields, "locked"), 0);
+            EXPECT_TRUE(hedgerows->requires.empty());
 
-            // The task that opens it says so
-            EXPECT_EQ(textOf(hedges->fields, "each"), "OPENS THE HEDGEROWS");
-
-            w.character["hedges_known"] = ElementType{1};
-            ASSERT_TRUE(w.rules.activities(8.0f, w.character, activities));
+            // The next one is shown, greyed, with what it asks: something to plan toward
+            EXPECT_EQ(intOf(pond->fields, "listed"), 1);
+            EXPECT_EQ(intOf(pond->fields, "locked"), 1);
 
             for (const auto& a : activities)
             {

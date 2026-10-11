@@ -113,14 +113,15 @@ var walkItems = [
 var walkZones = [
     // The first walk of a life: no beast, a week, three things to pick. It is there to teach the
     // days, the record and the walk again, and a queue of it is the first thing that runs alone
+    // (it asks nothing: its tile on the Life page takes him there, once he has a few terms behind him)
     {id: "hedgerows", name: "The Hedgerows", kind: "forage", glyph: "adventure",
      line: "The hedges at the edge of town, where every child of Bellmoor has picked.",
      travel: 1, stayMin: 7, stayMax: 9,
      mobs: [],
      spots: [{id: "berries", ap: 1, least: 2, most: 4}, {id: "wortleaf", ap: 2, least: 1, most: 2}, {id: "firewood", ap: 2, least: 2, most: 3}],
      events: ["hedge.nest", "hedge.keeper"],
-     fromAge: 7, showAfter: 6,
-     requires: [{stat: "hedges_known", label: "Helped at the hedges"}],
+     fromAge: 7, showAfter: 5,
+     requires: [],
      opens: "Berries and wortleaf to sell, firewood for the town. No beast lives there."},
 
     {id: "millpond", name: "Mill Pond", kind: "forage", glyph: "adventure",

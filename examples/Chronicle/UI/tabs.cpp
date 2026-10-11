@@ -280,6 +280,24 @@ namespace chronicle
         // Not drawn, it takes no click and no focus; drawn, it is a tab like the others. Its
         // underline and its ring follow (applyVisual)
         setEnabled(ecs, index, shown);
+
+        // And the row closes up over it, or opens for it
+        lay();
+    }
+
+    void Tabs::lay()
+    {
+        float x = 0.0f;
+
+        for (auto& tab : tabs)
+        {
+            if (not tab.shown or tab.face.empty())
+                continue;
+
+            tab.face->get<UiAnchor>()->setLeftMargin(x);
+
+            x += tab.face->get<PositionComponent>()->width + GAP;
+        }
     }
 
     void Tabs::setNotice(EntitySystem* ecs, int index, int count)

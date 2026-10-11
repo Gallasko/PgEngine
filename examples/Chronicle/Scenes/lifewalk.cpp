@@ -2432,17 +2432,9 @@ namespace chronicle
 
     bool LifeScene::adventureKnown() const
     {
-        if (not save.recipes.empty())
-            return true;
-
-        // A walk has its row, open to him or not yet: there is something to say of it
-        for (const auto& a : activities)
-        {
-            if (not textOf(a.fields, "zone").empty() and boolOf(a.fields, "listed"))
-                return true;
-        }
-
-        return false;
+        // The page is there once he has been on a walk, his first: before, it has nothing to
+        // show. A record kept by the world, or a walk under way, says he has
+        return not save.recipes.empty() or save.walksByHand > 0 or save.walksByRecord > 0 or onWalk();
     }
 
     void LifeScene::showAdventure(bool shown)
@@ -2499,7 +2491,7 @@ namespace chronicle
 
     void LifeScene::markAdventure()
     {
-        // Its tab is on the page for who has somewhere to walk to, and for no one else
+        // Its tab is on the page for who has been on a walk, and for no one else
         if (auto tabs = piece<Tabs>("tabs"); tabs and adventureTab() >= 0 and tabs->tabs[adventureTab()].shown != adventureKnown())
             tabs->setShown(ecsRef, adventureTab(), adventureKnown());
     }

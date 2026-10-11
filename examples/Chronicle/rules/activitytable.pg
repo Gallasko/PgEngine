@@ -45,6 +45,8 @@
 //           until ("" or when it closes, as the row writes it: "CLOSES 5/11", the world's date
 //           (month/year) of the last month he may begin it, or "CLOSES THIS MONTH"; said from
 //           `closingShown` months before it), urgent (true from `closingUrgent` months before),
+//           closesIn (-1, or the months he still has to begin it: said all along of what closes
+//           before his prime does, and from `closingShown` months before of the rest),
 //           after (its steps, as below).
 //
 // `months: 0` is an activity done at once: it takes no time, and can be done while another runs.
@@ -197,11 +199,6 @@ var activities = [
     {id: "kitchen", group: "Work", name: "Help in the Kitchen", glyph: "trade", months: 3, rank: "", each: "MEALS PROVIDED", path: "", board: true, showAfter: 3,
      gains: [{stat: "rations", amount: 6}],
      requires: []},
-    // A month at the hedges opens the first walk outside the town, and says so. In a first life
-    // it comes once the guide has said what the classes are
-    {id: "hedges", group: "Work", name: "Gather at the Hedges", glyph: "adventure", months: 1, rank: "", each: "OPENS THE HEDGEROWS", path: "", uses: 1, showAfter: 5, board: true,
-     gains: [{stat: "berries", amount: 3}, {stat: "hedges_known"}],
-     requires: []},
     {id: "market", group: "Work", name: "Help at the Market", glyph: "trade", months: 6, rank: "", each: "", path: "", fromAge: 8, showAfter: 5,
      gains: [{stat: "guile"}, {stat: "coin", amount: 8}],
      requires: [],
@@ -306,6 +303,11 @@ var activities = [
     {id: "boys", group: "The streets", name: "Run with the Bellmoor Boys", glyph: "town", months: 12, rank: "", each: "", path: "", fromAge: 10, finishBy: 14, uses: 1,
      gains: [{stat: "stealth"}, {stat: "guile"}, {stat: "street_known"}],
      requires: [{stat: "dex", needed: 8}]},
+    // For who means to live by quick hands: the roofs make them quicker, and the town talks of it
+    {id: "rooftops", group: "The streets", name: "Race the Rooftops", glyph: "dexterity", months: 6, rank: "", each: "", path: "", fromAge: 11, finishBy: 18, uses: 3,
+     about: "From the tanners' sheds to the chapel roof and back, against whoever dares. The town watches from below, and remembers who won.",
+     gains: [{stat: "dex"}, {stat: "renown"}],
+     requires: [{stat: "dex", needed: 7}]},
 
     {id: "keep", group: "A class", name: "Swear Service to the Keep", glyph: "seal", months: 18, rank: "", each: "MEALS PROVIDED", path: "warrior", enters: true, board: true, fromAge: 16, showAge: 7, showFrom: 0, showAfter: 4, finishBy: 20, uses: 1,
      major: true,
@@ -379,6 +381,11 @@ var activities = [
      requires: [{stat: "arcana"}, {stat: "lore", needed: 3}],
      costs: [{stat: "reagents", amount: 2}],
      after: [{uses: 2, months: 9}]},
+    // The Collegium's own drill: the hours kept, the offices said, the mind held to one thing
+    {id: "vigil", group: "The Collegium", name: "Keep the Night Offices", glyph: "academy", months: 6, rank: "", each: "MEALS PROVIDED", path: "mage", board: true, fromAge: 18, uses: 4,
+     about: "Up at the second bell, every night of a season, to say the offices in a cold hall. Nobody has ever enjoyed it. That is the point.",
+     gains: [{stat: "discipline"}],
+     requires: []},
     {id: "treatise", group: "The Collegium", name: "Copy the Black Treatise", glyph: "quill", months: 12, rank: "", each: "", path: "mage", fromAge: 19, finishBy: 25, uses: 1,
      gains: [{stat: "lore", amount: 2}, {stat: "black_treatise"}],
      requires: [{stat: "letters", needed: 4}, {stat: "lore", needed: 4}],
@@ -808,6 +815,20 @@ for (var i = 0; i < len(activities); i++)
 
     a.until = ""
     a.urgent = false
+
+    // And the months themselves, for the tile to count down: -1 for what does not close, or
+    // closes only with his prime and not soon. What a door of its own closes says so all along
+    a.closesIn = -1
+
+    if (a.finishBy < anyAge and not a.closed and (a.finishBy < lastAge or toBegin <= closingShown))
+    {
+        a.closesIn = toBegin
+
+        if (toBegin < 0)
+        {
+            a.closesIn = 0
+        }
+    }
 
     if (a.finishBy < anyAge and not a.closed and toBegin <= closingShown)
     {

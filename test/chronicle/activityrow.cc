@@ -306,12 +306,55 @@ namespace pg
             EXPECT_NEAR(s.pos(d->root)->y, s.pos(a->root)->y + b->natural + 8.0f, 0.5f);
             EXPECT_NEAR(s.pos(d->root)->height, d->natural, 0.5f);
 
-            // The time under the name, from the tile's left edge
+            // The name from the tile's left edge; its time in a box in the top right corner, the
+            // hourglass before the figure, and the name ends before the box
             EXPECT_NEAR(s.pos(a->name.entity)->x, s.pos(a->root)->x + 8.0f, 0.5f);
             EXPECT_NEAR(s.pos(a->name.entity)->y, s.pos(a->root)->y + 8.0f, 0.5f);
-            EXPECT_NEAR(s.pos(a->cost.entity)->y, s.pos(a->name.entity)->y + s.pos(a->name.entity)->height + 2.0f, 0.5f);
-            EXPECT_NEAR(s.pos(a->costMark.entity)->x, s.pos(a->root)->x + 8.0f, 0.5f);
+
+            ASSERT_FALSE(a->inset.empty());
+            EXPECT_TRUE(s.pos(a->inset)->visible);
+            EXPECT_NEAR(s.pos(a->inset)->y, s.pos(a->root)->y + 8.0f, 0.5f);
+            EXPECT_NEAR(s.pos(a->inset)->x + s.pos(a->inset)->width, s.pos(a->root)->x + s.pos(a->root)->width - 8.0f, 0.5f);
             EXPECT_GT(s.pos(a->cost.entity)->x, s.pos(a->costMark.entity)->x);
+            EXPECT_GE(s.pos(a->costMark.entity)->x, s.pos(a->inset)->x + 4.0f);
+            EXPECT_LE(s.pos(a->cost.entity)->x + s.pos(a->cost.entity)->width, s.pos(a->inset)->x + s.pos(a->inset)->width - 4.0f);
+            EXPECT_GE(s.pos(a->cost.entity)->y, s.pos(a->inset)->y);
+            EXPECT_LE(s.pos(a->cost.entity)->y + s.pos(a->cost.entity)->height, s.pos(a->inset)->y + s.pos(a->inset)->height + 0.5f);
+            EXPECT_LE(s.pos(a->name.entity)->x + a->name.spec.width, s.pos(a->inset)->x - 5.5f);
+
+            // Nothing closes it: the line under the name says nothing, and is there all the same
+            ASSERT_TRUE(a->closing.has_value());
+            EXPECT_FALSE(s.pos(a->closing->entity)->visible);
+            EXPECT_FALSE(s.pos(a->closeMark.entity)->visible);
+
+            // Fourteen months to begin it: a stopwatch and the figure, at the right of that line
+            a->setCloses(&s.ecs, 14);
+            s.pump();
+
+            EXPECT_TRUE(s.pos(a->closing->entity)->visible);
+            EXPECT_TRUE(s.pos(a->closeMark.entity)->visible);
+            EXPECT_EQ(a->closing->spec.text, "14 mo");
+            EXPECT_EQ(a->closeMark.spec.name, "chrono");
+            EXPECT_EQ(s.element(a->closing->entity), "activity.closes");
+            EXPECT_NEAR(s.pos(a->closing->entity)->x + s.pos(a->closing->entity)->width, s.pos(a->root)->x + s.pos(a->root)->width - 8.0f, 0.5f);
+            EXPECT_GE(s.pos(a->closing->entity)->y, s.pos(a->name.entity)->y + s.pos(a->name.entity)->height);
+            EXPECT_GE(s.pos(a->closing->entity)->y, s.pos(a->inset)->y + s.pos(a->inset)->height);
+            EXPECT_LT(s.pos(a->closeMark.entity)->x, s.pos(a->closing->entity)->x);
+            EXPECT_LE(s.pos(a->closing->entity)->y + s.pos(a->closing->entity)->height, s.pos(a->root)->y + s.pos(a->root)->height);
+
+            // Its last months, and its last one
+            a->setCloses(&s.ecs, 3, true);
+            s.pump();
+            EXPECT_EQ(a->closing->spec.text, "3 mo");
+            EXPECT_EQ(s.element(a->closing->entity), "activity.closes.urgent");
+
+            a->setCloses(&s.ecs, 0, true);
+            s.pump();
+            EXPECT_EQ(a->closing->spec.text, "last mo");
+
+            a->setCloses(&s.ecs, -1);
+            s.pump();
+            EXPECT_FALSE(s.pos(a->closing->entity)->visible);
 
             // Another group, another line, under its heading; its kind on its ground
             EXPECT_NEAR(s.pos(e->root)->x, s.pos(a->root)->x, 0.5f);
@@ -505,7 +548,7 @@ namespace pg
 
             // One says something else: it alone is made again, where it stood
             auto groups = spec.groups;
-            groups[0].rows[2] = idleSpec("c", "Run messages");
+            groups[0].rows[2] = idleSpec("c", "Run on");
 
             list.setRows(&s.ecs, groups);
             s.pump();
@@ -547,7 +590,7 @@ namespace pg
             EXPECT_LT(boxOf("e").second, stood["e"].second - 10.0f);
 
             // One arrives at the head: made alone, the others move down the line
-            groups[0].rows.insert(groups[0].rows.begin(), idleSpec("z", "Fetch water"));
+            groups[0].rows.insert(groups[0].rows.begin(), idleSpec("z", "Fetch"));
 
             list.setRows(&s.ecs, groups);
             s.pump();
@@ -565,7 +608,7 @@ namespace pg
             // Twice in one pass, the second with what the first asked for: nothing more is made
             const _unique_id z = idOf("z");
 
-            groups[0].rows[0] = idleSpec("z", "Fetch more water");
+            groups[0].rows[0] = idleSpec("z", "Fill");
             list.setRows(&s.ecs, groups);
             list.setRows(&s.ecs, groups);
             s.pump();
@@ -707,14 +750,15 @@ namespace pg
             EXPECT_EQ(s.element(major->frame), "activity.major.frame");
             EXPECT_EQ(s.element(major->ground), "activity.kind.major");
 
-            // Its mark, 8 from its top and from its right edge, and the name ends before it
+            // Its mark, at the left of the line under its name (its time has the corner), inside the tile
             ASSERT_FALSE(major->mark.entity.empty());
             EXPECT_EQ(major->mark.spec.name, "seal");
             EXPECT_EQ(s.element(major->mark.entity), "activity.major.mark");
-            EXPECT_NEAR(s.pos(major->mark.entity)->y, s.pos(major->root)->y + 8.0f, 0.5f);
-            EXPECT_NEAR(s.pos(major->mark.entity)->x + s.pos(major->mark.entity)->width, s.pos(major->root)->x + s.pos(major->root)->width - 8.0f, 0.5f);
-            EXPECT_LE(s.pos(major->name.entity)->x + major->name.spec.width, s.pos(major->mark.entity)->x);
-            EXPECT_LT(major->name.spec.width, plain->name.spec.width);
+            EXPECT_NEAR(s.pos(major->mark.entity)->x, s.pos(major->root)->x + 8.0f, 0.5f);
+            EXPECT_GE(s.pos(major->mark.entity)->y, s.pos(major->name.entity)->y + s.pos(major->name.entity)->height);
+            EXPECT_LE(s.pos(major->mark.entity)->y + s.pos(major->mark.entity)->height, s.pos(major->root)->y + s.pos(major->root)->height - 7.5f);
+            EXPECT_NEAR(major->name.spec.width, plain->name.spec.width, 0.5f);
+            EXPECT_TRUE(plain->mark.entity.empty());
 
             // Locked: framed and marked all the same, on the ground of what he cannot do yet
             ASSERT_FALSE(locked->frame.empty());

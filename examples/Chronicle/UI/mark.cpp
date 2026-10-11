@@ -19,7 +19,7 @@ namespace chronicle
     {
         constexpr const char * const DOM = "Chronicle.Mark";
 
-        // The 28 marks, grouped as the design system lists them. This vector is the order
+        // The 29 marks, grouped as the design system lists them. This vector is the order
         // the gallery draws and the only place the set is enumerated.
         const std::vector<std::string> NAMES = {
             // Parts
@@ -31,7 +31,7 @@ namespace chronicle
             // Places
             "town", "gate", "academy", "guild",
             // Meta
-            "time", "age", "reputation", "seal", "skull", "manicule",
+            "time", "chrono", "age", "reputation", "seal", "skull", "manicule",
             // Status
             "check", "cross",
         };

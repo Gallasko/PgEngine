@@ -55,7 +55,7 @@ life of a world. The day a place comes its first work comes with it: that work i
 built. A place that comes later is
 said in the log and by a toast, and a place a life has seen stays on the page of every later one.
 
-**The walks.** A month of *Gather at the Hedges* opens the first walk outside the town, *The
+**The walks.** After a few terms of work a tile opens the first walk outside the town, *The
 Hedgerows*: a tile of the **Adventure** group like any other, with its months up front. Begun, it
 does not run its months: it opens the **on-site screen** over the page, where the stay is a count
 of days (action points, `AP`) spent one choice at a time: seek a beast or watch it from cover,
@@ -271,7 +271,7 @@ come from `rules/*.pg` through the scene, never from the component.
   live on the engine's `TTFText`; the label adds the style and the colour
   token.
 
-- **Mark** (`UI/mark.h`) — one of 28 glyphs at one of five kit sizes
+- **Mark** (`UI/mark.h`) — one of 29 glyphs at one of five kit sizes
   (14/16/18/24/48 px), registered at exactly those sizes so nothing resamples.
   `markSizeFor(style)` is the single style → size table (body → 16, figure → 18,
   title → 24, versal → 48, the small styles → 14). An unknown name draws `seal`
@@ -450,8 +450,12 @@ come from `rules/*.pg` through the scene, never from the component.
   The setters still keep what a compact row does not show (`setCount`, `setPercent`,
   `setRequirement`), for whoever says it. A **tile** (`tile`, a compact row stacked for a grid)
   has no mark: its name is set in `control` (`activity.tile.name`) at its left edge, wrapped in
-  its width over two lines at most, then elided; the time stands under the name, the closing
-  under the time (padding 8, 58 px with a one-line name). `natural` is the height its content
+  its width over two lines at most, then elided, beside a box in its top right corner where its
+  time stands (`inset`: a task that takes time is told from one that takes none at a glance).
+  Under the name a line for what closes it, at the right: a stopwatch (`chrono`) and the months
+  left to begin it (`closes`, `setCloses`; -1 says nothing, `urgent` puts it in the loss's
+  colour). A tile that shows its mark (a `major` one, or an `adventure` one, which takes him out
+  of the town and has a ground and a frame of its own) shows it at the left of that line. `natural` is the height its content
   asks and `minHeight` what its list asks of it: `setMinHeight` keeps a line's tiles level.
 
 - **Tiles in a list** (`ActivityListSpec::tileWidth`, `tileWidth:` in a file) - with a tile
@@ -1133,10 +1137,15 @@ it in `lifescene.cpp` over the widgets as they are:
   parts, and "46 -> 52" ("6/60 -> 12/60") on the holdings it would add to (what it costs is said by its gloss, not
   on his purse). What is chosen says more than what the mouse is on.
 - What has a most he can hold shows it in its row (`holdingText`): "12/60", "64/60" past it.
-- A tile says under its name when it closes, once that is near (`tileNote`), and nothing
-  else. What it asks (an age, a stat, a cost in coin, room for the rations it brings) is not
-  written on the tile: its ground says he cannot do it yet, and its gloss says why, under
-  IT TAKES and IT ASKS.
+- A tile counts down the months he still has to begin it (`closesOf`, the rules' `closesIn`:
+  all along for what a door of its own closes, in its last two years for what only his prime
+  closes), and says nothing else. What it asks (an age, a stat, a cost in coin) is not written
+  on the tile: its ground says he cannot do it yet, and its gloss says why, under IT TAKES and
+  IT ASKS. The room a store still has is not listed there while there is some.
+- What is done at a place of the town (the market's stalls, the works that raise a place) is on
+  the Town page and nowhere else: while the town is not known it has no tile at all.
+- The Adventure page's tab comes with his first walk (`adventureKnown`); a tab not shown leaves
+  no gap (`Tabs::lay`).
 - The rules say what is **running out** (`warning` from `resources.pg`, "RATIONS FOR 2 MONTHS"),
   written under his Vitality, and a part the coming month would take from is in red before it does.
 - A figure that rises lifts a **"+2"** beside it (`showGain`), the log's new line is **lit** for a
@@ -1220,7 +1229,7 @@ z on the page: page 0, panels 10, their content 20–59, tooltips 200.
 
 ## Assets
 
-- The **mark** set (`res/icons/chronicle/`, 28 glyphs, the guide's `manicule` among them) and the **ornament** set
+- The **mark** set (`res/icons/chronicle/`, 29 glyphs, the guide's `manicule` among them) and the **ornament** set
   (`res/icons/chronicle-ornaments/`, 7 curves) are SVGs authored on **square**
   viewBoxes: `SvgLoader::rasterize` fits a document into a square and centres it,
   so a square viewBox makes the quad and the drawing coincide with no offset. The

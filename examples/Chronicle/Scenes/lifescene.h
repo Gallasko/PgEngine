@@ -180,6 +180,8 @@ namespace chronicle
         bool guiding() const;          // A first life whose guide has not said its last step
         int toastsUp() const { return toasts; }   // The toasts at the foot of the window now
 
+        void markAdventure();          // The Adventure page's tab on the page or not, as he has been on a walk or never
+
     private:
         bool buildPage(bool compact, bool phone = false, float width = 0.0f);   // The page from its file, in place of the one there was. A phone's is built at the window's width
         void fit(float width, float height);   // The page to the window, swapping it at the breakpoint
@@ -227,7 +229,7 @@ namespace chronicle
         bool boarded() const;          // The activity at work feeds him
         bool titled(const std::string& id) const;   // A holding he has or has not (a standing, a tie): the rules say so, and its row shows no figure
         const RuleActivity* activityOf(const std::string& id) const;   // From the last answer of Rules::activities, nullptr if none
-        std::string tileNote(const RuleActivity& activity, bool& urgent) const;   // What a tile says under its name and time: when it closes, once that is near. What it asks is its gloss's
+        int closesOf(const RuleActivity& activity) const;   // The months he still has to begin it, for its tile to count down: -1 when it does not close, or not soon
         void onHover(const ActivityHoveredEvent& event);   // The mouse came onto a tile or left them
         void preview();                // What the chosen activity, or the one the mouse is on, would make of his parts and of what he holds
         void previewHoldings(const RuleForecast* forecast);   // "46 -> 52" ("6/60 -> 12/60") on the rows it would add to; nullptr: the figures as they are
@@ -308,7 +310,6 @@ namespace chronicle
         bool adventureKnown() const;   // He has somewhere to walk to, or a record of a walk: the page has something to show
         void fitAdventure(float width, float height);   // The Adventure page to the middle column
         void fillAdventure(bool again = false);   // The records kept and the form of a queue; `again` for a page just built
-        void markAdventure();          // Its tab on the page or not, as he has somewhere to walk to
         bool beginReplay();            // The queue's next walk sets out by the record; false when it cannot, and the queue has stopped
         void homeFromWalk();           // The months of a walk are over: a record walked is folded into him, and the queue goes on
         void stopQueue(const std::string& why, bool loss);   // No walk is left to begin; said on the Life page when there is a why

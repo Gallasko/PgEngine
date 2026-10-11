@@ -7,7 +7,7 @@ the `CHANGELOG.md` at the root of the repository.
 
 ### New
 
-- **Walks outside the town.** A month of *Gather at the Hedges* opens the Hedgerows, the first
+- **Walks outside the town.** The Hedgerows are the first
   of four places to walk to (the Hedgerows, Mill Pond, the Hollow Woods, the Quarry Road). A
   walk is a tile like any other, in a new *Adventure* group, with its months written on it. When
   you begin it you are taken there: the stay is a number of days, and you spend them one choice
@@ -49,6 +49,23 @@ the `CHANGELOG.md` at the root of the repository.
 
 ### Changed
 
+- **A task's time at a glance.** A tile shows how long the task takes in a small box at its top
+  right corner. Under its name, at the right, a stopwatch counts the months you still have to
+  begin it, for a task that closes: all along for one with a door of its own, and in its last
+  two years for the rest. It turns red in the last six months.
+- **Sharp on a dense screen.** In a browser on a 4K monitor or a phone the game was drawn small
+  and stretched. It is drawn at the screen's own resolution now.
+- **The first walk is one press away.** *Gather at the Hedges* is gone: the Hedgerows have their
+  tile from the start, and it takes you there. Tiles that take you out of the town have a look
+  of their own, a red frame and their mark.
+- **The Adventure tab** comes with your first walk. Tabs that are not there leave no gap, and
+  once you know the town they read Life, Town, Adventure.
+- **The market is in town.** What is sold, bought and brewed at the market is on the Town page
+  only: it no longer shows on the Life page before the town is known.
+- **Shorter tooltips.** A task no longer lists "Room for Rations" among what it asks while the
+  store has room.
+- **Two new tasks.** *Race the Rooftops* (Dexterity and Renown, on the streets, from 11) for
+  who means to live by quick hands, and *Keep the Night Offices* (Discipline) at the Collegium.
 - **One Vitality.** Your Vitality is the same number at home, on a walk and in a fight: a boy
   has 40, where he had 8 at home and 40 in the field. A month with nothing to eat takes 5, and
   5 come back every two months (every month with a room at the inn). Work that builds Vitality

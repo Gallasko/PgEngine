@@ -71,7 +71,8 @@ namespace chronicle
         void setActive(pg::EntitySystem*, int);                   // programmatic: repaints, sends no event
         void setEnabled(pg::EntitySystem*, int index, bool enabled);   // A tab that is not enabled is faint, takes no click and no focus
         bool enabled(int index) const;
-        void setShown(pg::EntitySystem*, int index, bool shown);        // A tab not shown is not drawn and keeps its room: for the last of a row. Shown, it is enabled as well
+        void setShown(pg::EntitySystem*, int index, bool shown);        // A tab not shown is not drawn and leaves no gap: the ones after it close up. Shown, it is enabled as well
+        void lay();                                                      // The faces side by side from the left, the ones shown only
         void setNotice(pg::EntitySystem*, int index, int count);        // A small round with a count at the tab's corner: something new on a page that is not the one in view. 0 takes it away. The faces keep their size
         void setBadge(pg::EntitySystem*, int index, int count);   // 0 removes; re-measures the face
         void setWidth(pg::EntitySystem*, float width);            // The row and its hairline; the faces keep their size

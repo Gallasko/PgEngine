@@ -61,6 +61,8 @@ namespace chronicle
         int z = 20;                    // Root and ground z; rule z+1; edge and ring z+2; marks z+3, texts z+4; the embedded rule or list root z+3
         std::string cost;              // "" or what the cost reads in the place of the months: "2 AP", for what is not counted in months
         std::string costGlyph = "time";   // The mark beside the cost: the hourglass of what takes time, or another's ("vitality") for a figure that is not a time
+        int closes = -1;               // A tile's: the months left to begin it, counted down at the right of its second line under a stopwatch; -1 = it does not close (or not soon). `urgent` puts it in the loss's colour
+        bool adventure = false;        // A tile that takes him out of the town (a walk): a ground and a frame of its own, and its mark shown
     };
 
     // Sent by the ActivitySystem when a list's selection changes ("" = cleared).
@@ -104,6 +106,7 @@ namespace chronicle
         bool featured = false;         // The page wants it seen: its ground says so, in the place of its kind
         bool major = false;            // It turns his life: framed, and its mark shown, whatever its state
         bool tile = false;             // One of several on a line: no rule under it
+        bool adventure = false;        // It takes him out of the town: its ground and its frame say so
 
         pg::_unique_id list = 0;       // The list root, once a list adopts the row
 
@@ -143,6 +146,9 @@ namespace chronicle
         std::optional<ProgressRule> progress;        // Running
         std::optional<RequirementList> reqs;         // Locked
         std::optional<Label> until;                  // When it closes, while it has something to say
+        pg::EntityRef inset, insetFrame;             // A tile's: the box in its top right corner its time stands in
+        Mark closeMark;                              // A tile's: the stopwatch of what closes,
+        std::optional<Label> closing;                // and the months left, at the right of its second line
         ActivityRowSpec spec;
         float natural = 0.0f;                        // The height its content asks, before spec.minHeight
 
@@ -159,6 +165,7 @@ namespace chronicle
         void setEach(pg::EntitySystem*, const std::string&);            // Only on a row built with an `each` line
         void setCount(pg::EntitySystem*, const std::string&);           // Only on a row built with a rank or a count
         void setUntil(pg::EntitySystem*, const std::string&, bool urgent = false);   // "" removes the line; the row follows its height
+        void setCloses(pg::EntitySystem*, int months, bool urgent = false);         // A tile's: the months left to begin it, -1 for none
         void setWidth(pg::EntitySystem*, float width);                  // The name re-fits, the rule follows
         void setMinHeight(pg::EntitySystem*, float height);             // At least that tall, whatever it holds
         float height(pg::EntitySystem*) const;       // Idle 68 (16 more a wrapped line of gains), Running 81 (15 more a wrapped line of caption), Locked 24 + 4 + list + 24
@@ -169,6 +176,8 @@ namespace chronicle
         void clearMiddle(pg::EntitySystem*);
         void buildUntil(pg::EntitySystem*);          // The closing line as the spec says: made, rewritten or removed
         void fitName(pg::EntitySystem*);             // Grows to its text, or elides in the room left
+        float tileNameWidth() const;                 // A tile's name has the tile's width, less the box of its time
+        void fitInset();                             // The box of a tile's time, around what it says
         void resize(pg::EntitySystem*);
     };
 
