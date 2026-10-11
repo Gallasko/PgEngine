@@ -65,10 +65,14 @@ turn by turn (strike, guard, a technique that costs breath, a remedy, a stance, 
 every few turns of a fight a day of the stay is gone. When the days are spent, or he turns for
 home, the walk's months run as any work's do, and the record is kept: the **Adventure page** (a
 tab beside Life and Town, there once he has somewhere to walk to) walks it again, once or in a
-queue, with no day chosen and no fight fought. What a walk brings is sold at the market
-(berries, pelts...) or kept by the town in its store (firewood, clay, ash wood, stone) for a
-place to be built of. What walks teach (a zone studied, a beast watched or fought) is the
-world's, kept from life to life; the records are the one who walked them's.
+queue, with no day chosen and no fight fought. What a walk brings is his, in his Inventory:
+some of it is sold at the market (berries, pelts...), some is what a place of the town is built
+of (firewood, clay, ash wood, stone). It ends with him: at his death, with his coin, only what
+the place he chooses still asks of it is left to that place. What walks teach (a zone studied, a
+beast watched or fought) is the world's, kept from life to life; the records are the one who
+walked them's. The on-site screen is laid as the Life page is: how he stands (his Vitality, how
+well the place is known), what he carries and the way home at the left, what he may do in the
+middle as tiles, what he has taken and the record at the right.
 
 With no `--dev` the game opens on the **Life scene** (`--dev LifeScene` names it too).
 `--dev <Scene>` picks a dev gallery instead; an unknown name exits with code 2 before a
@@ -645,7 +649,7 @@ arguments, compared by value. `Rules::nbRuns` counts the runs.
 | `achievements.pg` | - | `achievements`: `{id, kind (deed / guide / lore), name, entry, say, point, hold, order, asks[{fact, op, value}], gives[{stat, amount}], until[{fact, op, value}]}` |
 | `epitaph.pg` | `age`, `character`, `done`, `activityId` (`""`), `deeds` (the names of the deeds reached) | `epitaph`: `{cause ("He died an old man, in his thirty-third year."), story[text] (what he became, worked at, left, and what is told of him), text (the story as one paragraph), tally ("AGE 33 · WORKS 14 · COIN 31 · DEEDS 2"), ask ("" or, past `lastAge`, the line that asks for a comment or a rating)}` |
 | `town.pg` (`towntable.pg`) | `age`, `character` (with `town_known`, `town.<place>`, `fund.<place>`), `world`, `lives` | `places`: `{id, name, glyph, about, level, most, shown, gives, line, tale, built, fund, nextWork, nextName, nextMonths, nextCoin, nextYears, nextCosts, nextGives, nextLocked, gaps[{stat, label, current, needed}]}`; `start`: `[{stat, amount}]`; `opened`, `raisedLine`, `epitaphLine`, `fundLine`, `foundLine`; `gift`: `{stat, before, after, plain, chosen}` |
-| `expedition.pg` (`expeditiontable.pg`, `expeditionlib.pg`, `fightlib.pg`) | `age`, `character` (with `know.<key>` and `store.<thing>`), `who`, `seed`, `ask` (enter, act, look, records, begin, term), the walk as it stands (`run`, `record`, `marks`, `fight`, `foes`, `account`), `act` `{kind, target, count}`, the records (`recipes`, `recipeSteps`, `recipeMarks`), `walks`, `queue`, `replay` | the walk as the run leaves it; `after{stats}`, `entries`; on site `site`, `seeks`, `works`, `card`, `options`, `bag`, `taken`, `home`; a fight `duel`, `menu`, `targets`, `order`, `hero`, `foe`, `preview`; the records `shelf`, `form`, `stops`; `recipe`, `blocked`, `stopped` |
+| `expedition.pg` (`expeditiontable.pg`, `expeditionlib.pg`, `fightlib.pg`) | `age`, `character` (with `know.<key>`), `who`, `seed`, `ask` (enter, act, look, records, begin, term), the walk as it stands (`run`, `record`, `marks`, `fight`, `foes`, `account`), `act` `{kind, target, count}`, the records (`recipes`, `recipeSteps`, `recipeMarks`), `walks`, `queue`, `replay` | the walk as the run leaves it; `after{stats}`, `entries`; on site `site`, `seeks`, `works`, `card`, `options`, `bag`, `taken`, `home`; a fight `duel`, `menu`, `targets`, `order`, `hero`, `foe`, `preview`; the records `shelf`, `form`, `stops`; `recipe`, `blocked`, `stopped` |
 
 **Repetition** (`activitytable.pg`). `done` is the save's count of terms completed per activity.
 An activity may carry two optional fields:
@@ -889,13 +893,19 @@ files of their own, `expeditionlib.pg` and `fightlib.pg`, imported first: a scri
   a place of the town (`town.lodge`), a study of another zone (`know.study.hollow`). It is
   listed two years before he may go, locked. What is `sold` has a row at the market
   (`sell.<thing>`), wortleaf is brewed into remedies, and a new place of the town, the
-  **Hunters' Lodge**, is built of the store's firewood and ash wood: it opens the Hollow Woods to
-  every life, then lengthens a fight's day, then finds every beast a day sooner.
+  **Hunters' Lodge**, is built of firewood and ash wood: it opens the Hollow Woods to every
+  life, then lengthens a fight's day, then finds every beast a day sooner.
+- **What is for the town** (`walkItems` of kind `town`) is a holding like any other
+  (`resources.pg`, the *STORES* of his Inventory), a cost of the works that raise a place, and
+  lost at his death. `town.pg` says for each place what he holds of what its next level still
+  asks (`leaves`, `leaveLine`): the ending offers the places that can use his coin or any of
+  it, and the one he chooses keeps that much, under `fund.<place>.<thing>` (`LifeSave::fund`,
+  key `"<place>.<thing>"`), counted toward what the level asks as the coin left to it is.
 
 The scene's part is `Scenes/lifewalk.cpp` (LifeScene's own functions, in a file of their own):
 `beginWalk` asks for the walk and opens its screen, `walkDo` hands every press to the script and
-takes its answer (`after` becomes the character, with what the world knows and what the store
-holds: `LifeSave::takeTown`), `fillSite` and `fillFight` write the answer on the screen by name,
+takes its answer (`after` becomes the character, with what the world knows:
+`LifeSave::takeTown`), `fillSite` and `fillFight` write the answer on the screen by name,
 `endWalk` keeps the record and puts the walk's months on the calendar, `fillAdventure` shows the
 records and the form of a queue, and `beginReplay` / `homeFromWalk` walk a record again. The
 save keeps the walk under way (`LifeSave::walk`), so a game closed in the middle of a fight

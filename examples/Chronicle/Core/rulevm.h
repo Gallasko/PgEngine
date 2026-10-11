@@ -176,12 +176,13 @@ namespace chronicle
 
     // A place of the town from town.pg: {id, name, glyph, about, level, most, shown, gives, line, tale,
     // built, fund, nextWork, nextName, nextMonths, nextCoin, nextYears, nextCosts, nextGives,
-    // nextLocked} and what its next level takes from him.
+    // nextLocked, leaveLine} and what its next level takes from him.
     struct RulePlace
     {
         pg::ElementMap fields;
         pg::RecordList gaps;           // {stat, label, current, needed}: what the next level takes, against what he has
         pg::RecordList given;          // {level, built, gives}: what every level reached gives, the first first
+        pg::RecordList leaves;         // {stat, amount}: what he holds of what walks bring for the town that its next level still asks, left to it with his coin if he chooses it at his death
     };
 
     // The town as its page shows it, from town.pg.
@@ -199,7 +200,7 @@ namespace chronicle
         std::string giftAfter;         // And after it: " COIN TO"
         std::string giftNone;          // What the ending's button says with no gift chosen
         std::string giftChosen;        // And with one
-        std::string store;             // "" or what the town's store holds of what walks brought it, in one line of caps
+        std::string giftThings;        // The ending's line when he holds no coin, only things a place can use
     };
 
     // What expedition.pg answers: the walk as the run leaves it, the character as it leaves him,
@@ -212,7 +213,7 @@ namespace chronicle
         pg::RecordList entries;        // The lines it writes in the life's log: {text, kind, figure, glyph}
 
         // On site
-        pg::ElementMap site;           // {screen (site, event, fight, done), kicker, title, line, daysLeft, daysNote, vitality, knowledge, home, percent, caption, written, leave, leaveNote, watchCost, summary, scribe, refused}
+        pg::ElementMap site;           // {screen (site, event, fight, done), kicker, title, line, daysLeft, daysNote, vitality, vitalityPercent, knowledge, knowledgePercent, knowledgeNote, home, percent, caption, written, leave, leaveNote, watchCost, summary, scribe, refused}
         pg::RecordList seeks;          // The beasts he may seek: {id, mob, count, name, rank, note, cost, costText, locked, asks, short}
         pg::RecordList works;          // The field work: {id, name, note, cost, costText, locked, asks, tone}
         pg::ElementMap card;           // An event waiting for his answer: {id, title, text, foot}

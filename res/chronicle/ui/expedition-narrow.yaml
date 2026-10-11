@@ -1,9 +1,9 @@
 # A walk outside the town, on site, in one column: expedition.yaml for a window too narrow for its
 # three (a phone, a small window). The same pieces under the same names, so LifeScene fills both
 # the same way (lifewalk.cpp): the head, the strip of days, then every panel one under the other
-# in a column that scrolls, what waits for his answer first, then what he may do, the record, and
-# what he carries. The scene writes the window's width over the widths drawn here before it
-# builds the page (shapeWalk).
+# in a column that scrolls: what waits for his answer first, how he stands, what he may do, the
+# way home and what he carries, what he has taken, and the record. The scene writes the window's
+# width over the widths drawn here before it builds the page (shapeWalk).
 # z: the Overlay band, 100-129 (the veil 100, the head and the panels 104, their content 114).
 name: expedition
 children:
@@ -45,7 +45,7 @@ children:
       - {side: right, target: __MainWindow, targetSide: right, margin: 16}
       - {side: top, target: __MainWindow, targetSide: top, margin: 44}
 
-  - {kind: Label, name: headNote, x: 16, y: 84, z: 104, style: label, color: ink-muted, overflow: ellipsis, width: 358, text: "VITALITY 49 OF 90 · ZONE KNOWLEDGE 1 OF 4 · HOME AT 14.6"}
+  - {kind: Label, name: headNote, x: 16, y: 84, z: 104, style: label, color: ink-muted, overflow: ellipsis, width: 358, text: "HOME AT 14.6"}
 
   - kind: ProgressRule
     name: strip
@@ -87,9 +87,26 @@ children:
           - {kind: Label, name: cardFoot, style: gloss, color: ink-muted, overflow: wrap, text: "The choice is written to the record; a walk by the record makes it again."}
 
       - kind: Panel
+        name: statePanel
+        frame: ruled
+        width: 300
+        z: 104
+        contentZ: 114
+        heading: Aldren
+        glyph: vitality
+        children:
+          # What the walk hangs on, where it is seen: his Vitality in the field, and how well the
+          # place is known, each over its rule
+          - {kind: Label, name: vitality, style: label, overflow: wrap, text: "VITALITY 49 OF 90"}
+          - {kind: ProgressRule, name: vitalityBar, nib: false, percent: 54}
+          - {kind: Label, name: knowledge, style: label, color: lapis, overflow: wrap, text: "ZONE KNOWLEDGE 1 OF 4"}
+          - {kind: ProgressRule, name: knowledgeBar, nib: false, small: true, percent: 25}
+          - {kind: Label, name: knowledgeNote, style: body-sm, color: ink-muted, overflow: wrap, text: "Study 0 of 3 to knowledge 2: the rare beasts are listed, and every beast is found a day sooner."}
+
+      - kind: Panel
         name: seekPanel
         frame: ruled
-        width: 340
+        width: 616
         z: 104
         contentZ: 114
         heading: Seek a beast
@@ -99,7 +116,8 @@ children:
             name: seeks
             id: walk.seeks
             stripes: false
-            compact: true         # a row is its name, its cost and one line under them: how rare, how well known, how the last fight went
+            compact: true         # a tile is its name, its cost and one line under them: how rare it is and how well he knows it
+            tileWidth: 148        # as many to a line as fit at that width or more, as the choice's are on the Life page
           - kind: Layout:Horizontal
             name: seekButtons
             height: 36
@@ -125,7 +143,7 @@ children:
       - kind: Panel
         name: workPanel
         frame: ruled
-        width: 340
+        width: 616
         z: 104
         contentZ: 114
         heading: Field work
@@ -136,6 +154,7 @@ children:
             id: walk.works
             stripes: false
             compact: true
+            tileWidth: 148
           - kind: Button
             name: work
             variant: quiet
@@ -144,47 +163,6 @@ children:
             cost: 1 AP
             tag: walk.work
           - {kind: Label, name: workNote, style: body-sm, color: ink-muted, overflow: wrap, text: "Choose a work, then do it. Each one costs days of the stay, and each is a line of the record."}
-
-      - kind: Panel
-        name: recordPanel
-        frame: ruled
-        width: 616
-        z: 104
-        contentZ: 114
-        heading: The record so far
-        glyph: quill
-        aside: 11 AP WRITTEN
-        children:
-          - kind: EventLog
-            name: record
-            height: 260
-            years: false
-            steps: true          # the first column counts: a step of the record, a turn of the fight
-          - {kind: Label, name: recordNote, style: gloss, color: ink-muted, overflow: wrap, text: "Every step is walked again by the record."}
-
-      - kind: Panel
-        name: bagPanel
-        frame: ruled
-        width: 300
-        z: 104
-        contentZ: 114
-        heading: In the bag
-        glyph: trade
-        children:
-          - kind: ResourceLedger
-            name: bag
-
-      - kind: Panel
-        name: takenPanel
-        frame: ruled
-        width: 300
-        z: 104
-        contentZ: 114
-        heading: Taken so far
-        glyph: gold
-        children:
-          - kind: ResourceLedger
-            name: taken
 
       - kind: Panel
         name: homePanel
@@ -206,3 +184,44 @@ children:
             glyph: gate
             tag: walk.leave
           - {kind: Label, name: scribe, style: gloss, color: ink-muted, overflow: wrap, text: "Each day is chosen when it comes; the record remembers all of them."}
+
+      - kind: Panel
+        name: bagPanel
+        frame: ruled
+        width: 300
+        z: 104
+        contentZ: 114
+        heading: In the bag
+        glyph: trade
+        children:
+          - kind: ResourceLedger
+            name: bag
+
+      - kind: Panel
+        name: takenPanel
+        frame: ruled
+        width: 360
+        z: 104
+        contentZ: 114
+        heading: Taken so far
+        glyph: gold
+        children:
+          - kind: ResourceLedger
+            name: taken
+
+      - kind: Panel
+        name: recordPanel
+        frame: ruled
+        width: 360
+        z: 104
+        contentZ: 114
+        heading: The record so far
+        glyph: quill
+        aside: 11 AP WRITTEN
+        children:
+          - kind: EventLog
+            name: record
+            height: 260
+            years: false
+            steps: true          # the first column counts: a step of the record, a turn of the fight
+          - {kind: Label, name: recordNote, style: gloss, color: ink-muted, overflow: wrap, text: "Every step is walked again by the record."}

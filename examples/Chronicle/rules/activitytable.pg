@@ -545,9 +545,15 @@ for (var t = 0; t < len(townPlaces); t++)
 
         var also = listOf(step, "costs")
 
+        // (and of what else was left to the place: "fund.<place>.<thing>")
         for (var c = 0; c < len(also); c++)
         {
-            push(asked, {stat: also[c].stat, amount: also[c].amount})
+            var need = also[c].amount - statOf(character, "fund." + place.id + "." + also[c].stat)
+
+            if (need > 0)
+            {
+                push(asked, {stat: also[c].stat, amount: need})
+            }
         }
 
         var says = "FOR THE TOWN"

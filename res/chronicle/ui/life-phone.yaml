@@ -160,7 +160,6 @@ children:
             compact: true
             tileWidth: 148
           - {kind: Label, name: raised, style: label, color: ink-muted, overflow: wrap, width: 334, text: ""}
-          - {kind: Label, name: townStore, style: label, color: ink-muted, overflow: wrap, width: 334, text: ""}
       # The Adventure page: it takes the choice's place in this column once he has somewhere to walk
       # to (LifeScene::showAdventure, lifewalk.cpp). The records of the walks he made by hand, then the
       # form of a queue: the chosen record walked again, so many times, with no fight fought

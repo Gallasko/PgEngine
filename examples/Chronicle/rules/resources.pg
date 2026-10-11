@@ -100,9 +100,9 @@ var ties = ["watch_known", "street_known", "choir", "edric_support", "library_ac
             "guild_clerk", "guild_ledgers", "guild_enemy", "heat_reduced", "great_job_planned", "crew_ready",
             "band", "hedges_known", "bow_learned"]
 
-// What a walk brings home and he keeps (expeditiontable.pg's `walkItems`): a remedy to drink in
-// the field, and what is sold at the market. What is the town's is not his to hold: it goes to
-// the town's store
+// What a walk brings home (expeditiontable.pg's `walkItems`): a remedy to drink in the field,
+// what is sold at the market, and what a place of the town is built of. He holds all of it, and
+// it ends with him: only what a place still asks can be left to it at his death (town.pg)
 for (var w = 0; w < len(walkItems); w++)
 {
     var thing = walkItems[w]
@@ -117,6 +117,12 @@ for (var w = 0; w < len(walkItems); w++)
     {
         push(holdings, {id: thing.id, group: "stores", groupLabel: "STORES", glyph: thing.glyph, name: thing.name, tone: 0,
                         about: "Brought home from a walk. The market buys it."})
+    }
+
+    if (thing.kind == "town")
+    {
+        push(holdings, {id: thing.id, group: "stores", groupLabel: "STORES", glyph: thing.glyph, name: thing.name, tone: 0,
+                        about: "Brought home from a walk. The places of the town are built of it. At his death, what a place still asks of it can be left to that place; the rest is lost."})
     }
 }
 

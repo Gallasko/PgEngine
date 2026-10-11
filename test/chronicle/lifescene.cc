@@ -5803,8 +5803,12 @@ namespace pg
             f.settle();
             answerEvents(f, life);
 
-            EXPECT_GE(life->save.store["firewood"], 2);
-            EXPECT_EQ(life->save.stats.count("store.firewood"), 0u);
+            // What is for the town is his to hold, in his inventory like the rest
+            EXPECT_GE(life->save.stats["firewood"], 2);
+
+            auto ledger = life->piece<ResourceLedger>("ledger");
+            ASSERT_NE(ledger, nullptr);
+            EXPECT_NE(ledger->row("firewood"), nullptr);
             EXPECT_EQ(life->save.knowledge["visit.hedgerows"], 1);
 
             // Home is asked twice
@@ -5894,7 +5898,7 @@ namespace pg
             EXPECT_EQ(life->piece<Button>("walkMany")->label.spec.text, "Queue 3");
 
             const int berries = life->save.stats["berries"];
-            const int firewood = life->save.store["firewood"];
+            const int firewood = life->save.stats["firewood"];
             const int gathered = berries - 3;   // What the record picked: the hedges gave him three before it
 
             f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.many"});
@@ -5913,7 +5917,7 @@ namespace pg
             f.settle();
 
             EXPECT_EQ(life->save.stats["berries"], berries + gathered);
-            EXPECT_GT(life->save.store["firewood"], firewood);
+            EXPECT_GT(life->save.stats["firewood"], firewood);
             EXPECT_EQ(life->save.walksByRecord, 1);
             EXPECT_EQ(life->save.running, "walk.hedgerows");
             EXPECT_EQ(life->save.queue.left, 1);
@@ -6081,7 +6085,7 @@ namespace pg
             ASSERT_TRUE(life->onWalk());
 
             auto inside = [&](float width, float height) {
-                for (const char* name : {"veil", "kicker", "zoneTitle", "daysLeft", "strip", "walkLeft", "workPanel", "recordPanel", "bagPanel", "homePanel"})
+                for (const char* name : {"veil", "kicker", "zoneTitle", "daysLeft", "strip", "walkLeft", "statePanel", "workPanel", "recordPanel", "bagPanel", "homePanel"})
                 {
                     EntityRef part = walkPart(life, name);
                     ASSERT_FALSE(part.empty()) << name;
@@ -6102,18 +6106,30 @@ namespace pg
             EXPECT_FALSE(life->walkNarrow);
             inside(1320.0f, 1020.0f);
 
-            // Nothing waits for his answer: the card is out of its column, and the record stands at
-            // the column's head. So does what he has taken while he has taken nothing
+            // Nothing waits for his answer and no beast lives there: the card and the seeking are
+            // out of their column, and what he may do stands at its head. So does the record while
+            // he has taken nothing
             f.pass(100.0f, 50.0f);
 
             EXPECT_FALSE(f.pos(walkPart(life, "cardPanel"))->visible);
-            EXPECT_NEAR(f.pos(walkPart(life, "recordPanel"))->y, f.pos(walkPart(life, "workPanel"))->y, 0.5f);
+            EXPECT_FALSE(f.pos(walkPart(life, "seekPanel"))->visible);
+            EXPECT_NEAR(f.pos(walkPart(life, "workPanel"))->y, f.pos(walkPart(life, "statePanel"))->y, 0.5f);
             EXPECT_FALSE(f.pos(walkPart(life, "takenPanel"))->visible);
-            EXPECT_NEAR(f.pos(walkPart(life, "homePanel"))->y, f.pos(walkPart(life, "bagPanel"))->y + f.pos(walkPart(life, "bagPanel"))->height + 12.0f, 0.5f);
+            EXPECT_NEAR(f.pos(walkPart(life, "recordPanel"))->y, f.pos(walkPart(life, "statePanel"))->y, 0.5f);
 
-            // Three columns side by side: the record stands between what he may do and what he carries
+            // How he stands is said where it is seen, at the head of the left column
+            EXPECT_EQ(walkPart(life, "vitality")->get<Label>()->spec.text, "VITALITY 40 OF 40");
+            EXPECT_EQ(walkPart(life, "knowledge")->get<Label>()->spec.text, "ZONE KNOWLEDGE 1 OF 4");
+            EXPECT_LT(f.pos(walkPart(life, "statePanel"))->y, f.pos(walkPart(life, "bagPanel"))->y);
+            EXPECT_LT(f.pos(walkPart(life, "bagPanel"))->y, f.pos(walkPart(life, "homePanel"))->y);
+
+            // And what he may do is tiles, as the choice is on the Life page
+            EXPECT_GE(walkPart(life, "works")->get<ActivityList>()->columns(), 2);
+
+            // Three columns side by side, laid as the Life page is: what he may do stands between
+            // what he carries and the record
+            EXPECT_GT(f.pos(walkPart(life, "workPanel"))->x, f.pos(walkPart(life, "bagPanel"))->x + f.pos(walkPart(life, "bagPanel"))->width - 0.5f);
             EXPECT_GT(f.pos(walkPart(life, "recordPanel"))->x, f.pos(walkPart(life, "workPanel"))->x + f.pos(walkPart(life, "workPanel"))->width - 0.5f);
-            EXPECT_GT(f.pos(walkPart(life, "bagPanel"))->x, f.pos(walkPart(life, "recordPanel"))->x + f.pos(walkPart(life, "recordPanel"))->width - 0.5f);
 
             // A smaller window: the same three, the middle one narrower
             f.resize(1100.0f, 800.0f);
@@ -6137,6 +6153,66 @@ namespace pg
             life->walkDo(WalkAct{"gather", "berries", 0});
             f.settle();
             EXPECT_GE(walkPart(life, "record")->get<EventLog>()->size(), 1u);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // What his walks brought for the town ends with him, but for what the place he leaves his
+        // coin to still asks: that much is left to it, and the next life finds the place asking less.
+        TEST(lifescene_test, gift_at_death_leaves_what_the_place_asks)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = f.life();
+            ASSERT_NE(life, nullptr);
+
+            f.frames(12);
+
+            // No coin, but firewood and stone; the lodge is a place a life before him found
+            life->save.stats["coin"] = 0;
+            life->save.stats["firewood"] = 32;
+            life->save.stats["ashwood"] = 4;
+            life->save.stats["stone"] = 9;
+            life->save.seen.push_back("lodge");
+            life->save.stats["rations"] = 0;
+            life->save.stats["vit"] = 1;
+            life->onMonth();
+            f.frames(12);
+
+            ASSERT_TRUE(life->ended);
+            ASSERT_FALSE(life->ending.empty());
+
+            auto prefab = life->ending->get<Prefab>();
+
+            // The one place that asks for any of it is offered, with what it would take
+            EntityRef line = prefab->findEntity("giftLabel");
+            ASSERT_FALSE(line.empty());
+            EXPECT_TRUE(f.pos(line)->visible);
+            EXPECT_EQ(line->get<Label>()->spec.text, "LEAVE WHAT A PLACE CAN USE TO");
+
+            ASSERT_EQ(life->gifts.size(), 1u);
+            EXPECT_EQ(life->gifts[0].first, "lodge");
+            EXPECT_NE(life->gifts[0].second.spec.label.find("20 firewood, 4 ash wood"), std::string::npos);
+
+            f.ecs.sendEvent(ButtonActivatedEvent{life->gifts[0].second.face.id, "life.gift.lodge"});
+            f.settle();
+            ASSERT_EQ(life->gift, "lodge");
+
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "life.again"});
+            f.frames(12);
+
+            // No more than its next level asks, and nothing of what it does not ask
+            ASSERT_FALSE(life->ended);
+            EXPECT_EQ(life->save.fund["lodge.firewood"], 20);
+            EXPECT_EQ(life->save.fund["lodge.ashwood"], 4);
+            EXPECT_EQ(life->save.fund.count("lodge.stone"), 0u);
+            EXPECT_EQ(life->save.fund.count("lodge"), 0u);
+
+            // The new life holds none of it: what was not left is lost
+            EXPECT_EQ(life->save.stats.count("firewood"), 0u);
+            EXPECT_EQ(life->save.stats.count("stone"), 0u);
         }
 
         // ----------------------------------------------------------------------------------------

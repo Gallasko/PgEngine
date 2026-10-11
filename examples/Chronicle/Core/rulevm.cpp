@@ -932,7 +932,7 @@ namespace chronicle
         ElementType fundLine;
         ElementType foundLine;
 
-        if (not s.run() or not s.get("places", {"gaps", "given"}, records) or not s.get("start", out.start))
+        if (not s.run() or not s.get("places", {"gaps", "given", "leaves"}, records) or not s.get("start", out.start))
             return fail(s);
 
         if (not s.get("opened", opened) or not s.get("raisedLine", raisedLine) or not s.get("epitaphLine", epitaphLine) or not s.get("fundLine", fundLine) or not s.get("foundLine", foundLine))
@@ -945,6 +945,7 @@ namespace chronicle
             place.fields = std::move(record.fields);
             place.gaps = std::move(record.lists[0]);
             place.given = std::move(record.lists[1]);
+            place.leaves = std::move(record.lists[2]);
 
             out.places.push_back(std::move(place));
         }
@@ -954,13 +955,6 @@ namespace chronicle
         out.epitaphLine = epitaphLine.toString();
         out.fundLine = fundLine.toString();
         out.foundLine = foundLine.toString();
-
-        ElementType store;
-
-        if (not s.get("store", store))
-            return fail(s);
-
-        out.store = store.toString();
 
         // The words of the gift at death
         ElementMap words;
@@ -973,6 +967,7 @@ namespace chronicle
         out.giftAfter = text(words, "after");
         out.giftNone = text(words, "plain");
         out.giftChosen = text(words, "chosen");
+        out.giftThings = text(words, "things");
 
         keep(townFor, age, character);
         keptTown = out;

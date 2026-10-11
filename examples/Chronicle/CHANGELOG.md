@@ -26,9 +26,11 @@ the `CHANGELOG.md` at the root of the repository.
 - **Knowledge.** Studying a place and watching a beast are kept by the world, from life to life:
   beasts get cheaper to find, you see their vitality and what they will do next, then their
   weakness, and a place you know well lets you stay longer.
-- **Things to sell, and things for the town.** Berries, wortleaf, fish, reeds, pelts, hides,
+- **Things to sell, and things to build with.** Berries, wortleaf, fish, reeds, pelts, hides,
   fangs are sold at the market. Wortleaf can be brewed into remedies. Firewood, clay, ash wood
-  and stone go to the town's store, and stay there between lives.
+  and stone are what places of the town are built of. All of it is in your Inventory, and all of
+  it is lost when the life ends, except what the place you leave your coin to still needs: that
+  much stays with the place, and the next life finds it asking less.
 - **The Hunters' Lodge.** A tenth place in town, shown once you have walked the Hollow Woods and
   built of what your walks brought back. It opens the Hollow Woods to every later life.
 - **Events on the way.** Now and then something waits for an answer: a nest in the hedge, a

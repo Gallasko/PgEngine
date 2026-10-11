@@ -23,7 +23,11 @@
 //            nextCosts  what the next level asks, in one line: "6 mo · 20 coin · 1 Strength"
 //            nextGives  what it will give
 //            nextLocked true while he cannot pay for it
-//            gaps [{stat, label, current, needed}]: what it takes from him, against what he has}
+//            gaps [{stat, label, current, needed}]: what it takes from him, against what he has
+//            leaves [{stat, amount}], leaveLine ("12 firewood, 4 ash wood"): what he holds of what
+//                    walks bring for the town that the next level still asks, left to the place
+//                    with his coin if it is the one he chooses at his death ("fund.<id>.<thing>"
+//                    in `character`, counted toward what the level asks as the coin is)}
 //         `start`, [{stat, amount}]: what a new life is born with for the town as it stands
 //         (the `start` of every level reached). The Life screen adds them to a life that is not
 //         the first of its world.
@@ -33,12 +37,10 @@
 //         inn tells it from its second level.
 //         `fundLine`, what the gloss of a place writes before the coin left to it.
 //         `foundLine`, what follows a place's name in the line said the month it comes onto the page.
-//         `store`, "" or what the town's store holds of what walks brought it, in one line of
-//         caps: "THE TOWN'S STORE · FIREWOOD 25 · ASH WOOD 12" (expeditiontable.pg's `town` things,
-//         "store.<thing>" in `character`).
 //         `gift`, the gift a life may make at its death: {stat (what of his is left to a place:
 //         it joins the place's fund), before and after (the ending's line around the amount),
-//         plain and chosen (what the ending's button says without a gift, and with one)}.
+//         plain and chosen (what the ending's button says without a gift, and with one), things (the
+//         ending's line when he holds no coin, only things a place can use)}.
 //         (`none` is a word of the language, and cannot name a field.)
 //
 // No function here: lib.pg holds them all, ahead of every table (see there why).
@@ -52,31 +54,13 @@ import "expeditiontable"
 
 var errors = []
 
-// What walks have brought back for the town (expeditiontable.pg's `town` things), in one line of
-// caps, "" while its store holds nothing: the works that raise a place take from it
-var store = ""
-
-for (var w = 0; w < len(walkItems); w++)
-{
-    var thing = walkItems[w]
-
-    if (thing.kind == "town" and statOf(character, "store." + thing.id) > 0)
-    {
-        if (store == "")
-        {
-            store = "THE TOWN'S STORE"
-        }
-
-        store = store + " · " + toUpperCase(thing.name) + " " + toString(statOf(character, "store." + thing.id))
-    }
-}
 
 var opened = "He knows the town street by street: the Town page is open"
 var raisedLine = " stands in Bellmoor: the town will keep it"
 var fundLine = "Left to it by those before him"
 var foundLine = " is his to raise now: it has come onto the Town page"
 var epitaphLine = ""
-var gift = {stat: "coin", before: "LEAVE HIS ", after: " COIN TO", plain: "Begin a new life", chosen: "Leave it, and begin a new life"}
+var gift = {stat: "coin", before: "LEAVE HIS ", after: " COIN TO", things: "LEAVE WHAT A PLACE CAN USE TO", plain: "Begin a new life", chosen: "Leave it, and begin a new life"}
 
 if (statOf(character, "town.inn") >= 2)
 {
@@ -97,7 +81,7 @@ for (var t = 0; t < len(townPlaces); t++)
                  shown: placeShown(place, character, monthOf(age), done, lives),
                  gives: "", line: "NOT YET BUILT", tale: "", built: "", fund: fund,
                  nextWork: "", nextName: "", nextMonths: 0, nextCoin: 0, nextYears: 0, nextCosts: "", nextGives: "", nextLocked: false,
-                 gaps: [], given: []}
+                 gaps: [], given: [], leaves: [], leaveLine: ""}
 
     // What it gives is what every level reached gives: none takes the place of the one before
     for (var l = 0; l < level; l++)
@@ -185,15 +169,41 @@ for (var t = 0; t < len(townPlaces); t++)
                 }
             }
 
-            if (not isCap)
+            // What lives before him left the place of it counts toward what it asks, as their coin does
+            var need = clamp(also[c].amount - statOf(character, "fund." + place.id + "." + also[c].stat), 0, also[c].amount)
+
+            if (not isCap and need > 0)
             {
-                asks = asks + " · " + toString(also[c].amount) + " " + statName(also[c].stat)
-                push(shown.gaps, {stat: also[c].stat, label: statName(also[c].stat), current: statOf(character, also[c].stat), needed: also[c].amount})
+                asks = asks + " · " + toString(need) + " " + statName(also[c].stat)
+                push(shown.gaps, {stat: also[c].stat, label: statName(also[c].stat), current: statOf(character, also[c].stat), needed: need})
             }
 
-            if (statOf(character, also[c].stat) < also[c].amount)
+            if (statOf(character, also[c].stat) < need)
             {
                 shown.nextLocked = true
+            }
+
+            // And what he holds of it would be left to the place at his death, no more than it
+            // still asks: what a walk brings for the town (expeditiontable.pg's `town` things) is
+            // lost with him otherwise
+            for (var w = 0; w < len(walkItems); w++)
+            {
+                if (walkItems[w].kind == "town" and walkItems[w].id == also[c].stat)
+                {
+                    var given = clamp(statOf(character, also[c].stat), 0, need)
+
+                    if (given > 0)
+                    {
+                        push(shown.leaves, {stat: also[c].stat, amount: given})
+
+                        if (shown.leaveLine != "")
+                        {
+                            shown.leaveLine = shown.leaveLine + ", "
+                        }
+
+                        shown.leaveLine = shown.leaveLine + toString(given) + " " + toLowerCase(walkItems[w].name)
+                    }
+                }
             }
         }
 

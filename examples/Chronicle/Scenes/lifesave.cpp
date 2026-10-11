@@ -215,7 +215,6 @@ namespace pg
         serialize(archive, "seen", value.seen);
         serialize(archive, "told", value.told);
         serialize(archive, "knowledge", value.knowledge);
-        serialize(archive, "store", value.store);
         serialize(archive, "walk", value.walk);
         serialize(archive, "recipes", value.recipes);
         serialize(archive, "queue", value.queue);
@@ -265,7 +264,6 @@ namespace pg
         defaultDeserialize(serialized, "seen", data.seen);
         defaultDeserialize(serialized, "told", data.told);
         defaultDeserialize(serialized, "knowledge", data.knowledge);
-        defaultDeserialize(serialized, "store", data.store);
         defaultDeserialize(serialized, "walk", data.walk);
         defaultDeserialize(serialized, "recipes", data.recipes);
         defaultDeserialize(serialized, "queue", data.queue);
@@ -277,6 +275,15 @@ namespace pg
         defaultDeserialize(serialized, "running", data.running);
         defaultDeserialize(serialized, "monthsIn", data.monthsIn);
         defaultDeserialize(serialized, "stats", data.stats);
+
+        // A save of the first build of the walks kept what they brought for the town in a store of
+        // the town's: it is his again, among what he holds
+        std::unordered_map<std::string, int> store;
+        defaultDeserialize(serialized, "store", store);
+
+        for (const auto& [thing, amount] : store)
+            data.stats[thing] += amount;
+
         defaultDeserialize(serialized, "parts", data.parts);
         defaultDeserialize(serialized, "skills", data.skills);
         defaultDeserialize(serialized, "resources", data.resources);
@@ -308,9 +315,8 @@ namespace chronicle
         const std::string TownFund = "fund.";
         const std::string TownSeen = "seen.";
 
-        // And what else is the world's: what walks have taught, and what they brought for the town
+        // And what else is the world's: what walks have taught
         const std::string Known = "know.";
-        const std::string Stored = "store.";
 
         std::string textOf(const ElementMap& map, const std::string& key)
         {
@@ -342,15 +348,12 @@ namespace chronicle
         for (const auto& [key, value] : knowledge)
             map[Known + key] = ElementType{value};
 
-        for (const auto& [thing, amount] : store)
-            map[Stored + thing] = ElementType{amount};
-
         return map;
     }
 
     bool LifeSave::ofTheTown(const std::string& key)
     {
-        return key == TownKnown or key.rfind(TownLevel, 0) == 0 or key.rfind(TownFund, 0) == 0 or key.rfind(TownSeen, 0) == 0 or key.rfind(Known, 0) == 0 or key.rfind(Stored, 0) == 0;
+        return key == TownKnown or key.rfind(TownLevel, 0) == 0 or key.rfind(TownFund, 0) == 0 or key.rfind(TownSeen, 0) == 0 or key.rfind(Known, 0) == 0;
     }
 
     bool LifeSave::takeTown(const std::string& key, int value)
@@ -361,12 +364,9 @@ namespace chronicle
         if (key == TownKnown and value > 0)
             townKnown = true;
 
-        // What is known only grows; the store is filled by a walk and emptied by a work
+        // What is known is what the scripts say it is: a walk teaches
         if (key.rfind(Known, 0) == 0)
             knowledge[key.substr(Known.size())] = value;
-
-        if (key.rfind(Stored, 0) == 0)
-            store[key.substr(Stored.size())] = value;
 
         return true;
     }

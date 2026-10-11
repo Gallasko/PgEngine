@@ -525,14 +525,14 @@ var statNames = {
     pelts: "Pelts",
     hides: "Hides",
     fangs: "Fangs",
-    antler: "White antlers"
+    antler: "White antlers",
+    firewood: "Firewood",
+    clay: "Clay",
+    ashwood: "Ash wood",
+    stone: "Stone"
 }
 
-// What is kept for the town, and what a walk leaves in him: their keys hold a dot
-statNames["store.firewood"] = "Firewood in the town's store"
-statNames["store.clay"] = "Clay in the town's store"
-statNames["store.ashwood"] = "Ash wood in the town's store"
-statNames["store.stone"] = "Stone in the town's store"
+// What a walk leaves in him: their keys hold a dot
 statNames["walked.hedgerows"] = "Walked the Hedgerows"
 statNames["walked.millpond"] = "Walked Mill Pond"
 statNames["walked.hollow"] = "Walked the Hollow Woods"
@@ -590,7 +590,8 @@ var statShort = {
     hedges_known: "HEDGES",
     bow_learned: "BOW",
     remedy: "REMEDY",
-    antler: "ANTLER"
+    antler: "ANTLER",
+    ashwood: "ASH WOOD"
 }
 
 // The most of a stat he can hold at once. A stat not listed has no limit. The limit closes

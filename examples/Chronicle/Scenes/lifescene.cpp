@@ -68,7 +68,6 @@ namespace chronicle
         constexpr const char * const MarketName = "marketRows";
         constexpr const char * const WorksName = "townWorks";
         constexpr const char * const RaisedName = "raised";
-        constexpr const char * const StoreName = "townStore";   // What walks have brought for the town, under who raised what
         constexpr const char * const GiftTag = "life.gift.";   // Followed by the place's id: the ending's buttons
         constexpr float GiftGap = 6.0f;            // Between two of them
         constexpr int MonthsAYear = 12;
@@ -354,7 +353,7 @@ namespace chronicle
 
             if (NodeSpec* may = childNamed(page, "may"))
             {
-                for (const char* name : {"town", "places", "worksHead", "townWorks", "marketHead", "marketRows", "raised", "townStore",
+                for (const char* name : {"town", "places", "worksHead", "townWorks", "marketHead", "marketRows", "raised",
                                          "adventure", "recordsHead", "records", "recordsNote", "queueHead", "queueTitle", "queueCount", "queueTake", "queueUse",
                                          "queueBring", "queueTeach", "queueWarn", "queueGo", "atWalk"})
                     setProp(childNamed(*may, name), "width", inner);
@@ -3129,6 +3128,17 @@ namespace chronicle
         {
             if (auto held = save.stats.find(giftStat()); held != save.stats.end() and held->second > 0)
                 save.fund[gift] += held->second;
+
+            // And of what his walks brought for the town, what that place's next level still asks:
+            // the rest ends with him
+            for (const auto& place : town.places)
+            {
+                if (textOf(place.fields, "id") != gift)
+                    continue;
+
+                for (const auto& left : place.leaves)
+                    save.fund[gift + "." + textOf(left, "stat")] += intOf(left, "amount");
+            }
         }
 
         newLife();
@@ -4196,7 +4206,7 @@ namespace chronicle
                 list->setSize(ecsRef, width, 0.0f);
         }
 
-        for (const char* name : {"worksHead", "marketHead", RaisedName, StoreName})
+        for (const char* name : {"worksHead", "marketHead", RaisedName})
         {
             if (auto label = piece<Label>(name))
                 label->setWidth(ecsRef, width);
@@ -4402,10 +4412,6 @@ namespace chronicle
 
         if (auto label = piece<Label>(RaisedName); label and label->spec.text != raised)
             label->setText(ecsRef, raised);
-
-        // What walks have brought back for the town, as the rules name it
-        if (auto label = piece<Label>(StoreName); label and label->spec.text != town.store)
-            label->setText(ecsRef, town.store);
     }
 
     void LifeScene::openTown()
@@ -4459,7 +4465,15 @@ namespace chronicle
     void LifeScene::raisePlace(const std::string& place, int level)
     {
         save.town[place] = level;
-        save.fund.erase(place);
+
+        // What was left to it went into the level: its coin, and each thing under "<place>.<thing>"
+        for (auto it = save.fund.begin(); it != save.fund.end();)
+        {
+            if (it->first == place or it->first.rfind(place + ".", 0) == 0)
+                it = save.fund.erase(it);
+            else
+                ++it;
+        }
 
         // Who raised it, and when: the world's year as the head writes it
         std::vector<RuleMilestone> passed;
@@ -4532,12 +4546,15 @@ namespace chronicle
 
         std::vector<const RulePlace*> open;
 
-        if (amount > 0 and rules.town(save.age, save.character(), town))
+        if (save.townKnown and rules.town(save.age, save.character(), town))
         {
             for (const auto& place : town.places)
             {
-                // The places on his page that can still be raised
-                if (boolOf(place.fields, "shown") and intOf(place.fields, "level") < intOf(place.fields, "most"))
+                // The places on his page that can still be raised, and that he has something
+                // for: coin, or what a walk brought that the place still asks
+                const bool raisable = boolOf(place.fields, "shown") and intOf(place.fields, "level") < intOf(place.fields, "most");
+
+                if (raisable and (amount > 0 or not place.leaves.empty()))
                     open.push_back(&place);
             }
         }
@@ -4559,7 +4576,7 @@ namespace chronicle
             return;
 
         if (line->has<Label>())
-            line->get<Label>()->setText(ecsRef, town.giftBefore + std::to_string(amount) + town.giftAfter);
+            line->get<Label>()->setText(ecsRef, amount > 0 ? town.giftBefore + std::to_string(amount) + town.giftAfter : town.giftThings);
 
         // One small button a place, as many to a line as the leaf holds
         const float width = rows->get<PositionComponent>()->width;
@@ -4575,6 +4592,10 @@ namespace chronicle
             spec.label = textOf(place->fields, "name");
             spec.glyph = textOf(place->fields, "glyph");
             spec.tag = GiftTag + textOf(place->fields, "id");
+
+            // What it would take of what his walks brought, beside his coin
+            if (const std::string things = textOf(place->fields, "leaveLine"); not things.empty())
+                spec.label += " \xC2\xB7 " + things;
             spec.z = z;
 
             Button button = makeButton(ecsRef, spec);
@@ -5038,10 +5059,9 @@ namespace chronicle
         save.seen = last.seen;
         save.told = last.told;
 
-        // And so is what its walks have taught, and what they brought to the town's store. The
-        // records are the one who walked them's: a new life has none
+        // And so is what its walks have taught. The records are the one who walked them's, and
+        // so is what they brought him: a new life has neither
         save.knowledge = last.knowledge;
-        save.store = last.store;
 
         closeWalk();
         walk = RuleWalk{};

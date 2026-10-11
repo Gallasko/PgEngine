@@ -41,15 +41,13 @@ namespace chronicle
         bool townKnown = false;        // A life has explored the town: its page is open, for every later life as well
         std::unordered_map<std::string, int> town;              // Place id -> its level; a place not raised yet has no key
         std::unordered_map<std::string, std::string> raisedBy;  // Place id -> the life that raised it last and the world's year then: his name, a middle dot, "YEAR 4"
-        std::unordered_map<std::string, int> fund;              // Place id -> the coin lives left to it at their death, counted toward its next level
+        std::unordered_map<std::string, int> fund;              // Place id -> the coin lives left to it at their death, counted toward its next level; "<place>.<thing>" -> what they left it of a thing its next level asks (firewood, stone)
         std::vector<std::string> told;                          // The guide's steps that are said once in a world (achievements.pg's `world`), by id: said, in this life or one before
         std::vector<std::string> seen;                          // The places a life has had on its Town page: the page grows with age and class, and what it has shown it keeps showing
 
         // What walks outside the town have taught is the world's as well: a zone studied, a beast
-        // watched or fought, what it was seen to drop. And so is the town's store, what walks
-        // brought back for its places. A save from before the walks reads none of either
+        // watched or fought, what it was seen to drop. A save from before the walks reads none
         std::unordered_map<std::string, int> knowledge;         // "visit.<zone>", "study.<zone>", "observe.<mob>", "fights.<mob>", "drop.<mob>.<item>", "low.<mob>", "high.<mob>"
-        std::unordered_map<std::string, int> store;             // Thing id -> how much of it the town holds
 
         // His walks are his own: the one he is on, the records he keeps of those he made by hand,
         // and the queue that walks one of them again. A new life has none
@@ -81,20 +79,17 @@ namespace chronicle
         // The character as the rule scripts read it: every stat, and the town with them, which is
         // not his but which the rules read the same way: "town_known" (1 or 0), "town.<place>" its
         // level, "fund.<place>" the coin left to it and "seen.<place>" (1) for a place already
-        // on the Town page. And, the same way, what the world knows ("know.<key>") and what the
-        // town's store holds ("store.<thing>").
+        // on the Town page. And, the same way, what the world knows ("know.<key>").
         pg::ElementMap character() const;
 
         // Whether a key of what a script hands back is the world's and not a stat of his: the
-        // town's, what is known of the lands outside it ("know.<key>") or the town's store
-        // ("store.<thing>").
+        // town's, or what is known of the lands outside it ("know.<key>").
         static bool ofTheTown(const std::string& key);
 
         // A key of what a script hands back, when it is the world's: true, and it is not to be
         // written among his stats. Coming to know the town is the one thing a script does to the
         // town this way (`townKnown`); its levels and its funds are the Life screen's to write.
-        // What is known and what the store holds are the scripts' to write: a walk teaches and
-        // fills, a work for the town takes.
+        // What is known is the scripts' to write: a walk teaches.
         bool takeTown(const std::string& key, int value);
 
         // The levels of every place of the town, added up.

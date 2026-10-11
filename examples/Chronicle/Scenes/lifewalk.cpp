@@ -94,8 +94,9 @@ namespace chronicle
         constexpr float WalkGap = 12.0f;
         constexpr float WalkScroll = 4.0f;         // A column's lane past its panels
         constexpr float SiteTop = 136.0f;
-        constexpr float SiteLeft = 340.0f;
-        constexpr float SiteRight = 300.0f;
+        constexpr float SiteLeft = 300.0f;         // As the Life page's: how he stands and what he holds at the left,
+        constexpr float SiteRight = 360.0f;        // what has happened at the right, the choice between them
+        constexpr float TakenRoom = 200.0f;        // What he has taken, over the record: the record has the column's rest
         constexpr float FightTop = 118.0f;
         constexpr float FightLeft = 280.0f;
         constexpr float FightRight = 376.0f;
@@ -288,7 +289,7 @@ namespace chronicle
                 setProp(childNamed(page, "walkLeft"), "width", whole + WalkScroll);
                 setProp(childNamed(page, "walkLeft"), "height", tall);
 
-                for (const char* name : {"seekPanel", "workPanel", "cardPanel", "recordPanel", "bagPanel", "takenPanel", "homePanel",
+                for (const char* name : {"statePanel", "seekPanel", "workPanel", "cardPanel", "recordPanel", "bagPanel", "takenPanel", "homePanel",
                                          "heroPanel", "foePanel", "menuPanel", "previewPanel", "accountPanel"})
                     setProp(childNamed(page, name), "width", whole);
 
@@ -304,16 +305,16 @@ namespace chronicle
 
             setProp(childNamed(page, "walkMiddle"), "width", middle + WalkScroll);
 
-            for (const char* name : {"cardPanel", "recordPanel", "menuPanel"})
+            for (const char* name : {"cardPanel", "seekPanel", "workPanel", "menuPanel"})
                 setProp(childNamed(page, name), "width", middle);
 
-            for (const char* name : {"previewPanel", "accountPanel"})
+            for (const char* name : {"takenPanel", "recordPanel", "previewPanel", "accountPanel"})
                 setProp(childNamed(page, name), "width", right);
 
-            // A log is a panel's child: found in it, not in the page. The record has its column to
-            // itself; the account stands under what the choice would do
+            // A log is a panel's child: found in it, not in the page. The record stands under what
+            // he has taken, the account under what the choice would do
             if (NodeSpec* holder = childNamed(page, "recordPanel"))
-                setProp(childNamed(*holder, "record"), "height", logHeight(tall));
+                setProp(childNamed(*holder, "record"), "height", logHeight(tall - TakenRoom));
 
             if (NodeSpec* holder = childNamed(page, "accountPanel"))
                 setProp(childNamed(*holder, "account"), "height", logHeight(tall - PreviewRoom));
@@ -897,7 +898,7 @@ namespace chronicle
         if (not walkNarrow)
         {
             if (auto log = walkPiece<EventLog>("record"))
-                log->setHeight(ecsRef, logHeight(tall));
+                log->setHeight(ecsRef, logHeight(tall - TakenRoom));
 
             if (auto log = walkPiece<EventLog>("account"))
                 log->setHeight(ecsRef, logHeight(tall - PreviewRoom));
@@ -915,7 +916,22 @@ namespace chronicle
         walkSay("zoneLine", textOf(site, "line"));
         walkSay("daysLeft", textOf(site, "daysLeft"));
         walkSay("daysNote", textOf(site, "daysNote"));
-        walkSay("headNote", textOf(site, "vitality") + " \xC2\xB7 " + textOf(site, "knowledge") + " \xC2\xB7 " + textOf(site, "home"));
+        walkSay("headNote", textOf(site, "home"));
+
+        // How he stands, at the head of the left column: his Vitality in the field and how well
+        // the place is known, each over its rule, and what knowing it better would bring
+        if (auto panel = walkPiece<Panel>("statePanel"); panel and panel->title and panel->title->spec.text != save.name)
+            panel->setHeading(ecs, save.name);
+
+        walkSay("vitality", textOf(site, "vitality"));
+        walkSay("knowledge", textOf(site, "knowledge"));
+        walkSay("knowledgeNote", textOf(site, "knowledgeNote"));
+
+        for (auto [name, key] : {std::pair<const char*, const char*>{"vitalityBar", "vitalityPercent"}, {"knowledgeBar", "knowledgePercent"}})
+        {
+            if (auto bar = walkPiece<ProgressRule>(name))
+                bar->setPercent(ecs, static_cast<float>(intOf(site, key)), not walkFresh);
+        }
 
         // The strip of days: what is spent solid, what is left of the stay hatched after it
         if (auto strip = walkPiece<ProgressRule>("strip"))

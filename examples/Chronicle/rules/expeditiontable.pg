@@ -7,10 +7,11 @@
 //         `walkItems`  what a walk gathers, uses or brings home:
 //                        {id, name, one (one of it), glyph, kind (food | remedy | sold | town), heals?,
 //                         lot?, coin?}
-//                      `sold` is his, kept among his stats and sold at the market, `lot` of it
-//                      for `coin` (activitytable.pg makes its row there); `town` goes to
-//                      the town's store ("store.<id>" in `character`), kept between lives and
-//                      spent on the town's places; `remedy` is drunk for `heals` percent of his
+//                      He holds all of them, among his stats. `sold` is sold at the market,
+//                      `lot` of it for `coin` (activitytable.pg makes its row there); `town` is
+//                      what the town's places are built of (a cost of their works,
+//                      towntable.pg), lost at his death but for what the place he chooses then
+//                      still asks; `remedy` is drunk for `heals` percent of his
 //                      Vitality; `food` is what a rest eats;
 //         `walkZones`  one table per place he can walk to:
 //                        {id, name, kind (forage | hunt), line, travel (days, one way),

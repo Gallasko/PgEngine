@@ -246,20 +246,10 @@ fun eventOf(id)
     return {id: ""}
 }
 
-// Where a thing is kept: what is the town's goes to its store, the rest is his
-fun keyOf(itemId)
-{
-    if (itemOf(itemId).kind == "town")
-    {
-        return "store." + itemId
-    }
-
-    return itemId
-}
-
+// How much of a thing he holds: what a walk brings is his, whether it is to sell or for the town
 fun held(itemId)
 {
-    return mine(keyOf(itemId))
+    return mine(itemId)
 }
 
 // "2 berries", "1 pelt"
@@ -528,7 +518,7 @@ fun give(itemId, n)
         return
     }
 
-    var key = keyOf(itemId)
+    var key = itemId
 
     after[key] = mine(key) + n
     run["got." + itemId] = runOf("got." + itemId) + n
@@ -546,7 +536,7 @@ fun loot(itemId, n)
         return
     }
 
-    var key = keyOf(itemId)
+    var key = itemId
 
     after[key] = mine(key) + n
     run["got." + itemId] = runOf("got." + itemId) + n
@@ -563,7 +553,7 @@ fun take(itemId, n)
         return
     }
 
-    var key = keyOf(itemId)
+    var key = itemId
 
     after[key] = larger(0, mine(key) - n)
     run["used." + itemId] = runOf("used." + itemId) + n
@@ -1426,7 +1416,7 @@ fun replayBegin(list)
 
     for (var i = 0; i < len(uses); i++)
     {
-        var key = keyOf(uses[i].id)
+        var key = uses[i].id
 
         after[key] = larger(0, mine(key) - uses[i].n)
     }
@@ -1474,7 +1464,7 @@ fun replayTerm(recipe, steps, list)
         {
             if (mark.kind == "gain")
             {
-                var key = keyOf(mark.id)
+                var key = mark.id
 
                 after[key] = mine(key) + mark.n
                 brought[mark.id] = pick(brought, mark.id, 0) + mark.n
@@ -1492,7 +1482,7 @@ fun replayTerm(recipe, steps, list)
                         if (chance(drop.chance))
                         {
                             var n = rollBetween(drop.least, drop.most)
-                            var key = keyOf(drop.id)
+                            var key = drop.id
 
                             after[key] = mine(key) + n
                             after["know.drop." + mob.id + "." + drop.id] = 1
@@ -1861,6 +1851,32 @@ fun weeksText(daysOf)
     return daysText(daysOf)
 }
 
+// What knowing the place one better would bring, said under how well it is known
+fun knowledgeNote(zone)
+{
+    var level = zoneLevel(zone.id)
+    var studies = mine("know.study." + zone.id)
+
+    if (level >= 4)
+    {
+        return "He knows the place as well as it can be known."
+    }
+
+    var note = "Study " + toString(studies) + " of " + toString(walkKnobs.studyLevels[level]) + " to knowledge " + toString(level + 1) + ": "
+
+    if (level < 2)
+    {
+        return note + "the rare beasts are listed, and every beast is found a day sooner."
+    }
+
+    if (level < 3)
+    {
+        return note + "the stay is longer, and every beast is found a day sooner."
+    }
+
+    return note + "the way there and back is shorter, and every beast is found a day sooner."
+}
+
 // The head of the on-site screen, its strip of days, and what its buttons say
 fun siteHead()
 {
@@ -1899,6 +1915,8 @@ fun siteHead()
             daysLeft: toString(runOf("ap")), daysNote: "DAYS LEFT ON SITE",
             vitality: "VITALITY " + toString(runOf("hp")) + " OF " + toString(runOf("hpMax")),
             knowledge: "ZONE KNOWLEDGE " + toString(zoneLevel(zone.id)) + " OF 4",
+            vitalityPercent: wholeOf(runOf("hp") * 100, larger(1, runOf("hpMax"))), knowledgePercent: zoneLevel(zone.id) * 25,
+            knowledgeNote: knowledgeNote(zone),
             home: "HOME AT " + ageMark(runOf("startMonth") + runOf("months")),
             percent: smaller(100, percent),
             caption: toUpperCase(apText(runOf("spent")) + " spent · " + toString(runOf("ap")) + " left · the walk home is " + weeksText(runOf("travel")) + " whatever happens"),

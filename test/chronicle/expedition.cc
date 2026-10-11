@@ -252,12 +252,12 @@ namespace pg
             EXPECT_NE(textOf(w.state.record[0], "figure").find("1 AP"), std::string::npos);
             EXPECT_NE(textOf(w.state.record[0], "figure").find("BERRIES"), std::string::npos);
 
-            // What is the town's goes to its store, not to him
+            // What is for the town is his to hold like the rest, until a work takes it
             ASSERT_TRUE(w.act("gather", "firewood"));
             w.answer();
 
-            EXPECT_GE(intOf(w.character, "store.firewood"), 2);
-            EXPECT_EQ(w.character.count("firewood"), 0u);
+            EXPECT_GE(intOf(w.character, "firewood"), 2);
+            EXPECT_EQ(w.character.count("store.firewood"), 0u);
 
             // A study teaches the world, and a rest eats a ration
             const int rations = intOf(w.character, "rations");
@@ -566,7 +566,7 @@ namespace pg
 
             // He sets out: what the record eats is taken as he leaves
             const int rations = intOf(w.character, "rations");
-            const int ash = intOf(w.character, "store.ashwood");
+            const int ash = intOf(w.character, "ashwood");
             const int vit = intOf(w.character, "vit");
 
             ASSERT_TRUE(w.ask("begin", {}, "r1"));
@@ -576,7 +576,7 @@ namespace pg
             // He is home: the fold
             ASSERT_TRUE(w.ask("term", {}, "r1"));
 
-            EXPECT_EQ(intOf(w.character, "store.ashwood"), ash + gathered);
+            EXPECT_EQ(intOf(w.character, "ashwood"), ash + gathered);
             EXPECT_EQ(intOf(w.character, "walked.hollow"), 2);
             EXPECT_EQ(intOf(w.character, "know.fights.wolf"), 2);
             EXPECT_GE(intOf(w.character, "pelts"), 1);   // A wolf always leaves its pelt
@@ -697,6 +697,110 @@ namespace pg
                 // The Hollow Woods are two months: the way there, the stay and the way back
                 if (textOf(a.fields, "id") == "walk.hollow")
                     EXPECT_EQ(intOf(a.fields, "months"), 2);
+            }
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // What a walk brings for the town is his, and ends with him: at his death only what the
+        // place he chooses still asks of it is left there, and counts toward its next level.
+        TEST(expedition_test, what_a_place_asks_can_be_left_to_it)
+        {
+            MockLogger logger;
+            Walker w(hunter());
+
+            w.character["town_known"] = ElementType{1};
+            w.character["seen.lodge"] = ElementType{1};
+            w.character["coin"] = ElementType{30};
+            w.character["firewood"] = ElementType{32};
+            w.character["ashwood"] = ElementType{4};
+            w.character["stone"] = ElementType{9};
+
+            auto lodge = [&](RuleTown& town) -> const RulePlace* {
+                EXPECT_TRUE(w.rules.town(14.0f, w.character, town)) << (w.rules.errors.empty() ? "" : w.rules.errors.front());
+
+                for (const auto& place : town.places)
+                {
+                    if (textOf(place.fields, "id") == "lodge")
+                        return &place;
+                }
+
+                return nullptr;
+            };
+
+            auto left = [](const RulePlace* place, const std::string& stat) {
+                for (const auto& l : place->leaves)
+                {
+                    if (textOf(l, "stat") == stat)
+                        return intOf(l, "amount");
+                }
+
+                return 0;
+            };
+
+            // Its first level asks 20 firewood and 10 ash wood: no more than it asks, no more than
+            // he holds, and nothing of what it does not ask
+            RuleTown town;
+            const RulePlace* place = lodge(town);
+            ASSERT_NE(place, nullptr);
+
+            EXPECT_EQ(left(place, "firewood"), 20);
+            EXPECT_EQ(left(place, "ashwood"), 4);
+            EXPECT_EQ(left(place, "stone"), 0);
+            EXPECT_EQ(textOf(place->fields, "leaveLine"), "20 firewood, 4 ash wood");
+            EXPECT_TRUE(intOf(place->fields, "nextLocked"));   // Six ash wood short
+
+            // What a life before left it counts toward what it asks, as coin does
+            w.character["fund.lodge.firewood"] = ElementType{15};
+            w.character["fund.lodge.ashwood"] = ElementType{10};
+
+            RuleTown after;
+            place = lodge(after);
+            ASSERT_NE(place, nullptr);
+
+            EXPECT_EQ(left(place, "firewood"), 5);
+            EXPECT_EQ(left(place, "ashwood"), 0);
+            EXPECT_FALSE(intOf(place->fields, "nextLocked"));
+
+            bool firewoodAsked = false;
+
+            for (const auto& gap : place->gaps)
+            {
+                if (textOf(gap, "stat") == "firewood")
+                {
+                    firewoodAsked = true;
+                    EXPECT_EQ(intOf(gap, "needed"), 5);
+                }
+
+                EXPECT_NE(textOf(gap, "stat"), "ashwood");
+            }
+
+            EXPECT_TRUE(firewoodAsked);
+
+            // And the work that raises it takes the same from him
+            std::vector<RuleActivity> activities;
+            ASSERT_TRUE(w.rules.activities(14.0f, w.character, activities));
+
+            for (const auto& a : activities)
+            {
+                if (textOf(a.fields, "id") != "raise.lodge.1")
+                    continue;
+
+                int firewood = -1;
+                int ashwood = -1;
+
+                for (const auto& c : a.costs)
+                {
+                    if (textOf(c, "stat") == "firewood")
+                        firewood = intOf(c, "amount");
+
+                    if (textOf(c, "stat") == "ashwood")
+                        ashwood = intOf(c, "amount");
+                }
+
+                EXPECT_EQ(firewood, 5);
+                EXPECT_EQ(ashwood, -1);
             }
         }
     }

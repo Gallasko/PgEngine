@@ -6,7 +6,7 @@
 //
 // Input:  `age`, `character` (his stats; with them, as the town is, what the world knows:
 //         "know.visit.<zone>", "know.study.<zone>", "know.observe.<mob>", "know.fights.<mob>",
-//         "know.drop.<mob>.<item>", and the town's store, "store.<item>"), `who` (his name),
+//         "know.drop.<mob>.<item>"), `who` (his name),
 //         `seed` (a number: the dice of a walk that begins, or of a record walked again),
 //         `ask`: what is asked,
 //           "enter"    a walk begins: `act.target` is the zone;
