@@ -144,6 +144,12 @@ fun joined(list, with)
 }
 
 // An age as the log writes it: the year and the month in it, 1 to 12
+// An age, or a date of his life, in years and months: "9 y 9 mo"
+fun yearsText(months)
+{
+    return toString(wholeOf(months, 12)) + " y " + toString(months % 12) + " mo"
+}
+
 fun ageMark(months)
 {
     return toString(wholeOf(months, 12)) + "." + toString(months % 12 + 1)
@@ -2007,7 +2013,7 @@ fun shelfRow(recipe, own, walk)
 {
     var zone = zoneOf(recipe.zone)
     // A place may have several walks kept: each is told from the others by when it was made
-    var label = "Walked at " + ageMark(recipe.walkedAt)
+    var label = "Walked at " + yearsText(recipe.walkedAt)
     var note = toString(recipe.steps) + " STEPS"
 
     if (recipe.kills != "")
@@ -2043,7 +2049,51 @@ fun shelfRow(recipe, own, walk)
         vitality = "+" + toString(recipe.hp)
     }
 
+    // What its row of the records' table says, column by column: the walk, its cost, what it brings
+    var gathered = 0
+    var gainIds = markIds(own, "gain")
+
+    for (var g = 0; g < len(gainIds); g++)
+    {
+        gathered = gathered + sumMarks(own, "gain", gainIds[g])
+    }
+
+    var studied = 0
+    var learnIds = markIds(own, "learn")
+
+    for (var l = 0; l < len(learnIds); l++)
+    {
+        if (startsWith(learnIds[l], "study."))
+        {
+            studied = studied + sumMarks(own, "learn", learnIds[l])
+        }
+    }
+
+    var teachShort = ""
+
+    if (studied > 0)
+    {
+        teachShort = "+" + toString(studied) + " study"
+    }
+    else if (learns != "")
+    {
+        teachShort = learns
+    }
+
+    var vitShort = "0 vit"
+
+    if (recipe.hp < 0)
+    {
+        vitShort = "−" + toString(0 - recipe.hp) + " vit"
+    }
+
+    var monthsNow = pick(walk, "months", recipe.months)
+
     var row = {id: recipe.id, zone: zone.id, title: zone.name, label: label, kind: toUpperCase(zone.kind), note: note, months: pick(walk, "months", recipe.months),
+               used: toString(recipe.steps) + " steps · " + toString(recipe.ap) + " AP used",
+               costTop: counted(monthsNow, "mo", "mo"), costBottom: vitShort, hurt: recipe.hp < 0,
+               bringsShort: itemsText(own, "gain", "+"), teachShort: teachShort,
+               worth: wholeOf(gathered * 100, larger(1, monthsNow)),
                time: counted(pick(walk, "months", recipe.months), "mo", "mo") + " · " + apText(recipe.ap), vitality: vitality, takes: takes,
                brings: brings, learns: learns, state: "kept", locked: 0, asks: ""}
 
@@ -2101,6 +2151,162 @@ fun shelfRows()
     }
 
     return rows
+}
+
+// The places he may walk to, as the Adventure page lists them: what kind of walk it is, what it
+// costs (the months it blocks and the days on site), what it gives in a line, how well he knows
+// it, whether it is open to him, the walks he keeps of it, and the scribe's line at the page's foot
+fun placeRows()
+{
+    var rows = []
+
+    for (var i = 0; i < len(walks); i++)
+    {
+        var walk = walks[i]
+
+        if (walk.listed > 0)
+        {
+            var zone = zoneOf(walk.zone)
+            var kind = capitalised(zone.kind)
+
+            if (zone.kind != "hunt" and len(zone.mobs) > 0)
+            {
+                kind = kind + " · " + counted(len(zone.mobs), "beast", "beasts")
+            }
+
+            var kept = 0
+
+            for (var r = 0; r < len(recipes); r++)
+            {
+                if (recipes[r].zone == zone.id)
+                {
+                    kept = kept + 1
+                }
+            }
+
+            var said = ""
+            var bands = pick(zone, "lines", [])
+
+            for (var b = 0; b < len(bands); b++)
+            {
+                if (said == "" and age < bands[b].until)
+                {
+                    said = bands[b].text
+                }
+            }
+
+            push(rows, {id: zone.id, name: zone.name, kind: kind, months: walk.months, ap: stayOf(zone) * walkKnobs.apPerDay,
+                        cost: counted(walk.months, "mo", "mo") + " · " + apText(stayOf(zone) * walkKnobs.apPerDay),
+                        gives: zone.opens, known: "known " + toString(zoneLevel(zone.id)) + " of 4",
+                        locked: walk.locked, kept: kept, foot: said})
+        }
+    }
+
+    return rows
+}
+
+// The four figures of a queue's forecast, each with its caption, written into the form: what the
+// walks take, what they use against what he holds, what they bring, what they teach. And what
+// the form's head and its count say: the walk it is of, and when he would be home
+fun addFigures(form)
+{
+    var recipe = recipeById(form.recipe)
+
+    if (recipe.id == "")
+    {
+        return
+    }
+
+    var own = marksOf(recipeMarks, recipe.id)
+    var count = larger(1, form.count)
+
+    form.subject = "the walk of " + yearsText(recipe.walkedAt)
+    form.homeAt = "home at " + yearsText(monthOf(age) + form.months)
+
+    form.takeFigure = counted(form.months, "mo", "mo")
+    form.takeNote = "no vitality"
+
+    if (recipe.hp < 0)
+    {
+        form.takeNote = "−" + toString((0 - recipe.hp) * count) + " vitality"
+    }
+
+    var uses = usesOf(own)
+
+    form.useFigure = "nothing"
+    form.useNote = "from the bag"
+    form.useShort = 0
+
+    if (len(uses) > 0)
+    {
+        var need = uses[0].n * count
+        var have = held(uses[0].id)
+
+        form.useFigure = itemText(uses[0].id, need)
+        form.useNote = toString(have) + " in store"
+
+        if (have < need)
+        {
+            form.useShort = 1
+        }
+    }
+
+    var gains = markIds(own, "gain")
+    var total = 0
+    var names = []
+
+    for (var i = 0; i < len(gains); i++)
+    {
+        total = total + sumMarks(own, "gain", gains[i]) * count
+        push(names, toLowerCase(itemOf(gains[i]).name))
+    }
+
+    form.bringFigure = "+" + toString(total)
+    form.bringNote = joined(names, ", ")
+
+    if (total == 0)
+    {
+        form.bringFigure = "—"
+        form.bringNote = "nothing gathered"
+    }
+
+    if (len(markIds(own, "kill")) > 0)
+    {
+        form.bringNote = addTo(form.bringNote, "what the beasts drop, rolled anew")
+    }
+
+    var studied = 0
+    var learnt = markIds(own, "learn")
+
+    for (var i = 0; i < len(learnt); i++)
+    {
+        if (startsWith(learnt[i], "study."))
+        {
+            studied = studied + sumMarks(own, "learn", learnt[i]) * count
+        }
+    }
+
+    form.teachFigure = "—"
+    form.teachNote = "nothing new"
+
+    if (studied > 0)
+    {
+        var level = zoneLevel(recipe.zone)
+        var studies = mine("know.study." + recipe.zone)
+
+        form.teachFigure = "+" + toString(studied)
+        form.teachNote = "study"
+
+        if (level < 4)
+        {
+            form.teachNote = "study · level " + toString(level + 1) + " at +" + toString(larger(0, walkKnobs.studyLevels[level] - studies))
+        }
+    }
+    else if (len(learnt) > 0)
+    {
+        form.teachFigure = "+" + toString(len(learnt))
+        form.teachNote = "of its beasts"
+    }
 }
 
 fun recipeById(id)

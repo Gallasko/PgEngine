@@ -87,6 +87,14 @@ namespace chronicle
         constexpr const char * const ZonesName = "zones";
         constexpr const char * const NewTag = "walk.new";
         constexpr size_t MaxRecords = 5;                   // The walks kept of a place: a sixth takes the oldest one's place
+        const std::string RunTag = "walk.run.";            // Followed by a record's id: the small button of its line, which walks it once
+        constexpr float AdventureGap = 12.0f;              // Between two things on a line of the Adventure page
+        constexpr float AdventureCells = 420.0f;           // Under this width a walk's line has no cell for what it brings: its line says it
+        constexpr float RowPad = 16.0f;                    // A line's padding (activityrow.cpp)
+        constexpr float RecordAction = 68.0f;              // A line's button and the gap before it,
+        constexpr float RecordBrings = 110.0f;             // the cell of what it brings,
+        constexpr float RecordInset = 190.0f;              // and the two together with their gaps
+        constexpr float RecordCost = 70.0f;                // The cost's column in the table's head
 
         const std::string WalkActivity = "walk.";          // An activity that is a walk: followed by its zone
         const std::string RecordGloss = "record/";
@@ -686,11 +694,9 @@ namespace chronicle
             // The Adventure page opens on the place he has just walked, and its form on that walk
             adventureZone = zone;
 
+            // (its form on the best of its walks, which the page picks: none is held here)
             if (save.queue.left <= 0)
-            {
                 save.queue = WalkQueue{};
-                save.queue.recipe = recipe.id;
-            }
 
             save.recipes.push_back(std::move(recipe));
         }
@@ -2368,6 +2374,14 @@ namespace chronicle
         }
         else if (tag == NewTag)
             setOutAnew();
+        else if (tag.rfind(RunTag, 0) == 0)
+        {
+            // A line's own button: that walk, once, now
+            chooseRecord(tag.substr(RunTag.size()));
+
+            if (save.queue.recipe == tag.substr(RunTag.size()))
+                queueWalks(1);
+        }
         else if (tag == OnceTag)
             queueWalks(1);
         else if (tag == ManyTag)
@@ -2489,23 +2503,87 @@ namespace chronicle
             body->get<PositionComponent>()->setHeight(height);
         }
 
-        for (const char* name : {RecordsName, ZonesName})
+        // Each region is a panel as wide as the column: what stands in each follows (widen)
+        for (const char* name : {"zonePanel", "recordsPanel", "queuePanel", "workPanel"})
+            widen(piece<Panel>(name), width);
+
+        if (auto foot = piece<Label>("footLine"))
+            foot->setWidth(ecs, width);
+
+        // Across the width where a line loses its cells, the lines are other lines: filled again
+        const bool had = adventureWidth <= 0.0f or adventureWidth - 32.0f >= AdventureCells;
+        const bool has = width - 32.0f >= AdventureCells;
+
+        adventureWidth = width;
+
+        // (in view or not: a page out of view is filled all the same, to be right when it is opened)
+        if (had != has)
+            fillAdventure();
+
+        layAdventure();
+    }
+
+    void LifeScene::layAdventure()
+    {
+        EntitySystem* ecs = ecsRef;
+
+        auto panel = piece<Panel>("zonePanel");
+
+        if (not panel)
+            return;
+
+        const float inner = panel->innerWidth();
+
+        auto widthOf = [this](const char* name) {
+            EntityRef piece = named(name);
+
+            return piece.empty() ? 0.0f : piece->get<PositionComponent>()->width;
+        };
+
+        auto wide = [this, ecs](const char* name, float to) {
+            if (auto label = piece<Label>(name); label and std::abs(label->spec.width - to) > 0.5f)
+                label->setWidth(ecs, std::max(1.0f, to));
+        };
+
+        // What a walk by hand is at the left, the button that sets out at the right: the line
+        // has what the button leaves
+        const float noteRoom = inner - widthOf("walkNew") - AdventureGap;
+
+        wide("zoneNote", noteRoom);
+
+        if (auto note = piece<Label>("zoneNote"))
         {
-            if (auto list = piece<ActivityList>(name))
-                list->setSize(ecs, width, 0.0f);
+            const std::string said = noteRoom >= 160.0f ? "A walk he chooses day by day. The record is kept." : " ";
+
+            if (note->spec.text != said)
+                note->setText(ecs, said);
         }
 
-        for (const char* name : {"zonesHead", "zoneNote", "recordsHead", "recordsNote", "queueHead", "queueTitle", "queueTake", "queueUse", "queueBring", "queueTeach", "queueWarn", "atWalk"})
+        // The table's head over its columns: the walk, its cost (the figures end where the rows'
+        // do), what it brings. A narrow column has no room for the last: its rows say it in their line
+        const bool cells = inner >= AdventureCells;
+
+        wide("recHeadWalk", inner - RowPad - (cells ? RecordInset : RecordAction) - RecordCost - 2.0f * AdventureGap - RowPad + 16.0f);
+        wide("recHeadBrings", cells ? RecordBrings : 1.0f);
+
+        if (EntityRef brings = named("recHeadBrings"); not brings.empty())
+            brings->get<PositionComponent>()->setVisibility(cells and recordsShown);
+
+        // The four cells of the forecast share the row
+        const float cell = std::floor((inner - 3.0f * AdventureGap) / 4.0f);
+
+        for (const char* name : {"cellTake", "cellUse", "cellBring", "cellTeach"})
         {
-            if (auto label = piece<Label>(name))
-                label->setWidth(ecs, width);
+            if (EntityRef column = named(name); not column.empty())
+                column->get<PositionComponent>()->setWidth(cell);
         }
 
-        for (const char* name : {"zoneGo", "queueCount", "queueGo"})
-        {
-            if (EntityRef row = named(name); not row.empty())
-                row->get<PositionComponent>()->setWidth(width);
-        }
+        for (const char* name : {"takeHead", "takeFigure", "takeNote", "useHead", "useFigure", "useNote", "bringHead", "bringFigure", "bringNote", "teachHead", "teachFigure", "teachNote"})
+            wide(name, cell);
+
+        // What the count comes to, after the stepper; and the two buttons at the form's right end
+        wide("queueTotal", inner - widthOf("timesHead") - widthOf("queueFewer") - widthOf("queueTimes") - widthOf("queueMore") - 4.0f * 8.0f);
+        wide("queueSpacer", inner - widthOf("walkOnce") - widthOf("walkMany") - 2.0f * 8.0f);
     }
 
     void LifeScene::chooseZone(const std::string& zone)
@@ -2620,90 +2698,235 @@ namespace chronicle
                 adventureZone = places.empty() ? std::string() : textOf(places.front()->fields, "zone");
         }
 
-        // And the walk the form is filled for is one of that place: its last, when another's was held
+        // And the walk the form is filled for is one of that place: another's is let go of here,
+        // and the best of this one's is taken below, once the rules have said what each is worth
         if (not busy and zoneOfRecord(save.queue.recipe) != adventureZone)
-        {
             save.queue = WalkQueue{};
-
-            for (const auto& r : save.recipes)
-            {
-                if (textOf(r.fields, "zone") == adventureZone)
-                    save.queue.recipe = r.id;
-            }
-        }
 
         if (not askWalk("records", WalkAct{}, "", shelf))
             return;
 
         auto registry = ecs->getSystem<GlossRegistry>();
 
-        // The tiles of the places, the one in view lit: what a place asks and brings is the gloss
-        // of its activity, the one its tile had on the Life page
-        std::vector<ActivityRowSpec> tiles;
-        std::string tileSignature;
+        auto say = [this, ecs](const char* name, const std::string& text) {
+            if (auto label = piece<Label>(name); label and label->spec.text != text)
+                label->setText(ecs, text);
+        };
+
+        auto shown = [this](const char* name, bool there) {
+            EntityRef node = named(name);
+            EntityRef body = named(AdventureName);
+
+            if (node.empty() or body.empty())
+                return;
+
+            wrapIn(body, node)->get<PositionComponent>()->setVisibility(there);
+            node->get<PositionComponent>()->setVisibility(there);
+        };
+
+        auto placeRow = [this](const std::string& zone) -> const ElementMap* {
+            for (const auto& row : shelf.places)
+            {
+                if (textOf(row, "id") == zone)
+                    return &row;
+            }
+
+            return nullptr;
+        };
+
+        // A narrow column (the phone's) has no room for everything a line says at its right:
+        // what kind of walk it is and what he is short of are left to the line under the name
+        const bool cells = adventureWidth <= 0.0f or (piece<Panel>("recordsPanel") and piece<Panel>("recordsPanel")->innerWidth() >= AdventureCells);
+
+        // ---- Where to walk: a line a place, the open ones first, the one in view chosen ----
+        std::vector<ActivityRowSpec> open;
+        std::vector<ActivityRowSpec> closed;
+        std::string placeSignature = cells ? "c;" : "n;";
         std::string litPlace;
 
         for (const RuleActivity* a : places)
         {
-            ActivityRowSpec tile;
-            tile.id = textOf(a->fields, "zone");
-            tile.name = textOf(a->fields, "name");
-            tile.glyph = textOf(a->fields, "glyph");
-            tile.months = intOf(a->fields, "months");
-            tile.adventure = true;
-            tile.glossKey = "activity/" + textOf(a->fields, "id");
-            tile.state = boolOf(a->fields, "locked") ? ActivityState::Locked : ActivityState::Idle;
+            const std::string zone = textOf(a->fields, "zone");
+            const ElementMap* said = placeRow(zone);
+            const bool locked = boolOf(a->fields, "locked");
 
-            if (tile.state == ActivityState::Idle and tile.id == adventureZone)
-                litPlace = tile.id;
+            ActivityRowSpec row;
+            row.id = zone;
+            row.name = textOf(a->fields, "name");
+            row.glyph = "";
+            row.rank = said and cells ? upper(textOf(*said, "kind")) : std::string();
+            row.glossKey = "activity/" + textOf(a->fields, "id");
 
-            tileSignature += tile.id + "|" + std::to_string(tile.months) + "|" + std::to_string(static_cast<int>(tile.state)) + ";";
+            if (locked)
+            {
+                // Shut to him: what it asks, in a line, and the first thing he is short of
+                std::string asks;
+                std::string gap;
 
-            tiles.push_back(tile);
+                for (const auto& r : a->requires)
+                {
+                    const int needed = intOf(r, "needed");
+                    const int current = intOf(r, "current");
+                    const std::string label = textOf(r, "label");
+
+                    asks += (asks.empty() ? "Asks " : ", ") + (needed > 1 ? label + " " + std::to_string(needed) : lower(label));
+
+                    if (gap.empty() and current < needed)
+                        gap = needed > 1 ? "Short " + std::to_string(needed - current) + " " + label : "Not yet";
+                }
+
+                row.state = ActivityState::Locked;
+                row.cost = std::to_string(intOf(a->fields, "months")) + " mo";
+                row.line = asks.empty() ? std::string("Not open to him yet.") : asks + ".";
+                row.each = cells ? gap : std::string();
+                row.eachTone = "muted";
+            }
+            else
+            {
+                row.cost = said ? textOf(*said, "cost") : std::to_string(intOf(a->fields, "months")) + " mo";
+                row.line = said ? textOf(*said, "gives") : textOf(a->fields, "about");
+                row.each = said ? textOf(*said, "known") : std::string();
+                row.eachTone = "know";
+
+                if (zone == adventureZone)
+                    litPlace = zone;
+            }
+
+            placeSignature += row.id + "|" + row.cost + "|" + row.line + "|" + row.each + "|" + (locked ? "x" : "o") + ";";
+
+            (locked ? closed : open).push_back(row);
         }
+
+        const size_t opened = open.size();
+        const size_t shut = closed.size();
+
+        open.insert(open.end(), closed.begin(), closed.end());
 
         if (auto list = piece<ActivityList>(ZonesName))
         {
-            if (walkFilled[ZonesName] != tileSignature or list->spec.groups.empty() != tiles.empty())
+            if (walkFilled[ZonesName] != placeSignature or list->spec.groups.empty() != open.empty())
             {
-                walkFilled[ZonesName] = tileSignature;
-                list->setRows(ecs, tiles.empty() ? std::vector<ActivityGroup>{} : std::vector<ActivityGroup>{{"", tiles}});
+                walkFilled[ZonesName] = placeSignature;
+                list->setRows(ecs, open.empty() ? std::vector<ActivityGroup>{} : std::vector<ActivityGroup>{{"", open}});
             }
 
             walkPicks[ZonesName] = litPlace;
         }
 
-        // The walks he has made at the place in view, the last first
+        if (auto panel = piece<Panel>("zonePanel"))
+        {
+            const std::string count = std::to_string(opened) + " OPEN" + (shut > 0 ? " \xC2\xB7 " + std::to_string(shut) + " CLOSED" : std::string());
+
+            if (panel->aside and panel->aside->spec.text != count)
+                panel->setAside(ecs, count);
+        }
+
+        // The place in view, and the button that sets out for it: named with the place and its
+        // months, or saying why not
+        const RuleActivity* place = placeOf(adventureZone);
+        const bool shutNow = not place or boolOf(place->fields, "locked");
+        const std::string placeName = place ? textOf(place->fields, "name") : std::string();
+
+        if (auto anew = piece<Button>("walkNew"))
+        {
+            std::string label = place ? "Set out for " + placeName : std::string("Set out");
+
+            if (place and shutNow)
+            {
+                label = "Set out";
+
+                for (const auto& r : place->requires)
+                {
+                    if (intOf(r, "current") < intOf(r, "needed"))
+                    {
+                        label += " \xC2\xB7 asks " + (intOf(r, "needed") > 1 ? textOf(r, "label") + " " + std::to_string(intOf(r, "needed")) : lower(textOf(r, "label")));
+                        break;
+                    }
+                }
+            }
+            else if (place and not free)
+                label = busy ? "Set out \xC2\xB7 a queue is walking" : "Set out \xC2\xB7 he is at work";
+
+            anew->setLabel(ecs, label);
+            anew->setCost(ecs, place and not shutNow and free ? std::to_string(intOf(place->fields, "months")) + " mo" : std::string());
+            anew->setDisabled(ecs, shutNow or busy or not free);
+        }
+
+        // ---- The walks kept of that place: a table, the best first (the most brought a month) ----
+        std::vector<const ElementMap*> kept;
+
+        for (const auto& r : shelf.shelf)
+        {
+            if (textOf(r, "state") == "kept" and textOf(r, "zone") == adventureZone)
+                kept.push_back(&r);
+        }
+
+        // (the later of two as good as each other first: the list is in the order they were made)
+        std::stable_sort(kept.rbegin(), kept.rend(), [](const ElementMap* a, const ElementMap* b) { return intOf(*a, "worth") < intOf(*b, "worth"); });
+
+        // The walk the form is filled for is one of them: the best, when none of them was held
+        if (not busy and not kept.empty()
+            and std::none_of(kept.begin(), kept.end(), [this](const ElementMap* r) { return textOf(*r, "id") == save.queue.recipe; }))
+        {
+            save.queue = WalkQueue{};
+            save.queue.recipe = textOf(*kept.front(), "id");
+
+            if (not askWalk("records", WalkAct{}, "", shelf))
+                return;
+
+            // (asked again, the rows are other tables: found again by their id)
+            kept.clear();
+
+            for (const auto& r : shelf.shelf)
+            {
+                if (textOf(r, "state") == "kept" and textOf(r, "zone") == adventureZone)
+                    kept.push_back(&r);
+            }
+
+            std::stable_sort(kept.rbegin(), kept.rend(), [](const ElementMap* a, const ElementMap* b) { return intOf(*a, "worth") < intOf(*b, "worth"); });
+        }
+
         std::vector<ActivityRowSpec> rows;
         std::string lit;
-        std::string signature;
+        std::string signature = cells ? "c;" : "n;";
 
-        for (auto it = shelf.shelf.rbegin(); it != shelf.shelf.rend(); ++it)
+        for (const ElementMap* kept_ : kept)
         {
-            const ElementMap& r = *it;
-
-            if (textOf(r, "state") != "kept" or textOf(r, "zone") != adventureZone)
-                continue;
+            const ElementMap& r = *kept_;
 
             ActivityRowSpec row;
             row.id = textOf(r, "id");
             row.name = textOf(r, "label").empty() ? textOf(r, "title") : textOf(r, "label");
-            row.glyph = "adventure";
-            row.rank = textOf(r, "kind");
-            row.cost = textOf(r, "time");
+            row.glyph = "";
+            row.cost = textOf(r, "costTop");
+            row.each = textOf(r, "costBottom");
+            row.eachTone = boolOf(r, "hurt") ? "loss" : "muted";
+            row.line = textOf(r, "used");
             row.glossKey = RecordGloss + row.id;
+            row.action = "Walk";
+            row.actionTag = RunTag + row.id;
 
-            // What is said of it stands on a line of its own; a row that cannot be chosen says why
-            // in its place
+            // What it brings has a cell of its own where the column has room for it
+            if (cells)
+            {
+                row.asideTop = textOf(r, "bringsShort").empty() ? std::string("\xE2\x80\x94") : textOf(r, "bringsShort");
+                row.asideBottom = textOf(r, "teachShort");
+                row.asideWidth = RecordBrings;
+            }
+            else if (not textOf(r, "bringsShort").empty())
+                row.line += " \xC2\xB7 " + textOf(r, "bringsShort");
+
+            // The way there shut to him, or a queue walking: it is not to be walked now
             if (intOf(r, "locked") > 0)
-                lockRow(row, textOf(r, "asks"));
-            else
-                row.until = textOf(r, "note");
+            {
+                row.state = ActivityState::Locked;
+                row.line = lower(textOf(r, "asks"));
+            }
 
             if (row.state != ActivityState::Locked and row.id == save.queue.recipe)
                 lit = row.id;
 
-            signature += row.id + "|" + row.until + "|" + row.cost + "|" + std::to_string(static_cast<int>(row.state)) + ";";
+            signature += row.id + "|" + row.line + "|" + row.cost + "|" + row.each + "|" + row.asideTop + "|" + row.asideBottom + "|" + std::to_string(static_cast<int>(row.state)) + ";";
 
             rows.push_back(row);
 
@@ -2714,7 +2937,7 @@ namespace chronicle
             GlossSpec gloss;
             gloss.inlineValues = true;
             gloss.title = row.name;
-            gloss.aside = row.rank;
+            gloss.aside = textOf(r, "kind");
             gloss.text = textOf(r, "title") + " \xC2\xB7 " + lower(textOf(r, "note"));
 
             gloss.rows.push_back({"IT TAKES", "", "", true});
@@ -2746,106 +2969,148 @@ namespace chronicle
             walkPicks[RecordsName] = lit;
         }
 
-        auto say = [this, ecs](const char* name, const std::string& text) {
-            if (auto label = piece<Label>(name); label and label->spec.text != text)
-                label->setText(ecs, text);
-        };
-
-        // The place in view: what it is, and the button that sets out for it by hand, a new walk
-        // whatever he has kept of it
-        const RuleActivity* place = placeOf(adventureZone);
-        const bool shut = not place or boolOf(place->fields, "locked");
-
-        say("zoneNote", not place ? std::string()
-                      : shut ? textOf(place->fields, "about") + " Not open to him yet: its tile says what it asks."
-                      : textOf(place->fields, "about"));
-
-        if (auto anew = piece<Button>("walkNew"))
+        if (auto panel = piece<Panel>("recordsPanel"))
         {
-            anew->setLabel(ecs, place ? "Set out for " + textOf(place->fields, "name") : std::string("Set out"));
-            anew->setCost(ecs, place ? std::to_string(intOf(place->fields, "months")) + " mo" : std::string());
-            anew->setDisabled(ecs, shut or busy or not free);
+            const std::string heading = place ? "Records of " + placeName : std::string("Records");
+            const std::string count = rows.empty() ? std::string(" ") : std::to_string(rows.size()) + " KEPT";
+
+            if (panel->title and panel->title->spec.text != heading)
+                panel->setHeading(ecs, heading);
+
+            if (panel->aside and panel->aside->spec.text != count)
+                panel->setAside(ecs, count);
+
+            // No walk kept of it: one faint line, and no table
+            recordsShown = not rows.empty();
+
+            for (const char* name : {"recordsHeader", RecordsName})
+            {
+                if (EntityRef node = named(name); not node.empty())
+                {
+                    wrapIn(panel->body, node)->get<PositionComponent>()->setVisibility(recordsShown);
+                    node->get<PositionComponent>()->setVisibility(recordsShown);
+                }
+            }
+
+            if (EntityRef note = named("recordsNote"); not note.empty())
+            {
+                wrapIn(panel->body, note)->get<PositionComponent>()->setVisibility(not recordsShown);
+                note->get<PositionComponent>()->setVisibility(not recordsShown);
+            }
         }
 
-        say("recordsHead", rows.empty() ? "No walk kept of it yet" : "Walks he has made there");
-        say("recordsNote", rows.empty() ? "A walk made by hand to its end is kept here. The same man may walk it again: no day is chosen and no fight is fought, and what the beasts drop is rolled anew."
-                                        : "Choose one to walk it again, once or in a queue: no day is chosen and no fight is fought, and what the beasts drop is rolled anew.");
-
-        // The form: the walk chosen, how many times, what they take and bring
+        // ---- Walk it again: the walk chosen, so many times, and what that comes to ----
         const ElementMap& form = shelf.form;
-        const bool kept = not textOf(form, "recipe").empty();
+        const bool chosen = not textOf(form, "recipe").empty() and recordsShown;
         const std::string blocked = textOf(form, "blocked");
 
-        say("queueHead", kept ? "Walk it again" : "");
-        say("queueTitle", kept ? upper(textOf(form, "title")) + " \xC2\xB7 " + textOf(form, "total") : std::string());
-        say("queueTake", kept ? "Takes: " + textOf(form, "take") : std::string());
-        say("queueUse", kept ? "Uses: " + textOf(form, "use") : std::string());
-        say("queueBring", kept ? "Brings: " + textOf(form, "bring") : std::string());
-        say("queueTeach", kept ? "Teaches: " + textOf(form, "teach") : std::string());
-        say("queueWarn", kept ? (blocked.empty() ? textOf(form, "warning") : blocked) : std::string());
+        shown("queuePanel", chosen and not busy);
+        shown("workPanel", busy);
 
-        // A place he has kept no walk of has no form: its pieces are out of the page's stack, and
-        // so is what speaks of a queue while none is under way
-        auto shown = [this](const char* name, bool there) {
-            EntityRef node = named(name);
-            EntityRef body = named(AdventureName);
+        if (auto panel = piece<Panel>("queuePanel"); panel and chosen)
+        {
+            const std::string subject = upper(textOf(form, "subject"));
 
-            if (node.empty() or body.empty())
-                return;
+            if (panel->aside and panel->aside->spec.text != subject)
+                panel->setAside(ecs, subject);
+        }
 
-            wrapIn(body, node)->get<PositionComponent>()->setVisibility(there);
-            node->get<PositionComponent>()->setVisibility(there);
-        };
+        say("queueTimes", std::to_string(std::max(1, intOf(form, "count"))));
+        say("queueTotal", chosen ? "\xC2\xB7 " + textOf(form, "takeFigure") + " \xC2\xB7 " + textOf(form, "homeAt") : std::string());
 
-        for (const char* name : {"queueHead", "queueTitle", "queueCount", "queueTake", "queueUse", "queueBring", "queueTeach", "queueWarn", "queueGo"})
-            shown(name, kept);
+        for (const char* cell : {"take", "use", "bring", "teach"})
+        {
+            say((std::string(cell) + "Figure").c_str(), textOf(form, std::string(cell) + "Figure"));
+            say((std::string(cell) + "Note").c_str(), textOf(form, std::string(cell) + "Note"));
+        }
 
-        for (const char* name : {"atWalk", "queueLast"})
-            shown(name, busy);
+        // Short of what the walks use: the figure says so, and a line under the row says when it stops
+        if (auto figure = piece<Label>("useFigure"))
+        {
+            const std::string color = intOf(form, "useShort") > 0 ? "vermilion" : "ink";
+
+            if (figure->spec.color != color)
+                figure->setColor(ecs, color);
+        }
+
+        const std::string warning = chosen ? (blocked.empty() ? textOf(form, "warning") : blocked) : std::string();
+
+        say("queueWarn", warning.empty() ? std::string(" ") : warning);
+
+        if (auto panel = piece<Panel>("queuePanel"))
+        {
+            if (EntityRef warn = named("queueWarn"); not warn.empty())
+            {
+                wrapIn(panel->body, warn)->get<PositionComponent>()->setVisibility(not warning.empty());
+                warn->get<PositionComponent>()->setVisibility(not warning.empty() and chosen and not busy);
+            }
+        }
 
         if (auto stop = piece<Button>("queueStop"))
         {
-            stop->setLabel(ecs, kept ? "Stop: " + lower(textOf(form, "stopLabel")) : "Stop: never");
-            stop->setDisabled(ecs, not kept or busy);
+            stop->setLabel(ecs, chosen ? textOf(form, "stopLabel") : std::string("Never"));
+            stop->setDisabled(ecs, not chosen or busy);
         }
 
-        for (const char* name : {"queueFewer", "queueMore"})
-        {
-            if (auto button = piece<Button>(name))
-                button->setDisabled(ecs, not kept or busy);
-        }
+        if (auto fewer = piece<Button>("queueFewer"))
+            fewer->setDisabled(ecs, not chosen or busy or intOf(form, "count") <= 1);
+
+        if (auto more = piece<Button>("queueMore"))
+            more->setDisabled(ecs, not chosen or busy or intOf(form, "count") >= MostWalks);
+
+        const int each = std::max(1, intOf(form, "months")) / std::max(1, intOf(form, "count"));
 
         if (auto once = piece<Button>("walkOnce"))
-            once->setDisabled(ecs, busy or not free or not kept or not blocked.empty());
+        {
+            once->setCost(ecs, chosen ? std::to_string(each) + " mo" : std::string());
+            once->setDisabled(ecs, busy or not free or not chosen or not blocked.empty());
+        }
 
         if (auto many = piece<Button>("walkMany"))
         {
-            many->setLabel(ecs, kept ? textOf(form, "many") : "Queue");
-            many->setCost(ecs, kept ? std::to_string(intOf(form, "months")) + " mo" : std::string());
-            many->setDisabled(ecs, busy or not free or not kept or not blocked.empty());
+            many->setLabel(ecs, chosen ? textOf(form, "many") : "Queue");
+            many->setCost(ecs, chosen ? std::to_string(intOf(form, "months")) + " mo" : std::string());
+            many->setDisabled(ecs, busy or not free or not chosen or not blocked.empty());
         }
 
-        // A queue under way: which walk of how many, and the button that ends it with this one
-        std::string walking;
-
+        // ---- A queue under way, in the form's place: which walk of how many, how far along ----
         if (busy)
         {
             const int total = std::max(1, save.queue.total);
             const int at = std::clamp(total - save.queue.left, 1, total);
+            const RuleActivity* walking = activityOf(save.running);
+            const int months = walking ? std::max(1, intOf(walking->fields, "months")) : 1;
 
-            walking = "AT WORK NOW \xC2\xB7 WALK " + std::to_string(at) + " OF " + std::to_string(total) + " \xC2\xB7 NO FIGHT IS FOUGHT AGAIN";
+            std::string line = "WALK " + std::to_string(at) + " OF " + std::to_string(total) + " \xC2\xB7 " + upper(placeName) + " \xC2\xB7 NO FIGHT IS FOUGHT AGAIN";
 
             if (save.lastWalk)
-                walking += " \xC2\xB7 THE LAST: THE QUEUE STOPS WITH IT";
-        }
+                line += " \xC2\xB7 THE LAST: THE QUEUE STOPS WITH IT";
 
-        say("atWalk", walking);
+            say("atWalk", line);
+
+            // The walks done solid, the one under way as far as its months have run, the rest hatched
+            if (auto bar = piece<ProgressRule>("queueBar"))
+            {
+                const float done = static_cast<float>(at - 1) + std::clamp(static_cast<float>(save.monthsIn) / static_cast<float>(months), 0.0f, 1.0f);
+
+                bar->setPercent(ecs, 100.0f * done / static_cast<float>(total), false);
+                bar->setForecast(ecs, 100.0f);
+            }
+        }
 
         if (auto last = piece<Button>("queueLast"))
         {
             last->setLabel(ecs, save.lastWalk ? "Go on with the queue" : "Finish this walk, then stop");
             last->setDisabled(ecs, not busy or save.queue.left <= 0);
         }
+
+        // ---- The foot: the scribe's line of the place, at his age ----
+        const ElementMap* said = placeRow(adventureZone);
+
+        say("footLine", said ? textOf(*said, "foot") : std::string());
+
+        // The buttons are other widths now: what stands beside them has what they leave
+        layAdventure();
     }
 
     void LifeScene::queueWalks(int count)

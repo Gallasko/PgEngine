@@ -46,6 +46,7 @@ namespace chronicle
             {
             case ButtonVariant::Study: return "study";
             case ButtonVariant::Seal:  return "seal";
+            case ButtonVariant::Ochre: return "ochre";
             case ButtonVariant::Quiet:
             default:                   return "quiet";
             }

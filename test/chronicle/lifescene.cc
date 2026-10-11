@@ -5992,7 +5992,8 @@ namespace pg
             // (what is chosen in a list just filled is lit a moment later, once the list holds it)
             f.pass(100.0f, 50.0f);
 
-            // A tile a place, the one he walked lit; under it the walk he made, chosen
+            // Where to walk: a line a place, the one he walked chosen; its cost in months and days,
+            // what it gives in a line, how well he knows it
             auto zones = life->piece<ActivityList>("zones");
             auto records = life->piece<ActivityList>("records");
             ASSERT_NE(zones, nullptr);
@@ -6000,56 +6001,138 @@ namespace pg
 
             ActivityRow* hedgerows = zones->find(&f.ecs, "hedgerows");
             ASSERT_NE(hedgerows, nullptr);
-            EXPECT_TRUE(hedgerows->spec.adventure);
             EXPECT_EQ(hedgerows->spec.name, "The Hedgerows");
-            EXPECT_EQ(hedgerows->cost.spec.text, "1 mo");
+            EXPECT_EQ(hedgerows->spec.rank, "FORAGE");
+            EXPECT_EQ(hedgerows->cost.spec.text, "1 mo \xC2\xB7 7 AP");
+            EXPECT_EQ(hedgerows->spec.each, "known 1 of 4");
+            EXPECT_FALSE(hedgerows->spec.line.empty());
+            EXPECT_TRUE(hedgerows->mark.entity.empty());
             EXPECT_EQ(life->adventureZone, "hedgerows");
             EXPECT_EQ(zones->selected(), "hedgerows");
             EXPECT_TRUE(f.pos(hedgerows->root)->visible);
 
-            ASSERT_NE(records->find(&f.ecs, first), nullptr);
-            EXPECT_EQ(records->find(&f.ecs, first)->spec.name.rfind("Walked at ", 0), 0u);
-            EXPECT_EQ(life->save.queue.recipe, first);
-            EXPECT_EQ(life->piece<Label>("recordsHead")->spec.text, "Walks he has made there");
-            EXPECT_FALSE(life->piece<Button>("walkOnce")->spec.disabled);
+            auto zonePanel = life->piece<Panel>("zonePanel");
+            ASSERT_NE(zonePanel, nullptr);
+            ASSERT_TRUE(zonePanel->aside.has_value());
+            EXPECT_EQ(zonePanel->aside->spec.text, "1 OPEN");
 
-            // The button sets out for it anew: by hand, whatever he has kept of it
+            // The button that sets out, in the colour of time, named with the place and its months
             auto anew = life->piece<Button>("walkNew");
             ASSERT_NE(anew, nullptr);
+            EXPECT_EQ(anew->spec.variant, ButtonVariant::Ochre);
             EXPECT_EQ(anew->label.spec.text, "Set out for The Hedgerows");
             EXPECT_EQ(anew->costText, "1 mo");
             EXPECT_FALSE(anew->spec.disabled);
 
+            // The line beside it has what the button leaves of the panel
+            auto goRow = f.pos(life->named("zoneGo"));
+            EXPECT_LE(f.pos(anew->root)->x + f.pos(anew->root)->width, goRow->x + zonePanel->innerWidth() + 0.5f);
+            EXPECT_GT(f.pos(anew->root)->x, f.pos(life->named("zoneNote"))->x + f.pos(life->named("zoneNote"))->width - 0.5f);
+
+            // The records of the place: a table of one line, chosen, with its own button
+            auto recordsPanel = life->piece<Panel>("recordsPanel");
+            ASSERT_NE(recordsPanel, nullptr);
+            EXPECT_EQ(recordsPanel->title->spec.text, "Records of The Hedgerows");
+            EXPECT_EQ(recordsPanel->aside->spec.text, "1 KEPT");
+            EXPECT_TRUE(f.pos(life->named("recordsHeader"))->visible);
+            EXPECT_FALSE(f.pos(life->named("recordsNote"))->visible);
+
+            ActivityRow* walked = records->find(&f.ecs, first);
+            ASSERT_NE(walked, nullptr);
+            EXPECT_EQ(walked->spec.name.rfind("Walked at ", 0), 0u);
+            EXPECT_NE(walked->spec.name.find(" y "), std::string::npos);
+            EXPECT_EQ(walked->cost.spec.text, "1 mo");
+            EXPECT_EQ(walked->spec.each, "0 vit");
+            EXPECT_NE(walked->spec.line.find("steps"), std::string::npos);
+            EXPECT_NE(walked->spec.asideTop.find("berries"), std::string::npos);
+            ASSERT_TRUE(walked->action.has_value());
+            EXPECT_EQ(walked->action->label.spec.text, "Walk");
+            EXPECT_EQ(life->save.queue.recipe, first);
+            EXPECT_EQ(records->selected(), first);
+
+            // Its cell and its button stand past its cost, inside the line
+            EXPECT_GT(f.pos(walked->asideTop->entity)->x, f.pos(walked->cost.entity)->x + f.pos(walked->cost.entity)->width);
+            EXPECT_GT(f.pos(walked->action->root)->x, f.pos(walked->asideTop->entity)->x + f.pos(walked->asideTop->entity)->width - 0.5f);
+            EXPECT_LE(f.pos(walked->action->root)->x + f.pos(walked->action->root)->width, f.pos(walked->root)->x + f.pos(walked->root)->width);
+
+            // Walk it again: the form of that walk, its four figures, its two buttons at the right
+            EXPECT_TRUE(f.pos(life->named("queuePanel"))->visible);
+            EXPECT_FALSE(f.pos(life->named("workPanel"))->visible);
+            EXPECT_EQ(life->piece<Label>("queueTimes")->spec.text, "1");
+            EXPECT_EQ(life->piece<Label>("takeFigure")->spec.text, "1 mo");
+            EXPECT_EQ(life->piece<Label>("useFigure")->spec.text, "nothing");
+            EXPECT_EQ(life->piece<Label>("bringFigure")->spec.text.rfind("+", 0), 0u);
+            EXPECT_NE(life->piece<Label>("bringNote")->spec.text.find("berries"), std::string::npos);
+            EXPECT_EQ(life->piece<Button>("walkMany")->spec.variant, ButtonVariant::Ochre);
+            EXPECT_EQ(life->piece<Button>("walkMany")->label.spec.text, "Queue 1");
+            EXPECT_EQ(life->piece<Button>("walkMany")->costText, "1 mo");
+            EXPECT_FALSE(life->piece<Button>("walkOnce")->spec.disabled);
+            EXPECT_TRUE(life->piece<Button>("queueFewer")->spec.disabled);
+            EXPECT_NEAR(f.pos(life->piece<Button>("walkMany")->root)->x + f.pos(life->piece<Button>("walkMany")->root)->width,
+                        f.pos(life->named("queueGo"))->x + life->piece<Panel>("queuePanel")->innerWidth(), 1.0f);
+
+            // And the scribe has a line for the place, at the page's foot
+            EXPECT_FALSE(life->piece<Label>("footLine")->spec.text.empty());
+
+            // Set out anew: by hand, whatever he has kept of it
             f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.new"});
             f.frames(12);
             walkIt();
 
-            // Two walks kept of the place now, the last one first and chosen
             ASSERT_EQ(life->save.recipes.size(), 2u);
 
             const std::string second = life->save.recipes[1].id;
 
             EXPECT_NE(second, first);
-            EXPECT_EQ(life->save.queue.recipe, second);
 
             f.ecs.sendEvent(TabSelectedEvent{tabs->root.id, "life.tabs", 2});
             f.frames(12);
             f.pass(100.0f, 50.0f);
 
+            // Two lines, the best first, and the first one chosen
             ASSERT_NE(records->find(&f.ecs, first), nullptr);
             ASSERT_NE(records->find(&f.ecs, second), nullptr);
-            EXPECT_LT(f.pos(records->find(&f.ecs, second)->root)->y, f.pos(records->find(&f.ecs, first)->root)->y);
-            EXPECT_EQ(records->selected(), second);
+            EXPECT_EQ(recordsPanel->aside->spec.text, "2 KEPT");
+            ASSERT_FALSE(records->spec.groups.empty());
+            ASSERT_EQ(records->spec.groups[0].rows.size(), 2u);
 
-            // The older one can be chosen in its place: the form is filled for it
-            f.ecs.sendEvent(ActivitySelectedEvent{"walk.records", first});
+            const std::string best = records->spec.groups[0].rows[0].id;
+            const std::string other = best == first ? second : first;
+
+            EXPECT_EQ(life->save.queue.recipe, best);
+            EXPECT_EQ(records->selected(), best);
+            EXPECT_LT(f.pos(records->find(&f.ecs, best)->root)->y, f.pos(records->find(&f.ecs, other)->root)->y);
+
+            // The other one can be chosen in its place: the form is filled for it
+            f.ecs.sendEvent(ActivitySelectedEvent{"walk.records", other});
             f.settle();
 
-            EXPECT_EQ(life->save.queue.recipe, first);
+            EXPECT_EQ(life->save.queue.recipe, other);
+
+            // A line's own button walks that walk once, now: the form gives way to the walk at work
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.run." + best});
+            f.frames(12);
+
+            EXPECT_EQ(life->save.running, "walk.hedgerows");
+            EXPECT_EQ(life->save.walking, best);
+            EXPECT_FALSE(f.pos(life->named("queuePanel"))->visible);
+            EXPECT_TRUE(f.pos(life->named("workPanel"))->visible);
+            EXPECT_NE(life->piece<Label>("atWalk")->spec.text.find("WALK 1 OF 1"), std::string::npos);
+            EXPECT_TRUE(life->piece<Button>("walkNew")->spec.disabled);
+
+            life->onMonth();
+            f.settle();
+
+            ASSERT_TRUE(life->save.running.empty());
+            EXPECT_EQ(life->save.walksByRecord, 1);
+            EXPECT_TRUE(f.pos(life->named("queuePanel"))->visible);
+            EXPECT_FALSE(f.pos(life->named("workPanel"))->visible);
 
             // A place keeps five walks: a sixth takes the oldest one's place
             for (int i = 0; i < 4; ++i)
             {
+                f.ecs.sendEvent(TabSelectedEvent{tabs->root.id, "life.tabs", 2});
+                f.frames(6);
                 f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.new"});
                 f.frames(12);
                 walkIt();
@@ -6060,7 +6143,38 @@ namespace pg
             for (const auto& r : life->save.recipes)
                 EXPECT_NE(r.id, first);
 
-            EXPECT_EQ(life->save.recipes.front().id, second);
+            // A place that opens to him while he is on another page is counted at the tab's corner,
+            // and no longer once he has looked
+            f.ecs.sendEvent(TabSelectedEvent{tabs->root.id, "life.tabs", 0});
+            f.frames(12);
+
+            EXPECT_EQ(tabs->tabs[2].notice, 0);
+
+            life->save.age = 10.0f;
+            life->onMonth();
+            f.settle();
+
+            EXPECT_EQ(life->newInAdventure, 1);
+            EXPECT_EQ(tabs->tabs[2].notice, 1);
+
+            f.ecs.sendEvent(TabSelectedEvent{tabs->root.id, "life.tabs", 2});
+            f.frames(12);
+
+            EXPECT_EQ(tabs->tabs[2].notice, 0);
+            ASSERT_NE(zones->find(&f.ecs, "millpond"), nullptr);
+            EXPECT_EQ(zones->find(&f.ecs, "millpond")->spec.rank, "FORAGE \xC2\xB7 1 BEAST");
+            EXPECT_EQ(zonePanel->aside->spec.text.rfind("2 OPEN", 0), 0u);
+
+            // A place with no walk kept: one faint line, no table and no form
+            f.ecs.sendEvent(ActivitySelectedEvent{"walk.zones", "millpond"});
+            f.settle();
+
+            EXPECT_EQ(life->adventureZone, "millpond");
+            EXPECT_EQ(recordsPanel->title->spec.text, "Records of Mill Pond");
+            EXPECT_TRUE(f.pos(life->named("recordsNote"))->visible);
+            EXPECT_FALSE(f.pos(life->named("recordsHeader"))->visible);
+            EXPECT_FALSE(f.pos(life->named("queuePanel"))->visible);
+            EXPECT_EQ(life->piece<Button>("walkNew")->label.spec.text, "Set out for Mill Pond");
         }
 
         // ----------------------------------------------------------------------------------------

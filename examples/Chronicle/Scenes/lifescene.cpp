@@ -2793,6 +2793,17 @@ namespace chronicle
         {
             const std::string id = textOf(a.fields, "id");
 
+            // A place that opens to him while the Adventure page is not in view is counted at its
+            // tab's corner: once, the day it opens, whether its tile was already there or not
+            if (not textOf(a.fields, "zone").empty() and boolOf(a.fields, "listed") and not boolOf(a.fields, "locked")
+                and std::find(openedWalks.begin(), openedWalks.end(), id) == openedWalks.end())
+            {
+                openedWalks.push_back(id);
+
+                if (filledBefore and adventureKnown() and not adventureShown)
+                    ++newInAdventure;
+            }
+
             if (not boolOf(a.fields, "listed") or std::find(stood.begin(), stood.end(), id) != stood.end())
                 continue;
 
@@ -4226,7 +4237,9 @@ namespace chronicle
         // Seen: what was new on the page now in view is new no longer
         if (townShown)
             newInTown = 0;
-        else if (not adventureShown)
+        else if (adventureShown)
+            newInAdventure = 0;
+        else
             newInLife = 0;
 
         showNotices();
@@ -4518,6 +4531,10 @@ namespace chronicle
 
         if (townTab() >= 0)
             tabs->setNotice(ecsRef, townTab(), townShown ? 0 : newInTown);
+
+        // A place that has opened to him since he last looked at the Adventure page
+        if (adventureTab() >= 0)
+            tabs->setNotice(ecsRef, adventureTab(), adventureShown or not adventureKnown() ? 0 : newInAdventure);
     }
 
     void LifeScene::raisePlace(const std::string& place, int level)
@@ -5140,6 +5157,8 @@ namespace chronicle
 
         newInLife = 0;
         newInTown = 0;
+        newInAdventure = 0;
+        openedWalks.clear();
 
         rules.world = save.world;
         rules.lives = save.lives;

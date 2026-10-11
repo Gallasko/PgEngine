@@ -168,59 +168,150 @@ children:
         width: 334
         height: 200
         scrollable: true
-        spacing: 8
+        spacing: 16
         children:
-          # Where he may walk: a tile a place, the ones open to him and the ones not yet. The one
-          # chosen says what it is, and has a button that sets out for it by hand
-          - {kind: Label, name: zonesHead, style: gloss-title, overflow: ellipsis, width: 334, text: "Where to walk"}
-          - kind: ActivityList
-            name: zones
-            id: walk.zones
+          # -- Where to walk: a line a place he knows of, the open ones first. One is chosen; under
+          # the list, what a walk by hand is, and the button that sets out for the one chosen --
+          - kind: Panel
+            name: zonePanel
+            frame: ruled
             width: 334
-            stripes: false
-            compact: true
-            tileWidth: 148
-          - {kind: Label, name: zoneNote, style: gloss, color: ink-muted, overflow: wrap, width: 334, text: ""}
-          - kind: Layout:Horizontal
-            name: zoneGo
-            width: 334
-            height: 36
-            spacing: 8
+            heading: Where to walk
+            aside: "2 OPEN · 1 CLOSED"
             children:
-              - {kind: Button, name: walkNew, variant: study, label: "Set out", glyph: adventure, cost: "1 mo", tag: walk.new}
-          # The walks he has made there, the last first: one chosen fills the form under them
-          - {kind: Label, name: recordsHead, style: gloss-title, overflow: ellipsis, width: 334, text: "Walks he has made there"}
-          - kind: ActivityList
-            name: records
-            id: walk.records
+              - kind: ActivityList
+                name: zones
+                id: walk.zones
+                stripes: false
+                framed: true
+              - kind: Layout:Horizontal
+                name: zoneGo
+                width: 302
+                height: 36
+                spacing: 12
+                children:
+                  - {kind: Label, name: zoneNote, style: gloss, color: ink-muted, overflow: ellipsis, width: 220, text: "A walk he chooses day by day. The record is kept."}
+                  - {kind: Button, name: walkNew, variant: ochre, label: "Set out", glyph: adventure, cost: "1 mo", tag: walk.new}
+
+          # -- The walks kept of the place chosen: a table, the best first. One is chosen, and its
+          # button walks it once --
+          - kind: Panel
+            name: recordsPanel
+            frame: ruled
             width: 334
-          - {kind: Label, name: recordsNote, style: gloss, color: ink-muted, overflow: wrap, width: 334, text: "A walk made by hand leaves a record. The same man may walk it again: no day is chosen and no fight is fought, and what the beasts drop is rolled anew."}
-          - {kind: Label, name: queueHead, style: gloss-title, overflow: ellipsis, width: 334, text: "Walk it again"}
-          - {kind: Label, name: queueTitle, style: label, color: status-time, overflow: wrap, width: 334, text: "CHOOSE A WALK ABOVE"}
-          - kind: Layout:Horizontal
-            name: queueCount
-            width: 334
-            height: 36
-            spacing: 8
+            heading: Records of the Hedgerows
+            aside: "1 KEPT"
             children:
-              - {kind: Button, name: queueFewer, variant: quiet, label: "Fewer", tag: walk.fewer}
-              - {kind: Button, name: queueMore, variant: quiet, label: "More", tag: walk.more}
-              - {kind: Button, name: queueStop, variant: quiet, label: "Stop: never", tag: walk.stop}
-          - {kind: Label, name: queueTake, style: body-sm, overflow: wrap, width: 334, text: ""}
-          - {kind: Label, name: queueUse, style: body-sm, overflow: wrap, width: 334, text: ""}
-          - {kind: Label, name: queueBring, style: body-sm, overflow: wrap, width: 334, text: ""}
-          - {kind: Label, name: queueTeach, style: body-sm, color: lapis, overflow: wrap, width: 334, text: ""}
-          - {kind: Label, name: queueWarn, style: gloss, color: vermilion, overflow: wrap, width: 334, text: ""}
-          - kind: Layout:Horizontal
-            name: queueGo
+              - kind: Layout:Horizontal
+                name: recordsHeader
+                width: 302
+                height: 16
+                spacing: 12
+                children:
+                  - {kind: Label, name: recHeadPad, style: label, overflow: ellipsis, width: 4, text: " "}
+                  - {kind: Label, name: recHeadWalk, style: label, color: ink-muted, overflow: ellipsis, width: 200, text: WALK}
+                  - {kind: Label, name: recHeadCost, style: label, color: ink-muted, overflow: ellipsis, align: right, width: 70, text: COST}
+                  - {kind: Label, name: recHeadBrings, style: label, color: ink-muted, overflow: ellipsis, width: 110, text: BRINGS}
+              - kind: ActivityList
+                name: records
+                id: walk.records
+                stripes: false
+                framed: true
+              - {kind: Label, name: recordsNote, style: body-sm, color: ink-faint, overflow: wrap, text: "Not yet walked. The first walk is made by hand."}
+
+          # -- Walk it again: the walk chosen, so many times. What the walks take, use, bring and
+          # teach, each a figure and its caption; then the two buttons --
+          - kind: Panel
+            name: queuePanel
+            frame: ruled
             width: 334
-            height: 36
-            spacing: 8
+            heading: Walk it again
+            aside: "THE WALK OF 9 Y 9 MO"
             children:
-              - {kind: Button, name: walkOnce, variant: quiet, label: "Walk once", glyph: adventure, tag: walk.once}
-              - {kind: Button, name: walkMany, variant: seal, label: "Queue", glyph: adventure, cost: "2 mo", tag: walk.many}
-          - {kind: Label, name: atWalk, style: label, color: status-gain, overflow: wrap, width: 334, text: ""}
-          - {kind: Button, name: queueLast, variant: quiet, label: "Finish this walk, then stop", tag: walk.last}
+              - kind: Layout:Horizontal
+                name: queueCount
+                width: 302
+                height: 36
+                spacing: 8
+                children:
+                  - {kind: Label, name: timesHead, style: label, color: ink-muted, overflow: ellipsis, width: 86, text: TIMES}
+                  - {kind: Button, name: queueFewer, variant: quiet, label: "−", tag: walk.fewer}
+                  - {kind: Label, name: queueTimes, style: figure, overflow: ellipsis, align: center, width: 28, text: "3"}
+                  - {kind: Button, name: queueMore, variant: quiet, label: "+", tag: walk.more}
+                  - {kind: Label, name: queueTotal, style: body-sm, color: ink-muted, overflow: ellipsis, width: 240, text: "· 3 mo · home at 12 y 2 mo"}
+              - kind: Layout:Horizontal
+                name: queueStopRow
+                width: 302
+                height: 36
+                spacing: 8
+                children:
+                  - {kind: Label, name: stopHead, style: label, color: ink-muted, overflow: ellipsis, width: 86, text: STOP WHEN}
+                  - {kind: Button, name: queueStop, variant: quiet, label: "Never · walk them all", tag: walk.stop}
+              - {kind: Ornament, ornament: divider, knot: false}
+              - kind: Layout:Horizontal
+                name: forecast
+                width: 302
+                height: 62
+                spacing: 12
+                children:
+                  - kind: Layout:Vertical
+                    name: cellTake
+                    width: 66
+                    spacing: 2
+                    children:
+                      - {kind: Label, name: takeHead, style: label, color: ink-muted, width: 66, text: TAKES}
+                      - {kind: Label, name: takeFigure, style: figure, color: status-time, overflow: ellipsis, width: 66, text: "3 mo"}
+                      - {kind: Label, name: takeNote, style: caption, color: ink-muted, overflow: ellipsis, width: 66, text: "−9 vitality"}
+                  - kind: Layout:Vertical
+                    name: cellUse
+                    width: 66
+                    spacing: 2
+                    children:
+                      - {kind: Label, name: useHead, style: label, color: ink-muted, width: 66, text: USES}
+                      - {kind: Label, name: useFigure, style: figure, overflow: ellipsis, width: 66, text: "nothing"}
+                      - {kind: Label, name: useNote, style: caption, color: ink-muted, overflow: ellipsis, width: 66, text: "from the bag"}
+                  - kind: Layout:Vertical
+                    name: cellBring
+                    width: 66
+                    spacing: 2
+                    children:
+                      - {kind: Label, name: bringHead, style: label, color: ink-muted, width: 66, text: BRINGS}
+                      - {kind: Label, name: bringFigure, style: figure, color: status-gain, overflow: ellipsis, width: 66, text: "+33"}
+                      - {kind: Label, name: bringNote, style: caption, color: ink-muted, overflow: ellipsis, width: 66, text: "berries, rolled anew"}
+                  - kind: Layout:Vertical
+                    name: cellTeach
+                    width: 66
+                    spacing: 2
+                    children:
+                      - {kind: Label, name: teachHead, style: label, color: ink-muted, width: 66, text: TEACHES}
+                      - {kind: Label, name: teachFigure, style: figure, color: lapis, overflow: ellipsis, width: 66, text: "+9"}
+                      - {kind: Label, name: teachNote, style: caption, color: ink-muted, overflow: ellipsis, width: 66, text: "study · level 3 at +6"}
+              - {kind: Ornament, ornament: divider, knot: false}
+              - {kind: Label, name: queueWarn, style: gloss, color: vermilion, overflow: wrap, text: ""}
+              - kind: Layout:Horizontal
+                name: queueGo
+                width: 302
+                height: 36
+                spacing: 8
+                children:
+                  - {kind: Label, name: queueSpacer, style: label, overflow: ellipsis, width: 100, text: " "}
+                  - {kind: Button, name: walkOnce, variant: quiet, label: "Walk once", cost: "1 mo", tag: walk.once}
+                  - {kind: Button, name: walkMany, variant: ochre, label: "Queue 3", cost: "3 mo", tag: walk.many}
+
+          # -- While a queue runs, in the form's place: which walk of how many, how far along, and
+          # the button that ends the queue with this walk --
+          - kind: Panel
+            name: workPanel
+            frame: ruled
+            width: 334
+            heading: At work now
+            children:
+              - {kind: Label, name: atWalk, style: label, color: status-gain, overflow: wrap, text: "WALK 1 OF 3"}
+              - {kind: ProgressRule, name: queueBar, nib: false, percent: 20, forecast: 100}
+              - {kind: Button, name: queueLast, variant: quiet, label: "Finish this walk, then stop", tag: walk.last}
+
+          # -- The foot: what the scribe says of the place, at his age. Never anything the game counts --
+          - {kind: Label, name: footLine, style: gloss, color: ink-muted, overflow: wrap, width: 334, text: ""}
 
   - kind: Panel
     name: parts

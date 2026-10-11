@@ -163,6 +163,8 @@ namespace chronicle
         std::string workChosen;        // And the work chosen in "Field work"
         bool adventureShown = false;   // The Adventure page is in view
         std::string adventureZone;     // The place it is about, "" before it is filled: the one whose tile he chose, or of the walk he last made
+        float adventureWidth = 0.0f;   // The width its regions were last given
+        bool recordsShown = false;     // The place in view has walks kept: their table is on the page
 
         bool onWalk() const { return save.walk.under(); }   // He is on site: the walk's screen is the page
         void beginWalk(const std::string& activity);     // He sets out by hand: the on-site screen opens
@@ -172,6 +174,7 @@ namespace chronicle
         void chooseRecord(const std::string& id);         // The record the form of a queue is filled for
         void chooseZone(const std::string& zone);         // The place the Adventure page is about: its tile lit, its walks listed
         void setOutAnew();                                // A new walk to that place, by hand
+        void layAdventure();                              // What stands beside a button of the Adventure page has the room the button leaves
         void queueWalks(int count);                       // The chosen record walked so many times, one walk after the other
         bool onWalkButton(const std::string& tag);        // A button of the walk's screens or of the Adventure page; false for another's
         bool telling() const { return walkTelling; }      // A turn of a fight is being told on the page: nothing is pressed meanwhile
@@ -179,6 +182,8 @@ namespace chronicle
 
         int newInLife = 0;             // What has come onto the Life page while the Town page was in view: said at its tab's corner
         int newInTown = 0;             // And onto the Town page while the Life page was
+        int newInAdventure = 0;        // The places that opened to him while the Adventure page was not in view
+        std::vector<std::string> openedWalks;   // The places seen open to him, so that one is new once
 
         bool guiding() const;          // A first life whose guide has not said its last step
         int toastsUp() const { return toasts; }   // The toasts at the foot of the window now

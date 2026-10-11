@@ -32,9 +32,14 @@ the `CHANGELOG.md` at the root of the repository.
 - **The record, and walking it again.** Everything you do on a walk is written down. When you
   are home the record is kept, and the new *Adventure* tab walks it again for you, once or
   several times in a row: no choice to make, no fight to play, and what the beasts drop is
-  rolled again each time. The tab has a tile for every place you may walk to (they leave the
-  Life tab once it is there). Choose a place to set out for it anew, or to see the walks you
-  have made there, the last five, and queue one of them. A queue can stop on its own: when the bag is short, when you hold
+  rolled again each time. The tab lists every place you know of, the open ones first (they
+  leave the Life tab once it is there): what kind of walk it is, its months and days, what it
+  gives, how well you know it, and for a closed one what it asks and what you are short of.
+  *Set out for …* starts a new walk to the place chosen. Under it, a table of the walks you
+  have kept of that place, the best first, each with its cost, what it brings and a *Walk*
+  button; the one chosen fills *Walk it again*: how many times, when to stop, and four figures
+  for what the walks take, use, bring and teach. While a queue runs the form gives way to *At
+  work now*. A small count at the tab's corner says a new place has opened. A queue can stop on its own: when the bag is short, when you hold
   enough of something, or at an age.
 - **Knowledge.** Studying a place and watching a beast are kept by the world, from life to life:
   beasts get cheaper to find, you see their vitality and what they will do next, then their

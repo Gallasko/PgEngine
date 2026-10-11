@@ -15,6 +15,7 @@
 #include "progressrule.h"
 #include "requirementlist.h"
 #include "focusorder.h"
+#include "button.h"
 
 namespace chronicle
 {
@@ -63,6 +64,17 @@ namespace chronicle
         std::string costGlyph = "time";   // The mark beside the cost: the hourglass of what takes time, or another's ("vitality") for a figure that is not a time
         int closes = -1;               // A tile's: the months left to begin it, counted down at the right of its second line under a stopwatch; -1 = it does not close (or not soon). `urgent` puts it in the loss's colour
         bool adventure = false;        // A tile that takes him out of the town (a walk): a ground and a frame of its own, and its mark shown
+
+        // A row as a line of a table (not a tile, not compact): the Adventure page's places and walks
+        std::string line;              // "" or a plain line under the name, in the place of what it brings or asks: said in every state but Running
+        std::string eachTone;          // "" (faint), "know", "gain", "loss", "muted": the colour of `each`, under the cost
+        std::string asideTop;          // A cell of two lines between the cost and the row's right edge (or its button): "+11 berries",
+        std::string asideBottom;       // and "+3 study"; "" and "" for none
+        std::string asideTopTone = "gain";      // "", "gain", "loss", "know", "time", "muted"
+        std::string asideBottomTone = "know";
+        float asideWidth = 110.0f;
+        std::string action;            // "" or the label of a small button at the row's right end ("Walk"): pressed, it sends ButtonActivatedEvent with `actionTag`
+        std::string actionTag;
     };
 
     // Sent by the ActivitySystem when a list's selection changes ("" = cleared).
@@ -146,6 +158,8 @@ namespace chronicle
         std::optional<ProgressRule> progress;        // Running
         std::optional<RequirementList> reqs;         // Locked
         std::optional<Label> until;                  // When it closes, while it has something to say
+        std::optional<Label> asideTop, asideBottom;  // A table line's: the cell between its cost and its right end
+        std::optional<Button> action;                // and the small button at that end
         pg::EntityRef inset, insetFrame;             // A tile's: the box in its top right corner its time stands in
         Mark closeMark;                              // A tile's: the stopwatch of what closes,
         std::optional<Label> closing;                // and the months left, at the right of its second line
@@ -177,6 +191,8 @@ namespace chronicle
         void buildUntil(pg::EntitySystem*);          // The closing line as the spec says: made, rewritten or removed
         void fitName(pg::EntitySystem*);             // Grows to its text, or elides in the room left
         float tileNameWidth() const;                 // A tile's name has the tile's width, less the box of its time
+        float bodyLeft() const;                      // Where the name and what is under it begin: past the mark's column, when it has a mark
+        float rightInset() const;                    // The room the cell and the button take at the right of the cost
         void fitInset();                             // The box of a tile's time, around what it says
         void resize(pg::EntitySystem*);
     };
@@ -199,6 +215,7 @@ namespace chronicle
         float height = 0.0f;           // 0 = as tall as its rows; > 0 = that tall, and the rows scroll
         bool stripes = true;           // Alternate grounds like an account book; false: every row on the same ground
         bool compact = false;          // Every row compact (ActivityRowSpec::compact), whatever its own spec says
+        bool framed = false;           // A drawn frame around the list: a table of lines, not a stack of rows
         float tileWidth = 0.0f;        // > 0: the rows are tiles, as many to a line as fit at that width or more, 8 apart; the tiles of a line are level
         std::vector<ActivityGroup> groups;
         int z = 20;                    // Root, body and rows; the scroll thumb z+6

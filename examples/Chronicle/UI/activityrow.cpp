@@ -87,6 +87,8 @@ namespace chronicle
         constexpr float TileLineGap = 2.0f;      // Between a tile's name and its time
         constexpr float TileGap = 8.0f;          // space-2 between two tiles, on a line and from line to line
         constexpr int TileNameLines = 2;         // A tile's name wraps to that many lines, then elides
+        constexpr float ActionWidth = 56.0f;     // The room of a table line's button, at its right end
+        constexpr float CellGap = 12.0f;         // Between two cells of a table line
         constexpr float InsetPadX = 5.0f;        // A tile's time in its box: beside it,
         constexpr float InsetPadY = 2.0f;        // over and under it,
         constexpr float InsetGap = 6.0f;         // and between the box and the name
@@ -715,7 +717,7 @@ namespace chronicle
 
         // Mark: S24 (the design system draws 22; the kit registers 18 and 24), centred in its column.
         // A tile has none, but a major one: its width is the name's
-        if (not spec.tile)
+        if (not spec.tile and not spec.glyph.empty())
         {
             row.mark = makeMark(ecs, {spec.glyph, MarkSize::S24, "ink-muted", z + 3});
             offstage(row.mark.entity);
@@ -760,7 +762,7 @@ namespace chronicle
             else
             {
                 anchor->setRightAnchor(PosAnchor{rootId, AnchorType::Right});
-                anchor->setRightMargin(Pad);
+                anchor->setRightMargin(Pad + row.rightInset());
                 anchor->setTopMargin(Pad + baselineShift(ecs, "tab", "control"));
 
                 markAnchor->setRightAnchor(PosAnchor{row.cost.entity.id, AnchorType::Left});
@@ -778,12 +780,12 @@ namespace chronicle
         // A compact row keeps the name, the time and the closing: the rest is its gloss's
         if (not spec.each.empty() and not spec.compact)
         {
-            row.each = makeActivityText(ecs, "caption", "activity.each", spec.each, z + 4);
+            row.each = makeActivityText(ecs, "caption", spec.eachTone.empty() ? std::string("activity.each") : "activity.each." + spec.eachTone, spec.each, z + 4);
 
             auto anchor = row.each->entity->get<UiAnchor>();
 
             anchor->setRightAnchor(PosAnchor{rootId, AnchorType::Right});
-            anchor->setRightMargin(Pad);
+            anchor->setRightMargin(Pad + row.rightInset());
             anchor->setTopAnchor(PosAnchor{row.cost.entity.id, AnchorType::Bottom});
             anchor->setTopMargin(EachGap);
             anchor->setZConstrain(PosConstrain{rootId, AnchorType::Z, PosOpType::Add, 4.0f});
@@ -836,7 +838,7 @@ namespace chronicle
         else
         {
             row.name = makeActivityText(ecs, "tab", "activity.name", spec.name, z + 4);
-            placeIn(row.name.entity, rootId, Pad + MarkColumn + Gap, Pad, 4.0f);
+            placeIn(row.name.entity, rootId, row.bodyLeft(), Pad, 4.0f);
         }
 
         prefab->addToPrefab(row.name.entity);
@@ -854,6 +856,51 @@ namespace chronicle
             anchor->setTopMargin(Pad + baselineShift(ecs, "tab", "caption"));
             anchor->setZConstrain(PosConstrain{rootId, AnchorType::Z, PosOpType::Add, 4.0f});
             prefab->addToPrefab(row.rank->entity);
+        }
+
+        // A line of a table: a cell of two lines past the cost, and a small button at the row's end
+        if (not spec.compact and not (spec.asideTop.empty() and spec.asideBottom.empty()))
+        {
+            const float right = Pad + (spec.action.empty() ? 0.0f : ActionWidth + CellGap);
+
+            auto cell = [&](const std::string& text, const std::string& tone, const char* style, const char* line, float top) {
+                Label label = makeActivityText(ecs, style, std::string("activity.cell.") + line + (tone.empty() ? "" : "." + tone), text, z + 4, Overflow::Ellipsis, spec.asideWidth);
+                auto anchor = label.entity->get<UiAnchor>();
+
+                anchor->setRightAnchor(PosAnchor{rootId, AnchorType::Right});
+                anchor->setRightMargin(right);
+                anchor->setTopAnchor(PosAnchor{rootId, AnchorType::Top});
+                anchor->setTopMargin(top);
+                anchor->setZConstrain(PosConstrain{rootId, AnchorType::Z, PosOpType::Add, 4.0f});
+                prefab->addToPrefab(label.entity);
+
+                return label;
+            };
+
+            row.asideTop = cell(spec.asideTop, spec.asideTopTone, "control", "top", Pad + baselineShift(ecs, "tab", "control"));
+            row.asideBottom = cell(spec.asideBottom, spec.asideBottomTone, "caption", "bottom", Pad + TitleHeight + MiddleGap);
+        }
+
+        if (not spec.compact and not spec.action.empty())
+        {
+            ButtonSpec bs;
+            bs.variant = ButtonVariant::Quiet;
+            bs.label = spec.action;
+            bs.tag = spec.actionTag;
+            bs.z = z + 4;
+
+            row.action = makeButton(ecs, bs);
+
+            auto anchor = row.action->root->get<UiAnchor>();
+
+            anchor->setRightAnchor(PosAnchor{rootId, AnchorType::Right});
+            anchor->setRightMargin(Pad);
+            anchor->setVerticalCenter(PosAnchor{rootId, AnchorType::VerticalCenter});
+            prefab->addToPrefab(row.action->root);
+
+            // What cannot be chosen cannot be walked either
+            if (spec.state == ActivityState::Locked)
+                row.action->setDisabled(ecs, true);
         }
 
         row.fitName(ecs);
@@ -884,7 +931,21 @@ namespace chronicle
         const float eachWidth = each ? each->entity.get<PositionComponent>()->width : 0.0f;
         const float rightWidth = std::max(costWidth, eachWidth);
 
-        return spec.width - Pad - MarkColumn - Gap - rightWidth - Gap - Pad;
+        return spec.width - bodyLeft() - rightWidth - rightInset() - Gap - Pad;
+    }
+
+    float ActivityRow::bodyLeft() const
+    {
+        return spec.glyph.empty() and not spec.tile ? Pad : Pad + MarkColumn + Gap;
+    }
+
+    float ActivityRow::rightInset() const
+    {
+        if (spec.compact)
+            return 0.0f;
+
+        return (spec.action.empty() ? 0.0f : ActionWidth + CellGap)
+             + (spec.asideTop.empty() and spec.asideBottom.empty() ? 0.0f : spec.asideWidth + CellGap);
     }
 
     void ActivityRow::buildMiddle(EntitySystem* ecs)
@@ -893,11 +954,23 @@ namespace chronicle
         if (spec.compact)
             return;
 
-        const float x = Pad + MarkColumn + Gap;
+        const float x = bodyLeft();
         const float y = Pad + TitleHeight + MiddleGap;
         const float middle = middleWidth();
         const int z = spec.z;
         auto prefab = root->get<Prefab>();
+
+        // A line of a table says one plain thing under its name, whatever its state but running:
+        // what the place gives, or what it asks of him while it is shut
+        if (not spec.line.empty() and spec.state != ActivityState::Running)
+        {
+            gains = makeActivityText(ecs, "body-sm", spec.state == ActivityState::Locked ? "activity.line.locked" : "activity.line", spec.line, z + 4, Overflow::Ellipsis, middle);
+            placeIn(gains->entity, root.id, x, y, 4.0f);
+            prefab->addToPrefab(gains->entity);
+            clipLike(ecs, root, gains->entity);
+
+            return;
+        }
 
         switch (spec.state)
         {
@@ -984,7 +1057,7 @@ namespace chronicle
             else
                 until = makeActivityText(ecs, "tick", "activity.until", spec.until, spec.z + 4);
 
-            placeIn(until->entity, root.id, spec.tile ? TilePad : Pad + MarkColumn + Gap, 0.0f, 4.0f);
+            placeIn(until->entity, root.id, spec.tile ? TilePad : bodyLeft(), 0.0f, 4.0f);
             root->get<Prefab>()->addToPrefab(until->entity);
             clipLike(ecs, root, until->entity);
         }
@@ -1463,6 +1536,16 @@ namespace chronicle
             root.get<UiAnchor>()->setHeightConstrain(PosConstrain{body.entity.id, AnchorType::Height});
         }
 
+        // A table of lines has a drawn frame around it, over its rows
+        if (spec.framed)
+        {
+            auto frame = makeStrokeRect2DShape(ecs, 1.0f, 1.0f, {255.0f, 255.0f, 255.0f, 255.0f}, 1.0f);
+            frame.get<UiAnchor>()->fillIn(root.get<UiAnchor>());
+            frame.get<UiAnchor>()->setZConstrain(PosConstrain{rootId, AnchorType::Z, PosOpType::Add, 5.0f});
+            ecs->attach<ThemeComponent>(frame.entity, "activity.list.frame");
+            root.get<Prefab>()->addToPrefab(frame.entity, "frame");
+        }
+
         list.setRows(ecs, spec.groups);
 
         return list;
@@ -1561,6 +1644,10 @@ namespace chronicle
                and held.state == wanted.state and held.caption == wanted.caption and held.glossKey == wanted.glossKey
                and held.cost == wanted.cost and held.costGlyph == wanted.costGlyph
                and held.closes == wanted.closes and held.adventure == wanted.adventure
+               and held.line == wanted.line and held.eachTone == wanted.eachTone and held.asideTop == wanted.asideTop
+               and held.asideBottom == wanted.asideBottom and held.asideTopTone == wanted.asideTopTone
+               and held.asideBottomTone == wanted.asideBottomTone and near(held.asideWidth, wanted.asideWidth)
+               and held.action == wanted.action and held.actionTag == wanted.actionTag
                and near(held.percent, wanted.percent) and near(held.glideTo, wanted.glideTo) and near(held.glideMs, wanted.glideMs)
                and sameGains(held.gains, wanted.gains) and sameRequirements(held.requirements, wanted.requirements);
         }

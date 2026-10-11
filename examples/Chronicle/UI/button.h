@@ -17,7 +17,7 @@
 
 namespace chronicle
 {
-    enum class ButtonVariant : uint8_t { Quiet, Study, Seal };
+    enum class ButtonVariant : uint8_t { Quiet, Study, Seal, Ochre };   // Ochre: the first thing to do on a page of time and walks (ochre is the colour of time)
 
     struct ButtonSpec
     {

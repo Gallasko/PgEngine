@@ -235,6 +235,7 @@ namespace chronicle
         pg::RecordList shelf;          // {id, zone, title, kind, note, months, time, vitality, takes, brings, learns, state, locked, asks}
         pg::ElementMap form;           // A queue of the chosen record: {recipe, title, count, months, total, take, use, bring, teach, warning, once, many, blocked, stop, stopLabel, stopValue, stopItem}
         pg::RecordList stops;          // The ways a queue may stop: {id, label, value}
+        pg::RecordList places;         // The places he may walk to, for the Adventure page: {id, name, kind, months, ap, cost, gives, known, locked, kept, foot}
 
         pg::ElementMap recipe;         // The figures a finished walk is kept under; its `zone` is "" until the walk is over
         std::string blocked;           // "" or what the bag lacks for a record to be walked again

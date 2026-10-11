@@ -81,6 +81,7 @@ var preview = {id: ""}
 var shelf = []
 var form = {recipe: ""}
 var stops = []
+var places = []
 
 var recipe = {zone: ""}
 var blocked = ""
@@ -151,6 +152,9 @@ if (ask == "records" or ask == "begin" or ask == "term")
 {
     shelf = shelfRows()
     form = queueForm()
+    places = placeRows()
+
+    addFigures(form)
 
     if (form.recipe != "")
     {

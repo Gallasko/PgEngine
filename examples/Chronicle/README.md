@@ -73,10 +73,14 @@ defend, take a remedy while he holds one, flee) and what his life has taught him
 else: the Keep's blows to its sworn men, the Collegium's workings to its scholars, a trick of
 the streets to who knows them. Every few turns of a fight a day of the stay is gone. When the days are spent, or he turns for
 home, the walk's months run as any work's do, and the record is kept: the **Adventure page** (a
-tab beside Life and Town, there once he has been on a walk) has a tile for every place he may
-walk to, and from then on the Life page keeps none. The place chosen has a button that sets out
-for it anew, by hand, and under it the walks he has made there, its last five: one chosen is
-walked again, once or in a queue, with no day chosen and no fight fought. What a walk brings is his, in his Inventory:
+tab beside Life and Town, there once he has been on a walk) lists every place he knows of, the
+open ones first, and from then on the Life page keeps none. A line says what kind of walk it is,
+its months and days, what it gives and how well he knows it; a closed one, what it asks and what
+he is short of. The place chosen has a button that sets out for it anew, by hand; under it a
+table of the walks he has kept of it, its last five, the best first; and under that the form of
+the one chosen: walked again so many times, with what that takes, uses, brings and teaches, and
+no day chosen and no fight fought. A place that opens to him while the page is not in view is
+counted at its tab's corner. What a walk brings is his, in his Inventory:
 some of it is sold at the market (berries, pelts...), some is what a place of the town is built
 of (firewood, clay, ash wood, stone). It ends with him: at his death, with his coin, only what
 the place he chooses still asks of it is left to that place. What walks teach (a zone studied, a
@@ -957,9 +961,15 @@ The scene's part is `Scenes/lifewalk.cpp` (LifeScene's own functions, in a file 
 takes its answer (`after` becomes the character, with what the world knows:
 `LifeSave::takeTown`), `fillSite` and `fillFight` write the answer on the screen by name,
 `endWalk` keeps the record and puts the walk's months on the calendar, `fillAdventure` shows the
-places (`zones`, a tile each; `chooseZone`, `adventureZone`), the button that sets out for the
-one chosen (`setOutAnew`), the walks kept of it (`records`, at most five a place) and the form
-of a queue, and `beginReplay` / `homeFromWalk` walk a record again. The
+places (`zones`, a line each, from the rules' `places`; `chooseZone`, `adventureZone`), the
+button that sets out for the one chosen (`setOutAnew`), the walks kept of it (`records`, at most
+five a place, sorted by the rules' `worth`; a line's own button is `walk.run.<id>`), the form
+of a queue (its figures are the rules' `addFigures`) or, while one runs, the panel of the walk
+at work, and the scribe's line at the foot (`walkZones.<zone>.lines`); `layAdventure` gives what
+stands beside a button the room it leaves. `beginReplay` / `homeFromWalk` walk a record again.
+The lines are the kit's list rows made table lines (`ActivityRowSpec::line`, `eachTone`,
+`asideTop` / `asideBottom`, `action`; a list `framed`), and the first thing to do is a button in
+ochre (`ButtonVariant::Ochre`). The
 save keeps the walk under way (`LifeSave::walk`), so a game closed in the middle of a fight
 opens on it. The two screens are `res/chronicle/ui/expedition.yaml` and `fight.yaml`, built at
 the window's width (`shapeWalk`); under 1000 px they are
