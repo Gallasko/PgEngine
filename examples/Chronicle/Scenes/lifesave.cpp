@@ -89,6 +89,113 @@ namespace pg
         return data;
     }
 
+    // A table of a walk, as the rules hand it: its scalars by name. A list of them is a list of these
+    template <>
+    ElementMap deserialize(const UnserializedObject& serialized)
+    {
+        if (serialized.isNull())
+            return ElementMap{};
+
+        return deserializeUnorderedMap<std::string, ElementType>(serialized);
+    }
+
+    template <>
+    void serialize(Archive& archive, const chronicle::WalkState& value)
+    {
+        archive.startSerialization("WalkState");
+
+        serialize(archive, "run", value.run);
+        serialize(archive, "record", value.record);
+        serialize(archive, "marks", value.marks);
+        serialize(archive, "fight", value.fight);
+        serialize(archive, "foes", value.foes);
+        serialize(archive, "account", value.account);
+
+        archive.endSerialization();
+    }
+
+    template <>
+    chronicle::WalkState deserialize(const UnserializedObject& serialized)
+    {
+        chronicle::WalkState data;
+
+        if (serialized.isNull())
+            return data;
+
+        defaultDeserialize(serialized, "run", data.run);
+        defaultDeserialize(serialized, "record", data.record);
+        defaultDeserialize(serialized, "marks", data.marks);
+        defaultDeserialize(serialized, "fight", data.fight);
+        defaultDeserialize(serialized, "foes", data.foes);
+        defaultDeserialize(serialized, "account", data.account);
+
+        return data;
+    }
+
+    template <>
+    void serialize(Archive& archive, const chronicle::WalkRecipe& value)
+    {
+        archive.startSerialization("WalkRecipe");
+
+        serialize(archive, "id", value.id);
+        serialize(archive, "fields", value.fields);
+        serialize(archive, "steps", value.steps);
+        serialize(archive, "marks", value.marks);
+
+        archive.endSerialization();
+    }
+
+    template <>
+    chronicle::WalkRecipe deserialize(const UnserializedObject& serialized)
+    {
+        chronicle::WalkRecipe data;
+
+        if (serialized.isNull())
+            return data;
+
+        defaultDeserialize(serialized, "id", data.id);
+        defaultDeserialize(serialized, "fields", data.fields);
+        defaultDeserialize(serialized, "steps", data.steps);
+        defaultDeserialize(serialized, "marks", data.marks);
+
+        return data;
+    }
+
+    template <>
+    void serialize(Archive& archive, const chronicle::WalkQueue& value)
+    {
+        archive.startSerialization("WalkQueue");
+
+        serialize(archive, "recipe", value.recipe);
+        serialize(archive, "count", value.count);
+        serialize(archive, "left", value.left);
+        serialize(archive, "total", value.total);
+        serialize(archive, "stop", value.stop);
+        serialize(archive, "value", value.value);
+        serialize(archive, "item", value.item);
+
+        archive.endSerialization();
+    }
+
+    template <>
+    chronicle::WalkQueue deserialize(const UnserializedObject& serialized)
+    {
+        chronicle::WalkQueue data;
+
+        if (serialized.isNull())
+            return data;
+
+        defaultDeserialize(serialized, "recipe", data.recipe);
+        defaultDeserialize(serialized, "count", data.count);
+        defaultDeserialize(serialized, "left", data.left);
+        defaultDeserialize(serialized, "total", data.total);
+        defaultDeserialize(serialized, "stop", data.stop);
+        defaultDeserialize(serialized, "value", data.value);
+        defaultDeserialize(serialized, "item", data.item);
+
+        return data;
+    }
+
     template <>
     void serialize(Archive& archive, const chronicle::LifeSave& value)
     {
@@ -107,6 +214,16 @@ namespace pg
         serialize(archive, "fund", value.fund);
         serialize(archive, "seen", value.seen);
         serialize(archive, "told", value.told);
+        serialize(archive, "knowledge", value.knowledge);
+        serialize(archive, "store", value.store);
+        serialize(archive, "walk", value.walk);
+        serialize(archive, "recipes", value.recipes);
+        serialize(archive, "queue", value.queue);
+        serialize(archive, "walking", value.walking);
+        serialize(archive, "lastWalk", value.lastWalk);
+        serialize(archive, "recorded", value.recorded);
+        serialize(archive, "walksByHand", value.walksByHand);
+        serialize(archive, "walksByRecord", value.walksByRecord);
         serialize(archive, "running", value.running);
         serialize(archive, "monthsIn", value.monthsIn);
         serialize(archive, "stats", value.stats);
@@ -147,6 +264,16 @@ namespace pg
         defaultDeserialize(serialized, "fund", data.fund);
         defaultDeserialize(serialized, "seen", data.seen);
         defaultDeserialize(serialized, "told", data.told);
+        defaultDeserialize(serialized, "knowledge", data.knowledge);
+        defaultDeserialize(serialized, "store", data.store);
+        defaultDeserialize(serialized, "walk", data.walk);
+        defaultDeserialize(serialized, "recipes", data.recipes);
+        defaultDeserialize(serialized, "queue", data.queue);
+        defaultDeserialize(serialized, "walking", data.walking);
+        defaultDeserialize(serialized, "lastWalk", data.lastWalk);
+        defaultDeserialize(serialized, "recorded", data.recorded);
+        defaultDeserialize(serialized, "walksByHand", data.walksByHand);
+        defaultDeserialize(serialized, "walksByRecord", data.walksByRecord);
         defaultDeserialize(serialized, "running", data.running);
         defaultDeserialize(serialized, "monthsIn", data.monthsIn);
         defaultDeserialize(serialized, "stats", data.stats);
@@ -181,6 +308,10 @@ namespace chronicle
         const std::string TownFund = "fund.";
         const std::string TownSeen = "seen.";
 
+        // And what else is the world's: what walks have taught, and what they brought for the town
+        const std::string Known = "know.";
+        const std::string Stored = "store.";
+
         std::string textOf(const ElementMap& map, const std::string& key)
         {
             auto it = map.find(key);
@@ -208,12 +339,18 @@ namespace chronicle
         for (const auto& place : seen)
             map[TownSeen + place] = ElementType{1};
 
+        for (const auto& [key, value] : knowledge)
+            map[Known + key] = ElementType{value};
+
+        for (const auto& [thing, amount] : store)
+            map[Stored + thing] = ElementType{amount};
+
         return map;
     }
 
     bool LifeSave::ofTheTown(const std::string& key)
     {
-        return key == TownKnown or key.rfind(TownLevel, 0) == 0 or key.rfind(TownFund, 0) == 0 or key.rfind(TownSeen, 0) == 0;
+        return key == TownKnown or key.rfind(TownLevel, 0) == 0 or key.rfind(TownFund, 0) == 0 or key.rfind(TownSeen, 0) == 0 or key.rfind(Known, 0) == 0 or key.rfind(Stored, 0) == 0;
     }
 
     bool LifeSave::takeTown(const std::string& key, int value)
@@ -223,6 +360,13 @@ namespace chronicle
 
         if (key == TownKnown and value > 0)
             townKnown = true;
+
+        // What is known only grows; the store is filled by a walk and emptied by a work
+        if (key.rfind(Known, 0) == 0)
+            knowledge[key.substr(Known.size())] = value;
+
+        if (key.rfind(Stored, 0) == 0)
+            store[key.substr(Stored.size())] = value;
 
         return true;
     }
@@ -313,7 +457,8 @@ namespace chronicle
         line << "{\"age\":" << years << ",\"world\":" << world << ",\"aim\":\"" << aim << "\",\"running\":\"" << running << "\",\"monthsIn\":" << monthsIn
              << ",\"terms\":" << terms << ",\"deeds\":" << deeds << ",\"log\":" << log.size() << ",\"lives\":" << lives
              << ",\"picks\":" << picks << ",\"begun\":" << begun << ",\"atOnce\":" << atOnce << ",\"skips\":" << skips << ",\"guide\":" << guide << ",\"guideSkipped\":" << guideSkipped
-             << ",\"town\":" << townLevels() << ",\"townKnown\":" << (townKnown ? 1 : 0) << "}";
+             << ",\"town\":" << townLevels() << ",\"townKnown\":" << (townKnown ? 1 : 0)
+             << ",\"walks\":" << walksByHand << ",\"replays\":" << walksByRecord << ",\"records\":" << recipes.size() << ",\"onWalk\":" << (walk.under() ? 1 : 0) << "}";
 
         return line.str();
     }

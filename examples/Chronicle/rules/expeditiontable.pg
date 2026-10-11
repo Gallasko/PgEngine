@@ -1,0 +1,264 @@
+// Chronicle rules: the expeditions' zones, beasts, events and things
+// -----------------------------------------------------------------
+// Imported by expedition.pg (the walk itself) and by activitytable.pg (the Adventure rows of the
+// Life page are made from `walkZones`, so the two never disagree). Never loaded itself.
+// Input:  none.
+// Output: `walkKnobs`  every figure of the rules of a walk, in one table;
+//         `walkItems`  what a walk gathers, uses or brings home:
+//                        {id, name, one (one of it), glyph, kind (food | remedy | sold | town), heals?,
+//                         lot?, coin?}
+//                      `sold` is his, kept among his stats and sold at the market, `lot` of it
+//                      for `coin` (activitytable.pg makes its row there); `town` goes to
+//                      the town's store ("store.<id>" in `character`), kept between lives and
+//                      spent on the town's places; `remedy` is drunk for `heals` percent of his
+//                      Vitality; `food` is what a rest eats;
+//         `walkZones`  one table per place he can walk to:
+//                        {id, name, kind (forage | hunt), line, travel (days, one way),
+//                         stayMin, stayMax (days on site: the longer one from zone knowledge 3),
+//                         mobs [mob id], spots [{id (an item), ap, least, most}], events [event id],
+//                         fromAge, showAfter?, requires [...] (as an activity's, activitytable.pg),
+//                         opens (what its row's gloss says of it)}
+//         `walkMobs`   one table per beast:
+//                        {id, name, many (several of it), pack?, lone?, rarity (common | uncommon | rare), packSize,
+//                         holdsBack (a member does not attack while that many others stand; 0: none),
+//                         hp, least, most (its bite), guard, quick, verb ("bites"),
+//                         script [bite | circle | maul] (cycled), weak ("" or a technique's id),
+//                         trains (the part a kill teaches), xp, loot [{id, chance (percent), least, most}]}
+//         `walkEvents` one table per event:
+//                        {id, trigger (seek | study | fight | rest | gather), weight, once (once per
+//                         life: a replay skips it), title, text,
+//                         options [{id, label, ap, hp, items [{id, amount}], effects [...], line}]}
+//                      an effect is {kind: "seek", mob, amount} (that beast's find cost, this walk),
+//                      {kind: "study", amount} (zone studies), {kind: "observe", mob, amount},
+//                      or {kind: "stat", stat, amount};
+//         `walkTechniques`, `walkStances`: what a fight offers besides Strike and Guard.
+//
+// The names and the numbers are placeholders for the game's balance and writing: change them
+// here, nothing in C++ moves.
+
+import "string"
+import "math"
+import "algorithm"
+
+var walkKnobs = {
+    daysAMonth: 30,         // A calendar month, in days: a walk blocks 2 x travel + stay, in whole months
+    apPerDay: 1,            // Action points a day on site
+    vigour: 5,              // His Vitality counts five in the field: 12 of 14 at home is 60 of 70 on a walk
+    woundCost: 1,           // Brought down where no one dies: carried home, and the most his Vitality can be is one less
+    turnsPerAp: 3,          // Turns of a fight to a day
+    dexStep: 10,            // One more for every ten of Dexterity
+    lowHp: 50,              // Under this share of his Vitality, in percent,
+    lowPenalty: 1,          // a day is one turn shorter,
+    resolveHolds: 6,        // unless his Discipline is this or more
+    seekCommon: 2,          // Days to find a beast, by how rare it is
+    seekUncommon: 4,
+    seekRare: 8,
+    packMod: -1,            // A pack is easier found
+    loneMod: 1,             // and one of a pack beast alone is harder
+    luckStep: 5,            // One day less for every five of Guile
+    studyAp: 2,
+    observeAp: 1,
+    restAp: 2,
+    restHeal: 40,           // Percent of his Vitality
+    restItem: "rations",
+    breath: 5,              // A fight's worth, full again at the next
+    weaponLeast: 4,         // A strike, before his Strength and his Arms
+    weaponMost: 7,
+    hitBase: 80,            // Percent: a strike against a beast as quick as he is sharp
+    hitStep: 2,             // For each point between his Intelligence and its quickness
+    hitLeast: 40,
+    hitMost: 95,
+    critBase: 5,            // Percent, one more for each two of Guile
+    critPower: 150,         // Percent of the blow
+    dodgeBase: 15,          // Percent: a bite from a beast as quick as he is
+    dodgeStep: 2,           // For each point between his Dexterity and its quickness
+    dodgeMost: 60,
+    guardCut: 50,           // Percent a guard takes off what comes until his next turn
+    potionAuto: 30,         // The stance drinks a remedy under this share of his Vitality
+    sweepAuto: 3,           // And sweeps when this many stand
+    xpStep: 10,             // Points of practice to one point of the part
+    eventChance: 35,        // Percent, after an action an event waits on
+    replayHp: true,
+    studyLevels: [0, 3, 6, 10],     // Studies of a zone, in all, to its knowledge 1 to 4: the first visit alone gives 1
+    observeLevels: [1, 2, 5, 8],    // A beast observed that often is known 1 to 4
+    fightLevels: [1, 8, 20],        // Fought that often it is known 1 to 3: the fourth is by watching only
+    travelCut: 25           // Percent off the way there and back at zone knowledge 4
+}
+
+var walkItems = [
+    {id: "rations", name: "Rations", one: "ration", glyph: "trade", kind: "food"},
+    {id: "remedy", name: "Wortleaf remedies", one: "remedy", glyph: "vitality", kind: "remedy", heals: 30},
+    {id: "berries", name: "Berries", one: "berries", glyph: "trade", kind: "sold", lot: 4, coin: 2},
+    {id: "wortleaf", name: "Wortleaf", one: "wortleaf", glyph: "study", kind: "sold", lot: 2, coin: 3},
+    {id: "fish", name: "Fish", one: "fish", glyph: "trade", kind: "sold", lot: 2, coin: 3},
+    {id: "reeds", name: "Reeds", one: "reeds", glyph: "work", kind: "sold", lot: 3, coin: 2},
+    {id: "pelts", name: "Pelts", one: "pelt", glyph: "adventure", kind: "sold", lot: 1, coin: 4},
+    {id: "hides", name: "Hides", one: "hide", glyph: "adventure", kind: "sold", lot: 1, coin: 5},
+    {id: "fangs", name: "Fangs", one: "fang", glyph: "relic", kind: "sold", lot: 1, coin: 6},
+    {id: "antler", name: "White antlers", one: "white antler", glyph: "relic", kind: "sold", lot: 1, coin: 25},
+    {id: "firewood", name: "Firewood", one: "firewood", glyph: "work", kind: "town"},
+    {id: "clay", name: "Clay", one: "clay", glyph: "work", kind: "town"},
+    {id: "ashwood", name: "Ash wood", one: "ash wood", glyph: "work", kind: "town"},
+    {id: "stone", name: "Stone", one: "stone", glyph: "forge", kind: "town"}
+]
+
+var walkZones = [
+    // The first walk of a life: no beast, a week, three things to pick. It is there to teach the
+    // days, the record and the walk again, and a queue of it is the first thing that runs alone
+    {id: "hedgerows", name: "The Hedgerows", kind: "forage", glyph: "adventure",
+     line: "The hedges at the edge of town, where every child of Bellmoor has picked.",
+     travel: 1, stayMin: 7, stayMax: 9,
+     mobs: [],
+     spots: [{id: "berries", ap: 1, least: 2, most: 4}, {id: "wortleaf", ap: 2, least: 1, most: 2}, {id: "firewood", ap: 2, least: 2, most: 3}],
+     events: ["hedge.nest", "hedge.keeper"],
+     fromAge: 7, showAfter: 6,
+     requires: [{stat: "hedges_known", label: "Helped at the hedges"}],
+     opens: "Berries and wortleaf to sell, firewood for the town. No beast lives there."},
+
+    {id: "millpond", name: "Mill Pond", kind: "forage", glyph: "adventure",
+     line: "Still water above the mill. Something lives in the reeds, and it is not shy.",
+     travel: 2, stayMin: 10, stayMax: 14,
+     mobs: ["rat"],
+     spots: [{id: "reeds", ap: 1, least: 2, most: 3}, {id: "fish", ap: 2, least: 1, most: 3}, {id: "clay", ap: 2, least: 2, most: 3}],
+     events: ["pond.heron"],
+     fromAge: 10,
+     requires: [{stat: "walked.hedgerows", label: "Walked the Hedgerows"}],
+     opens: "Reeds and fish to sell, clay for the town, and the first beast to fight."},
+
+    {id: "hollow", name: "The Hollow Woods", kind: "hunt", glyph: "adventure",
+     line: "Old oaks north of the mill road. The wolves there hunt in threes.",
+     travel: 15, stayMin: 30, stayMax: 40,
+     mobs: ["wolf", "boar", "stag"],
+     spots: [{id: "ashwood", ap: 2, least: 2, most: 3}, {id: "wortleaf", ap: 2, least: 1, most: 3}],
+     events: ["hollow.hunter", "hollow.tracks"],
+     fromAge: 14,
+     requires: [{stat: "bow_learned", label: "Learned the bow, or a lodge in town", anyOf: ["bow_learned", "town.lodge"]}, {stat: "str", needed: 8}],
+     opens: "Pelts, hides and fangs to sell, ash wood for the town. Wolves, in packs."},
+
+    {id: "quarry", name: "The Quarry Road", kind: "forage", glyph: "forge",
+     line: "The cut road to the old quarry. Nobody mends it, and the stone lies where it fell.",
+     travel: 5, stayMin: 14, stayMax: 20,
+     mobs: ["adder"],
+     spots: [{id: "stone", ap: 2, least: 2, most: 4}, {id: "wortleaf", ap: 2, least: 1, most: 2}],
+     events: ["quarry.cart"],
+     fromAge: 14,
+     requires: [{stat: "know.study.hollow", label: "Studies of the Hollow Woods", needed: 3}],
+     opens: "Stone for the town. An adder or two under it."}
+]
+
+var walkMobs = [
+    {id: "rat", name: "Water rat", many: "water rats", pack: "", lone: "", rarity: "common", packSize: 1, holdsBack: 0,
+     hp: 14, least: 3, most: 5, guard: 0, quick: 8, verb: "bites",
+     script: ["bite", "circle"], weak: "",
+     trains: "dex", xp: 3,
+     loot: [{id: "hides", chance: 60, least: 1, most: 1}]},
+
+    {id: "wolf", name: "Wolf", many: "wolves", pack: "Wolf pack", lone: "A lone wolf", rarity: "common", packSize: 3, holdsBack: 2,
+     hp: 16, least: 3, most: 5, guard: 1, quick: 9, verb: "bites",
+     script: ["bite", "circle", "bite"], weak: "sweep",
+     trains: "str", xp: 4,
+     loot: [{id: "pelts", chance: 100, least: 1, most: 1}, {id: "fangs", chance: 25, least: 1, most: 1}]},
+
+    {id: "boar", name: "Boar", many: "boars", pack: "", lone: "", rarity: "uncommon", packSize: 1, holdsBack: 0,
+     hp: 32, least: 5, most: 8, guard: 2, quick: 5, verb: "gores",
+     script: ["circle", "bite", "maul"], weak: "feint",
+     trains: "str", xp: 8,
+     loot: [{id: "hides", chance: 100, least: 1, most: 2}, {id: "fangs", chance: 40, least: 1, most: 2}]},
+
+    {id: "stag", name: "White Stag", many: "white stags", pack: "", lone: "", rarity: "rare", packSize: 1, holdsBack: 0,
+     hp: 30, least: 5, most: 8, guard: 1, quick: 14, verb: "strikes",
+     script: ["circle", "circle", "bite"], weak: "heavy",
+     trains: "dex", xp: 12,
+     loot: [{id: "hides", chance: 100, least: 2, most: 2}, {id: "antler", chance: 50, least: 1, most: 1}]},
+
+    {id: "adder", name: "Stone adder", many: "stone adders", pack: "", lone: "", rarity: "uncommon", packSize: 1, holdsBack: 0,
+     hp: 12, least: 5, most: 9, guard: 0, quick: 12, verb: "strikes",
+     script: ["circle", "bite"], weak: "feint",
+     trains: "dex", xp: 6,
+     loot: [{id: "fangs", chance: 70, least: 1, most: 1}]}
+]
+
+var walkEvents = [
+    {id: "hedge.nest", trigger: "gather", weight: 2, once: false,
+     title: "A nest in the thorn",
+     text: "A blackbird's nest sits deep in the hedge, right where the best berries hang. The bird watches him.",
+     options: [
+        {id: "reach", label: "Reach past it", ap: 0, hp: -3, items: [{id: "berries", amount: 3}], effects: [],
+         line: "Scratched to the elbow"},
+        {id: "leave", label: "Leave it be", ap: 0, hp: 0, items: [], effects: [{kind: "study", amount: 1}],
+         line: "He watched the bird a while"}
+     ]},
+
+    {id: "hedge.keeper", trigger: "study", weight: 1, once: true,
+     title: "The hedge keeper",
+     text: "An old man is laying the hedge, as his father did. He looks at the boy, then at the boy's hands.",
+     options: [
+        {id: "help", label: "Help him a day", ap: 1, hp: 0, items: [{id: "firewood", amount: 3}], effects: [{kind: "study", amount: 1}],
+         line: "A day with the hedge keeper"},
+        {id: "share", label: "Share a ration", ap: 0, hp: 0, items: [{id: "rations", amount: -1}, {id: "wortleaf", amount: 2}], effects: [{kind: "study", amount: 2}],
+         line: "Bread for the hedge keeper, and what he knows"},
+        {id: "pass", label: "Walk on", ap: 0, hp: 0, items: [], effects: [],
+         line: "He left the old man to his work"}
+     ]},
+
+    {id: "pond.heron", trigger: "gather", weight: 1, once: false,
+     title: "A heron at the weir",
+     text: "A heron stands where the fish gather, as still as a post. It has seen him. It has not moved.",
+     options: [
+        {id: "watch", label: "Watch where it fishes", ap: 1, hp: 0, items: [{id: "fish", amount: 3}], effects: [],
+         line: "He fished where the heron did"},
+        {id: "chase", label: "Drive it off", ap: 0, hp: 0, items: [{id: "fish", amount: 1}], effects: [{kind: "seek", mob: "rat", amount: -1}],
+         line: "The heron left, and the reeds stirred"}
+     ]},
+
+    {id: "hollow.hunter", trigger: "seek", weight: 2, once: false,
+     title: "A hunter of the Keep",
+     text: "A man in the Keep's green sits by a cold fire, his leg bound. He has followed the White Stag for a week and can go no further.",
+     options: [
+        {id: "feed", label: "Give him a ration", ap: 1, hp: 0, items: [{id: "rations", amount: -1}], effects: [{kind: "seek", mob: "stag", amount: -2}, {kind: "stat", stat: "renown", amount: 1}],
+         line: "A ration for the hunter, and the Stag's trail"},
+        {id: "ask", label: "Ask what he saw", ap: 0, hp: 0, items: [], effects: [{kind: "observe", mob: "wolf", amount: 1}],
+         line: "The hunter spoke of the wolves"},
+        {id: "pass", label: "Leave him", ap: 0, hp: 0, items: [], effects: [],
+         line: "He left the hunter by his fire"}
+     ]},
+
+    {id: "hollow.tracks", trigger: "study", weight: 2, once: false,
+     title: "Fresh tracks",
+     text: "Deep prints cross the path, the mud still wet in them. A boar, heavy, and not long gone.",
+     options: [
+        {id: "follow", label: "Follow them", ap: 1, hp: 0, items: [], effects: [{kind: "seek", mob: "boar", amount: -2}],
+         line: "He followed the boar's tracks"},
+        {id: "note", label: "Read them and go on", ap: 0, hp: 0, items: [], effects: [{kind: "observe", mob: "boar", amount: 1}],
+         line: "He read the boar's tracks"}
+     ]},
+
+    {id: "quarry.cart", trigger: "gather", weight: 1, once: true,
+     title: "A broken cart",
+     text: "A quarryman's cart lies on its side, its load of dressed stone spilled across the road. No one has come back for it.",
+     options: [
+        {id: "load", label: "Carry what he can", ap: 2, hp: -4, items: [{id: "stone", amount: 6}], effects: [],
+         line: "Dressed stone from the broken cart"},
+        {id: "pass", label: "Leave it", ap: 0, hp: 0, items: [], effects: [],
+         line: "He left the cart where it lay"}
+     ]}
+]
+
+// What a fight offers besides Strike and Guard. `power` and `hit` are against a strike's
+// (percent of its blow, points of its chance); `cool` is the turns before it can be used again;
+// `all` strikes every beast standing; `asks` is the stat that opens it.
+var walkTechniques = [
+    {id: "heavy", name: "Heavy cut", breath: 2, cool: 2, power: 170, hit: -15, all: false,
+     asks: {stat: "str", needed: 8}, line: "A slow, full blow"},
+    {id: "feint", name: "Feint and step", breath: 1, cool: 1, power: 80, hit: 20, all: false,
+     asks: {stat: "dex", needed: 8}, line: "A sure blow, and he is hard to bite after it"},
+    {id: "sweep", name: "Sweep", breath: 3, cool: 3, power: 70, hit: 0, all: true,
+     asks: {stat: "arms", needed: 1}, line: "One blow at every beast standing"}
+]
+
+// `deals` and `takes` are percent of what he deals and of what he takes.
+var walkStances = [
+    {id: "balanced", name: "Balanced", deals: 100, takes: 100, line: "Neither more nor less"},
+    {id: "aggressive", name: "Aggressive", deals: 125, takes: 125, line: "He hits harder and is hit harder"},
+    {id: "cautious", name: "Cautious", deals: 80, takes: 70, line: "He hits less hard and is hit less"}
+]

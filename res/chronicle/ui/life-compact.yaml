@@ -70,7 +70,8 @@ children:
     items:
       - {label: Life, glyph: quill}
       - {label: Town, glyph: town}      # not open until a life has explored the town
-      # Kit, Guild, Adventure and Chronicle come back as their pages are built
+      - {label: Adventure, glyph: adventure}   # not there until he has somewhere to walk to
+      # Kit, Guild and Chronicle come back as their pages are built
 
   # ── Main: the work at hand, then the choice ───────────────────────────────────
   - kind: Panel
@@ -157,6 +158,49 @@ children:
             compact: true
             tileWidth: 148
           - {kind: Label, name: raised, style: label, color: ink-muted, overflow: wrap, width: 404, text: ""}
+          - {kind: Label, name: townStore, style: label, color: ink-muted, overflow: wrap, width: 404, text: ""}
+      # The Adventure page: it takes the choice's place in this column once he has somewhere to walk
+      # to (LifeScene::showAdventure, lifewalk.cpp). The records of the walks he made by hand, then the
+      # form of a queue: the chosen record walked again, so many times, with no fight fought
+      - kind: Layout:Vertical
+        name: adventure
+        width: 404
+        height: 200
+        scrollable: true
+        spacing: 8
+        children:
+          - {kind: Label, name: recordsHead, style: gloss-title, overflow: ellipsis, width: 404, text: "Records kept"}
+          - kind: ActivityList
+            name: records
+            id: walk.records
+            width: 404
+          - {kind: Label, name: recordsNote, style: gloss, color: ink-muted, overflow: wrap, width: 404, text: "A walk made by hand leaves a record. The same man may walk it again: no day is chosen and no fight is fought, and what the beasts drop is rolled anew."}
+          - {kind: Label, name: queueHead, style: gloss-title, overflow: ellipsis, width: 404, text: "Walk it again"}
+          - {kind: Label, name: queueTitle, style: label, color: status-time, overflow: wrap, width: 404, text: "CHOOSE A RECORD ABOVE"}
+          - kind: Layout:Horizontal
+            name: queueCount
+            width: 404
+            height: 36
+            spacing: 8
+            children:
+              - {kind: Button, name: queueFewer, variant: quiet, label: "Fewer", tag: walk.fewer}
+              - {kind: Button, name: queueMore, variant: quiet, label: "More", tag: walk.more}
+              - {kind: Button, name: queueStop, variant: quiet, label: "Stop: never", tag: walk.stop}
+          - {kind: Label, name: queueTake, style: body-sm, overflow: wrap, width: 404, text: ""}
+          - {kind: Label, name: queueUse, style: body-sm, overflow: wrap, width: 404, text: ""}
+          - {kind: Label, name: queueBring, style: body-sm, overflow: wrap, width: 404, text: ""}
+          - {kind: Label, name: queueTeach, style: body-sm, color: lapis, overflow: wrap, width: 404, text: ""}
+          - {kind: Label, name: queueWarn, style: gloss, color: vermilion, overflow: wrap, width: 404, text: ""}
+          - kind: Layout:Horizontal
+            name: queueGo
+            width: 404
+            height: 36
+            spacing: 8
+            children:
+              - {kind: Button, name: walkOnce, variant: quiet, label: "Walk once", glyph: adventure, tag: walk.once}
+              - {kind: Button, name: walkMany, variant: seal, label: "Queue", glyph: adventure, cost: "2 mo", tag: walk.many}
+          - {kind: Label, name: atWalk, style: label, color: status-gain, overflow: wrap, width: 404, text: ""}
+          - {kind: Button, name: queueLast, variant: quiet, label: "Finish this walk, then stop", tag: walk.last}
 
   # ── Side: one panel at a time ─────────────────────────────────────────────────
   - kind: Tabs

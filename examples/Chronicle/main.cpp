@@ -37,9 +37,13 @@ int main(int argc, char* argv[])
             ++i;
         else if (a == "--month-ms" and i + 1 < argc and std::sscanf(argv[i + 1], "%f", &opt.monthMs) == 1 and opt.monthMs > 0.0f)
             ++i;
+        else if (a == "--walk" and i + 1 < argc)
+            opt.walk = argv[++i];
+        else if (a == "--walk-seed" and i + 1 < argc and std::sscanf(argv[i + 1], "%d", &opt.walkSeed) == 1 and opt.walkSeed > 0)
+            ++i;
         else
         {
-            std::fprintf(stderr, "usage: Chronicle [--dev <Scene>] [--theme day|candle] [--reduced-motion] [--fresh] [--guide N] [--no-save] [--save <path>] [--size WxH] [--month-ms N]\n");
+            std::fprintf(stderr, "usage: Chronicle [--dev <Scene>] [--theme day|candle] [--reduced-motion] [--fresh] [--guide N] [--no-save] [--save <path>] [--size WxH] [--month-ms N] [--walk <zone>] [--walk-seed N]\n");
             return 2;
         }
     }

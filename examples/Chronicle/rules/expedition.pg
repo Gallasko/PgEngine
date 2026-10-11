@@ -1,0 +1,158 @@
+// Chronicle rules: a walk outside the town
+// ----------------------------------------
+// Loaded by the Life screen (Core/rulevm.h, Rules::walk). One script answers everything a walk
+// asks: the days on site, a fight, the records kept and a record walked again. It keeps nothing
+// between two runs: the walk as it stands is handed in, and handed back as the run leaves it.
+//
+// Input:  `age`, `character` (his stats; with them, as the town is, what the world knows:
+//         "know.visit.<zone>", "know.study.<zone>", "know.observe.<mob>", "know.fights.<mob>",
+//         "know.drop.<mob>.<item>", and the town's store, "store.<item>"), `who` (his name),
+//         `seed` (a number: the dice of a walk that begins, or of a record walked again),
+//         `ask`: what is asked,
+//           "enter"    a walk begins: `act.target` is the zone;
+//           "act"      he does something: `act` is {kind, target, count}. On site: seek (target a
+//                      beast, count 1 or more for its pack), observe, gather (target an item),
+//                      study, rest, remedy, leave. Before an event's card: option (target its
+//                      id). In a fight: pick (target a row of the menu), target (count the
+//                      beast), do, auto, step, back;
+//           "look"     nothing: the pages of the walk as it stands;
+//           "records"  the Adventure page: the records kept and the form of a queue;
+//           "begin"    a record is about to be walked again (`replay`, its id): what it takes is
+//                      taken, or `blocked` says what the bag lacks;
+//           "term"     he is home from it: the record is folded into him.
+//         The walk as it stands: `run` {zone, mode, ap, hp, ...}, `record` (its steps),
+//         `marks` (what each step used, gave, killed and taught: {step, kind, id, n}), and in a
+//         fight `fight`, `foes`, `account`.
+//         For the records: `recipes` (one table a record kept: {id, zone, steps, ap, hp, months,
+//         walkedAt, kills}), `recipeSteps` and `recipeMarks` (their steps and marks, each with
+//         its `recipe`), `walks` (the Adventure rows of the Life page: {zone, listed, locked,
+//         months, until}), `queue` {recipe, count, stop, value, item}.
+// Output: the walk as the run leaves it (`run`, `record`, `marks`, `fight`, `foes`, `account`);
+//         `after`, the character as it leaves him; `entries`, the lines it writes in the life's
+//         log; and what the pages show:
+//           on site   `site` (the head, the strip and the words), `seeks`, `works`, `card` and
+//                     `options` (an event), `bag`, `taken`, `home`;
+//           a fight   `duel`, `menu`, `targets`, `order`, `hero`, `foe`, `preview`;
+//           records   `shelf`, `form`, `stops`;
+//         `recipe`, the figures a finished walk is kept under (`zone` "" until it is over);
+//         `blocked` ("" or what the bag lacks for a record), `stopped` ("" or why a queue ends).
+//
+// A step of the record: {n, kind, target, count, ap, hp, text, gave, used, figure, tone, glyph,
+// once}. Everything a walk by the record needs is in the steps and their marks: it is a fold
+// over them (expeditionlib.pg's `replayTerm`), with no fight fought again.
+
+import "string"
+import "math"
+import "algorithm"
+import "lib"
+import "expeditionlib"
+import "fightlib"
+import "expeditiontable"
+
+var errors = []
+var entries = []
+
+// The character as the walk leaves him: every stat as it is, then what the run does to it
+var after = {}
+
+for (var k : character)
+{
+    after[k] = character[k]
+}
+
+var site = {mode: "", screen: ""}
+var seeks = []
+var works = []
+var card = {id: "", title: "", text: "", foot: ""}
+var options = []
+var bag = []
+var taken = []
+var home = []
+
+var duel = {over: "", mob: ""}
+var menu = []
+var targets = []
+var order = []
+var hero = []
+var foe = []
+var preview = {id: ""}
+
+var shelf = []
+var form = {recipe: ""}
+var stops = []
+
+var recipe = {zone: ""}
+var blocked = ""
+var stopped = ""
+
+if (ask == "enter")
+{
+    enterZone(act.target)
+}
+else if (ask == "act")
+{
+    walkAct(act.kind, act.target, act.count)
+}
+else if (ask == "begin")
+{
+    run = {seed: diceFrom(seed)}
+    stopped = queueStops()
+    blocked = lackOf(marksOf(recipeMarks, replay))
+
+    if (stopped == "" and blocked == "")
+    {
+        replayBegin(marksOf(recipeMarks, replay))
+    }
+}
+else if (ask == "term")
+{
+    run = {seed: diceFrom(seed)}
+    replayTerm(recipeById(replay), marksOf(recipeSteps, replay), marksOf(recipeMarks, replay))
+}
+
+// The pages of a walk under way
+if ((ask == "enter" or ask == "act" or ask == "look") and pick(run, "zone", "") != "")
+{
+    site = siteHead()
+    site.screen = "site"
+
+    seeks = seekRows()
+    works = workRows()
+    bag = bagRows()
+    taken = takenRows()
+    home = homeRows()
+
+    if (run.mode == "done")
+    {
+        site.screen = "done"
+        recipe = recipeOf()
+    }
+    else if (run.event != "")
+    {
+        site.screen = "event"
+        card = eventCard()
+        options = optionRows()
+    }
+    else if (run.found != "")
+    {
+        site.screen = "fight"
+        duel = duelHead()
+        menu = menuRows()
+        targets = targetRows()
+        order = orderRows()
+        hero = heroRows()
+        foe = foeRows()
+        preview = previewOf()
+    }
+}
+
+if (ask == "records" or ask == "begin" or ask == "term")
+{
+    shelf = shelfRows()
+    form = queueForm()
+
+    if (form.recipe != "")
+    {
+        stops = stopRows(marksOf(recipeMarks, form.recipe))
+    }
+}

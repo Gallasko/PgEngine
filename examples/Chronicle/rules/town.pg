@@ -33,6 +33,9 @@
 //         inn tells it from its second level.
 //         `fundLine`, what the gloss of a place writes before the coin left to it.
 //         `foundLine`, what follows a place's name in the line said the month it comes onto the page.
+//         `store`, "" or what the town's store holds of what walks brought it, in one line of
+//         caps: "THE TOWN'S STORE · FIREWOOD 25 · ASH WOOD 12" (expeditiontable.pg's `town` things,
+//         "store.<thing>" in `character`).
 //         `gift`, the gift a life may make at its death: {stat (what of his is left to a place:
 //         it joins the place's fund), before and after (the ending's line around the amount),
 //         plain and chosen (what the ending's button says without a gift, and with one)}.
@@ -45,8 +48,28 @@ import "math"
 import "algorithm"
 import "lib"
 import "towntable"
+import "expeditiontable"
 
 var errors = []
+
+// What walks have brought back for the town (expeditiontable.pg's `town` things), in one line of
+// caps, "" while its store holds nothing: the works that raise a place take from it
+var store = ""
+
+for (var w = 0; w < len(walkItems); w++)
+{
+    var thing = walkItems[w]
+
+    if (thing.kind == "town" and statOf(character, "store." + thing.id) > 0)
+    {
+        if (store == "")
+        {
+            store = "THE TOWN'S STORE"
+        }
+
+        store = store + " · " + toUpperCase(thing.name) + " " + toString(statOf(character, "store." + thing.id))
+    }
+}
 
 var opened = "He knows the town street by street: the Town page is open"
 var raisedLine = " stands in Bellmoor: the town will keep it"

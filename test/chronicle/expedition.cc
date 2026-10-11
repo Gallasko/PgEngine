@@ -1,0 +1,703 @@
+#include "stdafx.h"
+
+#include <algorithm>
+#include <string>
+#include <vector>
+
+#include <gtest/gtest.h>
+
+#include "Core/rulevm.h"
+#include "Core/walk.h"
+
+#include "ECS/entitysystem.h"
+
+#include "mocklogger.h"
+
+using namespace chronicle;
+
+// The walks outside the town, as the rules play them: rules/expedition.pg asked through
+// Rules::walk, with the walk as it stands handed in and taken back at every step, the way the
+// Life screen does it (the scripts are copied beside the test binary).
+namespace pg
+{
+    namespace test
+    {
+        namespace
+        {
+            constexpr const char* Root = "rules";
+
+            int intOf(const ElementMap& map, const std::string& key)
+            {
+                auto it = map.find(key);
+
+                if (it == map.end())
+                    return 0;
+
+                switch (it->second.type)
+                {
+                case UnionType::INT:    return it->second.get<int>();
+                case UnionType::FLOAT:  return static_cast<int>(it->second.get<float>());
+                case UnionType::DOUBLE: return static_cast<int>(it->second.get<double>());
+                case UnionType::SIZE_T: return static_cast<int>(it->second.get<size_t>());
+                case UnionType::BOOL:   return it->second.get<bool>() ? 1 : 0;
+                default:                return 0;
+                }
+            }
+
+            std::string textOf(const ElementMap& map, const std::string& key)
+            {
+                auto it = map.find(key);
+
+                return it == map.end() ? std::string() : it->second.toString();
+            }
+
+            const ElementMap* byId(const RecordList& list, const std::string& id)
+            {
+                for (const auto& rec : list)
+                {
+                    if (textOf(rec, "id") == id)
+                        return &rec;
+                }
+
+                return nullptr;
+            }
+
+            // The marks of a kind for a thing, added up
+            int marked(const RecordList& marks, const std::string& kind, const std::string& id)
+            {
+                int sum = 0;
+
+                for (const auto& mark : marks)
+                {
+                    if (textOf(mark, "kind") == kind and textOf(mark, "id") == id)
+                        sum += intOf(mark, "n");
+                }
+
+                return sum;
+            }
+
+            // A boy who has helped at the hedges: the Hedgerows are open to him
+            ElementMap gatherer()
+            {
+                return {{"str", ElementType{6}}, {"dex", ElementType{6}}, {"int", ElementType{6}}, {"vit", ElementType{8}}, {"vitmax", ElementType{8}},
+                        {"coin", ElementType{0}}, {"rations", ElementType{12}}, {"hedges_known", ElementType{1}}};
+            }
+
+            // A youth who can fight: the Hollow Woods are open to him
+            ElementMap hunter()
+            {
+                return {{"str", ElementType{11}}, {"dex", ElementType{10}}, {"int", ElementType{9}}, {"vit", ElementType{14}}, {"vitmax", ElementType{14}},
+                        {"arms", ElementType{2}}, {"coin", ElementType{5}}, {"rations", ElementType{10}}, {"remedy", ElementType{2}}, {"bow_learned", ElementType{1}}};
+            }
+
+            // One who walks: the rules, his character and his walk, each answer taken as the Life
+            // screen takes it (the stats become his, the walk becomes the walk as it stands)
+            struct Walker
+            {
+                EntitySystem ecs;
+                Rules rules;
+                ElementMap character;
+                float age = 14.0f;
+                WalkState state;
+                std::vector<WalkRecipe> recipes;
+                WalkQueue queue;
+                RecordList walks;
+                RuleWalk last;
+                int seed = 100;
+
+                explicit Walker(ElementMap who) : character(std::move(who))
+                {
+                    EXPECT_TRUE(rules.load(&ecs, Root)) << (rules.errors.empty() ? "" : rules.errors.front());
+
+                    rules.lives = 2;
+                }
+
+                bool ask(const std::string& what, const WalkAct& act = {}, const std::string& replay = "")
+                {
+                    const bool ok = rules.walk(age, character, "Aldren", what, ++seed, state, act, recipes, walks, queue, replay, last);
+
+                    EXPECT_TRUE(ok) << (rules.errors.empty() ? "" : rules.errors.front());
+
+                    if (not ok)
+                        return false;
+
+                    for (const auto& [key, value] : last.after)
+                        character[key] = value;
+
+                    if (what == "enter" or what == "act")
+                        state = last.state;
+
+                    return true;
+                }
+
+                bool act(const std::string& kind, const std::string& target = "", int count = 0)
+                {
+                    return ask("act", WalkAct{kind, target, count});
+                }
+
+                std::string screen() const { return textOf(last.site, "screen"); }
+
+                // An event that comes up is answered with its first option that can be taken
+                void answer()
+                {
+                    for (int guard = 0; guard < 4 and screen() == "event"; ++guard)
+                    {
+                        std::string option;
+
+                        for (const auto& o : last.options)
+                        {
+                            if (option.empty() and intOf(o, "locked") == 0)
+                                option = textOf(o, "id");
+                        }
+
+                        ASSERT_FALSE(option.empty());
+                        act("option", option);
+                    }
+                }
+
+                // A fight handed to his stance, to its end and back to the woods
+                void fight()
+                {
+                    answer();
+
+                    ASSERT_EQ(screen(), "fight");
+
+                    for (int turn = 0; turn < 80 and textOf(last.duel, "over").empty(); ++turn)
+                        act("step");
+
+                    ASSERT_FALSE(textOf(last.duel, "over").empty());
+
+                    act("back");
+                    answer();
+                }
+
+                // The walk just ended, kept as the Life screen keeps it
+                void keep(const std::string& id)
+                {
+                    WalkRecipe recipe;
+                    recipe.id = id;
+                    recipe.fields = last.recipe;
+                    recipe.steps = last.state.record;
+                    recipe.marks = last.state.marks;
+
+                    recipes.push_back(recipe);
+                    state = WalkState{};
+                }
+            };
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // He arrives: a week of days before him, the field work of the place, and no beast.
+        TEST(expedition_test, a_walk_begins_with_its_days)
+        {
+            MockLogger logger;
+            Walker w(gatherer());
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "hedgerows", 0}));
+
+            EXPECT_TRUE(w.state.under());
+            EXPECT_EQ(w.screen(), "site");
+            EXPECT_EQ(intOf(w.state.run, "ap"), 7);
+            EXPECT_EQ(intOf(w.state.run, "months"), 1);
+
+            // His Vitality counts five in the field
+            EXPECT_EQ(intOf(w.state.run, "hp"), 40);
+            EXPECT_EQ(intOf(w.state.run, "hpMax"), 40);
+
+            // The place is visited from his first step: the world knows it at one of four
+            EXPECT_EQ(intOf(w.character, "know.visit.hedgerows"), 1);
+            EXPECT_EQ(textOf(w.last.site, "knowledge"), "ZONE KNOWLEDGE 1 OF 4");
+            EXPECT_EQ(textOf(w.last.site, "daysLeft"), "7");
+
+            EXPECT_TRUE(w.last.seeks.empty());
+            ASSERT_NE(byId(w.last.works, "gather.berries"), nullptr);
+            ASSERT_NE(byId(w.last.works, "study"), nullptr);
+            ASSERT_NE(byId(w.last.works, "rest"), nullptr);
+
+            // A cost is said before it is paid, with its unit
+            EXPECT_EQ(textOf(*byId(w.last.works, "gather.berries"), "costText"), "1 AP");
+            EXPECT_EQ(textOf(*byId(w.last.works, "study"), "costText"), "2 AP");
+
+            // No walk under an unknown name
+            Walker lost(gatherer());
+            MockLogger quiet;
+
+            EXPECT_FALSE(lost.rules.walk(14.0f, lost.character, "Aldren", "enter", 1, WalkState{}, WalkAct{"", "nowhere", 0}, {}, {}, WalkQueue{}, "", lost.last));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Every day spent is a line of the record, with what it cost and what it gave.
+        TEST(expedition_test, a_day_is_written_to_the_record)
+        {
+            MockLogger logger;
+            Walker w(gatherer());
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "hedgerows", 0}));
+            ASSERT_TRUE(w.act("gather", "berries"));
+            w.answer();
+
+            const int berries = marked(w.state.marks, "gain", "berries");
+
+            EXPECT_GE(berries, 2);
+            EXPECT_EQ(intOf(w.character, "berries"), berries);
+            EXPECT_LE(intOf(w.state.run, "ap"), 6);
+
+            ASSERT_FALSE(w.state.record.empty());
+            EXPECT_EQ(textOf(w.state.record[0], "kind"), "gather");
+            EXPECT_EQ(intOf(w.state.record[0], "ap"), 1);
+            EXPECT_NE(textOf(w.state.record[0], "figure").find("1 AP"), std::string::npos);
+            EXPECT_NE(textOf(w.state.record[0], "figure").find("BERRIES"), std::string::npos);
+
+            // What is the town's goes to its store, not to him
+            ASSERT_TRUE(w.act("gather", "firewood"));
+            w.answer();
+
+            EXPECT_GE(intOf(w.character, "store.firewood"), 2);
+            EXPECT_EQ(w.character.count("firewood"), 0u);
+
+            // A study teaches the world, and a rest eats a ration
+            const int rations = intOf(w.character, "rations");
+
+            ASSERT_TRUE(w.act("study"));
+            w.answer();
+
+            EXPECT_GE(intOf(w.character, "know.study.hedgerows"), 1);
+
+            // What cannot be paid is refused, and nothing is written
+            const size_t steps = w.state.record.size();
+
+            while (intOf(w.state.run, "ap") >= 2 and w.screen() == "site")
+            {
+                ASSERT_TRUE(w.act("rest"));
+                w.answer();
+            }
+
+            EXPECT_LT(intOf(w.character, "rations"), rations);
+            EXPECT_GT(w.state.record.size(), steps);
+
+            if (w.screen() == "site" and intOf(w.state.run, "ap") == 1)
+            {
+                const size_t before = w.state.record.size();
+
+                ASSERT_TRUE(w.act("study"));
+                EXPECT_EQ(w.state.record.size(), before);
+                EXPECT_FALSE(textOf(w.last.site, "refused").empty());
+            }
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Leaving is asked twice; the walk is then over, and what it was is what a record keeps.
+        TEST(expedition_test, turning_home_is_asked_twice)
+        {
+            MockLogger logger;
+            Walker w(gatherer());
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "hedgerows", 0}));
+            ASSERT_TRUE(w.act("gather", "berries"));
+            w.answer();
+
+            ASSERT_TRUE(w.act("leave"));
+
+            // The first press says what is lost, and nothing is done
+            EXPECT_EQ(w.screen(), "site");
+            EXPECT_EQ(intOf(w.state.run, "leaving"), 1);
+            EXPECT_NE(textOf(w.last.site, "leave").find("lost"), std::string::npos);
+            EXPECT_TRUE(textOf(w.last.recipe, "zone").empty());
+
+            // Something else done lets go of it
+            ASSERT_TRUE(w.act("gather", "berries"));
+            w.answer();
+            EXPECT_EQ(intOf(w.state.run, "leaving"), 0);
+
+            ASSERT_TRUE(w.act("leave"));
+            ASSERT_TRUE(w.act("leave"));
+
+            EXPECT_EQ(w.screen(), "done");
+            EXPECT_EQ(textOf(w.last.recipe, "zone"), "hedgerows");
+            EXPECT_EQ(intOf(w.last.recipe, "steps"), static_cast<int>(w.state.record.size()));
+            EXPECT_EQ(intOf(w.last.recipe, "months"), 1);
+            EXPECT_EQ(intOf(w.character, "walked.hedgerows"), 1);
+            EXPECT_EQ(textOf(w.state.record.back(), "kind"), "leave");
+
+            // And the walk does nothing more
+            const size_t steps = w.state.record.size();
+
+            ASSERT_TRUE(w.act("gather", "berries"));
+            EXPECT_EQ(w.state.record.size(), steps);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The stay ends with its last day, whether or not he turned for home.
+        TEST(expedition_test, the_last_day_ends_the_stay)
+        {
+            MockLogger logger;
+            Walker w(gatherer());
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "hedgerows", 0}));
+
+            for (int day = 0; day < 20 and w.screen() != "done"; ++day)
+            {
+                ASSERT_TRUE(w.act("gather", "berries"));
+                w.answer();
+            }
+
+            EXPECT_EQ(w.screen(), "done");
+            EXPECT_EQ(intOf(w.state.run, "ap"), 0);
+            EXPECT_EQ(intOf(w.last.recipe, "ap"), 7);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A beast sought is fought: the fight costs days by its turns, and its line says what it took.
+        TEST(expedition_test, a_fight_costs_days_by_its_turns)
+        {
+            MockLogger logger;
+            Walker w(hunter());
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
+
+            // The pack is cheaper to find than one wolf alone; the rare beast is not listed yet
+            const ElementMap* pack = byId(w.last.seeks, "wolf*pack");
+            const ElementMap* lone = byId(w.last.seeks, "wolf");
+            const ElementMap* stag = byId(w.last.seeks, "stag");
+
+            ASSERT_NE(pack, nullptr);
+            ASSERT_NE(lone, nullptr);
+            ASSERT_NE(stag, nullptr);
+
+            EXPECT_LT(intOf(*pack, "cost"), intOf(*lone, "cost"));
+            EXPECT_EQ(intOf(*pack, "count"), 3);
+            EXPECT_EQ(intOf(*stag, "locked"), 1);
+            EXPECT_EQ(textOf(*stag, "asks"), "ASKS ZONE KNOWLEDGE 2");
+
+            const int before = intOf(w.state.run, "ap");
+            const int seekCost = intOf(*lone, "cost");
+
+            ASSERT_TRUE(w.act("seek", "wolf", 1));
+            w.answer();
+
+            ASSERT_EQ(w.screen(), "fight");
+            EXPECT_EQ(w.state.foes.size(), 1u);
+            EXPECT_EQ(textOf(w.last.duel, "turn"), "TURN 1");
+
+            // What he may do, said with what it would do
+            ASSERT_NE(byId(w.last.menu, "strike"), nullptr);
+            ASSERT_NE(byId(w.last.menu, "retreat"), nullptr);
+            EXPECT_EQ(textOf(w.last.preview, "id"), "strike");
+            EXPECT_FALSE(textOf(w.last.preview, "deals").empty());
+
+            // Looking at another choice changes nothing but what is said
+            ASSERT_TRUE(w.act("pick", "guard"));
+            EXPECT_EQ(textOf(w.last.preview, "id"), "guard");
+            EXPECT_EQ(textOf(w.last.duel, "turn"), "TURN 1");
+
+            // A stance is taken without the turn
+            ASSERT_TRUE(w.act("pick", "stance.cautious"));
+            ASSERT_TRUE(w.act("do"));
+            EXPECT_EQ(textOf(w.state.fight, "stance"), "cautious");
+            EXPECT_EQ(textOf(w.last.duel, "turn"), "TURN 1");
+
+            w.fight();
+
+            // The fight's line: after the seek's, with the days it cost
+            ASSERT_GE(w.state.record.size(), 2u);
+
+            const ElementMap* line = nullptr;
+
+            for (const auto& step : w.state.record)
+            {
+                if (textOf(step, "kind") == "fight")
+                    line = &step;
+            }
+
+            ASSERT_NE(line, nullptr);
+            EXPECT_GE(intOf(*line, "ap"), 1);
+            EXPECT_EQ(textOf(*line, "target"), "wolf");
+            EXPECT_EQ(intOf(w.character, "know.fights.wolf"), 1);
+            EXPECT_EQ(intOf(w.character, "fought.wolf"), 1);
+
+            EXPECT_LE(intOf(w.state.run, "ap"), before - seekCost - intOf(*line, "ap"));
+
+            // His Vitality at home follows the one in the field, rounded up, and never to nothing;
+            // what the rounding spared him is kept as scratches, for the next walk to count
+            EXPECT_GE(intOf(w.character, "vit"), 1);
+            EXPECT_EQ(intOf(w.character, "vit"), (intOf(w.state.run, "hp") + 4) / 5);
+
+            if (intOf(w.state.run, "hp") < 70)
+                EXPECT_EQ(intOf(w.character, "scratches"), intOf(w.character, "vit") * 5 - intOf(w.state.run, "hp"));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A retreat ends the fight at once: the days stay written, and nothing is carried off.
+        TEST(expedition_test, a_retreat_keeps_the_days_and_leaves_the_loot)
+        {
+            MockLogger logger;
+            Walker w(hunter());
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
+            ASSERT_TRUE(w.act("seek", "wolf", 3));
+            w.answer();
+
+            ASSERT_EQ(w.screen(), "fight");
+            EXPECT_EQ(w.state.foes.size(), 3u);
+
+            // Of a pack of three, one hangs back while two stand
+            int holding = 0;
+
+            for (const auto& t : w.last.targets)
+            {
+                if (textOf(t, "note").find("HANGS BACK") != std::string::npos)
+                    ++holding;
+            }
+
+            EXPECT_EQ(holding, 1);
+
+            ASSERT_TRUE(w.act("step"));
+            ASSERT_TRUE(w.act("pick", "retreat"));
+            ASSERT_TRUE(w.act("do"));
+
+            EXPECT_EQ(textOf(w.last.duel, "over"), "fled");
+
+            ASSERT_TRUE(w.act("back"));
+            w.answer();
+
+            const ElementMap* line = nullptr;
+
+            for (const auto& step : w.state.record)
+            {
+                if (textOf(step, "kind") == "fight")
+                    line = &step;
+            }
+
+            ASSERT_NE(line, nullptr);
+            EXPECT_EQ(textOf(*line, "tone"), "loss");
+            EXPECT_GE(intOf(*line, "ap"), 1);
+            EXPECT_EQ(marked(w.state.marks, "kill", "wolf"), 0);
+            EXPECT_EQ(marked(w.state.marks, "loot", "pelts"), 0);
+            EXPECT_EQ(intOf(w.character, "pelts"), 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The same dice make the same walk: a walk is asked with its own.
+        TEST(expedition_test, the_same_dice_make_the_same_walk)
+        {
+            MockLogger logger;
+
+            auto walked = [](int seed) {
+                Walker w(hunter());
+                w.seed = seed;
+
+                EXPECT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
+                w.act("seek", "wolf", 3);
+                w.fight();
+                w.act("gather", "ashwood");
+                w.answer();
+
+                std::string told;
+
+                for (const auto& step : w.state.record)
+                    told += textOf(step, "text") + "|" + textOf(step, "figure") + ";";
+
+                return told;
+            };
+
+            EXPECT_EQ(walked(500), walked(500));
+            EXPECT_FALSE(walked(500).empty());
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A record walked again is a fold over its steps: what it took is taken, what it gathered
+        // is gathered, what its beasts drop is rolled anew, and no fight is fought.
+        TEST(expedition_test, a_record_is_walked_again_by_its_steps)
+        {
+            MockLogger logger;
+            Walker w(hunter());
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
+            ASSERT_TRUE(w.act("seek", "wolf", 1));
+            w.fight();
+            ASSERT_TRUE(w.act("gather", "ashwood"));
+            w.answer();
+            ASSERT_TRUE(w.act("rest"));
+            w.answer();
+            ASSERT_TRUE(w.act("leave"));
+            ASSERT_TRUE(w.act("leave"));
+            ASSERT_EQ(w.screen(), "done");
+
+            const int gathered = marked(w.state.marks, "gain", "ashwood");
+            const int eaten = marked(w.state.marks, "use", "rations");
+            const int total = intOf(w.last.recipe, "hp");
+
+            ASSERT_GE(gathered, 2);
+            ASSERT_GE(eaten, 1);
+
+            w.keep("r1");
+
+            // The records page: his record, with what a queue of it would take and bring
+            w.walks = {{{"zone", ElementType{std::string("hollow")}}, {"listed", ElementType{1}}, {"locked", ElementType{0}}, {"months", ElementType{2}}, {"until", ElementType{std::string()}}}};
+            w.queue.recipe = "r1";
+            w.queue.count = 3;
+
+            ASSERT_TRUE(w.ask("records"));
+
+            ASSERT_EQ(w.last.shelf.size(), 1u);
+            EXPECT_EQ(textOf(w.last.shelf[0], "id"), "r1");
+            EXPECT_EQ(textOf(w.last.shelf[0], "state"), "kept");
+            EXPECT_EQ(textOf(w.last.form, "recipe"), "r1");
+            EXPECT_EQ(intOf(w.last.form, "months"), 6);
+            EXPECT_EQ(textOf(w.last.form, "total"), "3 TIMES \xC2\xB7 6 MO");
+            EXPECT_TRUE(textOf(w.last.form, "blocked").empty());
+            EXPECT_FALSE(w.last.stops.empty());
+
+            // He sets out: what the record eats is taken as he leaves
+            const int rations = intOf(w.character, "rations");
+            const int ash = intOf(w.character, "store.ashwood");
+            const int vit = intOf(w.character, "vit");
+
+            ASSERT_TRUE(w.ask("begin", {}, "r1"));
+            EXPECT_TRUE(w.last.blocked.empty());
+            EXPECT_EQ(intOf(w.character, "rations"), rations - eaten);
+
+            // He is home: the fold
+            ASSERT_TRUE(w.ask("term", {}, "r1"));
+
+            EXPECT_EQ(intOf(w.character, "store.ashwood"), ash + gathered);
+            EXPECT_EQ(intOf(w.character, "walked.hollow"), 2);
+            EXPECT_EQ(intOf(w.character, "know.fights.wolf"), 2);
+            EXPECT_GE(intOf(w.character, "pelts"), 1);   // A wolf always leaves its pelt
+            ASSERT_FALSE(w.last.entries.empty());
+
+            // What the walk cost him it costs again, and never his life
+            EXPECT_GE(intOf(w.character, "vit"), 1);
+            EXPECT_LE(intOf(w.character, "vit"), 14);
+
+            if (total < 0)
+                EXPECT_LE(intOf(w.character, "vit"), vit);
+
+            // With nothing to eat the record cannot be walked: the bag says what it lacks
+            w.character["rations"] = ElementType{0};
+
+            ASSERT_TRUE(w.ask("begin", {}, "r1"));
+            EXPECT_FALSE(w.last.blocked.empty());
+            EXPECT_NE(w.last.blocked.find("ration"), std::string::npos);
+            EXPECT_EQ(intOf(w.character, "rations"), 0);
+
+            ASSERT_TRUE(w.ask("records"));
+            EXPECT_FALSE(textOf(w.last.form, "blocked").empty());
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // What is known is the world's, and it changes what a walk costs and shows.
+        TEST(expedition_test, knowledge_makes_a_beast_cheaper_to_find_and_easier_to_read)
+        {
+            MockLogger logger;
+            Walker w(hunter());
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
+
+            const int unknown = intOf(*byId(w.last.seeks, "boar"), "cost");
+
+            // Three studies: the zone is known two of four, and the rare beast is listed
+            for (int i = 0; i < 3; ++i)
+            {
+                ASSERT_TRUE(w.act("study"));
+                w.answer();
+            }
+
+            ASSERT_TRUE(w.ask("look"));
+
+            EXPECT_EQ(textOf(w.last.site, "knowledge"), "ZONE KNOWLEDGE 2 OF 4");
+            EXPECT_EQ(intOf(*byId(w.last.seeks, "stag"), "locked"), 0);
+            EXPECT_LT(intOf(*byId(w.last.seeks, "boar"), "cost"), unknown);
+
+            // Watched twice, a beast is known two of four
+            ASSERT_TRUE(w.act("observe", "wolf"));
+            ASSERT_TRUE(w.act("observe", "wolf"));
+
+            EXPECT_EQ(intOf(w.character, "know.observe.wolf"), 2);
+            EXPECT_NE(textOf(*byId(w.last.seeks, "wolf"), "rank").find("KNOWN 2 OF 4"), std::string::npos);
+
+            // And what is known of it is shown in a fight: its vitality in figures
+            ASSERT_TRUE(w.act("seek", "wolf", 1));
+            w.answer();
+
+            if (w.screen() == "fight")
+            {
+                ASSERT_FALSE(w.last.targets.empty());
+                EXPECT_NE(textOf(w.last.targets[0], "value").find(" OF "), std::string::npos);
+            }
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A walk is a row of the Life page: the Adventure group, its months up front, locked until
+        // what opens it is done.
+        TEST(expedition_test, a_walk_is_a_row_of_the_life_page)
+        {
+            MockLogger logger;
+            Walker w(gatherer());
+
+            std::vector<RuleActivity> activities;
+
+            w.character.erase("hedges_known");
+            ASSERT_TRUE(w.rules.activities(8.0f, w.character, activities));
+
+            const RuleActivity* hedgerows = nullptr;
+            const RuleActivity* hedges = nullptr;
+
+            for (const auto& a : activities)
+            {
+                if (textOf(a.fields, "id") == "walk.hedgerows")
+                    hedgerows = &a;
+
+                if (textOf(a.fields, "id") == "hedges")
+                    hedges = &a;
+            }
+
+            ASSERT_NE(hedgerows, nullptr);
+            ASSERT_NE(hedges, nullptr);
+
+            EXPECT_EQ(textOf(hedgerows->fields, "group"), "Adventure");
+            EXPECT_EQ(textOf(hedgerows->fields, "zone"), "hedgerows");
+            EXPECT_EQ(intOf(hedgerows->fields, "months"), 1);
+
+            // Shown, greyed, with what it asks: something to plan toward
+            EXPECT_EQ(intOf(hedgerows->fields, "listed"), 1);
+            EXPECT_EQ(intOf(hedgerows->fields, "locked"), 1);
+
+            // The task that opens it says so
+            EXPECT_EQ(textOf(hedges->fields, "each"), "OPENS THE HEDGEROWS");
+
+            w.character["hedges_known"] = ElementType{1};
+            ASSERT_TRUE(w.rules.activities(8.0f, w.character, activities));
+
+            for (const auto& a : activities)
+            {
+                if (textOf(a.fields, "id") == "walk.hedgerows")
+                    EXPECT_EQ(intOf(a.fields, "locked"), 0);
+
+                // The Hollow Woods are two months: the way there, the stay and the way back
+                if (textOf(a.fields, "id") == "walk.hollow")
+                    EXPECT_EQ(intOf(a.fields, "months"), 2);
+            }
+        }
+    }
+}

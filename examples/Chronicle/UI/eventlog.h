@@ -38,6 +38,7 @@ namespace chronicle
         float height = 560.0f;         // The gutter's fixed height; the list scrolls inside it
         std::string yearPrefix = "IN HIS ";   // Rubric = prefix + ordinal(year) + " YEAR" ("IN HIS 14TH YEAR")
         bool years = true;             // A rubric at each new year. false: the lines alone, their age says the year
+        bool steps = false;            // The first column is not an age but a count the caller gives in `age` (a step, a turn), written whole ("3"); a negative one writes a middle dot. No rubric, and no order asked of the lines
         std::vector<LogEntry> entries;
         std::string footnote;
         int z = 20;                    // Root and gutter z; edge z+1; list and lines z+2 (a layout holds its children at its z); marks and ages z+4; texts, figures and rubrics z+5; footnote z+1
@@ -107,6 +108,9 @@ namespace chronicle
 
     // An age as the log writes it: the year and the month in it, 1 to 12 ("14.4", "16.12").
     std::string logAge(float age);
+
+    // A count as a log of steps writes it: "3", or a middle dot for a negative one.
+    std::string stepText(float count);
 
     // The whole year an age falls in, counted in the same whole months as logAge.
     int logYear(float age);

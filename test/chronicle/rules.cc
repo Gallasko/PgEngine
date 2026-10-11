@@ -1821,7 +1821,9 @@ namespace pg
             f.rules.done = {};
             f.rules.lives = 2;
 
-            EXPECT_EQ(listed(7.0f, boy()), (std::vector<std::string>{"carters", "mill", "messages", "kitchen", "letters", "explore", "keep", "collegium", "hand"}));
+            // (the hedges are among them: the task that opens the first walk outside the town, and
+            // the walk itself, locked until it is done)
+            EXPECT_EQ(listed(7.0f, boy()), (std::vector<std::string>{"carters", "mill", "messages", "kitchen", "hedges", "letters", "explore", "keep", "collegium", "hand", "walk.hedgerows"}));
         }
 
         // ----------------------------------------------------------------------------------------
@@ -2085,7 +2087,7 @@ namespace pg
             RuleTown town;
             ASSERT_TRUE(f.rules.town(9.0f, character, town)) << firstError(f.rules);
 
-            ASSERT_EQ(town.places.size(), 9u);
+            ASSERT_EQ(town.places.size(), 10u);
             EXPECT_FALSE(town.opened.empty());
             EXPECT_FALSE(town.raisedLine.empty());
             EXPECT_EQ(town.giftStat, "coin");
@@ -2660,7 +2662,7 @@ namespace pg
             // Every place is told of all the same: the page shows the ones that are his
             RuleTown town;
             ASSERT_TRUE(f.rules.town(7.0f, townsman(), town)) << firstError(f.rules);
-            EXPECT_EQ(town.places.size(), 9u);
+            EXPECT_EQ(town.places.size(), 10u);
             EXPECT_FALSE(town.foundLine.empty());
         }
 

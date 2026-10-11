@@ -52,6 +52,7 @@ import "string"
 import "math"
 import "algorithm"
 import "lib"
+import "expeditiontable"
 
 var errors = []
 
@@ -97,7 +98,27 @@ var ties = ["watch_known", "street_known", "choir", "edric_support", "library_ac
             "veteran", "watch_commander", "tourney_victor",
             "black_treatise", "orin_known", "harrow_fragments", "harrow_truth", "harrow_relic",
             "guild_clerk", "guild_ledgers", "guild_enemy", "heat_reduced", "great_job_planned", "crew_ready",
-            "band"]
+            "band", "hedges_known", "bow_learned"]
+
+// What a walk brings home and he keeps (expeditiontable.pg's `walkItems`): a remedy to drink in
+// the field, and what is sold at the market. What is the town's is not his to hold: it goes to
+// the town's store
+for (var w = 0; w < len(walkItems); w++)
+{
+    var thing = walkItems[w]
+
+    if (thing.kind == "remedy")
+    {
+        push(holdings, {id: thing.id, group: "stores", groupLabel: "STORES", glyph: thing.glyph, name: thing.name, tone: 0,
+                        about: "Drunk on a walk, in a fight or between two: it gives back a part of his Vitality."})
+    }
+
+    if (thing.kind == "sold")
+    {
+        push(holdings, {id: thing.id, group: "stores", groupLabel: "STORES", glyph: thing.glyph, name: thing.name, tone: 0,
+                        about: "Brought home from a walk. The market buys it."})
+    }
+}
 
 for (var t = 0; t < len(ties); t++)
 {

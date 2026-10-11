@@ -9,6 +9,8 @@
 #include "Memory/elementtype.h"
 #include "UI/prefabspec.h"   // RecordList
 
+#include "walk.h"
+
 namespace pg
 {
     class EntitySystem;
@@ -197,6 +199,45 @@ namespace chronicle
         std::string giftAfter;         // And after it: " COIN TO"
         std::string giftNone;          // What the ending's button says with no gift chosen
         std::string giftChosen;        // And with one
+        std::string store;             // "" or what the town's store holds of what walks brought it, in one line of caps
+    };
+
+    // What expedition.pg answers: the walk as the run leaves it, the character as it leaves him,
+    // and what the pages show of it. Every table is there after every call, empty when the
+    // question was not about it.
+    struct RuleWalk
+    {
+        WalkState state;               // The walk as it stands now
+        pg::ElementMap after;          // Every stat of the character, once the run has done what it does
+        pg::RecordList entries;        // The lines it writes in the life's log: {text, kind, figure, glyph}
+
+        // On site
+        pg::ElementMap site;           // {screen (site, event, fight, done), kicker, title, line, daysLeft, daysNote, vitality, knowledge, home, percent, caption, written, leave, leaveNote, watchCost, summary, scribe, refused}
+        pg::RecordList seeks;          // The beasts he may seek: {id, mob, count, name, rank, note, cost, costText, locked, asks, short}
+        pg::RecordList works;          // The field work: {id, name, note, cost, costText, locked, asks, tone}
+        pg::ElementMap card;           // An event waiting for his answer: {id, title, text, foot}
+        pg::RecordList options;        // And its options: {id, label, line, locked, asks}
+        pg::RecordList bag;            // {id, name, glyph, value, tone}
+        pg::RecordList taken;          // What the walk has brought so far
+        pg::RecordList home;           // What the record would cost to walk again, as it stands
+
+        // A fight
+        pg::ElementMap duel;           // {mob, pack, over, auto, kicker, title, turn, cost, daysLeft, quick, warn, low, vitality, vitalityMost, breath, stance, footnote, spoils, back, hand, foeTitle, refused}
+        pg::RecordList menu;           // What he may do this turn: {id, group, name, cost, note, locked, asks, chosen}
+        pg::RecordList targets;        // The beasts: {id, n, name, value, note, dead, chosen, urgent}
+        pg::RecordList order;          // Who acts when: {text, note, tone}
+        pg::RecordList hero;           // {id, name, glyph, value, rate}
+        pg::RecordList foe;            // {id, name, glyph, value, muted}
+        pg::ElementMap preview;        // What the choice looked at would do: {id, title, text, against, hits, deals, costs, then, bites, foeAfter, odds, button, locked, asks}
+
+        // The records
+        pg::RecordList shelf;          // {id, zone, title, kind, note, months, time, vitality, takes, brings, learns, state, locked, asks}
+        pg::ElementMap form;           // A queue of the chosen record: {recipe, title, count, months, total, take, use, bring, teach, warning, once, many, blocked, stop, stopLabel, stopValue, stopItem}
+        pg::RecordList stops;          // The ways a queue may stop: {id, label, value}
+
+        pg::ElementMap recipe;         // The figures a finished walk is kept under; its `zone` is "" until the walk is over
+        std::string blocked;           // "" or what the bag lacks for a record to be walked again
+        std::string stopped;           // "" or why a queue ends before another walk
     };
 
     // The scene's scripts, loaded once from a rules root, each with its typed call. Every
@@ -248,6 +289,14 @@ namespace chronicle
         // funds), and what a new life is born with for them.
         bool town(float age, const pg::ElementMap& character, RuleTown& out);
 
+        // expedition.pg: a walk outside the town. `ask` is what is asked of it ("enter", "act",
+        // "look", "records", "begin", "term": the script's header says what each does), `seed` the
+        // dice of a walk that begins or of a record walked again, `who` his name. `walks` are the
+        // Adventure rows of the Life page ({zone, listed, locked, months, until}), for the records.
+        // Never kept: a walk is asked once, and answers with dice.
+        bool walk(float age, const pg::ElementMap& character, const std::string& who, const std::string& ask, int seed, const WalkState& state, const WalkAct& act,
+                  const std::vector<WalkRecipe>& recipes, const pg::RecordList& walks, const WalkQueue& queue, const std::string& replay, RuleWalk& out);
+
         // achievements.pg: every deed, guide step and line of lore, what it asks and what it gives.
         bool achievements(std::vector<RuleAchievement>& out);
 
@@ -264,6 +313,7 @@ namespace chronicle
         RuleScript achievementsScript;
         RuleScript epitaphScript;
         RuleScript townScript;
+        RuleScript walkScript;
 
         // How many times a script was run since load(): what the kept answers spare
         size_t nbRuns = 0;

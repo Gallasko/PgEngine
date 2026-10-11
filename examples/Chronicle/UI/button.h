@@ -59,10 +59,12 @@ namespace chronicle
         std::optional<Label> cost;
         std::optional<Label> reason;
         ButtonSpec spec;
+        std::string costText;              // "" or what the cost reads in the place of the months: "2 AP" (setCost)
 
         void setDisabled(pg::EntitySystem*, bool, const std::string& reason = "");
         void setLabel(pg::EntitySystem*, const std::string&);
         void setMonths(pg::EntitySystem*, int);    // On a button made with a cost: the time it writes, < 0 hides it
+        void setCost(pg::EntitySystem*, const std::string&);   // On a button made with a cost: what it reads in the months' place ("2 AP"), "" hides it
         float faceWidth(pg::EntitySystem*) const;
     };
 

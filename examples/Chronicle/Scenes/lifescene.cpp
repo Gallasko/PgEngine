@@ -63,10 +63,12 @@ namespace chronicle
         // Town page take each other's place in the middle column
         constexpr const char * const ChoiceName = "activities";
         constexpr const char * const TownName = "town";
+        constexpr const char * const AdventureName = "adventure";   // The Adventure page: the records of his walks (lifewalk.cpp)
         constexpr const char * const PlacesName = "places";
         constexpr const char * const MarketName = "marketRows";
         constexpr const char * const WorksName = "townWorks";
         constexpr const char * const RaisedName = "raised";
+        constexpr const char * const StoreName = "townStore";   // What walks have brought for the town, under who raised what
         constexpr const char * const GiftTag = "life.gift.";   // Followed by the place's id: the ending's buttons
         constexpr float GiftGap = 6.0f;            // Between two of them
         constexpr int MonthsAYear = 12;
@@ -352,7 +354,9 @@ namespace chronicle
 
             if (NodeSpec* may = childNamed(page, "may"))
             {
-                for (const char* name : {"town", "places", "worksHead", "townWorks", "marketHead", "marketRows", "raised"})
+                for (const char* name : {"town", "places", "worksHead", "townWorks", "marketHead", "marketRows", "raised", "townStore",
+                                         "adventure", "recordsHead", "records", "recordsNote", "queueHead", "queueTitle", "queueCount", "queueTake", "queueUse",
+                                         "queueBring", "queueTeach", "queueWarn", "queueGo", "atWalk"})
                     setProp(childNamed(*may, name), "width", inner);
             }
         }
@@ -656,9 +660,10 @@ namespace chronicle
         if (not buildPage(needsCompact(width, height), needsPhone(width), width))
             return;
 
-        listenToEvent<ActivitySelectedEvent>([this](const ActivitySelectedEvent& e) { onSelect(e); });
+        // The lists of a walk's screens and of the Adventure page are the walk's to hear (lifewalk.cpp)
+        listenToEvent<ActivitySelectedEvent>([this](const ActivitySelectedEvent& e) { onSelect(e); onWalkSelect(e); });
         listenToEvent<ActivityHoveredEvent>([this](const ActivityHoveredEvent& e) { onHover(e); });
-        listenToEvent<ActivityActivatedEvent>([this](const ActivityActivatedEvent& e) { onConfirm(e); });
+        listenToEvent<ActivityActivatedEvent>([this](const ActivityActivatedEvent& e) { onConfirm(e); onWalkConfirm(e); });
         listenToEvent<TabSelectedEvent>([this](const TabSelectedEvent& e) { onTab(e); });
 
         // A place's tile clicked: it is the one lit, and the work that raises it is chosen with it,
@@ -668,6 +673,9 @@ namespace chronicle
         // At nothing, a month passes when he says so; at work the months run on their own. The
         // ending's one button begins the next life
         listenToEvent<ButtonActivatedEvent>([this](const ButtonActivatedEvent& e) {
+            if (onWalkButton(e.tag))
+                return;
+
             if (e.tag == AgainTag)
                 beginAgain();
             else if (e.tag == GuideSkipTag)
@@ -712,6 +720,9 @@ namespace chronicle
 
             runPassing(e.tick);
 
+            // A fight handed to his stance plays on, months or no months
+            runWalk(e.tick);
+
             // The red of a loss fades whether the months run or not
             if (alertLeft > 0.0f)
             {
@@ -745,8 +756,10 @@ namespace chronicle
                     pause(not paused);
                 break;
 
+            // On a walk the days are his to choose: no month passes under them
             case SDL_SCANCODE_M:
-                onMonth();
+                if (not onWalk())
+                    onMonth();
                 break;
 
             case SDL_SCANCODE_T:
@@ -792,6 +805,14 @@ namespace chronicle
         {
             for (const auto& e : rules.errors)
                 LOG_ERROR(DOM, e);
+        }
+
+        // A life opened on a walk is a later one, made here and never written
+        if (not opt.walk.empty())
+        {
+            opt.fresh = true;
+            opt.noSave = true;
+            opt.lives = std::max(2, opt.lives);
         }
 
         // A life made here is the first of its world, unless a later one was asked for
@@ -845,6 +866,17 @@ namespace chronicle
         // A save written at an ending opens on it
         if (not death.empty())
             endLife();
+
+        // And one written on a walk opens on its screen, where he stood
+        if (onWalk() and not ended)
+        {
+            paused = true;
+            showWalk();
+        }
+
+        // Asked to open on a walk: he is made fit for the zone, and sets out
+        if (not opt.walk.empty() and not onWalk() and not ended)
+            setOutAt(opt.walk);
     }
 
     void LifeScene::fit(float width, float height)
@@ -891,6 +923,7 @@ namespace chronicle
             fitFull(width, height);
 
         fitEnding(width, height);
+        fitWalk(width, height);
 
         if (swap)
         {
@@ -1460,8 +1493,13 @@ namespace chronicle
         if (auto achievements = ecsRef->getSystem<AchievementSys>())
             achievements->clear();
 
-        // The ending leaves with the scene, as a scene element; so do the guide's hand and its shade
+        // The ending leaves with the scene, as a scene element; so do a walk's screen, the guide's
+        // hand and its shade
         ending = EntityRef{};
+        walkPage = EntityRef{};
+        walkScreen.clear();
+        walkFilled.clear();
+        walkPicks.clear();
 
         step = GuideStep{};
         stepsDue.clear();
@@ -1613,6 +1651,15 @@ namespace chronicle
     {
         if (ended or page.empty())
             return;
+
+        // A walk's screen stands over the page: the guide has nothing of it to point at, and waits
+        if (onWalk())
+        {
+            pointAt(EntityRef{});
+            sayNote(EntityRef{});
+
+            return;
+        }
 
         // The step being said ends on what it waits for, or with its time
         if (step.active and (step.until.empty() ? step.left <= 0.0f : holds(step.until)))
@@ -2585,6 +2632,7 @@ namespace chronicle
         fillWindows();
         fillActivities();
         fillTown();
+        fillAdventure(true);
 
         // The town's tab is not there at all until a life has explored the town, and its page
         // stands where it stood
@@ -2592,6 +2640,10 @@ namespace chronicle
             tabs->setShown(ecs, townTab(), save.townKnown);
 
         showTown(townShown);
+
+        // The walk's screen stands over the page, whichever page it is
+        if (onWalk() and walkPage.empty() and not ended)
+            showWalk();
 
         if (auto running = piece<ActivityList>("running"))
             running->setRows(ecs, {});
@@ -2705,8 +2757,9 @@ namespace chronicle
             stood.push_back(id);
 
             const bool onTown = save.townKnown and not (textOf(a.fields, "place") + textOf(a.fields, "raises")).empty();
+            const bool inView = onTown ? townShown : not townShown and not adventureShown;
 
-            if (filledBefore and onTown != townShown)
+            if (filledBefore and not inView)
                 ++(onTown ? newInTown : newInLife);
         }
 
@@ -2793,6 +2846,9 @@ namespace chronicle
 
         if (auto raise = piece<ActivityList>(WorksName))
             raise->setRows(ecsRef, works.empty() ? std::vector<ActivityGroup>{} : std::vector<ActivityGroup>{{"", works}});
+
+        // A walk that has come into the list brings the Adventure page's tab with it
+        markAdventure();
 
         showNotices();
     }
@@ -3423,6 +3479,11 @@ namespace chronicle
         publishRules();
         publishTown();
 
+        // The Adventure page in view follows him: what a queue would take against what he holds
+        // now, and whether he is free to set out
+        if (adventureShown)
+            fillAdventure();
+
         // The ghosts: of the activity chosen if one is, of the one the mouse is on, else of what mends
         preview();
     }
@@ -3825,8 +3886,8 @@ namespace chronicle
 
     void LifeScene::onConfirm(const ActivityActivatedEvent& event)
     {
-        // Over: the keyboard may still reach a row under the ending
-        if (not fromLists(event.list) or ended)
+        // Over: the keyboard may still reach a row under the ending, or under a walk's screen
+        if (not fromLists(event.list) or ended or onWalk())
             return;
 
         // A row that only goes to a page: no term, no month, no line
@@ -3862,6 +3923,13 @@ namespace chronicle
 
         if (not chosen or boolOf(chosen->fields, "locked") or not boolOf(chosen->fields, "listed"))
             return;
+
+        // A walk outside the town: he is there first, and its months run once he turns for home
+        if (not textOf(chosen->fields, "zone").empty())
+        {
+            beginWalk(event.id);
+            return;
+        }
 
         save.running = event.id;
         save.monthsIn = 0;
@@ -4006,9 +4074,11 @@ namespace chronicle
                 return;
         }
 
-        // The Life page, and the town's once a life has explored it: they share the middle column
+        // The Life page, the town's once a life has explored it, and the Adventure page once he has
+        // somewhere to walk to: they share the middle column
         if (event.index == 0)
         {
+            adventureShown = false;
             showTown(false);
             return;
         }
@@ -4019,11 +4089,18 @@ namespace chronicle
             return;
         }
 
+        if (event.index == adventureTab() and adventureKnown())
+        {
+            showAdventure(true);
+            return;
+        }
+
         auto tabs = piece<Tabs>("tabs");
 
         if (not tabs)
             return;
 
+        adventureShown = false;
         showTown(false);
 
         const std::string label = event.index >= 0 and static_cast<size_t>(event.index) < tabs->tabs.size() ? tabs->tabs[event.index].label.spec.text : "That page";
@@ -4055,6 +4132,10 @@ namespace chronicle
     {
         townShown = shown and save.townKnown;
 
+        // The middle column holds one page at a time: the town's takes the Adventure page's place too
+        if (townShown)
+            adventureShown = false;
+
         auto may = piece<Panel>("may");
 
         if (not may)
@@ -4070,13 +4151,14 @@ namespace chronicle
             }
         };
 
-        show(ChoiceName, not townShown);
+        show(ChoiceName, not townShown and not adventureShown);
         show(TownName, townShown);
+        show(AdventureName, adventureShown);
 
         // Seen: what was new on the page now in view is new no longer
         if (townShown)
             newInTown = 0;
-        else
+        else if (not adventureShown)
             newInLife = 0;
 
         showNotices();
@@ -4085,13 +4167,13 @@ namespace chronicle
 
         // On the phone page a panel may stand in the choice's place: the town asked for takes it
         // back, and the choice does not take a panel's tab from it
-        if (phone and townShown and not phonePanel.empty())
+        if (phone and (townShown or adventureShown) and not phonePanel.empty())
         {
             phonePanel.clear();
             showPhone();
         }
 
-        const int tab = townShown ? townTab() : 0;
+        const int tab = townShown ? townTab() : adventureShown ? adventureTab() : 0;
 
         if (auto tabs = piece<Tabs>("tabs"); tabs and tab >= 0 and tabs->active() != tab and phonePanel.empty())
             tabs->setActive(ecsRef, tab);
@@ -4114,11 +4196,14 @@ namespace chronicle
                 list->setSize(ecsRef, width, 0.0f);
         }
 
-        for (const char* name : {"worksHead", "marketHead", RaisedName})
+        for (const char* name : {"worksHead", "marketHead", RaisedName, StoreName})
         {
             if (auto label = piece<Label>(name))
                 label->setWidth(ecsRef, width);
         }
+
+        // The Adventure page stands in the same place, at the same size
+        fitAdventure(width, height);
     }
 
     void LifeScene::fillTown()
@@ -4317,6 +4402,10 @@ namespace chronicle
 
         if (auto label = piece<Label>(RaisedName); label and label->spec.text != raised)
             label->setText(ecsRef, raised);
+
+        // What walks have brought back for the town, as the rules name it
+        if (auto label = piece<Label>(StoreName); label and label->spec.text != town.store)
+            label->setText(ecsRef, town.store);
     }
 
     void LifeScene::openTown()
@@ -4361,7 +4450,7 @@ namespace chronicle
             return;
 
         // What is new on the page that is not in view, at its tab's corner
-        tabs->setNotice(ecsRef, 0, townShown ? newInLife : 0);
+        tabs->setNotice(ecsRef, 0, townShown or adventureShown ? newInLife : 0);
 
         if (townTab() >= 0)
             tabs->setNotice(ecsRef, townTab(), townShown ? 0 : newInTown);
@@ -4617,6 +4706,9 @@ namespace chronicle
                 const std::string raised = at ? textOf(at->fields, "raises") : std::string();
                 const int raisedTo = at ? intOf(at->fields, "level") : 0;
 
+                // A walk outside the town: he is home from it
+                const bool walked = at and not textOf(at->fields, "zone").empty();
+
                 ++save.done[save.running];
                 rules.done = save.terms();
 
@@ -4640,6 +4732,15 @@ namespace chronicle
                 // doors may be his
                 fillActivities();
                 fillWindows();
+
+                // Home from a walk: what a record brought is his now, and a queue sets out again
+                if (walked)
+                {
+                    homeFromWalk();
+
+                    if (not save.running.empty())
+                        fillActivities();
+                }
             }
 
             refreshHoldings();
@@ -4936,6 +5037,15 @@ namespace chronicle
         save.fund = last.fund;
         save.seen = last.seen;
         save.told = last.told;
+
+        // And so is what its walks have taught, and what they brought to the town's store. The
+        // records are the one who walked them's: a new life has none
+        save.knowledge = last.knowledge;
+        save.store = last.store;
+
+        closeWalk();
+        walk = RuleWalk{};
+        adventureShown = false;
 
         newInLife = 0;
         newInTown = 0;

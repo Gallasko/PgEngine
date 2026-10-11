@@ -66,6 +66,9 @@ comment.
 - Any node takes `theme: <element key>` next to `kind` and `name`: the builder attaches a
   `ThemeComponent` to the node's leaf, so an engine `Shape2D` or `TTFText` is painted by the
   theme like the kit pieces are (`theme: scene.background`, `theme: label.caption.ink-muted`).
+- A `Button` takes `cost: "2 AP"` for what is not counted in months (it is then made with the
+  cost pair, and `Button::setCost` rewrites it); an `EventLog` takes `steps: true` when its first
+  column is a count and not an age (a step, a turn: the scene gives it in each entry's `age`).
 - Events stay tag-based: `Button.tag` rides `ButtonActivatedEvent`, `Tabs.tag` rides
   `TabSelectedEvent`, `StatLine.glossKey` attaches a registered gloss.
 - No data bindings in files: name the node and drive its helpers from C++
@@ -101,8 +104,10 @@ children:
 
 | file | scene | what |
 |---|---|---|
-| `life.yaml` | `Chronicle` (the Life scene) | **the page**: the Life screen, head, tabs and three columns (parts and holdings / the choice / the years, the work and the log); the names are what `LifeScene::wire()` subscribes |
+| `life.yaml` | `Chronicle` (the Life scene) | **the page**: the Life screen, head, tabs and three columns (parts and holdings / the choice / the years, the work and the log); the names are what `LifeScene::wire()` subscribes. The middle column holds three pages, one at a time: the choice (`activities`), the town (`town`) and the walks (`adventure`: `records`, then the form of a queue) |
 | `ending.yaml` | `Chronicle` (the Life scene, when a life ends) | **the ending**: a veil over the page and an illuminated leaf in the window's middle (name, cause, story, figures, one Seal button, and under it the line that asks for a comment or a rating, at an old man's ending only), in the Overlay band; the scene writes `endName`, `endCause`, `endStory`, `endTally` and `endAsk` from the save and `rules/epitaph.pg` |
+| `expedition.yaml`, `expedition-narrow.yaml` | `Chronicle` (the Life scene, on a walk) | **the on-site screen**: a veil over the page, a head (the zone, the days left), a strip of days, and three columns (what he may do: `seeks`, `works` and their buttons / an event's card, then `record` / `bag`, `taken`, `home`); the narrow file is the same pieces in one column, for a window under 1000 px. Filled by `LifeScene::fillSite` (`Scenes/lifewalk.cpp`) from `rules/expedition.pg` |
+| `fight.yaml`, `fight-narrow.yaml` | `Chronicle` (the Life scene, in a fight of a walk) | **the fight screen**, in the on-site screen's place: the turn and what the fight costs, the order of the turn (`chip0`..`chip5`), he and what he knows of the beast (`hero`, `foe`), the beasts and the menu of the turn as tiles (`targets`, `menu`), what the choice would do (`preview`, the `act` button), and the `account`. Filled by `LifeScene::fillFight` |
 | `prefabgallery.yaml` | `Chronicle --dev PrefabFileGallery` | the reference page: one of every kind |
 | `clockgallery.yaml` | `Chronicle --dev ClockGallery` | four `LifeClock`s: the Life screen's, a first frame, an old age, a narrow one |
 | `activitygallery.yaml` | `Chronicle --dev ActivityGallery` | the Life screen's activity list in five groups, scrolling, and the side panel showing the activity at work or the one chosen |

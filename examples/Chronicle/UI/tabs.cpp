@@ -59,10 +59,10 @@ namespace chronicle
         auto* theme = ecs->getSystem<ThemeSystem>();
         const int z = spec.z;
 
-        if (spec.items.size() > 6)
+        if (spec.items.size() > 7)
         {
             static bool warned = false;
-            if (not warned) { LOG_WARNING(DOM, "Tabs: more than six items"); warned = true; }
+            if (not warned) { LOG_WARNING(DOM, "Tabs: more than seven items"); warned = true; }
         }
 
         Tabs t;

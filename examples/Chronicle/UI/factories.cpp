@@ -501,6 +501,7 @@ namespace chronicle
                 {"label",    UnionType::STRING, Req::Required},
                 {"glyph",    ""},
                 {"months",   -1},
+                {"cost",     ""},
                 {"disabled", false},
                 {"reason",   ""},
                 {"tag",      ""},
@@ -525,7 +526,18 @@ namespace chronicle
                     s.tag      = stringProp(spec.props, "tag", s.tag);
                     s.z        = getParamInt(spec.props, "z", s.z);
 
+                    // What is not counted in months ("2 AP") is written in the months' place: the
+                    // button is made with the cost pair, then told what it reads
+                    const std::string cost = stringProp(spec.props, "cost", "");
+
+                    if (not cost.empty())
+                        s.months = 0;
+
                     Button b = makeButton(ecs, s);
+
+                    if (not cost.empty())
+                        b.setCost(ecs, cost);
+
                     auto prefab = b.root->get<Prefab>();
                     prefab->addHelper("setDisabled", [](Prefab* p, bool disabled) { if (auto piece = pieceOf<Button>(p)) piece->setDisabled(p->ecsRef, disabled); });
                     prefab->addHelper("setDisabledReason", [](Prefab* p, bool disabled, const std::string& reason) { if (auto piece = pieceOf<Button>(p)) piece->setDisabled(p->ecsRef, disabled, reason); });
@@ -1156,6 +1168,7 @@ namespace chronicle
                 {"height",     560.0f},
                 {"yearPrefix", "IN HIS "},
                 {"years",      true},
+                {"steps",      false},
                 {"footnote",   ""},
                 {"z",          20},
             };
@@ -1174,6 +1187,7 @@ namespace chronicle
                     s.height     = numberProp(spec.props, "height", theme, s.height);
                     s.yearPrefix = stringProp(spec.props, "yearPrefix", s.yearPrefix);
                     s.years      = getParamBool(spec.props, "years", s.years);
+                    s.steps      = getParamBool(spec.props, "steps", s.steps);
                     s.footnote   = stringProp(spec.props, "footnote", s.footnote);
                     s.z          = getParamInt(spec.props, "z", s.z);
 

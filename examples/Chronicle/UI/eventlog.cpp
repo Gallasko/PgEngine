@@ -229,6 +229,12 @@ namespace chronicle
         return std::to_string(n) + suffix;
     }
 
+    std::string stepText(float count)
+    {
+        // What is not counted (a line between two turns) has a middle dot in the count's place
+        return count < 0.0f ? std::string("\xC2\xB7") : std::to_string(static_cast<int>(count));
+    }
+
     std::string logAge(float age)
     {
         const int months = monthsOf(age);
@@ -370,10 +376,10 @@ namespace chronicle
 
         const int year = logYear(entry.age);
 
-        if (year < lastYear)
+        if (not spec.steps and year < lastYear)
             LOG_WARNING(DOM, "Entry at " << entry.age << " is older than the year " << lastYear << " it follows; entered under that year");
 
-        if (spec.years and year > lastYear)
+        if (spec.years and not spec.steps and year > lastYear)
         {
             const float above = items.empty() ? 0.0f : RubricAbove;
 
@@ -420,7 +426,7 @@ namespace chronicle
         const _unique_id lineId = row.line.id;
 
         // Age, on the text's baseline, in a 30 px column
-        row.age = makeLogText(ecs, "caption", "log.age", logAge(entry.age), z + 2, Overflow::Ellipsis, AgeWidth);
+        row.age = makeLogText(ecs, "caption", "log.age", spec.steps ? stepText(entry.age) : logAge(entry.age), z + 2, Overflow::Ellipsis, AgeWidth);
         placeIn(row.age.entity, lineId, 0.0f, baselineShift(ecs, style, "caption"), 2.0f);
         addPart(row.line, row.age.entity);
 

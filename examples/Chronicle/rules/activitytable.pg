@@ -40,6 +40,8 @@
 //           the Life page), raises and level ("" and 0, or the place its term raises and the level
 //           it raises it to), yearMonths (0, or the months of his life it takes at once when it
 //           begins: its `years`), goto ("" or the page that confirming it opens, and nothing else),
+//           zone ("" or the zone of expeditiontable.pg it is a walk to: beginning it opens the
+//           on-site screen, and its months run once he is home),
 //           until ("" or when it closes, as the row writes it: "CLOSES 5/11", the world's date
 //           (month/year) of the last month he may begin it, or "CLOSES THIS MONTH"; said from
 //           `closingShown` months before it), urgent (true from `closingUrgent` months before),
@@ -143,6 +145,7 @@ import "math"
 import "algorithm"
 import "lib"
 import "towntable"
+import "expeditiontable"
 
 var errors = []
 
@@ -194,6 +197,11 @@ var activities = [
     {id: "kitchen", group: "Work", name: "Help in the Kitchen", glyph: "trade", months: 3, rank: "", each: "MEALS PROVIDED", path: "", board: true, showAfter: 3,
      gains: [{stat: "rations", amount: 6}],
      requires: []},
+    // A month at the hedges opens the first walk outside the town, and says so. In a first life
+    // it comes once the guide has said what the classes are
+    {id: "hedges", group: "Work", name: "Gather at the Hedges", glyph: "adventure", months: 1, rank: "", each: "OPENS THE HEDGEROWS", path: "", uses: 1, showAfter: 5, board: true,
+     gains: [{stat: "berries", amount: 3}, {stat: "hedges_known"}],
+     requires: []},
     {id: "market", group: "Work", name: "Help at the Market", glyph: "trade", months: 6, rank: "", each: "", path: "", fromAge: 8, showAfter: 5,
      gains: [{stat: "guile"}, {stat: "coin", amount: 8}],
      requires: [],
@@ -235,6 +243,13 @@ var activities = [
      gains: [{stat: "renown"}],
      requires: [{stat: "town.market", label: "The market charter", needed: 3}],
      costs: [{stat: "coin", amount: 80}]},
+
+    // What opens a walk outside the town says so, plainly: the walk itself is a row of the
+    // Adventure group, made from expeditiontable.pg below (so is the hedges' task, among the
+    // works of a child)
+    {id: "bow", group: "Training", name: "Learn the Bow at the Yard", glyph: "adventure", months: 3, rank: "", each: "OPENS THE HOLLOW WOODS", path: "", fromAge: 13, uses: 1,
+     gains: [{stat: "dex"}, {stat: "bow_learned"}],
+     requires: [{stat: "str", needed: 7}]},
 
     {id: "blades", group: "Training", name: "Practice with Wooden Blades", glyph: "swordsmanship", months: 6, rank: "", each: "", path: "", fromAge: 8, finishBy: 14, uses: 3, showAfter: 5,
      gains: [{stat: "arms"}, {stat: "dex"}],
@@ -472,6 +487,43 @@ var activities = [
      requires: [],
      bonus: [{stat: "town.chapel", needed: 3, more: [{stat: "coin", amount: 4}]}]}
 ]
+
+// The walks outside the town, one a zone, made from expeditiontable.pg: a row of the Adventure
+// group like any other, with its months up front (the way there, the stay and the way back) and
+// what it asks. Beginning one opens the on-site screen (`zone`); the months run once he is home.
+// It is listed two years before he may go, locked: what it asks is something to plan toward
+for (var z = 0; z < len(walkZones); z++)
+{
+    var zone = walkZones[z]
+    var studies = statOf(character, "know.study." + zone.id)
+
+    push(activities, {id: "walk." + zone.id, group: "Adventure", name: zone.name, glyph: zone.glyph, months: walkMonths(zone, studies), rank: "",
+                      each: toUpperCase(zone.kind) + " · " + toString(walkStay(zone, studies)) + " DAYS ON SITE", path: "",
+                      fromAge: zone.fromAge, showAge: zone.fromAge - 2, showFrom: 0, showAfter: lookup(zone, "showAfter", 0), zone: zone.id, about: zone.opens,
+                      gains: [], requires: zone.requires})
+}
+
+// What a walk brings home to sell is sold at the market, a lot at a time, while he holds any
+for (var w = 0; w < len(walkItems); w++)
+{
+    var thing = walkItems[w]
+
+    if (thing.kind == "sold")
+    {
+        push(activities, {id: "sell." + thing.id, group: "Market", name: "Sell " + toLowerCase(thing.name), glyph: "gold", months: 0, rank: "", each: "AT THE MARKET", path: "",
+                          finishBy: anyAge, showFrom: 100, place: "market",
+                          gains: [{stat: "coin", amount: thing.coin}],
+                          requires: [{stat: thing.id, label: thing.name + " to sell"}],
+                          costs: [{stat: thing.id, amount: thing.lot}]})
+    }
+}
+
+// And wortleaf is what a remedy is made of
+push(activities, {id: "brew.remedy", group: "Market", name: "Brew a remedy", glyph: "vitality", months: 0, rank: "", each: "FROM WORTLEAF", path: "",
+                  finishBy: anyAge, showFrom: 100, place: "market",
+                  gains: [{stat: "remedy", amount: 1}],
+                  requires: [{stat: "wortleaf", label: "Wortleaf to brew"}],
+                  costs: [{stat: "wortleaf", amount: 2}]})
 
 // The works that raise a place of the town, one a level, made from towntable.pg: the scene lists
 // them on the Town page, under the places. Their months and their costs are what a life gives the town: the coin a
@@ -723,6 +775,7 @@ for (var i = 0; i < len(activities); i++)
     a.place = lookup(a, "place", "")
     a.goto = lookup(a, "goto", "")
     a.raises = lookup(a, "raises", "")
+    a.zone = lookup(a, "zone", "")
     a.level = lookup(a, "level", 0)
     a.yearMonths = lookup(a, "years", 0) * 12
     a.done = count

@@ -1,0 +1,212 @@
+# A fight of a walk: it takes the on-site screen's place (expedition.yaml) and gives it back.
+#
+# Built by LifeScene (examples/Chronicle/Scenes/lifewalk.cpp) when a beast sought is found, and
+# removed when he goes back to the woods. Layout and placeholder content only: every word and
+# figure is rules/expedition.pg's, written by name (LifeScene::fillFight).
+#
+# Under a head and the order of the turn, three columns: who fights (280: he, then what he knows
+# of the beast), what he may do (the rest: the beasts to aim at, and the menu of the turn as
+# tiles in its groups), and at the right (376) what the choice looked at would do, with the
+# button that does it, over the account of the fight. A tile of the menu is chosen, then done by
+# the button, which is always in view; a second click on the tile does it too. Choosing a stance
+# does not use the turn.
+# z: the Overlay band, 100-129 (the veil 100, the head and the panels 104, their content 114).
+name: fight
+children:
+
+  - kind: Shape2D
+    name: veil
+    width: 1320
+    height: 1020
+    z: 100
+    theme: scene.background
+
+  # -- Head: what he fights, the turn, and what the fight costs the stay --
+  - {kind: Label, name: kicker, x: 16, y: 10, z: 104, style: label, color: ink-muted, overflow: ellipsis, width: 760, text: "THE HOLLOW WOODS · DAY 12 · A FIGHT"}
+  - {kind: Label, name: fightTitle, x: 16, y: 28, z: 104, style: heading, overflow: ellipsis, width: 760, text: Wolf pack}
+
+  - kind: Label
+    name: turn
+    z: 104
+    style: figure-xl
+    overflow: ellipsis
+    width: 240
+    align: right
+    text: "TURN 4"
+    anchors:
+      - {side: right, target: __MainWindow, targetSide: right, margin: 16}
+      - {side: top, target: __MainWindow, targetSide: top, margin: 6}
+
+  - kind: Label
+    name: turnNote
+    z: 104
+    style: label
+    color: status-time
+    overflow: ellipsis
+    width: 620
+    align: right
+    text: "FIGHT COST · 3 TURNS = 1 DAY · 2 DAYS SO FAR · 17 DAYS LEFT ON SITE"
+    anchors:
+      - {side: right, target: __MainWindow, targetSide: right, margin: 16}
+      - {side: top, target: __MainWindow, targetSide: top, margin: 44}
+
+  # -- The order of the turn: who acts when, and what is coming --
+  - kind: Layout:Horizontal
+    name: order
+    x: 16
+    y: 66
+    z: 104
+    width: 900
+    height: 20
+    spacing: 14
+    children:
+      - {kind: Label, name: chip0, z: 104, style: label, color: lapis, text: "ALDREN · NOW"}
+      - {kind: Label, name: chip1, z: 104, style: label, color: ink, text: "→ FIRST WOLF · BITES"}
+      - {kind: Label, name: chip2, z: 104, style: label, color: ink, text: "→ SECOND WOLF · CIRCLES"}
+      - {kind: Label, name: chip3, z: 104, style: label, color: ink-muted, text: "→ THIRD WOLF · HANGS BACK"}
+      - {kind: Label, name: chip4, z: 104, style: label, color: ink-muted, text: "→ ALDREN · A NEW DAY"}
+      - {kind: Label, name: chip5, z: 104, style: label, color: ink-muted, text: ""}
+
+  - {kind: Label, name: quick, x: 16, y: 90, z: 104, style: label, color: ink-muted, overflow: ellipsis, width: 620, text: "QUICKNESS 11 AGAINST 9: HE ACTS FIRST"}
+
+  - kind: Label
+    name: warn
+    z: 104
+    style: label
+    color: vermilion
+    overflow: ellipsis
+    width: 520
+    align: right
+    text: "2 BITES COMING · 8–14 IF ALL LAND"
+    anchors:
+      - {side: right, target: __MainWindow, targetSide: right, margin: 16}
+      - {side: top, target: __MainWindow, targetSide: top, margin: 90}
+
+  # -- Left: he, then what he knows of what he fights --
+  - kind: Layout:Vertical
+    name: walkLeft
+    x: 16
+    y: 118
+    z: 104
+    width: 284
+    height: 880
+    scrollable: true
+    spacing: 12
+    children:
+      - kind: Panel
+        name: heroPanel
+        frame: ruled
+        width: 280
+        z: 104
+        contentZ: 114
+        heading: Aldren
+        glyph: strength
+        children:
+          - {kind: Label, name: heroVit, style: label, overflow: wrap, text: "VITALITY 49 OF 90"}
+          - {kind: ProgressRule, name: heroBar, nib: false, percent: 54}
+          - {kind: Label, name: low, style: label, color: vermilion, overflow: wrap, text: ""}
+          - {kind: Label, name: breath, style: label, color: lapis, overflow: wrap, text: "BREATH 3 OF 5"}
+          - {kind: ProgressRule, name: breathBar, nib: false, small: true, percent: 60}
+          - kind: ResourceLedger
+            name: hero
+          - {kind: Label, name: stance, style: label, color: ink-muted, overflow: wrap, text: BALANCED STANCE}
+
+      - kind: Panel
+        name: foePanel
+        frame: hair
+        width: 280
+        z: 104
+        contentZ: 114
+        heading: Wolf
+        glyph: adventure
+        children:
+          - kind: ResourceLedger
+            name: foe
+
+  # -- Middle: the beasts to aim at, and the menu of the turn --
+  - kind: Layout:Vertical
+    name: walkMiddle
+    x: 312
+    y: 118
+    z: 104
+    width: 620
+    height: 880
+    scrollable: true
+    spacing: 12
+    children:
+      - kind: Panel
+        name: menuPanel
+        frame: ruled
+        width: 616
+        z: 104
+        contentZ: 114
+        heading: His turn
+        glyph: swordsmanship
+        children:
+          - kind: ActivityList
+            name: targets
+            id: walk.targets
+            stripes: false
+            compact: true
+            tileWidth: 148
+          - kind: ActivityList
+            name: menu
+            id: walk.menu
+            stripes: false
+            compact: true
+            tileWidth: 148
+
+  # -- Right: what the choice looked at would do, with the button that does it, then the account --
+  - kind: Layout:Vertical
+    name: walkRight
+    z: 104
+    width: 380
+    height: 880
+    scrollable: true
+    spacing: 12
+    anchors:
+      - {side: right, target: __MainWindow, targetSide: right, margin: 12}
+      - {side: top, target: __MainWindow, targetSide: top, margin: 118}
+    children:
+      - kind: Panel
+        name: previewPanel
+        frame: ruled
+        width: 376
+        z: 104
+        contentZ: 114
+        heading: If he does this
+        glyph: quill
+        children:
+          - {kind: Label, name: previewTitle, style: title, overflow: wrap, text: Heavy cut}
+          - {kind: Label, name: previewText, style: body, overflow: wrap, text: "A slow, full blow."}
+          - kind: ResourceLedger
+            name: preview
+          - {kind: Label, name: odds, style: gloss, color: ink-muted, overflow: wrap, text: "Kills it thrice in 5. A miss means a free bite."}
+          - kind: Button
+            name: act
+            variant: seal
+            label: Strike
+            glyph: swordsmanship
+            tag: walk.act
+          - kind: Button
+            name: hand
+            variant: quiet
+            label: "Let the stance choose, this turn and after"
+            glyph: time
+            tag: walk.hand
+
+      - kind: Panel
+        name: accountPanel
+        frame: ruled
+        width: 376
+        z: 104
+        contentZ: 114
+        heading: The account
+        glyph: quill
+        children:
+          - kind: EventLog
+            name: account
+            height: 360
+            years: false
+            steps: true          # the first column counts: a step of the record, a turn of the fight
+          - {kind: Label, name: footnote, style: label, color: status-time, overflow: wrap, text: "WRITTEN SO FAR · 2 DAYS · −14 VITALITY · A RETREAT KEEPS THE DAYS"}

@@ -13,6 +13,8 @@
 #include "UI/button.h"
 #include "UI/label.h"
 #include "UI/placetile.h"     // PlaceSelectedEvent
+#include "UI/resourceledger.h" // LedgerRowSpec
+#include "UI/eventlog.h"      // LogEntry
 #include "UI/tabs.h"          // TabSelectedEvent
 #include "lifesave.h"
 
@@ -31,6 +33,13 @@ namespace chronicle
         std::string compactFile = "res/chronicle/ui/life-compact.yaml";   // Below the three columns' size
         std::string phoneFile = "res/chronicle/ui/life-phone.yaml";       // A window narrower than a phone held sideways: one column
         std::string endingFile = "res/chronicle/ui/ending.yaml";          // Over the page, when a life ends
+        std::string siteFile = "res/chronicle/ui/expedition.yaml";        // Over the page, while he is on a walk outside the town
+        std::string siteNarrowFile = "res/chronicle/ui/expedition-narrow.yaml";   // The same in one column, in a window too narrow for three
+        std::string fightFile = "res/chronicle/ui/fight.yaml";            // In its place, while he fights there
+        std::string fightNarrowFile = "res/chronicle/ui/fight-narrow.yaml";
+        int walkSeed = 0;              // The dice of the walks: 0 takes them from the clock, a test gives its own
+        std::string walk;              // --walk <zone>: a later life, never written, opened on a walk to that zone with what the zone asks
+        float autoTurnMs = 600.0f;     // A fight handed to his stance plays a turn every so many ms
         float monthMs = 2000.0f;       // One month every so many ms while the loop runs (--month-ms)
     };
 
@@ -133,6 +142,30 @@ namespace chronicle
         std::vector<std::pair<std::string, Button>> gifts;   // The ending's buttons: a place that can still be raised, each
 
         void showTown(bool shown);     // The Town page in the middle column, or the choice back in it
+
+        // A walk outside the town (lifewalk.cpp): a row of the Adventure group begun opens its
+        // screen over the page, the days of the stay are chosen there one at a time, and what he
+        // did is kept as a record the Adventure page walks again
+        RuleWalk walk;                 // The last answer of Rules::walk for the walk under way
+        RuleWalk shelf;                // And for the Adventure page: the records kept, the form of a queue
+        pg::EntityRef walkPage;        // The on-site screen, or the fight's in its place, over the page while he is on a walk
+        std::string walkScreen;        // Which of the two is up: "site", "fight", "" for neither
+        bool walkNarrow = false;       // It stands in one column: the window is too narrow for three
+        float walkWidth = 0.0f;        // The window's width it was built at: at another it is built again
+        bool walkFresh = false;        // It was built this pass: its layouts do not hold their pieces yet, and nothing of it moves
+        int walkSettling = 0;          // Passes left in which it is filled again: what leaves a stack leaves it once the stack holds it
+        std::string seekChosen;        // The beast chosen in "Seek a beast", "" for none
+        std::string workChosen;        // And the work chosen in "Field work"
+        bool adventureShown = false;   // The Adventure page is in view
+
+        bool onWalk() const { return save.walk.under(); }   // He is on site: the walk's screen is the page
+        void beginWalk(const std::string& activity);     // He sets out by hand: the on-site screen opens
+        void setOutAt(const std::string& zone);           // A life made fit for a zone and put on its way there: what --walk opens on
+        void walkDo(const WalkAct& act);                  // One thing he does there, or in a fight
+        void showAdventure(bool shown);                   // The Adventure page in the middle column, or the choice back in it
+        void chooseRecord(const std::string& id);         // The record the form of a queue is filled for
+        void queueWalks(int count);                       // The chosen record walked so many times, one walk after the other
+        bool onWalkButton(const std::string& tag);        // A button of the walk's screens or of the Adventure page; false for another's
 
         int newInLife = 0;             // What has come onto the Life page while the Town page was in view: said at its tab's corner
         int newInTown = 0;             // And onto the Town page while the Life page was
@@ -240,6 +273,46 @@ namespace chronicle
         void onTab(const TabSelectedEvent& event);
         void onPlace(const PlaceSelectedEvent& event);   // A place's tile clicked: lit, and the work that raises it chosen with it
 
+        // The walks (lifewalk.cpp)
+        bool askWalk(const std::string& ask, const WalkAct& act, const std::string& replay, RuleWalk& out);   // expedition.pg, asked with what the save holds
+        int walkDice();                // The dice of the next question: the clock's, or a test's own
+        pg::RecordList walkRows() const;   // The Adventure rows of the Life page, as expedition.pg reads them
+        void endWalk();                // The stay is over: its record is kept, and the months of the walk run
+        void showWalk();               // The screen the walk stands on, built when it is another and filled
+        bool buildWalk(const std::string& screen);   // "site" or "fight", from its file, at the window's width
+        void closeWalk();              // The walk's screen leaves
+        void fitWalk(float width, float height);   // The veil and the columns to the window; built again at another width
+        void fillSite();               // The on-site screen says what expedition.pg says
+        void fillFight();              // And the fight's
+        void runWalk(float ms);        // A fight handed to his stance plays its turns; a row chosen is lit once its list holds it
+        void onWalkSelect(const ActivitySelectedEvent& event);
+        void onWalkConfirm(const ActivityActivatedEvent& event);
+        int adventureTab() const;      // Which tab is the Adventure page's, -1 when the page has none
+        bool adventureKnown() const;   // He has somewhere to walk to, or a record of a walk: the page has something to show
+        void fitAdventure(float width, float height);   // The Adventure page to the middle column
+        void fillAdventure(bool again = false);   // The records kept and the form of a queue; `again` for a page just built
+        void markAdventure();          // Its tab on the page or not, as he has somewhere to walk to
+        bool beginReplay();            // The queue's next walk sets out by the record; false when it cannot, and the queue has stopped
+        void homeFromWalk();           // The months of a walk are over: a record walked is folded into him, and the queue goes on
+        void stopQueue(const std::string& why, bool loss);   // No walk is left to begin; said on the Life page when there is a why
+        pg::EntityRef inWalk(const std::string& name) const;   // A piece of the walk's screen by its name, empty if none
+        void walkSay(const std::string& name, const std::string& text);   // A label of it, written when it says something else
+        void walkShow(const std::string& name, bool shown, const std::string& panel = "");   // A piece taken out of its stack or put back: a column's panel, or what stands in a `panel`
+        void walkList(const std::string& name, const std::vector<ActivityGroup>& groups, const std::string& chosen);   // A list of it filled, when what it holds changed
+        void walkLedger(const std::string& name, const std::vector<LedgerRowSpec>& rows);
+        void walkLog(const std::string& name, const std::vector<LogEntry>& lines);
+
+        template <typename Piece>
+        Piece* walkPiece(const std::string& name) const
+        {
+            pg::EntityRef ent = inWalk(name);
+
+            if (ent.empty() or not ent->has<Piece>())
+                return nullptr;
+
+            return ent->get<Piece>().component;
+        }
+
         // The hover glosses: what the numbers mean, from the same outputs
         void glossParts(const RuleForecast* forecast, const std::string& activity);   // parts/<p>
         void glossActivities();                                                         // activity/<id>
@@ -251,6 +324,11 @@ namespace chronicle
 
         template <typename Type>
         void setFact(const std::string& path, const Type& value);
+
+        std::unordered_map<std::string, std::string> walkFilled;   // What each list of the walk's screens was last filled with
+        std::unordered_map<std::string, std::string> walkPicks;    // The row to light in each, once the list holds it
+        float autoLeft = 0.0f;         // Milliseconds before his stance plays the next turn of a fight handed to it
+        int diceCast = 0;              // The questions asked of expedition.pg: no two with the same dice
 
         std::vector<RuleActivity> activities;    // The last answer of Rules::activities
         std::string listedRows;                   // What the list was built from: each listed row and how much it asks

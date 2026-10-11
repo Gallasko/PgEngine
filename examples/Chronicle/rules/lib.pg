@@ -393,6 +393,37 @@ fun shiftIn(after, change, stat, amount)
     change[stat] = lookup(change, stat, 0) + amount
 }
 
+// A walk outside the town (expeditiontable.pg): the days on site, the days of the way there, and
+// the months it blocks, for a zone studied that often. The Life page's row and the walk itself
+// read the same three, so they never disagree. A zone studied to its third level is stayed in
+// longer; to its fourth, the way is shorter.
+fun walkStay(zone, studies)
+{
+    if (studies >= walkKnobs.studyLevels[2])
+    {
+        return zone.stayMax
+    }
+
+    return zone.stayMin
+}
+
+fun walkTravel(zone, studies)
+{
+    if (studies >= walkKnobs.studyLevels[3])
+    {
+        return clamp(toInt(floor(zone.travel * (100 - walkKnobs.travelCut) / 100)), 1, zone.travel)
+    }
+
+    return zone.travel
+}
+
+fun walkMonths(zone, studies)
+{
+    var span = 2 * walkTravel(zone, studies) + walkStay(zone, studies)
+
+    return clamp(toInt(ceil(toFloat(span) / toFloat(walkKnobs.daysAMonth))), 1, span)
+}
+
 // "Open 22 more months. One attempt fits; two do not."
 fun openNote(monthsLeft, attempts)
 {
@@ -483,8 +514,30 @@ var statNames = {
     master_thief: "Master Thief",
     renegade: "Gone to the Greenwood",
     band: "A band of his own",
-    wood_king: "King of the Greenwood"
+    wood_king: "King of the Greenwood",
+    hedges_known: "Knows the hedges",
+    bow_learned: "Learned the bow",
+    remedy: "Wortleaf remedies",
+    berries: "Berries",
+    wortleaf: "Wortleaf",
+    fish: "Fish",
+    reeds: "Reeds",
+    pelts: "Pelts",
+    hides: "Hides",
+    fangs: "Fangs",
+    antler: "White antlers"
 }
+
+// What is kept for the town, and what a walk leaves in him: their keys hold a dot
+statNames["store.firewood"] = "Firewood in the town's store"
+statNames["store.clay"] = "Clay in the town's store"
+statNames["store.ashwood"] = "Ash wood in the town's store"
+statNames["store.stone"] = "Stone in the town's store"
+statNames["walked.hedgerows"] = "Walked the Hedgerows"
+statNames["walked.millpond"] = "Walked Mill Pond"
+statNames["walked.hollow"] = "Walked the Hollow Woods"
+statNames["walked.quarry"] = "Walked the Quarry Road"
+statNames["know.study.hollow"] = "Studies of the Hollow Woods"
 
 var statShort = {
     str: "STR",
@@ -533,7 +586,11 @@ var statShort = {
     master_thief: "MASTER",
     renegade: "GREENWOOD",
     band: "BAND",
-    wood_king: "KING"
+    wood_king: "KING",
+    hedges_known: "HEDGES",
+    bow_learned: "BOW",
+    remedy: "REMEDY",
+    antler: "ANTLER"
 }
 
 // The most of a stat he can hold at once. A stat not listed has no limit. The limit closes

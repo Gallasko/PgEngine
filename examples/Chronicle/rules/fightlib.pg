@@ -1,0 +1,1418 @@
+// Chronicle rules: a fight of a walk
+// ----------------------------------
+// The functions of expedition.pg that are a fight's. Imported by expedition.pg only, after
+// expeditionlib.pg, whose helpers they call. They read and write expedition.pg's globals by name:
+// the fight as it stands (`fight`, `foes`, `account`), the walk it is part of (`run`, `record`,
+// `marks`) and the character as it leaves him (`after`).
+//
+// A fight is turns. Each turn he acts once and every beast standing acts once, the quicker side
+// first. Every so many turns a day of the stay is gone (expeditionlib.pg's `turnsPerAp`), and the
+// fight's line in the record counts them. Nothing here knows a beast by name: what a beast does
+// is its `script`, in expeditiontable.pg.
+
+import "string"
+import "math"
+import "algorithm"
+
+fun mightOf()
+{
+    return mine("str") + mine("arms") * 2
+}
+
+fun guardOf()
+{
+    return mine("discipline") + wholeOf(mine("str"), 4)
+}
+
+fun stanceOf(id)
+{
+    for (var i = 0; i < len(walkStances); i++)
+    {
+        if (walkStances[i].id == id)
+        {
+            return walkStances[i]
+        }
+    }
+
+    return walkStances[0]
+}
+
+fun techOf(id)
+{
+    for (var i = 0; i < len(walkTechniques); i++)
+    {
+        if (walkTechniques[i].id == id)
+        {
+            return walkTechniques[i]
+        }
+    }
+
+    return {id: ""}
+}
+
+fun standing()
+{
+    var count = 0
+
+    for (var i = 0; i < len(foes); i++)
+    {
+        if (foes[i].alive > 0)
+        {
+            count = count + 1
+        }
+    }
+
+    return count
+}
+
+fun firstStanding()
+{
+    for (var i = 0; i < len(foes); i++)
+    {
+        if (foes[i].alive > 0)
+        {
+            return i
+        }
+    }
+
+    return 0
+}
+
+// Whether the nth beast attacks this turn: of a pack that holds back, only the first so many
+// standing do, and the others wait for one to fall
+fun attacks(mob, n)
+{
+    if (foes[n].alive <= 0)
+    {
+        return false
+    }
+
+    if (mob.holdsBack <= 0)
+    {
+        return true
+    }
+
+    var ahead = 0
+
+    for (var i = 0; i < n; i++)
+    {
+        if (foes[i].alive > 0)
+        {
+            ahead = ahead + 1
+        }
+    }
+
+    return ahead < mob.holdsBack
+}
+
+// What the nth beast does next: its script's move, or "hold" for one that hangs back
+fun moveOf(mob, n)
+{
+    if (not attacks(mob, n))
+    {
+        return "hold"
+    }
+
+    return mob.script[foes[n].at % len(mob.script)]
+}
+
+fun clampTo(v, low, high)
+{
+    return smaller(high, larger(low, v))
+}
+
+// What a blow of his deals, as a range [least, most]: `power` is percent of a strike's
+fun blowRange(power, mob, techId)
+{
+    var stance = stanceOf(fight.stance)
+    var low = share(share(walkKnobs.weaponLeast + wholeOf(mightOf(), 2), stance.deals), power)
+    var high = share(share(walkKnobs.weaponMost + wholeOf(mightOf(), 2), stance.deals), power)
+
+    // What the beast is weak to bites deeper
+    if (mob.weak != "" and mob.weak == techId)
+    {
+        low = share(low, 130)
+        high = share(high, 130)
+    }
+
+    low = larger(1, low - mob.guard)
+    high = larger(low, high - mob.guard)
+
+    return [low, high]
+}
+
+fun hitChance(mob, mod)
+{
+    return clampTo(walkKnobs.hitBase + (mine("int") - mob.quick) * walkKnobs.hitStep + mod, walkKnobs.hitLeast, walkKnobs.hitMost)
+}
+
+fun critChance()
+{
+    return walkKnobs.critBase + wholeOf(mine("guile"), 2)
+}
+
+fun dodgeChance(mob)
+{
+    var odds = walkKnobs.dodgeBase + (mine("dex") - mob.quick) * walkKnobs.dodgeStep
+
+    if (fight.feinted > 0)
+    {
+        odds = odds + 20
+    }
+
+    return clampTo(odds, 0, walkKnobs.dodgeMost)
+}
+
+// What a move of a beast takes from him, as a range: his guard and his stance are in it
+fun biteRange(mob, move)
+{
+    var stance = stanceOf(fight.stance)
+    var low = mob.least
+    var high = mob.most
+
+    if (move == "maul")
+    {
+        low = share(low, 150)
+        high = share(high, 150)
+    }
+
+    var blunted = wholeOf(guardOf(), 2)
+
+    low = share(larger(1, low - blunted), stance.takes)
+    high = share(larger(1, high - blunted), stance.takes)
+
+    if (fight.guarding > 0)
+    {
+        low = share(low, 100 - walkKnobs.guardCut)
+        high = share(high, 100 - walkKnobs.guardCut)
+    }
+
+    low = larger(1, low)
+    high = larger(low, high)
+
+    return [low, high]
+}
+
+fun rangeText(range)
+{
+    if (range[0] == range[1])
+    {
+        return toString(range[0])
+    }
+
+    return toString(range[0]) + "–" + toString(range[1])
+}
+
+fun say(text, figure, kind)
+{
+    push(account, {turn: toString(fight.turn), text: text, figure: figure, kind: kind})
+}
+
+fun foeName(mob, n, count)
+{
+    if (count <= 1)
+    {
+        return mob.name
+    }
+
+    var which = ["First", "Second", "Third", "Fourth"]
+
+    return which[n % 4] + " " + toLowerCase(mob.name)
+}
+
+fun foundName(mob, count)
+{
+    if (count > 1)
+    {
+        return mob.pack
+    }
+
+    if (mob.packSize > 1)
+    {
+        return mob.lone
+    }
+
+    return mob.name
+}
+
+// A fight begins with what was found: its line in the record is open from here, and counts the days
+fun beginFight()
+{
+    var mob = mobOf(run.found)
+    var count = runOf("foundCount")
+
+    foes = []
+
+    for (var i = 0; i < count; i++)
+    {
+        push(foes, {n: i, id: mob.id, name: foeName(mob, i, count), hp: mob.hp, hpMax: mob.hp, at: i % len(mob.script), alive: 1})
+    }
+
+    fight = {mob: mob.id, count: count, turn: 1, turns: 0, ticks: 0, since: 0, breath: walkKnobs.breath, stance: pick(run, "stance", "balanced"),
+             guarding: 0, feinted: 0, target: 0, auto: 0, over: "", hpStart: runOf("hp"), bitten: 0, choice: "strike", spoils: "", lowSaid: 0}
+
+    for (var i = 0; i < len(walkTechniques); i++)
+    {
+        fight["cool." + walkTechniques[i].id] = 0
+    }
+
+    account = []
+
+    openStep("fight", mob.id, count, 0, "Fighting", "swordsmanship")
+
+    var opening = foundName(mob, count)
+
+    if (count > 1)
+    {
+        opening = opening + ": " + wordOf(count) + " of them"
+    }
+
+    push(account, {turn: "", text: opening, figure: "", kind: "note"})
+}
+
+// A day of the stay gone to the fight
+fun tickDay(text)
+{
+    var step = lastStep()
+
+    step.ap = step.ap + 1
+    fight.ticks = fight.ticks + 1
+    fight.since = 0
+    run.ap = larger(0, runOf("ap") - 1)
+    run.spent = runOf("spent") + 1
+
+    push(account, {turn: "", text: text, figure: "1 D", kind: "time"})
+}
+
+// Why a choice of the menu cannot be made now: "" when it can
+fun choiceShort(choice)
+{
+    if (choice == "strike" or choice == "guard" or choice == "retreat")
+    {
+        return ""
+    }
+
+    if (choice == "ration")
+    {
+        return "ONLY AT REST"
+    }
+
+    if (choice == "remedy")
+    {
+        if (held("remedy") < 1)
+        {
+            return "NONE IN THE BAG"
+        }
+
+        return ""
+    }
+
+    if (startsWith(choice, "stance."))
+    {
+        return ""
+    }
+
+    if (startsWith(choice, "tech."))
+    {
+        var tech = techOf(substring(choice, 5))
+
+        if (tech.id == "")
+        {
+            return "NO SUCH BLOW"
+        }
+
+        if (mine(tech.asks.stat) < tech.asks.needed)
+        {
+            return "ASKS " + toUpperCase(statName(tech.asks.stat)) + " " + toString(tech.asks.needed)
+        }
+
+        if (pick(fight, "cool." + tech.id, 0) > 0)
+        {
+            return "READY IN " + toUpperCase(counted(fight["cool." + tech.id], "turn", "turns"))
+        }
+
+        if (fight.breath < tech.breath)
+        {
+            return "ASKS " + toString(tech.breath) + " BREATH"
+        }
+
+        return ""
+    }
+
+    return "NO SUCH CHOICE"
+}
+
+// One blow of his at the nth beast
+fun blow(n, power, hitMod, techId, name)
+{
+    var foe = foes[n]
+    var mob = mobOf(foe.id)
+
+    if (foe.alive <= 0)
+    {
+        return
+    }
+
+    if (not chance(hitChance(mob, hitMod)))
+    {
+        say(name + " at the " + toLowerCase(foe.name) + ": a miss", "—", "note")
+        return
+    }
+
+    var range = blowRange(power, mob, techId)
+    var dealt = rollBetween(range[0], range[1])
+    var text = name + " hits the " + toLowerCase(foe.name)
+
+    if (chance(critChance()))
+    {
+        dealt = share(dealt, walkKnobs.critPower)
+        text = name + " hits the " + toLowerCase(foe.name) + " hard"
+    }
+
+    foe.hp = larger(0, foe.hp - dealt)
+
+    if (foe.hp <= 0)
+    {
+        foe.alive = 0
+        text = text + ", and it falls"
+    }
+
+    say(text, toString(dealt), "gain")
+}
+
+fun heroActs(choice)
+{
+    // A guard and a feint last until his next turn
+    fight.guarding = 0
+    fight.feinted = 0
+
+    if (choice == "guard")
+    {
+        fight.guarding = 1
+        say("He guards", "", "note")
+        return
+    }
+
+    if (choice == "remedy")
+    {
+        take("remedy", 1)
+
+        var mended = shiftHp(share(runOf("hpMax"), itemOf("remedy").heals))
+
+        say("He takes a wortleaf remedy", "+" + toString(mended), "gain")
+        return
+    }
+
+    if (startsWith(choice, "tech."))
+    {
+        var tech = techOf(substring(choice, 5))
+
+        fight.breath = fight.breath - tech.breath
+        fight["cool." + tech.id] = tech.cool + 1
+
+        if (tech.all)
+        {
+            for (var i = 0; i < len(foes); i++)
+            {
+                blow(i, tech.power, tech.hit, tech.id, tech.name)
+            }
+        }
+        else
+        {
+            blow(fight.target, tech.power, tech.hit, tech.id, tech.name)
+        }
+
+        if (tech.id == "feint")
+        {
+            fight.feinted = 1
+        }
+
+        return
+    }
+
+    blow(fight.target, 100, 0, "strike", "Strike")
+}
+
+// What each beast will do this turn, as they stand when it begins: [move]
+fun movesNow()
+{
+    var mob = mobOf(fight.mob)
+    var moves = []
+
+    for (var i = 0; i < len(foes); i++)
+    {
+        push(moves, moveOf(mob, i))
+    }
+
+    return moves
+}
+
+// The beasts act, each as it was set to when the turn began: one that falls this turn opens no
+// gap yet, and the one that hung back joins on the next
+fun foesAct(moves)
+{
+    var mob = mobOf(fight.mob)
+
+    for (var i = 0; i < len(foes); i++)
+    {
+        var foe = foes[i]
+        var move = moves[i]
+
+        if (foe.alive > 0 and move != "hold" and runOf("downed") == 0)
+        {
+            foe.at = (foe.at + 1) % len(mob.script)
+
+            if (move == "circle")
+            {
+                say("The " + toLowerCase(foe.name) + " circles", "", "note")
+            }
+            else if (chance(dodgeChance(mob)))
+            {
+                say("The " + toLowerCase(foe.name) + " " + mob.verb + ": he steps clear", "—", "note")
+            }
+            else
+            {
+                var range = biteRange(mob, move)
+                var taken = 0 - shiftHp(0 - rollBetween(range[0], range[1]))
+
+                fight.bitten = fight.bitten + 1
+
+                // What was seen of it is known from here on, whatever else is
+                var low = mine("know.low." + mob.id)
+
+                if (low == 0 or taken < low)
+                {
+                    after["know.low." + mob.id] = taken
+                }
+
+                if (taken > mine("know.high." + mob.id))
+                {
+                    after["know.high." + mob.id] = taken
+                }
+
+                say("The " + toLowerCase(foe.name) + " " + mob.verb, "−" + toString(taken), "loss")
+            }
+        }
+    }
+}
+
+// The fight is over: its line in the record is written, with what it took and what it gave
+fun endFight(outcome)
+{
+    var mob = mobOf(fight.mob)
+    var step = lastStep()
+
+    // A day begun is a day spent
+    if (fight.since > 0)
+    {
+        tickDay("The fight ends in a day begun: a day gone · " + toString(fight.since) + " of " + toString(turnsPerAp()) + " turns")
+    }
+
+    // A beast known through and through costs a day less, never less than one
+    if (mobLevel(run.zone, mob) >= 4 and fight.ticks > 1)
+    {
+        fight.ticks = fight.ticks - 1
+        step.ap = step.ap - 1
+        run.ap = runOf("ap") + 1
+        run.spent = runOf("spent") - 1
+        push(account, {turn: "", text: "He knows the beast: a day spared", figure: "+1 D", kind: "gain"})
+    }
+
+    fight.over = outcome
+    run["cost." + mob.id] = fight.ticks
+
+    learn("fights." + mob.id, 1)
+    after["fought." + mob.id] = 1
+
+    var hurt = "not touched once"
+
+    if (fight.bitten > 0)
+    {
+        if (mob.verb == "bites")
+        {
+            hurt = "bitten " + timesWord(fight.bitten)
+        }
+        else
+        {
+            hurt = "struck " + timesWord(fight.bitten)
+        }
+    }
+
+    var length = counted(fight.turns, "turn", "turns")
+    var what = toLowerCase(foundName(mob, fight.count))
+
+    if (outcome == "won")
+    {
+        push(marks, {step: len(record), kind: "kill", id: mob.id, n: fight.count})
+
+        for (var k = 0; k < fight.count; k++)
+        {
+            for (var l = 0; l < len(mob.loot); l++)
+            {
+                var drop = mob.loot[l]
+
+                if (chance(drop.chance))
+                {
+                    loot(drop.id, rollBetween(drop.least, drop.most))
+                    after["know.drop." + mob.id + "." + drop.id] = 1
+                }
+            }
+
+            practise(mob.trains, mob.xp)
+            run["xp." + mob.trains] = runOf("xp." + mob.trains) + mob.xp
+        }
+
+        step.text = "Killed it · " + length + ", " + hurt
+
+        if (fight.count > 1)
+        {
+            step.text = "Killed all " + wordOf(fight.count) + " · " + length + ", " + hurt
+        }
+
+        fight.spoils = step.gave
+
+        if (fight.spoils == "")
+        {
+            fight.spoils = "Nothing worth carrying"
+        }
+
+        push(account, {turn: "", text: "It is over. " + step.text, figure: "", kind: "milestone"})
+    }
+    else if (outcome == "fled")
+    {
+        step.text = "Fled " + what + " · " + length + ", " + hurt
+        step.tone = "loss"
+        fight.spoils = "No loot: he left the field"
+        push(account, {turn: "", text: "He breaks off and runs", figure: "", kind: "loss"})
+    }
+    else
+    {
+        step.text = "Brought down by " + what + " · " + length
+        step.tone = "loss"
+        fight.spoils = "He is carried home"
+        push(account, {turn: "", text: "He goes down. Someone finds him", figure: "", kind: "loss"})
+    }
+
+    closeStep()
+}
+
+fun weakest()
+{
+    var best = firstStanding()
+
+    for (var i = 0; i < len(foes); i++)
+    {
+        if (foes[i].alive > 0 and foes[i].hp < foes[best].hp)
+        {
+            best = i
+        }
+    }
+
+    return best
+}
+
+// How many bites are coming this turn, and how much if they all land: [count, least, most]
+fun incoming()
+{
+    var mob = mobOf(fight.mob)
+    var count = 0
+    var low = 0
+    var high = 0
+
+    for (var i = 0; i < len(foes); i++)
+    {
+        var move = moveOf(mob, i)
+
+        if (foes[i].alive > 0 and (move == "bite" or move == "maul"))
+        {
+            var range = biteRange(mob, move)
+
+            count = count + 1
+            low = low + range[0]
+            high = high + range[1]
+        }
+    }
+
+    return [count, low, high]
+}
+
+// What the stance chooses when the fight is handed over: the same choices he has, ranked by the
+// stance and three rules that hold in any stance
+fun autoChoice()
+{
+    var mob = mobOf(fight.mob)
+
+    if (runOf("hp") * 100 < runOf("hpMax") * walkKnobs.potionAuto and held("remedy") > 0)
+    {
+        return "remedy"
+    }
+
+    // A beast one strike ends is ended
+    var range = blowRange(100, mob, "strike")
+
+    for (var i = 0; i < len(foes); i++)
+    {
+        if (foes[i].alive > 0 and foes[i].hp <= range[0])
+        {
+            fight.target = i
+
+            return "strike"
+        }
+    }
+
+    if (standing() >= walkKnobs.sweepAuto and choiceShort("tech.sweep") == "")
+    {
+        return "tech.sweep"
+    }
+
+    fight.target = weakest()
+
+    if (fight.stance == "aggressive")
+    {
+        if (choiceShort("tech.heavy") == "")
+        {
+            return "tech.heavy"
+        }
+
+        return "strike"
+    }
+
+    if (fight.stance == "cautious")
+    {
+        var coming = incoming()
+
+        if (coming[0] >= 2 and runOf("hp") * 2 < runOf("hpMax"))
+        {
+            return "guard"
+        }
+
+        return "strike"
+    }
+
+    if (choiceShort("tech.feint") == "" and fight.breath >= 3)
+    {
+        return "tech.feint"
+    }
+
+    return "strike"
+}
+
+// One turn: his choice, the beasts' moves, and the day it may end
+fun resolve(choice)
+{
+    if (startsWith(choice, "stance."))
+    {
+        var stance = stanceOf(substring(choice, 7))
+
+        // A stance is taken at once, and the turn is still his
+        if (fight.stance != stance.id)
+        {
+            fight.stance = stance.id
+            run.stance = stance.id
+            say("He stands " + toLowerCase(stance.name), "", "note")
+        }
+
+        fight.choice = "strike"
+
+        return
+    }
+
+    var why = choiceShort(choice)
+
+    if (why != "")
+    {
+        run.refused = why
+        return
+    }
+
+    if (choice == "retreat")
+    {
+        endFight("fled")
+        return
+    }
+
+    var mob = mobOf(fight.mob)
+    var moves = movesNow()
+
+    if (mine("dex") >= mob.quick)
+    {
+        heroActs(choice)
+
+        if (standing() > 0)
+        {
+            foesAct(moves)
+        }
+    }
+    else
+    {
+        foesAct(moves)
+
+        if (runOf("downed") == 0)
+        {
+            heroActs(choice)
+        }
+    }
+
+    for (var i = 0; i < len(walkTechniques); i++)
+    {
+        var key = "cool." + walkTechniques[i].id
+
+        if (pick(fight, key, 0) > 0)
+        {
+            fight[key] = fight[key] - 1
+        }
+    }
+
+    fight.turns = fight.turns + 1
+    fight.since = fight.since + 1
+
+    if (runOf("downed") > 0)
+    {
+        endFight("lost")
+        return
+    }
+
+    if (standing() == 0)
+    {
+        endFight("won")
+        return
+    }
+
+    if (fight.since >= turnsPerAp())
+    {
+        tickDay(capitalised(wordOf(fight.since)) + " turns: a day gone to this fight")
+    }
+
+    if (turnsPerAp() < walkKnobs.turnsPerAp and fight.lowSaid == 0)
+    {
+        fight.lowSaid = 1
+        push(account, {turn: "", text: "Under half vitality: days now pass in " + toString(turnsPerAp()) + " turns", figure: "", kind: "time"})
+    }
+
+    fight.turn = fight.turn + 1
+
+    if (foes[fight.target].alive <= 0)
+    {
+        fight.target = firstStanding()
+    }
+
+    // A blow that cannot be made again is not left chosen
+    if (choiceShort(fight.choice) != "")
+    {
+        fight.choice = "strike"
+    }
+}
+
+// What he asks of the fight: a row of the menu looked at, a beast aimed at, the turn played,
+// the fight handed to his stance or taken back, and the way back to the woods once it is over
+fun fightAct(kind, target, count)
+{
+    if (pick(fight, "mob", "") == "")
+    {
+        run.refused = "There is no fight"
+        return
+    }
+
+    if (fight.over != "")
+    {
+        if (kind == "back")
+        {
+            run.found = ""
+            run.foundCount = 0
+            foes = []
+            account = []
+            fight = {over: "", mob: ""}
+
+            if (runOf("downed") == 0)
+            {
+                maybeEvent("fight")
+            }
+        }
+
+        return
+    }
+
+    if (kind == "pick")
+    {
+        fight.choice = target
+    }
+    else if (kind == "target")
+    {
+        if (count >= 0 and count < len(foes))
+        {
+            if (foes[count].alive > 0)
+            {
+                fight.target = count
+            }
+        }
+    }
+    else if (kind == "auto")
+    {
+        fight.auto = 1 - fight.auto
+    }
+    else if (kind == "do")
+    {
+        resolve(fight.choice)
+    }
+    else if (kind == "step")
+    {
+        resolve(autoChoice())
+    }
+}
+
+// ---- the page: what the fight screen shows ---------------------------------------------------------
+
+// How a beast stands, in words, for who does not know it well enough to count
+fun hurtWord(foe)
+{
+    if (foe.alive <= 0)
+    {
+        return "DOWN"
+    }
+
+    if (foe.hp * 4 <= foe.hpMax)
+    {
+        return "NEARLY DONE"
+    }
+
+    if (foe.hp < foe.hpMax)
+    {
+        return "HURT"
+    }
+
+    return "UNHURT"
+}
+
+fun moveWord(mob, move)
+{
+    if (move == "hold")
+    {
+        return "hangs back"
+    }
+
+    if (move == "circle")
+    {
+        return "circles"
+    }
+
+    if (move == "maul")
+    {
+        return mob.verb + " hard"
+    }
+
+    return mob.verb
+}
+
+// The beasts, one card each: the one aimed at is `chosen`
+fun targetRows()
+{
+    var rows = []
+    var mob = mobOf(fight.mob)
+    var known = mobLevel(run.zone, mob)
+    var range = blowRange(100, mob, "strike")
+
+    for (var i = 0; i < len(foes); i++)
+    {
+        var foe = foes[i]
+        var row = {id: "foe." + toString(i), n: i, name: foe.name, value: hurtWord(foe), note: "", dead: 0, chosen: 0, urgent: 0}
+
+        if (known >= 2 and foe.alive > 0)
+        {
+            row.value = toString(foe.hp) + " OF " + toString(foe.hpMax)
+        }
+
+        if (foe.alive <= 0)
+        {
+            row.dead = 1
+        }
+        else
+        {
+            var move = moveOf(mob, i)
+
+            if (move == "hold")
+            {
+                row.note = "HANGS BACK WHILE " + toUpperCase(wordOf(mob.holdsBack)) + " STAND"
+            }
+            else if (known >= 2)
+            {
+                row.note = toUpperCase(moveWord(mob, move)) + " NEXT"
+
+                if (move != "circle")
+                {
+                    row.urgent = 1
+                }
+            }
+
+            if (known >= 2 and foe.hp <= range[1])
+            {
+                row.note = "ONE STRIKE MAY FINISH IT"
+                row.urgent = 0
+            }
+
+            if (i == fight.target)
+            {
+                row.chosen = 1
+            }
+        }
+
+        push(rows, row)
+    }
+
+    return rows
+}
+
+fun menuRow(id, group, name, cost, note)
+{
+    var row = {id: id, group: group, name: name, cost: cost, note: note, locked: 0, asks: "", chosen: 0}
+    var why = choiceShort(id)
+
+    if (why != "")
+    {
+        row.locked = 1
+        row.asks = why
+        row.note = why
+    }
+
+    if (id == fight.choice)
+    {
+        row.chosen = 1
+    }
+
+    return row
+}
+
+fun stanceNote(stance)
+{
+    if (stance.id == fight.stance)
+    {
+        return "HIS STANCE NOW"
+    }
+
+    if (stance.deals == 100 and stance.takes == 100)
+    {
+        return "NEITHER MORE NOR LESS"
+    }
+
+    return signed(stance.deals - 100) + " % DEALT · " + signed(stance.takes - 100) + " % TAKEN"
+}
+
+// Everything he may do this turn, in the menu's groups
+fun menuRows()
+{
+    var rows = []
+    var mob = mobOf(fight.mob)
+
+    push(rows, menuRow("strike", "Weapon", "Strike", "FREE", rangeText(blowRange(100, mob, "strike")) + " · HITS " + toString(hitChance(mob, 0)) + " %"))
+    push(rows, menuRow("guard", "Weapon", "Guard", "FREE", "HALVES WHAT COMES"))
+
+    for (var i = 0; i < len(walkTechniques); i++)
+    {
+        var tech = walkTechniques[i]
+        var note = rangeText(blowRange(tech.power, mob, tech.id)) + " · HITS " + toString(hitChance(mob, tech.hit)) + " %"
+
+        if (tech.all)
+        {
+            note = note + " · ALL"
+        }
+
+        push(rows, menuRow("tech." + tech.id, "Techniques", tech.name, toString(tech.breath) + " BREATH", note))
+    }
+
+    var mend = smaller(share(runOf("hpMax"), itemOf("remedy").heals), runOf("hpMax") - runOf("hp"))
+
+    push(rows, menuRow("remedy", "Remedies", "Wortleaf remedy", "1 OF " + toString(held("remedy")), "+" + toString(mend) + " VITALITY · USES THE TURN"))
+    push(rows, menuRow("ration", "Remedies", "Rations", toString(held("rations")) + " HELD", "ONLY AT REST"))
+
+    for (var i = 0; i < len(walkStances); i++)
+    {
+        push(rows, menuRow("stance." + walkStances[i].id, "Stance", walkStances[i].name, "NO TURN", stanceNote(walkStances[i])))
+    }
+
+    push(rows, menuRow("retreat", "Leave", "Retreat", "ENDS IT", "THE DAYS ARE KEPT · NO LOOT"))
+
+    return rows
+}
+
+// "Kills it 3 times in 5", from a chance in percent
+fun fifths(percent)
+{
+    var n = wholeOf(percent + 10, 20)
+
+    if (n <= 0)
+    {
+        return "Will not kill it this turn."
+    }
+
+    if (n >= 5)
+    {
+        return "Kills it, all but surely."
+    }
+
+    return "Kills it " + timesWord(n) + " in 5."
+}
+
+// What the choice looked at would do, said before it is done
+fun previewOf()
+{
+    var choice = fight.choice
+    var mob = mobOf(fight.mob)
+    var foe = foes[fight.target]
+    var known = mobLevel(run.zone, mob)
+    var coming = incoming()
+    var view = {id: choice, title: "", text: "", against: "", hits: "", deals: "", costs: "Nothing", then: "", bites: "", foeAfter: "", odds: "", button: "", locked: 0, asks: ""}
+    var newDay = fight.since + 1 >= turnsPerAp()
+
+    if (coming[0] > 0)
+    {
+        view.bites = counted(coming[0], "bite", "bites") + " · " + rangeText([coming[1], coming[2]])
+    }
+    else
+    {
+        view.bites = "None this turn"
+    }
+
+    var why = choiceShort(choice)
+
+    if (why != "")
+    {
+        view.locked = 1
+        view.asks = why
+    }
+
+    if (startsWith(choice, "stance."))
+    {
+        var stance = stanceOf(substring(choice, 7))
+
+        view.title = stance.name + " stance"
+        view.text = stance.line + ". Taking a stance does not use the turn."
+        view.deals = toString(stance.deals) + " % of his blows"
+        view.then = toString(stance.takes) + " % of what comes"
+        view.costs = "No turn"
+        view.button = "Stand " + toLowerCase(stance.name)
+        view.odds = "When the fight is handed over, the stance chooses the blows too."
+
+        return view
+    }
+
+    if (choice == "guard")
+    {
+        view.title = "Guard"
+        view.text = "He takes the blow on his guard and gives none."
+        view.then = "Half of what comes"
+        view.button = "Guard"
+        view.odds = "No blow of his this turn."
+    }
+    else if (choice == "retreat")
+    {
+        view.title = "Retreat"
+        view.text = "He leaves the field. The days this fight has cost stay written; nothing is carried off."
+        view.costs = "The fight, as a loss"
+        view.bites = "None"
+        view.button = "Retreat"
+        view.odds = "A retreat is never refused."
+
+        return view
+    }
+    else if (choice == "remedy")
+    {
+        var mend = smaller(share(runOf("hpMax"), itemOf("remedy").heals), runOf("hpMax") - runOf("hp"))
+
+        view.title = "Wortleaf remedy"
+        view.text = "He drinks instead of striking."
+        view.deals = "+" + toString(mend) + " vitality"
+        view.costs = "1 remedy of " + toString(held("remedy")) + ", and the turn"
+        view.button = "Take a remedy"
+        view.odds = "No blow of his this turn."
+    }
+    else if (choice == "ration")
+    {
+        view.title = "Rations"
+        view.text = "Bread is for the fire, not the fight."
+        view.button = "Only at rest"
+    }
+    else
+    {
+        var power = 100
+        var hitMod = 0
+        var techId = "strike"
+        var name = "Strike"
+        var everyone = false
+
+        if (startsWith(choice, "tech."))
+        {
+            var tech = techOf(substring(choice, 5))
+
+            power = tech.power
+            hitMod = tech.hit
+            techId = tech.id
+            name = tech.name
+            everyone = tech.all
+            view.text = tech.line + "."
+            view.costs = toString(tech.breath) + " breath"
+            view.then = "Ready in " + counted(tech.cool, "turn", "turns") + " · " + toString(larger(0, fight.breath - tech.breath)) + " breath left"
+            view.button = tech.name + " · " + toString(tech.breath) + " breath"
+        }
+        else
+        {
+            view.text = "A plain blow with what he carries."
+            view.then = toString(fight.breath) + " breath left"
+            view.button = "Strike"
+        }
+
+        var range = blowRange(power, mob, techId)
+        var hit = hitChance(mob, hitMod)
+
+        view.title = name
+        view.hits = toString(hit) + " %"
+        view.deals = rangeText(range)
+        view.against = "The " + toLowerCase(foe.name)
+
+        if (everyone)
+        {
+            view.against = "All " + wordOf(standing()) + " standing"
+
+            if (standing() == 1)
+            {
+                view.against = "The one standing"
+            }
+        }
+
+        // What is left of the beast aimed at, and how often the blow ends it
+        var kills = 0
+
+        if (range[0] >= foe.hp)
+        {
+            kills = hit
+        }
+        else if (range[1] >= foe.hp)
+        {
+            kills = wholeOf(hit * (range[1] - foe.hp + 1), range[1] - range[0] + 1)
+        }
+
+        if (known >= 2)
+        {
+            view.foeAfter = toString(larger(0, foe.hp - range[1])) + "–" + toString(larger(0, foe.hp - range[0])) + " of " + toString(foe.hpMax) + " left"
+            view.odds = fifths(kills)
+        }
+        else
+        {
+            view.foeAfter = "Asks knowledge 2"
+            view.odds = "He has not watched this beast enough to count its blood."
+        }
+
+        if (mob.weak == techId and known >= 3)
+        {
+            view.odds = view.odds + " It is weak to this."
+        }
+    }
+
+    if (coming[0] > 0)
+    {
+        view.odds = view.odds + " A miss means a free bite."
+    }
+
+    if (newDay)
+    {
+        view.odds = view.odds + " This turn ends a day: one more written to the record."
+    }
+
+    return view
+}
+
+// Who acts when, this turn and the next: [{text, note, tone}]
+fun orderRows()
+{
+    var rows = []
+    var mob = mobOf(fight.mob)
+    var known = mobLevel(run.zone, mob)
+    var heroFirst = mine("dex") >= mob.quick
+    var newDay = fight.since + 1 >= turnsPerAp()
+
+    if (heroFirst)
+    {
+        push(rows, {text: who, note: "NOW", tone: "now"})
+    }
+
+    for (var i = 0; i < len(foes); i++)
+    {
+        if (foes[i].alive > 0)
+        {
+            var note = "?"
+
+            if (known >= 2 or moveOf(mob, i) == "hold")
+            {
+                note = toUpperCase(moveWord(mob, moveOf(mob, i)))
+            }
+
+            push(rows, {text: foes[i].name, note: note, tone: "foe"})
+        }
+    }
+
+    if (not heroFirst)
+    {
+        push(rows, {text: who, note: "NOW", tone: "now"})
+    }
+
+    var later = "TURN " + toString(fight.turn + 1)
+
+    if (newDay)
+    {
+        later = "A NEW DAY"
+    }
+
+    push(rows, {text: who, note: later, tone: "later"})
+
+    return rows
+}
+
+fun heroRows()
+{
+    var stance = stanceOf(fight.stance)
+    var rows = []
+    var dealt = ""
+    var guarded = ""
+
+    if (stance.deals != 100)
+    {
+        dealt = signed(stance.deals - 100) + " %"
+    }
+
+    if (stance.takes != 100)
+    {
+        guarded = signed(100 - stance.takes) + " %"
+    }
+
+    if (fight.guarding > 0)
+    {
+        guarded = "+" + toString(walkKnobs.guardCut) + " % guarding"
+    }
+
+    push(rows, {id: "might", name: "Might", glyph: "strength", value: toString(mightOf()), rate: dealt})
+    push(rows, {id: "guard", name: "Guard", glyph: "training", value: toString(guardOf()), rate: guarded})
+    push(rows, {id: "quick", name: "Quickness", glyph: "dexterity", value: toString(mine("dex")), rate: ""})
+    push(rows, {id: "wit", name: "Wit", glyph: "intelligence", value: toString(mine("int")), rate: ""})
+
+    return rows
+}
+
+// What he knows of what he fights, and what the fight has come to so far
+fun foeRows()
+{
+    var mob = mobOf(fight.mob)
+    var known = mobLevel(run.zone, mob)
+    var rows = []
+
+    push(rows, {id: "known", name: "Known", glyph: "study", value: toString(known) + " of 4", muted: 0})
+
+    if (known >= 2)
+    {
+        push(rows, {id: "bite", name: capitalised(mob.verb), glyph: "vitality", value: toString(mob.least) + "–" + toString(mob.most), muted: 0})
+    }
+    else if (mine("know.high." + mob.id) > 0)
+    {
+        push(rows, {id: "bite", name: capitalised(mob.verb) + ", as seen", glyph: "vitality", value: rangeText([mine("know.low." + mob.id), mine("know.high." + mob.id)]), muted: 0})
+    }
+    else
+    {
+        push(rows, {id: "bite", name: capitalised(mob.verb), glyph: "vitality", value: "asks knowledge 2", muted: 1})
+    }
+
+    if (known >= 3)
+    {
+        var weak = "nothing"
+
+        if (mob.weak != "")
+        {
+            weak = toLowerCase(techOf(mob.weak).name)
+        }
+
+        push(rows, {id: "weak", name: "Weak to", glyph: "swordsmanship", value: weak, muted: 0})
+    }
+    else
+    {
+        push(rows, {id: "weak", name: "Weakness, loot", glyph: "swordsmanship", value: "asks knowledge 3", muted: 1})
+    }
+
+    if (fight.count > 1)
+    {
+        push(rows, {id: "left", name: "Standing", glyph: "adventure", value: toString(standing()) + " of " + toString(fight.count), muted: 0})
+    }
+
+    push(rows, {id: "days", name: "This fight", glyph: "time", value: daysText(fight.ticks), muted: 0})
+
+    return rows
+}
+
+// The head of the fight screen, and the lines its panels and buttons say
+fun duelHead()
+{
+    var mob = mobOf(fight.mob)
+    var zone = zoneOf(run.zone)
+    var coming = incoming()
+    var per = turnsPerAp()
+    var lost = fight.hpStart - runOf("hp")
+    var view = {mob: mob.id, pack: 0, over: fight.over, auto: fight.auto,
+                kicker: toUpperCase(zone.name) + " · DAY " + toString(runOf("spent") + 1) + " · A FIGHT",
+                title: foundName(mob, fight.count),
+                turn: "TURN " + toString(fight.turn),
+                cost: "FIGHT COST · " + toUpperCase(counted(per, "TURN", "TURNS")) + " = 1 DAY · " + toUpperCase(daysText(fight.ticks)) + " SO FAR",
+                daysLeft: toUpperCase(daysText(runOf("ap"))) + " LEFT ON SITE",
+                quick: "", warn: "", low: "",
+                vitality: runOf("hp"), vitalityMost: runOf("hpMax"),
+                breath: "BREATH " + toString(fight.breath) + " OF " + toString(walkKnobs.breath), breathPercent: wholeOf(fight.breath * 100, walkKnobs.breath),
+                stance: toUpperCase(stanceOf(fight.stance).name) + " STANCE",
+                footnote: "WRITTEN SO FAR · " + toUpperCase(daysText(fight.ticks)) + " · " + toString(larger(0, lost)) + " VITALITY LOST · A RETREAT KEEPS THE DAYS",
+                spoils: fight.spoils, back: "Back to " + zone.name,
+                hand: "Let the stance choose, this turn and after",
+                foeTitle: mob.name, refused: pick(run, "refused", "")}
+
+    if (fight.count > 1)
+    {
+        view.pack = 1
+        view.foeTitle = "The pack so far"
+    }
+
+    if (fight.auto > 0)
+    {
+        view.hand = "Take back"
+    }
+
+    if (mine("dex") >= mob.quick)
+    {
+        view.quick = "QUICKNESS " + toString(mine("dex")) + " AGAINST " + toString(mob.quick) + ": HE ACTS FIRST"
+    }
+    else
+    {
+        view.quick = "QUICKNESS " + toString(mine("dex")) + " AGAINST " + toString(mob.quick) + ": IT ACTS FIRST"
+    }
+
+    if (coming[0] > 0)
+    {
+        view.warn = toUpperCase(counted(coming[0], "bite", "bites")) + " COMING · " + rangeText([coming[1], coming[2]]) + " IF ALL LAND"
+    }
+
+    if (per < walkKnobs.turnsPerAp)
+    {
+        view.low = "UNDER HALF: " + toUpperCase(counted(per, "TURN", "TURNS")) + " TO A DAY UNTIL HE RESTS"
+    }
+
+    if (fight.over != "")
+    {
+        view.footnote = "WRITTEN TO THE RECORD · " + toUpperCase(daysText(fight.ticks)) + " · " + toString(larger(0, lost)) + " VITALITY LOST"
+    }
+
+    if (fight.over == "won")
+    {
+        view.title = "The field is his"
+    }
+    else if (fight.over == "fled")
+    {
+        view.title = "He left the field"
+    }
+    else if (fight.over == "lost")
+    {
+        view.title = "He is brought down"
+    }
+
+    return view
+}

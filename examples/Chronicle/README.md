@@ -14,6 +14,8 @@ Run from the repo root (assets are read relative to the working directory):
 ./release/Chronicle --fresh --guide 6         # the same, its guide already past step 6
 ./release/Chronicle --save save/other.sz      # another save file
 ./release/Chronicle --month-ms 1000           # a month every second instead of every 2
+./release/Chronicle --walk hollow             # a life never written, opened on a walk (hedgerows, millpond, hollow, quarry)
+./release/Chronicle --walk hollow --walk-seed 7   # the same walk with the same dice every time
 ./release/Chronicle --dev TypeSpecimen --theme candle
 ```
 
@@ -52,6 +54,21 @@ Magister Orin and the Harrow Road after the expedition to Harrow, and the Inn fr
 life of a world. The day a place comes its first work comes with it: that work is how it is
 built. A place that comes later is
 said in the log and by a toast, and a place a life has seen stays on the page of every later one.
+
+**The walks.** A month of *Gather at the Hedges* opens the first walk outside the town, *The
+Hedgerows*: a tile of the **Adventure** group like any other, with its months up front. Begun, it
+does not run its months: it opens the **on-site screen** over the page, where the stay is a count
+of days (action points, `AP`) spent one choice at a time: seek a beast or watch it from cover,
+gather, study the place, rest, turn for home. Each choice says what it costs before it is made,
+and each one made is a line of **the record**. A beast found is fought on the **fight screen**,
+turn by turn (strike, guard, a technique that costs breath, a remedy, a stance, a retreat), and
+every few turns of a fight a day of the stay is gone. When the days are spent, or he turns for
+home, the walk's months run as any work's do, and the record is kept: the **Adventure page** (a
+tab beside Life and Town, there once he has somewhere to walk to) walks it again, once or in a
+queue, with no day chosen and no fight fought. What a walk brings is sold at the market
+(berries, pelts...) or kept by the town in its store (firewood, clay, ash wood, stone) for a
+place to be built of. What walks teach (a zone studied, a beast watched or fought) is the
+world's, kept from life to life; the records are the one who walked them's.
 
 With no `--dev` the game opens on the **Life scene** (`--dev LifeScene` names it too).
 `--dev <Scene>` picks a dev gallery instead; an unknown name exits with code 2 before a
@@ -167,7 +184,9 @@ of this game told apart by their `chronicle.` prefix:
   (the `order` of `rules/achievements.pg`, 0 before the first, 10 once it has said everything; a
   later life keeps 0, and a digest from before 0.3 has no such key). `townKnown` is 1 once a
   life of this browser has explored the town, and `town` the levels of its places added up (0 to
-  27). `guideSkipped` is the step
+  30). `walks` and `replays` are the walks outside the town he made by hand and the ones a record
+  made for him in this life, `records` the records he keeps, `onWalk` 1 while he is on site (a
+  digest from before 0.5 has none of the four). `guideSkipped` is the step
   that was being said when the player pressed *Skip tutorial* (0 when he did not): `guide` then
   reads 10. `deeds` counts the deeds
   alone, not the lore read nor the guide's words.
@@ -558,6 +577,14 @@ come from `rules/*.pg` through the scene, never from the component.
   turns a life: the four ways into a class and Explore Bellmoor. Such an activity also carries
   `about`, a sentence on what it does and a word of the town's, which its gloss says under its
   name in the place of its group.
+- **What is not counted in months.** `ActivityRowSpec::cost` (a row, a tile) and
+  `Button::setCost` (a button made with a cost: `cost: "2 AP"` in a file) write a text in the
+  place of the months, for what a walk counts in days. `EventLogSpec::steps` (`steps: true`) makes
+  a log's first column a count the caller gives in `age` (a step of a record, a turn of a fight),
+  written whole, a middle dot for a negative one; such a log asks no order of its lines.
+- **A list filled twice in one pass** (`ActivityList::setRows`) lets go of its first fill too:
+  the layout takes what it is given a pass later, and the list keeps what it handed over
+  (`ActivityListState::given`) until then.
 ## Game rules (`rules/*.pg`)
 
 **Balance lives here.** Every number the Life screen shows about the future or the rules - what
@@ -618,6 +645,7 @@ arguments, compared by value. `Rules::nbRuns` counts the runs.
 | `achievements.pg` | - | `achievements`: `{id, kind (deed / guide / lore), name, entry, say, point, hold, order, asks[{fact, op, value}], gives[{stat, amount}], until[{fact, op, value}]}` |
 | `epitaph.pg` | `age`, `character`, `done`, `activityId` (`""`), `deeds` (the names of the deeds reached) | `epitaph`: `{cause ("He died an old man, in his thirty-third year."), story[text] (what he became, worked at, left, and what is told of him), text (the story as one paragraph), tally ("AGE 33 · WORKS 14 · COIN 31 · DEEDS 2"), ask ("" or, past `lastAge`, the line that asks for a comment or a rating)}` |
 | `town.pg` (`towntable.pg`) | `age`, `character` (with `town_known`, `town.<place>`, `fund.<place>`), `world`, `lives` | `places`: `{id, name, glyph, about, level, most, shown, gives, line, tale, built, fund, nextWork, nextName, nextMonths, nextCoin, nextYears, nextCosts, nextGives, nextLocked, gaps[{stat, label, current, needed}]}`; `start`: `[{stat, amount}]`; `opened`, `raisedLine`, `epitaphLine`, `fundLine`, `foundLine`; `gift`: `{stat, before, after, plain, chosen}` |
+| `expedition.pg` (`expeditiontable.pg`, `expeditionlib.pg`, `fightlib.pg`) | `age`, `character` (with `know.<key>` and `store.<thing>`), `who`, `seed`, `ask` (enter, act, look, records, begin, term), the walk as it stands (`run`, `record`, `marks`, `fight`, `foes`, `account`), `act` `{kind, target, count}`, the records (`recipes`, `recipeSteps`, `recipeMarks`), `walks`, `queue`, `replay` | the walk as the run leaves it; `after{stats}`, `entries`; on site `site`, `seeks`, `works`, `card`, `options`, `bag`, `taken`, `home`; a fight `duel`, `menu`, `targets`, `order`, `hero`, `foe`, `preview`; the records `shelf`, `form`, `stops`; `recipe`, `blocked`, `stopped` |
 
 **Repetition** (`activitytable.pg`). `done` is the save's count of terms completed per activity.
 An activity may carry two optional fields:
@@ -781,7 +809,7 @@ under four names: `town_known` (1 or 0), `town.<place>` (its level), `fund.<plac
 left to it) and `seen.<place>` (1 once a life has had the place on its page). What a script hands back under those names is never written among his stats
 (`LifeSave::takeTown`); the one thing a script does to the town this way is to make it known.
 
-- `towntable.pg` is the table: nine places, three levels each, a level being
+- `towntable.pg` is the table: ten places, three levels each, a level being
   `{work, built, months, coin, costs, years?, gives, start?, lore}`. It is imported, never loaded.
   A place may say what brings it onto the page: `shows: {flag: "veteran"}` (a flag he holds),
   `{done: "smithy"}` (an activity he has done a term of), `{lives: 2}` (a life of the world),
@@ -794,7 +822,7 @@ left to it) and `seen.<place>` (1 once a life has had the place on its page). Wh
   and its next level flattened (`nextWork`, `nextCosts`, `nextCoin` less the fund, `nextGives`,
   `nextLocked`, `gaps`), plus `start` (what a new life is born with, every level reached),
   and the words the scene says (`opened`, `raisedLine`, `epitaphLine`, `fundLine`, `gift`).
-- `activitytable.pg` makes the 27 works from the same table (`raise.<place>.<level>`): listed
+- `activitytable.pg` makes the 30 works from the same table (`raise.<place>.<level>`): listed
   only to who knows the town and while the place is one level below. The scene puts them on
   the Town page, under the places (the list `townWorks`), not in the choice.
   New optional fields of an activity: `place` (it stands on the Town page, at that place, once
@@ -814,6 +842,66 @@ what a term did to it (a line, its lore, a toast, the page), `giveYears` moves t
 `showTown` swaps the middle column, `fillTown` / `layTown` / `publishTown` fill the `PlaceGrid`
 with the places on his page and the glosses `place/<id>`, `seeTown` keeps a place shown for the
 first time in `LifeSave::seen` and says the ones that come after the town itself, and `fillGifts` / `chooseGift` are the gift at death on the ending's leaf.
+
+**The walks** (`expeditiontable.pg`, `expedition.pg`). A walk outside the town is asked of one
+script, `expedition.pg` (`Rules::walk`), which keeps nothing between two runs: the walk as it
+stands (`WalkState`, `Core/walk.h`) is handed in and handed back at every step, with the dice it
+rolls (`run.seed`, so the same walk asked twice is the same walk). Its functions stand in two
+files of their own, `expeditionlib.pg` and `fightlib.pg`, imported first: a script holds about
+120 functions at most, each ahead of its tables (see *Every function lives in `lib.pg`* above).
+
+- `expeditiontable.pg` is the table, imported and never loaded: `walkKnobs` (every figure of the
+  rules), `walkItems` (what a walk gathers, uses and brings: `food`, `remedy`, `sold`, `town`),
+  `walkZones`, `walkMobs`, `walkEvents`, `walkTechniques`, `walkStances`. Four zones for now:
+  the Hedgerows (no beast), Mill Pond (one), the Hollow Woods (a pack, a boar, a rare stag) and
+  the Quarry Road.
+- **Days.** A stay is `stay x apPerDay` action points. Seeking a beast costs
+  `max(1, base(rarity) - Guile/5 - zone knowledge - familiarity + pack or lone)`, a study 2, a
+  watch 1, a rest 2 and a ration (+40 % of his Vitality), a remedy nothing, leaving nothing (asked
+  twice: the first press says what is lost). His Vitality counts five in the field
+  (`vigour`: 12 of 14 at home is 60 of 70 on a walk), and comes home rounded up.
+- **A fight** is turns: he acts once, every beast standing acts once (its `script`, cycled), the
+  quicker side first. Every `turnsPerAp` turns (3, one more for every 10 Dexterity, one fewer
+  under half his Vitality) a day is gone, and a day begun is a day spent. A pack that holds back
+  attacks with its first `holdsBack` members only. Where no one dies he is left with one point,
+  carried home, and the most his Vitality can be is one less. Handed over, the fight is played
+  by his stance (`autoChoice`: a remedy under 30 %, a beast one strike ends, a sweep at three,
+  then what the stance prefers).
+- **Events.** After an action an event waits on (`trigger`), one of the zone's may come: its card
+  is answered before anything else, and the answer is a step of the record. One of `once: true`
+  comes once in a life, and a record walked again passes it by.
+- **Knowledge** is the world's: a zone is known 1 with the first visit, then by its studies
+  (3, 6, 10); a beast by the times it was watched (1, 2, 5, 8) or, more slowly, fought (1, 8,
+  20), and one more for the man who has fought it himself. A beast is listed from the zone
+  knowledge its rarity asks; from 2 its vitality, its bite and what it does next are shown; from
+  3 its weakness and its drops; at 4 a fight with it costs a day less. A zone known 3 is stayed
+  in longer, known 4 it is nearer.
+- **The record.** Every step is `{n, kind, target, count, ap, hp, text, gave, used, figure, ...}`
+  and has its `marks` (`{step, kind, id, n}`: `use`, `gain`, `loot`, `kill`, `learn`, `stat`,
+  `grow`). A walk by the record is a fold over them (`replayTerm`): what it used is taken as he
+  sets out (or `blocked` says what the bag lacks), what it gathered is gathered, what its beasts
+  dropped is rolled anew, what it taught is taught, and his Vitality moves by what each step
+  cost. A walk he was carried home from leaves no record.
+- **A walk on the Life page.** `activitytable.pg` makes one activity a zone (`walk.<zone>`, the
+  *Adventure* group, its field `zone`), its months `2 x travel + stay` in whole months
+  (`lib.pg`'s `walkMonths`, the one figure both scripts read), and its `requires` what the zone
+  asks: the task that opens it (`hedges`, `bow`), a stat, a walk already made (`walked.<zone>`),
+  a place of the town (`town.lodge`), a study of another zone (`know.study.hollow`). It is
+  listed two years before he may go, locked. What is `sold` has a row at the market
+  (`sell.<thing>`), wortleaf is brewed into remedies, and a new place of the town, the
+  **Hunters' Lodge**, is built of the store's firewood and ash wood: it opens the Hollow Woods to
+  every life, then lengthens a fight's day, then finds every beast a day sooner.
+
+The scene's part is `Scenes/lifewalk.cpp` (LifeScene's own functions, in a file of their own):
+`beginWalk` asks for the walk and opens its screen, `walkDo` hands every press to the script and
+takes its answer (`after` becomes the character, with what the world knows and what the store
+holds: `LifeSave::takeTown`), `fillSite` and `fillFight` write the answer on the screen by name,
+`endWalk` keeps the record and puts the walk's months on the calendar, `fillAdventure` shows the
+records and the form of a queue, and `beginReplay` / `homeFromWalk` walk a record again. The
+save keeps the walk under way (`LifeSave::walk`), so a game closed in the middle of a fight
+opens on it. The two screens are `res/chronicle/ui/expedition.yaml` and `fight.yaml`, built at
+the window's width (`shapeWalk`) and built again at another; under 1000 px they are
+`expedition-narrow.yaml` and `fight-narrow.yaml`, the same pieces in one column.
 
 **The guide and the lore** (`achievements.pg`, `kind`). An entry of the table is a deed (no
 `kind`), a step of the guide or a line of lore; the `AchievementSys` watches the asks of all

@@ -1,0 +1,255 @@
+# A walk outside the town, on site: the screen he lives on from his arrival to his way home.
+#
+# Built by LifeScene (examples/Chronicle/Scenes/lifewalk.cpp) over the Life page when a walk
+# begins, and removed when he turns for home; a fight takes its place (fight.yaml) and gives it
+# back. This file is layout and placeholder content only: every word and figure is
+# rules/expedition.pg's, written by name (LifeScene::fillSite).
+#
+# Three columns under a head and a strip of days: what he may do next (340), the record so far
+# and, over it, an event waiting for his answer (the rest), and what he carries and has taken
+# (300). Each column is a layout that scrolls. The scene sizes the veil, the strip and the
+# columns to the window (LifeScene::fitWalk); in a window too narrow for three columns it builds
+# expedition-narrow.yaml, the same pieces in one column.
+#
+# A beast or a work is chosen in its list, then done by the button under it, as a work is begun
+# on the Life page; a second click on the row does it too. The way home stands with what the
+# record would cost to walk again.
+# z: the Overlay band, 100-129 (the veil 100, the head and the panels 104, their content 114).
+name: expedition
+children:
+
+  - kind: Shape2D
+    name: veil
+    width: 1320
+    height: 1020
+    z: 100
+    theme: scene.background
+
+  # -- Head: where he is, and what is left of the stay --
+  - {kind: Label, name: kicker, x: 16, y: 10, z: 104, style: label, color: ink-muted, overflow: ellipsis, width: 760, text: "HUNT · ON SITE · FIRST WALK BY HAND"}
+  - {kind: Label, name: zoneTitle, x: 16, y: 28, z: 104, style: heading, overflow: ellipsis, width: 760, text: The Hollow Woods}
+  - {kind: Label, name: zoneLine, x: 16, y: 60, z: 104, style: gloss, color: ink-muted, overflow: ellipsis, width: 760, text: "Old oaks north of the mill road. The wolves there hunt in threes."}
+
+  - kind: Label
+    name: daysLeft
+    z: 104
+    style: figure-xl
+    color: status-time
+    overflow: ellipsis
+    width: 120
+    align: right
+    text: "19"
+    anchors:
+      - {side: right, target: __MainWindow, targetSide: right, margin: 16}
+      - {side: top, target: __MainWindow, targetSide: top, margin: 6}
+
+  - kind: Label
+    name: daysNote
+    z: 104
+    style: label
+    color: status-time
+    overflow: ellipsis
+    width: 240
+    align: right
+    text: DAYS LEFT ON SITE
+    anchors:
+      - {side: right, target: __MainWindow, targetSide: right, margin: 16}
+      - {side: top, target: __MainWindow, targetSide: top, margin: 44}
+
+  - kind: Label
+    name: headNote
+    z: 104
+    style: label
+    color: ink-muted
+    overflow: ellipsis
+    width: 520
+    align: right
+    text: "VITALITY 49 OF 90 · ZONE KNOWLEDGE 1 OF 4 · HOME AT 14.6"
+    anchors:
+      - {side: right, target: __MainWindow, targetSide: right, margin: 16}
+      - {side: top, target: __MainWindow, targetSide: top, margin: 62}
+
+  # -- The strip of days: spent solid, the rest of the stay to come --
+  - kind: ProgressRule
+    name: strip
+    x: 16
+    y: 88
+    z: 104
+    width: 1288
+    percent: 37
+    nib: false
+    caption: "11 AP SPENT · 19 LEFT · THE WALK HOME IS 2 WEEKS WHATEVER HAPPENS"
+
+  # -- Left: what he may do next --
+  - kind: Layout:Vertical
+    name: walkLeft
+    x: 16
+    y: 136
+    z: 104
+    width: 344
+    height: 860
+    scrollable: true
+    spacing: 12
+    children:
+      - kind: Panel
+        name: seekPanel
+        frame: ruled
+        width: 340
+        z: 104
+        contentZ: 114
+        heading: Seek a beast
+        glyph: adventure
+        children:
+          - kind: ActivityList
+            name: seeks
+            id: walk.seeks
+            stripes: false
+            compact: true         # a row is its name, its cost and one line under them: how rare, how well known, how the last fight went
+          - kind: Layout:Horizontal
+            name: seekButtons
+            height: 36
+            spacing: 8
+            children:
+              - kind: Button
+                name: seek
+                variant: seal
+                label: Seek
+                glyph: adventure
+                cost: 2 AP
+                tag: walk.seek
+              - kind: Button
+                name: observe
+                variant: study
+                label: Watch it
+                glyph: study
+                cost: 1 AP
+                tag: walk.observe
+          # Under the buttons, so that what it says never moves them: what is known of the beast chosen
+          - {kind: Label, name: seekNote, style: body-sm, color: ink-muted, overflow: wrap, text: "Choose a beast, then seek it or watch it."}
+
+      - kind: Panel
+        name: workPanel
+        frame: ruled
+        width: 340
+        z: 104
+        contentZ: 114
+        heading: Field work
+        glyph: work
+        children:
+          - kind: ActivityList
+            name: works
+            id: walk.works
+            stripes: false
+            compact: true
+          - kind: Button
+            name: work
+            variant: quiet
+            label: Do it
+            glyph: work
+            cost: 1 AP
+            tag: walk.work
+          - {kind: Label, name: workNote, style: body-sm, color: ink-muted, overflow: wrap, text: "Choose a work, then do it. Each one costs days of the stay, and each is a line of the record."}
+
+  # -- Middle: an event waiting for his answer, then the record so far --
+  - kind: Layout:Vertical
+    name: walkMiddle
+    x: 372
+    y: 136
+    z: 104
+    width: 620
+    height: 860
+    scrollable: true
+    spacing: 12
+    children:
+      - kind: Panel
+        name: cardPanel
+        frame: ruled
+        width: 616
+        z: 104
+        contentZ: 114
+        heading: Something on the way
+        glyph: seal
+        children:
+          - {kind: Label, name: cardTitle, style: title, color: vermilion, overflow: wrap, text: A hunter of the Keep}
+          - {kind: Label, name: cardText, style: body, overflow: wrap, text: "A man in the Keep's green sits by a cold fire, his leg bound."}
+          - {kind: Button, name: option0, variant: quiet, label: Give him a ration, tag: walk.option.0}
+          - {kind: Label, name: optionLine0, style: body-sm, color: ink-muted, overflow: wrap, text: "1 AP · −1 ration"}
+          - {kind: Button, name: option1, variant: quiet, label: Ask what he saw, tag: walk.option.1}
+          - {kind: Label, name: optionLine1, style: body-sm, color: ink-muted, overflow: wrap, text: "0 AP"}
+          - {kind: Button, name: option2, variant: quiet, label: Leave him, tag: walk.option.2}
+          - {kind: Label, name: optionLine2, style: body-sm, color: ink-muted, overflow: wrap, text: "0 AP"}
+          - {kind: Label, name: cardFoot, style: gloss, color: ink-muted, overflow: wrap, text: "The choice is written to the record; a walk by the record makes it again."}
+
+      - kind: Panel
+        name: recordPanel
+        frame: ruled
+        width: 616
+        z: 104
+        contentZ: 114
+        heading: The record so far
+        glyph: quill
+        aside: 11 AP WRITTEN
+        children:
+          - kind: EventLog
+            name: record
+            height: 420
+            years: false
+            steps: true          # the first column counts: a step of the record, a turn of the fight
+          - {kind: Label, name: recordNote, style: gloss, color: ink-muted, overflow: wrap, text: "Every step is walked again by the record."}
+
+  # -- Right: what he carries, what he has taken, what the record would cost --
+  - kind: Layout:Vertical
+    name: walkRight
+    z: 104
+    width: 304
+    height: 860
+    scrollable: true
+    spacing: 12
+    anchors:
+      - {side: right, target: __MainWindow, targetSide: right, margin: 12}
+      - {side: top, target: __MainWindow, targetSide: top, margin: 136}
+    children:
+      - kind: Panel
+        name: bagPanel
+        frame: ruled
+        width: 300
+        z: 104
+        contentZ: 114
+        heading: In the bag
+        glyph: trade
+        children:
+          - kind: ResourceLedger
+            name: bag
+
+      - kind: Panel
+        name: takenPanel
+        frame: ruled
+        width: 300
+        z: 104
+        contentZ: 114
+        heading: Taken so far
+        glyph: gold
+        children:
+          - kind: ResourceLedger
+            name: taken
+
+      - kind: Panel
+        name: homePanel
+        frame: ruled
+        width: 300
+        z: 104
+        contentZ: 114
+        heading: If he turned home now
+        glyph: gate
+        children:
+          - kind: ResourceLedger
+            name: home
+          # The way home: asked twice, the first press says what is lost
+          - {kind: Label, name: leaveNote, style: label, color: vermilion, overflow: wrap, text: THE CALENDAR DOES NOT SHORTEN}
+          - kind: Button
+            name: leave
+            variant: quiet
+            label: Turn for home
+            glyph: gate
+            tag: walk.leave
+          - {kind: Label, name: scribe, style: gloss, color: ink-muted, overflow: wrap, text: "Each day is chosen when it comes; the record remembers all of them."}

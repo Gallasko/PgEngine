@@ -27,7 +27,8 @@
 //           built   what stands there once it is done, as the log names it
 //           months  the months the work takes: time he does not spend on himself
 //           coin    the coin it costs when it begins, less the place's fund
-//           costs   [{stat, amount}]: what else it takes from him when it begins, for good
+//           costs   [{stat, amount}]: what else it takes from him when it begins, for good; a stat
+//                   "store.<thing>" is taken from the town's store, which his walks fill
 //           years   optional: years of his life given at once when it begins, on top of its months
 //           gives   what this level gives, in one line, as its tile and its gloss say it
 //           start   optional [{stat, amount}]: what a new life is born with for it (town.pg's
@@ -163,6 +164,22 @@ var townPlaces = [
         {work: "Keep a Room at the Inn", built: "The family's room", months: 12, coin: 90, costs: [],
          gives: "Vitality mends every month, not every second month",
          lore: "A bed, a fire and a door that locks: he mends faster there."}
+     ]},
+
+    // With his walks: the lodge, once he has walked the Hollow Woods. It is built of what walks
+    // bring back for the town (its store, "store.<thing>" in `character`: expeditiontable.pg's
+    // `town` things), kept from life to life as the town is
+    {id: "lodge", name: "The Hunters' Lodge", glyph: "adventure", shows: {done: "walk.hollow"}, about: "A roof at the wood's edge, for whoever goes after the wolves.",
+     levels: [
+        {work: "Raise the Hunters' Lodge", built: "The hunters' lodge", months: 6, coin: 20, costs: [{stat: "store.firewood", amount: 20}, {stat: "store.ashwood", amount: 10}],
+         gives: "The Hollow Woods are open to every life, bow or no bow",
+         lore: "A boy with no bow may go north now: the lodge lends him one, and counts the arrows."},
+        {work: "Hang the Lodge's Racks", built: "The lodge's racks", months: 6, coin: 40, costs: [{stat: "store.ashwood", amount: 20}, {stat: "store.clay", amount: 15}],
+         gives: "In a fight a day lasts one turn longer",
+         lore: "Spears on the racks, dry and straight. A man who is not mending his gear fights longer."},
+        {work: "Keep the Lodge's Hounds", built: "The lodge's hounds", months: 9, coin: 80, costs: [{stat: "store.stone", amount: 30}, {stat: "store.ashwood", amount: 20}],
+         gives: "Every beast is found a day sooner",
+         lore: "The hounds know the Hollow Woods better than any man of Bellmoor. They are not modest about it."}
      ]}
 ]
 

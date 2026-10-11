@@ -3,6 +3,37 @@
 What changed in the game, build by build, as a player sees it. The engine's own changes are in
 the `CHANGELOG.md` at the root of the repository.
 
+## 0.5 - Unreleased
+
+### New
+
+- **Walks outside the town.** A month of *Gather at the Hedges* opens the Hedgerows, the first
+  of four places to walk to (the Hedgerows, Mill Pond, the Hollow Woods, the Quarry Road). A
+  walk is a tile like any other, in a new *Adventure* group, with its months written on it. When
+  you begin it you are taken there: the stay is a number of days, and you spend them one choice
+  at a time (gather, study the place, rest, seek a beast or watch it, go home). Every choice
+  says what it costs before you make it.
+- **Fights.** A beast you seek is fought turn by turn: strike, guard, three techniques that
+  cost breath, a remedy, three stances, or retreat. Each choice shows what it would do before
+  you confirm it. Every three turns of a fight cost a day of the stay. You can also hand the
+  fight to your stance and let it play. Wolves hunt in packs of three; one of them hangs back
+  while two stand.
+- **The record, and walking it again.** Everything you do on a walk is written down. When you
+  are home the record is kept, and the new *Adventure* tab walks it again for you, once or
+  several times in a row: no choice to make, no fight to play, and what the beasts drop is
+  rolled again each time. A queue can stop on its own: when the bag is short, when you hold
+  enough of something, or at an age.
+- **Knowledge.** Studying a place and watching a beast are kept by the world, from life to life:
+  beasts get cheaper to find, you see their vitality and what they will do next, then their
+  weakness, and a place you know well lets you stay longer.
+- **Things to sell, and things for the town.** Berries, wortleaf, fish, reeds, pelts, hides,
+  fangs are sold at the market. Wortleaf can be brewed into remedies. Firewood, clay, ash wood
+  and stone go to the town's store, and stay there between lives.
+- **The Hunters' Lodge.** A tenth place in town, shown once you have walked the Hollow Woods and
+  built of what your walks brought back. It opens the Hollow Woods to every later life.
+- **Events on the way.** Now and then something waits for an answer: a nest in the hedge, a
+  hunter by a cold fire. What you choose is written in the record.
+
 ## 0.4.1 - Unreleased
 
 ### New

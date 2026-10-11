@@ -21,7 +21,7 @@ namespace chronicle
 
     struct TabsSpec
     {
-        std::vector<TabItem> items;        // 2-6; seven logs a warning
+        std::vector<TabItem> items;        // 2-7; eight logs a warning
         int active = 0;
         float width = 0.0f;                // 0 -> row grows to content; > 0 -> hairline spans this, tabs at the left
         std::string tag;                   // carried by TabSelectedEvent

@@ -17,6 +17,8 @@ namespace chronicle
         bool freshWithoutSave = false; // No save to load: a first life, not the mockup's (the web build)
         std::string savePath = "save/chronicle/life.sz";
         float monthMs = 2000.0f;       // --month-ms N: one month every N ms while the months run
+        std::string walk;              // --walk <zone>: a life that is never written, opened on a walk to that zone (hedgerows, millpond, hollow, quarry)
+        int walkSeed = 0;              // --walk-seed N: the dice of the walks, so that a walk can be tried again as it went; 0 takes them from the clock
         int width = 1320;              // --size WxH: the window at launch
         int height = 1020;
     };

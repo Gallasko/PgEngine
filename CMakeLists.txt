@@ -893,6 +893,7 @@ if(NOT BUILD_STATIC_LIB AND BUILD_EXAMPLES)
         examples/Chronicle/Core/analytics.cpp
         examples/Chronicle/Scenes/lifesave.cpp
         examples/Chronicle/Scenes/lifescene.cpp
+        examples/Chronicle/Scenes/lifewalk.cpp
         examples/Chronicle/UI/label.cpp
         examples/Chronicle/UI/mark.cpp
         examples/Chronicle/UI/ornament.cpp
@@ -1692,6 +1693,7 @@ if(NOT BUILD_STATIC_LIB AND BUILD_EXAMPLES)
             test/chronicle/eventlog.cc
             test/chronicle/placetile.cc
             test/chronicle/rules.cc
+            test/chronicle/expedition.cc
             test/chronicle/analytics.cc
             test/chronicle/lifescene.cc
             ${CHRONICLE_CORE}

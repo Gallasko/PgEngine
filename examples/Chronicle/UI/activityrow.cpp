@@ -113,6 +113,9 @@ namespace chronicle
         // already says it is a thing done at once
         std::string costText(const ActivityRowSpec& spec)
         {
+            if (not spec.cost.empty())
+                return spec.cost;
+
             if (spec.tile and spec.months <= 0)
                 return "";
 
@@ -673,7 +676,7 @@ namespace chronicle
         // The cost and its time mark. On a row: the right column, on the title line's baseline, `each`
         // under it. On a tile: at the left, under the name (resize sets how far down)
         row.cost = makeActivityText(ecs, "control", "activity.cost", costText(spec), z + 4);
-        row.costMark = makeMark(ecs, {"time", MarkSize::S14, "status-time", z + 3});
+        row.costMark = makeMark(ecs, {spec.costGlyph.empty() ? std::string("time") : spec.costGlyph, MarkSize::S14, "status-time", z + 3});
         offstage(row.costMark.entity);
 
         {
@@ -1373,18 +1376,25 @@ namespace chronicle
         // Drop what the list holds, rows and headings alike. The layout destroys each one as it
         // lets it go: destroying them here as well would leave the layout holding dead rows until
         // it gets to the removal, and the list walks those rows every frame.
-        std::vector<_unique_id> old;
+        auto state = root.get<ActivityListState>();
+
+        // What the last fill handed over is let go of too: the layout takes what it is given a
+        // pass later, so a list filled twice in one pass does not hold the first fill yet
+        std::vector<_unique_id> old = state->given;
 
         for (auto& child : layout->entities)
-            old.push_back(child.id);
+        {
+            if (std::find(old.begin(), old.end(), child.id) == old.end())
+                old.push_back(child.id);
+        }
 
         for (auto id : old)
             layout->removeEntity(id);
 
-        auto state = root.get<ActivityListState>();
         state->selected.clear();
         state->rows.clear();
         state->headings.clear();
+        state->given.clear();
 
         spec.groups = groups;
 
@@ -1394,7 +1404,12 @@ namespace chronicle
         for (const auto& group : groups)
         {
             if (not group.label.empty())
-                layout->addEntity(makeActivityHeading(ecs, group.label, spec.width, spec.z));
+            {
+                EntityRef heading = makeActivityHeading(ecs, group.label, spec.width, spec.z);
+
+                layout->addEntity(heading);
+                state->given.push_back(heading.id);
+            }
 
             // Tiles: as many to a line as fit, a new line when one is full and with every group
             EntityRef line;
@@ -1409,7 +1424,10 @@ namespace chronicle
                 {
                     rowSpec.width = spec.width;
 
-                    layout->addEntity(makeActivityRow(ecs, rowSpec).root);
+                    EntityRef made = makeActivityRow(ecs, rowSpec).root;
+
+                    layout->addEntity(made);
+                    state->given.push_back(made.id);
 
                     continue;
                 }
@@ -1421,6 +1439,7 @@ namespace chronicle
 
                     line = makeTileLine(ecs, spec.width, spec.z);
                     layout->addEntity(line);
+                    state->given.push_back(line.id);
                     onLine = 0;
                 }
 

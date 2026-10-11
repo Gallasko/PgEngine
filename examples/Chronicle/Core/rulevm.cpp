@@ -597,7 +597,8 @@ namespace chronicle
                                     {&resourcesScript, "resources.pg"},
                                     {&achievementsScript, "achievements.pg"},
                                     {&epitaphScript, "epitaph.pg"},
-                                    {&townScript, "town.pg"}})
+                                    {&townScript, "town.pg"},
+                                    {&walkScript, "expedition.pg"}})
         {
             if (not script->load(ecs, root + "/" + file))
             {
@@ -954,6 +955,13 @@ namespace chronicle
         out.fundLine = fundLine.toString();
         out.foundLine = foundLine.toString();
 
+        ElementType store;
+
+        if (not s.get("store", store))
+            return fail(s);
+
+        out.store = store.toString();
+
         // The words of the gift at death
         ElementMap words;
 
@@ -968,6 +976,99 @@ namespace chronicle
 
         keep(townFor, age, character);
         keptTown = out;
+
+        return true;
+    }
+
+    bool Rules::walk(float age, const ElementMap& character, const std::string& who, const std::string& ask, int seed, const WalkState& state, const WalkAct& act,
+                     const std::vector<WalkRecipe>& recipes, const RecordList& walks, const WalkQueue& queue, const std::string& replay, RuleWalk& out)
+    {
+        RuleScript& s = walkScript;
+        s.clearErrors();
+        out = RuleWalk{};
+
+        // The records as three flat lists: a table handed to a script holds scalars only
+        RecordList kept;
+        RecordList keptSteps;
+        RecordList keptMarks;
+
+        for (const auto& recipe : recipes)
+        {
+            ElementMap fields = recipe.fields;
+            fields["id"] = ElementType{recipe.id};
+            kept.push_back(std::move(fields));
+
+            for (ElementMap step : recipe.steps)
+            {
+                step["recipe"] = ElementType{recipe.id};
+                keptSteps.push_back(std::move(step));
+            }
+
+            for (ElementMap mark : recipe.marks)
+            {
+                mark["recipe"] = ElementType{recipe.id};
+                keptMarks.push_back(std::move(mark));
+            }
+        }
+
+        // A walk not begun is still a table: the script asks it for its zone
+        ElementMap fight = state.fight;
+
+        if (fight.empty())
+            fight = {{"over", ElementType{std::string()}}, {"mob", ElementType{std::string()}}};
+
+        s.set("age", ElementType{age});
+        s.set("character", character);
+        s.set("done", done);
+        s.set("world", ElementType{world});
+        s.set("lives", ElementType{lives});
+        s.set("who", ElementType{who});
+        s.set("ask", ElementType{ask});
+        s.set("seed", ElementType{seed});
+        s.set("run", state.run);
+        s.set("record", state.record);
+        s.set("marks", state.marks);
+        s.set("fight", fight);
+        s.set("foes", state.foes);
+        s.set("account", state.account);
+        s.set("act", ElementMap{{"kind", ElementType{act.kind}}, {"target", ElementType{act.target}}, {"count", ElementType{act.count}}});
+        s.set("recipes", kept);
+        s.set("recipeSteps", keptSteps);
+        s.set("recipeMarks", keptMarks);
+        s.set("walks", walks);
+        s.set("queue", ElementMap{{"recipe", ElementType{queue.recipe}}, {"count", ElementType{queue.count}}, {"stop", ElementType{queue.stop}},
+                                  {"value", ElementType{queue.value}}, {"item", ElementType{queue.item}}});
+        s.set("replay", ElementType{replay});
+
+        ++nbRuns;
+
+        if (not s.run())
+            return fail(s);
+
+        for (auto [name, table] : {std::pair<const char*, ElementMap*>{"run", &out.state.run}, {"fight", &out.state.fight}, {"after", &out.after},
+                                   {"site", &out.site}, {"card", &out.card}, {"duel", &out.duel}, {"preview", &out.preview}, {"form", &out.form}, {"recipe", &out.recipe}})
+        {
+            if (not s.get(name, *table))
+                return fail(s);
+        }
+
+        for (auto [name, list] : {std::pair<const char*, RecordList*>{"record", &out.state.record}, {"marks", &out.state.marks}, {"foes", &out.state.foes}, {"account", &out.state.account},
+                                  {"entries", &out.entries}, {"seeks", &out.seeks}, {"works", &out.works}, {"options", &out.options}, {"bag", &out.bag}, {"taken", &out.taken},
+                                  {"home", &out.home}, {"menu", &out.menu}, {"targets", &out.targets}, {"order", &out.order}, {"hero", &out.hero}, {"foe", &out.foe},
+                                  {"shelf", &out.shelf}, {"stops", &out.stops}})
+        {
+            if (not s.get(name, *list))
+                return fail(s);
+        }
+
+        ElementType blocked;
+        ElementType stopped;
+
+        if (not s.get("blocked", blocked) or not s.get("stopped", stopped))
+            return fail(s);
+
+        out.blocked = blocked.toString();
+        out.stopped = stopped.toString();
 
         return true;
     }

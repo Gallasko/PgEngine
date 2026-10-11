@@ -87,7 +87,7 @@ namespace chronicle
             const float labelW = b.label.entity->get<PositionComponent>()->width;
             const bool hasGlyph = b.glyph.has_value();
             const bool hasPair = b.cost.has_value() and b.costMark.has_value();
-            const bool hasCost = hasPair and b.spec.months >= 0;
+            const bool hasCost = hasPair and (b.spec.months >= 0 or not b.costText.empty());
             const float costTextW = hasCost ? b.cost->entity->get<PositionComponent>()->width : 0.0f;
 
             const float faceW = PAD_X + (hasGlyph ? GLYPH + GAP : 0.0f) + labelW + (hasCost ? GAP + COST_MARK + COST_GAP + costTextW : 0.0f) + PAD_X;
@@ -315,6 +315,7 @@ namespace chronicle
     void Button::setMonths(EntitySystem* ecs, int months)
     {
         spec.months = months;
+        costText.clear();
 
         // The cost pair is made with the button: one made without it has nothing to write the time on
         if (not cost.has_value() or not costMark.has_value())
@@ -327,6 +328,28 @@ namespace chronicle
 
         if (months >= 0)
             cost->setText(ecs, monthsText(months));
+
+        layFace(*this);
+    }
+
+    void Button::setCost(EntitySystem* ecs, const std::string& text)
+    {
+        costText = text;
+
+        // Hidden as a button with no months is: the pair keeps its place in the prefab
+        if (text.empty())
+            spec.months = -1;
+
+        if (not cost.has_value() or not costMark.has_value())
+        {
+            if (not text.empty())
+                LOG_WARNING(DOM, "A button made without a cost cannot be given one; rebuild the button");
+
+            return;
+        }
+
+        if (not text.empty())
+            cost->setText(ecs, text);
 
         layFace(*this);
     }
@@ -433,6 +456,10 @@ namespace chronicle
         if (event.button != 1)
             return;
 
+        // What a click does may make buttons or remove them (a page built in another's place):
+        // the faces are walked first, and activated once the walk is over
+        std::vector<_unique_id> clicked;
+
         for (auto* st : view<ButtonState>())
         {
             auto face = ecsRef->getEntity(st->entityId);
@@ -445,6 +472,12 @@ namespace chronicle
 
             // A cancelled release (the press scrolled a list) is not a click
             if (inside and not event.cancelled)
+                clicked.push_back(face->id);
+        }
+
+        for (auto id : clicked)
+        {
+            if (auto face = ecsRef->getEntity(id); face and face->has<ButtonState>())
                 activate(face);
         }
     }

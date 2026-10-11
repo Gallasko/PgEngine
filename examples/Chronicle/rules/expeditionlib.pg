@@ -1,0 +1,2277 @@
+// Chronicle rules: a walk, its days and its record
+// ------------------------------------------------
+// The functions of expedition.pg that are not a fight's (fightlib.pg has those). Imported by
+// expedition.pg only, first: a function is a constant of the script that declares it and its
+// index must fit in a byte, so the functions stand in files of their own, ahead of the tables.
+//
+// They read and write expedition.pg's globals by name, when they are called: the walk as it
+// stands (`run`, `record`, `marks`, `fight`, `foes`, `account`), the character as the walk leaves
+// him (`after`), the lines for the life's log (`entries`), and the tables of expeditiontable.pg.
+
+import "string"
+import "math"
+import "algorithm"
+
+fun smaller(a, b)
+{
+    if (a < b)
+    {
+        return a
+    }
+
+    return b
+}
+
+fun larger(a, b)
+{
+    if (a > b)
+    {
+        return a
+    }
+
+    return b
+}
+
+// Whole division, rounded down and rounded up
+fun wholeOf(a, b)
+{
+    return toInt(floor(toFloat(a) / toFloat(b)))
+}
+
+fun wholeUp(a, b)
+{
+    return toInt(ceil(toFloat(a) / toFloat(b)))
+}
+
+// So many percent of a value, rounded down
+fun share(value, percent)
+{
+    return wholeOf(value * percent, 100)
+}
+
+fun pick(table, key, fallback)
+{
+    var found = table[key]
+
+    if (typeOf(found) == "none")
+    {
+        return fallback
+    }
+
+    return found
+}
+
+// A number of the walk as it stands, 0 when it has none
+fun runOf(key)
+{
+    return pick(run, key, 0)
+}
+
+// A stat of the character as the walk leaves him, 0 when he has none
+fun mine(stat)
+{
+    return pick(after, stat, 0)
+}
+
+fun counted(n, one, many)
+{
+    if (n == 1)
+    {
+        return "1 " + one
+    }
+
+    return toString(n) + " " + many
+}
+
+fun daysText(n)
+{
+    return counted(n, "day", "days")
+}
+
+fun apText(n)
+{
+    return toString(n) + " AP"
+}
+
+// "three" for 3, the figure past twelve
+fun wordOf(n)
+{
+    var words = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"]
+
+    if (n >= 0 and n < len(words))
+    {
+        return words[n]
+    }
+
+    return toString(n)
+}
+
+fun timesWord(n)
+{
+    if (n == 1)
+    {
+        return "once"
+    }
+
+    if (n == 2)
+    {
+        return "twice"
+    }
+
+    if (n == 3)
+    {
+        return "thrice"
+    }
+
+    return toString(n) + " times"
+}
+
+fun joined(list, with)
+{
+    var text = ""
+
+    for (var i = 0; i < len(list); i++)
+    {
+        if (i > 0)
+        {
+            text = text + with
+        }
+
+        text = text + list[i]
+    }
+
+    return text
+}
+
+// An age as the log writes it: the year and the month in it, 1 to 12
+fun ageMark(months)
+{
+    return toString(wholeOf(months, 12)) + "." + toString(months % 12 + 1)
+}
+
+// ---- the dice: a walk carries its own, so that the same walk asked twice is the same walk -----------
+
+// The dice a walk begins with, from the number it is handed: two numbers next to each other
+// (two walks begun a moment apart) must not roll alike, so the number is spread before it is used
+fun diceFrom(number)
+{
+    var dice = ((number % 65537) * 7919 + 10007) % 65537
+
+    for (var i = 0; i < 3; i++)
+    {
+        dice = (dice * 75 + 74) % 65537
+    }
+
+    return dice
+}
+
+fun roll(sides)
+{
+    run.seed = (runOf("seed") * 75 + 74) % 65537
+
+    if (sides <= 1)
+    {
+        return 0
+    }
+
+    return wholeOf(run.seed * sides, 65537)
+}
+
+fun rollBetween(low, high)
+{
+    if (high <= low)
+    {
+        return low
+    }
+
+    return low + roll(high - low + 1)
+}
+
+fun chance(percent)
+{
+    return roll(100) < percent
+}
+
+// ---- the tables, by id ----------------------------------------------------------------------------------
+
+fun zoneOf(id)
+{
+    for (var i = 0; i < len(walkZones); i++)
+    {
+        if (walkZones[i].id == id)
+        {
+            return walkZones[i]
+        }
+    }
+
+    return {id: ""}
+}
+
+fun mobOf(id)
+{
+    for (var i = 0; i < len(walkMobs); i++)
+    {
+        if (walkMobs[i].id == id)
+        {
+            return walkMobs[i]
+        }
+    }
+
+    return {id: ""}
+}
+
+fun itemOf(id)
+{
+    for (var i = 0; i < len(walkItems); i++)
+    {
+        if (walkItems[i].id == id)
+        {
+            return walkItems[i]
+        }
+    }
+
+    return {id: "", name: id, one: id, glyph: "trade", kind: "sold"}
+}
+
+fun eventOf(id)
+{
+    for (var i = 0; i < len(walkEvents); i++)
+    {
+        if (walkEvents[i].id == id)
+        {
+            return walkEvents[i]
+        }
+    }
+
+    return {id: ""}
+}
+
+// Where a thing is kept: what is the town's goes to its store, the rest is his
+fun keyOf(itemId)
+{
+    if (itemOf(itemId).kind == "town")
+    {
+        return "store." + itemId
+    }
+
+    return itemId
+}
+
+fun held(itemId)
+{
+    return mine(keyOf(itemId))
+}
+
+// "2 berries", "1 pelt"
+fun itemText(itemId, n)
+{
+    var item = itemOf(itemId)
+
+    if (n == 1)
+    {
+        return "1 " + item.one
+    }
+
+    return toString(n) + " " + toLowerCase(item.name)
+}
+
+// ---- what is known ---------------------------------------------------------------------------------------
+
+// How many of the steps a count has reached
+fun reached(count, steps)
+{
+    var level = 0
+
+    for (var i = 0; i < len(steps); i++)
+    {
+        if (count >= steps[i])
+        {
+            level = i + 1
+        }
+    }
+
+    return level
+}
+
+// A zone is known 0 to 4: never seen, visited, then by its studies
+fun zoneLevel(zoneId)
+{
+    if (mine("know.visit." + zoneId) <= 0)
+    {
+        return 0
+    }
+
+    var studies = mine("know.study." + zoneId)
+    var level = 1
+
+    for (var i = 1; i < len(walkKnobs.studyLevels); i++)
+    {
+        if (studies >= walkKnobs.studyLevels[i])
+        {
+            level = i + 1
+        }
+    }
+
+    return level
+}
+
+// The zone knowledge that lists a beast: the common and the uncommon with the first visit, the
+// rare ones later
+fun listedFrom(mob)
+{
+    if (mob.rarity == "rare")
+    {
+        return 2
+    }
+
+    return 1
+}
+
+// A beast is known 0 to 4: by watching it, more slowly by fighting it, and one more for the
+// one who has fought it himself
+fun mobLevel(zoneId, mob)
+{
+    var level = 0
+
+    if (zoneLevel(zoneId) >= listedFrom(mob))
+    {
+        level = 1
+    }
+
+    level = larger(level, reached(mine("know.observe." + mob.id), walkKnobs.observeLevels))
+    level = larger(level, reached(mine("know.fights." + mob.id), walkKnobs.fightLevels))
+
+    if (level > 0 and mine("fought." + mob.id) > 0)
+    {
+        level = smaller(4, level + 1)
+    }
+
+    return level
+}
+
+fun learn(key, amount)
+{
+    after["know." + key] = mine("know." + key) + amount
+    push(marks, {step: len(record), kind: "learn", id: key, n: amount})
+}
+
+// ---- the walk's figures ----------------------------------------------------------------------------------
+
+fun stayOf(zone)
+{
+    return walkStay(zone, mine("know.study." + zone.id))
+}
+
+fun travelOf(zone)
+{
+    return walkTravel(zone, mine("know.study." + zone.id))
+}
+
+// The months a walk blocks: there, the stay, and back
+fun monthsOf(zone)
+{
+    return walkMonths(zone, mine("know.study." + zone.id))
+}
+
+fun seekBase(mob)
+{
+    if (mob.rarity == "rare")
+    {
+        return walkKnobs.seekRare
+    }
+
+    if (mob.rarity == "uncommon")
+    {
+        return walkKnobs.seekUncommon
+    }
+
+    return walkKnobs.seekCommon
+}
+
+fun familiar(zoneId)
+{
+    if (mine("walked." + zoneId) > 0)
+    {
+        return 1
+    }
+
+    return 0
+}
+
+// The days it takes to find a beast: a pack, or one of a pack beast alone
+fun seekCost(zone, mob, count)
+{
+    var cost = seekBase(mob) - wholeOf(mine("guile"), walkKnobs.luckStep) - zoneLevel(zone.id) - familiar(zone.id) + runOf("seek." + mob.id)
+
+    // The lodge's hounds find any beast a day sooner
+    if (mine("town.lodge") >= 3)
+    {
+        cost = cost - 1
+    }
+
+    if (mob.packSize > 1)
+    {
+        if (count > 1)
+        {
+            cost = cost + walkKnobs.packMod
+        }
+        else
+        {
+            cost = cost + walkKnobs.loneMod
+        }
+    }
+
+    return larger(1, cost)
+}
+
+// The turns of a fight to a day, as he stands
+fun turnsPerAp()
+{
+    var turns = walkKnobs.turnsPerAp + wholeOf(mine("dex"), walkKnobs.dexStep)
+
+    if (mine("town.lodge") >= 2)
+    {
+        turns = turns + 1
+    }
+
+    if (runOf("hp") * 100 < runOf("hpMax") * walkKnobs.lowHp and mine("discipline") < walkKnobs.resolveHolds)
+    {
+        turns = turns - walkKnobs.lowPenalty
+    }
+
+    return larger(1, turns)
+}
+
+// ---- the record --------------------------------------------------------------------------------------------
+
+fun lastStep()
+{
+    return record[len(record) - 1]
+}
+
+fun openStep(kind, target, count, ap, text, glyph)
+{
+    push(record, {n: len(record) + 1, kind: kind, target: target, count: count, ap: ap, hp: 0, text: text, gave: "", used: "", figure: "", tone: "time", glyph: glyph, once: 0})
+    run.ap = larger(0, runOf("ap") - ap)
+    run.spent = runOf("spent") + ap
+}
+
+// What the line shows at its right: the days, what it cost him, what it gave
+fun closeStep()
+{
+    var step = lastStep()
+    var parts = [apText(step.ap)]
+
+    if (step.hp < 0)
+    {
+        push(parts, "−" + toString(0 - step.hp) + " VIT")
+    }
+
+    if (step.hp > 0)
+    {
+        push(parts, "+" + toString(step.hp) + " VIT")
+    }
+
+    if (step.used != "")
+    {
+        push(parts, toUpperCase(step.used))
+    }
+
+    if (step.gave != "")
+    {
+        push(parts, toUpperCase(step.gave))
+    }
+
+    step.figure = joined(parts, " · ")
+}
+
+fun addTo(text, more)
+{
+    if (text == "")
+    {
+        return more
+    }
+
+    return text + ", " + more
+}
+
+// What a step's marks of a kind come to, each thing once: "+3 pelts, +1 fang"
+fun stepText(stepN, kind, sign)
+{
+    var parts = []
+
+    for (var i = 0; i < len(walkItems); i++)
+    {
+        var n = 0
+
+        for (var m = 0; m < len(marks); m++)
+        {
+            if (marks[m].step == stepN and (marks[m].kind == kind or (kind == "gain" and marks[m].kind == "loot")) and marks[m].id == walkItems[i].id)
+            {
+                n = n + marks[m].n
+            }
+        }
+
+        if (n > 0)
+        {
+            push(parts, sign + itemText(walkItems[i].id, n))
+        }
+    }
+
+    return joined(parts, ", ")
+}
+
+fun give(itemId, n)
+{
+    if (n <= 0)
+    {
+        return
+    }
+
+    var key = keyOf(itemId)
+
+    after[key] = mine(key) + n
+    run["got." + itemId] = runOf("got." + itemId) + n
+    push(marks, {step: len(record), kind: "gain", id: itemId, n: n})
+
+    var step = lastStep()
+    step.gave = stepText(len(record), "gain", "+")
+}
+
+// What a beast dropped: his as anything gathered is, but a walk by the record rolls it again
+fun loot(itemId, n)
+{
+    if (n <= 0)
+    {
+        return
+    }
+
+    var key = keyOf(itemId)
+
+    after[key] = mine(key) + n
+    run["got." + itemId] = runOf("got." + itemId) + n
+    push(marks, {step: len(record), kind: "loot", id: itemId, n: n})
+
+    var step = lastStep()
+    step.gave = stepText(len(record), "gain", "+")
+}
+
+fun take(itemId, n)
+{
+    if (n <= 0)
+    {
+        return
+    }
+
+    var key = keyOf(itemId)
+
+    after[key] = larger(0, mine(key) - n)
+    run["used." + itemId] = runOf("used." + itemId) + n
+    push(marks, {step: len(record), kind: "use", id: itemId, n: n})
+
+    var step = lastStep()
+    step.used = stepText(len(record), "use", "−")
+}
+
+// His Vitality at home, from the one in the field: rounded up, and what the rounding gave him is
+// kept as scratches (0 to 4), so that five small wounds on five walks are one point all the same
+fun homeHp(field)
+{
+    after.vit = wholeUp(field, walkKnobs.vigour)
+    after.scratches = after.vit * walkKnobs.vigour - field
+}
+
+// And the one in the field, from his own: the scratches he still carries are counted
+fun fieldHp()
+{
+    return larger(1, mine("vit") * walkKnobs.vigour - mine("scratches"))
+}
+
+// His Vitality in the field moves by `amount`, and his own follows it. Where no one dies he is
+// left with one: brought down, and carried home
+fun shiftHp(amount)
+{
+    var before = runOf("hp")
+    var now = before + amount
+
+    if (now > runOf("hpMax"))
+    {
+        now = runOf("hpMax")
+    }
+
+    if (now <= 0)
+    {
+        now = 1
+        run.downed = 1
+    }
+
+    run.hp = now
+    homeHp(now)
+
+    if (len(record) > 0)
+    {
+        var step = lastStep()
+        step.hp = step.hp + (now - before)
+    }
+
+    return now - before
+}
+
+// Practice: so many points to one point of the part
+fun practise(part, points)
+{
+    var key = "xp." + part
+    var have = mine(key) + points
+
+    for (var guard = 0; guard < 20 and have >= walkKnobs.xpStep; guard++)
+    {
+        have = have - walkKnobs.xpStep
+
+        var before = mine(part)
+
+        after[part] = raised(before, part, 1)
+
+        if (mine(part) > before)
+        {
+            run["grew." + part] = runOf("grew." + part) + 1
+            push(marks, {step: len(record), kind: "grow", id: part, n: 1})
+            push(entries, {text: statName(part) + " grew with practice", kind: "gain", figure: "+1", glyph: ""})
+        }
+    }
+
+    after[key] = have
+}
+
+// ---- events ------------------------------------------------------------------------------------------------
+
+// After an action an event waits on, one of the zone's may come: its card is up until he answers
+fun maybeEvent(trigger)
+{
+    if (pick(run, "event", "") != "")
+    {
+        return
+    }
+
+    var zone = zoneOf(run.zone)
+    var open = []
+    var weight = 0
+
+    for (var i = 0; i < len(zone.events); i++)
+    {
+        var event = eventOf(zone.events[i])
+
+        if (event.id != "" and event.trigger == trigger and runOf("met." + event.id) == 0)
+        {
+            if (not event.once or mine("met." + event.id) <= 0)
+            {
+                push(open, event)
+                weight = weight + event.weight
+            }
+        }
+    }
+
+    if (len(open) == 0 or not chance(walkKnobs.eventChance))
+    {
+        return
+    }
+
+    var drawn = roll(weight)
+
+    for (var i = 0; i < len(open); i++)
+    {
+        if (drawn >= 0 and drawn < open[i].weight)
+        {
+            run.event = open[i].id
+        }
+
+        drawn = drawn - open[i].weight
+    }
+}
+
+fun optionOf(event, id)
+{
+    for (var i = 0; i < len(event.options); i++)
+    {
+        if (event.options[i].id == id)
+        {
+            return event.options[i]
+        }
+    }
+
+    return {id: ""}
+}
+
+// What an option asks that he has not: "" when he can take it
+fun optionShort(option)
+{
+    if (option.ap > runOf("ap"))
+    {
+        return "ASKS " + toUpperCase(daysText(option.ap))
+    }
+
+    for (var i = 0; i < len(option.items); i++)
+    {
+        var item = option.items[i]
+
+        if (item.amount < 0 and held(item.id) < 0 - item.amount)
+        {
+            return "ASKS " + toUpperCase(itemText(item.id, 0 - item.amount))
+        }
+    }
+
+    return ""
+}
+
+// An option in one line, cost then effect: "1 AP · −1 ration · White Stag find cost −2 this walk"
+fun optionLine(option)
+{
+    var parts = [apText(option.ap)]
+
+    if (option.hp < 0)
+    {
+        push(parts, "−" + toString(0 - option.hp) + " vitality")
+    }
+
+    if (option.hp > 0)
+    {
+        push(parts, "+" + toString(option.hp) + " vitality")
+    }
+
+    for (var i = 0; i < len(option.items); i++)
+    {
+        var item = option.items[i]
+
+        if (item.amount < 0)
+        {
+            push(parts, "−" + itemText(item.id, 0 - item.amount))
+        }
+        else
+        {
+            push(parts, "+" + itemText(item.id, item.amount))
+        }
+    }
+
+    for (var i = 0; i < len(option.effects); i++)
+    {
+        var effect = option.effects[i]
+
+        if (effect.kind == "seek")
+        {
+            push(parts, mobOf(effect.mob).name + " find cost " + signed(effect.amount) + " this walk")
+        }
+        else if (effect.kind == "study")
+        {
+            push(parts, "+" + toString(effect.amount) + " study of the place")
+        }
+        else if (effect.kind == "observe")
+        {
+            push(parts, "+" + toString(effect.amount) + " " + toLowerCase(mobOf(effect.mob).name) + " watched")
+        }
+        else if (effect.kind == "stat")
+        {
+            push(parts, signed(effect.amount) + " " + toLowerCase(statName(effect.stat)))
+        }
+    }
+
+    return joined(parts, " · ")
+}
+
+fun chooseOption(optionId)
+{
+    var event = eventOf(run.event)
+    var option = optionOf(event, optionId)
+
+    if (event.id == "" or option.id == "")
+    {
+        run.refused = "No such choice"
+        return
+    }
+
+    if (optionShort(option) != "")
+    {
+        run.refused = optionShort(option)
+        return
+    }
+
+    openStep("event", event.id + "/" + option.id, 1, option.ap, option.line, "seal")
+
+    if (event.once)
+    {
+        var written = lastStep()
+
+        written.once = 1
+        after["met." + event.id] = 1
+    }
+
+    if (option.hp != 0)
+    {
+        shiftHp(option.hp)
+    }
+
+    for (var i = 0; i < len(option.items); i++)
+    {
+        var item = option.items[i]
+
+        if (item.amount < 0)
+        {
+            take(item.id, 0 - item.amount)
+        }
+        else
+        {
+            give(item.id, item.amount)
+        }
+    }
+
+    for (var i = 0; i < len(option.effects); i++)
+    {
+        var effect = option.effects[i]
+
+        if (effect.kind == "seek")
+        {
+            run["seek." + effect.mob] = runOf("seek." + effect.mob) + effect.amount
+        }
+        else if (effect.kind == "study")
+        {
+            learn("study." + run.zone, effect.amount)
+        }
+        else if (effect.kind == "observe")
+        {
+            learn("observe." + effect.mob, effect.amount)
+        }
+        else if (effect.kind == "stat")
+        {
+            after[effect.stat] = raised(mine(effect.stat), effect.stat, effect.amount)
+            push(marks, {step: len(record), kind: "stat", id: effect.stat, n: effect.amount})
+        }
+    }
+
+    closeStep()
+
+    run["met." + event.id] = 1
+    run.event = ""
+
+    // What he had found is still there
+    if (run.found != "" and pick(fight, "mob", "") == "")
+    {
+        beginFight()
+    }
+}
+
+// ---- the days on site ------------------------------------------------------------------------------------
+
+// A walk begins: he is there, with his days before him
+fun enterZone(zoneId)
+{
+    var zone = zoneOf(zoneId)
+
+    if (zone.id == "")
+    {
+        push(errors, "unknown zone " + zoneId)
+        return
+    }
+
+    var first = mine("walked." + zone.id) <= 0
+
+    after["know.visit." + zone.id] = 1
+
+    var stay = stayOf(zone)
+    var most = mostOf(after, "vit")
+
+    run = {zone: zone.id, mode: "site", seed: diceFrom(seed), ap: stay * walkKnobs.apPerDay, apTotal: stay * walkKnobs.apPerDay, spent: 0,
+           hp: fieldHp(), hpMax: most * walkKnobs.vigour, hpStart: fieldHp(),
+           months: monthsOf(zone), travel: travelOf(zone), found: "", foundCount: 0, event: "", refused: "", stance: "balanced",
+           downed: 0, leaving: 0, firstWalk: 0, startMonth: monthOf(age)}
+
+    if (first)
+    {
+        run.firstWalk = 1
+    }
+
+    record = []
+    marks = []
+    fight = {over: "", mob: ""}
+    foes = []
+    account = []
+}
+
+fun spotOf(zone, id)
+{
+    for (var i = 0; i < len(zone.spots); i++)
+    {
+        if (zone.spots[i].id == id)
+        {
+            return zone.spots[i]
+        }
+    }
+
+    return {id: ""}
+}
+
+fun inZone(zone, mobId)
+{
+    for (var i = 0; i < len(zone.mobs); i++)
+    {
+        if (zone.mobs[i] == mobId)
+        {
+            return true
+        }
+    }
+
+    return false
+}
+
+fun doSeek(mobId, count)
+{
+    var zone = zoneOf(run.zone)
+    var mob = mobOf(mobId)
+
+    if (mob.id == "" or not inZone(zone, mobId) or mobLevel(zone.id, mob) < 1)
+    {
+        run.refused = "He does not know that beast"
+        return
+    }
+
+    if (count != 1)
+    {
+        count = mob.packSize
+    }
+
+    var cost = seekCost(zone, mob, count)
+
+    if (cost > runOf("ap"))
+    {
+        run.refused = "Not enough days left to find it"
+        return
+    }
+
+    var sought = "a " + toLowerCase(mob.name)
+
+    if (count > 1)
+    {
+        sought = "a " + toLowerCase(mob.pack)
+    }
+    else if (mob.packSize > 1)
+    {
+        sought = toLowerCase(mob.lone)
+    }
+
+    openStep("seek", mob.id, count, cost, "Sought " + sought + ", and found it", "adventure")
+    closeStep()
+
+    run.found = mob.id
+    run.foundCount = count
+
+    // Something may stand between him and it: the fight waits for his answer
+    maybeEvent("seek")
+
+    if (run.event == "")
+    {
+        beginFight()
+    }
+}
+
+fun doGather(spotId)
+{
+    var zone = zoneOf(run.zone)
+    var spot = spotOf(zone, spotId)
+
+    if (spot.id == "")
+    {
+        run.refused = "Nothing of that kind grows here"
+        return
+    }
+
+    if (spot.ap > runOf("ap"))
+    {
+        run.refused = "Not enough days left for it"
+        return
+    }
+
+    openStep("gather", spot.id, 1, spot.ap, "Gathered " + toLowerCase(itemOf(spot.id).name), "work")
+    give(spot.id, rollBetween(spot.least, spot.most))
+    closeStep()
+
+    maybeEvent("gather")
+}
+
+fun doStudy()
+{
+    if (walkKnobs.studyAp > runOf("ap"))
+    {
+        run.refused = "Not enough days left to study the place"
+        return
+    }
+
+    var zone = zoneOf(run.zone)
+    var before = zoneLevel(zone.id)
+
+    openStep("study", zone.id, 1, walkKnobs.studyAp, "Studied the place", "study")
+
+    // The scholar's work in town makes a study count more
+    learn("study." + zone.id, 1)
+
+    var step = lastStep()
+    step.tone = "know"
+    step.gave = "+1 study"
+
+    if (zoneLevel(zone.id) > before)
+    {
+        step.text = "Studied the place: he knows it better now"
+        push(entries, {text: zone.name + " is known " + toString(zoneLevel(zone.id)) + " of 4", kind: "milestone", figure: "", glyph: "study"})
+    }
+
+    closeStep()
+
+    maybeEvent("study")
+}
+
+fun doObserve(mobId)
+{
+    var zone = zoneOf(run.zone)
+    var mob = mobOf(mobId)
+
+    if (mob.id == "" or not inZone(zone, mobId) or mobLevel(zone.id, mob) < 1)
+    {
+        run.refused = "He has not seen that beast"
+        return
+    }
+
+    if (walkKnobs.observeAp > runOf("ap"))
+    {
+        run.refused = "Not enough days left to watch it"
+        return
+    }
+
+    openStep("observe", mob.id, 1, walkKnobs.observeAp, "Watched the " + toLowerCase(mob.name) + " from cover", "study")
+    learn("observe." + mob.id, 1)
+
+    var step = lastStep()
+    step.tone = "know"
+    step.gave = "+1 watch"
+
+    closeStep()
+}
+
+fun doRest()
+{
+    if (walkKnobs.restAp > runOf("ap"))
+    {
+        run.refused = "Not enough days left to rest"
+        return
+    }
+
+    if (held(walkKnobs.restItem) < 1)
+    {
+        run.refused = "A rest eats a ration, and he has none"
+        return
+    }
+
+    openStep("rest", "", 1, walkKnobs.restAp, "Rested by the fire", "vitality")
+    take(walkKnobs.restItem, 1)
+    shiftHp(share(runOf("hpMax"), walkKnobs.restHeal))
+    closeStep()
+
+    maybeEvent("rest")
+}
+
+fun doRemedy()
+{
+    if (held("remedy") < 1)
+    {
+        run.refused = "No remedy in the bag"
+        return
+    }
+
+    openStep("potion", "remedy", 1, 0, "Took a wortleaf remedy", "vitality")
+    take("remedy", 1)
+    shiftHp(share(runOf("hpMax"), itemOf("remedy").heals))
+    closeStep()
+}
+
+// Leave is asked twice: the first press says what is lost
+fun doLeave()
+{
+    if (runOf("leaving") == 0 and runOf("ap") > 0)
+    {
+        run.leaving = 1
+        return
+    }
+
+    var lost = runOf("ap")
+
+    openStep("leave", "", 1, 0, "Turned for home, " + daysText(lost) + " unspent", "gate")
+    closeStep()
+
+    run.ap = 0
+    run.left = lost
+}
+
+// The stay is over: no day left, or he turned for home, or he was carried there
+fun stayOver()
+{
+    if (run.mode == "done")
+    {
+        return true
+    }
+
+    if (run.event != "" or run.found != "")
+    {
+        return false
+    }
+
+    return runOf("ap") <= 0 or runOf("downed") > 0
+}
+
+// What the walk leaves: he has walked the zone, and the life's log says so
+fun endStay()
+{
+    var zone = zoneOf(run.zone)
+
+    run.mode = "done"
+    run.leaving = 0
+
+    if (runOf("downed") > 0)
+    {
+        after.vitmax = larger(1, mostOf(after, "vit") - walkKnobs.woundCost)
+        push(entries, {text: "Carried home from " + zone.name + ", badly hurt", kind: "loss", figure: "−" + toString(walkKnobs.woundCost) + " vit", glyph: "vitality"})
+        return
+    }
+
+    after["walked." + zone.id] = mine("walked." + zone.id) + 1
+
+    push(entries, {text: "Walked " + zone.name + ": " + toString(len(record)) + " steps written to the record", kind: "note", figure: "", glyph: zone.glyph})
+}
+
+// One thing he does, wherever the walk stands: before an event's card only its answer, in a
+// fight only the fight's, else a day's work on site. The stay ends with its last day
+fun walkAct(kind, target, count)
+{
+    run.refused = ""
+
+    if (kind != "leave")
+    {
+        run.leaving = 0
+    }
+
+    if (run.mode == "done")
+    {
+        run.refused = "The walk is over"
+    }
+    else if (run.event != "")
+    {
+        if (kind == "option")
+        {
+            chooseOption(target)
+        }
+        else
+        {
+            run.refused = "Something waits for his answer"
+        }
+    }
+    else if (run.found != "")
+    {
+        fightAct(kind, target, count)
+    }
+    else if (kind == "seek")
+    {
+        doSeek(target, count)
+    }
+    else if (kind == "observe")
+    {
+        doObserve(target)
+    }
+    else if (kind == "gather")
+    {
+        doGather(target)
+    }
+    else if (kind == "study")
+    {
+        doStudy()
+    }
+    else if (kind == "rest")
+    {
+        doRest()
+    }
+    else if (kind == "remedy")
+    {
+        doRemedy()
+    }
+    else if (kind == "leave")
+    {
+        doLeave()
+    }
+    else
+    {
+        run.refused = "He does not know how to do that"
+    }
+
+    if (run.mode != "done" and stayOver())
+    {
+        endStay()
+    }
+}
+
+// ---- what a walk came to: the figures a record is kept under ------------------------------------
+
+fun sumMarks(list, kind, id)
+{
+    var sum = 0
+
+    for (var i = 0; i < len(list); i++)
+    {
+        if (list[i].kind == kind and list[i].id == id)
+        {
+            sum = sum + list[i].n
+        }
+    }
+
+    return sum
+}
+
+// The ids a kind of mark names, each once, in the order they came
+fun markIds(list, kind)
+{
+    var ids = []
+
+    for (var i = 0; i < len(list); i++)
+    {
+        if (list[i].kind == kind)
+        {
+            var seen = false
+
+            for (var j = 0; j < len(ids); j++)
+            {
+                if (ids[j] == list[i].id)
+                {
+                    seen = true
+                }
+            }
+
+            if (not seen)
+            {
+                push(ids, list[i].id)
+            }
+        }
+    }
+
+    return ids
+}
+
+// "3 wolves, 1 boar": a list of marks, said with a table's names
+fun killsText(list)
+{
+    var ids = markIds(list, "kill")
+    var parts = []
+
+    for (var i = 0; i < len(ids); i++)
+    {
+        var n = sumMarks(list, "kill", ids[i])
+        var mob = mobOf(ids[i])
+        var name = toLowerCase(mob.name)
+
+        if (n > 1)
+        {
+            name = mob.many
+        }
+
+        push(parts, toString(n) + " " + name)
+    }
+
+    return joined(parts, ", ")
+}
+
+fun itemsText(list, kind, sign)
+{
+    var ids = markIds(list, kind)
+    var parts = []
+
+    for (var i = 0; i < len(ids); i++)
+    {
+        push(parts, sign + itemText(ids[i], sumMarks(list, kind, ids[i])))
+    }
+
+    return joined(parts, ", ")
+}
+
+// What a knowledge mark names, in words: "study.hollow" -> "the Hollow Woods studied"
+fun learnText(key, n)
+{
+    if (startsWith(key, "study."))
+    {
+        return "+" + toString(n) + " study of " + zoneOf(substring(key, 6)).name
+    }
+
+    if (startsWith(key, "observe."))
+    {
+        return "+" + toString(n) + " " + toLowerCase(mobOf(substring(key, 8)).name) + " watched"
+    }
+
+    if (startsWith(key, "fights."))
+    {
+        return "+" + toString(n) + " " + toLowerCase(mobOf(substring(key, 7)).name) + " fought"
+    }
+
+    return ""
+}
+
+fun learnsText(list)
+{
+    var ids = markIds(list, "learn")
+    var parts = []
+
+    for (var i = 0; i < len(ids); i++)
+    {
+        if (not startsWith(ids[i], "drop."))
+        {
+            var said = learnText(ids[i], sumMarks(list, "learn", ids[i]))
+
+            if (said != "")
+            {
+                push(parts, said)
+            }
+        }
+    }
+
+    return joined(parts, ", ")
+}
+
+// The chance drops of the beasts a record killed, as far as he knows them: "wolf fang 1 in 4"
+fun dropsText(list, zoneId)
+{
+    var ids = markIds(list, "kill")
+    var parts = []
+    var said = {}
+
+    for (var i = 0; i < len(ids); i++)
+    {
+        var mob = mobOf(ids[i])
+        var known = mobLevel(zoneId, mob)
+
+        for (var l = 0; l < len(mob.loot); l++)
+        {
+            var drop = mob.loot[l]
+            var item = itemOf(drop.id)
+
+            if (pick(said, drop.id, 0) == 0)
+            {
+                if (known >= 3 and drop.chance < 100)
+                {
+                    said[drop.id] = 1
+                    push(parts, item.one + " 1 in " + toString(larger(1, wholeOf(100, drop.chance))))
+                }
+                else if (known >= 3 or mine("know.drop." + mob.id + "." + drop.id) > 0)
+                {
+                    said[drop.id] = 1
+                    push(parts, toLowerCase(item.name))
+                }
+            }
+        }
+    }
+
+    return joined(parts, ", ")
+}
+
+// The walk as a record keeps it: what it took, what it cost him, what it brought
+fun recipeOf()
+{
+    var zone = zoneOf(run.zone)
+    var hp = 0
+
+    for (var i = 0; i < len(record); i++)
+    {
+        hp = hp + record[i].hp
+    }
+
+    return {zone: zone.id, name: zone.name, kind: zone.kind, steps: len(record), ap: runOf("spent"), hp: hp, months: runOf("months"),
+            walkedAt: runOf("startMonth"), kills: killsText(marks), downed: runOf("downed")}
+}
+
+// ---- the same walk again: a record replayed, with no day chosen and no fight fought --------------
+
+// What a record takes from the bag, in all: [{id, n}]
+fun usesOf(list)
+{
+    var ids = markIds(list, "use")
+    var uses = []
+
+    for (var i = 0; i < len(ids); i++)
+    {
+        push(uses, {id: ids[i], n: sumMarks(list, "use", ids[i])})
+    }
+
+    return uses
+}
+
+// What the bag lacks for it: "" when he holds it all
+fun lackOf(list)
+{
+    var uses = usesOf(list)
+    var lacks = []
+
+    for (var i = 0; i < len(uses); i++)
+    {
+        if (held(uses[i].id) < uses[i].n)
+        {
+            push(lacks, itemText(uses[i].id, uses[i].n - held(uses[i].id)))
+        }
+    }
+
+    return joined(lacks, ", ")
+}
+
+// He sets out: what the record takes is taken as the walk begins
+fun replayBegin(list)
+{
+    var uses = usesOf(list)
+
+    for (var i = 0; i < len(uses); i++)
+    {
+        var key = keyOf(uses[i].id)
+
+        after[key] = larger(0, mine(key) - uses[i].n)
+    }
+}
+
+fun stepOnce(steps, n)
+{
+    for (var i = 0; i < len(steps); i++)
+    {
+        if (steps[i].n == n)
+        {
+            return steps[i].once > 0
+        }
+    }
+
+    return false
+}
+
+// He is home: the record's days are folded into him, in their order. What a beast drops is
+// rolled again; everything else is what the record saw. An event of once in a life is not met twice
+fun replayTerm(recipe, steps, list)
+{
+    var zone = zoneOf(recipe.zone)
+    var brought = {}
+    var hp = fieldHp()
+    var most = mostOf(after, "vit") * walkKnobs.vigour
+
+    for (var s = 0; s < len(steps); s++)
+    {
+        var step = steps[s]
+
+        if (step.once <= 0)
+        {
+            hp = smaller(most, larger(1, hp + step.hp))
+        }
+    }
+
+    homeHp(hp)
+
+    for (var i = 0; i < len(list); i++)
+    {
+        var mark = list[i]
+
+        if (not stepOnce(steps, mark.step))
+        {
+            if (mark.kind == "gain")
+            {
+                var key = keyOf(mark.id)
+
+                after[key] = mine(key) + mark.n
+                brought[mark.id] = pick(brought, mark.id, 0) + mark.n
+            }
+            else if (mark.kind == "kill")
+            {
+                var mob = mobOf(mark.id)
+
+                for (var k = 0; k < mark.n; k++)
+                {
+                    for (var l = 0; l < len(mob.loot); l++)
+                    {
+                        var drop = mob.loot[l]
+
+                        if (chance(drop.chance))
+                        {
+                            var n = rollBetween(drop.least, drop.most)
+                            var key = keyOf(drop.id)
+
+                            after[key] = mine(key) + n
+                            after["know.drop." + mob.id + "." + drop.id] = 1
+                            brought[drop.id] = pick(brought, drop.id, 0) + n
+                        }
+                    }
+
+                    practise(mob.trains, mob.xp)
+                }
+            }
+            else if (mark.kind == "learn")
+            {
+                after["know." + mark.id] = mine("know." + mark.id) + mark.n
+            }
+            else if (mark.kind == "stat")
+            {
+                after[mark.id] = raised(mine(mark.id), mark.id, mark.n)
+            }
+        }
+    }
+
+    after["walked." + zone.id] = mine("walked." + zone.id) + 1
+
+    var parts = []
+
+    for (var i = 0; i < len(walkItems); i++)
+    {
+        var n = pick(brought, walkItems[i].id, 0)
+
+        if (n > 0)
+        {
+            push(parts, "+" + itemText(walkItems[i].id, n))
+        }
+    }
+
+    var figure = joined(parts, ", ")
+
+    if (figure == "")
+    {
+        figure = "nothing"
+    }
+
+    push(entries, {text: "Home from " + zone.name + ", by the record", kind: "gain", figure: figure, glyph: zone.glyph})
+}
+
+// ---- the pages: what the on-site screen shows -----------------------------------------------------
+
+fun rarityText(mob)
+{
+    return toUpperCase(mob.rarity)
+}
+
+// One row of "Seek a beast": a beast, a pack of it, or one of a pack beast alone
+fun seekRow(zone, mob, count)
+{
+    var level = mobLevel(zone.id, mob)
+    var name = mob.name
+    var id = mob.id
+
+    if (count > 1)
+    {
+        name = mob.pack + " of " + wordOf(count)
+        id = mob.id + "*pack"
+    }
+    else if (mob.packSize > 1)
+    {
+        name = mob.lone
+    }
+
+    var row = {id: id, mob: mob.id, count: count, name: name, rank: rarityText(mob) + " · KNOWN " + toString(level) + " OF 4", note: "", cost: 0, costText: "",
+               locked: 0, asks: "", short: 0}
+
+    if (level < 1)
+    {
+        row.name = "An unknown beast"
+        row.rank = rarityText(mob)
+        row.locked = 1
+        row.asks = "ASKS ZONE KNOWLEDGE " + toString(listedFrom(mob))
+
+        return row
+    }
+
+    row.cost = seekCost(zone, mob, count)
+    row.costText = apText(row.cost)
+
+    var fights = mine("know.fights." + mob.id)
+
+    // What is said of the one chosen: how often he has met it, what the last fight cost
+    if (fights <= 0)
+    {
+        row.note = "Never fought."
+    }
+    else
+    {
+        row.note = "Fought " + timesWord(fights) + "."
+    }
+
+    var watched = mine("know.observe." + mob.id)
+
+    if (watched > 0)
+    {
+        row.note = row.note + " Watched " + timesWord(watched) + "."
+    }
+
+    var last = runOf("cost." + mob.id)
+
+    if (last > 0)
+    {
+        row.note = row.note + " The last fight cost " + daysText(last) + "."
+    }
+
+    if (level < 2)
+    {
+        row.note = row.note + " Known 2 of 4, it shows its vitality and what it does next."
+    }
+    else if (level < 3)
+    {
+        row.note = row.note + " Known 3 of 4, it shows its weakness and what it drops."
+    }
+
+    if (row.cost > runOf("ap"))
+    {
+        row.short = 1
+        row.asks = "NOT ENOUGH DAYS LEFT"
+    }
+
+    return row
+}
+
+fun seekRows()
+{
+    var zone = zoneOf(run.zone)
+    var rows = []
+
+    for (var i = 0; i < len(zone.mobs); i++)
+    {
+        var mob = mobOf(zone.mobs[i])
+
+        if (mob.packSize > 1 and mobLevel(zone.id, mob) >= 1)
+        {
+            push(rows, seekRow(zone, mob, mob.packSize))
+        }
+
+        push(rows, seekRow(zone, mob, 1))
+    }
+
+    return rows
+}
+
+fun workRow(id, name, note, cost, short, tone)
+{
+    var row = {id: id, name: name, note: note, cost: cost, costText: apText(cost), locked: 0, asks: "", tone: tone}
+
+    if (short != "")
+    {
+        row.locked = 1
+        row.asks = short
+    }
+    else if (cost > runOf("ap"))
+    {
+        row.locked = 1
+        row.asks = "NOT ENOUGH DAYS LEFT"
+    }
+
+    return row
+}
+
+fun workRows()
+{
+    var zone = zoneOf(run.zone)
+    var rows = []
+
+    for (var i = 0; i < len(zone.spots); i++)
+    {
+        var spot = zone.spots[i]
+        var item = itemOf(spot.id)
+        var note = toString(spot.least) + "–" + toString(spot.most)
+
+        if (item.kind == "town")
+        {
+            note = note + " · FOR THE TOWN"
+        }
+        else
+        {
+            note = note + " · TO SELL"
+        }
+
+        push(rows, workRow("gather." + spot.id, "Gather " + toLowerCase(item.name), note, spot.ap, "", ""))
+    }
+
+    var studies = mine("know.study." + zone.id)
+    var level = zoneLevel(zone.id)
+    var studyNote = "KNOWN 4 OF 4"
+
+    if (level < 4)
+    {
+        studyNote = "STUDY " + toString(studies) + " OF " + toString(walkKnobs.studyLevels[level]) + " TO KNOWLEDGE " + toString(level + 1)
+    }
+
+    push(rows, workRow("study", "Study the place", studyNote, walkKnobs.studyAp, "", "know"))
+
+    var heal = smaller(share(runOf("hpMax"), walkKnobs.restHeal), runOf("hpMax") - runOf("hp"))
+    var rations = held(walkKnobs.restItem)
+    var restShort = ""
+
+    if (rations < 1)
+    {
+        restShort = "ASKS 1 RATION"
+    }
+
+    push(rows, workRow("rest", "Rest", "+" + toString(heal) + " VITALITY · 1 RATION, " + toString(rations) + " HELD", walkKnobs.restAp, restShort, ""))
+
+    if (held("remedy") > 0)
+    {
+        var mend = smaller(share(runOf("hpMax"), itemOf("remedy").heals), runOf("hpMax") - runOf("hp"))
+
+        push(rows, workRow("remedy", "Take a remedy", "+" + toString(mend) + " VITALITY · " + toString(held("remedy")) + " HELD", 0, "", ""))
+    }
+
+    return rows
+}
+
+fun bagRows()
+{
+    var rows = []
+
+    for (var i = 0; i < len(walkItems); i++)
+    {
+        var item = walkItems[i]
+
+        if (item.kind == "food" or item.kind == "remedy")
+        {
+            push(rows, {id: item.id, name: item.name, glyph: item.glyph, value: toString(held(item.id)), tone: ""})
+        }
+    }
+
+    return rows
+}
+
+fun takenRows()
+{
+    var rows = []
+
+    for (var i = 0; i < len(walkItems); i++)
+    {
+        var item = walkItems[i]
+        var got = runOf("got." + item.id)
+
+        if (got > 0)
+        {
+            var name = item.name
+
+            if (item.kind == "town")
+            {
+                name = name + ", for the town"
+            }
+
+            push(rows, {id: "got." + item.id, name: name, glyph: item.glyph, value: "+" + toString(got), tone: "gain"})
+        }
+    }
+
+    var parts = ["str", "dex"]
+
+    for (var i = 0; i < len(parts); i++)
+    {
+        if (runOf("grew." + parts[i]) > 0)
+        {
+            push(rows, {id: "grew." + parts[i], name: statName(parts[i]), glyph: "training", value: "+" + toString(runOf("grew." + parts[i])), tone: "gain"})
+        }
+        else if (runOf("xp." + parts[i]) > 0)
+        {
+            push(rows, {id: "xp." + parts[i], name: statName(parts[i]), glyph: "training", value: "a little", tone: "gain"})
+        }
+    }
+
+    var learnt = markIds(marks, "learn")
+
+    for (var i = 0; i < len(learnt); i++)
+    {
+        var key = learnt[i]
+        var n = sumMarks(marks, "learn", key)
+
+        if (startsWith(key, "study."))
+        {
+            push(rows, {id: "know." + key, name: "The place, studied", glyph: "study", value: "+" + toString(n), tone: "know"})
+        }
+        else if (startsWith(key, "observe."))
+        {
+            push(rows, {id: "know." + key, name: mobOf(substring(key, 8)).name + ", watched", glyph: "study", value: "+" + toString(n), tone: "know"})
+        }
+        else if (startsWith(key, "fights."))
+        {
+            push(rows, {id: "know." + key, name: mobOf(substring(key, 7)).name + ", fought", glyph: "study", value: "+" + toString(n), tone: "know"})
+        }
+    }
+
+    return rows
+}
+
+// What the record would cost to walk again, as it stands
+fun homeRows()
+{
+    var rows = []
+    var hp = 0
+
+    for (var i = 0; i < len(record); i++)
+    {
+        hp = hp + record[i].hp
+    }
+
+    push(rows, {id: "time", name: "The walk again", glyph: "time", value: counted(runOf("months"), "mo", "mo") + " · " + apText(runOf("spent")), tone: "time"})
+
+    if (hp < 0)
+    {
+        push(rows, {id: "hp", name: "Vitality", glyph: "vitality", value: "−" + toString(0 - hp), tone: "loss"})
+    }
+    else
+    {
+        push(rows, {id: "hp", name: "Vitality", glyph: "vitality", value: "+" + toString(hp), tone: "gain"})
+    }
+
+    var uses = usesOf(marks)
+
+    for (var i = 0; i < len(uses); i++)
+    {
+        push(rows, {id: "use." + uses[i].id, name: itemOf(uses[i].id).name + " a walk", glyph: itemOf(uses[i].id).glyph, value: toString(uses[i].n), tone: "loss"})
+    }
+
+    return rows
+}
+
+fun optionRows()
+{
+    var rows = []
+    var event = eventOf(run.event)
+
+    if (event.id == "")
+    {
+        return rows
+    }
+
+    for (var i = 0; i < len(event.options); i++)
+    {
+        var option = event.options[i]
+        var row = {id: option.id, label: option.label, line: optionLine(option), locked: 0, asks: ""}
+
+        if (optionShort(option) != "")
+        {
+            row.locked = 1
+            row.asks = optionShort(option)
+        }
+
+        push(rows, row)
+    }
+
+    return rows
+}
+
+fun weeksText(daysOf)
+{
+    if (daysOf % 7 == 0 and daysOf >= 7)
+    {
+        return counted(wholeOf(daysOf, 7), "week", "weeks")
+    }
+
+    return daysText(daysOf)
+}
+
+// The head of the on-site screen, its strip of days, and what its buttons say
+fun siteHead()
+{
+    var zone = zoneOf(run.zone)
+    var how = "BY THE RECORD"
+
+    if (runOf("firstWalk") > 0)
+    {
+        how = "FIRST WALK BY HAND"
+    }
+    else
+    {
+        how = "WALKED BY HAND"
+    }
+
+    var written = apText(runOf("spent")) + " WRITTEN"
+    var leave = "Turn for home"
+    var leaveNote = "THE CALENDAR DOES NOT SHORTEN"
+
+    if (runOf("leaving") > 0)
+    {
+        leave = "Leave: " + daysText(runOf("ap")) + " are lost"
+        leaveNote = "THE RECORD IS KEPT AS IT STANDS. PRESS AGAIN TO GO"
+    }
+
+    var percent = 0
+
+    if (runOf("apTotal") > 0)
+    {
+        percent = wholeOf(runOf("spent") * 100, runOf("apTotal"))
+    }
+
+    return {zone: zone.id, mode: run.mode,
+            kicker: toUpperCase(zone.kind) + " · ON SITE · " + how,
+            title: zone.name, line: zone.line,
+            daysLeft: toString(runOf("ap")), daysNote: "DAYS LEFT ON SITE",
+            vitality: "VITALITY " + toString(runOf("hp")) + " OF " + toString(runOf("hpMax")),
+            knowledge: "ZONE KNOWLEDGE " + toString(zoneLevel(zone.id)) + " OF 4",
+            home: "HOME AT " + ageMark(runOf("startMonth") + runOf("months")),
+            percent: smaller(100, percent),
+            caption: toUpperCase(apText(runOf("spent")) + " spent · " + toString(runOf("ap")) + " left · the walk home is " + weeksText(runOf("travel")) + " whatever happens"),
+            written: written, leave: leave, leaveNote: leaveNote, watchCost: apText(walkKnobs.observeAp),
+            summary: toString(len(record)) + " steps so far. Every one of them is walked again by the record.",
+            scribe: "Each day is chosen when it comes; the record remembers all of them.",
+            refused: pick(run, "refused", "")}
+}
+
+fun eventCard()
+{
+    var event = eventOf(run.event)
+
+    if (event.id == "")
+    {
+        return {id: "", title: "", text: "", foot: ""}
+    }
+
+    var foot = "The choice is written to the record; a walk by the record makes it again."
+
+    if (event.once)
+    {
+        foot = "The choice is written to the record. This meeting comes once in a life: a walk by the record passes it by."
+    }
+
+    return {id: event.id, title: event.title, text: event.text, foot: foot}
+}
+
+// ---- the Adventure page: the records kept, and a queue of walks --------------------------------
+
+fun marksOf(list, recipeId)
+{
+    var own = []
+
+    for (var i = 0; i < len(list); i++)
+    {
+        if (list[i].recipe == recipeId)
+        {
+            push(own, list[i])
+        }
+    }
+
+    return own
+}
+
+fun walkOf(list, zoneId)
+{
+    for (var i = 0; i < len(list); i++)
+    {
+        if (list[i].zone == zoneId)
+        {
+            return list[i]
+        }
+    }
+
+    return {zone: ""}
+}
+
+// One row of "Records kept": a record he walked, or a zone he has no record of yet
+fun shelfRow(recipe, own, walk)
+{
+    var zone = zoneOf(recipe.zone)
+    var note = toString(recipe.steps) + " STEPS · WALKED AT " + ageMark(recipe.walkedAt)
+
+    if (recipe.kills != "")
+    {
+        note = note + " · " + toUpperCase(recipe.kills)
+    }
+
+    var brings = itemsText(own, "gain", "")
+    var drops = dropsText(own, zone.id)
+
+    if (drops != "")
+    {
+        brings = addTo(brings, drops)
+    }
+
+    var learns = learnsText(own)
+    var takes = itemsText(own, "use", "")
+
+    if (takes == "")
+    {
+        takes = "nothing"
+    }
+
+    var vitality = "±0"
+
+    if (recipe.hp < 0)
+    {
+        vitality = "−" + toString(0 - recipe.hp)
+    }
+
+    if (recipe.hp > 0)
+    {
+        vitality = "+" + toString(recipe.hp)
+    }
+
+    var row = {id: recipe.id, zone: zone.id, title: zone.name, kind: toUpperCase(zone.kind), note: note, months: pick(walk, "months", recipe.months),
+               time: counted(pick(walk, "months", recipe.months), "mo", "mo") + " · " + apText(recipe.ap), vitality: vitality, takes: takes,
+               brings: brings, learns: learns, state: "kept", locked: 0, asks: ""}
+
+    if (pick(walk, "zone", "") == "" or pick(walk, "locked", 1) > 0)
+    {
+        row.locked = 1
+        row.asks = "THE WAY THERE IS SHUT TO HIM NOW"
+    }
+
+    return row
+}
+
+fun shelfRows()
+{
+    var rows = []
+
+    for (var i = 0; i < len(recipes); i++)
+    {
+        push(rows, shelfRow(recipes[i], marksOf(recipeMarks, recipes[i].id), walkOf(walks, recipes[i].zone)))
+    }
+
+    // The zones open to him that he has no record of: the first walk is made by hand
+    for (var i = 0; i < len(walks); i++)
+    {
+        var walk = walks[i]
+        var kept = false
+
+        for (var r = 0; r < len(recipes); r++)
+        {
+            if (recipes[r].zone == walk.zone)
+            {
+                kept = true
+            }
+        }
+
+        if (not kept and walk.listed > 0)
+        {
+            var zone = zoneOf(walk.zone)
+            var row = {id: "zone:" + zone.id, zone: zone.id, title: zone.name, kind: toUpperCase(zone.kind), note: "NO RECORD. THE FIRST WALK IS MADE BY HAND", months: walk.months,
+                       time: counted(walk.months, "mo", "mo"), vitality: "", takes: "", brings: zone.opens, learns: "", state: "unwalked", locked: 0, asks: ""}
+
+            if (walk.locked > 0)
+            {
+                row.locked = 1
+                row.note = "NOT YET OPEN TO HIM"
+            }
+
+            if (pick(walk, "until", "") != "")
+            {
+                row.note = row.note + " · " + walk.until
+            }
+
+            push(rows, row)
+        }
+    }
+
+    return rows
+}
+
+fun recipeById(id)
+{
+    for (var i = 0; i < len(recipes); i++)
+    {
+        if (recipes[i].id == id)
+        {
+            return recipes[i]
+        }
+    }
+
+    return {id: ""}
+}
+
+// The ways a queue may stop before its last walk
+fun stopRows(own)
+{
+    var rows = [{id: "never", label: "Never: walk them all", value: 0}]
+
+    if (len(usesOf(own)) > 0)
+    {
+        push(rows, {id: "bag", label: "When the bag lacks what a walk takes", value: 0})
+    }
+
+    var gains = markIds(own, "gain")
+
+    if (len(gains) > 0)
+    {
+        var target = (wholeOf(held(gains[0]), 10) + 1) * 10
+
+        push(rows, {id: "item", label: "When he holds " + itemText(gains[0], target), value: target, item: gains[0]})
+    }
+
+    // The next of the ages a life turns on
+    var ages = [10, 14, 18, 25, 30]
+    var turning = 0
+
+    for (var i = 0; i < len(ages); i++)
+    {
+        if (monthOf(age) < ages[i] * 12 and turning == 0)
+        {
+            turning = ages[i]
+        }
+    }
+
+    if (turning > 0)
+    {
+        push(rows, {id: "age", label: "When he turns " + toString(turning), value: turning})
+    }
+
+    return rows
+}
+
+fun stopOf(rows, id)
+{
+    for (var i = 0; i < len(rows); i++)
+    {
+        if (rows[i].id == id)
+        {
+            return rows[i]
+        }
+    }
+
+    return rows[0]
+}
+
+// Whether a queue is to stop before another walk, as he stands: "" to go on, else why
+fun queueStops()
+{
+    var kind = pick(queue, "stop", "never")
+    var value = pick(queue, "value", 0)
+
+    if (kind == "item" and pick(queue, "item", "") != "" and value > 0 and held(queue.item) >= value)
+    {
+        return "He holds " + itemText(queue.item, value) + ": the queue is done"
+    }
+
+    if (kind == "age" and monthOf(age) >= value * 12)
+    {
+        return "He has turned " + toString(value) + ": the queue is done"
+    }
+
+    return ""
+}
+
+// The form of a queue: what so many walks of the chosen record take, use, bring and teach
+fun queueForm()
+{
+    var recipe = recipeById(pick(queue, "recipe", ""))
+
+    if (recipe.id == "")
+    {
+        return {recipe: "", title: "Choose a record", count: 0, total: "", take: "", use: "", bring: "", teach: "", warning: "", once: "Walk once", many: "Queue", blocked: "NO RECORD CHOSEN", stop: "never", stopLabel: "", months: 0}
+    }
+
+    var own = marksOf(recipeMarks, recipe.id)
+    var walk = walkOf(walks, recipe.zone)
+    var zone = zoneOf(recipe.zone)
+    var count = larger(1, pick(queue, "count", 1))
+    var months = pick(walk, "months", recipe.months)
+    var stops = stopRows(own)
+    var stop = stopOf(stops, pick(queue, "stop", "never"))
+    var blocked = ""
+
+    if (pick(walk, "zone", "") == "" or pick(walk, "locked", 1) > 0)
+    {
+        blocked = "THE WAY THERE IS SHUT TO HIM NOW"
+    }
+
+    // What they use, against what he holds
+    var uses = usesOf(own)
+    var useParts = []
+    var warning = ""
+
+    for (var i = 0; i < len(uses); i++)
+    {
+        var need = uses[i].n * count
+        var have = held(uses[i].id)
+
+        push(useParts, itemText(uses[i].id, need) + ", he holds " + toString(have))
+
+        if (have < need and warning == "")
+        {
+            var fits = wholeOf(have, uses[i].n)
+
+            warning = "Short " + itemText(uses[i].id, need - have) + ". Walk " + toString(fits + 1) + " will stop at the door unless he finds more."
+
+            if (fits < 1)
+            {
+                blocked = "THE BAG LACKS " + toUpperCase(itemText(uses[i].id, uses[i].n - have))
+            }
+        }
+    }
+
+    var use = joined(useParts, " · ")
+
+    if (use == "")
+    {
+        use = "nothing from the bag"
+    }
+
+    // What they bring: what the record gathered, each walk; what its beasts drop, about
+    var bringParts = []
+    var gains = markIds(own, "gain")
+
+    for (var i = 0; i < len(gains); i++)
+    {
+        push(bringParts, itemText(gains[i], sumMarks(own, "gain", gains[i]) * count))
+    }
+
+    // In hundredths of a thing, by thing: two beasts may drop the same
+    var kills = markIds(own, "kill")
+    var about = {}
+
+    for (var i = 0; i < len(kills); i++)
+    {
+        var mob = mobOf(kills[i])
+        var n = sumMarks(own, "kill", kills[i]) * count
+
+        for (var l = 0; l < len(mob.loot); l++)
+        {
+            var drop = mob.loot[l]
+
+            if (mobLevel(zone.id, mob) >= 3 or mine("know.drop." + mob.id + "." + drop.id) > 0)
+            {
+                about[drop.id] = pick(about, drop.id, 0) + wholeOf(n * drop.chance * (drop.least + drop.most), 2)
+            }
+        }
+    }
+
+    for (var i = 0; i < len(walkItems); i++)
+    {
+        var hundredths = pick(about, walkItems[i].id, 0)
+
+        if (hundredths > 0)
+        {
+            push(bringParts, "~" + itemText(walkItems[i].id, larger(1, wholeOf(hundredths, 100))))
+        }
+    }
+
+    var bring = joined(bringParts, ", ")
+
+    if (bring == "")
+    {
+        bring = "nothing he knows of yet"
+    }
+
+    var teachParts = []
+    var learnt = markIds(own, "learn")
+
+    for (var i = 0; i < len(learnt); i++)
+    {
+        var said = learnText(learnt[i], sumMarks(own, "learn", learnt[i]) * count)
+
+        if (said != "")
+        {
+            push(teachParts, said)
+        }
+    }
+
+    var teach = joined(teachParts, ", ")
+
+    if (teach == "")
+    {
+        teach = "nothing new"
+    }
+
+    var takeLine = counted(months * count, "mo", "mo") + " · ends at " + ageMark(monthOf(age) + months * count)
+
+    if (recipe.hp < 0)
+    {
+        takeLine = takeLine + " · −" + toString(0 - recipe.hp) + " vitality a walk"
+    }
+
+    return {recipe: recipe.id, title: zone.name, count: count, months: months * count,
+            total: toUpperCase(counted(count, "time", "times") + " · " + counted(months * count, "mo", "mo")),
+            take: takeLine, use: use, bring: bring, teach: teach, warning: warning,
+            once: "Walk once", many: "Queue " + toString(count), blocked: blocked,
+            stop: stop.id, stopLabel: stop.label, stopValue: stop.value, stopItem: pick(stop, "item", "")}
+}

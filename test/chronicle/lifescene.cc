@@ -604,10 +604,15 @@ namespace pg
             // One row of tabs for everything, and none for a side column
             auto tabs = life->piece<Tabs>("tabs");
             ASSERT_NE(tabs, nullptr);
-            ASSERT_EQ(tabs->spec.items.size(), 6u);
+            ASSERT_EQ(tabs->spec.items.size(), 7u);
             EXPECT_TRUE(life->named("sideTabs").empty());
             EXPECT_EQ(tabs->spec.items[0].label, "Life");
             EXPECT_EQ(tabs->spec.items[5].label, "Town");
+            EXPECT_EQ(tabs->spec.items[6].label, "Walks");
+
+            // Seven of them hold in the column: the last one ends inside it
+            ASSERT_EQ(tabs->tabs.size(), 7u);
+            EXPECT_LE(f.pos(tabs->tabs[6].face)->x + f.pos(tabs->tabs[6].face)->width, 378.5f);
 
             // One column, 12 from each side of the window, and everything in it
             for (const char* name : {"working", "may", "parts", "holds", "clockPanel", "happened"})
@@ -3631,10 +3636,11 @@ namespace pg
 
             const size_t logEntries = life->save.log.size();
 
-            // Life and the town for now: the other chapters come back as their pages are built
-            ASSERT_EQ(tabs->tabs.size(), 2u);
+            // Life, the town and his walks for now: the other chapters come back as their pages are built
+            ASSERT_EQ(tabs->tabs.size(), 3u);
             EXPECT_EQ(tabs->tabs[0].label.spec.text, "Life");
             EXPECT_EQ(tabs->tabs[1].label.spec.text, "Town");
+            EXPECT_EQ(tabs->tabs[2].label.spec.text, "Adventure");
 
             // A chapter with no page yet, should one be selected, says so and Life stays open
             f.ecs.sendEvent(TabSelectedEvent{tabs->root.id, "life.tabs", 3});
@@ -4413,7 +4419,7 @@ namespace pg
 
             auto tabs = life->piece<Tabs>("tabs");
             ASSERT_NE(tabs, nullptr);
-            ASSERT_EQ(tabs->tabs.size(), 2u);
+            ASSERT_EQ(tabs->tabs.size(), 3u);
 
             EXPECT_FALSE(life->save.townKnown);
             EXPECT_TRUE(tabs->enabled(0));
@@ -4787,16 +4793,16 @@ namespace pg
             EXPECT_FALSE(f.pos(tabs->tabs[1].noticeGround)->visible);
 
             // Eight years old, on the Town page: the market's work and the streets come into the
-            // choice, and the wooden blades he is too weak for yet, behind the Life tab. A row is
-            // new when it comes, open to him or not
+            // choice, the wooden blades he is too weak for yet, and Mill Pond, where he may not
+            // walk for two years, behind the Life tab. A row is new when it comes, open to him or not
             life->save.age = 8.0f - 1.0f / 12.0f;
             life->onMonth();
             f.frames(12);
 
             ASSERT_NE(life->piece<ActivityList>("activities")->find(&f.ecs, "blades"), nullptr);
             EXPECT_EQ(life->piece<ActivityList>("activities")->find(&f.ecs, "blades")->spec.state, ActivityState::Locked);
-            EXPECT_EQ(tabs->tabs[0].notice, 3);
-            EXPECT_EQ(life->newInLife, 3);
+            EXPECT_EQ(tabs->tabs[0].notice, 4);
+            EXPECT_EQ(life->newInLife, 4);
             EXPECT_EQ(tabs->tabs[1].notice, 0);
             ASSERT_FALSE(tabs->tabs[0].noticeGround.empty());
             EXPECT_TRUE(f.pos(tabs->tabs[0].noticeGround)->visible);
@@ -4970,7 +4976,7 @@ namespace pg
             // the others are a veteran's, a captain's, a scholar's, a smith's, or a later life's
             auto grid = life->piece<PlaceGrid>("places");
             ASSERT_NE(grid, nullptr);
-            ASSERT_EQ(life->town.places.size(), 9u);
+            ASSERT_EQ(life->town.places.size(), 10u);
             ASSERT_EQ(grid->tiles.size(), 2u);
 
             const char* const onHisPage[] = {"market", "mill"};
@@ -5679,6 +5685,497 @@ namespace pg
             EXPECT_EQ(life->step.id, "guide.carters");
             EXPECT_EQ(life->noteWords.spec.text, life->step.say);
             expectNoteBeside(f, life, carters->root);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The walks outside the town (Scenes/lifewalk.cpp): a row of the Adventure group begun
+        // opens its screen over the page, and what he did there is kept as a record.
+        namespace
+        {
+            // A later life that has helped at the hedges: the Hedgerows are open to it. Its dice are its own
+            LifeScene* walker(LifeFixture& f, int seed = 40)
+            {
+                LifeSceneOptions opt = LifeFixture::mockup();
+                opt.fresh = true;
+                opt.lives = 2;
+                opt.walkSeed = seed;
+
+                LifeScene* life = f.life(opt);
+
+                if (not life)
+                    return nullptr;
+
+                f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "hedges"});
+                f.settle();
+                life->onMonth();
+                f.settle();
+
+                return life;
+            }
+
+            // An event that comes up on the way is answered with the first option he can take
+            void answerEvents(LifeFixture& f, LifeScene* life)
+            {
+                for (int guard = 0; guard < 4 and life->onWalk() and life->walk.site.count("screen") > 0 and life->walk.site.at("screen").toString() == "event"; ++guard)
+                {
+                    for (size_t i = 0; i < life->walk.options.size(); ++i)
+                    {
+                        auto locked = life->walk.options[i].find("locked");
+
+                        if (locked == life->walk.options[i].end() or locked->second.get<int>() == 0)
+                        {
+                            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.option." + std::to_string(i)});
+                            break;
+                        }
+                    }
+
+                    f.settle();
+                }
+            }
+
+            EntityRef walkPart(LifeScene* life, const std::string& name)
+            {
+                if (life->walkPage.empty() or not life->walkPage->has<Prefab>())
+                    return EntityRef{};
+
+                return life->walkPage->get<Prefab>()->findEntity(name);
+            }
+        }
+
+        TEST(lifescene_test, a_walk_opens_its_screen_and_keeps_a_record)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = walker(f);
+            ASSERT_NE(life, nullptr);
+
+            ASSERT_EQ(life->save.stats["hedges_known"], 1);
+            ASSERT_TRUE(life->save.running.empty());
+
+            // Begun as any work is: he is there, and no month runs while the days are chosen
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "walk.hedgerows"});
+            f.frames(12);
+
+            ASSERT_TRUE(life->onWalk());
+            ASSERT_FALSE(life->walkPage.empty());
+            EXPECT_EQ(life->walkScreen, "site");
+            EXPECT_TRUE(life->save.running.empty());
+            EXPECT_TRUE(life->paused);
+
+            const float age = life->save.age;
+
+            life->onMonth();   // The dev key's month is another matter: the tick's months do not run
+            f.pass(5000.0f);
+            EXPECT_NEAR(life->save.age, age + 1.0f / 12.0f, 0.0001f);
+
+            // The screen says what the rules say
+            EntityRef title = walkPart(life, "zoneTitle");
+            ASSERT_FALSE(title.empty());
+            EXPECT_EQ(title->get<Label>()->spec.text, "The Hedgerows");
+            EXPECT_EQ(walkPart(life, "daysLeft")->get<Label>()->spec.text, "7");
+
+            // No beast lives there: the panel that seeks them is out of the column
+            EXPECT_FALSE(f.pos(walkPart(life, "seekPanel"))->visible);
+
+            auto works = walkPart(life, "works")->get<ActivityList>();
+            ASSERT_NE(works->find(&f.ecs, "gather.berries"), nullptr);
+
+            // A work is chosen in its list, then done by its button
+            f.ecs.sendEvent(ActivitySelectedEvent{"walk.works", "gather.berries"});
+            f.settle();
+            EXPECT_EQ(life->workChosen, "gather.berries");
+            EXPECT_EQ(walkPart(life, "work")->get<Button>()->label.spec.text, "Gather berries");
+
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.work"});
+            f.settle();
+            answerEvents(f, life);
+
+            ASSERT_FALSE(life->save.walk.record.empty());
+            EXPECT_GE(life->save.stats["berries"], 5);   // The three he was given, and what he picked
+            EXPECT_GE(walkPart(life, "record")->get<EventLog>()->size(), 1u);
+            EXPECT_LE(std::atoi(walkPart(life, "daysLeft")->get<Label>()->spec.text.c_str()), 6);
+
+            // A second click on a row does it too
+            f.ecs.sendEvent(ActivityActivatedEvent{"walk.works", "gather.firewood"});
+            f.settle();
+            answerEvents(f, life);
+
+            EXPECT_GE(life->save.store["firewood"], 2);
+            EXPECT_EQ(life->save.stats.count("store.firewood"), 0u);
+            EXPECT_EQ(life->save.knowledge["visit.hedgerows"], 1);
+
+            // Home is asked twice
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.leave"});
+            f.settle();
+            ASSERT_TRUE(life->onWalk());
+            EXPECT_NE(walkPart(life, "leave")->get<Button>()->label.spec.text.find("lost"), std::string::npos);
+
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.leave"});
+            f.frames(12);
+
+            // The record is kept, the screen is gone, and the walk's month runs as any work's
+            EXPECT_FALSE(life->onWalk());
+            EXPECT_TRUE(life->walkPage.empty());
+            ASSERT_EQ(life->save.recipes.size(), 1u);
+            EXPECT_EQ(life->save.recipes[0].fields.at("zone").toString(), "hedgerows");
+            EXPECT_GE(life->save.recipes[0].steps.size(), 3u);
+            EXPECT_EQ(life->save.running, "walk.hedgerows");
+            EXPECT_FALSE(life->paused);
+            EXPECT_EQ(life->save.stats["walked.hedgerows"], 1);
+            EXPECT_EQ(life->save.walksByHand, 1);
+
+            life->onMonth();
+            f.settle();
+
+            EXPECT_TRUE(life->save.running.empty());
+            EXPECT_EQ(life->save.done["walk.hedgerows"], 1);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The Adventure page walks a record again, once or in a queue: no screen, the months of
+        // each walk on the calendar, and what the record brought at each term.
+        TEST(lifescene_test, a_queue_walks_a_record_again)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = walker(f);
+            ASSERT_NE(life, nullptr);
+
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "walk.hedgerows"});
+            f.frames(12);
+            ASSERT_TRUE(life->onWalk());
+
+            life->walkDo(WalkAct{"gather", "berries", 0});
+            answerEvents(f, life);
+            life->walkDo(WalkAct{"gather", "firewood", 0});
+            answerEvents(f, life);
+            life->walkDo(WalkAct{"leave", "", 0});
+            life->walkDo(WalkAct{"leave", "", 0});
+            f.frames(12);
+
+            ASSERT_FALSE(life->onWalk());
+            ASSERT_EQ(life->save.recipes.size(), 1u);
+
+            life->onMonth();
+            f.settle();
+            ASSERT_TRUE(life->save.running.empty());
+
+            // Its tab is there now that he has somewhere to walk to, and its page has his record
+            auto tabs = life->piece<Tabs>("tabs");
+            ASSERT_NE(tabs, nullptr);
+            ASSERT_EQ(tabs->spec.items.size(), 3u);
+            EXPECT_TRUE(tabs->tabs[2].shown);
+
+            f.ecs.sendEvent(TabSelectedEvent{tabs->root.id, "life.tabs", 2});
+            f.frames(12);
+
+            EXPECT_TRUE(life->adventureShown);
+            EXPECT_FALSE(life->townShown);
+            EXPECT_TRUE(f.pos(life->named("adventure"))->visible);
+            EXPECT_FALSE(f.pos(life->named("activities"))->visible);
+
+            auto records = life->piece<ActivityList>("records");
+            ASSERT_NE(records, nullptr);
+            ASSERT_NE(records->find(&f.ecs, life->save.recipes[0].id), nullptr);
+            EXPECT_EQ(life->save.queue.recipe, life->save.recipes[0].id);
+
+            // Three walks, by the form's buttons
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.more"});
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.more"});
+            f.settle();
+
+            EXPECT_EQ(life->save.queue.count, 3);
+            EXPECT_EQ(life->piece<Button>("walkMany")->label.spec.text, "Queue 3");
+
+            const int berries = life->save.stats["berries"];
+            const int firewood = life->save.store["firewood"];
+            const int gathered = berries - 3;   // What the record picked: the hedges gave him three before it
+
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.many"});
+            f.settle();
+
+            // The first walk is on the calendar, with no screen
+            EXPECT_FALSE(life->onWalk());
+            EXPECT_TRUE(life->walkPage.empty());
+            EXPECT_EQ(life->save.running, "walk.hedgerows");
+            EXPECT_EQ(life->save.walking, life->save.recipes[0].id);
+            EXPECT_EQ(life->save.queue.left, 2);
+            EXPECT_FALSE(life->paused);
+
+            // Its term brings what the record gathered, and the next walk sets out at once
+            life->onMonth();
+            f.settle();
+
+            EXPECT_EQ(life->save.stats["berries"], berries + gathered);
+            EXPECT_GT(life->save.store["firewood"], firewood);
+            EXPECT_EQ(life->save.walksByRecord, 1);
+            EXPECT_EQ(life->save.running, "walk.hedgerows");
+            EXPECT_EQ(life->save.queue.left, 1);
+
+            // "Finish this walk, then stop": the queue ends with the walk under way
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.last"});
+            f.settle();
+            EXPECT_TRUE(life->save.lastWalk);
+
+            life->onMonth();
+            f.settle();
+
+            EXPECT_TRUE(life->save.running.empty());
+            EXPECT_TRUE(life->save.walking.empty());
+            EXPECT_EQ(life->save.queue.left, 0);
+            EXPECT_EQ(life->save.walksByRecord, 2);
+            EXPECT_EQ(life->save.stats["berries"], berries + 2 * gathered);
+            EXPECT_EQ(life->save.stats["walked.hedgerows"], 3);
+
+            // Back to the Life page: the choice has its place again
+            f.ecs.sendEvent(TabSelectedEvent{tabs->root.id, "life.tabs", 0});
+            f.frames(12);
+
+            EXPECT_FALSE(life->adventureShown);
+            EXPECT_TRUE(f.pos(life->named("activities"))->visible);
+            EXPECT_FALSE(f.pos(life->named("adventure"))->visible);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A fight takes the on-site screen's place and gives it back; a walk closed in its middle
+        // opens where it stood.
+        TEST(lifescene_test, a_fight_has_the_screen_and_a_walk_is_saved_where_it_stands)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            const std::string path = "save/test_life_walk.sz";
+            std::remove(path.c_str());
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.fresh = true;
+            opt.lives = 2;
+            opt.walkSeed = 11;
+            opt.noSave = false;
+            opt.savePath = path;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            // A boy who has walked the Hedgerows: Mill Pond is open to him at ten
+            life->save.age = 10.0f;
+            life->save.stats["walked.hedgerows"] = 1;
+            life->save.stats["remedy"] = 1;
+            life->onMonth();
+            f.settle();
+
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "walk.millpond"});
+            f.frames(12);
+
+            ASSERT_TRUE(life->onWalk());
+            EXPECT_TRUE(f.pos(walkPart(life, "seekPanel"))->visible);
+
+            auto seeks = walkPart(life, "seeks")->get<ActivityList>();
+            ASSERT_NE(seeks->find(&f.ecs, "rat"), nullptr);
+
+            // Nothing chosen: the button that seeks waits
+            EXPECT_TRUE(walkPart(life, "seek")->get<Button>()->spec.disabled);
+
+            f.ecs.sendEvent(ActivitySelectedEvent{"walk.seeks", "rat"});
+            f.settle();
+            EXPECT_FALSE(walkPart(life, "seek")->get<Button>()->spec.disabled);
+
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.seek"});
+            f.frames(12);
+            answerEvents(f, life);
+            f.frames(12);
+
+            // The fight has the screen
+            ASSERT_EQ(life->walkScreen, "fight");
+            ASSERT_FALSE(walkPart(life, "menu").empty());
+            EXPECT_TRUE(walkPart(life, "seeks").empty());
+            EXPECT_EQ(walkPart(life, "turn")->get<Label>()->spec.text, "TURN 1");
+            EXPECT_EQ(walkPart(life, "act")->get<Button>()->label.spec.text, "Strike");
+
+            auto menu = walkPart(life, "menu")->get<ActivityList>();
+            ASSERT_NE(menu->find(&f.ecs, "guard"), nullptr);
+
+            // A tile of the menu looked at says what it would do, and the button takes its name
+            f.ecs.sendEvent(ActivitySelectedEvent{"walk.menu", "guard"});
+            f.settle();
+            EXPECT_EQ(walkPart(life, "act")->get<Button>()->label.spec.text, "Guard");
+            EXPECT_EQ(walkPart(life, "previewTitle")->get<Label>()->spec.text, "Guard");
+
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.act"});
+            f.settle();
+            EXPECT_EQ(walkPart(life, "turn")->get<Label>()->spec.text, "TURN 2");
+            EXPECT_GE(walkPart(life, "account")->get<EventLog>()->size(), 2u);
+
+            // Closed here, the walk opens on its fight, at its second turn
+            const size_t steps = life->save.walk.record.size();
+            const size_t marks = life->save.walk.marks.size();
+
+            ASSERT_TRUE(life->saveNow());
+
+            f.load<EmptyScene>();
+
+            // Opened from its save, not made anew
+            opt.fresh = false;
+
+            LifeScene* again = f.life(opt);
+            ASSERT_NE(again, nullptr);
+            f.frames(12);
+
+            ASSERT_TRUE(again->onWalk());
+            ASSERT_EQ(again->walkScreen, "fight");
+            EXPECT_EQ(walkPart(again, "turn")->get<Label>()->spec.text, "TURN 2");
+            EXPECT_EQ(again->save.walk.record.size(), steps);
+            EXPECT_EQ(again->save.walk.marks.size(), marks);
+            EXPECT_GE(again->save.walk.foes.size(), 1u);
+
+            // Handed to his stance, the fight plays itself to its end
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.hand"});
+            f.settle();
+            EXPECT_EQ(walkPart(again, "hand")->get<Button>()->label.spec.text, "Take back");
+
+            for (int turn = 0; turn < 60 and again->walk.duel.at("over").toString().empty(); ++turn)
+                f.pass(700.0f, 700.0f);
+
+            ASSERT_FALSE(again->walk.duel.at("over").toString().empty());
+
+            // One button is the way back to the pond, and the on-site screen has its place again
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.act"});
+            f.frames(12);
+            answerEvents(f, again);
+            f.frames(12);
+
+            if (again->onWalk())
+            {
+                EXPECT_EQ(again->walkScreen, "site");
+                EXPECT_FALSE(walkPart(again, "seeks").empty());
+                EXPECT_GE(walkPart(again, "record")->get<EventLog>()->size(), 2u);
+            }
+
+            EXPECT_EQ(again->save.knowledge["fights.rat"], 1);
+
+            std::remove(path.c_str());
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The walk's screen holds in the window, in three columns and, narrower, in one.
+        TEST(lifescene_test, the_walk_screen_holds_in_the_window)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = walker(f);
+            ASSERT_NE(life, nullptr);
+
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "walk.hedgerows"});
+            f.frames(12);
+            ASSERT_TRUE(life->onWalk());
+
+            auto inside = [&](float width, float height) {
+                for (const char* name : {"veil", "kicker", "zoneTitle", "daysLeft", "strip", "walkLeft", "workPanel", "recordPanel", "bagPanel", "homePanel"})
+                {
+                    EntityRef part = walkPart(life, name);
+                    ASSERT_FALSE(part.empty()) << name;
+
+                    auto pos = f.pos(part);
+
+                    EXPECT_GE(pos->x, -0.5f) << name;
+                    EXPECT_LE(pos->x + pos->width, width + 0.5f) << name << " at " << width;
+                    EXPECT_GE(pos->y, -0.5f) << name;
+                }
+
+                auto veil = f.pos(walkPart(life, "veil"));
+
+                EXPECT_NEAR(veil->width, width, 0.5f);
+                EXPECT_NEAR(veil->height, height, 0.5f);
+            };
+
+            EXPECT_FALSE(life->walkNarrow);
+            inside(1320.0f, 1020.0f);
+
+            // Nothing waits for his answer: the card is out of its column, and the record stands at
+            // the column's head. So does what he has taken while he has taken nothing
+            f.pass(100.0f, 50.0f);
+
+            EXPECT_FALSE(f.pos(walkPart(life, "cardPanel"))->visible);
+            EXPECT_NEAR(f.pos(walkPart(life, "recordPanel"))->y, f.pos(walkPart(life, "workPanel"))->y, 0.5f);
+            EXPECT_FALSE(f.pos(walkPart(life, "takenPanel"))->visible);
+            EXPECT_NEAR(f.pos(walkPart(life, "homePanel"))->y, f.pos(walkPart(life, "bagPanel"))->y + f.pos(walkPart(life, "bagPanel"))->height + 12.0f, 0.5f);
+
+            // Three columns side by side: the record stands between what he may do and what he carries
+            EXPECT_GT(f.pos(walkPart(life, "recordPanel"))->x, f.pos(walkPart(life, "workPanel"))->x + f.pos(walkPart(life, "workPanel"))->width - 0.5f);
+            EXPECT_GT(f.pos(walkPart(life, "bagPanel"))->x, f.pos(walkPart(life, "recordPanel"))->x + f.pos(walkPart(life, "recordPanel"))->width - 0.5f);
+
+            // A smaller window: the same three, the middle one narrower
+            f.resize(1100.0f, 800.0f);
+            f.frames(12);
+
+            EXPECT_FALSE(life->walkNarrow);
+            inside(1100.0f, 800.0f);
+
+            // A phone held upright: one column, every panel the window's width
+            f.resize(420.0f, 800.0f);
+            f.frames(12);
+
+            ASSERT_TRUE(life->onWalk());
+            EXPECT_TRUE(life->walkNarrow);
+            inside(420.0f, 800.0f);
+
+            EXPECT_NEAR(f.pos(walkPart(life, "workPanel"))->x, f.pos(walkPart(life, "recordPanel"))->x, 0.5f);
+            EXPECT_GT(f.pos(walkPart(life, "recordPanel"))->y, f.pos(walkPart(life, "workPanel"))->y);
+
+            // And what he did before is still written there
+            life->walkDo(WalkAct{"gather", "berries", 0});
+            f.settle();
+            EXPECT_GE(walkPart(life, "record")->get<EventLog>()->size(), 1u);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // --walk <zone> opens a life made fit for the zone on its way there: every zone of the
+        // table can be tried from the command line.
+        TEST(lifescene_test, a_life_can_be_opened_on_a_walk)
+        {
+            for (const char* zone : {"hedgerows", "millpond", "hollow", "quarry"})
+            {
+                MockLogger logger;
+                LifeFixture f;
+
+                LifeSceneOptions opt = LifeFixture::mockup();
+                opt.walk = zone;
+                opt.walkSeed = 3;
+
+                // As the game plays it: what moves, moves
+                Motion::setReduced(false);
+
+                LifeScene* life = f.life(opt);
+                ASSERT_NE(life, nullptr) << zone;
+                f.frames(12);
+                f.pass(1500.0f, 16.0f);
+
+                Motion::setReduced(true);
+
+                ASSERT_TRUE(life->onWalk()) << zone;
+                EXPECT_EQ(life->save.walk.run.at("zone").toString(), zone);
+                EXPECT_EQ(life->walkScreen, "site") << zone;
+                EXPECT_FALSE(life->walkPage.empty()) << zone;
+                EXPECT_EQ(life->save.lives, 2) << zone;
+
+                // Never written: a trial is not a life to keep
+                EXPECT_FALSE(life->saveNow());
+
+                f.load<EmptyScene>();
+            }
         }
     }
 }

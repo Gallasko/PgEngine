@@ -59,6 +59,8 @@ namespace chronicle
         std::string glossKey;          // "" = none
         float width = 620.0f;
         int z = 20;                    // Root and ground z; rule z+1; edge and ring z+2; marks z+3, texts z+4; the embedded rule or list root z+3
+        std::string cost;              // "" or what the cost reads in the place of the months: "2 AP", for what is not counted in months
+        std::string costGlyph = "time";   // The mark beside the cost: the hourglass of what takes time, or another's ("vitality") for a figure that is not a time
     };
 
     // Sent by the ActivitySystem when a list's selection changes ("" = cleared).
@@ -204,6 +206,7 @@ namespace chronicle
         bool stripes = true;
         std::vector<pg::_unique_id> rows;        // Row roots, in list order
         std::vector<pg::_unique_id> headings;    // Heading blocks, in list order
+        std::vector<pg::_unique_id> given;       // What setRows last handed to the body: the layout holds it a pass later, and a list filled twice in one pass lets go of it all the same
     };
 
     // A line of tiles in a list's body: the tiles stand side by side on it, and it is as tall as
