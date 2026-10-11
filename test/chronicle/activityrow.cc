@@ -1,3 +1,4 @@
+#include <map>
 #include "stdafx.h"
 
 #ifdef __linux__
@@ -408,8 +409,10 @@ namespace pg
             EXPECT_EQ(list.selected(), "a");
             ASSERT_EQ(s.recorder->activated.size(), 1u);
 
-            // The list is built again, and the mouse stays where it is
-            list.setRows(&s.ecs, spec.groups);
+            // The work is begun: the scene lets go of the choice, and the list has other rows
+            // (what they say has changed). The mouse stays where it is
+            list.select(&s.ecs, "");
+            list.setRows(&s.ecs, {{"Work", {idleSpec("a", "Carry on"), idleSpec("b", "Mill on")}}});
 
             for (int i = 0; i < 6; ++i)
                 s.pump();
@@ -433,6 +436,231 @@ namespace pg
             s.release(x, y);
 
             EXPECT_EQ(s.recorder->activated.size(), 2u);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A list given its rows again does not build what it already holds. A tile that would be
+        // built the same is kept, and keeps the selection; one that says something else is made
+        // again alone; one that left is gone; the ones after it move up without being made again.
+        TEST(activityrow_test, rows_given_again_keep_the_tiles_that_stand)
+        {
+            MockLogger logger;
+            ActivityFixture s;
+
+            ActivityListSpec spec;
+            spec.id = "choice";
+            spec.width = 464.0f;
+            spec.tileWidth = 148.0f;   // Three to a line
+            spec.groups = {{"Work", {idleSpec("a", "Carry"), idleSpec("b", "Mill"), idleSpec("c", "Run"), idleSpec("d", "Sweep")}},
+                           {"Study", {idleSpec("e", "Letters")}}};
+
+            ActivityList list = s.placeList(spec);
+            s.pump();
+            s.pump();
+
+            auto idOf = [&](const std::string& row) -> _unique_id {
+                ActivityRow* r = list.find(&s.ecs, row);
+
+                return r ? r->root.id : 0;
+            };
+
+            auto boxOf = [&](const std::string& row) {
+                ActivityRow* r = list.find(&s.ecs, row);
+
+                return std::pair<float, float>{s.pos(r->root)->x, s.pos(r->root)->y};
+            };
+
+            std::map<std::string, _unique_id> before;
+            std::map<std::string, std::pair<float, float>> stood;
+
+            for (const char* row : {"a", "b", "c", "d", "e"})
+            {
+                before[row] = idOf(row);
+                stood[row] = boxOf(row);
+
+                ASSERT_NE(before[row], 0u) << row;
+            }
+
+            const size_t held = list.body.get<VerticalLayout>()->entities.size();
+
+            list.select(&s.ecs, "b");
+            s.pump();
+
+            // The same rows: nothing is made, nothing moves, and what was chosen still is
+            list.setRows(&s.ecs, spec.groups);
+            s.pump();
+            s.pump();
+
+            for (const char* row : {"a", "b", "c", "d", "e"})
+            {
+                EXPECT_EQ(idOf(row), before[row]) << row;
+                EXPECT_EQ(boxOf(row), stood[row]) << row;
+            }
+
+            EXPECT_EQ(list.body.get<VerticalLayout>()->entities.size(), held);
+            EXPECT_EQ(list.selected(), "b");
+            EXPECT_TRUE(list.find(&s.ecs, "b")->root->get<ActivityRowState>()->selected);
+
+            // One says something else: it alone is made again, where it stood
+            auto groups = spec.groups;
+            groups[0].rows[2] = idleSpec("c", "Run messages");
+
+            list.setRows(&s.ecs, groups);
+            s.pump();
+            s.pump();
+
+            EXPECT_NE(idOf("c"), before["c"]);
+            EXPECT_EQ(s.ecs.getEntity(before["c"]), nullptr);
+            EXPECT_EQ(boxOf("c"), stood["c"]);
+
+            for (const char* row : {"a", "b", "d", "e"})
+                EXPECT_EQ(idOf(row), before[row]) << row;
+
+            EXPECT_EQ(list.selected(), "b");
+            before["c"] = idOf("c");
+
+            // One leaves from the middle: it is gone, the ones after it move up as they are, and
+            // the other group does not move
+            groups[0].rows.erase(groups[0].rows.begin() + 1);
+
+            list.setRows(&s.ecs, groups);
+            s.pump();
+            s.pump();
+
+            EXPECT_EQ(list.find(&s.ecs, "b"), nullptr);
+            EXPECT_EQ(s.ecs.getEntity(before["b"]), nullptr);
+
+            for (const char* row : {"a", "c", "d", "e"})
+                EXPECT_EQ(idOf(row), before[row]) << row;
+
+            EXPECT_EQ(boxOf("a"), stood["a"]);
+            EXPECT_EQ(boxOf("c"), stood["b"]);
+            EXPECT_EQ(boxOf("d"), stood["c"]);
+            EXPECT_EQ(list.selected(), "");
+
+            // Three tiles hold on one line now: the line the fourth stood on is gone, and the
+            // group under it has moved up by it
+            EXPECT_EQ(list.body.get<VerticalLayout>()->entities.size(), held - 1);
+            EXPECT_NEAR(boxOf("e").first, stood["e"].first, 0.5f);
+            EXPECT_LT(boxOf("e").second, stood["e"].second - 10.0f);
+
+            // One arrives at the head: made alone, the others move down the line
+            groups[0].rows.insert(groups[0].rows.begin(), idleSpec("z", "Fetch water"));
+
+            list.setRows(&s.ecs, groups);
+            s.pump();
+            s.pump();
+
+            for (const char* row : {"a", "c", "d", "e"})
+                EXPECT_EQ(idOf(row), before[row]) << row;
+
+            EXPECT_EQ(boxOf("z"), stood["a"]);
+            EXPECT_EQ(boxOf("a"), stood["b"]);
+            EXPECT_EQ(boxOf("c"), stood["c"]);
+            EXPECT_EQ(boxOf("d"), stood["d"]);
+            EXPECT_NEAR(boxOf("e").second, stood["e"].second, 0.5f);
+
+            // Twice in one pass, the second with what the first asked for: nothing more is made
+            const _unique_id z = idOf("z");
+
+            groups[0].rows[0] = idleSpec("z", "Fetch more water");
+            list.setRows(&s.ecs, groups);
+            list.setRows(&s.ecs, groups);
+            s.pump();
+            s.pump();
+
+            EXPECT_NE(idOf("z"), z);
+            EXPECT_EQ(s.ecs.getEntity(z), nullptr);
+            EXPECT_EQ(boxOf("z"), stood["a"]);
+
+            for (const char* row : {"a", "c", "d", "e"})
+                EXPECT_EQ(idOf(row), before[row]) << row;
+
+            // And every tile there is, is one of the list's: nothing is left standing beside it
+            size_t tiles = 0;
+
+            for (auto st : s.ecs.view<ActivityRowState>())
+            {
+                if (st)
+                    ++tiles;
+            }
+
+            EXPECT_EQ(tiles, 5u);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A list of tiles given another width keeps its tiles: each takes its new width, and they
+        // stand as many to a line as hold now.
+        TEST(activityrow_test, a_list_of_tiles_resized_keeps_its_tiles)
+        {
+            MockLogger logger;
+            ActivityFixture s;
+
+            ActivityListSpec spec;
+            spec.id = "choice";
+            spec.width = 464.0f;
+            spec.tileWidth = 148.0f;
+            spec.groups = {{"Work", {idleSpec("a", "Carry"), idleSpec("b", "Mill"), idleSpec("c", "Run"), idleSpec("d", "Sweep")}}};
+
+            ActivityList list = s.placeList(spec);
+            s.pump();
+            s.pump();
+
+            std::map<std::string, _unique_id> before;
+
+            for (const char* row : {"a", "b", "c", "d"})
+                before[row] = list.row(&s.ecs, row)->root.id;
+
+            EXPECT_EQ(list.columns(), 3);
+            list.select(&s.ecs, "c");
+            s.pump();
+
+            // A little wider: the same three to a line, each wider
+            list.setSize(&s.ecs, 500.0f, 0.0f);
+            s.pump();
+            s.pump();
+
+            EXPECT_EQ(list.columns(), 3);
+
+            for (const char* row : {"a", "b", "c", "d"})
+            {
+                ASSERT_NE(list.find(&s.ecs, row), nullptr) << row;
+                EXPECT_EQ(list.find(&s.ecs, row)->root.id, before[row]) << row;
+                EXPECT_NEAR(s.pos(list.find(&s.ecs, row)->root)->width, list.tileSize(), 0.5f) << row;
+            }
+
+            EXPECT_NEAR(s.pos(list.find(&s.ecs, "b")->root)->x - s.pos(list.find(&s.ecs, "a")->root)->x, list.tileSize() + 8.0f, 0.5f);
+            EXPECT_EQ(list.selected(), "c");
+
+            // Narrow enough for two: the same tiles, two to a line
+            list.setSize(&s.ecs, 320.0f, 0.0f);
+            s.pump();
+            s.pump();
+
+            EXPECT_EQ(list.columns(), 2);
+
+            for (const char* row : {"a", "b", "c", "d"})
+            {
+                ASSERT_NE(list.find(&s.ecs, row), nullptr) << row;
+                EXPECT_EQ(list.find(&s.ecs, row)->root.id, before[row]) << row;
+                EXPECT_NEAR(s.pos(list.find(&s.ecs, row)->root)->width, list.tileSize(), 0.5f) << row;
+            }
+
+            auto a = s.pos(list.find(&s.ecs, "a")->root);
+            auto b = s.pos(list.find(&s.ecs, "b")->root);
+            auto c = s.pos(list.find(&s.ecs, "c")->root);
+            auto d = s.pos(list.find(&s.ecs, "d")->root);
+
+            EXPECT_NEAR(a->y, b->y, 0.5f);
+            EXPECT_GT(c->y, a->y + a->height - 0.5f);
+            EXPECT_NEAR(c->x, a->x, 0.5f);
+            EXPECT_NEAR(d->x, b->x, 0.5f);
+            EXPECT_NEAR(d->y, c->y, 0.5f);
+            EXPECT_EQ(list.selected(), "c");
         }
 
         // ----------------------------------------------------------------------------------------

@@ -47,6 +47,14 @@ the `CHANGELOG.md` at the root of the repository.
 - **Events on the way.** Now and then something waits for an answer: a nest in the hedge, a
   hunter by a cold fire. What you choose is written in the record.
 
+### Changed
+
+- **The page is no longer built again for nothing.** When a task ends, only the tiles that
+  changed are made again: the others stay where they are, and a tile you had chosen stays
+  chosen. When the window changes size, what is on the page takes its new width where it
+  stands (on the phone page, on a walk and in a fight too) instead of the whole page being
+  built again. It is only built again when the layout itself changes: three columns to one.
+
 ### Fixed
 
 - **Resizing the window left a mess.** Dragging the window by its edge, on the page or on a

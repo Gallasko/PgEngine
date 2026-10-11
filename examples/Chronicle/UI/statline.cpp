@@ -1,5 +1,6 @@
 #include "statline.h"
 
+#include <cmath>
 #include <algorithm>
 #include <string>
 
@@ -260,6 +261,23 @@ namespace chronicle
         const float inner = spec.width - 2.0f;   // between the hairlines, like the fill
         const float lm = inner * static_cast<float>(spec.threshold) / static_cast<float>(spec.max);
         threshold->get<UiAnchor>()->setLeftMargin(lm);
+    }
+
+    void StatLine::setWidth(EntitySystem* ecs, float width)
+    {
+        if (std::abs(spec.width - width) < 0.5f)
+            return;
+
+        spec.width = width;
+
+        // The figure is anchored to the root's right edge (or to the projection, which is):
+        // it follows. The groove is as wide as the line, and the threshold stands along it
+        root->get<PositionComponent>()->setWidth(width);
+        groove.setWidth(ecs, width);
+        placeThreshold();
+
+        if (note)
+            note->setWidth(ecs, width);
     }
 
     void StatLine::setValue(EntitySystem* ecs, int value, bool animate)

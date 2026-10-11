@@ -85,6 +85,7 @@ namespace chronicle
         void setValue(pg::EntitySystem*, const std::string& id, const std::string& value);   // The figure's right edge stays
         void setRate(pg::EntitySystem*, const std::string& id, const std::string& rate);     // "" removes
         void setMuted(pg::EntitySystem*, const std::string& id, bool muted);
+        void setWidth(pg::EntitySystem*, float width);                     // Every line follows: the figures keep the right edge, the leaders take what is between
         void addGroup(pg::EntitySystem*, const std::string& groupId, const std::string& label);   // Appended; a known id is left as it is
         void addRow(pg::EntitySystem*, const std::string& groupId, const LedgerRowSpec& row, const std::string& groupLabel = "");   // Appended to the group; an unknown group is created at the end with groupLabel
         void removeRow(pg::EntitySystem*, const std::string& id);

@@ -546,6 +546,98 @@ namespace chronicle
         setRootHeight(*this);
     }
 
+    void EventLog::setWidth(EntitySystem* ecs, float width)
+    {
+        if (std::abs(spec.width - width) < 0.5f)
+            return;
+
+        const bool end = items.empty() or atEnd(ecs);
+
+        spec.width = width;
+
+        root.get<PositionComponent>()->setWidth(width);
+        gutter.get<PositionComponent>()->setWidth(width);
+        list.get<PositionComponent>()->setWidth(lineWidth() + ScrollLane);
+
+        if (footnote)
+            footnote->setWidth(ecs, width);
+
+        // Every line as append lays it, at the new width: the figure keeps the right edge, the
+        // text wraps in what it leaves, and the line is as tall as the lines it takes
+        const float LW = lineWidth();
+        const float textX = AgeWidth + Gap + px(MarkSize::S14) + Gap;
+        const float room = std::max(1.0f, LW - textX);
+
+        bool again = false;
+
+        for (auto& item : items)
+        {
+            if (std::holds_alternative<Year>(item))
+            {
+                std::get<Year>(item).line->get<PositionComponent>()->setWidth(LW);
+                continue;
+            }
+
+            Row& row = std::get<Row>(item);
+
+            row.line->get<PositionComponent>()->setWidth(LW);
+
+            float figureRoom = 0.0f;
+            bool under = false;
+
+            if (row.figure)
+            {
+                under = textWidth(ecs, "figure-sm", row.entry.figure) > room * FigureShare;
+
+                // A figure that goes under its text, or comes back beside it, is another line
+                if (under != (row.figure->spec.overflow == Overflow::Wrap))
+                {
+                    again = true;
+                    break;
+                }
+
+                if (under)
+                    row.figure->setWidth(ecs, room);
+                else
+                    figureRoom = row.figure->entity.get<PositionComponent>()->width + Gap;
+            }
+
+            row.text.setWidth(ecs, std::max(1.0f, room - figureRoom));
+
+            float height = std::max(RowHeight, row.text.entity.get<PositionComponent>()->height);
+
+            if (under)
+            {
+                row.figure->entity->get<UiAnchor>()->setTopMargin(height);
+
+                height += row.figure->entity.get<PositionComponent>()->height;
+            }
+
+            if (std::abs(row.line->get<PositionComponent>()->height - height) > 0.01f)
+                row.line->get<PositionComponent>()->setHeight(height);
+        }
+
+        // Rare: the lines are written again, all of them
+        if (again)
+        {
+            std::vector<LogEntry> entries;
+
+            for (const auto& item : items)
+            {
+                if (std::holds_alternative<Row>(item))
+                    entries.push_back(std::get<Row>(item).entry);
+            }
+
+            clear(ecs);
+
+            for (const auto& entry : entries)
+                append(ecs, entry);
+        }
+
+        if (end)
+            scrollToEnd(ecs);
+    }
+
     EntityRef EventLog::lightLast(EntitySystem* ecs)
     {
         for (auto it = items.rbegin(); it != items.rend(); ++it)

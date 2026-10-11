@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
+#include <limits>
 #include <string>
 #include <tuple>
 #include <variant>
@@ -27,6 +28,9 @@
 #include "UI/tabs.h"
 #include "UI/eventlog.h"
 #include "UI/activityrow.h"
+#include "UI/ornament.h"
+#include "UI/lifeclock.h"
+#include "UI/statline.h"
 #include "UI/progressrule.h"
 #include "UI/resourceledger.h"
 #include "UI/themesystem.h"
@@ -921,6 +925,7 @@ namespace chronicle
         castDone.clear();
         walkMoves.clear();
         moveRows.clear();
+        moveFlow.clear();
         walkGlossed = false;
         accountFitted = 0.0f;
     }
@@ -961,11 +966,11 @@ namespace chronicle
         if (walkPage.empty())
             return;
 
-        // At another width the screen is built again from its file, the one of that width, and
-        // filled again: what stands in a panel took its width when it was made. A window dragged
-        // by its edge is a width a frame: the screen is built for the first, then no more often
-        // than every RefitMs, and once more when the dragging lets up (runWalk)
-        if (std::abs(width - walkWidth) > 0.5f)
+        // The screen is built again only when the window crosses from three columns to one or
+        // back: that is another file. A window dragged by its edge may cross it back and forth:
+        // built for the first crossing, then no more often than every RefitMs, and once more
+        // when the dragging lets up (runWalk)
+        if ((width < NarrowBelow) != walkNarrow)
         {
             if (walkCooling <= 0.0f)
             {
@@ -987,6 +992,12 @@ namespace chronicle
 
             // Meanwhile the screen it has is stretched under the window: its veil and its columns
             walkRefitDue = true;
+        }
+        else if (std::abs(width - walkWidth) > 0.5f and walkSettling <= 0)
+        {
+            // At another width what stands is given its new width, panel by panel. A screen just
+            // built does not hold its pieces yet: it is sized once it does (runWalk)
+            sizeWalk(width, height);
         }
 
         // The veil is the window's size, from its corner: nothing of the page shows past it
@@ -1018,6 +1029,169 @@ namespace chronicle
         }
 
         fitAccount();
+    }
+
+    void LifeScene::widenPanel(const std::string& name, float width)
+    {
+        widen(walkPiece<Panel>(name), width);
+    }
+
+    void LifeScene::widen(Panel* panel, float width)
+    {
+        if (not panel or std::abs(panel->spec.width - width) < 0.5f)
+            return;
+
+        EntitySystem* ecs = ecsRef;
+
+        panel->setWidth(ecs, width);
+
+        if (panel->body.empty() or not panel->body->has<VerticalLayout>())
+            return;
+
+        // What stands in a panel is as wide as the panel leaves it, each in its own way. A button
+        // keeps the width of what it says, and so does a label that grows with its text
+        const float inner = panel->innerWidth();
+
+        std::vector<EntityRef> held(panel->body->get<VerticalLayout>()->entities.begin(), panel->body->get<VerticalLayout>()->entities.end());
+
+        for (auto& wrap : held)
+        {
+            EntityRef piece = wrap;
+
+            // In a file a piece stands in its panel inside a wrap: the piece is the wrap's main entity
+            if (wrap->has<Prefab>() and wrap->get<Prefab>()->namedChildrenIds.count("MainEntity") > 0)
+                piece = wrap->get<Prefab>()->getEntity("MainEntity");
+
+            if (piece.empty())
+                continue;
+
+            if (piece->has<Label>())
+            {
+                if (auto label = piece->get<Label>(); label->spec.overflow != Overflow::Grow)
+                    label->setWidth(ecs, inner);
+            }
+            else if (piece->has<ProgressRule>())
+                piece->get<ProgressRule>()->setWidth(ecs, inner);
+            else if (piece->has<ResourceLedger>())
+                piece->get<ResourceLedger>()->setWidth(ecs, inner);
+            else if (piece->has<EventLog>())
+                piece->get<EventLog>()->setWidth(ecs, inner);
+            else if (piece->has<ActivityList>())
+                piece->get<ActivityList>()->setSize(ecs, inner, 0.0f);
+            else if (piece->has<StatLine>())
+                piece->get<StatLine>()->setWidth(ecs, inner);
+            else if (piece->has<LifeClock>())
+                piece->get<LifeClock>()->setWidth(ecs, inner);
+            else if (piece->has<Ornament>() or piece->has<VerticalLayout>() or piece->has<HorizontalLayout>())
+                piece->get<PositionComponent>()->setWidth(inner);
+        }
+    }
+
+    void LifeScene::sizeWalk(float width, float height)
+    {
+        if (walkPage.empty())
+            return;
+
+        EntitySystem* ecs = ecsRef;
+
+        // The same figures as the file was written over with before it was built (shapeWalk)
+        const bool fighting = walkScreen == "fight";
+        const bool narrow = walkNarrow;
+        const float whole = std::max(LeastColumn, width - 2.0f * WalkMargin);
+
+        auto wide = [&](const char* name, float to) {
+            if (EntityRef piece = inWalk(name); not piece.empty())
+                piece->get<PositionComponent>()->setWidth(to);
+        };
+
+        auto says = [&](const char* name, float to) {
+            if (auto label = walkPiece<Label>(name))
+                label->setWidth(ecs, to);
+        };
+
+        if (auto strip = walkPiece<ProgressRule>("strip"))
+            strip->setWidth(ecs, whole);
+
+        says("zoneLine", narrow ? whole : std::max(LeastColumn, whole - HeadRoom));
+
+        // The big figure keeps the head's right corner: the lines beside it end before it
+        for (const char* name : {"kicker", "zoneTitle", "fightTitle"})
+            says(name, narrow ? std::max(NarrowTitle, whole - NarrowFigure) : std::max(LeastColumn, whole - HeadRoom));
+
+        if (narrow)
+        {
+            for (const char* name : {"headNote", "turnNote"})
+                says(name, whole);
+
+            wide("walkLeft", whole + WalkScroll);
+
+            for (const char* name : {"statePanel", "seekPanel", "workPanel", "cardPanel", "recordPanel", "bagPanel", "takenPanel", "homePanel",
+                                     "orderPanel", "heroPanel", "menuPanel", "accountPanel", "foePanel0", "foePanel1", "foePanel2", "foePanel3"})
+                widenPanel(name, whole);
+        }
+        else
+        {
+            const float left = fighting ? FightLeft : SiteLeft;
+            const float right = fighting ? FightRight : SiteRight;
+            const float middle = std::max(LeastColumn, whole - left - right - 2.0f * WalkGap - 2.0f * WalkScroll);
+
+            // The columns at the sides keep their width: the one between them takes the rest
+            if (fighting)
+            {
+                const float span = left + WalkGap + middle;
+                const float beasts = static_cast<float>(std::clamp(static_cast<int>(walk.targets.size()), 1, MaxFoes));
+                const float foe = std::min(left, std::floor((span - (beasts - 1.0f) * WalkGap) / beasts));
+
+                wide("walkLeft", span + WalkScroll);
+                wide("foeRow", span);
+                wide("duelRow", span);
+
+                widenPanel("menuPanel", middle);
+
+                for (int i = 0; i < MaxFoes; ++i)
+                    widenPanel("foePanel" + std::to_string(i), foe);
+            }
+            else
+            {
+                wide("walkMiddle", middle + WalkScroll);
+
+                for (const char* name : {"cardPanel", "seekPanel", "workPanel"})
+                    widenPanel(name, middle);
+            }
+        }
+
+        walkWidth = width;
+
+        // The buttons of his turn stand as many to a line as the panel holds: the lines they
+        // stand on follow it, and they are made again only when another number would hold
+        bool flows = false;
+
+        for (const char* name : {"aims", "moves"})
+        {
+            EntityRef rows = inWalk(name);
+
+            if (rows.empty())
+                continue;
+
+            const float room = rows->get<PositionComponent>()->width;
+
+            for (auto id : moveRows[name])
+            {
+                if (auto row = ecs->getEntity(id))
+                    row->get<PositionComponent>()->setWidth(room);
+            }
+
+            if (auto it = moveFlow.find(name); it != moveFlow.end() and (room < it->second.first or room >= it->second.second))
+                flows = true;
+        }
+
+        if (flows)
+        {
+            walkFilled.erase("moves");
+            fillFight();
+        }
+
+        (void) height;
     }
 
     void LifeScene::fitAccount()
@@ -1421,6 +1595,7 @@ namespace chronicle
             }
 
             walkMoves.clear();
+            moveFlow.clear();
 
             EntityRef row;
             std::string rowOf;
@@ -1449,6 +1624,15 @@ namespace chronicle
                     button.setCost(ecs, w.cost);
 
                 const float face = button.root->get<PositionComponent>()->width;
+
+                // Between which widths these buttons stand as they do: the widest line there is,
+                // and the least width at which one more would hold on a line that is full
+                auto [flow, fresh] = moveFlow.try_emplace(w.layout, 0.0f, std::numeric_limits<float>::max());
+
+                (void) fresh;
+
+                if (not row.empty() and rowOf == w.layout and not w.newLine and used + face > width)
+                    flow->second.second = std::min(flow->second.second, used + face);
 
                 // As many to a line as the panel holds
                 if (row.empty() or rowOf != w.layout or w.newLine or used + face > width)
@@ -1481,6 +1665,7 @@ namespace chronicle
                     attachGloss(ecs, button.face, MoveGloss + w.tag.substr(std::string(MoveTag).size()));
 
                 used += face + MoveGap;
+                flow->second.first = std::max(flow->second.first, used - MoveGap);
 
                 walkMoves.push_back({w.tag, button});
             }
@@ -1983,6 +2168,10 @@ namespace chronicle
                 fitWalk(windowWidth, windowHeight);
             }
         }
+
+        // A width that came while the screen did not hold its pieces yet: it is sized for it now
+        if (walkSettling <= 0 and not walkPage.empty() and (windowWidth < NarrowBelow) == walkNarrow and std::abs(windowWidth - walkWidth) > 0.5f)
+            sizeWalk(windowWidth, windowHeight);
 
         // The account follows the order of the turn over it, whenever that one changes its height
         fitAccount();

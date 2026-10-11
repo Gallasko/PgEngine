@@ -9,6 +9,7 @@
 #endif
 
 #include <algorithm>
+#include <unordered_map>
 #include <cmath>
 #include <cstdlib>
 #include <string>
@@ -1245,6 +1246,7 @@ namespace chronicle
 
         auto state = ecs->attach<ActivityHeadingState>(block.entity);
         state->label = label.entity.id;
+        state->text = text;
 
         return block.entity;
     }
@@ -1369,92 +1371,346 @@ namespace chronicle
             r->setState(ecs, newState);
     }
 
+    namespace
+    {
+        bool sameGains(const std::vector<Gain>& a, const std::vector<Gain>& b)
+        {
+            if (a.size() != b.size())
+                return false;
+
+            for (size_t i = 0; i < a.size(); ++i)
+            {
+                if (a[i].stat != b[i].stat or a[i].amount != b[i].amount)
+                    return false;
+            }
+
+            return true;
+        }
+
+        bool sameRequirements(const std::vector<Requirement>& a, const std::vector<Requirement>& b)
+        {
+            if (a.size() != b.size())
+                return false;
+
+            for (size_t i = 0; i < a.size(); ++i)
+            {
+                if (a[i].label != b[i].label or a[i].current != b[i].current or a[i].needed != b[i].needed or a[i].met != b[i].met)
+                    return false;
+            }
+
+            return true;
+        }
+
+        bool near(float a, float b) { return std::abs(a - b) < 0.01f; }
+
+        // Whether a row that stands would be built the same from another spec: everything that is
+        // said of a row. Its width is not: a row kept is given the width it should have. Neither
+        // is what the list sets on its own (its z, its stripe, the height of its line)
+        bool sameRow(const ActivityRowSpec& held, const ActivityRowSpec& wanted)
+        {
+            return held.id == wanted.id and held.name == wanted.name and held.glyph == wanted.glyph and held.rank == wanted.rank
+               and held.count == wanted.count and held.months == wanted.months and held.each == wanted.each
+               and held.until == wanted.until and held.urgent == wanted.urgent and held.compact == wanted.compact
+               and held.featured == wanted.featured and held.major == wanted.major and held.tile == wanted.tile
+               and held.state == wanted.state and held.caption == wanted.caption and held.glossKey == wanted.glossKey
+               and held.cost == wanted.cost and held.costGlyph == wanted.costGlyph
+               and near(held.percent, wanted.percent) and near(held.glideTo, wanted.glideTo) and near(held.glideMs, wanted.glideMs)
+               and sameGains(held.gains, wanted.gains) and sameRequirements(held.requirements, wanted.requirements);
+        }
+
+        // A tile taken off its line without being destroyed: the line no longer answers for it
+        void unhook(EntityRef line, EntityRef tile)
+        {
+            if (line.empty())
+                return;
+
+            if (line->has<Prefab>())
+                line->get<Prefab>()->childrenIds.erase(tile.id);
+        }
+    }
+
     void ActivityList::setRows(EntitySystem* ecs, const std::vector<ActivityGroup>& groups)
     {
         auto layout = body.get<VerticalLayout>();
-
-        // Drop what the list holds, rows and headings alike. The layout destroys each one as it
-        // lets it go: destroying them here as well would leave the layout holding dead rows until
-        // it gets to the removal, and the list walks those rows every frame.
         auto state = root.get<ActivityListState>();
 
-        // What the last fill handed over is let go of too: the layout takes what it is given a
-        // pass later, so a list filled twice in one pass does not hold the first fill yet
-        std::vector<_unique_id> old = state->given;
+        // What the body holds, top to bottom: what the fills before this one handed to it (the
+        // layout takes what it is given a pass later, so a list filled twice in one pass does not
+        // hold the first fill yet), and whatever else stands in it (a list filled by a page's file)
+        std::vector<EntityRef> current = state->items;
 
         for (auto& child : layout->entities)
         {
-            if (std::find(old.begin(), old.end(), child.id) == old.end())
-                old.push_back(child.id);
+            if (std::find_if(current.begin(), current.end(), [&](const EntityRef& item) { return item.id == child.id; }) == current.end())
+                current.push_back(child);
         }
-
-        for (auto id : old)
-            layout->removeEntity(id);
-
-        state->selected.clear();
-        state->rows.clear();
-        state->headings.clear();
-        state->given.clear();
-
-        spec.groups = groups;
 
         const int perLine = columns();
         const float tile = tileSize();
+        const bool tiles = perLine > 0;
+
+        // What is wanted in its place, top to bottom: a heading, a row, or a line of tiles
+        struct Wanted
+        {
+            bool heading = false;
+            std::string label;
+            std::vector<ActivityRowSpec> rows;       // The one row, or the tiles of the line left to right
+        };
+
+        std::vector<Wanted> wanted;
 
         for (const auto& group : groups)
         {
             if (not group.label.empty())
-            {
-                EntityRef heading = makeActivityHeading(ecs, group.label, spec.width, spec.z);
-
-                layout->addEntity(heading);
-                state->given.push_back(heading.id);
-            }
+                wanted.push_back({true, group.label, {}});
 
             // Tiles: as many to a line as fit, a new line when one is full and with every group
-            EntityRef line;
-            int onLine = 0;
+            bool open = false;
 
             for (auto rowSpec : group.rows)
             {
                 rowSpec.z = spec.z;
                 rowSpec.compact = rowSpec.compact or spec.compact;
+                rowSpec.width = tiles ? tile : spec.width;
 
-                if (perLine <= 0)
+                if (tiles)
                 {
-                    rowSpec.width = spec.width;
-
-                    EntityRef made = makeActivityRow(ecs, rowSpec).root;
-
-                    layout->addEntity(made);
-                    state->given.push_back(made.id);
-
-                    continue;
+                    rowSpec.tile = true;
+                    rowSpec.minHeight = 0.0f;
                 }
 
-                if (line.empty() or onLine == perLine)
-                {
-                    if (not line.empty())
-                        levelLine(ecs, line);
+                // As a row stores what it was made from (makeActivityRow): what stands is compared with this
+                rowSpec.months = std::max(0, rowSpec.months);
+                rowSpec.percent = std::clamp(rowSpec.percent, 0.0f, 100.0f);
+                rowSpec.compact = rowSpec.compact or rowSpec.tile;
 
-                    line = makeTileLine(ecs, spec.width, spec.z);
-                    layout->addEntity(line);
-                    state->given.push_back(line.id);
-                    onLine = 0;
+                if (not tiles or not open or static_cast<int>(wanted.back().rows.size()) == perLine)
+                {
+                    wanted.push_back({false, "", {}});
+                    open = true;
                 }
 
-                rowSpec.width = tile;
-                rowSpec.tile = true;
-                rowSpec.minHeight = 0.0f;
+                wanted.back().rows.push_back(rowSpec);
+            }
+        }
 
-                placeTile(line, makeActivityRow(ecs, rowSpec).root, static_cast<float>(onLine) * (tile + TileGap));
+        // The rows that stand, by their id: each is kept if it would be built the same
+        struct Held
+        {
+            EntityRef entity;
+            EntityRef line;              // Empty for a row that stands in the body itself
+            size_t slot = 0;             // Its place on its line
+            bool used = false;
+        };
 
-                ++onLine;
+        std::unordered_map<std::string, Held> held;
+
+        for (auto& item : current)
+        {
+            if (hasComp<ActivityLineState>(item))
+            {
+                auto& onLine = item->get<ActivityLineState>()->tiles;
+
+                for (size_t i = 0; i < onLine.size(); ++i)
+                {
+                    if (hasComp<ActivityRow>(onLine[i]))
+                        held[onLine[i]->get<ActivityRow>()->spec.id] = Held{onLine[i], item, i};
+                }
+            }
+            else if (hasComp<ActivityRow>(item))
+            {
+                held[item->get<ActivityRow>()->spec.id] = Held{item, EntityRef{}, 0};
+            }
+        }
+
+        // From the top, what stands is kept while it is what is wanted there: a heading that
+        // reads the same, a row that would be built the same, a line of tiles (its tiles are
+        // seen to one by one). From the first that is not, what stands goes and the rest is made
+        size_t keep = 0;
+
+        for (; keep < current.size() and keep < wanted.size(); ++keep)
+        {
+            EntityRef item = current[keep];   // By value: a handle is asked for its components, which a const one cannot be
+            const Wanted& want = wanted[keep];
+
+            if (want.heading)
+            {
+                if (not hasComp<ActivityHeadingState>(item) or item->get<ActivityHeadingState>()->text != want.label)
+                    break;
+            }
+            else if (tiles)
+            {
+                if (not hasComp<ActivityLineState>(item))
+                    break;
+            }
+            else if (not hasComp<ActivityRow>(item) or not sameRow(item->get<ActivityRow>()->spec, want.rows.front()))
+            {
+                break;
+            }
+        }
+
+        std::vector<EntityRef> items(current.begin(), current.begin() + static_cast<std::ptrdiff_t>(keep));
+        std::vector<EntityRef> lines;
+
+        // The lines there are let go of their tiles: each is given the ones it should hold below
+        for (auto& item : current)
+        {
+            if (hasComp<ActivityLineState>(item))
+                item->get<ActivityLineState>()->tiles.clear();
+        }
+
+        // A tile for a place on a line: the one that stands if it would be built the same, left
+        // where it is or brought there, at the width it should have; a new one otherwise, which
+        // takes the selection of the one it replaces when it can be chosen
+        auto seat = [&](EntityRef line, const ActivityRowSpec& rowSpec, size_t slot) {
+            const float x = static_cast<float>(slot) * (tile + TileGap);
+            auto it = held.find(rowSpec.id);
+
+            if (it != held.end() and not it->second.used and sameRow(it->second.entity->get<ActivityRow>()->spec, rowSpec))
+            {
+                Held& h = it->second;
+                h.used = true;
+
+                const bool resized = std::abs(h.entity->get<ActivityRow>()->spec.width - rowSpec.width) > 0.01f;
+
+                h.entity->get<ActivityRow>()->setWidth(ecs, rowSpec.width);
+
+                if (h.line.id == line.id)
+                {
+                    // On its line still: moved along it at most, by a tile that left before it or
+                    // by tiles of another width
+                    if (h.slot != slot or resized)
+                        h.entity->get<UiAnchor>()->setLeftMargin(x);
+
+                    line->get<ActivityLineState>()->tiles.push_back(h.entity);
+                }
+                else
+                {
+                    unhook(h.line, h.entity);
+                    placeTile(line, h.entity, x);
+                }
+
+                return;
             }
 
-            if (not line.empty())
-                levelLine(ecs, line);
+            EntityRef made = makeActivityRow(ecs, rowSpec).root;
+
+            if (it != held.end() and not it->second.used and rowSpec.state == ActivityState::Idle
+                and it->second.entity->get<ActivityRowState>()->selected and state->selected == rowSpec.id)
+            {
+                made->get<ActivityRowState>()->selected = true;
+            }
+
+            placeTile(line, made, x);
+        };
+
+        // The lines kept: their tiles
+        for (size_t i = 0; i < keep; ++i)
+        {
+            if (wanted[i].heading or not tiles)
+                continue;
+
+            for (size_t slot = 0; slot < wanted[i].rows.size(); ++slot)
+                seat(current[i], wanted[i].rows[slot], slot);
+
+            lines.push_back(current[i]);
         }
+
+        // A row kept in the body itself stays as it is, at the width it should have
+        if (not tiles)
+        {
+            for (size_t i = 0; i < keep; ++i)
+            {
+                if (wanted[i].heading)
+                    continue;
+
+                if (auto it = held.find(wanted[i].rows.front().id); it != held.end())
+                    it->second.used = true;
+
+                current[i]->get<ActivityRow>()->setWidth(ecs, spec.width);
+            }
+        }
+
+        // What is wanted past them: made, and handed to the body
+        std::vector<EntityRef> made;
+
+        for (size_t i = keep; i < wanted.size(); ++i)
+        {
+            const Wanted& want = wanted[i];
+            EntityRef item;
+
+            if (want.heading)
+            {
+                item = makeActivityHeading(ecs, want.label, spec.width, spec.z);
+            }
+            else if (tiles)
+            {
+                item = makeTileLine(ecs, spec.width, spec.z);
+
+                for (size_t slot = 0; slot < want.rows.size(); ++slot)
+                    seat(item, want.rows[slot], slot);
+
+                lines.push_back(item);
+            }
+            else
+            {
+                item = makeActivityRow(ecs, want.rows.front()).root;
+
+                auto it = held.find(want.rows.front().id);
+
+                if (it != held.end() and not it->second.used and want.rows.front().state == ActivityState::Idle
+                    and it->second.entity->get<ActivityRowState>()->selected and state->selected == want.rows.front().id)
+                {
+                    item->get<ActivityRowState>()->selected = true;
+                }
+            }
+
+            made.push_back(item);
+        }
+
+        // A tile no line took goes. Its line does not answer for it any more: a line that stays
+        // would keep a dead tile, and one that goes would destroy it a second time
+        if (tiles)
+        {
+            for (auto& [id, h] : held)
+            {
+                if (h.used or h.line.empty())
+                    continue;
+
+                unhook(h.line, h.entity);
+                ecs->removeEntity(h.entity);
+            }
+        }
+
+        // What stood past what was kept goes: the layout destroys each one as it lets it go
+        // (destroying them here as well would leave the layout holding dead rows until it gets to
+        // the removal, and the list walks those rows every frame)
+        for (size_t i = keep; i < current.size(); ++i)
+            layout->removeEntity(current[i].id);
+
+        for (auto& item : made)
+        {
+            layout->addEntity(item);
+            items.push_back(item);
+        }
+
+        // A heading or a line that was kept is as wide as the list is now
+        for (size_t i = 0; i < keep; ++i)
+        {
+            if (wanted[i].heading or tiles)
+                current[i]->get<PositionComponent>()->setWidth(spec.width);
+        }
+
+        for (auto& line : lines)
+            levelLine(ecs, line);
+
+        state->items = items;
+        state->given.clear();
+
+        for (auto& item : items)
+            state->given.push_back(item.id);
+
+        spec.groups = groups;
     }
 
     int ActivityList::columns() const

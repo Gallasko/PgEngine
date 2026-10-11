@@ -954,11 +954,20 @@ takes its answer (`after` becomes the character, with what the world knows:
 records and the form of a queue, and `beginReplay` / `homeFromWalk` walk a record again. The
 save keeps the walk under way (`LifeSave::walk`), so a game closed in the middle of a fight
 opens on it. The two screens are `res/chronicle/ui/expedition.yaml` and `fight.yaml`, built at
-the window's width (`shapeWalk`) and built again at another; under 1000 px they are
-`expedition-narrow.yaml` and `fight-narrow.yaml`, the same pieces in one column. A window
-dragged by its edge is a width a frame: the screen is built for the first, then no more often
-than every 120 ms, and once more where the dragging stops (`walkCooling`). The account of a
-fight has what the order of the turn leaves of its column (`fitAccount`).
+the window's width (`shapeWalk`); under 1000 px they are
+`expedition-narrow.yaml` and `fight-narrow.yaml`, the same pieces in one column. At another
+width in the same layout nothing is built: `sizeWalk` gives each panel its width where it stands
+(the same figures as `shapeWalk` wrote in the file), and `LifeScene::widen` gives what stands in
+a panel the width it leaves, each piece in its own way (`setWidth` on a label, a rule, a ledger,
+a log, a stat line, the clock; `setSize` on a list, whose tiles are laid again without being
+made again). The screen is built again only across the 1000 px line, three columns to one, and
+then no more often than every 120 ms (`walkCooling`). The phone page is the same: `fitPhone`
+gives its panels their width, and it is built again only when the page stops being the phone's.
+The account of a fight has what the order of the turn leaves of its column (`fitAccount`).
+
+A list given its rows again (`ActivityList::setRows`) does not build what it holds: a row that
+would be built the same is kept, moved if it only changed place, and keeps the selection; the
+others are made or let go of. So a term that ends makes again the tiles it changed, not the list.
 
 **The guide and the lore** (`achievements.pg`, `kind`). An entry of the table is a deed (no
 `kind`), a step of the guide or a line of lore; the `AchievementSys` watches the asks of all
@@ -1166,8 +1175,9 @@ upright) the page is `res/chronicle/ui/life-phone.yaml`: one column as wide as t
 work at hand always in view, then one row of tabs (Life, Stats, Items, Years, Log, Town) and
 under it one thing at a time (`LifeScene::showPhone`, `phonePanel`): the choice, the town in its
 place, or one of the panels the other pages keep beside it. The page is built at the window's
-width (`shapePhone` writes it over the file's before the build) and built again at another;
-`fitPhone` gives what is under the tabs the height the work at hand leaves. Held sideways a
+width (`shapePhone` writes it over the file's before the build); at another, `fitPhone` gives
+its panels their width where they stand (`LifeScene::widen`), and what is under the tabs the
+height the work at hand leaves. Held sideways a
 phone is wide enough for the compact page. What a touch screen needs with it:
 
 - a tap is a click: the engine latches a press that is over before it is read (`Input::takePress`);

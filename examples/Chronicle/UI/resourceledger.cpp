@@ -442,6 +442,30 @@ namespace chronicle
         groups.clear();
     }
 
+    void ResourceLedger::setWidth(EntitySystem*, float width)
+    {
+        if (std::abs(spec.width - width) < 0.5f)
+            return;
+
+        spec.width = width;
+
+        // The body is anchored to both sides of the root. A line's figure is anchored to its
+        // right end and its leader to the name and the figure: they follow the line
+        root->get<PositionComponent>()->setWidth(width);
+
+        for (auto& group : groups)
+        {
+            if (not group.heading.empty())
+                group.heading->get<PositionComponent>()->setWidth(width);
+
+            for (auto& r : group.rows)
+            {
+                r.line->get<PositionComponent>()->setWidth(width);
+                r.shortLeader = false;
+            }
+        }
+    }
+
     void ResourceLedger::setValue(EntitySystem* ecs, const std::string& id, const std::string& value)
     {
         Row* r = row(id);

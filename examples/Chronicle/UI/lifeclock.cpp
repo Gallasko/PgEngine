@@ -93,10 +93,16 @@ namespace chronicle
                 pos->setVisibility(visible);
         }
 
+        // By its handle, not its id: a child made earlier in the pass is not in the pool yet, and
+        // an id would not find it (the windows and the ticks laid twice in a pass, by a window
+        // being dragged, would leave the first ones standing)
         void removeChild(EntitySystem* ecs, EntityRef root, EntityRef child)
         {
+            if (child.empty())
+                return;
+
             root->get<Prefab>()->childrenIds.erase(child.id);
-            ecs->removeEntity(child.id);
+            ecs->removeEntity(child);
         }
 
         std::string ageText(float age)
@@ -449,6 +455,22 @@ namespace chronicle
 
         setElement(band.left, edgeElement(closed));
         setElement(band.right, edgeElement(closed));
+    }
+
+    void LifeClock::setWidth(EntitySystem* ecs, float width)
+    {
+        if (std::abs(spec.width - width) < 0.5f)
+            return;
+
+        spec.width = width;
+
+        // The head's right-hand line is anchored to the root's right edge, and the frame to the
+        // track: they follow. What stands along the track stands at an age, and so elsewhere
+        root->get<PositionComponent>()->setWidth(width);
+        track->get<PositionComponent>()->setWidth(width);
+
+        setWindows(ecs, spec.windows);
+        setMilestones(ecs, spec.milestones);   // Lays the lived part and the running one again too
     }
 
     void LifeClock::setMilestones(EntitySystem* ecs, const std::vector<ClockMilestone>& list)

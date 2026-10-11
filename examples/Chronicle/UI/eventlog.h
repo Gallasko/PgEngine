@@ -91,6 +91,7 @@ namespace chronicle
         void clear(pg::EntitySystem*);
         void setFootnote(pg::EntitySystem*, const std::string&);   // "" removes
         void setHeight(pg::EntitySystem*, float height);            // The well's; the list inside follows
+        void setWidth(pg::EntitySystem*, float width);              // The well's. Every line wraps again in the room it has now, and is as tall as the lines it takes
         void scrollToEnd(pg::EntitySystem*);
         pg::EntityRef lightLast(pg::EntitySystem*);            // A ground under the last line, log.line.new: the caller's to dim again
         void dim(pg::EntitySystem*, pg::_unique_id light);    // The ground lightLast gave, gone; nothing if its line already is

@@ -48,6 +48,7 @@ namespace chronicle
         void setThreshold(pg::EntitySystem*, int threshold);
         void setNote(pg::EntitySystem*, const std::string&);
         void setAlert(pg::EntitySystem*, bool alert);   // tokens only; nothing moves
+        void setWidth(pg::EntitySystem*, float width);   // The groove and the note follow; the figure keeps the right edge
         float height(pg::EntitySystem*) const;
 
         // internal

@@ -207,6 +207,7 @@ namespace chronicle
         std::vector<pg::_unique_id> rows;        // Row roots, in list order
         std::vector<pg::_unique_id> headings;    // Heading blocks, in list order
         std::vector<pg::_unique_id> given;       // What setRows last handed to the body: the layout holds it a pass later, and a list filled twice in one pass lets go of it all the same
+        std::vector<pg::EntityRef> items;        // The same, as it stands in the body top to bottom: headings, and rows or lines of tiles. What setRows keeps, moves or lets go of
     };
 
     // A line of tiles in a list's body: the tiles stand side by side on it, and it is as tall as
@@ -225,6 +226,7 @@ namespace chronicle
         ActivityHeadingState() = default;
 
         pg::_unique_id label = 0;
+        std::string text;              // What it reads: a list filled again keeps a heading that says the same
     };
 
     // The rows of the Life screen, grouped and headed, alternating their grounds across the
@@ -242,7 +244,7 @@ namespace chronicle
         ActivityRow* row(pg::EntitySystem*, const std::string& id);     // nullptr when unknown (logged)
         ActivityRow* find(pg::EntitySystem*, const std::string& id);    // nullptr when unknown or not laid out yet (quiet)
         void setRowState(pg::EntitySystem*, const std::string& id, ActivityState);   // Clears the selection if it was that row
-        void setRows(pg::EntitySystem*, const std::vector<ActivityGroup>& groups);   // Rebuilds
+        void setRows(pg::EntitySystem*, const std::vector<ActivityGroup>& groups);   // What it holds becomes these: a row that would be built the same is kept (moved, when it only changed place), the others are made or let go of. A row kept keeps the selection
         void setSize(pg::EntitySystem*, float width, float height);      // Rows and headings follow the width; height only on a list that scrolls. Tiles are laid again when the width changes how many fit
         int columns() const;           // The tiles a line holds at this width: 0 when the rows are not tiles
         float tileSize() const;        // And how wide each is: the width shared out, 8 between two

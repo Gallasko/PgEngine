@@ -20,6 +20,8 @@
 
 namespace chronicle
 {
+    struct Panel;
+
     struct LifeSceneOptions
     {
         bool fresh = false;            // --fresh: a new life, nothing earned. A first life (`lives` 1), led by its guide
@@ -108,6 +110,9 @@ namespace chronicle
         bool compact = false;          // Which file the page is: opt.compactFile or opt.pageFile
         bool phone = false;            // The page is opt.phoneFile: compact, in one column, with one row of tabs
         float phoneWidth = 0.0f;       // The window's width the phone page was built at
+        float phoneFitted = 0.0f;      // And the one its panels were last given: at another they are given theirs, where they stand
+        int pageSettling = 0;          // Passes before a page just built holds its pieces: it is not sized before
+        bool phoneRefit = false;       // A width came meanwhile: the panels are given theirs once it does
         std::string phonePanel;        // Phone: the panel in the choice's place ("parts", "holds", ...), "" for the choice or the town
         int sideTab = 0;               // Compact: the side panel in view (parts, holds, years, log)
         float windowWidth = 1320.0f;   // As the last fit saw it
@@ -285,6 +290,9 @@ namespace chronicle
         void closeWalk();              // The walk's screen leaves
         void fitWalk(float width, float height);   // The veil and the columns to the window; built again at another width
         void fitAccount();   // A fight's account takes what the order of the turn leaves of its column
+        void sizeWalk(float width, float height);   // The walk's screen at another width, in place: what shapeWalk writes in the file, given to what stands
+        void widenPanel(const std::string& name, float width);   // A panel of the walk's screen, and what stands in it
+        void widen(Panel* panel, float width);   // A panel, and what stands in it: each piece as wide as the panel leaves it, where it stands
         void fillSite();               // The on-site screen says what expedition.pg says
         void fillFight();              // And the fight's
         void fillMoves(bool over, bool handed);   // The buttons of his turn: a move each, and against several a beast each to aim at
@@ -340,6 +348,7 @@ namespace chronicle
         std::vector<std::pair<std::string, Button>> walkMoves;   // The buttons of his turn, by tag, in the order they were made
         std::unordered_map<std::string, std::vector<pg::_unique_id>> moveRows;   // The rows they stand on, by the layout that holds them
         int moveRowsMade = 0;          // How many rows were ever made: each has a name of its own on the screen
+        std::unordered_map<std::string, std::pair<float, float>> moveFlow;   // By layout: the widths between which its buttons stand on their lines as they do (at least, under)
         bool walkGlossed = false;      // The glosses of the beasts' panels hang on them
         float accountFitted = 0.0f;    // The height the account of a fight was last given, under the order of the turn
         float walkCooling = 0.0f;      // Milliseconds before the walk's screen may be built again for another width

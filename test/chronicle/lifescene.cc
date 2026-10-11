@@ -1,3 +1,4 @@
+#include <map>
 #include <set>
 #include "stdafx.h"
 
@@ -6264,15 +6265,48 @@ namespace pg
             EXPECT_GT(f.pos(walkPart(life, "workPanel"))->x, f.pos(walkPart(life, "bagPanel"))->x + f.pos(walkPart(life, "bagPanel"))->width - 0.5f);
             EXPECT_GT(f.pos(walkPart(life, "recordPanel"))->x, f.pos(walkPart(life, "workPanel"))->x + f.pos(walkPart(life, "workPanel"))->width - 0.5f);
 
-            // A smaller window: the same three, the middle one narrower. The screen is built
-            // again for a width no more often than a moment apart: a moment goes by
+            // A smaller window: the same three, the middle one narrower. The screen is not built
+            // again for it: what stands is given its new width
             f.pass(200.0f, 50.0f);
+
+            const _unique_id screen = life->walkPage.id;
+            const _unique_id berries = walkPart(life, "works")->get<ActivityList>()->find(&f.ecs, "gather.berries")->root.id;
+            const float middleWas = f.pos(walkPart(life, "workPanel"))->width;
+
             f.resize(1100.0f, 800.0f);
             f.pass(200.0f, 50.0f);
             f.frames(12);
 
             EXPECT_FALSE(life->walkNarrow);
+            EXPECT_EQ(life->walkPage.id, screen);
+            EXPECT_NEAR(life->walkWidth, 1100.0f, 0.5f);
             inside(1100.0f, 800.0f);
+
+            // The middle column gave up what the window lost, and what stands in it followed
+            auto workBox = f.pos(walkPart(life, "workPanel"));
+
+            EXPECT_NEAR(workBox->width, middleWas - 220.0f, 1.0f);
+            EXPECT_NEAR(f.pos(walkPart(life, "seekPanel"))->width, workBox->width, 0.5f);
+            EXPECT_NEAR(f.pos(walkPart(life, "workNote"))->width, workBox->width - 32.0f, 1.0f);
+            EXPECT_LE(f.pos(walkPart(life, "recordPanel"))->x + f.pos(walkPart(life, "recordPanel"))->width, 1100.0f + 0.5f);
+            EXPECT_GT(f.pos(walkPart(life, "recordPanel"))->x, workBox->x + workBox->width - 0.5f);
+
+            // Its tiles are the ones that stood, inside the panel still
+            auto tile = walkPart(life, "works")->get<ActivityList>()->find(&f.ecs, "gather.berries");
+
+            ASSERT_NE(tile, nullptr);
+            EXPECT_EQ(tile->root.id, berries);
+
+            for (const auto& group : walkPart(life, "works")->get<ActivityList>()->spec.groups)
+            {
+                for (const auto& row : group.rows)
+                {
+                    auto made = walkPart(life, "works")->get<ActivityList>()->find(&f.ecs, row.id);
+
+                    ASSERT_NE(made, nullptr) << row.id;
+                    EXPECT_LE(f.pos(made->root)->x + f.pos(made->root)->width, workBox->x + workBox->width - 15.5f) << row.id;
+                }
+            }
 
             // A phone held upright: one column, every panel the window's width
             f.resize(420.0f, 800.0f);
@@ -6281,15 +6315,118 @@ namespace pg
 
             ASSERT_TRUE(life->onWalk());
             EXPECT_TRUE(life->walkNarrow);
+            EXPECT_NE(life->walkPage.id, screen);
             inside(420.0f, 800.0f);
 
             EXPECT_NEAR(f.pos(walkPart(life, "workPanel"))->x, f.pos(walkPart(life, "recordPanel"))->x, 0.5f);
             EXPECT_GT(f.pos(walkPart(life, "recordPanel"))->y, f.pos(walkPart(life, "workPanel"))->y);
 
+            // A little wider, in one column still: the same screen, every panel the window's width,
+            // and what stands in each as wide as it leaves
+            const _unique_id column = life->walkPage.id;
+
+            f.resize(480.0f, 800.0f);
+            f.pass(200.0f, 50.0f);
+            f.frames(12);
+
+            EXPECT_TRUE(life->walkNarrow);
+            EXPECT_EQ(life->walkPage.id, column);
+            inside(480.0f, 800.0f);
+
+            for (const char* name : {"statePanel", "workPanel", "bagPanel", "homePanel", "recordPanel"})
+                EXPECT_NEAR(f.pos(walkPart(life, name))->width, 480.0f - 32.0f, 0.5f) << name;
+
+            EXPECT_NEAR(f.pos(walkPart(life, "vitalityBar"))->width, 480.0f - 64.0f, 1.0f);
+            EXPECT_NEAR(f.pos(walkPart(life, "bag"))->width, 480.0f - 64.0f, 1.0f);
+            EXPECT_NEAR(f.pos(walkPart(life, "record"))->width, 480.0f - 64.0f, 1.0f);
+            EXPECT_NEAR(f.pos(walkPart(life, "knowledgeNote"))->width, 480.0f - 64.0f, 1.0f);
+
             // And what he did before is still written there
             life->walkDo(WalkAct{"gather", "berries", 0});
             f.settle();
             EXPECT_GE(walkPart(life, "record")->get<EventLog>()->size(), 1u);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The phone page at another width is the same page: its panels are given their width where
+        // they stand, and what stands in each follows. Nothing is built again.
+        TEST(lifescene_test, the_phone_page_is_resized_where_it_stands)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.fresh = true;
+            opt.lives = 2;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            f.resize(520.0f, 800.0f);
+            f.frames(12);
+
+            ASSERT_TRUE(life->phone);
+
+            const _unique_id page = life->page.id;
+
+            std::map<std::string, _unique_id> tiles;
+
+            for (const auto& group : life->piece<ActivityList>("activities")->spec.groups)
+            {
+                for (const auto& row : group.rows)
+                    tiles[row.id] = life->piece<ActivityList>("activities")->find(&f.ecs, row.id)->root.id;
+            }
+
+            ASSERT_FALSE(tiles.empty());
+
+            const size_t ticks = life->piece<LifeClock>("clock")->ticks.size();
+
+            f.resize(430.0f, 800.0f);
+            f.frames(12);
+
+            ASSERT_TRUE(life->phone);
+            EXPECT_EQ(life->page.id, page);
+
+            // Every panel is the column, and what stands in it as wide as it leaves
+            const float column = 430.0f - 24.0f;
+
+            for (const char* name : {"working", "may", "parts", "holds", "clockPanel", "happened"})
+            {
+                EXPECT_NEAR(f.pos(life->named(name))->width, column, 0.5f) << name;
+                EXPECT_LE(f.pos(life->named(name))->x + f.pos(life->named(name))->width, 430.0f + 0.5f) << name;
+            }
+
+            const float inner = life->piece<Panel>("parts")->innerWidth();
+
+            EXPECT_NEAR(inner, column - 32.0f, 0.5f);
+            EXPECT_NEAR(f.pos(life->named("vit"))->width, inner, 0.5f);
+            EXPECT_NEAR(f.pos(life->piece<StatLine>("vit")->groove.root)->width, inner, 0.5f);
+            EXPECT_NEAR(f.pos(life->named("skills"))->width, inner, 0.5f);
+            EXPECT_NEAR(f.pos(life->named("ledger"))->width, inner, 0.5f);
+            EXPECT_NEAR(f.pos(life->named("log"))->width, inner, 0.5f);
+            EXPECT_NEAR(f.pos(life->named("clock"))->width, inner, 0.5f);
+            EXPECT_NEAR(f.pos(life->piece<LifeClock>("clock")->track)->width, inner, 0.5f);
+            EXPECT_NEAR(f.pos(life->named("tabs"))->width, column, 0.5f);
+
+            // The clock's ticks are along the narrower track, as many as there were, and none past it
+            auto clock = life->piece<LifeClock>("clock");
+
+            EXPECT_EQ(clock->ticks.size(), ticks);
+
+            for (auto& tick : clock->ticks)
+                EXPECT_LE(f.pos(tick.mark)->x, f.pos(clock->track)->x + inner + 0.5f);
+
+            // The tiles of the choice are the ones that stood
+            for (const auto& [id, was] : tiles)
+            {
+                auto tile = life->piece<ActivityList>("activities")->find(&f.ecs, id);
+
+                ASSERT_NE(tile, nullptr) << id;
+                EXPECT_EQ(tile->root.id, was) << id;
+                EXPECT_LE(f.pos(tile->root)->x + f.pos(tile->root)->width, 430.0f - 12.0f + 0.5f) << id;
+            }
         }
 
         // ----------------------------------------------------------------------------------------
@@ -6521,6 +6658,24 @@ namespace pg
             EXPECT_TRUE(f.pos(walkPart(life, "chip2"))->visible);
             EXPECT_FALSE(f.pos(walkPart(life, "chip3"))->visible);
             EXPECT_FALSE(f.pos(walkPart(life, "chip5"))->visible);
+
+            // A narrower window, in three columns still: the same screen and the same buttons,
+            // his turn's panel narrower and the right column against the window's edge
+            const _unique_id screen = life->walkPage.id;
+            const _unique_id strike = life->moves().front().second.root.id;
+            const float menuWas = f.pos(walkPart(life, "menuPanel"))->width;
+
+            f.resize(1120.0f, 1020.0f);
+            f.pass(400.0f, 50.0f);
+            f.settle();
+
+            EXPECT_EQ(life->walkPage.id, screen);
+            ASSERT_FALSE(life->moves().empty());
+            EXPECT_EQ(life->moves().front().second.root.id, strike);
+            EXPECT_NEAR(f.pos(walkPart(life, "menuPanel"))->width, menuWas - 200.0f, 1.0f);
+            EXPECT_NEAR(order->x + order->width, 1120.0f - 16.0f, 4.5f);
+            EXPECT_GT(order->x, f.pos(walkPart(life, "menuPanel"))->x + f.pos(walkPart(life, "menuPanel"))->width - 0.5f);
+            EXPECT_NEAR(f.pos(walkPart(life, "moveNote"))->width, f.pos(walkPart(life, "menuPanel"))->width - 32.0f, 1.0f);
 
             // One under the other, inside the panel
             EXPECT_GT(f.pos(walkPart(life, "chip1"))->y, f.pos(walkPart(life, "chip0"))->y + 4.0f);

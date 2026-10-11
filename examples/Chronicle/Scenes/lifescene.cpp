@@ -229,6 +229,7 @@ namespace chronicle
         constexpr float PhoneMargin = 12.0f;
         constexpr float PhoneTop = 84.0f;          // The work at hand, under the title and its two lines
         constexpr float PhoneTabs = 48.0f;         // The row of tabs, and the gap under it
+        constexpr int PageSettle = 4;              // Passes before a page just built holds its pieces in its layouts
         constexpr float PhoneAge = 96.0f;          // The age, at the title's right
 
         struct PhoneTab
@@ -616,6 +617,9 @@ namespace chronicle
         compact = compactPage or phonePage;
         phone = phonePage;
         phoneWidth = width;
+        phoneFitted = width;
+        pageSettling = PageSettle;
+        phoneRefit = false;
         phonePanel.clear();
         handles.clear();
 
@@ -894,8 +898,9 @@ namespace chronicle
         const int wantedWidth = widthStepFor(width);
         const int wantedHeight = heightStepFor(height);
 
-        // The phone page is built at the window's width: at another, it is built again
-        const bool swap = wantCompact != compact or wantPhone != phone or (wantPhone and std::abs(width - phoneWidth) > 0.5f) or (not wantCompact and (wantedWidth != widthStep or wantedHeight != heightStep));
+        // The phone page is built at the window's width; at another its panels are given theirs
+        // where they stand (fitPhone)
+        const bool swap = wantCompact != compact or wantPhone != phone or (not wantCompact and (wantedWidth != widthStep or wantedHeight != heightStep));
 
         if (swap and not wantCompact)
         {
@@ -1410,6 +1415,33 @@ namespace chronicle
         const float under = height - PhoneTop - workingHeight() - PhoneTabs - PhoneMargin;
         const float listHeight = std::max(MinCompactList, under - SideChrome);
 
+        // The head, the tabs and every panel are the column. At another width than they were
+        // made or last fitted at, each is given its own where it stands, and what stands in it
+        // follows. A page just built does not hold its pieces yet: once it does (execute)
+        if (std::abs(width - phoneFitted) > 0.5f)
+        {
+            if (pageSettling > 0)
+            {
+                phoneRefit = true;
+            }
+            else
+            {
+                phoneFitted = width;
+
+                if (auto title = piece<Label>("title"))
+                    title->setWidth(ecs, std::max(1.0f, column - PhoneAge));
+
+                if (auto note = piece<Label>("ageNote"))
+                    note->setWidth(ecs, column);
+
+                if (auto tabs = piece<Tabs>("tabs"))
+                    tabs->setWidth(ecs, column);
+
+                for (const char* name : {"working", "parts", "holds", "clockPanel", "happened"})
+                    widen(piece<Panel>(name), column);
+            }
+        }
+
         if (auto working = piece<Panel>("working"))
         {
             working->setWidth(ecs, column);
@@ -1522,6 +1554,17 @@ namespace chronicle
 
     void LifeScene::execute()
     {
+        // A page built a few passes ago holds its pieces now: a width that came meanwhile is
+        // given to them
+        if (pageSettling > 0 and --pageSettling == 0 and phoneRefit)
+        {
+            phoneRefit = false;
+
+            if (phone)
+                fit(windowWidth, windowHeight);
+        }
+
+
         // A page just built stacked its buttons before its layouts held them: the one that is not
         // shown still had its room. Shown again now that they do
         if (buttonsDue)

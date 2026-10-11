@@ -88,6 +88,7 @@ namespace chronicle
         void setWindows(pg::EntitySystem*, const std::vector<ClockWindow>& windows);
         void setWindowClosed(pg::EntitySystem*, size_t index, bool closed);      // Edges only
         void setMilestones(pg::EntitySystem*, const std::vector<ClockMilestone>& milestones);
+        void setWidth(pg::EntitySystem*, float width);                           // The track's; its windows and its ticks are placed again along it
 
         // Root-relative x of an age on the track's inner span.
         float xFor(float age) const;
