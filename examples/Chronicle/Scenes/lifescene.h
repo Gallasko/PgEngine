@@ -166,6 +166,7 @@ namespace chronicle
         void chooseRecord(const std::string& id);         // The record the form of a queue is filled for
         void queueWalks(int count);                       // The chosen record walked so many times, one walk after the other
         bool onWalkButton(const std::string& tag);        // A button of the walk's screens or of the Adventure page; false for another's
+        bool telling() const { return walkTelling; }      // A turn of a fight is being told on the page: nothing is pressed meanwhile
 
         int newInLife = 0;             // What has come onto the Life page while the Town page was in view: said at its tab's corner
         int newInTown = 0;             // And onto the Town page while the Life page was
@@ -285,6 +286,9 @@ namespace chronicle
         void fillSite();               // The on-site screen says what expedition.pg says
         void fillFight();              // And the fight's
         void runWalk(float ms);        // A fight handed to his stance plays its turns; a row chosen is lit once its list holds it
+        void tellTurn(size_t shown);   // The lines the account has past the ones shown are told in their time
+        void runTelling(float ms);     // The telling, a tick further
+        void endTelling();             // Told: the screen says where the fight stands
         void onWalkSelect(const ActivitySelectedEvent& event);
         void onWalkConfirm(const ActivityActivatedEvent& event);
         int adventureTab() const;      // Which tab is the Adventure page's, -1 when the page has none
@@ -328,6 +332,24 @@ namespace chronicle
         std::unordered_map<std::string, std::string> walkFilled;   // What each list of the walk's screens was last filled with
         std::unordered_map<std::string, std::string> walkPicks;    // The row to light in each, once the list holds it
         float autoLeft = 0.0f;         // Milliseconds before his stance plays the next turn of a fight handed to it
+
+        // A turn of a fight is told in its time: the lines the turn wrote in the account come one
+        // after the other, and a blow's rule fills before the line that tells it. The walk itself
+        // is already where the turn left it: only the page lags, and nothing is pressed meanwhile
+        struct WalkBeat
+        {
+            std::string by;            // Whose blow the line tells: "hero", "foe", "" for what is no blow
+            int n = 0;                 // The beast: the one that struck, or the one he struck
+            int hp = -1;               // His Vitality in the field once the line has happened
+            int left = -1;             // What is left of the beast his blow landed on, in percent; -1 for none
+            LogEntry line;
+        };
+
+        std::deque<WalkBeat> walkBeats;   // The lines still to tell, in their order
+        bool walkTelling = false;      // A turn is being told
+        bool beatCasting = false;      // The rule of the blow at their head is filling
+        float beatLeft = 0.0f;         // Milliseconds before the next thing of the telling
+        std::vector<std::string> castDone;   // Whose rule has filled this turn ("hero", "foe0"): once each
         int diceCast = 0;              // The questions asked of expedition.pg: no two with the same dice
 
         std::vector<RuleActivity> activities;    // The last answer of Rules::activities

@@ -223,9 +223,9 @@ namespace chronicle
         pg::RecordList home;           // What the record would cost to walk again, as it stands
 
         // A fight
-        pg::ElementMap duel;           // {mob, pack, over, auto, kicker, title, turn, cost, daysLeft, quick, warn, low, vitality, vitalityMost, breath, stance, footnote, spoils, back, hand, foeTitle, refused}
-        pg::RecordList menu;           // What he may do this turn: {id, group, name, cost, note, locked, asks, chosen}
-        pg::RecordList targets;        // The beasts: {id, n, name, value, note, dead, chosen, urgent}
+        pg::ElementMap duel;           // {mob, pack, over, auto, kicker, title, turn, cost, daysLeft, quick, warn, low, vitality, vitalityMost, breath, breathPercent, stance, footnote, spoils, back, hand, foeTitle, about, refused}
+        pg::RecordList menu;           // What he may do this turn, what anyone can and then what he has learned (group "Learned"): {id, group, name, cost, note, locked, asks, chosen}
+        pg::RecordList targets;        // The beasts: {id, n, name, life, percent, intent, tone, value, note, dead, chosen, urgent}
         pg::RecordList order;          // Who acts when: {text, note, tone}
         pg::RecordList hero;           // {id, name, glyph, value, rate}
         pg::RecordList foe;            // {id, name, glyph, value, muted}

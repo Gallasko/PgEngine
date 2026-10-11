@@ -61,8 +61,13 @@ does not run its months: it opens the **on-site screen** over the page, where th
 of days (action points, `AP`) spent one choice at a time: seek a beast or watch it from cover,
 gather, study the place, rest, turn for home. Each choice says what it costs before it is made,
 and each one made is a line of **the record**. A beast found is fought on the **fight screen**,
-turn by turn (strike, guard, a technique that costs breath, a remedy, a stance, a retreat), and
-every few turns of a fight a day of the stay is gone. When the days are spent, or he turns for
+turn by turn. What he fights has a panel of its own across the top, over him and over his turn,
+which stand under it side by side: what it is, how it stands, and what it means to do to him
+this turn. A blow is seen coming: its rule fills, his or the beast's, then the blow is told in
+the account. What he may do is what anyone can (strike, defend, take a
+remedy while he holds one, flee) and, under *Learned*, what his life has taught him and nothing
+else: the Keep's blows to its sworn men, the Collegium's workings to its scholars, a trick of
+the streets to who knows them. Every few turns of a fight a day of the stay is gone. When the days are spent, or he turns for
 home, the walk's months run as any work's do, and the record is kept: the **Adventure page** (a
 tab beside Life and Town, there once he has somewhere to walk to) walks it again, once or in a
 queue, with no day chosen and no fight fought. What a walk brings is his, in his Inventory:
@@ -868,9 +873,27 @@ files of their own, `expeditionlib.pg` and `fightlib.pg`, imported first: a scri
   quicker side first. Every `turnsPerAp` turns (3, one more for every 10 Dexterity, one fewer
   under half his Vitality) a day is gone, and a day begun is a day spent. A pack that holds back
   attacks with its first `holdsBack` members only. Where no one dies he is left with one point,
-  carried home, and the most his Vitality can be is one less. Handed over, the fight is played
-  by his stance (`autoChoice`: a remedy under 30 %, a beast one strike ends, a sweep at three,
-  then what the stance prefers).
+  carried home, and the most his Vitality can be is one less. Handed over, the fight plays
+  itself (`autoChoice`: a remedy under 30 %, a beast one strike ends, a sweep at three, then a
+  technique he knows or a plain strike).
+- **What he can do in a fight** is short on purpose. Anyone strikes, defends, takes a remedy he
+  holds, or flees. `walkTechniques` is the rest, each learned by a flag of his life (`knows`, any
+  one of them) and absent from the menu until then: *Heavy cut* (`keep_oath`) and *Sweep*
+  (`veteran`) are the Keep's; *Firebolt* (`collegium`) and the *Binding word* (`orin_known`) are
+  the Collegium's, spells whose blow is counted from his Intelligence (`kind: "spell"`), the
+  second dealing nothing and costing the beast its next move (`holds`); *Feint and step*
+  (`street_known`, `hidden_hand`) is learned on the streets. All cost breath. The stances
+  (`walkStances`) are still in the rules and in the figures, but not on the page.
+- **What a beast means to do** this turn is said of each (`targets`: `life`, `percent`,
+  `intent`), with what it would take from him; its vitality is in figures once he knows it two
+  of four, in words before.
+- **A turn is told in its time** (`LifeScene::tellTurn`, `runTelling`). The script plays a
+  whole turn at once, and the walk is at once where the turn left it; the page lags behind on
+  purpose. Each line the turn wrote in the account says whose blow it tells (`by`, `n`), his
+  Vitality once it has happened (`hp`) and what is left of the beast he hit (`left`): the scene
+  fills that one's rule (`heroCast`, `foeCast<n>`), then writes the line and moves the rule of
+  who was hit, and nothing is pressed meanwhile. Under reduced motion the turn is shown at once.
+  Breath is said only to who has learned something to spend it on.
 - **Events.** After an action an event waits on (`trigger`), one of the zone's may come: its card
   is answered before anything else, and the answer is a step of the record. One of `once: true`
   comes once in a life, and a record walked again passes it by.

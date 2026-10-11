@@ -4,12 +4,16 @@
 # removed when he goes back to the woods. Layout and placeholder content only: every word and
 # figure is rules/expedition.pg's, written by name (LifeScene::fillFight).
 #
-# Under a head and the order of the turn, three columns: who fights (280: he, then what he knows
-# of the beast), what he may do (the rest: the beasts to aim at, and the menu of the turn as
-# tiles in its groups), and at the right (376) what the choice looked at would do, with the
-# button that does it, over the account of the fight. A tile of the menu is chosen, then done by
-# the button, which is always in view; a second click on the tile does it too. Choosing a stance
-# does not use the turn.
+# Under a head and the order of the turn: what he fights, in a panel of its own across the top
+# (each beast with how it stands and what it means to do to him), and under it, side by side and
+# level, he himself (280) and his turn (the menu as tiles: what anyone can do, then what he has
+# learned in his life; against a pack, the beasts to aim at over it). So the beasts are above and
+# he is below. At the right (376), down the whole height, what the choice looked at would do,
+# with the button that does it, over the account of the fight. A tile of the menu is chosen, then
+# done by the button, which is always in view; a second click on the tile does it too.
+#
+# A blow is seen coming: his rule (heroCast) or the beast's (foeCast0..3) fills, then the blow is
+# told in the account (LifeScene::runWalk).
 # z: the Overlay band, 100-129 (the veil 100, the head and the panels 104, their content 114).
 name: fight
 children:
@@ -82,79 +86,130 @@ children:
       - {side: right, target: __MainWindow, targetSide: right, margin: 16}
       - {side: top, target: __MainWindow, targetSide: top, margin: 90}
 
-  # -- Left: he, then what he knows of what he fights --
+  # -- Left and middle: what he fights across the top; under it he, and his turn beside him --
   - kind: Layout:Vertical
     name: walkLeft
     x: 16
     y: 118
     z: 104
-    width: 284
+    width: 920
     height: 880
     scrollable: true
     spacing: 12
     children:
       - kind: Panel
-        name: heroPanel
-        frame: ruled
-        width: 280
-        z: 104
-        contentZ: 114
-        heading: Aldren
-        glyph: strength
-        children:
-          - {kind: Label, name: heroVit, style: label, overflow: wrap, text: "VITALITY 49 OF 90"}
-          - {kind: ProgressRule, name: heroBar, nib: false, percent: 54}
-          - {kind: Label, name: low, style: label, color: vermilion, overflow: wrap, text: ""}
-          - {kind: Label, name: breath, style: label, color: lapis, overflow: wrap, text: "BREATH 3 OF 5"}
-          - {kind: ProgressRule, name: breathBar, nib: false, small: true, percent: 60}
-          - kind: ResourceLedger
-            name: hero
-          - {kind: Label, name: stance, style: label, color: ink-muted, overflow: wrap, text: BALANCED STANCE}
-
-      - kind: Panel
         name: foePanel
-        frame: hair
-        width: 280
+        frame: ruled
+        width: 916
         z: 104
         contentZ: 114
-        heading: Wolf
+        heading: Wolf pack
         glyph: adventure
         children:
+          # What he fights, over him and over his turn: what it is, then each beast of it side by
+          # side (four at most), with how it stands over its rule, what it means to do to him this
+          # turn, and the rule of its blow, which fills before the blow is told. The scene gives
+          # the blocks their width and hides the ones there is no beast for. Under them, what he
+          # knows of it
+          - {kind: Label, name: foeAbout, style: gloss, color: ink-muted, overflow: wrap, text: "Lean and grey. It never comes alone for long."}
+          - kind: Layout:Horizontal
+            name: foeRow
+            height: 116
+            spacing: 16
+            children:
+                - kind: Layout:Vertical
+                  name: foeBlock0
+                  width: 200
+                  height: 116
+                  spacing: 6
+                  children:
+                    - {kind: Label, name: foeName0, style: label, overflow: wrap, width: 200, text: "FIRST WOLF · 12 OF 16"}
+                    - {kind: ProgressRule, name: foeBar0, nib: false, width: 200, percent: 75}
+                    - {kind: Label, name: foeIntent0, style: label, color: vermilion, overflow: wrap, width: 200, text: "BITES THIS TURN · 2–4 IF IT LANDS"}
+                    - {kind: ProgressRule, name: foeCast0, nib: false, small: true, width: 200, percent: 0}
+                - kind: Layout:Vertical
+                  name: foeBlock1
+                  width: 200
+                  height: 116
+                  spacing: 6
+                  children:
+                    - {kind: Label, name: foeName1, style: label, overflow: wrap, width: 200, text: "SECOND WOLF · UNHURT"}
+                    - {kind: ProgressRule, name: foeBar1, nib: false, width: 200, percent: 100}
+                    - {kind: Label, name: foeIntent1, style: label, color: vermilion, overflow: wrap, width: 200, text: "CIRCLES: NOTHING FROM IT THIS TURN"}
+                    - {kind: ProgressRule, name: foeCast1, nib: false, small: true, width: 200, percent: 0}
+                - kind: Layout:Vertical
+                  name: foeBlock2
+                  width: 200
+                  height: 116
+                  spacing: 6
+                  children:
+                    - {kind: Label, name: foeName2, style: label, overflow: wrap, width: 200, text: "THIRD WOLF · UNHURT"}
+                    - {kind: ProgressRule, name: foeBar2, nib: false, width: 200, percent: 100}
+                    - {kind: Label, name: foeIntent2, style: label, color: vermilion, overflow: wrap, width: 200, text: "HANGS BACK WHILE TWO STAND"}
+                    - {kind: ProgressRule, name: foeCast2, nib: false, small: true, width: 200, percent: 0}
+                - kind: Layout:Vertical
+                  name: foeBlock3
+                  width: 200
+                  height: 116
+                  spacing: 6
+                  children:
+                    - {kind: Label, name: foeName3, style: label, overflow: wrap, width: 200, text: ""}
+                    - {kind: ProgressRule, name: foeBar3, nib: false, width: 200, percent: 0}
+                    - {kind: Label, name: foeIntent3, style: label, color: vermilion, overflow: wrap, width: 200, text: ""}
+                    - {kind: ProgressRule, name: foeCast3, nib: false, small: true, width: 200, percent: 0}
           - kind: ResourceLedger
             name: foe
 
-  # -- Middle: the beasts to aim at, and the menu of the turn --
-  - kind: Layout:Vertical
-    name: walkMiddle
-    x: 312
-    y: 118
-    z: 104
-    width: 620
-    height: 880
-    scrollable: true
-    spacing: 12
-    children:
-      - kind: Panel
-        name: menuPanel
-        frame: ruled
-        width: 616
-        z: 104
-        contentZ: 114
-        heading: His turn
-        glyph: swordsmanship
+      - kind: Layout:Horizontal
+        name: duelRow
+        width: 916
+        height: 620
+        spacing: 12
         children:
-          - kind: ActivityList
-            name: targets
-            id: walk.targets
-            stripes: false
-            compact: true
-            tileWidth: 148
-          - kind: ActivityList
-            name: menu
-            id: walk.menu
-            stripes: false
-            compact: true
-            tileWidth: 148
+          - kind: Panel
+            name: heroPanel
+            frame: ruled
+            width: 280
+            z: 104
+            contentZ: 114
+            heading: Aldren
+            glyph: strength
+            children:
+              - {kind: Label, name: heroVit, style: label, overflow: wrap, text: "VITALITY 49 OF 90"}
+              - {kind: ProgressRule, name: heroBar, nib: false, percent: 54}
+              - {kind: Label, name: low, style: label, color: vermilion, overflow: wrap, text: ""}
+              # His breath, for who has learned something to spend it on: out of the stack otherwise
+              - {kind: Label, name: breath, style: label, color: lapis, overflow: wrap, text: "BREATH 3 OF 5"}
+              - {kind: ProgressRule, name: breathBar, nib: false, small: true, percent: 60}
+              # His blow, about to go: the rule fills, then the blow is told in the account
+              - {kind: Label, name: heroMove, style: label, color: ink-muted, overflow: wrap, text: HIS BLOW}
+              - {kind: ProgressRule, name: heroCast, nib: false, small: true, percent: 0}
+              - kind: ResourceLedger
+                name: hero
+
+          - kind: Panel
+            name: menuPanel
+            frame: ruled
+            width: 616
+            z: 104
+            contentZ: 114
+            heading: His turn
+            glyph: swordsmanship
+            children:
+              # Against several, the one aimed at is chosen here; against one there is nothing to choose
+              - {kind: Label, name: aimNote, style: label, color: ink-muted, overflow: wrap, text: AIM AT}
+              - kind: ActivityList
+                name: targets
+                id: walk.targets
+                stripes: false
+                compact: true
+                tileWidth: 148
+              - kind: ActivityList
+                name: menu
+                id: walk.menu
+                stripes: false
+                compact: true
+                tileWidth: 148
 
   # -- Right: what the choice looked at would do, with the button that does it, then the account --
   - kind: Layout:Vertical

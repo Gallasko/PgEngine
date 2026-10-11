@@ -121,12 +121,38 @@ fun clampTo(v, low, high)
     return smaller(high, larger(low, v))
 }
 
-// What a blow of his deals, as a range [least, most]: `power` is percent of a strike's
+// Whether he has learned a technique: any one of the flags that teach it
+fun knowsTech(tech)
+{
+    for (var i = 0; i < len(tech.knows); i++)
+    {
+        if (mine(tech.knows[i]) > 0)
+        {
+            return true
+        }
+    }
+
+    return false
+}
+
+// What a blow of his deals, as a range [least, most]: `power` is percent of a strike's. A
+// spell's is counted from his Intelligence, a blow's from his Strength and his Arms
 fun blowRange(power, mob, techId)
 {
     var stance = stanceOf(fight.stance)
-    var low = share(share(walkKnobs.weaponLeast + wholeOf(mightOf(), 2), stance.deals), power)
-    var high = share(share(walkKnobs.weaponMost + wholeOf(mightOf(), 2), stance.deals), power)
+    var least = walkKnobs.weaponLeast + wholeOf(mightOf(), 2)
+    var most = walkKnobs.weaponMost + wholeOf(mightOf(), 2)
+
+    var tech = techOf(techId)
+
+    if (pick(tech, "kind", "") == "spell")
+    {
+        least = walkKnobs.spellLeast + wholeOf(mine("int"), 2)
+        most = walkKnobs.spellMost + wholeOf(mine("int"), 2)
+    }
+
+    var low = share(share(least, stance.deals), power)
+    var high = share(share(most, stance.deals), power)
 
     // What the beast is weak to bites deeper
     if (mob.weak != "" and mob.weak == techId)
@@ -203,9 +229,15 @@ fun rangeText(range)
     return toString(range[0]) + "–" + toString(range[1])
 }
 
+// A line of the account. `by` says whose blow it tells ("hero", `n` the beast it was aimed at; or
+// "foe", `n` its place; "" for what is no blow): the page fills that one's bar before it writes
+// the line. `hp` is his Vitality in the field once the line has happened, and `left` what is left
+// of the beast a blow of his landed on, in percent (-1 for none): the page moves the rules with
+// the lines, not all at the end
 fun say(text, figure, kind)
 {
-    push(account, {turn: toString(fight.turn), text: text, figure: figure, kind: kind})
+    push(account, {turn: toString(fight.turn), text: text, figure: figure, kind: kind, by: pick(fight, "by", ""), n: pick(fight, "byN", 0),
+                   hp: runOf("hp"), left: pick(fight, "left", -1)})
 }
 
 fun foeName(mob, n, count)
@@ -245,11 +277,12 @@ fun beginFight()
 
     for (var i = 0; i < count; i++)
     {
-        push(foes, {n: i, id: mob.id, name: foeName(mob, i, count), hp: mob.hp, hpMax: mob.hp, at: i % len(mob.script), alive: 1})
+        push(foes, {n: i, id: mob.id, name: foeName(mob, i, count), hp: mob.hp, hpMax: mob.hp, at: i % len(mob.script), alive: 1, held: 0})
     }
 
     fight = {mob: mob.id, count: count, turn: 1, turns: 0, ticks: 0, since: 0, breath: walkKnobs.breath, stance: pick(run, "stance", "balanced"),
-             guarding: 0, feinted: 0, target: 0, auto: 0, over: "", hpStart: runOf("hp"), bitten: 0, choice: "strike", spoils: "", lowSaid: 0}
+             guarding: 0, feinted: 0, target: 0, auto: 0, over: "", hpStart: runOf("hp"), bitten: 0, choice: "strike", spoils: "", lowSaid: 0,
+             by: "", byN: 0, left: -1}
 
     for (var i = 0; i < len(walkTechniques); i++)
     {
@@ -321,9 +354,9 @@ fun choiceShort(choice)
             return "NO SUCH BLOW"
         }
 
-        if (mine(tech.asks.stat) < tech.asks.needed)
+        if (not knowsTech(tech))
         {
-            return "ASKS " + toUpperCase(statName(tech.asks.stat)) + " " + toString(tech.asks.needed)
+            return "LEARNED AT " + tech.where
         }
 
         if (pick(fight, "cool." + tech.id, 0) > 0)
@@ -353,6 +386,8 @@ fun blow(n, power, hitMod, techId, name)
         return
     }
 
+    fight.byN = n
+
     if (not chance(hitChance(mob, hitMod)))
     {
         say(name + " at the " + toLowerCase(foe.name) + ": a miss", "—", "note")
@@ -377,7 +412,9 @@ fun blow(n, power, hitMod, techId, name)
         text = text + ", and it falls"
     }
 
+    fight.left = wholeOf(foe.hp * 100, larger(1, foe.hpMax))
     say(text, toString(dealt), "gain")
+    fight.left = -1
 }
 
 fun heroActs(choice)
@@ -407,10 +444,19 @@ fun heroActs(choice)
     {
         var tech = techOf(substring(choice, 5))
 
+        fight.by = "hero"
         fight.breath = fight.breath - tech.breath
         fight["cool." + tech.id] = tech.cool + 1
 
-        if (tech.all)
+        if (tech.holds)
+        {
+            // Nothing is dealt: the beast aimed at loses the next move it would have made
+            var bound = foes[fight.target]
+
+            bound.held = 1
+            say(tech.name + ": the " + toLowerCase(bound.name) + " is held", "", "gain")
+        }
+        else if (tech.all)
         {
             for (var i = 0; i < len(foes); i++)
             {
@@ -427,10 +473,14 @@ fun heroActs(choice)
             fight.feinted = 1
         }
 
+        fight.by = ""
+
         return
     }
 
+    fight.by = "hero"
     blow(fight.target, 100, 0, "strike", "Strike")
+    fight.by = ""
 }
 
 // What each beast will do this turn, as they stand when it begins: [move]
@@ -458,7 +508,13 @@ fun foesAct(moves)
         var foe = foes[i]
         var move = moves[i]
 
-        if (foe.alive > 0 and move != "hold" and runOf("downed") == 0)
+        if (foe.alive > 0 and move != "hold" and runOf("downed") == 0 and pick(foe, "held", 0) > 0)
+        {
+            // Held by a word: its move is lost, and it is free again
+            foe.held = 0
+            say("The " + toLowerCase(foe.name) + " strains against the word", "", "note")
+        }
+        else if (foe.alive > 0 and move != "hold" and runOf("downed") == 0)
         {
             foe.at = (foe.at + 1) % len(mob.script)
 
@@ -468,10 +524,16 @@ fun foesAct(moves)
             }
             else if (chance(dodgeChance(mob)))
             {
+                fight.by = "foe"
+                fight.byN = i
                 say("The " + toLowerCase(foe.name) + " " + mob.verb + ": he steps clear", "—", "note")
+                fight.by = ""
             }
             else
             {
+                fight.by = "foe"
+                fight.byN = i
+
                 var range = biteRange(mob, move)
                 var taken = 0 - shiftHp(0 - rollBetween(range[0], range[1]))
 
@@ -491,6 +553,7 @@ fun foesAct(moves)
                 }
 
                 say("The " + toLowerCase(foe.name) + " " + mob.verb, "−" + toString(taken), "loss")
+                fight.by = ""
             }
         }
     }
@@ -692,6 +755,11 @@ fun autoChoice()
     if (choiceShort("tech.feint") == "" and fight.breath >= 3)
     {
         return "tech.feint"
+    }
+
+    if (choiceShort("tech.firebolt") == "")
+    {
+        return "tech.firebolt"
     }
 
     return "strike"
@@ -903,50 +971,54 @@ fun moveWord(mob, move)
     return mob.verb
 }
 
-// The beasts, one card each: the one aimed at is `chosen`
+// The beasts, each as its panel shows it: how it stands (`life`, in figures once he knows it
+// two of four, and `percent` for its rule), what it means to do to him this turn (`intent`, with
+// what it would take from him; `tone` loss when it attacks), and whether it is the one aimed at.
+// `value` and `note` are the same for the tiles a pack is aimed with
 fun targetRows()
 {
     var rows = []
     var mob = mobOf(fight.mob)
     var known = mobLevel(run.zone, mob)
-    var range = blowRange(100, mob, "strike")
 
     for (var i = 0; i < len(foes); i++)
     {
         var foe = foes[i]
-        var row = {id: "foe." + toString(i), n: i, name: foe.name, value: hurtWord(foe), note: "", dead: 0, chosen: 0, urgent: 0}
+        var row = {id: "foe." + toString(i), n: i, name: foe.name, life: hurtWord(foe), percent: wholeOf(foe.hp * 100, larger(1, foe.hpMax)),
+                   intent: "", tone: "muted", value: "", note: "", dead: 0, chosen: 0, urgent: 0}
 
         if (known >= 2 and foe.alive > 0)
         {
-            row.value = toString(foe.hp) + " OF " + toString(foe.hpMax)
+            row.life = toString(foe.hp) + " OF " + toString(foe.hpMax)
         }
 
         if (foe.alive <= 0)
         {
             row.dead = 1
+            row.percent = 0
+            row.intent = "IT IS DOWN"
         }
         else
         {
             var move = moveOf(mob, i)
 
-            if (move == "hold")
+            if (pick(foe, "held", 0) > 0 and move != "hold")
             {
-                row.note = "HANGS BACK WHILE " + toUpperCase(wordOf(mob.holdsBack)) + " STAND"
+                row.intent = "HELD BY THE WORD: IT DOES NOTHING THIS TURN"
             }
-            else if (known >= 2)
+            else if (move == "hold")
             {
-                row.note = toUpperCase(moveWord(mob, move)) + " NEXT"
-
-                if (move != "circle")
-                {
-                    row.urgent = 1
-                }
+                row.intent = "HANGS BACK WHILE " + toUpperCase(wordOf(mob.holdsBack)) + " STAND"
             }
-
-            if (known >= 2 and foe.hp <= range[1])
+            else if (move == "circle")
             {
-                row.note = "ONE STRIKE MAY FINISH IT"
-                row.urgent = 0
+                row.intent = "CIRCLES: NOTHING FROM IT THIS TURN"
+            }
+            else
+            {
+                row.intent = toUpperCase(moveWord(mob, move)) + " THIS TURN · " + rangeText(biteRange(mob, move)) + " IF IT LANDS"
+                row.tone = "loss"
+                row.urgent = 1
             }
 
             if (i == fight.target)
@@ -954,6 +1026,9 @@ fun targetRows()
                 row.chosen = 1
             }
         }
+
+        row.value = row.life
+        row.note = row.intent
 
         push(rows, row)
     }
@@ -981,54 +1056,46 @@ fun menuRow(id, group, name, cost, note)
     return row
 }
 
-fun stanceNote(stance)
-{
-    if (stance.id == fight.stance)
-    {
-        return "HIS STANCE NOW"
-    }
-
-    if (stance.deals == 100 and stance.takes == 100)
-    {
-        return "NEITHER MORE NOR LESS"
-    }
-
-    return signed(stance.deals - 100) + " % DEALT · " + signed(stance.takes - 100) + " % TAKEN"
-}
-
-// Everything he may do this turn, in the menu's groups
+// Everything he may do this turn: what anyone can (strike, defend, take a remedy if he holds
+// one, flee), then what he has learned in his life, and nothing he has not
 fun menuRows()
 {
     var rows = []
     var mob = mobOf(fight.mob)
 
-    push(rows, menuRow("strike", "Weapon", "Strike", "FREE", rangeText(blowRange(100, mob, "strike")) + " · HITS " + toString(hitChance(mob, 0)) + " %"))
-    push(rows, menuRow("guard", "Weapon", "Guard", "FREE", "HALVES WHAT COMES"))
+    push(rows, menuRow("strike", "", "Strike", "FREE", rangeText(blowRange(100, mob, "strike")) + " · HITS " + toString(hitChance(mob, 0)) + " %"))
+    push(rows, menuRow("guard", "", "Defend", "FREE", "HALVES WHAT COMES"))
+
+    if (held("remedy") > 0)
+    {
+        var mend = smaller(share(runOf("hpMax"), itemOf("remedy").heals), runOf("hpMax") - runOf("hp"))
+
+        push(rows, menuRow("remedy", "", "Take a remedy", "1 OF " + toString(held("remedy")), "+" + toString(mend) + " VITALITY"))
+    }
+
+    push(rows, menuRow("retreat", "", "Flee", "ENDS IT", "THE DAYS ARE KEPT · NO LOOT"))
 
     for (var i = 0; i < len(walkTechniques); i++)
     {
         var tech = walkTechniques[i]
-        var note = rangeText(blowRange(tech.power, mob, tech.id)) + " · HITS " + toString(hitChance(mob, tech.hit)) + " %"
 
-        if (tech.all)
+        if (knowsTech(tech))
         {
-            note = note + " · ALL"
+            var note = rangeText(blowRange(tech.power, mob, tech.id)) + " · HITS " + toString(hitChance(mob, tech.hit)) + " %"
+
+            if (tech.holds)
+            {
+                note = "IT LOSES ITS NEXT MOVE"
+            }
+
+            if (tech.all)
+            {
+                note = note + " · ALL"
+            }
+
+            push(rows, menuRow("tech." + tech.id, "Learned", tech.name, toString(tech.breath) + " BREATH", note))
         }
-
-        push(rows, menuRow("tech." + tech.id, "Techniques", tech.name, toString(tech.breath) + " BREATH", note))
     }
-
-    var mend = smaller(share(runOf("hpMax"), itemOf("remedy").heals), runOf("hpMax") - runOf("hp"))
-
-    push(rows, menuRow("remedy", "Remedies", "Wortleaf remedy", "1 OF " + toString(held("remedy")), "+" + toString(mend) + " VITALITY · USES THE TURN"))
-    push(rows, menuRow("ration", "Remedies", "Rations", toString(held("rations")) + " HELD", "ONLY AT REST"))
-
-    for (var i = 0; i < len(walkStances); i++)
-    {
-        push(rows, menuRow("stance." + walkStances[i].id, "Stance", walkStances[i].name, "NO TURN", stanceNote(walkStances[i])))
-    }
-
-    push(rows, menuRow("retreat", "Leave", "Retreat", "ENDS IT", "THE DAYS ARE KEPT · NO LOOT"))
 
     return rows
 }
@@ -1096,20 +1163,36 @@ fun previewOf()
 
     if (choice == "guard")
     {
-        view.title = "Guard"
+        view.title = "Defend"
         view.text = "He takes the blow on his guard and gives none."
         view.then = "Half of what comes"
-        view.button = "Guard"
+        view.button = "Defend"
         view.odds = "No blow of his this turn."
     }
     else if (choice == "retreat")
     {
-        view.title = "Retreat"
+        view.title = "Flee"
         view.text = "He leaves the field. The days this fight has cost stay written; nothing is carried off."
         view.costs = "The fight, as a loss"
         view.bites = "None"
-        view.button = "Retreat"
-        view.odds = "A retreat is never refused."
+        view.button = "Flee"
+        view.odds = "No beast of these woods follows a man who runs."
+
+        return view
+    }
+    else if (startsWith(choice, "tech.") and pick(techOf(substring(choice, 5)), "holds", false))
+    {
+        var word = techOf(substring(choice, 5))
+
+        view.title = word.name
+        view.text = word.line + "."
+        view.against = "The " + toLowerCase(foe.name)
+        view.hits = "Surely"
+        view.deals = "Nothing"
+        view.costs = toString(word.breath) + " breath"
+        view.then = "Ready in " + counted(word.cool, "turn", "turns") + " · " + toString(larger(0, fight.breath - word.breath)) + " breath left"
+        view.button = word.name + " · " + toString(word.breath) + " breath"
+        view.odds = "What it meant to do to him, it does not do."
 
         return view
     }
@@ -1117,8 +1200,8 @@ fun previewOf()
     {
         var mend = smaller(share(runOf("hpMax"), itemOf("remedy").heals), runOf("hpMax") - runOf("hp"))
 
-        view.title = "Wortleaf remedy"
-        view.text = "He drinks instead of striking."
+        view.title = "Take a remedy"
+        view.text = "He drinks a wortleaf remedy instead of striking."
         view.deals = "+" + toString(mend) + " vitality"
         view.costs = "1 remedy of " + toString(held("remedy")) + ", and the turn"
         view.button = "Take a remedy"
@@ -1155,8 +1238,12 @@ fun previewOf()
         else
         {
             view.text = "A plain blow with what he carries."
-            view.then = toString(fight.breath) + " breath left"
             view.button = "Strike"
+
+            if (knowsAny())
+            {
+                view.then = toString(fight.breath) + " breath left"
+            }
         }
 
         var range = blowRange(power, mob, techId)
@@ -1237,14 +1324,7 @@ fun orderRows()
     {
         if (foes[i].alive > 0)
         {
-            var note = "?"
-
-            if (known >= 2 or moveOf(mob, i) == "hold")
-            {
-                note = toUpperCase(moveWord(mob, moveOf(mob, i)))
-            }
-
-            push(rows, {text: foes[i].name, note: note, tone: "foe"})
+            push(rows, {text: foes[i].name, note: toUpperCase(moveWord(mob, moveOf(mob, i))), tone: "foe"})
         }
     }
 
@@ -1343,6 +1423,20 @@ fun foeRows()
     return rows
 }
 
+// Whether he has learned anything that costs breath: who has not is not told of it
+fun knowsAny()
+{
+    for (var i = 0; i < len(walkTechniques); i++)
+    {
+        if (knowsTech(walkTechniques[i]))
+        {
+            return true
+        }
+    }
+
+    return false
+}
+
 // The head of the fight screen, and the lines its panels and buttons say
 fun duelHead()
 {
@@ -1361,15 +1455,19 @@ fun duelHead()
                 vitality: runOf("hp"), vitalityMost: runOf("hpMax"),
                 breath: "BREATH " + toString(fight.breath) + " OF " + toString(walkKnobs.breath), breathPercent: wholeOf(fight.breath * 100, walkKnobs.breath),
                 stance: toUpperCase(stanceOf(fight.stance).name) + " STANCE",
-                footnote: "WRITTEN SO FAR · " + toUpperCase(daysText(fight.ticks)) + " · " + toString(larger(0, lost)) + " VITALITY LOST · A RETREAT KEEPS THE DAYS",
+                footnote: "WRITTEN SO FAR · " + toUpperCase(daysText(fight.ticks)) + " · " + toString(larger(0, lost)) + " VITALITY LOST · FLEEING KEEPS THE DAYS",
                 spoils: fight.spoils, back: "Back to " + zone.name,
-                hand: "Let the stance choose, this turn and after",
-                foeTitle: mob.name, refused: pick(run, "refused", "")}
+                hand: "Let him fight on, this turn and after",
+                foeTitle: foundName(mob, fight.count), about: mob.about, refused: pick(run, "refused", "")}
 
     if (fight.count > 1)
     {
         view.pack = 1
-        view.foeTitle = "The pack so far"
+    }
+
+    if (not knowsAny())
+    {
+        view.breath = ""
     }
 
     if (fight.auto > 0)

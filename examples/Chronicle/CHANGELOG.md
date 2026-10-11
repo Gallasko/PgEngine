@@ -13,11 +13,16 @@ the `CHANGELOG.md` at the root of the repository.
   you begin it you are taken there: the stay is a number of days, and you spend them one choice
   at a time (gather, study the place, rest, seek a beast or watch it, go home). Every choice
   says what it costs before you make it.
-- **Fights.** A beast you seek is fought turn by turn: strike, guard, three techniques that
-  cost breath, a remedy, three stances, or retreat. Each choice shows what it would do before
-  you confirm it. Every three turns of a fight cost a day of the stay. You can also hand the
-  fight to your stance and let it play. Wolves hunt in packs of three; one of them hangs back
-  while two stand.
+- **Fights.** A beast you seek is fought turn by turn. It has its own panel across the top,
+  above you and your choices: what it is, how it stands, and what it is about to do to you.
+  A small bar fills before each blow, yours and the beast's, so you see it coming. You can strike, defend, take a remedy
+  if you hold one, or flee. Each choice shows what it would do before you confirm it. Every
+  three turns of a fight cost a day of the stay. You can also let him fight on by himself.
+  Wolves hunt in packs of three; one of them hangs back while two stand.
+- **What you learn in a life, you fight with.** A man sworn to the Keep has a *Heavy cut*, and
+  a veteran of the campaign a *Sweep*. A scholar of the Collegium throws a *Firebolt*, stronger
+  with Intelligence, and Magister Orin's assistant knows a *Binding word* that costs a beast its
+  move. The streets teach a *Feint*. Nobody else sees these in a fight.
 - **The record, and walking it again.** Everything you do on a walk is written down. When you
   are home the record is kept, and the new *Adventure* tab walks it again for you, once or
   several times in a row: no choice to make, no fight to play, and what the beasts drop is

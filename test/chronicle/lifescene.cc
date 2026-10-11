@@ -6008,10 +6008,47 @@ namespace pg
             ASSERT_NE(menu->find(&f.ecs, "guard"), nullptr);
 
             // A tile of the menu looked at says what it would do, and the button takes its name
+            // What he fights has its own panel, over him: the beast, how it stands over its rule,
+            // and what it means to do to him this turn. One beast: nothing to aim at, no tile
+            f.pass(100.0f, 50.0f);
+
+            // The beasts are above and he is below: its panel runs across the top, over him and
+            // over his turn, which stand under it side by side and level
+            auto foeBox = f.pos(walkPart(life, "foePanel"));
+            auto heroBox = f.pos(walkPart(life, "heroPanel"));
+            auto menuBox = f.pos(walkPart(life, "menuPanel"));
+
+            EXPECT_LE(foeBox->y + foeBox->height, heroBox->y + 0.5f);
+            EXPECT_NEAR(heroBox->y, menuBox->y, 0.5f);
+            EXPECT_GT(menuBox->x, heroBox->x + heroBox->width - 0.5f);
+            EXPECT_NEAR(foeBox->x, heroBox->x, 0.5f);
+            EXPECT_NEAR(foeBox->x + foeBox->width, menuBox->x + menuBox->width, 1.0f);
+            EXPECT_GT(f.pos(walkPart(life, "previewPanel"))->x, menuBox->x + menuBox->width - 0.5f);
+
+            // He has learned nothing that costs breath: he is not told of it
+            EXPECT_FALSE(f.pos(walkPart(life, "breath"))->visible);
+            EXPECT_FALSE(f.pos(walkPart(life, "breathBar"))->visible);
+
+            EXPECT_EQ(walkPart(life, "foePanel")->get<Panel>()->title->spec.text, "Water rat");
+            EXPECT_FALSE(walkPart(life, "foeAbout")->get<Label>()->spec.text.empty());
+            EXPECT_EQ(walkPart(life, "foeName0")->get<Label>()->spec.text, "WATER RAT \xC2\xB7 UNHURT");
+            EXPECT_FALSE(walkPart(life, "foeIntent0")->get<Label>()->spec.text.empty());
+            EXPECT_TRUE(f.pos(walkPart(life, "foeBar0"))->visible);
+            EXPECT_FALSE(f.pos(walkPart(life, "foeName1"))->visible);
+            EXPECT_FALSE(f.pos(walkPart(life, "targets"))->visible);
+            EXPECT_FALSE(f.pos(walkPart(life, "aimNote"))->visible);
+
+            // A boy who has learned nothing has what anyone has: strike, defend, a remedy, flee
+            EXPECT_EQ(life->walk.menu.size(), 4u);
+            EXPECT_EQ(menu->find(&f.ecs, "tech.heavy"), nullptr);
+            EXPECT_EQ(menu->find(&f.ecs, "stance.cautious"), nullptr);
+            ASSERT_NE(menu->find(&f.ecs, "retreat"), nullptr);
+            EXPECT_EQ(menu->find(&f.ecs, "retreat")->spec.name, "Flee");
+
             f.ecs.sendEvent(ActivitySelectedEvent{"walk.menu", "guard"});
             f.settle();
-            EXPECT_EQ(walkPart(life, "act")->get<Button>()->label.spec.text, "Guard");
-            EXPECT_EQ(walkPart(life, "previewTitle")->get<Label>()->spec.text, "Guard");
+            EXPECT_EQ(walkPart(life, "act")->get<Button>()->label.spec.text, "Defend");
+            EXPECT_EQ(walkPart(life, "previewTitle")->get<Label>()->spec.text, "Defend");
 
             f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.act"});
             f.settle();
@@ -6066,6 +6103,78 @@ namespace pg
             EXPECT_EQ(again->save.knowledge["fights.rat"], 1);
 
             std::remove(path.c_str());
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Where things move, a turn of a fight is told in its time: the rule of a blow fills, then
+        // the blow is written in the account, and nothing is pressed meanwhile. The walk itself is
+        // already where the turn left it.
+        TEST(lifescene_test, a_turn_of_a_fight_is_told_in_its_time)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.fresh = true;
+            opt.lives = 2;
+            opt.walkSeed = 11;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            life->save.age = 10.0f;
+            life->save.stats["walked.hedgerows"] = 1;
+            life->onMonth();
+            f.settle();
+
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "walk.millpond"});
+            f.frames(12);
+            ASSERT_TRUE(life->onWalk());
+
+            life->walkDo(WalkAct{"seek", "rat", 1});
+            f.frames(12);
+            answerEvents(f, life);
+            f.frames(12);
+            ASSERT_EQ(life->walkScreen, "fight");
+
+            // As the game plays it
+            Motion::setReduced(false);
+            f.pass(400.0f, 50.0f);
+
+            auto account = walkPart(life, "account")->get<EventLog>();
+            const size_t before = account->size();
+            const size_t written = life->save.walk.account.size();
+
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.act"});
+            f.frames(4);
+
+            // The turn is played, and not told yet: the account on the page has nothing new
+            EXPECT_GT(life->save.walk.account.size(), written);
+            EXPECT_TRUE(life->telling());
+            EXPECT_EQ(account->size(), before);
+            EXPECT_EQ(walkPart(life, "turn")->get<Label>()->spec.text, "TURN 1");
+
+            // A press meanwhile is of a screen a turn late: it does nothing
+            const size_t played = life->save.walk.account.size();
+
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.act"});
+            f.frames(4);
+            EXPECT_EQ(life->save.walk.account.size(), played);
+
+            // Told: every line the turn wrote is on the page, and the screen is the next turn's
+            f.pass(6000.0f, 50.0f);
+
+            EXPECT_FALSE(life->telling());
+            EXPECT_EQ(walkPart(life, "account")->get<EventLog>()->size(), played);
+
+            if (life->walk.duel.at("over").toString().empty())
+            {
+                EXPECT_EQ(walkPart(life, "turn")->get<Label>()->spec.text, "TURN 2");
+            }
+
+            Motion::setReduced(true);
         }
 
         // ----------------------------------------------------------------------------------------

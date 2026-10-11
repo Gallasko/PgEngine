@@ -389,22 +389,36 @@ namespace pg
             EXPECT_EQ(w.state.foes.size(), 1u);
             EXPECT_EQ(textOf(w.last.duel, "turn"), "TURN 1");
 
-            // What he may do, said with what it would do
-            ASSERT_NE(byId(w.last.menu, "strike"), nullptr);
-            ASSERT_NE(byId(w.last.menu, "retreat"), nullptr);
+            // What he may do is what anyone can: strike, defend, take a remedy while he holds
+            // one, flee. He has learned nothing else, and nothing else is offered
+            ASSERT_EQ(w.last.menu.size(), 4u);
+            EXPECT_EQ(textOf(w.last.menu[0], "id"), "strike");
+            EXPECT_EQ(textOf(w.last.menu[1], "name"), "Defend");
+            EXPECT_EQ(textOf(w.last.menu[2], "id"), "remedy");
+            EXPECT_EQ(textOf(w.last.menu[3], "name"), "Flee");
             EXPECT_EQ(textOf(w.last.preview, "id"), "strike");
             EXPECT_FALSE(textOf(w.last.preview, "deals").empty());
+
+            // What he fights is said of each beast: how it stands, and what it means to do to him
+            ASSERT_EQ(w.last.targets.size(), 1u);
+            EXPECT_EQ(textOf(w.last.targets[0], "life"), "UNHURT");
+            EXPECT_EQ(intOf(w.last.targets[0], "percent"), 100);
+            EXPECT_FALSE(textOf(w.last.targets[0], "intent").empty());
+            EXPECT_FALSE(textOf(w.last.duel, "about").empty());
 
             // Looking at another choice changes nothing but what is said
             ASSERT_TRUE(w.act("pick", "guard"));
             EXPECT_EQ(textOf(w.last.preview, "id"), "guard");
+            EXPECT_EQ(textOf(w.last.preview, "title"), "Defend");
             EXPECT_EQ(textOf(w.last.duel, "turn"), "TURN 1");
 
-            // A stance is taken without the turn
-            ASSERT_TRUE(w.act("pick", "stance.cautious"));
+            // What he has not learned cannot be done, whoever asks
+            ASSERT_TRUE(w.act("pick", "tech.heavy"));
             ASSERT_TRUE(w.act("do"));
-            EXPECT_EQ(textOf(w.state.fight, "stance"), "cautious");
             EXPECT_EQ(textOf(w.last.duel, "turn"), "TURN 1");
+            EXPECT_EQ(textOf(w.last.duel, "refused"), "LEARNED AT THE KEEP");
+
+            ASSERT_TRUE(w.act("pick", "strike"));
 
             w.fight();
 
@@ -439,6 +453,80 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // What a life has learned is what its fights offer: the Keep's blows to its sworn men, the
+        // Collegium's workings to its scholars, a trick of the streets to who knows them.
+        TEST(expedition_test, a_fight_offers_what_he_has_learned)
+        {
+            MockLogger logger;
+
+            auto learned = [](ElementMap who) {
+                Walker w(std::move(who));
+
+                EXPECT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
+                w.act("seek", "wolf", 1);
+                w.answer();
+
+                std::vector<std::string> ids;
+
+                for (const auto& m : w.last.menu)
+                {
+                    if (textOf(m, "group") == "Learned")
+                        ids.push_back(textOf(m, "id"));
+                }
+
+                return ids;
+            };
+
+            EXPECT_TRUE(learned(hunter()).empty());
+
+            ElementMap knight = hunter();
+            knight["keep_oath"] = ElementType{1};
+            EXPECT_EQ(learned(knight), (std::vector<std::string>{"tech.heavy"}));
+
+            knight["veteran"] = ElementType{1};
+            EXPECT_EQ(learned(knight), (std::vector<std::string>{"tech.heavy", "tech.sweep"}));
+
+            ElementMap mage = hunter();
+            mage["collegium"] = ElementType{1};
+            mage["orin_known"] = ElementType{1};
+            EXPECT_EQ(learned(mage), (std::vector<std::string>{"tech.firebolt", "tech.binding"}));
+
+            ElementMap urchin = hunter();
+            urchin["street_known"] = ElementType{1};
+            EXPECT_EQ(learned(urchin), (std::vector<std::string>{"tech.feint"}));
+
+            // A working is counted from his Intelligence: a clever man's firebolt is worth his study
+            mage["int"] = ElementType{16};
+
+            Walker w(mage);
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
+            ASSERT_TRUE(w.act("seek", "wolf", 1));
+            w.answer();
+            ASSERT_EQ(w.screen(), "fight");
+
+            ASSERT_TRUE(w.act("pick", "tech.firebolt"));
+            EXPECT_EQ(textOf(w.last.preview, "title"), "Firebolt");
+            EXPECT_EQ(textOf(w.last.preview, "deals"), "12\xE2\x80\x93" "15");   // 5-8, and half of 16, less the wolf's guard of 1
+
+            // The binding word deals nothing: the beast loses the move it meant to make
+            ASSERT_TRUE(w.act("pick", "tech.binding"));
+            EXPECT_EQ(textOf(w.last.preview, "deals"), "Nothing");
+
+            const int hp = intOf(w.state.run, "hp");
+            const int breath = intOf(w.state.fight, "breath");
+
+            ASSERT_TRUE(w.act("do"));
+
+            EXPECT_EQ(intOf(w.state.run, "hp"), hp);
+            EXPECT_EQ(intOf(w.state.fight, "breath"), breath - 2);
+            EXPECT_EQ(textOf(w.last.duel, "turn"), "TURN 2");
+            EXPECT_EQ(intOf(w.state.foes[0], "hp"), intOf(w.state.foes[0], "hpMax"));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // A retreat ends the fight at once: the days stay written, and nothing is carried off.
         TEST(expedition_test, a_retreat_keeps_the_days_and_leaves_the_loot)
         {
@@ -457,7 +545,7 @@ namespace pg
 
             for (const auto& t : w.last.targets)
             {
-                if (textOf(t, "note").find("HANGS BACK") != std::string::npos)
+                if (textOf(t, "intent").find("HANGS BACK") != std::string::npos)
                     ++holding;
             }
 
@@ -641,7 +729,7 @@ namespace pg
             if (w.screen() == "fight")
             {
                 ASSERT_FALSE(w.last.targets.empty());
-                EXPECT_NE(textOf(w.last.targets[0], "value").find(" OF "), std::string::npos);
+                EXPECT_NE(textOf(w.last.targets[0], "life").find(" OF "), std::string::npos);
             }
         }
 
