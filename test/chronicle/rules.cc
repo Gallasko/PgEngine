@@ -1640,14 +1640,13 @@ namespace pg
                     listed.push_back(textOf(a.fields, "id"));
             }
 
-            // With what is bought in town, the tile that goes there, and the works for the town,
-            // which no age closes
-            for (const char* id : {"goto.market", "buy.rations", "tales", "garden", "teach"})
+            // With what is bought in town and the works for the town, which no age closes
+            for (const char* id : {"buy.rations", "tales", "garden", "teach"})
                 EXPECT_NE(std::find(listed.begin(), listed.end(), id), listed.end()) << id;
 
             for (const auto& id : listed)
             {
-                const bool old = id == "goto.market" or id == "buy.rations" or id == "tales" or id == "garden" or id == "teach";
+                const bool old = id == "buy.rations" or id == "tales" or id == "garden" or id == "teach";
 
                 EXPECT_TRUE(old or id.rfind("raise.", 0) == 0) << id;
             }
@@ -1821,8 +1820,9 @@ namespace pg
             f.rules.done = {};
             f.rules.lives = 2;
 
-            // (the first walk outside the town is among them, open: no task stands before it)
-            EXPECT_EQ(listed(7.0f, boy()), (std::vector<std::string>{"carters", "mill", "messages", "kitchen", "letters", "explore", "keep", "collegium", "hand", "walk.hedgerows"}));
+            // (the first walk outside the town is among them, open, right under his work: no task
+            // stands before it, and the next walk has no row until this one is walked)
+            EXPECT_EQ(listed(7.0f, boy()), (std::vector<std::string>{"carters", "mill", "messages", "kitchen", "walk.hedgerows", "letters", "explore", "keep", "collegium", "hand"}));
         }
 
         // ----------------------------------------------------------------------------------------
@@ -2365,13 +2365,14 @@ namespace pg
             EXPECT_TRUE(flag(buy.fields, "listed"));
             EXPECT_FALSE(flag(buy.fields, "locked"));
 
-            RuleActivity go = activityAt(f.rules, 9.0f, character, "goto.market");
+            // No tile of the Life page goes to the market: its tab does
+            {
+                std::vector<RuleActivity> all;
+                ASSERT_TRUE(f.rules.activities(9.0f, character, all));
 
-            EXPECT_EQ(textOf(go.fields, "goto"), "town");
-            EXPECT_EQ(textOf(go.fields, "place"), "");
-            EXPECT_EQ(intOf(go.fields, "months"), 0);
-            EXPECT_TRUE(flag(go.fields, "listed"));
-            EXPECT_FALSE(flag(activityAt(f.rules, 9.0f, boy(), "goto.market").fields, "listed"));
+                for (const auto& a : all)
+                    EXPECT_NE(textOf(a.fields, "id"), "goto.market");
+            }
 
             // What the charter brings to the market is not there before it
             EXPECT_FALSE(flag(activityAt(f.rules, 9.0f, character, "buy.sword").fields, "listed"));

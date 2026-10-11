@@ -2821,8 +2821,9 @@ namespace pg
             // A tile done at once leaves its time line empty
             EXPECT_EQ(stall(f, life, "buy.rations")->cost.spec.text, "");
 
-            // It is the market's: the choice keeps the tile that goes there
-            ASSERT_NE(list->row(&f.ecs, "goto.market"), nullptr);
+            // It is the market's: the Life page has no tile for it, nor one that goes there
+            EXPECT_EQ(list->find(&f.ecs, "buy.rations"), nullptr);
+            EXPECT_EQ(list->find(&f.ecs, "goto.market"), nullptr);
 
             f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "yard"});
             f.settle();
@@ -4601,9 +4602,10 @@ namespace pg
             EXPECT_TRUE(said);
             EXPECT_FALSE(life->town.opened.empty());
 
-            // The row that explores is gone; the works for the town and the way to the market have come
+            // The row that explores is gone; the works for the town and the market's stalls have
+            // come, on the town's page: the Life page has no tile that goes there
             EXPECT_EQ(list->find(&f.ecs, "explore"), nullptr);
-            EXPECT_NE(list->find(&f.ecs, "goto.market"), nullptr);
+            EXPECT_EQ(list->find(&f.ecs, "goto.market"), nullptr);
             EXPECT_NE(work(f, life, "raise.market.1"), nullptr);
             EXPECT_NE(stall(f, life, "buy.rations"), nullptr);
 
@@ -4853,16 +4855,18 @@ namespace pg
             EXPECT_FALSE(f.pos(tabs->tabs[1].noticeGround)->visible);
 
             // Eight years old, on the Town page: the market's work and the streets come into the
-            // choice, the wooden blades he is too weak for yet, and Mill Pond, where he may not
-            // walk for two years, behind the Life tab. A row is new when it comes, open to him or not
+            // choice, and the wooden blades he is too weak for yet, behind the Life tab. A row is
+            // new when it comes, open to him or not. (Mill Pond has no row: he has not walked the
+            // Hedgerows)
             life->save.age = 8.0f - 1.0f / 12.0f;
             life->onMonth();
             f.frames(12);
 
             ASSERT_NE(life->piece<ActivityList>("activities")->find(&f.ecs, "blades"), nullptr);
             EXPECT_EQ(life->piece<ActivityList>("activities")->find(&f.ecs, "blades")->spec.state, ActivityState::Locked);
-            EXPECT_EQ(tabs->tabs[0].notice, 4);
-            EXPECT_EQ(life->newInLife, 4);
+            EXPECT_EQ(tabs->tabs[0].notice, 3);
+            EXPECT_EQ(life->newInLife, 3);
+            EXPECT_EQ(life->piece<ActivityList>("activities")->find(&f.ecs, "walk.millpond"), nullptr);
             EXPECT_EQ(tabs->tabs[1].notice, 0);
             ASSERT_FALSE(tabs->tabs[0].noticeGround.empty());
             EXPECT_TRUE(f.pos(tabs->tabs[0].noticeGround)->visible);
@@ -5121,8 +5125,9 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
-        // "Go to the Market" opens the Town page and does nothing else: no term, no month, no line.
-        TEST(lifescene_test, goto_market_switches_tab_without_a_term)
+        // The market is reached by the Town tab, which opens its page and does nothing else: no
+        // term, no month, no line. No tile of the Life page goes there.
+        TEST(lifescene_test, the_market_is_reached_by_its_tab)
         {
             MockLogger logger;
             LifeFixture f;
@@ -5136,14 +5141,17 @@ namespace pg
             auto list = life->piece<ActivityList>("activities");
             ASSERT_NE(tabs, nullptr);
             ASSERT_NE(list, nullptr);
-            ASSERT_NE(list->find(&f.ecs, "goto.market"), nullptr);
+            EXPECT_EQ(list->find(&f.ecs, "goto.market"), nullptr);
+
+            for (const auto& group : list->spec.groups)
+                EXPECT_NE(group.label, "Market");
 
             const float age = life->save.age;
             const int world = life->save.world;
             const size_t logEntries = life->save.log.size();
             const int atOnce = life->save.atOnce;
 
-            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "goto.market"});
+            f.ecs.sendEvent(TabSelectedEvent{tabs->root.id, "life.tabs", 1});
             f.frames(12);
 
             EXPECT_TRUE(life->townShown);
@@ -5411,7 +5419,7 @@ namespace pg
             EXPECT_FALSE(life->townShown);
             EXPECT_TRUE(tabs->enabled(1));
             EXPECT_EQ(list->find(&f.ecs, "explore"), nullptr);
-            EXPECT_NE(list->find(&f.ecs, "goto.market"), nullptr);
+            EXPECT_EQ(list->find(&f.ecs, "goto.market"), nullptr);
             EXPECT_NE(work(f, life, "raise.mill.3"), nullptr);
 
             // What the chapel's first level gives, in this life as in the last: his letters in 4 months
@@ -5823,6 +5831,21 @@ namespace pg
             EXPECT_EQ(life->piece<ActivityList>("activities")->find(&f.ecs, "hedges"), nullptr);
             EXPECT_FALSE(life->piece<ActivityList>("activities")->find(&f.ecs, "carters")->spec.adventure);
             EXPECT_FALSE(life->piece<Tabs>("tabs")->tabs[2].shown);
+
+            // Its group stands right under his work, where the market's tile was, and the next
+            // walk has no tile until this one is walked
+            {
+                const auto& groups = life->piece<ActivityList>("activities")->spec.groups;
+
+                ASSERT_GE(groups.size(), 2u);
+                EXPECT_EQ(groups[0].label, "Work");
+                EXPECT_EQ(groups[1].label, "Adventure");
+
+                for (const auto& group : groups)
+                    EXPECT_NE(group.label, "Market");
+            }
+
+            EXPECT_EQ(life->piece<ActivityList>("activities")->find(&f.ecs, "walk.millpond"), nullptr);
 
             // Begun as any work is: he is there, and no month runs while the days are chosen
             f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "walk.hedgerows"});

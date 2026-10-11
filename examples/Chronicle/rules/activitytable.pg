@@ -212,12 +212,8 @@ var activities = [
      requires: [{stat: "guile"}],
      after: [{uses: 2, effects: [{stat: "night_contacts"}], entry: "The night market knows his face"}]},
 
-    // What is bought on the spot is bought in town: once the town is known these stand on its
-    // page, at the market, and the Life page keeps one tile that goes there
-    {id: "goto.market", group: "Market", name: "Go to the Market", glyph: "town", months: 0, rank: "", each: "IN TOWN", path: "", finishBy: anyAge, showFrom: 100,
-     goto: "town",
-     gains: [],
-     requires: [{stat: "town_known", label: "The town"}]},
+    // What is bought on the spot is bought in town: these stand on its page, at the market, once
+    // the town is known, and nowhere before
     {id: "buy.rations", group: "Market", name: "Buy rations", glyph: "trade", months: 0, rank: "", each: "AT THE MARKET", path: "", finishBy: anyAge, showFrom: 100,
      place: "market",
      gains: [{stat: "rations", amount: 6}],
@@ -499,15 +495,47 @@ var activities = [
 // group like any other, with its months up front (the way there, the stay and the way back) and
 // what it asks. Beginning one opens the on-site screen (`zone`); the months run once he is home.
 // It is listed two years before he may go, locked: what it asks is something to plan toward
+// (a zone may ask to be hidden until he has what it asks: its `showFrom`, as an activity's).
+// The group stands right under his work on the Life page, before the market's rows of the table
+var walkRows = []
+
 for (var z = 0; z < len(walkZones); z++)
 {
     var zone = walkZones[z]
     var studies = statOf(character, "know.study." + zone.id)
 
-    push(activities, {id: "walk." + zone.id, group: "Adventure", name: zone.name, glyph: zone.glyph, months: walkMonths(zone, studies), rank: "",
-                      each: toUpperCase(zone.kind) + " · " + toString(walkStay(zone, studies)) + " DAYS ON SITE", path: "",
-                      fromAge: zone.fromAge, showAge: zone.fromAge - 2, showFrom: 0, showAfter: lookup(zone, "showAfter", 0), zone: zone.id, about: zone.opens,
-                      gains: [], requires: zone.requires})
+    push(walkRows, {id: "walk." + zone.id, group: "Adventure", name: zone.name, glyph: zone.glyph, months: walkMonths(zone, studies), rank: "",
+                    each: toUpperCase(zone.kind) + " · " + toString(walkStay(zone, studies)) + " DAYS ON SITE", path: "",
+                    fromAge: zone.fromAge, showAge: zone.fromAge - 2, showFrom: lookup(zone, "showFrom", 0), showAfter: lookup(zone, "showAfter", 0), zone: zone.id, about: zone.opens,
+                    gains: [], requires: zone.requires})
+}
+
+var tabled = activities
+var walksPlaced = false
+
+activities = []
+
+for (var t = 0; t < len(tabled); t++)
+{
+    if (not walksPlaced and tabled[t].group == "Market")
+    {
+        for (var w = 0; w < len(walkRows); w++)
+        {
+            push(activities, walkRows[w])
+        }
+
+        walksPlaced = true
+    }
+
+    push(activities, tabled[t])
+}
+
+if (not walksPlaced)
+{
+    for (var w = 0; w < len(walkRows); w++)
+    {
+        push(activities, walkRows[w])
+    }
 }
 
 // What a walk brings home to sell is sold at the market, a lot at a time, while he holds any

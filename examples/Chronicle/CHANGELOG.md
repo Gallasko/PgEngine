@@ -61,7 +61,9 @@ the `CHANGELOG.md` at the root of the repository.
 - **The Adventure tab** comes with your first walk. Tabs that are not there leave no gap, and
   once you know the town they read Life, Town, Adventure.
 - **The market is in town.** What is sold, bought and brewed at the market is on the Town page
-  only: it no longer shows on the Life page before the town is known.
+  only: it no longer shows on the Life page before the town is known, and the *Go to the Market*
+  tile is gone (the Town tab goes there). The walks stand in its place, right under your work.
+- **One walk at a time.** Mill Pond has no tile until you have walked the Hedgerows.
 - **Shorter tooltips.** A task no longer lists "Room for Rations" among what it asks while the
   store has room.
 - **Two new tasks.** *Race the Rooftops* (Dexterity and Renown, on the streets, from 11) for

@@ -130,7 +130,7 @@ var walkZones = [
      mobs: ["rat"],
      spots: [{id: "reeds", ap: 1, least: 2, most: 3}, {id: "fish", ap: 2, least: 1, most: 3}, {id: "clay", ap: 2, least: 2, most: 3}],
      events: ["pond.heron"],
-     fromAge: 10,
+     fromAge: 10, showFrom: 100,   // No row until he has walked the Hedgerows: one walk at a time
      requires: [{stat: "walked.hedgerows", label: "Walked the Hedgerows"}],
      opens: "Reeds and fish to sell, clay for the town, and the first beast to fight."},
 

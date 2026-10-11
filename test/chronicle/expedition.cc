@@ -933,9 +933,21 @@ namespace pg
             EXPECT_EQ(intOf(hedgerows->fields, "locked"), 0);
             EXPECT_TRUE(hedgerows->requires.empty());
 
-            // The next one is shown, greyed, with what it asks: something to plan toward
-            EXPECT_EQ(intOf(pond->fields, "listed"), 1);
-            EXPECT_EQ(intOf(pond->fields, "locked"), 1);
+            // The next one has no row until the Hedgerows are walked: one walk at a time
+            EXPECT_EQ(intOf(pond->fields, "listed"), 0);
+
+            w.character["walked.hedgerows"] = ElementType{1};
+            ASSERT_TRUE(w.rules.activities(8.0f, w.character, activities));
+
+            for (const auto& a : activities)
+            {
+                // Walked: it is listed, and waits for his tenth year
+                if (textOf(a.fields, "id") == "walk.millpond")
+                {
+                    EXPECT_EQ(intOf(a.fields, "listed"), 1);
+                    EXPECT_EQ(intOf(a.fields, "locked"), 1);
+                }
+            }
 
             for (const auto& a : activities)
             {

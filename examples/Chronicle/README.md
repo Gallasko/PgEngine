@@ -40,8 +40,7 @@ not on the page at all before that. When it comes, the guide shows it, then the 
 coin buys rations, then the places, once in a world and in whichever life explores. Whatever is
 new on the page that is not in view (a task, a thing sold, a place) is counted in a small round
 at its tab's corner until the page is opened. It shows the places of Bellmoor, each with three levels, and under them
-the market, where what is bought on the spot is bought (the Life page keeps a *Go to the Market*
-tile). A place is raised by a work that stands under the places, on the same page (a click on a
+the market, where what is bought on the spot is bought (reached by the Town tab: no tile of the Life page goes there). A place is raised by a work that stands under the places, on the same page (a click on a
 place chooses its work, and Begin begins it): months, coin, and for some a stat or years of his
 life. What is raised is the world's and outlives him: the next
 life is born into that town, with what its places give (a shorter task, a class that asks one
