@@ -1,3 +1,4 @@
+#include <set>
 #include "stdafx.h"
 
 #ifdef __linux__
@@ -5999,58 +6000,81 @@ namespace pg
 
             // The fight has the screen
             ASSERT_EQ(life->walkScreen, "fight");
-            ASSERT_FALSE(walkPart(life, "menu").empty());
+            ASSERT_FALSE(walkPart(life, "moves").empty());
             EXPECT_TRUE(walkPart(life, "seeks").empty());
             EXPECT_EQ(walkPart(life, "turn")->get<Label>()->spec.text, "TURN 1");
-            EXPECT_EQ(walkPart(life, "act")->get<Button>()->label.spec.text, "Strike");
 
-            auto menu = walkPart(life, "menu")->get<ActivityList>();
-            ASSERT_NE(menu->find(&f.ecs, "guard"), nullptr);
-
-            // A tile of the menu looked at says what it would do, and the button takes its name
-            // What he fights has its own panel, over him: the beast, how it stands over its rule,
-            // and what it means to do to him this turn. One beast: nothing to aim at, no tile
             f.pass(100.0f, 50.0f);
 
-            // The beasts are above and he is below: its panel runs across the top, over him and
-            // over his turn, which stand under it side by side and level
-            auto foeBox = f.pos(walkPart(life, "foePanel"));
+            // The beasts are above and he is below: a panel a beast across the top, the size of
+            // his own; under them he and his turn, side by side and level; the account at the right
+            auto foeBox = f.pos(walkPart(life, "foePanel0"));
             auto heroBox = f.pos(walkPart(life, "heroPanel"));
             auto menuBox = f.pos(walkPart(life, "menuPanel"));
 
             EXPECT_LE(foeBox->y + foeBox->height, heroBox->y + 0.5f);
+            EXPECT_NEAR(foeBox->x, heroBox->x, 0.5f);
+            EXPECT_NEAR(foeBox->width, heroBox->width, 0.5f);
             EXPECT_NEAR(heroBox->y, menuBox->y, 0.5f);
             EXPECT_GT(menuBox->x, heroBox->x + heroBox->width - 0.5f);
-            EXPECT_NEAR(foeBox->x, heroBox->x, 0.5f);
-            EXPECT_NEAR(foeBox->x + foeBox->width, menuBox->x + menuBox->width, 1.0f);
-            EXPECT_GT(f.pos(walkPart(life, "previewPanel"))->x, menuBox->x + menuBox->width - 0.5f);
+            EXPECT_GT(f.pos(walkPart(life, "accountPanel"))->x, menuBox->x + menuBox->width - 0.5f);
+
+            // One beast: one panel, and nothing to aim at
+            EXPECT_EQ(walkPart(life, "foePanel0")->get<Panel>()->title->spec.text, "Water rat");
+            EXPECT_EQ(walkPart(life, "foeLife0")->get<Label>()->spec.text, "UNHURT");
+            EXPECT_TRUE(f.pos(walkPart(life, "foeBar0"))->visible);
+            EXPECT_FALSE(f.pos(walkPart(life, "foePanel1"))->visible);
+            EXPECT_FALSE(f.pos(walkPart(life, "aimNote"))->visible);
+
+            // What it means to do is its move's name, and nothing else: the gloss of the move
+            // says a line on it, and what it does to him only once he knows
+            auto registry = f.ecs.getSystem<GlossRegistry>();
+            ASSERT_NE(registry, nullptr);
+
+            const std::string intent = walkPart(life, "foeIntent0")->get<Label>()->spec.text;
+            EXPECT_TRUE(intent == "BITE" or intent == "SKITTER") << intent;
+
+            const GlossSpec* beast = registry->find("walk/foe/0");
+            ASSERT_NE(beast, nullptr);
+            EXPECT_EQ(beast->title, "Water rat");
+            EXPECT_FALSE(beast->text.empty());
+
+            const GlossSpec* meant = registry->find("walk/foemove/0");
+            ASSERT_NE(meant, nullptr);
+            EXPECT_FALSE(meant->title.empty());
+            EXPECT_FALSE(meant->text.empty());
+
+            if (intent == "BITE")
+            {
+                // Never bitten by one, never watched one: what a bite takes is not said yet
+                EXPECT_TRUE(meant->rows.empty());
+                EXPECT_FALSE(meant->footnote.empty());
+            }
 
             // He has learned nothing that costs breath: he is not told of it
             EXPECT_FALSE(f.pos(walkPart(life, "breath"))->visible);
             EXPECT_FALSE(f.pos(walkPart(life, "breathBar"))->visible);
 
-            EXPECT_EQ(walkPart(life, "foePanel")->get<Panel>()->title->spec.text, "Water rat");
-            EXPECT_FALSE(walkPart(life, "foeAbout")->get<Label>()->spec.text.empty());
-            EXPECT_EQ(walkPart(life, "foeName0")->get<Label>()->spec.text, "WATER RAT \xC2\xB7 UNHURT");
-            EXPECT_FALSE(walkPart(life, "foeIntent0")->get<Label>()->spec.text.empty());
-            EXPECT_TRUE(f.pos(walkPart(life, "foeBar0"))->visible);
-            EXPECT_FALSE(f.pos(walkPart(life, "foeName1"))->visible);
-            EXPECT_FALSE(f.pos(walkPart(life, "targets"))->visible);
-            EXPECT_FALSE(f.pos(walkPart(life, "aimNote"))->visible);
+            // A boy who has learned nothing has what anyone has, a plain button each: strike,
+            // defend, a remedy, flee. What each would do is its gloss's to say
+            ASSERT_EQ(life->moves().size(), 4u);
+            EXPECT_EQ(life->moves()[0].first, "walk.move.strike");
+            EXPECT_EQ(life->moves()[0].second.spec.label, "Strike");
+            EXPECT_EQ(life->moves()[1].second.spec.label, "Defend");
+            EXPECT_EQ(life->moves()[2].second.spec.label, "Take a remedy");
+            EXPECT_EQ(life->moves()[3].second.spec.label, "Flee");
 
-            // A boy who has learned nothing has what anyone has: strike, defend, a remedy, flee
-            EXPECT_EQ(life->walk.menu.size(), 4u);
-            EXPECT_EQ(menu->find(&f.ecs, "tech.heavy"), nullptr);
-            EXPECT_EQ(menu->find(&f.ecs, "stance.cautious"), nullptr);
-            ASSERT_NE(menu->find(&f.ecs, "retreat"), nullptr);
-            EXPECT_EQ(menu->find(&f.ecs, "retreat")->spec.name, "Flee");
+            const GlossSpec* strike = registry->find("walk/move/strike");
+            ASSERT_NE(strike, nullptr);
+            EXPECT_EQ(strike->title, "Strike");
+            EXPECT_FALSE(strike->text.empty());
+            EXPECT_FALSE(strike->rows.empty());
 
-            f.ecs.sendEvent(ActivitySelectedEvent{"walk.menu", "guard"});
-            f.settle();
-            EXPECT_EQ(walkPart(life, "act")->get<Button>()->label.spec.text, "Defend");
-            EXPECT_EQ(walkPart(life, "previewTitle")->get<Label>()->spec.text, "Defend");
+            // Not until it is over: the way back is not on the page
+            EXPECT_FALSE(f.pos(walkPart(life, "act"))->visible);
 
-            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.act"});
+            // A button pressed is the move done: a turn has passed
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.move.guard"});
             f.settle();
             EXPECT_EQ(walkPart(life, "turn")->get<Label>()->spec.text, "TURN 2");
             EXPECT_GE(walkPart(life, "account")->get<EventLog>()->size(), 2u);
@@ -6147,7 +6171,7 @@ namespace pg
             const size_t before = account->size();
             const size_t written = life->save.walk.account.size();
 
-            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.act"});
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.move.strike"});
             f.frames(4);
 
             // The turn is played, and not told yet: the account on the page has nothing new
@@ -6159,7 +6183,7 @@ namespace pg
             // A press meanwhile is of a screen a turn late: it does nothing
             const size_t played = life->save.walk.account.size();
 
-            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.act"});
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.move.strike"});
             f.frames(4);
             EXPECT_EQ(life->save.walk.account.size(), played);
 
@@ -6240,8 +6264,11 @@ namespace pg
             EXPECT_GT(f.pos(walkPart(life, "workPanel"))->x, f.pos(walkPart(life, "bagPanel"))->x + f.pos(walkPart(life, "bagPanel"))->width - 0.5f);
             EXPECT_GT(f.pos(walkPart(life, "recordPanel"))->x, f.pos(walkPart(life, "workPanel"))->x + f.pos(walkPart(life, "workPanel"))->width - 0.5f);
 
-            // A smaller window: the same three, the middle one narrower
+            // A smaller window: the same three, the middle one narrower. The screen is built
+            // again for a width no more often than a moment apart: a moment goes by
+            f.pass(200.0f, 50.0f);
             f.resize(1100.0f, 800.0f);
+            f.pass(200.0f, 50.0f);
             f.frames(12);
 
             EXPECT_FALSE(life->walkNarrow);
@@ -6249,6 +6276,7 @@ namespace pg
 
             // A phone held upright: one column, every panel the window's width
             f.resize(420.0f, 800.0f);
+            f.pass(200.0f, 50.0f);
             f.frames(12);
 
             ASSERT_TRUE(life->onWalk());
@@ -6262,6 +6290,397 @@ namespace pg
             life->walkDo(WalkAct{"gather", "berries", 0});
             f.settle();
             EXPECT_GE(walkPart(life, "record")->get<EventLog>()->size(), 1u);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A window dragged by its edge is a resize a pass, and a page built again at each: none of
+        // them leaves anything behind. What stands once the dragging stops is what a page built
+        // once at that size is made of, and nothing else.
+        TEST(lifescene_test, a_window_dragged_leaves_nothing_of_the_pages_it_went_through)
+        {
+            MockLogger logger;
+
+            auto boxes = [](LifeFixture& f) {
+                size_t n = 0;
+                const auto& entities = f.ecs.view();
+
+                for (size_t i = 1; i <= f.ecs.getNbEntities(); ++i)
+                {
+                    if (entities[i] and entities[i]->has<PositionComponent>())
+                        ++n;
+                }
+
+                return n;
+            };
+
+            auto open = [](LifeFixture& f, bool fight, bool walking) -> LifeScene* {
+                LifeSceneOptions opt = LifeFixture::mockup();
+                opt.fresh = true;
+                opt.lives = 2;
+                opt.walkSeed = 11;
+
+                LifeScene* life = f.life(opt);
+
+                if (not life)
+                    return nullptr;
+
+                life->save.age = 10.0f;
+                life->save.stats["walked.hedgerows"] = 1;
+                life->onMonth();
+                f.settle();
+
+                if (not walking)
+                    return life;
+
+                f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "walk.millpond"});
+                f.frames(12);
+
+                if (fight)
+                {
+                    life->walkDo(WalkAct{"seek", "rat", 1});
+                    f.frames(12);
+                    answerEvents(f, life);
+                    f.frames(12);
+                }
+
+                return life;
+            };
+
+            for (int which = 0; which < 3; ++which)
+            {
+                const bool walking = which > 0;
+                const bool fight = which == 2;
+
+                // Dragged: a pass between two sizes, down to a phone's width and back up a little
+                LifeFixture dragged;
+                LifeScene* a = open(dragged, fight, walking);
+                ASSERT_NE(a, nullptr);
+
+                // One size, and no pass given for it to settle
+                auto drag = [&](float width) {
+                    dragged.window->get<PositionComponent>()->setWidth(width);
+                    dragged.window->get<PositionComponent>()->setHeight(800.0f);
+                    dragged.ecs.sendEvent(ResizeEvent{width, 800.0f});
+                };
+
+                int step = 0;
+                std::set<_unique_id> screens;
+
+                for (float width = 1320.0f; width >= 400.0f; width -= 23.0f)
+                {
+                    drag(width);
+
+                    // Now and then two sizes come in the same pass
+                    if (++step % 3 != 0)
+                        dragged.frames(1);
+
+                    screens.insert(a->walkPage.id);
+                }
+
+                for (float width = 400.0f; width <= 470.0f; width += 7.0f)
+                {
+                    drag(width);
+                    dragged.frames(1);
+
+                    screens.insert(a->walkPage.id);
+                }
+
+                // The walk's screen is not built again for every width that goes by: for the
+                // first, and then for where the dragging stops
+                if (walking)
+                    EXPECT_LE(screens.size(), 3u);
+
+                dragged.resize(470.0f, 800.0f);
+                dragged.pass(400.0f, 50.0f);
+                dragged.frames(24);
+
+                // Set down once at that size
+                LifeFixture placed;
+                LifeScene* b = open(placed, fight, walking);
+                ASSERT_NE(b, nullptr);
+
+                placed.resize(470.0f, 800.0f);
+                placed.pass(400.0f, 50.0f);
+                placed.frames(24);
+
+                EXPECT_EQ(a->walkScreen, b->walkScreen) << which;
+                EXPECT_EQ(a->walkNarrow, b->walkNarrow) << which;
+
+                if (walking)
+                    EXPECT_NEAR(a->walkWidth, 470.0f, 0.5f) << which;
+
+                EXPECT_EQ(boxes(dragged), boxes(placed)) << (fight ? "the fight" : walking ? "the walk" : "the page");
+            }
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A field work's tile is its name and its days; what it is, costs and gives is its gloss's
+        TEST(lifescene_test, a_field_work_is_a_name_a_cost_and_a_gloss)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = walker(f);
+            ASSERT_NE(life, nullptr);
+
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "walk.hedgerows"});
+            f.frames(12);
+            ASSERT_TRUE(life->onWalk());
+
+            auto works = walkPart(life, "works")->get<ActivityList>();
+            auto tile = works->find(&f.ecs, "gather.berries");
+
+            ASSERT_NE(tile, nullptr);
+            EXPECT_EQ(tile->spec.name, "Gather berries");
+            EXPECT_EQ(tile->spec.cost, "1 AP");
+            EXPECT_TRUE(tile->spec.until.empty());
+            EXPECT_EQ(tile->spec.glossKey, "walk/work/gather.berries");
+
+            auto registry = f.ecs.getSystem<GlossRegistry>();
+            ASSERT_NE(registry, nullptr);
+
+            const GlossSpec* gloss = registry->find("walk/work/gather.berries");
+
+            ASSERT_NE(gloss, nullptr);
+            EXPECT_EQ(gloss->title, "Gather berries");
+            EXPECT_FALSE(gloss->text.empty());
+            ASSERT_EQ(gloss->rows.size(), 2u);
+            EXPECT_EQ(gloss->rows[0].label, "Costs");
+            EXPECT_EQ(gloss->rows[0].value, "1 day of the stay");
+            EXPECT_EQ(gloss->rows[1].label, "Gives");
+            EXPECT_NE(gloss->rows[1].value.find("berries, to sell"), std::string::npos);
+
+            // Every work there is has one
+            for (const char* id : {"gather.wortleaf", "gather.firewood", "study", "rest"})
+                EXPECT_NE(registry->find(std::string("walk/work/") + id), nullptr) << id;
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The order of the turn has a panel of its own at the top of the right column, over the
+        // account: who acts when, one under the other, and the account has the rest of the column.
+        TEST(lifescene_test, the_order_of_the_turn_has_its_panel_over_the_account)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.fresh = true;
+            opt.walkSeed = 11;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            life->save.age = 10.0f;
+            life->save.stats["walked.hedgerows"] = 1;
+            life->onMonth();
+            f.settle();
+
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "walk.millpond"});
+            f.frames(12);
+            ASSERT_TRUE(life->onWalk());
+
+            life->walkDo(WalkAct{"seek", "rat", 1});
+            f.frames(12);
+            answerEvents(f, life);
+            f.frames(12);
+
+            ASSERT_EQ(life->walkScreen, "fight");
+
+            f.pass(400.0f, 50.0f);
+            f.settle();
+
+            auto order = f.pos(walkPart(life, "orderPanel"));
+            auto account = f.pos(walkPart(life, "accountPanel"));
+            auto foe = f.pos(walkPart(life, "foePanel0"));
+            auto column = f.pos(walkPart(life, "walkRight"));
+
+            // The head keeps what the fight costs the stay, said short
+            EXPECT_NE(walkPart(life, "turnNote")->get<Label>()->spec.text.find("0 DAYS SO FAR"), std::string::npos);
+
+            // At the top of the right column, level with the beasts, the account straight under it
+            EXPECT_TRUE(order->visible);
+            EXPECT_NEAR(order->y, foe->y, 0.5f);
+            EXPECT_NEAR(order->x, account->x, 0.5f);
+            EXPECT_GT(order->x, foe->x + foe->width);
+            EXPECT_NEAR(account->y, order->y + order->height + 12.0f, 1.0f);
+
+            // And the account runs to the foot of its column, no further
+            EXPECT_NEAR(account->y + account->height, column->y + column->height, 24.0f);
+            EXPECT_LE(account->y + account->height, column->y + column->height + 0.5f);
+
+            // He, the rat, he again: three places stand, the others are out of the stack
+            EXPECT_EQ(walkPart(life, "chip0")->get<Label>()->spec.text.rfind("1 \xC2\xB7 ALDREN", 0), 0u);
+            EXPECT_NE(walkPart(life, "chip0")->get<Label>()->spec.text.find("NOW"), std::string::npos);
+            EXPECT_NE(walkPart(life, "chip1")->get<Label>()->spec.text.find("WATER RAT"), std::string::npos);
+            EXPECT_TRUE(f.pos(walkPart(life, "chip2"))->visible);
+            EXPECT_FALSE(f.pos(walkPart(life, "chip3"))->visible);
+            EXPECT_FALSE(f.pos(walkPart(life, "chip5"))->visible);
+
+            // One under the other, inside the panel
+            EXPECT_GT(f.pos(walkPart(life, "chip1"))->y, f.pos(walkPart(life, "chip0"))->y + 4.0f);
+            EXPECT_GT(f.pos(walkPart(life, "chip2"))->y, f.pos(walkPart(life, "chip1"))->y + 4.0f);
+            EXPECT_GT(f.pos(walkPart(life, "quick"))->y, f.pos(walkPart(life, "chip2"))->y + 4.0f);
+            EXPECT_LE(f.pos(walkPart(life, "quick"))->y + f.pos(walkPart(life, "quick"))->height, order->y + order->height + 0.5f);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A fight in one column: the beasts there are, then his turn straight under them. A panel
+        // of a beast there is none of holds no room in the column.
+        TEST(lifescene_test, a_fight_in_one_column_holds_only_the_beasts_there_are)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.fresh = true;
+            opt.walkSeed = 11;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            life->save.age = 10.0f;
+            life->save.stats["walked.hedgerows"] = 1;
+            life->onMonth();
+            f.settle();
+
+            f.resize(420.0f, 800.0f);
+            f.frames(12);
+
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "walk.millpond"});
+            f.frames(12);
+            ASSERT_TRUE(life->onWalk());
+            EXPECT_TRUE(life->walkNarrow);
+
+            life->walkDo(WalkAct{"seek", "rat", 1});
+            f.frames(12);
+            answerEvents(f, life);
+            f.frames(12);
+
+            ASSERT_EQ(life->walkScreen, "fight");
+
+            // The screen settles over its first passes, once its column holds its panels
+            f.pass(100.0f, 50.0f);
+            f.settle();
+
+            auto foeBox = f.pos(walkPart(life, "foePanel0"));
+            auto menuBox = f.pos(walkPart(life, "menuPanel"));
+
+            EXPECT_TRUE(foeBox->visible);
+            EXPECT_FALSE(f.pos(walkPart(life, "foePanel1"))->visible);
+            EXPECT_FALSE(f.pos(walkPart(life, "foePanel3"))->visible);
+
+            // One beast: his turn is the next thing down, the column's spacing under it
+            EXPECT_NEAR(menuBox->x, foeBox->x, 0.5f);
+            EXPECT_GT(menuBox->y, foeBox->y + foeBox->height - 0.5f);
+            EXPECT_LT(menuBox->y, foeBox->y + foeBox->height + 30.0f);
+
+            // And what he may do is there to press, in the window's width
+            ASSERT_FALSE(life->moves().empty());
+
+            for (const auto& [tag, button] : life->moves())
+            {
+                auto pos = f.pos(button.root);
+
+                EXPECT_GE(pos->x, menuBox->x - 0.5f) << tag;
+                EXPECT_LE(pos->x + pos->width, 420.0f + 0.5f) << tag;
+            }
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // What his life has taught him is a button of his turn as the rest is, on a line of its
+        // own with what it costs, and pressed it is done. He is told of his breath then.
+        TEST(lifescene_test, a_learned_move_is_a_button_of_his_turn)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.fresh = true;
+            opt.walkSeed = 11;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            // A scholar of the Collegium, sworn to the Keep besides
+            life->save.age = 10.0f;
+            life->save.stats["walked.hedgerows"] = 1;
+            life->save.stats["collegium"] = 1;
+            life->save.stats["keep_oath"] = 1;
+            life->onMonth();
+            f.settle();
+
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "walk.millpond"});
+            f.frames(12);
+            ASSERT_TRUE(life->onWalk());
+
+            life->walkDo(WalkAct{"seek", "rat", 1});
+            f.frames(12);
+            answerEvents(f, life);
+            f.frames(12);
+
+            ASSERT_EQ(life->walkScreen, "fight");
+
+            f.pass(100.0f, 50.0f);
+            f.settle();
+
+            auto button = [&](const std::string& tag) -> const Button* {
+                for (const auto& [name, made] : life->moves())
+                {
+                    if (name == tag)
+                        return &made;
+                }
+
+                return nullptr;
+            };
+
+            const Button* strike = button("walk.move.strike");
+            const Button* heavy = button("walk.move.tech.heavy");
+            const Button* firebolt = button("walk.move.tech.firebolt");
+
+            ASSERT_NE(strike, nullptr);
+            ASSERT_NE(heavy, nullptr);
+            ASSERT_NE(firebolt, nullptr);
+            EXPECT_EQ(button("walk.move.tech.sweep"), nullptr);
+
+            // What anyone can do costs nothing and says so by saying nothing; what he learned says its breath
+            EXPECT_TRUE(strike->costText.empty());
+            EXPECT_NE(firebolt->costText.find("BREATH"), std::string::npos);
+            EXPECT_EQ(firebolt->spec.variant, ButtonVariant::Study);
+            EXPECT_EQ(heavy->spec.variant, ButtonVariant::Quiet);
+
+            // On a line of their own, under what anyone can do, and inside his turn's panel
+            auto menuBox = f.pos(walkPart(life, "menuPanel"));
+
+            EXPECT_GT(f.pos(heavy->root)->y, f.pos(strike->root)->y + f.pos(strike->root)->height - 0.5f);
+            EXPECT_NEAR(f.pos(firebolt->root)->y, f.pos(heavy->root)->y, 0.5f);
+            EXPECT_GT(f.pos(firebolt->root)->x, f.pos(heavy->root)->x + f.pos(heavy->root)->width - 0.5f);
+            EXPECT_LE(f.pos(firebolt->root)->x + f.pos(firebolt->root)->width, menuBox->x + menuBox->width + 0.5f);
+            EXPECT_LE(f.pos(firebolt->root)->y + f.pos(firebolt->root)->height, menuBox->y + menuBox->height + 0.5f);
+
+            // He has something to spend breath on: he is told of it
+            EXPECT_TRUE(f.pos(walkPart(life, "breath"))->visible);
+            EXPECT_TRUE(f.pos(walkPart(life, "breathBar"))->visible);
+
+            // Pressed, it is done: the turn has gone by, and the breath with it
+            const std::string before = walkPart(life, "breath")->get<Label>()->spec.text;
+
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.move.tech.firebolt"});
+            f.frames(12);
+
+            const bool over = walkPart(life, "turn")->get<Label>()->spec.text != "TURN 1" or not f.pos(walkPart(life, "hand"))->visible;
+
+            EXPECT_TRUE(over);
+            EXPECT_NE(walkPart(life, "breath")->get<Label>()->spec.text, before);
         }
 
         // ----------------------------------------------------------------------------------------

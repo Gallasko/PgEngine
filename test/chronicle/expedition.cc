@@ -527,6 +527,167 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // What a beast means to do is said by the move's name alone. What the move does to him is
+        // said once it has been used on him, or once he has watched the beast: not before.
+        TEST(expedition_test, a_move_is_known_once_it_was_used_on_him)
+        {
+            MockLogger logger;
+
+            ElementMap boy = gatherer();
+            boy["walked.hedgerows"] = ElementType{1};
+
+            Walker w(boy);
+            w.age = 10.0f;
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "millpond", 0}));
+            ASSERT_TRUE(w.act("seek", "rat", 1));
+            w.answer();
+            ASSERT_EQ(w.screen(), "fight");
+
+            // No rat is quicker than a boy
+            EXPECT_NE(textOf(w.last.duel, "quick").find("HE ACTS FIRST"), std::string::npos);
+
+            // He defends until it has bitten at him once: the bite is a name and nothing else till then
+            bool sawUnknown = false;
+
+            for (int turn = 0; turn < 12 and intOf(w.character, "know.move.rat.bite") == 0 and textOf(w.last.duel, "over").empty(); ++turn)
+            {
+                ASSERT_EQ(w.last.targets.size(), 1u);
+
+                if (textOf(w.last.targets[0], "intent") == "BITE")
+                {
+                    sawUnknown = true;
+                    EXPECT_EQ(textOf(w.last.targets[0], "moveName"), "Bite");
+                    EXPECT_FALSE(textOf(w.last.targets[0], "moveLine").empty());
+                    EXPECT_EQ(intOf(w.last.targets[0], "moveKnown"), 0);
+                    EXPECT_TRUE(textOf(w.last.targets[0], "moveEffect").empty());
+
+                    // And what is coming is counted, not weighed
+                    EXPECT_EQ(textOf(w.last.duel, "warn"), "1 BLOW COMING");
+                }
+                else
+                {
+                    // What draws no blood is plain to see
+                    EXPECT_EQ(intOf(w.last.targets[0], "moveKnown"), 1);
+                }
+
+                ASSERT_TRUE(w.act("move", "guard"));
+            }
+
+            EXPECT_TRUE(sawUnknown);
+            ASSERT_EQ(intOf(w.character, "know.move.rat.bite"), 1);
+
+            // From here on it says what it takes, in this fight and in the next: the world knows it
+            for (int turn = 0; turn < 6 and textOf(w.last.duel, "over").empty(); ++turn)
+            {
+                if (textOf(w.last.targets[0], "intent") == "BITE")
+                {
+                    EXPECT_EQ(intOf(w.last.targets[0], "moveKnown"), 1);
+                    EXPECT_NE(textOf(w.last.targets[0], "moveEffect").find("vitality if it lands"), std::string::npos);
+                    EXPECT_NE(textOf(w.last.duel, "warn").find("IF ALL LAND"), std::string::npos);
+                }
+
+                ASSERT_TRUE(w.act("move", "guard"));
+            }
+
+            // A button pressed is the move done: every row of the menu carries what its gloss says
+            for (const auto& m : w.last.menu)
+                EXPECT_FALSE(textOf(m, "text").empty()) << textOf(m, "id");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A field work says what its gloss needs: a line on it, what it costs in words, what it gives
+        TEST(expedition_test, a_field_work_says_what_it_costs_and_gives)
+        {
+            MockLogger logger;
+
+            Walker w(gatherer());
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "hedgerows", 0}));
+            ASSERT_FALSE(w.last.works.empty());
+
+            auto work = [&](const std::string& id) -> ElementMap {
+                for (const auto& row : w.last.works)
+                {
+                    if (textOf(row, "id") == id)
+                        return row;
+                }
+
+                ADD_FAILURE() << "no work " << id;
+
+                return {};
+            };
+
+            for (const auto& row : w.last.works)
+            {
+                EXPECT_FALSE(textOf(row, "about").empty()) << textOf(row, "id");
+                EXPECT_FALSE(textOf(row, "costs").empty()) << textOf(row, "id");
+                EXPECT_FALSE(textOf(row, "gives").empty()) << textOf(row, "id");
+            }
+
+            EXPECT_EQ(textOf(work("gather.berries"), "costs"), "1 day of the stay");
+            EXPECT_EQ(textOf(work("gather.berries"), "gives"), "2\xE2\x80\x93" "4 berries, to sell");
+            EXPECT_EQ(textOf(work("gather.firewood"), "costs"), "2 days of the stay");
+            EXPECT_EQ(textOf(work("gather.firewood"), "gives"), "2\xE2\x80\x93" "3 firewood, for the town");
+            EXPECT_NE(textOf(work("rest"), "costs").find("1 ration of"), std::string::npos);
+            EXPECT_NE(textOf(work("rest"), "gives").find("Vitality"), std::string::npos);
+            EXPECT_NE(textOf(work("study"), "gives").find("to knowledge 2"), std::string::npos);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A blow that found nothing is marked in the account, his or the beast's, and no other line is
+        TEST(expedition_test, a_missed_blow_is_marked_in_the_account)
+        {
+            MockLogger logger;
+
+            int his = 0;
+            int theirs = 0;
+
+            for (int seed = 100; seed < 1300 and (his == 0 or theirs == 0); seed += 100)
+            {
+                ElementMap boy = gatherer();
+                boy["walked.hedgerows"] = ElementType{1};
+
+                Walker w(boy);
+                w.age = 10.0f;
+                w.seed = seed;
+
+                ASSERT_TRUE(w.ask("enter", WalkAct{"", "millpond", 0}));
+                ASSERT_TRUE(w.act("seek", "rat", 1));
+                w.answer();
+
+                if (w.screen() != "fight")
+                    continue;
+
+                for (int turn = 0; turn < 12 and textOf(w.last.duel, "over").empty(); ++turn)
+                    ASSERT_TRUE(w.act("move", "strike"));
+
+                for (const auto& line : w.state.account)
+                {
+                    const std::string text = textOf(line, "text");
+                    const bool miss = text.find(": a miss") != std::string::npos or text.find("steps clear") != std::string::npos;
+
+                    EXPECT_EQ(intOf(line, "missed") > 0, miss) << text;
+
+                    if (miss and textOf(line, "by") == "hero")
+                        ++his;
+
+                    if (miss and textOf(line, "by") == "foe")
+                        ++theirs;
+                }
+            }
+
+            EXPECT_GT(his, 0);
+            EXPECT_GT(theirs, 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // A retreat ends the fight at once: the days stay written, and nothing is carried off.
         TEST(expedition_test, a_retreat_keeps_the_days_and_leaves_the_loot)
         {
@@ -545,7 +706,7 @@ namespace pg
 
             for (const auto& t : w.last.targets)
             {
-                if (textOf(t, "intent").find("HANGS BACK") != std::string::npos)
+                if (textOf(t, "intent") == "HANG BACK")
                     ++holding;
             }
 

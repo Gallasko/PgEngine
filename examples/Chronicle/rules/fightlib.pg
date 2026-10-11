@@ -116,6 +116,32 @@ fun moveOf(mob, n)
     return mob.script[foes[n].at % len(mob.script)]
 }
 
+// What a move of a beast is called, and a line on it: {name, line}
+fun moveInfo(mob, move)
+{
+    var told = pick(mob.moves, move, 0)
+
+    if (typeOf(told) == "table")
+    {
+        return told
+    }
+
+    return {name: capitalised(move), line: ""}
+}
+
+// Whether a move draws no blood: the one that circles, and the one that hangs back
+fun harmless(move)
+{
+    return move == "circle" or move == "hold"
+}
+
+// Whether he knows what a move does to him: once it has been used on him, or once he has
+// watched the beast enough (two of four). What does nothing is plain to see
+fun moveKnown(mob, move)
+{
+    return harmless(move) or mobLevel(run.zone, mob) >= 2 or mine("know.move." + mob.id + "." + move) > 0
+}
+
 fun clampTo(v, low, high)
 {
     return smaller(high, larger(low, v))
@@ -237,7 +263,7 @@ fun rangeText(range)
 fun say(text, figure, kind)
 {
     push(account, {turn: toString(fight.turn), text: text, figure: figure, kind: kind, by: pick(fight, "by", ""), n: pick(fight, "byN", 0),
-                   hp: runOf("hp"), left: pick(fight, "left", -1)})
+                   hp: runOf("hp"), left: pick(fight, "left", -1), missed: pick(fight, "missed", 0)})
 }
 
 fun foeName(mob, n, count)
@@ -390,7 +416,10 @@ fun blow(n, power, hitMod, techId, name)
 
     if (not chance(hitChance(mob, hitMod)))
     {
+        // A blow that found nothing: the page says so over the one it was meant for
+        fight.missed = 1
         say(name + " at the " + toLowerCase(foe.name) + ": a miss", "—", "note")
+        fight.missed = 0
         return
     }
 
@@ -524,13 +553,17 @@ fun foesAct(moves)
             }
             else if (chance(dodgeChance(mob)))
             {
+                after["know.move." + mob.id + "." + move] = 1
                 fight.by = "foe"
                 fight.byN = i
+                fight.missed = 1
                 say("The " + toLowerCase(foe.name) + " " + mob.verb + ": he steps clear", "—", "note")
+                fight.missed = 0
                 fight.by = ""
             }
             else
             {
+                after["know.move." + mob.id + "." + move] = 1
                 fight.by = "foe"
                 fight.byN = i
 
@@ -674,13 +707,15 @@ fun weakest()
     return best
 }
 
-// How many bites are coming this turn, and how much if they all land: [count, least, most]
+// How many blows are coming this turn, how much if they all land, and whether he knows what
+// each of them does (1) or not (0): [count, least, most, known]
 fun incoming()
 {
     var mob = mobOf(fight.mob)
     var count = 0
     var low = 0
     var high = 0
+    var known = 1
 
     for (var i = 0; i < len(foes); i++)
     {
@@ -693,10 +728,15 @@ fun incoming()
             count = count + 1
             low = low + range[0]
             high = high + range[1]
+
+            if (not moveKnown(mob, move))
+            {
+                known = 0
+            }
         }
     }
 
-    return [count, low, high]
+    return [count, low, high, known]
 }
 
 // What the stance chooses when the fight is handed over: the same choices he has, ranked by the
@@ -922,6 +962,13 @@ fun fightAct(kind, target, count)
     {
         resolve(fight.choice)
     }
+    else if (kind == "move")
+    {
+        // A button of the menu pressed: that move, now
+        fight.choice = target
+        resolve(target)
+        fight.choice = "strike"
+    }
     else if (kind == "step")
     {
         resolve(autoChoice())
@@ -951,30 +998,11 @@ fun hurtWord(foe)
     return "UNHURT"
 }
 
-fun moveWord(mob, move)
-{
-    if (move == "hold")
-    {
-        return "hangs back"
-    }
-
-    if (move == "circle")
-    {
-        return "circles"
-    }
-
-    if (move == "maul")
-    {
-        return mob.verb + " hard"
-    }
-
-    return mob.verb
-}
-
 // The beasts, each as its panel shows it: how it stands (`life`, in figures once he knows it
-// two of four, and `percent` for its rule), what it means to do to him this turn (`intent`, with
-// what it would take from him; `tone` loss when it attacks), and whether it is the one aimed at.
-// `value` and `note` are the same for the tiles a pack is aimed with
+// two of four, and `percent` for its rule), what it means to do to him this turn (`intent`: the
+// move's name alone; `tone` loss when it attacks), what the gloss of that move says (`moveName`,
+// `moveLine`, and `moveEffect`, "" while he does not know it: `moveKnown`), and whether it is
+// the one aimed at
 fun targetRows()
 {
     var rows = []
@@ -985,7 +1013,8 @@ fun targetRows()
     {
         var foe = foes[i]
         var row = {id: "foe." + toString(i), n: i, name: foe.name, life: hurtWord(foe), percent: wholeOf(foe.hp * 100, larger(1, foe.hpMax)),
-                   intent: "", tone: "muted", value: "", note: "", dead: 0, chosen: 0, urgent: 0}
+                   intent: "", tone: "muted", value: "", note: "", dead: 0, chosen: 0, urgent: 0,
+                   moveName: "", moveLine: "", moveEffect: "", moveKnown: 0}
 
         if (known >= 2 and foe.alive > 0)
         {
@@ -996,29 +1025,48 @@ fun targetRows()
         {
             row.dead = 1
             row.percent = 0
-            row.intent = "IT IS DOWN"
+            row.intent = "DOWN"
         }
         else
         {
             var move = moveOf(mob, i)
 
+            var told = moveInfo(mob, move)
+
+            // What it means to do, by its name alone; its gloss says the rest, and what it does
+            // to him only once he knows it
+            row.intent = toUpperCase(told.name)
+            row.moveName = told.name
+            row.moveLine = told.line
+
             if (pick(foe, "held", 0) > 0 and move != "hold")
             {
-                row.intent = "HELD BY THE WORD: IT DOES NOTHING THIS TURN"
+                row.intent = "HELD"
+                row.moveName = "Held by the word"
+                row.moveLine = "It strains against the binding and can do nothing."
+                row.moveEffect = "Nothing this turn"
+                row.moveKnown = 1
             }
             else if (move == "hold")
             {
-                row.intent = "HANGS BACK WHILE " + toUpperCase(wordOf(mob.holdsBack)) + " STAND"
+                row.moveEffect = "Nothing while " + wordOf(mob.holdsBack) + " of the others stand"
+                row.moveKnown = 1
             }
             else if (move == "circle")
             {
-                row.intent = "CIRCLES: NOTHING FROM IT THIS TURN"
+                row.moveEffect = "Nothing this turn"
+                row.moveKnown = 1
             }
             else
             {
-                row.intent = toUpperCase(moveWord(mob, move)) + " THIS TURN · " + rangeText(biteRange(mob, move)) + " IF IT LANDS"
                 row.tone = "loss"
                 row.urgent = 1
+
+                if (moveKnown(mob, move))
+                {
+                    row.moveEffect = "−" + rangeText(biteRange(mob, move)) + " vitality if it lands"
+                    row.moveKnown = 1
+                }
             }
 
             if (i == fight.target)
@@ -1036,9 +1084,24 @@ fun targetRows()
     return rows
 }
 
+// One thing he may do: a button on the page (`name`, and `cost` when it costs breath), and
+// what its gloss says of it before it is done (`text`, `against`, `hits`, `deals`, `costs`,
+// `then`, `bites`, `foeAfter`, `odds`: previewOf). `kind` is "spell" for a working
 fun menuRow(id, group, name, cost, note)
 {
-    var row = {id: id, group: group, name: name, cost: cost, note: note, locked: 0, asks: "", chosen: 0}
+    var row = {id: id, group: group, name: name, cost: cost, note: note, locked: 0, asks: "", chosen: 0, kind: ""}
+    var said = previewOf(id)
+
+    row.text = said.text
+    row.against = said.against
+    row.hits = said.hits
+    row.deals = said.deals
+    row.costs = said.costs
+    row.then = said.then
+    row.bites = said.bites
+    row.foeAfter = said.foeAfter
+    row.odds = said.odds
+
     var why = choiceShort(id)
 
     if (why != "")
@@ -1063,8 +1126,8 @@ fun menuRows()
     var rows = []
     var mob = mobOf(fight.mob)
 
-    push(rows, menuRow("strike", "", "Strike", "FREE", rangeText(blowRange(100, mob, "strike")) + " · HITS " + toString(hitChance(mob, 0)) + " %"))
-    push(rows, menuRow("guard", "", "Defend", "FREE", "HALVES WHAT COMES"))
+    push(rows, menuRow("strike", "", "Strike", "", rangeText(blowRange(100, mob, "strike")) + " · HITS " + toString(hitChance(mob, 0)) + " %"))
+    push(rows, menuRow("guard", "", "Defend", "", "HALVES WHAT COMES"))
 
     if (held("remedy") > 0)
     {
@@ -1073,7 +1136,7 @@ fun menuRows()
         push(rows, menuRow("remedy", "", "Take a remedy", "1 OF " + toString(held("remedy")), "+" + toString(mend) + " VITALITY"))
     }
 
-    push(rows, menuRow("retreat", "", "Flee", "ENDS IT", "THE DAYS ARE KEPT · NO LOOT"))
+    push(rows, menuRow("retreat", "", "Flee", "", "THE DAYS ARE KEPT · NO LOOT"))
 
     for (var i = 0; i < len(walkTechniques); i++)
     {
@@ -1093,7 +1156,10 @@ fun menuRows()
                 note = note + " · ALL"
             }
 
-            push(rows, menuRow("tech." + tech.id, "Learned", tech.name, toString(tech.breath) + " BREATH", note))
+            var learned = menuRow("tech." + tech.id, "Learned", tech.name, toString(tech.breath) + " BREATH", note)
+
+            learned.kind = tech.kind
+            push(rows, learned)
         }
     }
 
@@ -1119,9 +1185,8 @@ fun fifths(percent)
 }
 
 // What the choice looked at would do, said before it is done
-fun previewOf()
+fun previewOf(choice)
 {
-    var choice = fight.choice
     var mob = mobOf(fight.mob)
     var foe = foes[fight.target]
     var known = mobLevel(run.zone, mob)
@@ -1129,13 +1194,17 @@ fun previewOf()
     var view = {id: choice, title: "", text: "", against: "", hits: "", deals: "", costs: "Nothing", then: "", bites: "", foeAfter: "", odds: "", button: "", locked: 0, asks: ""}
     var newDay = fight.since + 1 >= turnsPerAp()
 
-    if (coming[0] > 0)
+    if (coming[0] > 0 and coming[3] > 0)
     {
-        view.bites = counted(coming[0], "bite", "bites") + " · " + rangeText([coming[1], coming[2]])
+        view.bites = counted(coming[0], "blow", "blows") + " · " + rangeText([coming[1], coming[2]])
+    }
+    else if (coming[0] > 0)
+    {
+        view.bites = counted(coming[0], "blow", "blows")
     }
     else
     {
-        view.bites = "None this turn"
+        view.bites = "Nothing this turn"
     }
 
     var why = choiceShort(choice)
@@ -1293,9 +1362,9 @@ fun previewOf()
         }
     }
 
-    if (coming[0] > 0)
+    if (coming[0] > 0 and view.hits != "")
     {
-        view.odds = view.odds + " A miss means a free bite."
+        view.odds = view.odds + " A miss means a free blow for the beast."
     }
 
     if (newDay)
@@ -1324,7 +1393,10 @@ fun orderRows()
     {
         if (foes[i].alive > 0)
         {
-            push(rows, {text: foes[i].name, note: toUpperCase(moveWord(mob, moveOf(mob, i))), tone: "foe"})
+            // The move by the name its panel gives it
+            var told = moveInfo(mob, moveOf(mob, i))
+
+            push(rows, {text: foes[i].name, note: toUpperCase(told.name), tone: "foe"})
         }
     }
 
@@ -1486,7 +1558,12 @@ fun duelHead()
 
     if (coming[0] > 0)
     {
-        view.warn = toUpperCase(counted(coming[0], "bite", "bites")) + " COMING · " + rangeText([coming[1], coming[2]]) + " IF ALL LAND"
+        view.warn = toUpperCase(counted(coming[0], "blow", "blows")) + " COMING"
+
+        if (coming[3] > 0)
+        {
+            view.warn = view.warn + " · " + rangeText([coming[1], coming[2]]) + " IF ALL LAND"
+        }
     }
 
     if (per < walkKnobs.turnsPerAp)

@@ -1632,9 +1632,12 @@ fun seekRows()
     return rows
 }
 
-fun workRow(id, name, note, cost, short, tone)
+// A work of the site as its tile shows it (the name and the days) and as its gloss says it:
+// `about` a line on it, `costs` what it takes in words, `gives` what it brings
+fun workRow(id, name, note, cost, short, tone, about, costs, gives)
 {
-    var row = {id: id, name: name, note: note, cost: cost, costText: apText(cost), locked: 0, asks: "", tone: tone}
+    var row = {id: id, name: name, note: note, cost: cost, costText: apText(cost), locked: 0, asks: "", tone: tone,
+               about: about, costs: costs, gives: gives}
 
     if (short != "")
     {
@@ -1670,7 +1673,19 @@ fun workRows()
             note = note + " · TO SELL"
         }
 
-        push(rows, workRow("gather." + spot.id, "Gather " + toLowerCase(item.name), note, spot.ap, "", ""))
+        var brings = toString(spot.least) + "–" + toString(spot.most) + " " + toLowerCase(item.name)
+
+        if (item.kind == "town")
+        {
+            brings = brings + ", for the town"
+        }
+        else
+        {
+            brings = brings + ", to sell"
+        }
+
+        push(rows, workRow("gather." + spot.id, "Gather " + toLowerCase(item.name), note, spot.ap, "", "",
+                           pick(item, "gather", ""), daysText(spot.ap) + " of the stay", brings))
     }
 
     var studies = mine("know.study." + zone.id)
@@ -1682,7 +1697,16 @@ fun workRows()
         studyNote = "STUDY " + toString(studies) + " OF " + toString(walkKnobs.studyLevels[level]) + " TO KNOWLEDGE " + toString(level + 1)
     }
 
-    push(rows, workRow("study", "Study the place", studyNote, walkKnobs.studyAp, "", "know"))
+    var studyGives = "Nothing more: the place is known"
+
+    if (level < 4)
+    {
+        studyGives = "Study " + toString(studies + 1) + " of " + toString(walkKnobs.studyLevels[level]) + " to knowledge " + toString(level + 1)
+    }
+
+    push(rows, workRow("study", "Study the place", studyNote, walkKnobs.studyAp, "", "know",
+                       "He walks the place and learns its paths. What he learns, every life after his knows.",
+                       daysText(walkKnobs.studyAp) + " of the stay", studyGives))
 
     var heal = smaller(share(runOf("hpMax"), walkKnobs.restHeal), runOf("hpMax") - runOf("hp"))
     var rations = held(walkKnobs.restItem)
@@ -1693,13 +1717,19 @@ fun workRows()
         restShort = "ASKS 1 RATION"
     }
 
-    push(rows, workRow("rest", "Rest", "+" + toString(heal) + " VITALITY · 1 RATION, " + toString(rations) + " HELD", walkKnobs.restAp, restShort, ""))
+    push(rows, workRow("rest", "Rest", "+" + toString(heal) + " VITALITY · 1 RATION, " + toString(rations) + " HELD", walkKnobs.restAp, restShort, "",
+                       "Off his feet by a fire, and a ration eaten.",
+                       daysText(walkKnobs.restAp) + " of the stay, 1 ration of " + toString(rations),
+                       "+" + toString(heal) + " Vitality"))
 
     if (held("remedy") > 0)
     {
         var mend = smaller(share(runOf("hpMax"), itemOf("remedy").heals), runOf("hpMax") - runOf("hp"))
 
-        push(rows, workRow("remedy", "Take a remedy", "+" + toString(mend) + " VITALITY · " + toString(held("remedy")) + " HELD", 0, "", ""))
+        push(rows, workRow("remedy", "Take a remedy", "+" + toString(mend) + " VITALITY · " + toString(held("remedy")) + " HELD", 0, "", "",
+                           "A wortleaf remedy out of the bag. It takes no time.",
+                           "1 remedy of " + toString(held("remedy")),
+                           "+" + toString(mend) + " Vitality"))
     }
 
     return rows

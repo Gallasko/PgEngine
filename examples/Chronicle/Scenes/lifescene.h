@@ -167,6 +167,7 @@ namespace chronicle
         void queueWalks(int count);                       // The chosen record walked so many times, one walk after the other
         bool onWalkButton(const std::string& tag);        // A button of the walk's screens or of the Adventure page; false for another's
         bool telling() const { return walkTelling; }      // A turn of a fight is being told on the page: nothing is pressed meanwhile
+        const std::vector<std::pair<std::string, Button>>& moves() const { return walkMoves; }   // The buttons of his turn in a fight, by tag
 
         int newInLife = 0;             // What has come onto the Life page while the Town page was in view: said at its tab's corner
         int newInTown = 0;             // And onto the Town page while the Life page was
@@ -283,8 +284,12 @@ namespace chronicle
         bool buildWalk(const std::string& screen);   // "site" or "fight", from its file, at the window's width
         void closeWalk();              // The walk's screen leaves
         void fitWalk(float width, float height);   // The veil and the columns to the window; built again at another width
+        void fitAccount();   // A fight's account takes what the order of the turn leaves of its column
         void fillSite();               // The on-site screen says what expedition.pg says
         void fillFight();              // And the fight's
+        void fillMoves(bool over, bool handed);   // The buttons of his turn: a move each, and against several a beast each to aim at
+        void showHurt(const std::string& rule, const std::string& taken);   // A rule just taken from: in the loss's colour for a moment, what was taken lifting off it
+        void showTag(const std::string& rule, const std::string& text, const std::string& style, const std::string& color);   // A word or a figure lifting off a rule of the fight: what was taken, or a miss
         void runWalk(float ms);        // A fight handed to his stance plays its turns; a row chosen is lit once its list holds it
         void tellTurn(size_t shown);   // The lines the account has past the ones shown are told in their time
         void runTelling(float ms);     // The telling, a tick further
@@ -332,6 +337,13 @@ namespace chronicle
         std::unordered_map<std::string, std::string> walkFilled;   // What each list of the walk's screens was last filled with
         std::unordered_map<std::string, std::string> walkPicks;    // The row to light in each, once the list holds it
         float autoLeft = 0.0f;         // Milliseconds before his stance plays the next turn of a fight handed to it
+        std::vector<std::pair<std::string, Button>> walkMoves;   // The buttons of his turn, by tag, in the order they were made
+        std::unordered_map<std::string, std::vector<pg::_unique_id>> moveRows;   // The rows they stand on, by the layout that holds them
+        int moveRowsMade = 0;          // How many rows were ever made: each has a name of its own on the screen
+        bool walkGlossed = false;      // The glosses of the beasts' panels hang on them
+        float accountFitted = 0.0f;    // The height the account of a fight was last given, under the order of the turn
+        float walkCooling = 0.0f;      // Milliseconds before the walk's screen may be built again for another width
+        bool walkRefitDue = false;     // A width came meanwhile: the screen is built for the window as it stands once that has passed
 
         // A turn of a fight is told in its time: the lines the turn wrote in the account come one
         // after the other, and a blow's rule fills before the line that tells it. The walk itself
@@ -342,6 +354,7 @@ namespace chronicle
             int n = 0;                 // The beast: the one that struck, or the one he struck
             int hp = -1;               // His Vitality in the field once the line has happened
             int left = -1;             // What is left of the beast his blow landed on, in percent; -1 for none
+            bool missed = false;       // The blow found nothing
             LogEntry line;
         };
 

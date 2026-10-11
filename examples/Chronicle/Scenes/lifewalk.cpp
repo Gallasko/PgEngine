@@ -29,6 +29,7 @@
 #include "UI/activityrow.h"
 #include "UI/progressrule.h"
 #include "UI/resourceledger.h"
+#include "UI/themesystem.h"
 #include "Core/motion.h"
 
 using namespace pg;
@@ -55,8 +56,6 @@ namespace chronicle
         // The lists of the walk's screens and of the Adventure page, by the id their events carry
         constexpr const char * const SeeksList = "walk.seeks";
         constexpr const char * const WorksList = "walk.works";
-        constexpr const char * const MenuList = "walk.menu";
-        constexpr const char * const TargetsList = "walk.targets";
         constexpr const char * const RecordsList = "walk.records";
 
         // Their buttons, by tag
@@ -68,6 +67,8 @@ namespace chronicle
         constexpr const char * const OptionTag = "walk.option.";   // Followed by the option's place on the card
         constexpr const char * const ActTag = "walk.act";
         constexpr const char * const HandTag = "walk.hand";
+        constexpr const char * const MoveTag = "walk.move.";       // Followed by the move's id: a button of his turn, pressed and done
+        constexpr const char * const AimTag = "walk.aim.";         // Followed by the beast's place: against several, the one his blows go to
         constexpr const char * const FewerTag = "walk.fewer";
         constexpr const char * const MoreTag = "walk.more";
         constexpr const char * const StopTag = "walk.stop";
@@ -82,6 +83,15 @@ namespace chronicle
         const std::string WalkActivity = "walk.";          // An activity that is a walk: followed by its zone
         const std::string ZoneRow = "zone:";               // A row of the records for a zone with no record yet
         const std::string RecordGloss = "record/";
+        const std::string FoeGloss = "walk/foe/";          // Followed by a beast's place: what it is, and what he knows of it
+        const std::string FoeMoveGloss = "walk/foemove/";  // And the move it means to make
+        const std::string MoveGloss = "walk/move/";        // Followed by a move's id: what it would do, before it is done
+        const std::string WorkGloss = "walk/work/";        // Followed by a field work's id: a line on it, what it costs, what it gives
+        constexpr float MoveGap = 8.0f;                    // Between two buttons of his turn
+        constexpr float HurtMs = 320.0f;                   // A rule that was just taken from stays in the loss's colour that long
+        constexpr float HurtRiseMs = 900.0f;               // And what was taken lifts off it for that long,
+        constexpr float HurtRise = 0.02f;                  // by so many pixels a millisecond
+        constexpr float HurtZ = 150.0f;                    // Over the screen, under the tooltips
         constexpr int MaxOptions = 3;                      // The buttons an event's card has
         constexpr int MaxChips = 6;                        // The places the order of a turn has
         constexpr int MaxFoes = 4;                         // The beasts the panel of what he fights has room for: a pack is four at most
@@ -99,16 +109,16 @@ namespace chronicle
         constexpr float SiteLeft = 300.0f;         // As the Life page's: how he stands and what he holds at the left,
         constexpr float SiteRight = 360.0f;        // what has happened at the right, the choice between them
         constexpr float TakenRoom = 200.0f;        // What he has taken, over the record: the record has the column's rest
-        constexpr float FightTop = 118.0f;
+        constexpr float FightTop = 72.0f;
+        constexpr float OrderRoom = 230.0f;        // The order of the turn, over the account, before the page says how tall it stands
         constexpr float FightLeft = 280.0f;
         constexpr float FightRight = 376.0f;
         constexpr float PanelPad = 32.0f;          // A panel's two sides
-        constexpr float FoeGap = 16.0f;            // Between two beasts of the panel of what he fights
+        constexpr float RefitMs = 120.0f;          // A window being dragged: the screen is built again at most that often
         constexpr float CastMs = 450.0f;           // A blow about to go: its rule fills that long, then the blow is told
         constexpr float BeatMs = 140.0f;           // Between two lines of a turn as it is told
-        constexpr float PreviewRoom = 500.0f;      // What the choice would do, over the account: the account has the column's rest
         constexpr float NarrowSiteTop = 160.0f;    // In one column the head's figures stand under its title, and the strip's caption takes two lines
-        constexpr float NarrowFightTop = 150.0f;
+        constexpr float NarrowFightTop = 92.0f;
         constexpr float NarrowFigure = 180.0f;     // The days left, or the turn, at the head's right
         constexpr float NarrowTitle = 120.0f;      // The least a title keeps beside it
         constexpr float NarrowBelow = 1000.0f;
@@ -192,10 +202,18 @@ namespace chronicle
         // layout holds: to take the piece out of the stack it is the wrap that is hidden
         EntityRef wrapIn(EntityRef body, EntityRef piece)
         {
-            if (body.empty() or not body->has<VerticalLayout>())
+            if (body.empty() or not (body->has<VerticalLayout>() or body->has<HorizontalLayout>()))
                 return piece;
 
-            for (auto& child : body->get<VerticalLayout>()->entities)
+            // By value: a handle is asked for its components, which a const one cannot be
+            std::vector<EntityRef> held;
+
+            if (body->has<VerticalLayout>())
+                held.assign(body->get<VerticalLayout>()->entities.begin(), body->get<VerticalLayout>()->entities.end());
+            else
+                held.assign(body->get<HorizontalLayout>()->entities.begin(), body->get<HorizontalLayout>()->entities.end());
+
+            for (auto& child : held)
             {
                 if (child.id == piece.id)
                     return child;
@@ -267,26 +285,17 @@ namespace chronicle
             return std::max(LeastLog, column - PanelChrome - NoteRoom);
         }
 
-        // The beasts of the panel of what he fights, each that wide: a block, and what stands in
-        // it (a layout hands down the panel's width, not its own)
+        // The beasts' panels, each that wide
         void shapeFoes(NodeSpec& page, float width)
         {
-            NodeSpec* panel = childNamed(page, "foePanel");
-
-            if (not panel)
-                return;
-
             for (int i = 0; i < MaxFoes; ++i)
-            {
-                for (const char* part : {"foeBlock", "foeName", "foeBar", "foeIntent", "foeCast"})
-                    setProp(childNamed(*panel, part + std::to_string(i)), "width", width);
-            }
+                setProp(childNamed(page, "foePanel" + std::to_string(i)), "width", width);
         }
 
         // A walk's screen at a window's size, written over what its file is drawn with. Three
         // columns: the two at the sides hold their width and the middle one takes the rest. One
         // column: every panel is as wide as the window leaves it
-        void shapeWalk(NodeSpec& page, bool fighting, bool narrow, float width, float height)
+        void shapeWalk(NodeSpec& page, bool fighting, bool narrow, float width, float height, int foes)
         {
             const float tall = columnHeight(fighting, narrow, height);
             const float whole = std::max(LeastColumn, width - 2.0f * WalkMargin);
@@ -294,9 +303,8 @@ namespace chronicle
             setProp(childNamed(page, "veil"), "width", width);
             setProp(childNamed(page, "veil"), "height", height);
             setProp(childNamed(page, "strip"), "width", whole);
-            setProp(childNamed(page, "order"), "width", whole);
 
-            for (const char* name : {"kicker", "zoneTitle", "zoneLine", "fightTitle", "quick"})
+            for (const char* name : {"kicker", "zoneTitle", "zoneLine", "fightTitle"})
                 setProp(childNamed(page, name), "width", narrow ? whole : std::max(LeastColumn, whole - HeadRoom));
 
             if (narrow)
@@ -305,18 +313,18 @@ namespace chronicle
                 for (const char* name : {"kicker", "zoneTitle", "fightTitle"})
                     setProp(childNamed(page, name), "width", std::max(NarrowTitle, whole - NarrowFigure));
 
-                for (const char* name : {"headNote", "turnNote", "warn"})
+                for (const char* name : {"headNote", "turnNote"})
                     setProp(childNamed(page, name), "width", whole);
 
                 setProp(childNamed(page, "walkLeft"), "width", whole + WalkScroll);
                 setProp(childNamed(page, "walkLeft"), "height", tall);
 
                 for (const char* name : {"statePanel", "seekPanel", "workPanel", "cardPanel", "recordPanel", "bagPanel", "takenPanel", "homePanel",
-                                         "heroPanel", "foePanel", "menuPanel", "previewPanel", "accountPanel"})
+                                         "orderPanel", "heroPanel", "menuPanel", "accountPanel"})
                     setProp(childNamed(page, name), "width", whole);
 
-                // In one column the beasts stand one under the other, each the panel's width
-                shapeFoes(page, whole - PanelPad);
+                // In one column the beasts stand one under the other, each the column's width
+                shapeFoes(page, whole);
 
                 return;
             }
@@ -332,11 +340,14 @@ namespace chronicle
                 const float span = left + WalkGap + middle;
 
                 setProp(childNamed(page, "walkLeft"), "width", span + WalkScroll);
-                setProp(childNamed(page, "foePanel"), "width", span);
+                setProp(childNamed(page, "foeRow"), "width", span);
                 setProp(childNamed(page, "duelRow"), "width", span);
                 setProp(childNamed(page, "menuPanel"), "width", middle);
 
-                shapeFoes(page, std::floor((span - PanelPad - 3.0f * FoeGap) / 4.0f));
+                // A beast's panel is the size of his own, narrower when the ones there are would not hold
+                const float beasts = static_cast<float>(std::clamp(foes, 1, MaxFoes));
+
+                shapeFoes(page, std::min(left, std::floor((span - (beasts - 1.0f) * WalkGap) / beasts)));
             }
 
             for (const char* name : {"walkLeft", "walkMiddle", "walkRight"})
@@ -347,16 +358,16 @@ namespace chronicle
             for (const char* name : {"cardPanel", "seekPanel", "workPanel"})
                 setProp(childNamed(page, name), "width", middle);
 
-            for (const char* name : {"takenPanel", "recordPanel", "previewPanel", "accountPanel"})
+            for (const char* name : {"takenPanel", "recordPanel", "orderPanel", "accountPanel"})
                 setProp(childNamed(page, name), "width", right);
 
             // A log is a panel's child: found in it, not in the page. The record stands under what
-            // he has taken, the account under what the choice would do
+            // he has taken, the account under the order of the turn
             if (NodeSpec* holder = childNamed(page, "recordPanel"))
                 setProp(childNamed(*holder, "record"), "height", logHeight(tall - TakenRoom));
 
             if (NodeSpec* holder = childNamed(page, "accountPanel"))
-                setProp(childNamed(*holder, "account"), "height", logHeight(tall - PreviewRoom));
+                setProp(childNamed(*holder, "account"), "height", logHeight(tall - OrderRoom));
         }
 
         // A line of a fight's account as its log writes it: the turn at its head (none for a line
@@ -585,7 +596,7 @@ namespace chronicle
 
         // A turn of a fight is told in its time, where things move: the lines the account has now
         // are the ones already told
-        const bool turn = walkScreen == "fight" and (act.kind == "do" or act.kind == "step") and not Motion::reduced() and not walkFresh;
+        const bool turn = walkScreen == "fight" and (act.kind == "do" or act.kind == "move" or act.kind == "step") and not Motion::reduced() and not walkFresh;
         size_t told = 0;
 
         if (auto log = walkPiece<EventLog>("account"); turn and log)
@@ -852,7 +863,7 @@ namespace chronicle
 
         // The screen at the window's width, written over the file's before it is built: a panel
         // hands its width to what stands in it, so nothing else has to be told
-        shapeWalk(*spec, fighting, narrow, width, height);
+        shapeWalk(*spec, fighting, narrow, width, height, static_cast<int>(walk.targets.size()));
 
         EntityRef built = buildTree(ecsRef, *spec);
 
@@ -908,6 +919,10 @@ namespace chronicle
         beatCasting = false;
         walkBeats.clear();
         castDone.clear();
+        walkMoves.clear();
+        moveRows.clear();
+        walkGlossed = false;
+        accountFitted = 0.0f;
     }
 
     void LifeScene::showWalk()
@@ -947,20 +962,31 @@ namespace chronicle
             return;
 
         // At another width the screen is built again from its file, the one of that width, and
-        // filled again: what stands in a panel took its width when it was made
+        // filled again: what stands in a panel took its width when it was made. A window dragged
+        // by its edge is a width a frame: the screen is built for the first, then no more often
+        // than every RefitMs, and once more when the dragging lets up (runWalk)
         if (std::abs(width - walkWidth) > 0.5f)
         {
-            const std::string screen = walkScreen;
-
-            if (buildWalk(screen))
+            if (walkCooling <= 0.0f)
             {
-                if (screen == "fight")
-                    fillFight();
-                else
-                    fillSite();
+                const std::string screen = walkScreen;
+
+                walkCooling = RefitMs;
+                walkRefitDue = false;
+
+                if (buildWalk(screen))
+                {
+                    if (screen == "fight")
+                        fillFight();
+                    else
+                        fillSite();
+                }
+
+                return;
             }
 
-            return;
+            // Meanwhile the screen it has is stretched under the window: its veil and its columns
+            walkRefitDue = true;
         }
 
         // The veil is the window's size, from its corner: nothing of the page shows past it
@@ -984,15 +1010,39 @@ namespace chronicle
                 column->get<PositionComponent>()->setHeight(tall);
         }
 
-        // In three columns a log fills its own to the bottom (the account, what is left of it
-        // under what the choice would do); in one it keeps its height
+        // In three columns a log fills its own to the bottom; in one it keeps its height
         if (not walkNarrow)
         {
             if (auto log = walkPiece<EventLog>("record"))
                 log->setHeight(ecsRef, logHeight(tall - TakenRoom));
+        }
 
-            if (auto log = walkPiece<EventLog>("account"))
-                log->setHeight(ecsRef, logHeight(tall - PreviewRoom));
+        fitAccount();
+    }
+
+    void LifeScene::fitAccount()
+    {
+        // The account has what the order of the turn leaves of the column, and the order stands
+        // as tall as those it names: taller against a pack, shorter once one of them is down
+        if (walkPage.empty() or walkScreen != "fight" or walkNarrow)
+            return;
+
+        EntityRef order = inWalk("orderPanel");
+        EntityRef column = inWalk("walkRight");
+        auto log = walkPiece<EventLog>("account");
+
+        if (order.empty() or column.empty() or not log)
+            return;
+
+        // Until the page has said how tall the panel stands, the room it was drawn with
+        const float stands = order->get<PositionComponent>()->height;
+        const float room = stands > 1.0f ? stands + WalkGap : OrderRoom;
+        const float wanted = logHeight(column->get<PositionComponent>()->height - room);
+
+        if (std::abs(wanted - accountFitted) > 0.5f)
+        {
+            accountFitted = wanted;
+            log->setHeight(ecsRef, wanted);
         }
     }
 
@@ -1119,23 +1169,42 @@ namespace chronicle
             row.id = textOf(w, "id");
             row.name = textOf(w, "name");
             row.glyph = textOf(w, "tone") == "know" ? "study" : row.id == "rest" or row.id == "remedy" ? "vitality" : "work";
-            row.until = textOf(w, "note");
             row.cost = textOf(w, "costText");
+            row.glossKey = WorkGloss + row.id;
+
+            // The tile is its name and its days. The rest is its gloss's to say: a line on the
+            // work, what it costs, what it gives, and what it waits for when it cannot be done
+            GlossSpec gloss;
+            gloss.inlineValues = true;
+            gloss.title = row.name;
+            gloss.aside = row.cost;
+            gloss.text = textOf(w, "about");
+
+            if (const std::string costs = textOf(w, "costs"); not costs.empty())
+                gloss.rows.push_back({"Costs", costs, "time"});
+
+            if (const std::string gives = textOf(w, "gives"); not gives.empty())
+                gloss.rows.push_back({"Gives", gives, "gain"});
 
             if (intOf(w, "locked") > 0)
             {
                 lockRow(row, textOf(w, "asks"));
-                row.until = textOf(w, "asks");
-                row.urgent = true;
+                gloss.footnote = textOf(w, "asks");
             }
             else if (asked)
+            {
                 lockRow(row, "SOMETHING WAITS FOR HIS ANSWER");
+                gloss.footnote = "SOMETHING WAITS FOR HIS ANSWER";
+            }
             else if (row.id == workChosen)
             {
                 workStands = true;
                 workName = row.name;
                 workCost = row.cost;
             }
+
+            if (auto registry = ecs->getSystem<GlossRegistry>())
+                registry->set(row.glossKey, gloss);
 
             works.push_back(row);
         }
@@ -1245,6 +1314,189 @@ namespace chronicle
         walkSay("scribe", textOf(site, "scribe"));
     }
 
+    void LifeScene::fillMoves(bool over, bool handed)
+    {
+        EntitySystem* ecs = ecsRef;
+        auto registry = ecs->getSystem<GlossRegistry>();
+
+        // What the buttons are: the beasts to aim at (against several), then every move of the
+        // menu. Made again only when that changes: a move learned, a remedy drunk, another aim
+        struct Wanted
+        {
+            std::string layout;        // "aims" or "moves"
+            std::string tag;
+            std::string label;
+            std::string cost;          // "" or "2 BREATH"
+            ButtonVariant variant = ButtonVariant::Quiet;
+            bool locked = false;
+            bool newLine = false;      // What he has learned stands on a line of its own, under what anyone can do
+        };
+
+        std::vector<Wanted> wanted;
+        std::string signature;
+
+        if (walk.targets.size() > 1)
+        {
+            for (const auto& t : walk.targets)
+            {
+                Wanted aim;
+                aim.layout = "aims";
+                aim.tag = AimTag + std::to_string(intOf(t, "n"));
+                aim.label = textOf(t, "name");
+                aim.variant = intOf(t, "chosen") > 0 and intOf(t, "dead") <= 0 ? ButtonVariant::Study : ButtonVariant::Quiet;
+                aim.locked = intOf(t, "dead") > 0 or over or handed;
+
+                wanted.push_back(aim);
+            }
+        }
+
+        std::string lastGroup;
+
+        for (const auto& m : walk.menu)
+        {
+            Wanted move;
+            move.layout = "moves";
+            move.tag = MoveTag + textOf(m, "id");
+            move.label = textOf(m, "name");
+            move.cost = textOf(m, "group").empty() ? std::string() : textOf(m, "cost");
+            move.variant = textOf(m, "kind") == "spell" ? ButtonVariant::Study : ButtonVariant::Quiet;
+            move.locked = intOf(m, "locked") > 0 or over or handed;
+
+            // What anyone can do has no group: "-" stands for it
+            const std::string group = textOf(m, "group").empty() ? std::string("-") : textOf(m, "group");
+
+            move.newLine = not lastGroup.empty() and group != lastGroup;
+            lastGroup = group;
+
+            wanted.push_back(move);
+
+            if (not registry)
+                continue;
+
+            // What it would do, said before it is done: the gloss of its button
+            GlossSpec gloss;
+            gloss.inlineValues = true;
+            gloss.title = move.label;
+            gloss.aside = move.cost;
+            gloss.text = textOf(m, "text");
+
+            for (auto [key, label, tone] : {std::tuple<const char*, const char*, const char*>{"against", "Against", ""}, {"hits", "Hits", ""}, {"deals", "Deals", "gain"},
+                                             {"costs", "Costs", "time"}, {"then", "Then", "muted"}, {"bites", "Comes back", "loss"}, {"foeAfter", "It is left", "muted"}})
+            {
+                if (const std::string value = textOf(m, key); not value.empty())
+                    gloss.rows.push_back({label, value, tone});
+            }
+
+            // A row of a gloss is not wrapped: what is said in a sentence is its text's
+            if (const std::string odds = textOf(m, "odds"); not odds.empty())
+                gloss.text += (gloss.text.empty() ? "" : " ") + odds;
+
+            if (intOf(m, "locked") > 0)
+                gloss.footnote = textOf(m, "asks");
+
+            registry->set(MoveGloss + textOf(m, "id"), gloss);
+        }
+
+        for (const auto& w : wanted)
+            signature += w.layout + "|" + w.tag + "|" + w.label + "|" + w.cost + "|" + std::to_string(static_cast<int>(w.variant)) + (w.newLine ? "/" : "") + ";";
+
+        const bool again = signature != walkFilled["moves"];
+
+        if (again)
+        {
+            walkFilled["moves"] = signature;
+
+            // The rows of buttons there were go: the layout destroys each one as it lets it go
+            for (const char* name : {"aims", "moves"})
+            {
+                EntityRef rows = inWalk(name);
+
+                if (rows.empty() or not rows->has<VerticalLayout>())
+                    continue;
+
+                for (auto id : moveRows[name])
+                    rows->get<VerticalLayout>()->removeEntity(id);
+
+                moveRows[name].clear();
+            }
+
+            walkMoves.clear();
+
+            EntityRef row;
+            std::string rowOf;
+            float used = 0.0f;
+
+            for (const auto& w : wanted)
+            {
+                EntityRef rows = inWalk(w.layout);
+
+                if (rows.empty() or not rows->has<VerticalLayout>() or walkPage.empty())
+                    continue;
+
+                const float width = rows->get<PositionComponent>()->width;
+                const int z = static_cast<int>(rows->get<PositionComponent>()->z);
+
+                ButtonSpec spec;
+                spec.variant = w.variant;
+                spec.label = w.label;
+                spec.tag = w.tag;
+                spec.z = z;
+                spec.months = w.cost.empty() ? -1 : 0;   // Made with the cost pair, then told what it reads
+
+                Button button = makeButton(ecs, spec);
+
+                if (not w.cost.empty())
+                    button.setCost(ecs, w.cost);
+
+                const float face = button.root->get<PositionComponent>()->width;
+
+                // As many to a line as the panel holds
+                if (row.empty() or rowOf != w.layout or w.newLine or used + face > width)
+                {
+                    auto made = makeAnchoredPrefab(ecs, 0.0f, 0.0f, static_cast<float>(z));
+
+                    made.get<PositionComponent>()->setWidth(width);
+                    made.get<PositionComponent>()->setHeight(button.root->get<PositionComponent>()->height);
+
+                    row = made.entity;
+                    rowOf = w.layout;
+                    used = 0.0f;
+
+                    rows->get<VerticalLayout>()->addEntity(row);
+                    moveRows[w.layout].push_back(row.id);
+
+                    // It leaves with the screen, as everything on it does
+                    walkPage->get<Prefab>()->addToPrefab(row, "moveRow" + std::to_string(++moveRowsMade));
+                }
+
+                auto anchor = button.root->get<UiAnchor>();
+                anchor->setTopAnchor(PosAnchor{row.id, AnchorType::Top});
+                anchor->setLeftAnchor(PosAnchor{row.id, AnchorType::Left});
+                anchor->setLeftMargin(used);
+
+                row->get<Prefab>()->addToPrefab(button.root, w.tag);
+
+                // A move's button says what the move would do when the mouse is on it
+                if (w.layout == "moves")
+                    attachGloss(ecs, button.face, MoveGloss + w.tag.substr(std::string(MoveTag).size()));
+
+                used += face + MoveGap;
+
+                walkMoves.push_back({w.tag, button});
+            }
+        }
+
+        // What cannot be done now waits, greyed: its gloss says why
+        for (size_t i = 0; i < walkMoves.size() and i < wanted.size(); ++i)
+        {
+            if (walkMoves[i].second.spec.disabled != wanted[i].locked)
+            {
+                walkMoves[i].second.setDisabled(ecs, wanted[i].locked);
+                walkMoves[i].second.spec.disabled = wanted[i].locked;
+            }
+        }
+    }
+
     void LifeScene::fillFight()
     {
         EntitySystem* ecs = ecsRef;
@@ -1256,29 +1508,44 @@ namespace chronicle
         walkSay("fightTitle", textOf(duel, "title"));
         walkSay("turn", textOf(duel, "turn"));
         walkSay("turnNote", textOf(duel, "cost") + " \xC2\xB7 " + textOf(duel, "daysLeft"));
-        walkSay("quick", textOf(duel, "quick"));
-        walkSay("warn", over ? std::string() : textOf(duel, "warn"));
+        // The order of the turn, in its panel: who acts when, one under the other, he in lapis
+        // where he stands and each beast with what it will do; then what is coming at him, and
+        // why he is first or not. A place no one stands in is out of the stack
+        const std::string warn = over ? std::string() : textOf(duel, "warn");
 
-        // The order of the turn: he in lapis where he stands, the beasts with what each will do
+        walkSay("quick", textOf(duel, "quick"));
+        walkSay("warn", warn.empty() ? std::string(" ") : warn);
+        walkShow("warn", not warn.empty(), "orderPanel");
+        walkShow("quick", not over, "orderPanel");
+
         for (int i = 0; i < MaxChips; ++i)
         {
-            auto chip = walkPiece<Label>("chip" + std::to_string(i));
+            const std::string name = "chip" + std::to_string(i);
+            auto chip = walkPiece<Label>(name);
 
             if (not chip)
                 continue;
 
-            if (over or static_cast<size_t>(i) >= walk.order.size())
-            {
-                if (not chip->spec.text.empty())
-                    chip->setText(ecs, "");
+            // Once it is over there is no order left to say: one line says so
+            const bool ended = over and i == 0;
+            const bool there = ended or (not over and static_cast<size_t>(i) < walk.order.size());
 
+            walkShow(name, there, "orderPanel");
+
+            if (not there)
                 continue;
-            }
 
-            const ElementMap& o = walk.order[i];
-            const std::string tone = textOf(o, "tone");
-            const std::string text = std::string(i > 0 ? "\xE2\x86\x92 " : "") + upper(textOf(o, "text")) + " \xC2\xB7 " + textOf(o, "note");
-            const std::string color = tone == "now" ? "lapis" : tone == "foe" ? "ink" : "ink-muted";
+            std::string text = "THE FIGHT IS OVER";
+            std::string color = "ink-muted";
+
+            if (not ended)
+            {
+                const ElementMap& o = walk.order[i];
+                const std::string tone = textOf(o, "tone");
+
+                text = std::to_string(i + 1) + " \xC2\xB7 " + upper(textOf(o, "text")) + " \xC2\xB7 " + textOf(o, "note");
+                color = tone == "now" ? "lapis" : tone == "foe" ? "ink" : "ink-muted";
+            }
 
             if (chip->spec.text != text)
                 chip->setText(ecs, text);
@@ -1287,7 +1554,129 @@ namespace chronicle
                 chip->setColor(ecs, color);
         }
 
-        // He, under what he fights: his Vitality, his breath, what he strikes and guards with
+        auto registry = ecs->getSystem<GlossRegistry>();
+
+        // The beasts, across the top, a panel each: its name, how it stands over its rule, the
+        // move it means to make by its name alone. What it is and what he knows of it is its
+        // gloss's to say, and so is what the move does: only once he knows
+        const bool pack = walk.targets.size() > 1;
+        EntityRef foeRow = inWalk("foeRow");
+
+        for (int i = 0; i < MaxFoes; ++i)
+        {
+            const std::string n = std::to_string(i);
+            const bool there = static_cast<size_t>(i) < walk.targets.size();
+
+            // A beast there is none of has no panel: the row holds the ones there are, or the
+            // column does where there is no row (one column, fight-narrow.yaml)
+            if (EntityRef panel = inWalk("foePanel" + n); not panel.empty())
+            {
+                if (foeRow.empty())
+                    walkShow("foePanel" + n, there);
+                else
+                {
+                    wrapIn(foeRow, panel)->get<PositionComponent>()->setVisibility(there);
+                    panel->get<PositionComponent>()->setVisibility(there);
+                }
+            }
+
+            if (not there)
+                continue;
+
+            const ElementMap& t = walk.targets[i];
+            const bool down = intOf(t, "dead") > 0;
+            const bool aimed = pack and not down and intOf(t, "chosen") > 0;
+
+            if (auto panel = walkPiece<Panel>("foePanel" + n))
+            {
+                if (panel->title and panel->title->spec.text != textOf(t, "name"))
+                    panel->setHeading(ecs, textOf(t, "name"));
+
+                // Of several, the one his blows go to says so
+                const std::string aside = aimed ? "AIMED AT" : "";
+
+                if (panel->aside and panel->aside->spec.text != aside)
+                    panel->setAside(ecs, aside.empty() ? " " : aside);
+            }
+
+            walkSay("foeLife" + n, textOf(t, "life"));
+            // A beast that is down means nothing more, and neither does one left standing once it is over
+            walkSay("foeIntent" + n, over or down ? std::string(" ") : textOf(t, "intent"));
+
+            if (auto label = walkPiece<Label>("foeLife" + n))
+            {
+                const std::string color = down ? "ink-muted" : "ink";
+
+                if (label->spec.color != color)
+                    label->setColor(ecs, color);
+            }
+
+            if (auto label = walkPiece<Label>("foeIntent" + n))
+            {
+                const std::string color = textOf(t, "tone") == "loss" ? "vermilion" : "ink-muted";
+
+                if (label->spec.color != color)
+                    label->setColor(ecs, color);
+            }
+
+            if (auto rule = walkPiece<ProgressRule>("foeBar" + n))
+                rule->setPercent(ecs, static_cast<float>(intOf(t, "percent")), not walkFresh);
+
+            if (not registry)
+                continue;
+
+            // What it is, and what he knows of it
+            GlossSpec beast;
+            beast.inlineValues = true;
+            beast.title = textOf(t, "name");
+            beast.text = textOf(duel, "about");
+
+            for (const auto& r : walk.foe)
+                beast.rows.push_back({textOf(r, "name"), textOf(r, "value"), intOf(r, "muted") > 0 ? "muted" : ""});
+
+            registry->set(FoeGloss + n, beast);
+
+            // The move it means to make: its name, a line on it, and what it does to him, said
+            // only once it has been used on him or once he has watched the beast
+            GlossSpec move;
+            move.inlineValues = true;
+            move.title = textOf(t, "moveName");
+            move.text = textOf(t, "moveLine");
+
+            if (down)
+            {
+                move.title = "Down";
+                move.text = "It does nothing more.";
+            }
+            else if (intOf(t, "moveKnown") > 0)
+                move.rows.push_back({"It does", textOf(t, "moveEffect"), textOf(t, "tone") == "loss" ? "loss" : "muted"});
+            else
+                move.footnote = "WHAT IT DOES IS NOT KNOWN YET: SEEN ONCE IT IS USED ON HIM, OR ONCE THE BEAST IS WATCHED";
+
+            registry->set(FoeMoveGloss + n, move);
+        }
+
+        // The glosses hang on what they speak of, once: how it stands for the beast, the move's
+        // name and its rule for the move
+        if (not walkGlossed)
+        {
+            walkGlossed = true;
+
+            for (int i = 0; i < MaxFoes; ++i)
+            {
+                const std::string n = std::to_string(i);
+
+                for (const auto& [part, key] : {std::pair<std::string, std::string>{"foeLife" + n, FoeGloss + n}, {"foeBar" + n, FoeGloss + n},
+                                                {"foeIntent" + n, FoeMoveGloss + n}, {"foeCast" + n, FoeMoveGloss + n}})
+                {
+                    if (EntityRef piece = inWalk(part); not piece.empty())
+                        attachGloss(ecs, piece, key);
+                }
+            }
+        }
+
+        // He, under them: his Vitality, his breath when he has something to spend it on, the
+        // rule of his blow, what he strikes and guards with
         if (auto panel = walkPiece<Panel>("heroPanel"); panel and panel->title and panel->title->spec.text != save.name)
             panel->setHeading(ecs, save.name);
 
@@ -1301,7 +1690,7 @@ namespace chronicle
 
         walkSay("low", textOf(duel, "low"));
         walkShow("low", not textOf(duel, "low").empty(), "heroPanel");
-        // His breath is said to who has learned something to spend it on, and to no one else
+
         const bool breathes = not textOf(duel, "breath").empty();
 
         walkSay("breath", textOf(duel, "breath"));
@@ -1327,175 +1716,14 @@ namespace chronicle
 
         walkLedger("hero", hero);
 
-        // What he fights has a panel of its own, over him: what it is, then each beast of it with
-        // how it stands over its rule and what it means to do to him this turn. The one aimed at
-        // is in lapis when there are several; what attacks says so in the loss's colour
-        const bool pack = walk.targets.size() > 1;
+        // His turn: a button a thing he may do, pressed and done; against several, a button a
+        // beast to aim at first
+        fillMoves(over, handed);
 
-        if (auto panel = walkPiece<Panel>("foePanel"); panel and panel->title and panel->title->spec.text != textOf(duel, "foeTitle"))
-            panel->setHeading(ecs, textOf(duel, "foeTitle"));
-
-        walkSay("foeAbout", textOf(duel, "about"));
-
-        for (int i = 0; i < MaxFoes; ++i)
-        {
-            const std::string name = "foeName" + std::to_string(i);
-            const std::string bar = "foeBar" + std::to_string(i);
-            const std::string intent = "foeIntent" + std::to_string(i);
-            const bool there = static_cast<size_t>(i) < walk.targets.size();
-
-            // A beast there is none of has no block: the row holds the ones there are
-            for (const auto& part : {"foeBlock" + std::to_string(i), name, bar, intent, "foeCast" + std::to_string(i)})
-            {
-                if (EntityRef piece = inWalk(part); not piece.empty())
-                    piece->get<PositionComponent>()->setVisibility(there);
-            }
-
-            if (not there)
-                continue;
-
-            const ElementMap& t = walk.targets[i];
-            const bool down = intOf(t, "dead") > 0;
-
-            walkSay(name, upper(textOf(t, "name")) + " \xC2\xB7 " + textOf(t, "life"));
-            walkSay(intent, over and not down ? std::string() : textOf(t, "intent"));
-
-            if (auto label = walkPiece<Label>(name))
-            {
-                const std::string color = down ? "ink-muted" : pack and intOf(t, "chosen") > 0 ? "lapis" : "ink";
-
-                if (label->spec.color != color)
-                    label->setColor(ecs, color);
-            }
-
-            if (auto label = walkPiece<Label>(intent))
-            {
-                const std::string color = textOf(t, "tone") == "loss" ? "vermilion" : "ink-muted";
-
-                if (label->spec.color != color)
-                    label->setColor(ecs, color);
-            }
-
-            if (auto rule = walkPiece<ProgressRule>(bar))
-                rule->setPercent(ecs, static_cast<float>(intOf(t, "percent")), not walkFresh);
-        }
-
-        // And what he knows of it: what he does not is there, greyed, with what it asks
-        std::vector<LedgerRowSpec> foe;
-
-        for (const auto& r : walk.foe)
-        {
-            LedgerRowSpec row;
-            row.id = textOf(r, "id");
-            row.name = textOf(r, "name");
-            row.glyph = textOf(r, "glyph");
-            row.value = textOf(r, "value");
-            row.muted = intOf(r, "muted") > 0;
-
-            foe.push_back(row);
-        }
-
-        walkLedger("foe", foe);
-
-        // Against several, the one aimed at is chosen among their tiles, over the menu; against
-        // one there is nothing to choose, and no tile
-        std::vector<ActivityRowSpec> targets;
-        std::string aimed;
-
-        for (const auto& t : walk.targets)
-        {
-            ActivityRowSpec row;
-            row.id = textOf(t, "id");
-            row.name = textOf(t, "name");
-            row.glyph = "adventure";
-            row.cost = textOf(t, "value");
-            row.costGlyph = "vitality";   // What stands beside its name is how it stands, not a time
-
-            // (what it means to do is said once, in its own panel)
-            if (intOf(t, "dead") > 0 or over)
-                row.state = ActivityState::Locked;
-            else if (intOf(t, "chosen") > 0)
-                aimed = row.id;
-
-            targets.push_back(row);
-        }
-
-        walkList("targets", pack ? std::vector<ActivityGroup>{{"", targets}} : std::vector<ActivityGroup>{}, pack ? aimed : std::string());
-        walkShow("aimNote", pack, "menuPanel");
-        walkShow("targets", pack, "menuPanel");
-
-        // The menu of the turn: what anyone can do, then what he has learned under its heading.
-        // What cannot be done now says why in the place of what it would do
-        std::vector<ActivityGroup> menu;
-        std::string picked;
-
-        for (const auto& m : walk.menu)
-        {
-            const std::string group = textOf(m, "group");
-
-            if (menu.empty() or menu.back().label != group)
-                menu.push_back({group, {}});
-
-            ActivityRowSpec row;
-            row.id = textOf(m, "id");
-            row.name = textOf(m, "name");
-            row.glyph = "swordsmanship";
-            row.cost = textOf(m, "cost");
-            row.until = textOf(m, "note");
-
-
-            if (intOf(m, "locked") > 0 or over or handed)
-                row.state = ActivityState::Locked;
-            else if (intOf(m, "chosen") > 0)
-                picked = row.id;
-
-            menu.back().rows.push_back(row);
-        }
-
-        walkList("menu", menu, picked);
-
-        // What the choice looked at would do: the figures that are there to give, each on its line
-        const ElementMap& preview = walk.preview;
-
-        walkSay("previewTitle", over ? textOf(duel, "title") : textOf(preview, "title"));
-        walkSay("previewText", over ? textOf(duel, "spoils") : textOf(preview, "text"));
-
-        std::vector<LedgerRowSpec> figures;
-
-        if (not over)
-        {
-            for (auto [key, label, glyph] : {std::tuple<const char*, const char*, const char*>{"against", "Against", "adventure"}, {"hits", "Hits", "swordsmanship"}, {"deals", "Deals", "strength"},
-                                             {"costs", "Costs", "time"}, {"then", "Then", "quill"}, {"bites", "Comes back", "vitality"}, {"foeAfter", "It is left", "adventure"}})
-            {
-                const std::string value = textOf(preview, key);
-
-                if (value.empty())
-                    continue;
-
-                LedgerRowSpec row;
-                row.id = key;
-                row.name = label;
-                row.glyph = glyph;
-                row.value = value;
-
-                figures.push_back(row);
-            }
-        }
-
-        walkLedger("preview", figures);
-
-        const std::string refused = textOf(duel, "refused");
-
-        walkSay("odds", over ? std::string() : refused.empty() ? textOf(preview, "odds") : refused);
-
-        // One button does what is chosen; once the fight is over it is the way back to the woods
-        if (auto act = walkPiece<Button>("act"))
-        {
-            const bool locked = intOf(preview, "locked") > 0;
-
-            act->setLabel(ecs, over ? textOf(duel, "back") : textOf(preview, "button"));
-            act->setDisabled(ecs, not over and (locked or handed), locked ? textOf(preview, "asks") : std::string());
-        }
+        walkShow("aimNote", pack and not over, "menuPanel");
+        walkShow("aims", pack and not over, "menuPanel");
+        walkShow("moves", not over, "menuPanel");
+        walkShow("moveNote", not over, "menuPanel");
 
         if (auto hand = walkPiece<Button>("hand"))
         {
@@ -1503,7 +1731,19 @@ namespace chronicle
             hand->setDisabled(ecs, over);
         }
 
-        walkShow("hand", not over, "previewPanel");
+        walkShow("hand", not over, "menuPanel");
+
+        // Once it is over: what it came to, and the one way on
+        walkSay("spoils", over ? textOf(duel, "title") + ". " + textOf(duel, "spoils") : std::string());
+        walkShow("spoils", over, "menuPanel");
+
+        if (auto act = walkPiece<Button>("act"))
+        {
+            act->setLabel(ecs, textOf(duel, "back"));
+            act->setDisabled(ecs, not over);
+        }
+
+        walkShow("act", over, "menuPanel");
 
         // The account of the fight: a line a blow, the turn at its head, a tinted line a day gone
         std::vector<LogEntry> lines;
@@ -1537,6 +1777,7 @@ namespace chronicle
             beat.n = intOf(a, "n");
             beat.hp = a.count("hp") > 0 ? intOf(a, "hp") : -1;
             beat.left = a.count("left") > 0 ? intOf(a, "left") : -1;
+            beat.missed = intOf(a, "missed") > 0;
             beat.line = accountLine(a);
 
             walkBeats.push_back(beat);
@@ -1616,14 +1857,28 @@ namespace chronicle
             walkSay("heroVit", "VITALITY " + std::to_string(beat.hp) + " OF " + std::to_string(most));
 
             if (auto bar = walkPiece<ProgressRule>("heroBar"))
+            {
                 bar->setPercent(ecs, 100.0f * static_cast<float>(beat.hp) / static_cast<float>(most));
+
+                if (beat.line.kind == LogKind::Loss)
+                    showHurt("heroBar", beat.line.figure);
+            }
         }
 
         if (beat.by == "hero" and beat.left >= 0)
         {
-            if (auto bar = walkPiece<ProgressRule>("foeBar" + std::to_string(beat.n)))
+            const std::string name = "foeBar" + std::to_string(beat.n);
+
+            if (auto bar = walkPiece<ProgressRule>(name))
+            {
                 bar->setPercent(ecs, static_cast<float>(beat.left));
+                showHurt(name, "\xE2\x88\x92" + beat.line.figure);
+            }
         }
+
+        // A blow that found nothing says so over the one it was meant for
+        if (beat.missed)
+            showTag(beat.by == "hero" ? "foeBar" + std::to_string(beat.n) : std::string("heroBar"), "MISS", "label", "ink-muted");
 
         if (not who.empty())
         {
@@ -1633,6 +1888,65 @@ namespace chronicle
 
         walkBeats.pop_front();
         beatLeft = BeatMs;
+    }
+
+    void LifeScene::showHurt(const std::string& rule, const std::string& taken)
+    {
+        auto bar = walkPiece<ProgressRule>(rule);
+
+        if (not bar or Motion::reduced() or bar->fill.empty() or not bar->fill->has<ThemeComponent>())
+            return;
+
+        // The rule is in the loss's colour for a moment, while it falls
+        const _unique_id fill = bar->fill.id;
+
+        bar->fill->get<ThemeComponent>()->setElement("progress.fill.hurt");
+
+        passing.push_back({HurtMs, nullptr, [this, fill]() {
+            if (auto entity = ecsRef->getEntity(fill); entity and entity->has<ThemeComponent>())
+                entity->get<ThemeComponent>()->setElement("progress.fill");
+        }});
+
+        // And what was taken lifts off it
+        if (not taken.empty())
+            showTag(rule, taken, "figure", "status-loss");
+    }
+
+    void LifeScene::showTag(const std::string& rule, const std::string& text, const std::string& style, const std::string& color)
+    {
+        auto bar = walkPiece<ProgressRule>(rule);
+
+        if (not bar or Motion::reduced() or bar->root.empty())
+            return;
+
+        // A word or a figure over the rule's right end: it lifts, and goes
+        LabelSpec spec;
+        spec.style = style;
+        spec.color = color;
+        spec.text = text;
+        spec.z = static_cast<int>(HurtZ);
+
+        Label figure = makeLabel(ecsRef, spec);
+
+        auto anchor = figure.entity.get<UiAnchor>();
+        anchor->setBottomAnchor(PosAnchor{bar->root.id, AnchorType::Top});
+        anchor->setRightAnchor(PosAnchor{bar->root.id, AnchorType::Right});
+
+        const _unique_id id = figure.entity.id;
+
+        passing.push_back({HurtRiseMs,
+            [this, id, risen = 0.0f](float ms) mutable {
+                if (auto entity = ecsRef->getEntity(id))
+                {
+                    risen += ms * HurtRise;
+
+                    entity->get<UiAnchor>()->setBottomMargin(risen);
+                }
+            },
+            [this, id]() {
+                if (ecsRef->getEntity(id))
+                    ecsRef->removeEntity(id);
+            }});
     }
 
     void LifeScene::endTelling()
@@ -1658,6 +1972,21 @@ namespace chronicle
 
     void LifeScene::runWalk(float ms)
     {
+        // A width that came while the screen was just built: it is built for it now
+        if (walkCooling > 0.0f)
+        {
+            walkCooling -= ms;
+
+            if (walkCooling <= 0.0f and walkRefitDue)
+            {
+                walkRefitDue = false;
+                fitWalk(windowWidth, windowHeight);
+            }
+        }
+
+        // The account follows the order of the turn over it, whenever that one changes its height
+        fitAccount();
+
         // A screen built a pass ago: its layouts hold what stands in them now. What was taken out
         // of a stack is taken out again (it is the wrap its layout holds that leaves, and the
         // layout did not hold it yet), and from here its rules may move
@@ -1755,18 +2084,6 @@ namespace chronicle
             workChosen = event.id;
             fillSite();
         }
-        else if (event.list == MenuList and not event.id.empty() and event.id != textOf(walk.preview, "id"))
-        {
-            walkDo(WalkAct{"pick", event.id, 0});
-        }
-        else if (event.list == TargetsList and not event.id.empty())
-        {
-            for (const auto& t : walk.targets)
-            {
-                if (textOf(t, "id") == event.id and intOf(t, "chosen") <= 0)
-                    walkDo(WalkAct{"target", "", intOf(t, "n")});
-            }
-        }
     }
 
     void LifeScene::onWalkConfirm(const ActivityActivatedEvent& event)
@@ -1794,13 +2111,6 @@ namespace chronicle
         {
             workChosen = event.id;
             onWalkButton(WorkTag);
-        }
-        else if (event.list == MenuList)
-        {
-            if (event.id != textOf(walk.preview, "id"))
-                walkDo(WalkAct{"pick", event.id, 0});
-
-            onWalkButton(ActTag);
         }
     }
 
@@ -1899,6 +2209,10 @@ namespace chronicle
             if (index < walk.options.size())
                 walkDo(WalkAct{"option", textOf(walk.options[index], "id"), 0});
         }
+        else if (tag.rfind(MoveTag, 0) == 0)
+            walkDo(WalkAct{"move", tag.substr(std::string(MoveTag).size()), 0});
+        else if (tag.rfind(AimTag, 0) == 0)
+            walkDo(WalkAct{"target", "", std::atoi(tag.substr(std::string(AimTag).size()).c_str())});
         else if (tag == ActTag)
             walkDo(WalkAct{textOf(walk.duel, "over").empty() ? "do" : "back", "", 0});
         else if (tag == HandTag)

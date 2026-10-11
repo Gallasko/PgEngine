@@ -231,7 +231,7 @@ children:
             glyph: work
             cost: 1 AP
             tag: walk.work
-          - {kind: Label, name: workNote, style: body-sm, color: ink-muted, overflow: wrap, text: "Choose a work, then do it. Each one costs days of the stay, and each is a line of the record."}
+          - {kind: Label, name: workNote, style: body-sm, color: ink-muted, overflow: wrap, text: "Choose a work, then do it. Hover one to read what it costs and what it gives."}
 
   # -- Right: what he has taken, and the record so far --
   - kind: Layout:Vertical

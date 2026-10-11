@@ -14,7 +14,8 @@
 //                      beast, count 1 or more for its pack), observe, gather (target an item),
 //                      study, rest, remedy, leave. Before an event's card: option (target its
 //                      id). In a fight: pick (target a row of the menu), target (count the
-//                      beast), do, auto, step, back;
+//                      beast), do, move (target a row of the menu: that move, now), auto, step,
+//                      back;
 //           "look"     nothing: the pages of the walk as it stands;
 //           "records"  the Adventure page: the records kept and the form of a queue;
 //           "begin"    a record is about to be walked again (`replay`, its id): what it takes is
@@ -142,7 +143,7 @@ if ((ask == "enter" or ask == "act" or ask == "look") and pick(run, "zone", "") 
         order = orderRows()
         hero = heroRows()
         foe = foeRows()
-        preview = previewOf()
+        preview = previewOf(fight.choice)
     }
 }
 

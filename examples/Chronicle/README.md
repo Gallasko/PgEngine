@@ -61,11 +61,16 @@ does not run its months: it opens the **on-site screen** over the page, where th
 of days (action points, `AP`) spent one choice at a time: seek a beast or watch it from cover,
 gather, study the place, rest, turn for home. Each choice says what it costs before it is made,
 and each one made is a line of **the record**. A beast found is fought on the **fight screen**,
-turn by turn. What he fights has a panel of its own across the top, over him and over his turn,
-which stand under it side by side: what it is, how it stands, and what it means to do to him
-this turn. A blow is seen coming: its rule fills, his or the beast's, then the blow is told in
-the account. What he may do is what anyone can (strike, defend, take a
-remedy while he holds one, flee) and, under *Learned*, what his life has taught him and nothing
+turn by turn. Every beast he fights has a panel of its own across the top, the size of his, over
+him and over his turn, which stand under them side by side: its name, how it stands, and the move
+it means to make this turn, by its name alone. What the move is, is in its gloss, and what it
+does to him is said there only once it has been used on him or once he has watched the beast.
+A blow is seen coming: its rule fills, his or the beast's, then the blow is told in the account,
+the rule of who was hurt flashes and falls, and what was taken lifts off it (a blow that found
+nothing lifts a small *MISS*). The order of the turn has a panel of its own at the top of the
+right column, over the account: who acts when, and what is coming at him. What he may do is a
+button each, pressed and done, its gloss saying what it would do: what anyone can (strike,
+defend, take a remedy while he holds one, flee) and what his life has taught him and nothing
 else: the Keep's blows to its sworn men, the Collegium's workings to its scholars, a trick of
 the streets to who knows them. Every few turns of a fight a day of the stay is gone. When the days are spent, or he turns for
 home, the walk's months run as any work's do, and the record is kept: the **Adventure page** (a
@@ -884,15 +889,31 @@ files of their own, `expeditionlib.pg` and `fightlib.pg`, imported first: a scri
   second dealing nothing and costing the beast its next move (`holds`); *Feint and step*
   (`street_known`, `hidden_hand`) is learned on the streets. All cost breath. The stances
   (`walkStances`) are still in the rules and in the figures, but not on the page.
-- **What a beast means to do** this turn is said of each (`targets`: `life`, `percent`,
-  `intent`), with what it would take from him; its vitality is in figures once he knows it two
-  of four, in words before.
+- **What a beast means to do** this turn is said of each by the move's name alone (`targets`:
+  `life`, `percent`, `intent`). Each beast names its moves (`walkMobs.<mob>.moves`: a `name` and
+  a `line`), and the row carries the gloss of the one coming: `moveName`, `moveLine`, and
+  `moveEffect`, what it would take from him, written only when `moveKnown`. A move that draws no
+  blood is plain to see; one that does is known once it has been used on him (the world's
+  `know.move.<mob>.<move>`, kept from life to life as all knowledge is) or once he knows the
+  beast two of four. Until then what is coming is counted and not weighed (`duel.warn`). Its
+  vitality is in figures at the same two of four, in words before.
+- **A field work** is a tile with its name and its days, and a gloss: the row says a line on it
+  (`about`: a thing gathered has its own, `walkItems.<thing>.gather`), what it costs in words
+  (`costs`) and what it gives (`gives`).
+- **A blow that found nothing** is marked in the account (`missed`), his or the beast's: the
+  page lifts a *MISS* off the rule of the one it was meant for (`LifeScene::showTag`).
+- **A press is the move** (`act.kind` `move`): the menu's rows carry what each would do (`text`,
+  `against`, `hits`, `deals`, `costs`, `then`, `bites`, `foeAfter`, `odds`: `previewOf`), which
+  the scene puts in the button's gloss, and nothing is chosen before it is done. Against a pack
+  the beast aimed at is a button too (`aim`).
 - **A turn is told in its time** (`LifeScene::tellTurn`, `runTelling`). The script plays a
   whole turn at once, and the walk is at once where the turn left it; the page lags behind on
   purpose. Each line the turn wrote in the account says whose blow it tells (`by`, `n`), his
   Vitality once it has happened (`hp`) and what is left of the beast he hit (`left`): the scene
   fills that one's rule (`heroCast`, `foeCast<n>`), then writes the line and moves the rule of
-  who was hit, and nothing is pressed meanwhile. Under reduced motion the turn is shown at once.
+  who was hit: it flashes (`progress.fill.hurt`), falls in a short time, and what was taken
+  lifts off it (`showHurt`). Nothing is pressed meanwhile. Under reduced motion the turn is
+  shown at once.
   Breath is said only to who has learned something to spend it on.
 - **Events.** After an action an event waits on (`trigger`), one of the zone's may come: its card
   is answered before anything else, and the answer is a step of the record. One of `once: true`
@@ -934,7 +955,10 @@ records and the form of a queue, and `beginReplay` / `homeFromWalk` walk a recor
 save keeps the walk under way (`LifeSave::walk`), so a game closed in the middle of a fight
 opens on it. The two screens are `res/chronicle/ui/expedition.yaml` and `fight.yaml`, built at
 the window's width (`shapeWalk`) and built again at another; under 1000 px they are
-`expedition-narrow.yaml` and `fight-narrow.yaml`, the same pieces in one column.
+`expedition-narrow.yaml` and `fight-narrow.yaml`, the same pieces in one column. A window
+dragged by its edge is a width a frame: the screen is built for the first, then no more often
+than every 120 ms, and once more where the dragging stops (`walkCooling`). The account of a
+fight has what the order of the turn leaves of its column (`fitAccount`).
 
 **The guide and the lore** (`achievements.pg`, `kind`). An entry of the table is a deed (no
 `kind`), a step of the guide or a line of lore; the `AchievementSys` watches the asks of all

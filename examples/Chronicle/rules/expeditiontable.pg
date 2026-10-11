@@ -22,7 +22,10 @@
 //         `walkMobs`   one table per beast:
 //                        {id, name, many (several of it), pack?, lone?, rarity (common | uncommon | rare), packSize,
 //                         holdsBack (a member does not attack while that many others stand; 0: none),
-//                         about (a line on what it is, for its panel in a fight),
+//                         about (a line on what it is, for its gloss in a fight),
+//                         moves {move: {name, line}} (what each move of its script is called and
+//                         a line on it, for the gloss of what it means to do: "hold" is the move
+//                         of one that hangs back),
 //                         hp, least, most (its bite), guard, quick, verb ("bites"),
 //                         script [bite | circle | maul] (cycled), weak ("" or a technique's id),
 //                         trains (the part a kill teaches), xp, loot [{id, chance (percent), least, most}]}
@@ -90,21 +93,22 @@ var walkKnobs = {
     travelCut: 25           // Percent off the way there and back at zone knowledge 4
 }
 
+// `gather`: a line on the gathering of it, for the gloss of its tile on the site
 var walkItems = [
     {id: "rations", name: "Rations", one: "ration", glyph: "trade", kind: "food"},
     {id: "remedy", name: "Wortleaf remedies", one: "remedy", glyph: "vitality", kind: "remedy", heals: 30},
-    {id: "berries", name: "Berries", one: "berries", glyph: "trade", kind: "sold", lot: 4, coin: 2},
-    {id: "wortleaf", name: "Wortleaf", one: "wortleaf", glyph: "study", kind: "sold", lot: 2, coin: 3},
-    {id: "fish", name: "Fish", one: "fish", glyph: "trade", kind: "sold", lot: 2, coin: 3},
-    {id: "reeds", name: "Reeds", one: "reeds", glyph: "work", kind: "sold", lot: 3, coin: 2},
+    {id: "berries", name: "Berries", one: "berries", glyph: "trade", kind: "sold", gather: "Brambles along the hedge, black with fruit by late summer.", lot: 4, coin: 2},
+    {id: "wortleaf", name: "Wortleaf", one: "wortleaf", glyph: "study", kind: "sold", gather: "A low grey leaf the herbwives pay for. It hides at the foot of the hedge.", lot: 2, coin: 3},
+    {id: "fish", name: "Fish", one: "fish", glyph: "trade", kind: "sold", gather: "A line in the still water, and patience.", lot: 2, coin: 3},
+    {id: "reeds", name: "Reeds", one: "reeds", glyph: "work", kind: "sold", gather: "Cut at the water's edge, for thatch and baskets.", lot: 3, coin: 2},
     {id: "pelts", name: "Pelts", one: "pelt", glyph: "adventure", kind: "sold", lot: 1, coin: 4},
     {id: "hides", name: "Hides", one: "hide", glyph: "adventure", kind: "sold", lot: 1, coin: 5},
     {id: "fangs", name: "Fangs", one: "fang", glyph: "relic", kind: "sold", lot: 1, coin: 6},
     {id: "antler", name: "White antlers", one: "white antler", glyph: "relic", kind: "sold", lot: 1, coin: 25},
-    {id: "firewood", name: "Firewood", one: "firewood", glyph: "work", kind: "town"},
-    {id: "clay", name: "Clay", one: "clay", glyph: "work", kind: "town"},
-    {id: "ashwood", name: "Ash wood", one: "ash wood", glyph: "work", kind: "town"},
-    {id: "stone", name: "Stone", one: "stone", glyph: "forge", kind: "town"}
+    {id: "firewood", name: "Firewood", one: "firewood", glyph: "work", kind: "town", gather: "Deadfall and cuttings, bundled and carried home."},
+    {id: "clay", name: "Clay", one: "clay", glyph: "work", kind: "town", gather: "Dug out of the bank, heavy and wet."},
+    {id: "ashwood", name: "Ash wood", one: "ash wood", glyph: "work", kind: "town", gather: "Straight ash poles, felled and trimmed."},
+    {id: "stone", name: "Stone", one: "stone", glyph: "forge", kind: "town", gather: "Dressed blocks, lying where the quarrymen left them."}
 ]
 
 var walkZones = [
@@ -154,7 +158,9 @@ var walkZones = [
 var walkMobs = [
     {id: "rat", name: "Water rat", many: "water rats", pack: "", lone: "", rarity: "common", packSize: 1, holdsBack: 0,
      about: "Fat on the miller's grain, and not afraid of a boy.",
-     hp: 14, least: 3, most: 5, guard: 0, quick: 8, verb: "bites",
+     hp: 14, least: 3, most: 5, guard: 0, quick: 5, verb: "bites",
+     moves: {bite: {name: "Bite", line: "A quick nip at whatever is nearest."},
+             circle: {name: "Skitter", line: "It backs off and looks for a way round."}},
      script: ["bite", "circle"], weak: "",
      trains: "dex", xp: 3,
      loot: [{id: "hides", chance: 60, least: 1, most: 1}]},
@@ -162,6 +168,9 @@ var walkMobs = [
     {id: "wolf", name: "Wolf", many: "wolves", pack: "Wolf pack", lone: "A lone wolf", rarity: "common", packSize: 3, holdsBack: 2,
      about: "Lean and grey. It never comes alone for long.",
      hp: 16, least: 3, most: 5, guard: 1, quick: 9, verb: "bites",
+     moves: {bite: {name: "Bite", line: "It goes for the leg, to bring him down."},
+             circle: {name: "Circle", line: "It keeps its distance and looks for an opening."},
+             hold: {name: "Hang back", line: "It waits behind the others, for one of them to fall."}},
      script: ["bite", "circle", "bite"], weak: "sweep",
      trains: "str", xp: 4,
      loot: [{id: "pelts", chance: 100, least: 1, most: 1}, {id: "fangs", chance: 25, least: 1, most: 1}]},
@@ -169,6 +178,9 @@ var walkMobs = [
     {id: "boar", name: "Boar", many: "boars", pack: "", lone: "", rarity: "uncommon", packSize: 1, holdsBack: 0,
      about: "Old, heavy, and of the opinion that the wood is his.",
      hp: 32, least: 5, most: 8, guard: 2, quick: 5, verb: "gores",
+     moves: {bite: {name: "Gore", line: "A sideways rip of the tusks."},
+             maul: {name: "Charge", line: "Its whole weight, head down."},
+             circle: {name: "Paw the ground", line: "It gathers itself. What comes next is worse."}},
      script: ["circle", "bite", "maul"], weak: "feint",
      trains: "str", xp: 8,
      loot: [{id: "hides", chance: 100, least: 1, most: 2}, {id: "fangs", chance: 40, least: 1, most: 2}]},
@@ -176,6 +188,8 @@ var walkMobs = [
     {id: "stag", name: "White Stag", many: "white stags", pack: "", lone: "", rarity: "rare", packSize: 1, holdsBack: 0,
      about: "White as a shroud. The Keep's hunters have followed it for years.",
      hp: 30, least: 5, most: 8, guard: 1, quick: 14, verb: "strikes",
+     moves: {bite: {name: "Antlers", line: "A lowered head and a toss."},
+             circle: {name: "Wheel away", line: "It is gone between the oaks, and back from another side."}},
      script: ["circle", "circle", "bite"], weak: "heavy",
      trains: "dex", xp: 12,
      loot: [{id: "hides", chance: 100, least: 2, most: 2}, {id: "antler", chance: 50, least: 1, most: 1}]},
@@ -183,6 +197,8 @@ var walkMobs = [
     {id: "adder", name: "Stone adder", many: "stone adders", pack: "", lone: "", rarity: "uncommon", packSize: 1, holdsBack: 0,
      about: "The colour of the stone it sleeps on.",
      hp: 12, least: 5, most: 9, guard: 0, quick: 12, verb: "strikes",
+     moves: {bite: {name: "Strike", line: "Faster than the eye. The bite itself is small."},
+             circle: {name: "Coil", line: "It draws back on itself."}},
      script: ["circle", "bite"], weak: "feint",
      trains: "dex", xp: 6,
      loot: [{id: "fangs", chance: 70, least: 1, most: 1}]}

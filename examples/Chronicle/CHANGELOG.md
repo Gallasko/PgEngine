@@ -11,14 +11,20 @@ the `CHANGELOG.md` at the root of the repository.
   of four places to walk to (the Hedgerows, Mill Pond, the Hollow Woods, the Quarry Road). A
   walk is a tile like any other, in a new *Adventure* group, with its months written on it. When
   you begin it you are taken there: the stay is a number of days, and you spend them one choice
-  at a time (gather, study the place, rest, seek a beast or watch it, go home). Every choice
-  says what it costs before you make it.
-- **Fights.** A beast you seek is fought turn by turn. It has its own panel across the top,
-  above you and your choices: what it is, how it stands, and what it is about to do to you.
-  A small bar fills before each blow, yours and the beast's, so you see it coming. You can strike, defend, take a remedy
-  if you hold one, or flee. Each choice shows what it would do before you confirm it. Every
-  three turns of a fight cost a day of the stay. You can also let him fight on by himself.
-  Wolves hunt in packs of three; one of them hangs back while two stand.
+  at a time (gather, study the place, rest, seek a beast or watch it, go home). A work is a tile
+  with its name and its days; hover it to read what it is, what it costs and what it gives.
+- **Fights.** A beast you seek is fought turn by turn. Each beast has a small panel of its own
+  across the top, the size of yours, with you and your turn under it: its name, how it stands,
+  and the move it is about to make, by its name alone (*Bite*). Hover the move to read what it
+  is; what it does to you is written there once it has been used on you, or once you have
+  watched the beast from cover. Your turn is a few buttons: strike, defend, take a remedy if you
+  hold one, flee. A press does it, and hovering a button says what it would do. A small bar
+  fills before each blow, yours and the beast's, so you see it coming; whoever is hurt has their
+  vitality bar flash and fall, and what was taken lifts off it; a blow that misses lifts a
+  small *MISS* instead. The order of the turn has a panel of its own at the top right: who acts
+  when, and how many blows are coming at you. Every three turns of a fight cost a day of the
+  stay. You can also let him fight on by himself. Wolves hunt in packs of
+  three; one of them hangs back while two stand. No rat is quicker than a boy.
 - **What you learn in a life, you fight with.** A man sworn to the Keep has a *Heavy cut*, and
   a veteran of the campaign a *Sweep*. A scholar of the Collegium throws a *Firebolt*, stronger
   with Intelligence, and Magister Orin's assistant knows a *Binding word* that costs a beast its
@@ -40,6 +46,12 @@ the `CHANGELOG.md` at the root of the repository.
   built of what your walks brought back. It opens the Hollow Woods to every later life.
 - **Events on the way.** Now and then something waits for an answer: a nest in the hedge, a
   hunter by a cold fire. What you choose is written in the record.
+
+### Fixed
+
+- **Resizing the window left a mess.** Dragging the window by its edge, on the page or on a
+  walk, could leave pieces of the page drawn over each other at the top left, and they stayed.
+  Nothing is left behind now, at any size.
 
 ## 0.4.1 - Unreleased
 
