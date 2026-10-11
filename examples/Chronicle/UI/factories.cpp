@@ -898,6 +898,9 @@ namespace chronicle
                 {"height", 0.0f},      // > 0: the list keeps that height and its rows scroll
                 {"stripes", true},     // false: every row on the same ground
                 {"framed", false},     // true: a drawn frame around the list, a table of lines
+                {"headName", ""},      // A table's head, inside its frame: the names of its columns
+                {"headCost", ""},
+                {"headAside", ""},
                 {"compact", false},    // true: rows of a name, a time and a closing, on a ground that says their kind
                 {"tileWidth", 0.0f},   // > 0: the rows given by setRows are tiles, as many to a line as fit at that width or more
                 {"z",      20},
@@ -913,6 +916,9 @@ namespace chronicle
                     s.height = numberProp(spec.props, "height", theme, s.height);
                     s.stripes = getParamBool(spec.props, "stripes", s.stripes);
                     s.framed = getParamBool(spec.props, "framed", s.framed);
+                    s.headName = stringProp(spec.props, "headName", s.headName);
+                    s.headCost = stringProp(spec.props, "headCost", s.headCost);
+                    s.headAside = stringProp(spec.props, "headAside", s.headAside);
                     s.compact = getParamBool(spec.props, "compact", s.compact);
                     s.tileWidth = numberProp(spec.props, "tileWidth", theme, s.tileWidth);
                     s.z      = getParamInt(spec.props, "z", s.z);

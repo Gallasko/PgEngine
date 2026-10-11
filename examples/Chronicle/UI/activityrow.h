@@ -118,6 +118,7 @@ namespace chronicle
         bool featured = false;         // The page wants it seen: its ground says so, in the place of its kind
         bool major = false;            // It turns his life: framed, and its mark shown, whatever its state
         bool tile = false;             // One of several on a line: no rule under it
+        bool table = false;            // A line of a table: no mark, its name in the text's face, its ground tinted when it is the one chosen
         bool adventure = false;        // It takes him out of the town: its ground and its frame say so
 
         pg::_unique_id list = 0;       // The list root, once a list adopts the row
@@ -216,6 +217,9 @@ namespace chronicle
         bool stripes = true;           // Alternate grounds like an account book; false: every row on the same ground
         bool compact = false;          // Every row compact (ActivityRowSpec::compact), whatever its own spec says
         bool framed = false;           // A drawn frame around the list: a table of lines, not a stack of rows
+        std::string headName;          // A table's head, inside its frame over its lines: the names of its columns ("WALK",
+        std::string headCost;          // "COST",
+        std::string headAside;         // "BRINGS"); all "" for none
         float tileWidth = 0.0f;        // > 0: the rows are tiles, as many to a line as fit at that width or more, 8 apart; the tiles of a line are level
         std::vector<ActivityGroup> groups;
         int z = 20;                    // Root, body and rows; the scroll thumb z+6
@@ -253,6 +257,7 @@ namespace chronicle
 
         pg::_unique_id label = 0;
         std::string text;              // What it reads: a list filled again keeps a heading that says the same
+        bool table = false;            // The head of a table of lines (its columns' names), not a group's heading: the system leaves it as it was made
     };
 
     // The rows of the Life screen, grouped and headed, alternating their grounds across the

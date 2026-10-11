@@ -90,11 +90,8 @@ namespace chronicle
         const std::string RunTag = "walk.run.";            // Followed by a record's id: the small button of its line, which walks it once
         constexpr float AdventureGap = 12.0f;              // Between two things on a line of the Adventure page
         constexpr float AdventureCells = 420.0f;           // Under this width a walk's line has no cell for what it brings: its line says it
-        constexpr float RowPad = 16.0f;                    // A line's padding (activityrow.cpp)
-        constexpr float RecordAction = 68.0f;              // A line's button and the gap before it,
-        constexpr float RecordBrings = 110.0f;             // the cell of what it brings,
-        constexpr float RecordInset = 190.0f;              // and the two together with their gaps
-        constexpr float RecordCost = 70.0f;                // The cost's column in the table's head
+        constexpr float RecordBrings = 110.0f;             // The cell of what a walk brings, on its line
+
 
         const std::string WalkActivity = "walk.";          // An activity that is a walk: followed by its zone
         const std::string RecordGloss = "record/";
@@ -2511,16 +2508,21 @@ namespace chronicle
             foot->setWidth(ecs, width);
 
         // Across the width where a line loses its cells, the lines are other lines: filled again
-        const bool had = adventureWidth <= 0.0f or adventureWidth - 32.0f >= AdventureCells;
-        const bool has = width - 32.0f >= AdventureCells;
+        // (in view or not: a page out of view is filled all the same, to be right when it is opened)
+        const bool had = adventureRoomy();
 
         adventureWidth = width;
 
-        // (in view or not: a page out of view is filled all the same, to be right when it is opened)
-        if (had != has)
+        if (had != adventureRoomy())
             fillAdventure();
 
         layAdventure();
+    }
+
+    bool LifeScene::adventureRoomy() const
+    {
+        // Before the page has been given a width, as the files draw it: with room
+        return adventureWidth <= 0.0f or adventureWidth >= AdventureCells;
     }
 
     void LifeScene::layAdventure()
@@ -2547,6 +2549,9 @@ namespace chronicle
 
         // What a walk by hand is at the left, the button that sets out at the right: the line
         // has what the button leaves
+        if (EntityRef row = named("zoneGo"); not row.empty() and std::abs(row->get<PositionComponent>()->width - inner) > 0.5f)
+            row->get<PositionComponent>()->setWidth(inner);
+
         const float noteRoom = inner - widthOf("walkNew") - AdventureGap;
 
         wide("zoneNote", noteRoom);
@@ -2559,18 +2564,9 @@ namespace chronicle
                 note->setText(ecs, said);
         }
 
-        // The table's head over its columns: the walk, its cost (the figures end where the rows'
-        // do), what it brings. A narrow column has no room for the last: its rows say it in their line
-        const bool cells = inner >= AdventureCells;
-
-        wide("recHeadWalk", inner - RowPad - (cells ? RecordInset : RecordAction) - RecordCost - 2.0f * AdventureGap - RowPad + 16.0f);
-        wide("recHeadBrings", cells ? RecordBrings : 1.0f);
-
-        if (EntityRef brings = named("recHeadBrings"); not brings.empty())
-            brings->get<PositionComponent>()->setVisibility(cells and recordsShown);
-
         // The four cells of the forecast share the row
-        const float cell = std::floor((inner - 3.0f * AdventureGap) / 4.0f);
+        const float within = piece<Panel>("queuePanel") ? piece<Panel>("queuePanel")->innerWidth() : inner;
+        const float cell = std::floor((within - 3.0f - 6.0f * AdventureGap) / 4.0f);
 
         for (const char* name : {"cellTake", "cellUse", "cellBring", "cellTeach"})
         {
@@ -2582,8 +2578,8 @@ namespace chronicle
             wide(name, cell);
 
         // What the count comes to, after the stepper; and the two buttons at the form's right end
-        wide("queueTotal", inner - widthOf("timesHead") - widthOf("queueFewer") - widthOf("queueTimes") - widthOf("queueMore") - 4.0f * 8.0f);
-        wide("queueSpacer", inner - widthOf("walkOnce") - widthOf("walkMany") - 2.0f * 8.0f);
+        wide("queueTotal", within - widthOf("timesHead") - widthOf("queueFewer") - widthOf("queueTimes") - widthOf("queueMore") - 4.0f * 8.0f);
+        wide("queueSpacer", within - widthOf("walkOnce") - widthOf("walkMany") - 2.0f * 8.0f);
     }
 
     void LifeScene::chooseZone(const std::string& zone)
@@ -2736,7 +2732,7 @@ namespace chronicle
 
         // A narrow column (the phone's) has no room for everything a line says at its right:
         // what kind of walk it is and what he is short of are left to the line under the name
-        const bool cells = adventureWidth <= 0.0f or (piece<Panel>("recordsPanel") and piece<Panel>("recordsPanel")->innerWidth() >= AdventureCells);
+        const bool cells = adventureRoomy();
 
         // ---- Where to walk: a line a place, the open ones first, the one in view chosen ----
         std::vector<ActivityRowSpec> open;
@@ -2825,7 +2821,11 @@ namespace chronicle
         // months, or saying why not
         const RuleActivity* place = placeOf(adventureZone);
         const bool shutNow = not place or boolOf(place->fields, "locked");
-        const std::string placeName = place ? textOf(place->fields, "name") : std::string();
+        // (inside a sentence its article is a small one: "Set out for the Hedgerows")
+        std::string placeName = place ? textOf(place->fields, "name") : std::string();
+
+        if (placeName.rfind("The ", 0) == 0)
+            placeName[0] = 't';
 
         if (auto anew = piece<Button>("walkNew"))
         {
@@ -2847,8 +2847,12 @@ namespace chronicle
             else if (place and not free)
                 label = busy ? "Set out \xC2\xB7 a queue is walking" : "Set out \xC2\xB7 he is at work";
 
-            anew->setLabel(ecs, label);
-            anew->setCost(ecs, place and not shutNow and free ? std::to_string(intOf(place->fields, "months")) + " mo" : std::string());
+            if (place and not shutNow and free)
+                label += " \xC2\xB7 " + std::to_string(intOf(place->fields, "months")) + " mo";
+
+            if (anew->label.spec.text != label)
+                anew->setLabel(ecs, label);
+
             anew->setDisabled(ecs, shutNow or busy or not free);
         }
 
@@ -2962,6 +2966,11 @@ namespace chronicle
         {
             if (walkFilled[RecordsName] != signature or list->spec.groups.empty() != rows.empty())
             {
+                // (the head's last column is there with the lines' cell)
+                list->spec.headName = "WALK";
+                list->spec.headCost = "COST";
+                list->spec.headAside = cells ? "BRINGS" : "";
+
                 walkFilled[RecordsName] = signature;
                 list->setRows(ecs, rows.empty() ? std::vector<ActivityGroup>{} : std::vector<ActivityGroup>{{"", rows}});
             }
@@ -2983,13 +2992,10 @@ namespace chronicle
             // No walk kept of it: one faint line, and no table
             recordsShown = not rows.empty();
 
-            for (const char* name : {"recordsHeader", RecordsName})
+            if (EntityRef node = named(RecordsName); not node.empty())
             {
-                if (EntityRef node = named(name); not node.empty())
-                {
-                    wrapIn(panel->body, node)->get<PositionComponent>()->setVisibility(recordsShown);
-                    node->get<PositionComponent>()->setVisibility(recordsShown);
-                }
+                wrapIn(panel->body, node)->get<PositionComponent>()->setVisibility(recordsShown);
+                node->get<PositionComponent>()->setVisibility(recordsShown);
             }
 
             if (EntityRef note = named("recordsNote"); not note.empty())
@@ -3009,7 +3015,8 @@ namespace chronicle
 
         if (auto panel = piece<Panel>("queuePanel"); panel and chosen)
         {
-            const std::string subject = upper(textOf(form, "subject"));
+            // (the panel's title keeps its room: the standing fact is said short, and not at all on a narrow column)
+            const std::string subject = upper(textOf(form, "subject")) + (cells ? " \xC2\xB7 NO FIGHT FOUGHT" : "");
 
             if (panel->aside and panel->aside->spec.text != subject)
                 panel->setAside(ecs, subject);
@@ -3062,14 +3069,21 @@ namespace chronicle
 
         if (auto once = piece<Button>("walkOnce"))
         {
-            once->setCost(ecs, chosen ? std::to_string(each) + " mo" : std::string());
+            const std::string label = chosen ? "Walk once \xC2\xB7 " + std::to_string(each) + " mo" : std::string("Walk once");
+
+            if (once->label.spec.text != label)
+                once->setLabel(ecs, label);
+
             once->setDisabled(ecs, busy or not free or not chosen or not blocked.empty());
         }
 
         if (auto many = piece<Button>("walkMany"))
         {
-            many->setLabel(ecs, chosen ? textOf(form, "many") : "Queue");
-            many->setCost(ecs, chosen ? std::to_string(intOf(form, "months")) + " mo" : std::string());
+            const std::string label = chosen ? textOf(form, "many") + " \xC2\xB7 " + std::to_string(intOf(form, "months")) + " mo" : std::string("Queue");
+
+            if (many->label.spec.text != label)
+                many->setLabel(ecs, label);
+
             many->setDisabled(ecs, busy or not free or not chosen or not blocked.empty());
         }
 

@@ -967,9 +967,12 @@ five a place, sorted by the rules' `worth`; a line's own button is `walk.run.<id
 of a queue (its figures are the rules' `addFigures`) or, while one runs, the panel of the walk
 at work, and the scribe's line at the foot (`walkZones.<zone>.lines`); `layAdventure` gives what
 stands beside a button the room it leaves. `beginReplay` / `homeFromWalk` walk a record again.
-The lines are the kit's list rows made table lines (`ActivityRowSpec::line`, `eachTone`,
-`asideTop` / `asideBottom`, `action`; a list `framed`), and the first thing to do is a button in
-ochre (`ButtonVariant::Ochre`). The
+The lines are the kit's list rows made table lines: a row with no glyph has no mark, its name
+in the text's face, no hourglass by its cost, and its ground tinted when it is the one chosen
+(`ActivityRowSpec::line`, `eachTone`, `asideTop` / `asideBottom`, `action`); the list is
+`framed`, and has its columns' names inside its frame over its lines (`headName`, `headCost`,
+`headAside`). The first thing to do is a button in ochre (`ButtonVariant::Ochre`), its months
+in its label. The
 save keeps the walk under way (`LifeSave::walk`), so a game closed in the middle of a fight
 opens on it. The two screens are `res/chronicle/ui/expedition.yaml` and `fight.yaml`, built at
 the window's width (`shapeWalk`); under 1000 px they are

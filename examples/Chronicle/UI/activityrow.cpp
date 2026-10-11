@@ -282,6 +282,10 @@ namespace chronicle
             if (st.state == ActivityState::Running)
                 return "activity.row.ground.running";
 
+            // The line of a table that is the one chosen is tinted whole, with its edge
+            if (st.table and st.selected)
+                return "activity.row.ground.selected";
+
             if (st.state == ActivityState::Idle and st.hovered)
                 return "activity.row.ground.hover";
 
@@ -332,7 +336,7 @@ namespace chronicle
         // A tile's name is set in the control face, a row's in the display one
         std::string nameElement(const ActivityRowState& st)
         {
-            const std::string name = st.tile ? "activity.tile.name" : "activity.name";
+            const std::string name = st.tile or st.table ? "activity.tile.name" : "activity.name";
 
             return st.state == ActivityState::Locked ? name + ".locked" : name;
         }
@@ -379,7 +383,7 @@ namespace chronicle
             // A tile's time stands in its box, when it has one to say; what closes it at the right of the line under
             const bool timed = not row.cost.spec.text.empty();
 
-            setVisible(row.costMark.entity, not (st.tile and (st.instant or not timed)));
+            setVisible(row.costMark.entity, not st.table and not (st.tile and (st.instant or not timed)));
             setVisible(row.inset, st.tile and timed);
             setVisible(row.insetFrame, st.tile and timed);
             setElement(row.inset, locked ? "activity.tile.time.locked" : "activity.tile.time");
@@ -582,6 +586,7 @@ namespace chronicle
         state->major = spec.major and spec.tile;
         state->tile = spec.tile;
         state->adventure = spec.adventure and spec.tile;
+        state->table = not spec.tile and not spec.compact and spec.glyph.empty();
 
         ecs->attach<FocusableComponent>(root.entity);
 
@@ -780,14 +785,25 @@ namespace chronicle
         // A compact row keeps the name, the time and the closing: the rest is its gloss's
         if (not spec.each.empty() and not spec.compact)
         {
-            row.each = makeActivityText(ecs, "caption", spec.eachTone.empty() ? std::string("activity.each") : "activity.each." + spec.eachTone, spec.each, z + 4);
+            row.each = makeActivityText(ecs, spec.eachTone.empty() ? "caption" : "body-sm", spec.eachTone.empty() ? std::string("activity.each") : "activity.each." + spec.eachTone, spec.each, z + 4);
 
             auto anchor = row.each->entity->get<UiAnchor>();
 
             anchor->setRightAnchor(PosAnchor{rootId, AnchorType::Right});
             anchor->setRightMargin(Pad + row.rightInset());
-            anchor->setTopAnchor(PosAnchor{row.cost.entity.id, AnchorType::Bottom});
-            anchor->setTopMargin(EachGap);
+
+            // Under the cost; on a line of a table, level with what is said under the name
+            if (state->table)
+            {
+                anchor->setTopAnchor(PosAnchor{rootId, AnchorType::Top});
+                anchor->setTopMargin(Pad + TitleHeight + MiddleGap);
+            }
+            else
+            {
+                anchor->setTopAnchor(PosAnchor{row.cost.entity.id, AnchorType::Bottom});
+                anchor->setTopMargin(EachGap);
+            }
+
             anchor->setZConstrain(PosConstrain{rootId, AnchorType::Z, PosOpType::Add, 4.0f});
             prefab->addToPrefab(row.each->entity);
         }
@@ -837,7 +853,8 @@ namespace chronicle
         }
         else
         {
-            row.name = makeActivityText(ecs, "tab", "activity.name", spec.name, z + 4);
+            row.name = state->table ? makeActivityText(ecs, "control", "activity.tile.name", spec.name, z + 4)
+                                    : makeActivityText(ecs, "tab", "activity.name", spec.name, z + 4);
             placeIn(row.name.entity, rootId, row.bodyLeft(), Pad, 4.0f);
         }
 
@@ -878,7 +895,7 @@ namespace chronicle
             };
 
             row.asideTop = cell(spec.asideTop, spec.asideTopTone, "control", "top", Pad + baselineShift(ecs, "tab", "control"));
-            row.asideBottom = cell(spec.asideBottom, spec.asideBottomTone, "caption", "bottom", Pad + TitleHeight + MiddleGap);
+            row.asideBottom = cell(spec.asideBottom, spec.asideBottomTone, "body-sm", "bottom", Pad + TitleHeight + MiddleGap);
         }
 
         if (not spec.compact and not spec.action.empty())
@@ -927,7 +944,8 @@ namespace chronicle
 
     float ActivityRow::middleWidth() const
     {
-        const float costWidth = px(MarkSize::S14) + CostMarkGap + cost.entity.get<PositionComponent>()->width;
+        const bool table = not spec.tile and not spec.compact and spec.glyph.empty();
+        const float costWidth = (table ? 0.0f : px(MarkSize::S14) + CostMarkGap) + cost.entity.get<PositionComponent>()->width;
         const float eachWidth = each ? each->entity.get<PositionComponent>()->width : 0.0f;
         const float rightWidth = std::max(costWidth, eachWidth);
 
@@ -1180,7 +1198,7 @@ namespace chronicle
         // between the mark and the cost is too small for it.
         const float rankWidth = rank ? rank->entity.get<PositionComponent>()->width + RankGap : 0.0f;
         const float room = std::max(0.0f, middleWidth() - rankWidth);
-        const bool elide = textWidth(ecs, "tab", name.spec.text) > room;
+        const bool elide = textWidth(ecs, name.spec.style, name.spec.text) > room;
         const Overflow overflow = elide ? Overflow::Ellipsis : Overflow::Grow;
 
         if (name.spec.overflow != overflow)
@@ -1470,6 +1488,73 @@ namespace chronicle
         return block.entity;
     }
 
+    namespace
+    {
+        constexpr float HeadHeight = 26.0f;       // A table's head: its columns' names over a rule
+
+        // The head of a table of lines: the names of its columns, each over its column (the name
+        // at the lines' left, the cost ending where their costs end, the cell where theirs
+        // begins), and a rule under them. `inset` and `cell` are the lines' own
+        EntityRef makeTableHead(EntitySystem* ecs, const ActivityListSpec& spec, const std::string& key, float inset, float cell, float action)
+        {
+            auto block = makeAnchoredPrefab(ecs, Offstage, Offstage, static_cast<float>(spec.z));
+            block.get<PositionComponent>()->setWidth(spec.width);
+            block.get<PositionComponent>()->setHeight(HeadHeight);
+
+            const _unique_id id = block.id;
+            auto prefab = block.get<Prefab>();
+
+            auto head = [&](const std::string& text, bool left, float margin, float width) {
+                if (text.empty())
+                    return;
+
+                Label label = makeActivityText(ecs, "label", "activity.head", text, spec.z + 4, width > 0.0f ? Overflow::Ellipsis : Overflow::Grow, width);
+                auto anchor = label.entity->get<UiAnchor>();
+
+                if (left)
+                {
+                    anchor->setLeftAnchor(PosAnchor{id, AnchorType::Left});
+                    anchor->setLeftMargin(margin);
+                }
+                else
+                {
+                    anchor->setRightAnchor(PosAnchor{id, AnchorType::Right});
+                    anchor->setRightMargin(margin);
+                }
+
+                anchor->setVerticalCenter(PosAnchor{id, AnchorType::VerticalCenter});
+                anchor->setZConstrain(PosConstrain{id, AnchorType::Z, PosOpType::Add, 4.0f});
+                prefab->addToPrefab(label.entity);
+            };
+
+            head(spec.headName, true, Pad, 0.0f);
+            head(spec.headCost, false, Pad + inset, 0.0f);
+
+            if (cell > 0.0f)
+                head(spec.headAside, false, Pad + action, cell);
+
+            auto rule = makeUiSimple2DShape(ecs, Shape2D::Square, spec.width, 1.0f);
+            offstage(rule.entity);
+            {
+                auto anchor = rule.get<UiAnchor>();
+
+                anchor->setLeftAnchor(PosAnchor{id, AnchorType::Left});
+                anchor->setRightAnchor(PosAnchor{id, AnchorType::Right});
+                anchor->setBottomAnchor(PosAnchor{id, AnchorType::Bottom});
+                anchor->setZConstrain(PosConstrain{id, AnchorType::Z, PosOpType::Add, 1.0f});
+            }
+            rule.get<PositionComponent>()->setHeight(1.0f);
+            ecs->attach<ThemeComponent>(rule.entity, "activity.row.rule");
+            prefab->addToPrefab(rule.entity);
+
+            auto state = ecs->attach<ActivityHeadingState>(block.entity);
+            state->text = key;
+            state->table = true;
+
+            return block.entity;
+        }
+    }
+
     ActivityList makeActivityList(EntitySystem* ecs, const ActivityListSpec& spec)
     {
         if (not ecs->getSystem<ActivitySystem>())
@@ -1693,6 +1778,32 @@ namespace chronicle
 
         std::vector<Wanted> wanted;
 
+        // A table has its head over its lines, inside its frame: its columns are the first
+        // line's (they all have the same)
+        float headInset = 0.0f;
+        float headCell = 0.0f;
+        float headAction = 0.0f;
+        std::string headKey;
+
+        if (not tiles and not (spec.headName + spec.headCost + spec.headAside).empty())
+        {
+            for (const auto& group : groups)
+            {
+                if (group.rows.empty() or not headKey.empty())
+                    continue;
+
+                const ActivityRowSpec& first = group.rows.front();
+
+                headAction = first.action.empty() ? 0.0f : ActionWidth + CellGap;
+                headCell = first.asideTop.empty() and first.asideBottom.empty() ? 0.0f : first.asideWidth;
+                headInset = headAction + (headCell > 0.0f ? headCell + CellGap : 0.0f);
+                headKey = "\x01head|" + spec.headName + "|" + spec.headCost + "|" + spec.headAside + "|" + std::to_string(static_cast<int>(headInset)) + "|" + std::to_string(static_cast<int>(headCell));
+            }
+
+            if (not headKey.empty())
+                wanted.push_back({true, headKey, {}});
+        }
+
         for (const auto& group : groups)
         {
             if (not group.label.empty())
@@ -1875,7 +1986,8 @@ namespace chronicle
 
             if (want.heading)
             {
-                item = makeActivityHeading(ecs, want.label, spec.width, spec.z);
+                item = want.label == headKey and not headKey.empty() ? makeTableHead(ecs, spec, headKey, headInset, headCell, headAction)
+                                                                     : makeActivityHeading(ecs, want.label, spec.width, spec.z);
             }
             else if (tiles)
             {
@@ -2117,6 +2229,11 @@ namespace chronicle
         for (size_t i = 0; i < headings.size(); ++i)
         {
             auto& entity = headings[i];
+
+            // A table's head is not a group's heading: it is as it was made
+            if (entity->get<ActivityHeadingState>()->table)
+                continue;
+
             const float above = i == 0 ? 0.0f : HeadingAbove;
 
             entity->get<PositionComponent>()->setHeight(above + HeadingHeight + HeadingBelow);

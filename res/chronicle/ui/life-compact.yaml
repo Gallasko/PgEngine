@@ -172,7 +172,7 @@ children:
           # the list, what a walk by hand is, and the button that sets out for the one chosen --
           - kind: Panel
             name: zonePanel
-            frame: ruled
+            frame: plain
             width: 404
             heading: Where to walk
             aside: "2 OPEN · 1 CLOSED"
@@ -189,32 +189,25 @@ children:
                 spacing: 12
                 children:
                   - {kind: Label, name: zoneNote, style: gloss, color: ink-muted, overflow: ellipsis, width: 220, text: "A walk he chooses day by day. The record is kept."}
-                  - {kind: Button, name: walkNew, variant: ochre, label: "Set out", glyph: adventure, cost: "1 mo", tag: walk.new}
+                  - {kind: Button, name: walkNew, variant: ochre, label: "Set out for the Hedgerows · 1 mo", tag: walk.new}
 
           # -- The walks kept of the place chosen: a table, the best first. One is chosen, and its
           # button walks it once --
           - kind: Panel
             name: recordsPanel
-            frame: ruled
+            frame: plain
             width: 404
             heading: Records of the Hedgerows
             aside: "1 KEPT"
             children:
-              - kind: Layout:Horizontal
-                name: recordsHeader
-                width: 372
-                height: 16
-                spacing: 12
-                children:
-                  - {kind: Label, name: recHeadPad, style: label, overflow: ellipsis, width: 4, text: " "}
-                  - {kind: Label, name: recHeadWalk, style: label, color: ink-muted, overflow: ellipsis, width: 200, text: WALK}
-                  - {kind: Label, name: recHeadCost, style: label, color: ink-muted, overflow: ellipsis, align: right, width: 70, text: COST}
-                  - {kind: Label, name: recHeadBrings, style: label, color: ink-muted, overflow: ellipsis, width: 110, text: BRINGS}
               - kind: ActivityList
                 name: records
                 id: walk.records
                 stripes: false
                 framed: true
+                headName: WALK       # the table's head, inside its frame over its lines
+                headCost: COST
+                headAside: BRINGS
               - {kind: Label, name: recordsNote, style: body-sm, color: ink-faint, overflow: wrap, text: "Not yet walked. The first walk is made by hand."}
 
           # -- Walk it again: the walk chosen, so many times. What the walks take, use, bring and
@@ -260,6 +253,7 @@ children:
                       - {kind: Label, name: takeHead, style: label, color: ink-muted, width: 84, text: TAKES}
                       - {kind: Label, name: takeFigure, style: figure, color: status-time, overflow: ellipsis, width: 84, text: "3 mo"}
                       - {kind: Label, name: takeNote, style: caption, color: ink-muted, overflow: ellipsis, width: 84, text: "−9 vitality"}
+                  - {kind: Shape2D, name: cellUseRule, width: 1, height: 56, theme: activity.row.rule}
                   - kind: Layout:Vertical
                     name: cellUse
                     width: 84
@@ -268,6 +262,7 @@ children:
                       - {kind: Label, name: useHead, style: label, color: ink-muted, width: 84, text: USES}
                       - {kind: Label, name: useFigure, style: figure, overflow: ellipsis, width: 84, text: "nothing"}
                       - {kind: Label, name: useNote, style: caption, color: ink-muted, overflow: ellipsis, width: 84, text: "from the bag"}
+                  - {kind: Shape2D, name: cellBringRule, width: 1, height: 56, theme: activity.row.rule}
                   - kind: Layout:Vertical
                     name: cellBring
                     width: 84
@@ -276,6 +271,7 @@ children:
                       - {kind: Label, name: bringHead, style: label, color: ink-muted, width: 84, text: BRINGS}
                       - {kind: Label, name: bringFigure, style: figure, color: status-gain, overflow: ellipsis, width: 84, text: "+33"}
                       - {kind: Label, name: bringNote, style: caption, color: ink-muted, overflow: ellipsis, width: 84, text: "berries, rolled anew"}
+                  - {kind: Shape2D, name: cellTeachRule, width: 1, height: 56, theme: activity.row.rule}
                   - kind: Layout:Vertical
                     name: cellTeach
                     width: 84
@@ -293,8 +289,8 @@ children:
                 spacing: 8
                 children:
                   - {kind: Label, name: queueSpacer, style: label, overflow: ellipsis, width: 100, text: " "}
-                  - {kind: Button, name: walkOnce, variant: quiet, label: "Walk once", cost: "1 mo", tag: walk.once}
-                  - {kind: Button, name: walkMany, variant: ochre, label: "Queue 3", cost: "3 mo", tag: walk.many}
+                  - {kind: Button, name: walkOnce, variant: quiet, label: "Walk once · 1 mo", tag: walk.once}
+                  - {kind: Button, name: walkMany, variant: ochre, label: "Queue 3 · 3 mo", tag: walk.many}
 
           # -- While a queue runs, in the form's place: which walk of how many, how far along, and
           # the button that ends the queue with this walk --

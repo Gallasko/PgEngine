@@ -175,6 +175,7 @@ namespace chronicle
         void chooseZone(const std::string& zone);         // The place the Adventure page is about: its tile lit, its walks listed
         void setOutAnew();                                // A new walk to that place, by hand
         void layAdventure();                              // What stands beside a button of the Adventure page has the room the button leaves
+        bool adventureRoomy() const;                      // The Adventure page is wide enough for everything a line says at its right
         void queueWalks(int count);                       // The chosen record walked so many times, one walk after the other
         bool onWalkButton(const std::string& tag);        // A button of the walk's screens or of the Adventure page; false for another's
         bool telling() const { return walkTelling; }      // A turn of a fight is being told on the page: nothing is pressed meanwhile

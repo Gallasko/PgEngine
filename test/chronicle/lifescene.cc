@@ -6004,6 +6004,8 @@ namespace pg
             EXPECT_EQ(hedgerows->spec.name, "The Hedgerows");
             EXPECT_EQ(hedgerows->spec.rank, "FORAGE");
             EXPECT_EQ(hedgerows->cost.spec.text, "1 mo \xC2\xB7 7 AP");
+            EXPECT_FALSE(f.pos(hedgerows->costMark.entity)->visible);
+            EXPECT_EQ(hedgerows->ground->get<ThemeComponent>()->element, "activity.row.ground.selected");
             EXPECT_EQ(hedgerows->spec.each, "known 1 of 4");
             EXPECT_FALSE(hedgerows->spec.line.empty());
             EXPECT_TRUE(hedgerows->mark.entity.empty());
@@ -6020,8 +6022,7 @@ namespace pg
             auto anew = life->piece<Button>("walkNew");
             ASSERT_NE(anew, nullptr);
             EXPECT_EQ(anew->spec.variant, ButtonVariant::Ochre);
-            EXPECT_EQ(anew->label.spec.text, "Set out for The Hedgerows");
-            EXPECT_EQ(anew->costText, "1 mo");
+            EXPECT_EQ(anew->label.spec.text, "Set out for the Hedgerows \xC2\xB7 1 mo");
             EXPECT_FALSE(anew->spec.disabled);
 
             // The line beside it has what the button leaves of the panel
@@ -6032,10 +6033,14 @@ namespace pg
             // The records of the place: a table of one line, chosen, with its own button
             auto recordsPanel = life->piece<Panel>("recordsPanel");
             ASSERT_NE(recordsPanel, nullptr);
-            EXPECT_EQ(recordsPanel->title->spec.text, "Records of The Hedgerows");
+            EXPECT_EQ(recordsPanel->title->spec.text, "Records of the Hedgerows");
             EXPECT_EQ(recordsPanel->aside->spec.text, "1 KEPT");
-            EXPECT_TRUE(f.pos(life->named("recordsHeader"))->visible);
+            EXPECT_TRUE(f.pos(life->named("records"))->visible);
             EXPECT_FALSE(f.pos(life->named("recordsNote"))->visible);
+
+            // The table's head is inside it, over its lines: one thing more than the lines in its stack
+            EXPECT_EQ(records->spec.headCost, "COST");
+            EXPECT_EQ(records->body.get<VerticalLayout>()->entities.size(), 2u);
 
             ActivityRow* walked = records->find(&f.ecs, first);
             ASSERT_NE(walked, nullptr);
@@ -6064,8 +6069,8 @@ namespace pg
             EXPECT_EQ(life->piece<Label>("bringFigure")->spec.text.rfind("+", 0), 0u);
             EXPECT_NE(life->piece<Label>("bringNote")->spec.text.find("berries"), std::string::npos);
             EXPECT_EQ(life->piece<Button>("walkMany")->spec.variant, ButtonVariant::Ochre);
-            EXPECT_EQ(life->piece<Button>("walkMany")->label.spec.text, "Queue 1");
-            EXPECT_EQ(life->piece<Button>("walkMany")->costText, "1 mo");
+            EXPECT_EQ(life->piece<Button>("walkMany")->label.spec.text, "Queue 1 \xC2\xB7 1 mo");
+            EXPECT_EQ(life->piece<Button>("walkOnce")->label.spec.text, "Walk once \xC2\xB7 1 mo");
             EXPECT_FALSE(life->piece<Button>("walkOnce")->spec.disabled);
             EXPECT_TRUE(life->piece<Button>("queueFewer")->spec.disabled);
             EXPECT_NEAR(f.pos(life->piece<Button>("walkMany")->root)->x + f.pos(life->piece<Button>("walkMany")->root)->width,
@@ -6172,9 +6177,33 @@ namespace pg
             EXPECT_EQ(life->adventureZone, "millpond");
             EXPECT_EQ(recordsPanel->title->spec.text, "Records of Mill Pond");
             EXPECT_TRUE(f.pos(life->named("recordsNote"))->visible);
-            EXPECT_FALSE(f.pos(life->named("recordsHeader"))->visible);
+            EXPECT_FALSE(f.pos(life->named("records"))->visible);
             EXPECT_FALSE(f.pos(life->named("queuePanel"))->visible);
-            EXPECT_EQ(life->piece<Button>("walkNew")->label.spec.text, "Set out for Mill Pond");
+            EXPECT_EQ(life->piece<Button>("walkNew")->label.spec.text, "Set out for Mill Pond \xC2\xB7 1 mo");
+
+            // Back to the place he has walked: its records are on the page again, lines and all
+            f.ecs.sendEvent(ActivitySelectedEvent{"walk.zones", "hedgerows"});
+            f.settle();
+            f.pass(100.0f, 50.0f);
+
+            EXPECT_EQ(life->adventureZone, "hedgerows");
+            EXPECT_TRUE(f.pos(life->named("records"))->visible);
+            EXPECT_FALSE(f.pos(life->named("recordsNote"))->visible);
+            EXPECT_TRUE(f.pos(life->named("queuePanel"))->visible);
+            ASSERT_FALSE(records->spec.groups.empty());
+            EXPECT_EQ(records->spec.groups[0].rows.size(), 5u);
+
+            for (const auto& row : records->spec.groups[0].rows)
+            {
+                ActivityRow* line = records->find(&f.ecs, row.id);
+
+                ASSERT_NE(line, nullptr) << row.id;
+                EXPECT_TRUE(f.pos(line->root)->isRenderable()) << row.id;
+                EXPECT_TRUE(f.pos(line->name.entity)->isRenderable()) << row.id;
+                EXPECT_GT(f.pos(line->root)->y, f.pos(life->named("records"))->y + 20.0f) << row.id;
+            }
+
+            EXPECT_GT(f.pos(life->named("records"))->height, 40.0f);
         }
 
         // ----------------------------------------------------------------------------------------
@@ -6234,7 +6263,7 @@ namespace pg
             f.settle();
 
             EXPECT_EQ(life->save.queue.count, 3);
-            EXPECT_EQ(life->piece<Button>("walkMany")->label.spec.text, "Queue 3");
+            EXPECT_EQ(life->piece<Button>("walkMany")->label.spec.text, "Queue 3 \xC2\xB7 3 mo");
 
             const int berries = life->save.stats["berries"];
             const int firewood = life->save.stats["firewood"];
