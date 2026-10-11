@@ -5933,6 +5933,139 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // The Adventure page, once he has been on a walk: a tile a place he may walk to, the walks
+        // he has made at the one chosen, and a button that sets out for it anew. The Life page
+        // keeps no walk from then on. A place keeps its last few walks, not one.
+        TEST(lifescene_test, the_adventure_page_has_the_places_and_the_walks_made_there)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = walker(f);
+            ASSERT_NE(life, nullptr);
+
+            auto tabs = life->piece<Tabs>("tabs");
+            auto list = life->piece<ActivityList>("activities");
+            ASSERT_NE(tabs, nullptr);
+            ASSERT_NE(list, nullptr);
+
+            // Before his first walk its tile is on the Life page, and there is no Adventure page
+            ASSERT_NE(list->find(&f.ecs, "walk.hedgerows"), nullptr);
+            EXPECT_FALSE(tabs->tabs[2].shown);
+
+            // A walk by hand, from wherever it is begun: a thing gathered, and home
+            auto walkIt = [&]() {
+                ASSERT_TRUE(life->onWalk());
+
+                life->walkDo(WalkAct{"gather", "berries", 0});
+                answerEvents(f, life);
+                life->walkDo(WalkAct{"leave", "", 0});
+                life->walkDo(WalkAct{"leave", "", 0});
+                f.frames(12);
+
+                ASSERT_FALSE(life->onWalk());
+
+                life->onMonth();
+                f.settle();
+                ASSERT_TRUE(life->save.running.empty());
+            };
+
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "walk.hedgerows"});
+            f.frames(12);
+            walkIt();
+
+            ASSERT_EQ(life->save.recipes.size(), 1u);
+
+            const std::string first = life->save.recipes[0].id;
+
+            // The page is there, and the Life page has let go of the walks
+            EXPECT_TRUE(tabs->tabs[2].shown);
+            EXPECT_EQ(list->find(&f.ecs, "walk.hedgerows"), nullptr);
+
+            for (const auto& group : list->spec.groups)
+                EXPECT_NE(group.label, "Adventure");
+
+            f.ecs.sendEvent(TabSelectedEvent{tabs->root.id, "life.tabs", 2});
+            f.frames(12);
+            ASSERT_TRUE(life->adventureShown);
+
+            // (what is chosen in a list just filled is lit a moment later, once the list holds it)
+            f.pass(100.0f, 50.0f);
+
+            // A tile a place, the one he walked lit; under it the walk he made, chosen
+            auto zones = life->piece<ActivityList>("zones");
+            auto records = life->piece<ActivityList>("records");
+            ASSERT_NE(zones, nullptr);
+            ASSERT_NE(records, nullptr);
+
+            ActivityRow* hedgerows = zones->find(&f.ecs, "hedgerows");
+            ASSERT_NE(hedgerows, nullptr);
+            EXPECT_TRUE(hedgerows->spec.adventure);
+            EXPECT_EQ(hedgerows->spec.name, "The Hedgerows");
+            EXPECT_EQ(hedgerows->cost.spec.text, "1 mo");
+            EXPECT_EQ(life->adventureZone, "hedgerows");
+            EXPECT_EQ(zones->selected(), "hedgerows");
+            EXPECT_TRUE(f.pos(hedgerows->root)->visible);
+
+            ASSERT_NE(records->find(&f.ecs, first), nullptr);
+            EXPECT_EQ(records->find(&f.ecs, first)->spec.name.rfind("Walked at ", 0), 0u);
+            EXPECT_EQ(life->save.queue.recipe, first);
+            EXPECT_EQ(life->piece<Label>("recordsHead")->spec.text, "Walks he has made there");
+            EXPECT_FALSE(life->piece<Button>("walkOnce")->spec.disabled);
+
+            // The button sets out for it anew: by hand, whatever he has kept of it
+            auto anew = life->piece<Button>("walkNew");
+            ASSERT_NE(anew, nullptr);
+            EXPECT_EQ(anew->label.spec.text, "Set out for The Hedgerows");
+            EXPECT_EQ(anew->costText, "1 mo");
+            EXPECT_FALSE(anew->spec.disabled);
+
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.new"});
+            f.frames(12);
+            walkIt();
+
+            // Two walks kept of the place now, the last one first and chosen
+            ASSERT_EQ(life->save.recipes.size(), 2u);
+
+            const std::string second = life->save.recipes[1].id;
+
+            EXPECT_NE(second, first);
+            EXPECT_EQ(life->save.queue.recipe, second);
+
+            f.ecs.sendEvent(TabSelectedEvent{tabs->root.id, "life.tabs", 2});
+            f.frames(12);
+            f.pass(100.0f, 50.0f);
+
+            ASSERT_NE(records->find(&f.ecs, first), nullptr);
+            ASSERT_NE(records->find(&f.ecs, second), nullptr);
+            EXPECT_LT(f.pos(records->find(&f.ecs, second)->root)->y, f.pos(records->find(&f.ecs, first)->root)->y);
+            EXPECT_EQ(records->selected(), second);
+
+            // The older one can be chosen in its place: the form is filled for it
+            f.ecs.sendEvent(ActivitySelectedEvent{"walk.records", first});
+            f.settle();
+
+            EXPECT_EQ(life->save.queue.recipe, first);
+
+            // A place keeps five walks: a sixth takes the oldest one's place
+            for (int i = 0; i < 4; ++i)
+            {
+                f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.new"});
+                f.frames(12);
+                walkIt();
+            }
+
+            EXPECT_EQ(life->save.recipes.size(), 5u);
+
+            for (const auto& r : life->save.recipes)
+                EXPECT_NE(r.id, first);
+
+            EXPECT_EQ(life->save.recipes.front().id, second);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // The Adventure page walks a record again, once or in a queue: no screen, the months of
         // each walk on the calendar, and what the record brought at each term.
         TEST(lifescene_test, a_queue_walks_a_record_again)

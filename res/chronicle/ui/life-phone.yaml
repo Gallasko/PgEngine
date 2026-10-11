@@ -170,14 +170,33 @@ children:
         scrollable: true
         spacing: 8
         children:
-          - {kind: Label, name: recordsHead, style: gloss-title, overflow: ellipsis, width: 334, text: "Records kept"}
+          # Where he may walk: a tile a place, the ones open to him and the ones not yet. The one
+          # chosen says what it is, and has a button that sets out for it by hand
+          - {kind: Label, name: zonesHead, style: gloss-title, overflow: ellipsis, width: 334, text: "Where to walk"}
+          - kind: ActivityList
+            name: zones
+            id: walk.zones
+            width: 334
+            stripes: false
+            compact: true
+            tileWidth: 148
+          - {kind: Label, name: zoneNote, style: gloss, color: ink-muted, overflow: wrap, width: 334, text: ""}
+          - kind: Layout:Horizontal
+            name: zoneGo
+            width: 334
+            height: 36
+            spacing: 8
+            children:
+              - {kind: Button, name: walkNew, variant: study, label: "Set out", glyph: adventure, cost: "1 mo", tag: walk.new}
+          # The walks he has made there, the last first: one chosen fills the form under them
+          - {kind: Label, name: recordsHead, style: gloss-title, overflow: ellipsis, width: 334, text: "Walks he has made there"}
           - kind: ActivityList
             name: records
             id: walk.records
             width: 334
           - {kind: Label, name: recordsNote, style: gloss, color: ink-muted, overflow: wrap, width: 334, text: "A walk made by hand leaves a record. The same man may walk it again: no day is chosen and no fight is fought, and what the beasts drop is rolled anew."}
           - {kind: Label, name: queueHead, style: gloss-title, overflow: ellipsis, width: 334, text: "Walk it again"}
-          - {kind: Label, name: queueTitle, style: label, color: status-time, overflow: wrap, width: 334, text: "CHOOSE A RECORD ABOVE"}
+          - {kind: Label, name: queueTitle, style: label, color: status-time, overflow: wrap, width: 334, text: "CHOOSE A WALK ABOVE"}
           - kind: Layout:Horizontal
             name: queueCount
             width: 334

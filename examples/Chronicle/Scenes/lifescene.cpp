@@ -2804,6 +2804,10 @@ namespace chronicle
             if (onTown and not save.townKnown)
                 continue;
 
+            // And the walks are the Adventure page's once it is there
+            if (not textOf(a.fields, "zone").empty() and adventureKnown())
+                continue;
+
             const bool inView = onTown ? townShown : not townShown and not adventureShown;
 
             if (filledBefore and not inView)
@@ -2836,6 +2840,11 @@ namespace chronicle
             // What is done at a place of the town (its market, its works) is on the Town page and
             // nowhere else: while he does not know the town, it has no row at all
             if (inTown and not save.townKnown and textOf(a.fields, "id") != save.running)
+                continue;
+
+            // The walks have a page of their own once he has been on one: their tiles are there,
+            // with the walks he has made, and the Life page keeps none
+            if (not textOf(a.fields, "zone").empty() and adventureKnown())
                 continue;
 
             if (not inTown and (groups.empty() or groups.back().label != group))

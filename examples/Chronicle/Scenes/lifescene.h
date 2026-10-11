@@ -162,6 +162,7 @@ namespace chronicle
         std::string seekChosen;        // The beast chosen in "Seek a beast", "" for none
         std::string workChosen;        // And the work chosen in "Field work"
         bool adventureShown = false;   // The Adventure page is in view
+        std::string adventureZone;     // The place it is about, "" before it is filled: the one whose tile he chose, or of the walk he last made
 
         bool onWalk() const { return save.walk.under(); }   // He is on site: the walk's screen is the page
         void beginWalk(const std::string& activity);     // He sets out by hand: the on-site screen opens
@@ -169,6 +170,8 @@ namespace chronicle
         void walkDo(const WalkAct& act);                  // One thing he does there, or in a fight
         void showAdventure(bool shown);                   // The Adventure page in the middle column, or the choice back in it
         void chooseRecord(const std::string& id);         // The record the form of a queue is filled for
+        void chooseZone(const std::string& zone);         // The place the Adventure page is about: its tile lit, its walks listed
+        void setOutAnew();                                // A new walk to that place, by hand
         void queueWalks(int count);                       // The chosen record walked so many times, one walk after the other
         bool onWalkButton(const std::string& tag);        // A button of the walk's screens or of the Adventure page; false for another's
         bool telling() const { return walkTelling; }      // A turn of a fight is being told on the page: nothing is pressed meanwhile

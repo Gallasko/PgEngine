@@ -2006,7 +2006,9 @@ fun walkOf(list, zoneId)
 fun shelfRow(recipe, own, walk)
 {
     var zone = zoneOf(recipe.zone)
-    var note = toString(recipe.steps) + " STEPS · WALKED AT " + ageMark(recipe.walkedAt)
+    // A place may have several walks kept: each is told from the others by when it was made
+    var label = "Walked at " + ageMark(recipe.walkedAt)
+    var note = toString(recipe.steps) + " STEPS"
 
     if (recipe.kills != "")
     {
@@ -2041,7 +2043,7 @@ fun shelfRow(recipe, own, walk)
         vitality = "+" + toString(recipe.hp)
     }
 
-    var row = {id: recipe.id, zone: zone.id, title: zone.name, kind: toUpperCase(zone.kind), note: note, months: pick(walk, "months", recipe.months),
+    var row = {id: recipe.id, zone: zone.id, title: zone.name, label: label, kind: toUpperCase(zone.kind), note: note, months: pick(walk, "months", recipe.months),
                time: counted(pick(walk, "months", recipe.months), "mo", "mo") + " · " + apText(recipe.ap), vitality: vitality, takes: takes,
                brings: brings, learns: learns, state: "kept", locked: 0, asks: ""}
 

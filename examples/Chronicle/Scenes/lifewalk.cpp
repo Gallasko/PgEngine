@@ -61,6 +61,7 @@ namespace chronicle
         constexpr const char * const SeeksList = "walk.seeks";
         constexpr const char * const WorksList = "walk.works";
         constexpr const char * const RecordsList = "walk.records";
+        constexpr const char * const ZonesList = "walk.zones";
 
         // Their buttons, by tag
         constexpr const char * const WalkTag = "walk.";
@@ -83,9 +84,11 @@ namespace chronicle
         // The Adventure page's pieces (life.yaml and its two smaller pages)
         constexpr const char * const AdventureName = "adventure";
         constexpr const char * const RecordsName = "records";
+        constexpr const char * const ZonesName = "zones";
+        constexpr const char * const NewTag = "walk.new";
+        constexpr size_t MaxRecords = 5;                   // The walks kept of a place: a sixth takes the oldest one's place
 
         const std::string WalkActivity = "walk.";          // An activity that is a walk: followed by its zone
-        const std::string ZoneRow = "zone:";               // A row of the records for a zone with no record yet
         const std::string RecordGloss = "record/";
         const std::string FoeGloss = "walk/foe/";          // Followed by a beast's place: what it is, and what he knows of it
         const std::string FoeMoveGloss = "walk/foemove/";  // And the move it means to make
@@ -650,8 +653,8 @@ namespace chronicle
         const std::string name = textOf(walk.recipe, "name");
         const bool carried = intOf(walk.recipe, "downed") > 0;
 
-        // The record of a walk made to its end is kept, in the place of the one he had of the
-        // zone: a walk he was carried home from is not one to walk again
+        // The record of a walk made to its end is kept with the others of the place, the last
+        // few of them: a walk he was carried home from is not one to walk again
         if (not carried and not zone.empty())
         {
             WalkRecipe recipe;
@@ -660,20 +663,29 @@ namespace chronicle
             recipe.steps = walk.state.record;
             recipe.marks = walk.state.marks;
 
-            for (auto it = save.recipes.begin(); it != save.recipes.end();)
-            {
-                if (textOf(it->fields, "zone") == zone)
-                {
-                    if (save.queue.recipe == it->id)
-                        save.queue.recipe = recipe.id;
+            // The oldest of the place goes when there are too many: never the one a queue walks
+            size_t kept = 0;
 
+            for (const auto& r : save.recipes)
+            {
+                if (textOf(r.fields, "zone") == zone)
+                    ++kept;
+            }
+
+            for (auto it = save.recipes.begin(); it != save.recipes.end() and kept >= MaxRecords;)
+            {
+                if (textOf(it->fields, "zone") == zone and it->id != save.walking and not (save.queue.left > 0 and it->id == save.queue.recipe))
+                {
                     it = save.recipes.erase(it);
+                    --kept;
                 }
                 else
                     ++it;
             }
 
-            // The form of the Adventure page opens on the walk he has just made
+            // The Adventure page opens on the place he has just walked, and its form on that walk
+            adventureZone = zone;
+
             if (save.queue.left <= 0)
             {
                 save.queue = WalkQueue{};
@@ -2260,6 +2272,14 @@ namespace chronicle
             return;
         }
 
+        if (event.list == ZonesList)
+        {
+            if (not event.id.empty())
+                chooseZone(event.id);
+
+            return;
+        }
+
         if (not onWalk() or ended or walkTelling)
             return;
 
@@ -2283,6 +2303,15 @@ namespace chronicle
                 chooseRecord(event.id);
 
             queueWalks(1);
+
+            return;
+        }
+
+        // A second click on a place sets out for it, as its button does
+        if (event.list == ZonesList)
+        {
+            chooseZone(event.id);
+            setOutAnew();
 
             return;
         }
@@ -2337,6 +2366,8 @@ namespace chronicle
             fillAdventure();
             autoSave();
         }
+        else if (tag == NewTag)
+            setOutAnew();
         else if (tag == OnceTag)
             queueWalks(1);
         else if (tag == ManyTag)
@@ -2458,20 +2489,53 @@ namespace chronicle
             body->get<PositionComponent>()->setHeight(height);
         }
 
-        if (auto list = piece<ActivityList>(RecordsName))
-            list->setSize(ecs, width, 0.0f);
+        for (const char* name : {RecordsName, ZonesName})
+        {
+            if (auto list = piece<ActivityList>(name))
+                list->setSize(ecs, width, 0.0f);
+        }
 
-        for (const char* name : {"recordsHead", "recordsNote", "queueHead", "queueTitle", "queueTake", "queueUse", "queueBring", "queueTeach", "queueWarn", "atWalk"})
+        for (const char* name : {"zonesHead", "zoneNote", "recordsHead", "recordsNote", "queueHead", "queueTitle", "queueTake", "queueUse", "queueBring", "queueTeach", "queueWarn", "atWalk"})
         {
             if (auto label = piece<Label>(name))
                 label->setWidth(ecs, width);
         }
 
-        for (const char* name : {"queueCount", "queueGo"})
+        for (const char* name : {"zoneGo", "queueCount", "queueGo"})
         {
             if (EntityRef row = named(name); not row.empty())
                 row->get<PositionComponent>()->setWidth(width);
         }
+    }
+
+    void LifeScene::chooseZone(const std::string& zone)
+    {
+        // A queue under way keeps its place: the page is its own until it is done
+        if (save.queue.left > 0 or not save.walking.empty())
+            return;
+
+        if (zone.empty() or zone == adventureZone)
+            return;
+
+        adventureZone = zone;
+
+        fillAdventure();
+    }
+
+    void LifeScene::setOutAnew()
+    {
+        if (ended or onWalk() or adventureZone.empty())
+            return;
+
+        if (not save.running.empty())
+        {
+            appendLog({save.age, "Already at work: " + activityName(save.running), LogKind::Note, "", ""});
+            return;
+        }
+
+        // A walk made by hand, as its tile of the Life page begins the first one
+        showAdventure(false);
+        onConfirm(ActivityActivatedEvent{ActivitiesList, WalkActivity + adventureZone});
     }
 
     void LifeScene::chooseRecord(const std::string& id)
@@ -2502,39 +2566,137 @@ namespace chronicle
 
         // A page just built has a list with nothing in it, whatever the last one held
         if (again)
+        {
             walkFilled.erase(RecordsName);
+            walkFilled.erase(ZonesName);
+        }
 
         markAdventure();
 
         if (named(AdventureName).empty())
             return;
 
+        const bool busy = save.queue.left > 0 or not save.walking.empty();
+        const bool free = save.running.empty() and not onWalk() and not ended;
+
+        auto zoneOfRecord = [this](const std::string& id) -> std::string {
+            for (const auto& r : save.recipes)
+            {
+                if (r.id == id)
+                    return textOf(r.fields, "zone");
+            }
+
+            return {};
+        };
+
+        // The places he may walk to, open or not yet: a tile each, in the table's order
+        std::vector<const RuleActivity*> places;
+
+        for (const auto& a : activities)
+        {
+            if (not textOf(a.fields, "zone").empty() and boolOf(a.fields, "listed"))
+                places.push_back(&a);
+        }
+
+        auto placeOf = [&places](const std::string& zone) -> const RuleActivity* {
+            for (const RuleActivity* a : places)
+            {
+                if (textOf(a->fields, "zone") == zone)
+                    return a;
+            }
+
+            return nullptr;
+        };
+
+        // The one in view: a queue under way keeps its own; else the one chosen while it has its
+        // tile, the one of the walk the form holds, the first there is
+        if (busy and not zoneOfRecord(save.walking.empty() ? save.queue.recipe : save.walking).empty())
+            adventureZone = zoneOfRecord(save.walking.empty() ? save.queue.recipe : save.walking);
+        else if (not placeOf(adventureZone))
+        {
+            adventureZone = zoneOfRecord(save.queue.recipe);
+
+            if (not placeOf(adventureZone))
+                adventureZone = places.empty() ? std::string() : textOf(places.front()->fields, "zone");
+        }
+
+        // And the walk the form is filled for is one of that place: its last, when another's was held
+        if (not busy and zoneOfRecord(save.queue.recipe) != adventureZone)
+        {
+            save.queue = WalkQueue{};
+
+            for (const auto& r : save.recipes)
+            {
+                if (textOf(r.fields, "zone") == adventureZone)
+                    save.queue.recipe = r.id;
+            }
+        }
+
         if (not askWalk("records", WalkAct{}, "", shelf))
             return;
 
         auto registry = ecs->getSystem<GlossRegistry>();
 
-        // The records kept, then the zones open to him that he has no record of
+        // The tiles of the places, the one in view lit: what a place asks and brings is the gloss
+        // of its activity, the one its tile had on the Life page
+        std::vector<ActivityRowSpec> tiles;
+        std::string tileSignature;
+        std::string litPlace;
+
+        for (const RuleActivity* a : places)
+        {
+            ActivityRowSpec tile;
+            tile.id = textOf(a->fields, "zone");
+            tile.name = textOf(a->fields, "name");
+            tile.glyph = textOf(a->fields, "glyph");
+            tile.months = intOf(a->fields, "months");
+            tile.adventure = true;
+            tile.glossKey = "activity/" + textOf(a->fields, "id");
+            tile.state = boolOf(a->fields, "locked") ? ActivityState::Locked : ActivityState::Idle;
+
+            if (tile.state == ActivityState::Idle and tile.id == adventureZone)
+                litPlace = tile.id;
+
+            tileSignature += tile.id + "|" + std::to_string(tile.months) + "|" + std::to_string(static_cast<int>(tile.state)) + ";";
+
+            tiles.push_back(tile);
+        }
+
+        if (auto list = piece<ActivityList>(ZonesName))
+        {
+            if (walkFilled[ZonesName] != tileSignature or list->spec.groups.empty() != tiles.empty())
+            {
+                walkFilled[ZonesName] = tileSignature;
+                list->setRows(ecs, tiles.empty() ? std::vector<ActivityGroup>{} : std::vector<ActivityGroup>{{"", tiles}});
+            }
+
+            walkPicks[ZonesName] = litPlace;
+        }
+
+        // The walks he has made at the place in view, the last first
         std::vector<ActivityRowSpec> rows;
         std::string lit;
         std::string signature;
 
-        for (const auto& r : shelf.shelf)
+        for (auto it = shelf.shelf.rbegin(); it != shelf.shelf.rend(); ++it)
         {
+            const ElementMap& r = *it;
+
+            if (textOf(r, "state") != "kept" or textOf(r, "zone") != adventureZone)
+                continue;
+
             ActivityRowSpec row;
             row.id = textOf(r, "id");
-            row.name = textOf(r, "title");
+            row.name = textOf(r, "label").empty() ? textOf(r, "title") : textOf(r, "label");
             row.glyph = "adventure";
             row.rank = textOf(r, "kind");
             row.cost = textOf(r, "time");
             row.glossKey = RecordGloss + row.id;
 
-            const bool kept = textOf(r, "state") == "kept";
-
             // What is said of it stands on a line of its own; a row that cannot be chosen says why
             // in its place
             if (intOf(r, "locked") > 0)
-                lockRow(row, kept ? textOf(r, "asks") : textOf(r, "note"));
+                lockRow(row, textOf(r, "asks"));
             else
                 row.until = textOf(r, "note");
 
@@ -2553,27 +2715,22 @@ namespace chronicle
             gloss.inlineValues = true;
             gloss.title = row.name;
             gloss.aside = row.rank;
-            gloss.text = kept ? textOf(r, "note") : textOf(r, "brings");
+            gloss.text = textOf(r, "title") + " \xC2\xB7 " + lower(textOf(r, "note"));
 
-            if (kept)
+            gloss.rows.push_back({"IT TAKES", "", "", true});
+            gloss.rows.push_back({"Time", textOf(r, "time"), "time"});
+            gloss.rows.push_back({"Vitality", textOf(r, "vitality"), intOf(r, "locked") > 0 ? "muted" : "loss"});
+            gloss.rows.push_back({"From the bag", textOf(r, "takes"), "loss"});
+            gloss.rows.push_back({"IT BRINGS", "", "", true});
+
+            // A thing a line: a row of a gloss is not wrapped, and a list of them runs past its edge
+            for (const auto& [text, tone] : {std::pair<std::string, const char*>{textOf(r, "brings"), "gain"}, {textOf(r, "learns"), "muted"}})
             {
-                gloss.rows.push_back({"IT TAKES", "", "", true});
-                gloss.rows.push_back({"Time", textOf(r, "time"), "time"});
-                gloss.rows.push_back({"Vitality", textOf(r, "vitality"), intOf(r, "locked") > 0 ? "muted" : "loss"});
-                gloss.rows.push_back({"From the bag", textOf(r, "takes"), "loss"});
-                gloss.rows.push_back({"IT BRINGS", "", "", true});
-
-                // A thing a line: a row of a gloss is not wrapped, and a list of them runs past its edge
-                for (const auto& [text, tone] : {std::pair<std::string, const char*>{textOf(r, "brings"), "gain"}, {textOf(r, "learns"), "muted"}})
-                {
-                    for (const auto& thing : listed(text))
-                        gloss.rows.push_back({thing, "", tone});
-                }
-
-                gloss.footnote = "WALKED AGAIN WITH NO FIGHT FOUGHT";
+                for (const auto& thing : listed(text))
+                    gloss.rows.push_back({thing, "", tone});
             }
-            else
-                gloss.footnote = "THE FIRST WALK IS MADE BY HAND";
+
+            gloss.footnote = "WALKED AGAIN WITH NO FIGHT FOUGHT";
 
             registry->set(RecordGloss + row.id, gloss);
         }
@@ -2594,23 +2751,57 @@ namespace chronicle
                 label->setText(ecs, text);
         };
 
-        // The form: the record chosen, how many walks, what they take and bring. A zone with no
-        // record has one thing to offer: the first walk, made by hand
-        const ElementMap& form = shelf.form;
-        const std::string chosen = save.queue.recipe;
-        const bool unwalked = chosen.rfind(ZoneRow, 0) == 0;
-        const bool kept = not textOf(form, "recipe").empty();
-        const bool busy = save.queue.left > 0 or not save.walking.empty();
-        const std::string blocked = textOf(form, "blocked");
-        const bool free = save.running.empty() and not onWalk() and not ended;
+        // The place in view: what it is, and the button that sets out for it by hand, a new walk
+        // whatever he has kept of it
+        const RuleActivity* place = placeOf(adventureZone);
+        const bool shut = not place or boolOf(place->fields, "locked");
 
-        say("queueTitle", kept ? upper(textOf(form, "title")) + " \xC2\xB7 " + textOf(form, "total")
-                         : unwalked ? "NO RECORD OF IT YET: THE FIRST WALK IS MADE BY HAND" : "CHOOSE A RECORD ABOVE");
+        say("zoneNote", not place ? std::string()
+                      : shut ? textOf(place->fields, "about") + " Not open to him yet: its tile says what it asks."
+                      : textOf(place->fields, "about"));
+
+        if (auto anew = piece<Button>("walkNew"))
+        {
+            anew->setLabel(ecs, place ? "Set out for " + textOf(place->fields, "name") : std::string("Set out"));
+            anew->setCost(ecs, place ? std::to_string(intOf(place->fields, "months")) + " mo" : std::string());
+            anew->setDisabled(ecs, shut or busy or not free);
+        }
+
+        say("recordsHead", rows.empty() ? "No walk kept of it yet" : "Walks he has made there");
+        say("recordsNote", rows.empty() ? "A walk made by hand to its end is kept here. The same man may walk it again: no day is chosen and no fight is fought, and what the beasts drop is rolled anew."
+                                        : "Choose one to walk it again, once or in a queue: no day is chosen and no fight is fought, and what the beasts drop is rolled anew.");
+
+        // The form: the walk chosen, how many times, what they take and bring
+        const ElementMap& form = shelf.form;
+        const bool kept = not textOf(form, "recipe").empty();
+        const std::string blocked = textOf(form, "blocked");
+
+        say("queueHead", kept ? "Walk it again" : "");
+        say("queueTitle", kept ? upper(textOf(form, "title")) + " \xC2\xB7 " + textOf(form, "total") : std::string());
         say("queueTake", kept ? "Takes: " + textOf(form, "take") : std::string());
         say("queueUse", kept ? "Uses: " + textOf(form, "use") : std::string());
         say("queueBring", kept ? "Brings: " + textOf(form, "bring") : std::string());
         say("queueTeach", kept ? "Teaches: " + textOf(form, "teach") : std::string());
         say("queueWarn", kept ? (blocked.empty() ? textOf(form, "warning") : blocked) : std::string());
+
+        // A place he has kept no walk of has no form: its pieces are out of the page's stack, and
+        // so is what speaks of a queue while none is under way
+        auto shown = [this](const char* name, bool there) {
+            EntityRef node = named(name);
+            EntityRef body = named(AdventureName);
+
+            if (node.empty() or body.empty())
+                return;
+
+            wrapIn(body, node)->get<PositionComponent>()->setVisibility(there);
+            node->get<PositionComponent>()->setVisibility(there);
+        };
+
+        for (const char* name : {"queueHead", "queueTitle", "queueCount", "queueTake", "queueUse", "queueBring", "queueTeach", "queueWarn", "queueGo"})
+            shown(name, kept);
+
+        for (const char* name : {"atWalk", "queueLast"})
+            shown(name, busy);
 
         if (auto stop = piece<Button>("queueStop"))
         {
@@ -2625,10 +2816,7 @@ namespace chronicle
         }
 
         if (auto once = piece<Button>("walkOnce"))
-        {
-            once->setLabel(ecs, unwalked ? "Walk it by hand" : "Walk once");
-            once->setDisabled(ecs, busy or not free or (not kept and not unwalked) or (kept and not blocked.empty()));
-        }
+            once->setDisabled(ecs, busy or not free or not kept or not blocked.empty());
 
         if (auto many = piece<Button>("walkMany"))
         {
@@ -2668,17 +2856,6 @@ namespace chronicle
         if (not save.running.empty())
         {
             appendLog({save.age, "Already at work: " + activityName(save.running), LogKind::Note, "", ""});
-            return;
-        }
-
-        // A zone with no record: the first walk is made by hand, as its row of the Life page begins it
-        if (save.queue.recipe.rfind(ZoneRow, 0) == 0)
-        {
-            const std::string activity = WalkActivity + save.queue.recipe.substr(ZoneRow.size());
-
-            showAdventure(false);
-            onConfirm(ActivityActivatedEvent{ActivitiesList, activity});
-
             return;
         }
 
