@@ -334,6 +334,21 @@ namespace pg
         }
 
         layoutUpdate.clear();
+
+        // What was remembered a pass ago has met its other event by now, or never will
+        goneLayoutsBefore = std::move(goneLayouts);
+        goneLayouts.clear();
+
+        homelessBefore = std::move(homeless);
+        homeless.clear();
+    }
+
+    void LayoutSystem::addToMissingLayout(_unique_id layoutId, _unique_id entityId)
+    {
+        if (goneLayouts.count(layoutId) > 0 or goneLayoutsBefore.count(layoutId) > 0)
+            ecsRef->removeEntity(entityId);
+        else
+            homeless[layoutId].push_back(entityId);
     }
 
     void LayoutSystem::updateLayout(EntityRef viewEnt, BaseLayout* view)
@@ -572,6 +587,26 @@ namespace pg
     void LayoutSystem::onProcessEvent(const ClearLayoutEvent& event)
     {
         clear(event.entityIds);
+
+        if (event.goneLayout == 0)
+            return;
+
+        // The layout is gone: what was handed to it and found it missing goes with it, and what
+        // is still to come will
+        goneLayouts.insert(event.goneLayout);
+
+        for (auto* waiting : {&homeless, &homelessBefore})
+        {
+            const auto it = waiting->find(event.goneLayout);
+
+            if (it == waiting->end())
+                continue;
+
+            for (auto id : it->second)
+                ecsRef->removeEntity(id);
+
+            waiting->erase(it);
+        }
     }
 
     void LayoutSystem::onProcessEvent(const AddLayoutElementEvent& event)
@@ -585,6 +620,10 @@ namespace pg
 
             layoutUpdate.insert(ent);
         }
+        else
+        {
+            addToMissingLayout(event.id, event.ui);
+        }
     }
 
     void LayoutSystem::onProcessEvent(const InsertLayoutElementEvent& event)
@@ -597,6 +636,10 @@ namespace pg
             addEntity(ent, event.ui, event.orientation, event.index);
 
             layoutUpdate.insert(ent);
+        }
+        else
+        {
+            addToMissingLayout(event.id, event.ui);
         }
     }
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_set>
 #include "ECS/system.h"
 
 #include "ECS/entitysystem.h"
@@ -75,6 +76,7 @@ namespace pg
     struct ClearLayoutEvent
     {
         std::vector<_unique_id> entityIds; ///< IDs of entities to remove and destroy
+        _unique_id goneLayout = 0;         ///< The layout itself, when it is being destroyed with what it holds (clearOnDeletion): what was handed to it and not yet taken goes too
     };
 
     /**
@@ -273,7 +275,7 @@ namespace pg
         virtual void onDeletion(EntityRef) override
         {
             if (clearOnDeletion)
-                clear();
+                clear(true);
         }
 
         /**
@@ -405,7 +407,7 @@ namespace pg
          *
          * @see ClearLayoutEvent
          */
-        void clear()
+        void clear(bool gone = false)
         {
             std::vector<_unique_id> entityIds;
 
@@ -416,7 +418,9 @@ namespace pg
                 entityIds.push_back(ent.id);
             }
 
-            ecsRef->sendEvent(ClearLayoutEvent{entityIds});
+            // `gone`: the layout is being destroyed. An entity added to it a moment before is
+            // still an event in the queue, not one of `entities`: the system destroys those too
+            ecsRef->sendEvent(ClearLayoutEvent{entityIds, gone ? id : 0});
 
             entities.clear();
         }
@@ -961,6 +965,18 @@ namespace pg
 
         DragScroll dragScroll;
         std::unordered_map<_unique_id, _unique_id> entitiesInLayout; ///< Optimization: tracks which entities are in layouts
+
+        // A layout destroyed with what it holds (clearOnDeletion) may die before it took what
+        // was just handed to it: the add is still a queued event, and its entity would be left
+        // standing with no one to place or destroy it. So the layouts that went that way are
+        // remembered (`goneLayouts`), and so are the entities whose layout was not there
+        // (`homeless`, by layout): whichever of the two events comes second destroys the entity.
+        // Both are kept for the pass they came in and the one after, which covers either order.
+        std::unordered_set<_unique_id> goneLayouts, goneLayoutsBefore;
+        std::unordered_map<_unique_id, std::vector<_unique_id>> homeless, homelessBefore;
+
+        /** @brief An entity added to a layout that is not there: destroyed if the layout went with what it held, kept aside otherwise. */
+        void addToMissingLayout(_unique_id layoutId, _unique_id entityId);
     };
 
     /**

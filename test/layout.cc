@@ -900,6 +900,76 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // A layout removed in the frame it was given its rows (a page built and built again at
+        // once, a window being dragged) had not taken them yet: the adds are still queued. The
+        // rows go with it all the same, as the ones it holds do. A layout that keeps what it
+        // holds (clearOnDeletion off) leaves them be.
+        TEST(layout_test, layout_removed_before_it_took_what_it_was_given)
+        {
+            MockLogger logger;
+            EntitySystem ecs;
+
+            ecs.createSystem<PositionComponentSystem>();
+            ecs.createSystem<LayoutSystem>();
+            ecs.succeed<PositionComponentSystem, LayoutSystem>();
+
+            // Lets everything already made settle, so the frame below is a running one
+            ecs.executeOnce();
+            ecs.executeOnce();
+
+            auto given = [&](bool clears) {
+                auto list = makeVerticalLayout(&ecs, 0.0f, 0.0f, 100.0f, 300.0f, true);
+
+                list.get<VerticalLayout>()->clearOnDeletion = clears;
+
+                std::vector<_unique_id> rows;
+
+                for (int i = 0; i < 5; ++i)
+                {
+                    auto row = ecs.createEntity();
+                    ecs.attach<PositionComponent>(row)->setHeight(20.0f);
+                    ecs.attach<UiAnchor>(row);
+                    list.get<VerticalLayout>()->addEntity(row);
+
+                    rows.push_back(row.id);
+                }
+
+                // Gone before a pass has run: nothing was taken
+                ecs.removeEntity(list.entity);
+
+                return rows;
+            };
+
+            const auto owned = given(true);
+            const auto kept = given(false);
+
+            for (int i = 0; i < 4; ++i)
+                ecs.executeOnce();
+
+            for (auto id : owned)
+                EXPECT_EQ(ecs.getEntity(id), nullptr) << id;
+
+            for (auto id : kept)
+                EXPECT_NE(ecs.getEntity(id), nullptr) << id;
+
+            // And a layout that lives takes what it is given as before, after one that went
+            auto list = makeVerticalLayout(&ecs, 0.0f, 0.0f, 100.0f, 300.0f, true);
+            auto row = ecs.createEntity();
+
+            ecs.attach<PositionComponent>(row)->setHeight(20.0f);
+            ecs.attach<UiAnchor>(row);
+            list.get<VerticalLayout>()->addEntity(row);
+
+            for (int i = 0; i < 4; ++i)
+                ecs.executeOnce();
+
+            EXPECT_NE(ecs.getEntity(row.id), nullptr);
+            EXPECT_EQ(list.get<VerticalLayout>()->entities.size(), 1u);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // A prefab container follows the height of its main entity through a constraint, so the
         // resize reaches the layout as a settled position, not as a setter call
         TEST(layout_test, restacks_when_a_constraint_resizes_a_child)

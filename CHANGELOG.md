@@ -7,6 +7,14 @@ All notable changes to ColumbaEngine are documented here. The project is in earl
 First tagged release. Everything below describes the state of the engine at the point of tagging rather than a delta.
 
 ### Fixed
+- Layouts: an entity added to a layout that was removed before taking it was left standing. An add is
+  a queued event, so a layout destroyed in the frame it was filled (a page built and built again at
+  once, as when a window is dragged by its edge) never held its rows, and `clearOnDeletion` destroyed
+  nothing: the rows stayed alive, unplaced, at the origin. In Chronicle a window dragged to a phone's
+  width left pieces of every page it went through at the top left of the screen. A layout destroyed
+  with what it holds now says so (`ClearLayoutEvent::goneLayout`), and `LayoutSystem` destroys what was
+  handed to it and found it missing, whichever of the two events comes first. A layout with
+  `clearOnDeletion` off leaves them be, as before.
 - Layouts: a layout held by another layout did not tell it when it changed. Hidden, shown or resized by
   what it holds, the outer layout kept the old stack until something else moved in it
   (`LayoutSystem::onLayoutChanged` stopped at the inner one). In Chronicle the hidden Town page kept its
