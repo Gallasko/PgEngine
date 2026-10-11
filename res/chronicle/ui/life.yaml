@@ -238,7 +238,7 @@ children:
           - {age: 26}
           - {age: 30}
       # His life, under his age: at nothing, this life is lost. The hatch is what will mend
-      - {kind: StatLine, name: vit, glossKey: parts/vit, label: Vitality, glyph: vitality, value: 12, max: 30}
+      - {kind: StatLine, name: vit, glossKey: parts/vit, label: Vitality, glyph: vitality, value: 60, max: 150}
 
   - kind: Panel
     name: working

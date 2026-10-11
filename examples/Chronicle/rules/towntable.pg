@@ -147,7 +147,7 @@ var townPlaces = [
         {work: "Build the Waystation", built: "The waystation", months: 12, coin: 100, costs: [],
          gives: "Expedition to Harrow takes 12 months, not 18",
          lore: "Half the way is under a roof now."},
-        {work: "Raise the Harrow Shrine", built: "The Harrow shrine", months: 18, coin: 200, costs: [{stat: "vit", amount: 2}, {stat: "vitmax", amount: 2}],
+        {work: "Raise the Harrow Shrine", built: "The Harrow shrine", months: 18, coin: 200, costs: [{stat: "vit", amount: 10}, {stat: "vitmax", amount: 10}],
          gives: "A new life starts holding the Harrow relic", start: [{stat: "harrow_relic"}],
          lore: "The shrine cost him his health. What it holds is passed down."}
      ]},

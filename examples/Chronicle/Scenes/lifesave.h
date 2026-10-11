@@ -60,6 +60,11 @@ namespace chronicle
         int walksByHand = 0;           // What the player did in this life, for the analytics: the walks he made himself,
         int walksByRecord = 0;         // and the ones a record made for him
 
+        // What a point of Vitality is worth in this save: 5, the points a fight counts in (a boy
+        // has 40). A save written before had 1 (a boy had 8): it is brought to 5 when it is read
+        static constexpr int VitalityPoints = 5;
+        int vitalityIn = VitalityPoints;
+
         std::string running;           // The activity at work, "" for none
         int monthsIn = 0;              // Months already spent in it
         std::unordered_map<std::string, int> stats;   // Parts, skills, flags and coin, by key

@@ -49,6 +49,11 @@ the `CHANGELOG.md` at the root of the repository.
 
 ### Changed
 
+- **One Vitality.** Your Vitality is the same number at home, on a walk and in a fight: a boy
+  has 40, where he had 8 at home and 40 in the field. A month with nothing to eat takes 5, and
+  5 come back every two months (every month with a room at the inn). Work that builds Vitality
+  brings 5, old age takes 5 every two months, and being carried home from a walk costs 5 of the
+  most it can be. A save from before is brought to the new count when it is opened.
 - **The page is no longer built again for nothing.** When a task ends, only the tiles that
   changed are made again: the others stay where they are, and a tile you had chosen stays
   chosen. When the window changes size, what is on the page takes its new width where it

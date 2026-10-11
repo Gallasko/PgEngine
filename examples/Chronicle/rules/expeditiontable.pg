@@ -49,8 +49,7 @@ import "algorithm"
 var walkKnobs = {
     daysAMonth: 30,         // A calendar month, in days: a walk blocks 2 x travel + stay, in whole months
     apPerDay: 1,            // Action points a day on site
-    vigour: 5,              // His Vitality counts five in the field: 12 of 14 at home is 60 of 70 on a walk
-    woundCost: 1,           // Brought down where no one dies: carried home, and the most his Vitality can be is one less
+    woundCost: 5,           // Brought down where no one dies: carried home, and the most his Vitality can be is that much less
     turnsPerAp: 3,          // Turns of a fight to a day
     dexStep: 10,            // One more for every ten of Dexterity
     lowHp: 50,              // Under this share of his Vitality, in percent,

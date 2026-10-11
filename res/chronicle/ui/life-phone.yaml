@@ -211,7 +211,7 @@ children:
       - {side: top, target: tabs, targetSide: bottom}
       - {side: left, target: working, targetSide: left}
     children:
-      - {kind: StatLine, name: vit, glossKey: parts/vit, label: Vitality, glyph: vitality, value: 12, max: 30}
+      - {kind: StatLine, name: vit, glossKey: parts/vit, label: Vitality, glyph: vitality, value: 60, max: 150}
       - {kind: Ornament, ornament: divider, knot: false}
       - {kind: StatLine, name: str, glossKey: parts/str, label: Strength, glyph: strength, value: 15, max: 30}
       - {kind: StatLine, name: dex, glossKey: parts/dex, label: Dexterity, glyph: dexterity, value: 11, max: 30}

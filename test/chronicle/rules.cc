@@ -105,7 +105,7 @@ namespace pg
             // A boy of 7, as a fresh life starts
             ElementMap boy()
             {
-                return {{"str", ElementType{6}}, {"dex", ElementType{6}}, {"int", ElementType{6}}, {"vit", ElementType{8}}, {"vitmax", ElementType{8}},
+                return {{"str", ElementType{6}}, {"dex", ElementType{6}}, {"int", ElementType{6}}, {"vit", ElementType{40}}, {"vitmax", ElementType{40}},
                         {"coin", ElementType{0}}, {"rations", ElementType{12}}};
             }
 
@@ -121,14 +121,14 @@ namespace pg
             // A first life at its first frame: a month before 7, holding nothing
             ElementMap newcomer()
             {
-                return {{"str", ElementType{6}}, {"dex", ElementType{6}}, {"int", ElementType{6}}, {"vit", ElementType{8}}, {"vitmax", ElementType{8}},
+                return {{"str", ElementType{6}}, {"dex", ElementType{6}}, {"int", ElementType{6}}, {"vit", ElementType{40}}, {"vitmax", ElementType{40}},
                         {"coin", ElementType{0}}};
             }
 
             // The balance's good Warrior the month he swore to the Keep, at 17.5
             ElementMap sworn()
             {
-                return {{"str", ElementType{12}}, {"dex", ElementType{8}}, {"int", ElementType{6}}, {"vit", ElementType{10}}, {"vitmax", ElementType{10}},
+                return {{"str", ElementType{12}}, {"dex", ElementType{8}}, {"int", ElementType{6}}, {"vit", ElementType{50}}, {"vitmax", ElementType{50}},
                         {"arms", ElementType{5}}, {"discipline", ElementType{2}}, {"renown", ElementType{1}},
                         {"keep_oath", ElementType{1}}, {"watch_known", ElementType{1}}, {"edric_support", ElementType{1}},
                         {"coin", ElementType{46}}, {"rations", ElementType{3}}};
@@ -792,8 +792,8 @@ namespace pg
             ASSERT_TRUE(f.rules.forecast(7.0f, boy(), "mill", 0, forecast)) << firstError(f.rules);
 
             EXPECT_EQ(intOf(forecast.atTerm, "str"), 7);
-            EXPECT_EQ(intOf(forecast.atTerm, "vit"), 9);
-            EXPECT_EQ(intOf(forecast.atTerm, "vitmax"), 9);
+            EXPECT_EQ(intOf(forecast.atTerm, "vit"), 45);
+            EXPECT_EQ(intOf(forecast.atTerm, "vitmax"), 45);
             EXPECT_EQ(intOf(forecast.atTerm, "coin"), 8);
             EXPECT_EQ(intOf(forecast.atTerm, "dex"), 6);   // Untouched stats carried over
             EXPECT_FLOAT_EQ(forecast.percent, 0.0f);
@@ -871,9 +871,9 @@ namespace pg
             EXPECT_EQ(intOf(forecast.atTerm, "str"), 32);
             EXPECT_EQ(intOf(forecast.atTerm, "arms"), 4);
 
-            ASSERT_TRUE(f.rules.forecast(12.0f, {{"vit", ElementType{30}}, {"vitmax", ElementType{30}}}, "mill", 0, forecast));
-            EXPECT_EQ(intOf(forecast.atTerm, "vit"), 30);
-            EXPECT_EQ(intOf(forecast.atTerm, "vitmax"), 30);
+            ASSERT_TRUE(f.rules.forecast(12.0f, {{"vit", ElementType{150}}, {"vitmax", ElementType{150}}}, "mill", 0, forecast));
+            EXPECT_EQ(intOf(forecast.atTerm, "vit"), 150);
+            EXPECT_EQ(intOf(forecast.atTerm, "vitmax"), 150);
 
             // Renown has no ceiling
             ASSERT_TRUE(f.rules.forecast(19.0f, {{"keep_oath", ElementType{1}}, {"arms", ElementType{5}}, {"renown", ElementType{12}}}, "tourney", 0, forecast));
@@ -1260,7 +1260,7 @@ namespace pg
 
             ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{0}}}, false, month));
             EXPECT_EQ(intOf(month.after, "rations"), 0);
-            EXPECT_EQ(intOf(month.after, "vit"), 11);
+            EXPECT_EQ(intOf(month.after, "vit"), 7);
             EXPECT_TRUE(month.entries.empty());
 
             // A month that took from what the life hangs on says so
@@ -1362,7 +1362,7 @@ namespace pg
             EXPECT_EQ(rowOf(*rations, "Limit"), "<none>");
             EXPECT_EQ(rowOf(*rations, "A month uses"), "1");
             EXPECT_EQ(rowOf(*rations, "Lasts"), "5 mo");
-            EXPECT_EQ(rowOf(*rations, "With none, Vitality"), "\xE2\x88\x92" "1 / mo");
+            EXPECT_EQ(rowOf(*rations, "With none, Vitality"), "\xE2\x88\x92" "5 / mo");
             EXPECT_FALSE(textOf(rations->fields, "text").empty());
 
             EXPECT_EQ(intOf(*byId(month.rows, "rations"), "limit"), 60);
@@ -1433,33 +1433,33 @@ namespace pg
 
             RuleMonth month;
 
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{9}}, {"vitmax", ElementType{12}}, {"rations", ElementType{5}}}, false, month)) << firstError(f.rules);
-            EXPECT_EQ(intOf(month.after, "vit"), 9);
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{45}}, {"vitmax", ElementType{60}}, {"rations", ElementType{5}}}, false, month)) << firstError(f.rules);
+            EXPECT_EQ(intOf(month.after, "vit"), 45);
             EXPECT_EQ(intOf(month.after, "vitrest"), 1);
             EXPECT_TRUE(month.hurt.empty());
 
             ASSERT_EQ(month.caps.size(), 1u);
             EXPECT_EQ(textOf(month.caps[0], "stat"), "vit");
-            EXPECT_EQ(intOf(month.caps[0], "most"), 12);
+            EXPECT_EQ(intOf(month.caps[0], "most"), 60);
 
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{9}}, {"vitmax", ElementType{12}}, {"vitrest", ElementType{1}}, {"rations", ElementType{5}}}, false, month));
-            EXPECT_EQ(intOf(month.after, "vit"), 10);
-            EXPECT_EQ(intOf(month.after, "vitmax"), 12);
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{45}}, {"vitmax", ElementType{60}}, {"vitrest", ElementType{1}}, {"rations", ElementType{5}}}, false, month));
+            EXPECT_EQ(intOf(month.after, "vit"), 50);
+            EXPECT_EQ(intOf(month.after, "vitmax"), 60);
             EXPECT_EQ(intOf(month.after, "vitrest"), 0);
 
             // Starving: nothing mends, the count starts again
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{9}}, {"vitmax", ElementType{12}}, {"vitrest", ElementType{1}}, {"rations", ElementType{0}}}, false, month));
-            EXPECT_EQ(intOf(month.after, "vit"), 8);
-            EXPECT_EQ(intOf(month.after, "vitmax"), 12);
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{45}}, {"vitmax", ElementType{60}}, {"vitrest", ElementType{1}}, {"rations", ElementType{0}}}, false, month));
+            EXPECT_EQ(intOf(month.after, "vit"), 40);
+            EXPECT_EQ(intOf(month.after, "vitmax"), 60);
             EXPECT_EQ(intOf(month.after, "vitrest"), 0);
 
             // Fed by his work, it mends as on any good month
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{9}}, {"vitmax", ElementType{12}}, {"vitrest", ElementType{1}}, {"rations", ElementType{0}}}, true, month));
-            EXPECT_EQ(intOf(month.after, "vit"), 10);
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{45}}, {"vitmax", ElementType{60}}, {"vitrest", ElementType{1}}, {"rations", ElementType{0}}}, true, month));
+            EXPECT_EQ(intOf(month.after, "vit"), 50);
 
             // Whole: it stays
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"vitmax", ElementType{12}}, {"vitrest", ElementType{1}}}, false, month));
-            EXPECT_EQ(intOf(month.after, "vit"), 12);
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{60}}, {"vitmax", ElementType{60}}, {"vitrest", ElementType{1}}}, false, month));
+            EXPECT_EQ(intOf(month.after, "vit"), 60);
 
             // A character from before the cap takes what he has as his most
             ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{7}}}, false, month));
@@ -1471,9 +1471,9 @@ namespace pg
 
             // The mill brings Vitality: the most it can be rises with it
             RuleForecast forecast;
-            ASSERT_TRUE(f.rules.forecast(17.5f, {{"str", ElementType{14}}, {"vit", ElementType{9}}, {"vitmax", ElementType{12}}}, "mill", 0, forecast));
-            EXPECT_EQ(intOf(forecast.atTerm, "vit"), 10);
-            EXPECT_EQ(intOf(forecast.atTerm, "vitmax"), 13);
+            ASSERT_TRUE(f.rules.forecast(17.5f, {{"str", ElementType{14}}, {"vit", ElementType{45}}, {"vitmax", ElementType{60}}}, "mill", 0, forecast));
+            EXPECT_EQ(intOf(forecast.atTerm, "vit"), 50);
+            EXPECT_EQ(intOf(forecast.atTerm, "vitmax"), 65);
         }
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
@@ -1501,7 +1501,7 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
-        // Past 30 the most his Vitality can be falls by one every two months, and his Vitality with
+        // Past 30 the most his Vitality can be falls by five every two months, and his Vitality with
         // it: nothing mends it back, the page is not stopped for it, and the life that ends there
         // ended in old age.
         TEST(rules_test, old_age_takes_his_vitality)
@@ -1514,32 +1514,32 @@ namespace pg
             RuleMonth month;
 
             // The month that brings him to 30, and the one after: nothing yet
-            ASSERT_TRUE(f.rules.month(30.0f, {{"vit", ElementType{9}}, {"vitmax", ElementType{9}}, {"rations", ElementType{5}}}, false, month)) << firstError(f.rules);
-            EXPECT_EQ(intOf(month.after, "vit"), 9);
-            EXPECT_EQ(intOf(month.after, "vitmax"), 9);
+            ASSERT_TRUE(f.rules.month(30.0f, {{"vit", ElementType{45}}, {"vitmax", ElementType{45}}, {"rations", ElementType{5}}}, false, month)) << firstError(f.rules);
+            EXPECT_EQ(intOf(month.after, "vit"), 45);
+            EXPECT_EQ(intOf(month.after, "vitmax"), 45);
 
-            ASSERT_TRUE(f.rules.month(30.0f + twelfth, {{"vit", ElementType{9}}, {"vitmax", ElementType{9}}, {"rations", ElementType{5}}}, false, month));
-            EXPECT_EQ(intOf(month.after, "vit"), 9);
-            EXPECT_EQ(intOf(month.after, "vitmax"), 9);
+            ASSERT_TRUE(f.rules.month(30.0f + twelfth, {{"vit", ElementType{45}}, {"vitmax", ElementType{45}}, {"rations", ElementType{5}}}, false, month));
+            EXPECT_EQ(intOf(month.after, "vit"), 45);
+            EXPECT_EQ(intOf(month.after, "vitmax"), 45);
 
             // Every second month: the most it can be, and what he has with it. Not a hurt
-            ASSERT_TRUE(f.rules.month(30.0f + 2.0f * twelfth, {{"vit", ElementType{9}}, {"vitmax", ElementType{9}}, {"rations", ElementType{5}}}, false, month));
-            EXPECT_EQ(intOf(month.after, "vit"), 8);
-            EXPECT_EQ(intOf(month.after, "vitmax"), 8);
+            ASSERT_TRUE(f.rules.month(30.0f + 2.0f * twelfth, {{"vit", ElementType{45}}, {"vitmax", ElementType{45}}, {"rations", ElementType{5}}}, false, month));
+            EXPECT_EQ(intOf(month.after, "vit"), 40);
+            EXPECT_EQ(intOf(month.after, "vitmax"), 40);
             EXPECT_TRUE(month.hurt.empty());
 
             // Already under it: only the most falls
-            ASSERT_TRUE(f.rules.month(30.0f + 4.0f * twelfth, {{"vit", ElementType{5}}, {"vitmax", ElementType{9}}, {"rations", ElementType{5}}}, false, month));
-            EXPECT_EQ(intOf(month.after, "vit"), 5);
-            EXPECT_EQ(intOf(month.after, "vitmax"), 8);
+            ASSERT_TRUE(f.rules.month(30.0f + 4.0f * twelfth, {{"vit", ElementType{25}}, {"vitmax", ElementType{45}}, {"rations", ElementType{5}}}, false, month));
+            EXPECT_EQ(intOf(month.after, "vit"), 25);
+            EXPECT_EQ(intOf(month.after, "vitmax"), 40);
 
             // In his prime the same months take nothing
-            ASSERT_TRUE(f.rules.month(20.0f + 2.0f * twelfth, {{"vit", ElementType{9}}, {"vitmax", ElementType{9}}, {"rations", ElementType{5}}}, false, month));
-            EXPECT_EQ(intOf(month.after, "vit"), 9);
-            EXPECT_EQ(intOf(month.after, "vitmax"), 9);
+            ASSERT_TRUE(f.rules.month(20.0f + 2.0f * twelfth, {{"vit", ElementType{45}}, {"vitmax", ElementType{45}}, {"rations", ElementType{5}}}, false, month));
+            EXPECT_EQ(intOf(month.after, "vit"), 45);
+            EXPECT_EQ(intOf(month.after, "vitmax"), 45);
 
             // The last of it, and the line of a life that ended old
-            ASSERT_TRUE(f.rules.month(32.0f, {{"vit", ElementType{1}}, {"vitmax", ElementType{1}}, {"rations", ElementType{5}}}, false, month));
+            ASSERT_TRUE(f.rules.month(32.0f, {{"vit", ElementType{5}}, {"vitmax", ElementType{5}}, {"rations", ElementType{5}}}, false, month));
             EXPECT_EQ(intOf(month.after, "vit"), 0);
             EXPECT_EQ(intOf(month.after, "vitmax"), 0);
             EXPECT_TRUE(month.death.empty());
@@ -2490,13 +2490,13 @@ namespace pg
             RulesFixture f;
 
             ElementMap character = townsman();
-            character["vit"] = ElementType{6};
+            character["vit"] = ElementType{30};
             character["vitrest"] = ElementType{0};
 
             RuleMonth month;
             ASSERT_TRUE(f.rules.month(9.0f, character, false, month)) << firstError(f.rules);
             EXPECT_EQ(intOf(month.after, "rations"), 11);
-            EXPECT_EQ(intOf(month.after, "vit"), 6);
+            EXPECT_EQ(intOf(month.after, "vit"), 30);
 
             const size_t rows = month.rows.size();
 
@@ -2507,7 +2507,7 @@ namespace pg
 
             // The hall's month: one eaten, one sent
             EXPECT_EQ(intOf(month.after, "rations"), 12);
-            EXPECT_EQ(intOf(month.after, "vit"), 7);
+            EXPECT_EQ(intOf(month.after, "vit"), 35);
 
             // And its gloss says where the ration comes from, and how often
             const RuleGloss* rations = nullptr;

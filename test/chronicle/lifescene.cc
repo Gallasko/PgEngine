@@ -2389,7 +2389,7 @@ namespace pg
             life->onMonth();
             f.settle();
 
-            EXPECT_EQ(life->save.stats["vit"], vit - 1);
+            EXPECT_EQ(life->save.stats["vit"], vit - 5);
             EXPECT_EQ(life->save.log.size(), logEntries + 1);
         }
 
@@ -2408,13 +2408,13 @@ namespace pg
 
             life->paused = false;
             life->save.stats["rations"] = 0;
-            life->save.stats["vit"] = 2;
+            life->save.stats["vit"] = 10;
 
             life->onMonth();
             f.settle();
 
             // Still his life, a month older, and in danger: the months stopped, his life in red
-            EXPECT_EQ(life->save.stats["vit"], 1);
+            EXPECT_EQ(life->save.stats["vit"], 5);
             EXPECT_GT(life->save.age, 17.5f);
             EXPECT_TRUE(life->paused);
 
@@ -2447,7 +2447,7 @@ namespace pg
             EXPECT_FALSE(life->ended);
             EXPECT_FLOAT_EQ(life->save.age, 7.0f);
             EXPECT_FLOAT_EQ(f.fact<float>("life.age"), 7.0f);
-            EXPECT_EQ(life->save.stats["vit"], 8);
+            EXPECT_EQ(life->save.stats["vit"], 40);
             EXPECT_TRUE(life->save.running.empty());
             EXPECT_EQ(life->save.stats["rations"], 12);
             EXPECT_TRUE(life->paused);
@@ -2472,7 +2472,7 @@ namespace pg
             f.settle();
 
             EXPECT_GT(life->save.age, 7.0f);
-            EXPECT_EQ(life->save.stats["vit"], 8);
+            EXPECT_EQ(life->save.stats["vit"], 40);
         }
 
         // ----------------------------------------------------------------------------------------
@@ -2497,32 +2497,32 @@ namespace pg
             EXPECT_EQ(f.fact<int>("character.parts.vit.projected"), -1);
             EXPECT_FALSE(vit()->projected.has_value());
 
-            life->save.stats["vit"] = 8;
+            life->save.stats["vit"] = 40;
 
             life->onMonth();
             f.settle();
 
-            EXPECT_EQ(life->save.stats["vit"], 8);
-            EXPECT_EQ(vit()->spec.value, 8);
-            EXPECT_EQ(f.fact<int>("character.parts.vit.projected"), 10);
+            EXPECT_EQ(life->save.stats["vit"], 40);
+            EXPECT_EQ(vit()->spec.value, 40);
+            EXPECT_EQ(f.fact<int>("character.parts.vit.projected"), 50);
             ASSERT_TRUE(vit()->projected.has_value());
-            EXPECT_EQ(vit()->spec.projected, 10);
+            EXPECT_EQ(vit()->spec.projected, 50);
             EXPECT_FALSE(vit()->spec.alert);
 
             life->onMonth();
             f.settle();
 
-            EXPECT_EQ(life->save.stats["vit"], 9);
-            EXPECT_EQ(vit()->spec.value, 9);
-            EXPECT_EQ(vit()->spec.projected, 10);
+            EXPECT_EQ(life->save.stats["vit"], 45);
+            EXPECT_EQ(vit()->spec.value, 45);
+            EXPECT_EQ(vit()->spec.projected, 50);
 
             life->onMonth();
             life->onMonth();
             f.settle();
 
             // Whole again: the most it can be did not move, and it stops there
-            EXPECT_EQ(life->save.stats["vit"], 10);
-            EXPECT_EQ(life->save.stats["vitmax"], 10);
+            EXPECT_EQ(life->save.stats["vit"], 50);
+            EXPECT_EQ(life->save.stats["vitmax"], 50);
             EXPECT_EQ(f.fact<int>("character.parts.vit.projected"), -1);
             EXPECT_FALSE(vit()->projected.has_value());
 
@@ -2530,7 +2530,7 @@ namespace pg
             life->onMonth();
             f.settle();
 
-            EXPECT_EQ(life->save.stats["vit"], 10);
+            EXPECT_EQ(life->save.stats["vit"], 50);
 
             // The gloss says both
             auto registry = f.ecs.getSystem<GlossRegistry>();
@@ -2545,7 +2545,7 @@ namespace pg
             {
                 if (r.label == "At most")
                 {
-                    EXPECT_EQ(r.value, "10");
+                    EXPECT_EQ(r.value, "50");
                     most = true;
                 }
             }
@@ -2959,6 +2959,57 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // Vitality is counted in the points of a fight: a boy has 40, at home as on a walk. A save
+        // written when he had 8 (and five times that on a walk, less the scratches the rounding
+        // left him) is brought to the same count when it is read, once.
+        TEST(lifescene_test, a_save_from_before_has_its_vitality_in_points)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            const std::string path = "save/test_life_vitality.sz";
+            std::remove(path.c_str());
+
+            LifeScene* life = f.life();
+            ASSERT_NE(life, nullptr);
+
+            // A life begun today is in points already
+            EXPECT_EQ(life->save.vitalityIn, LifeSave::VitalityPoints);
+            EXPECT_EQ(life->save.stats["vit"], 50);
+            EXPECT_EQ(life->save.stats["vitmax"], 50);
+
+            // As it was written before: 8 of 10, three scratches from his walks
+            LifeSave old = life->save;
+            old.vitalityIn = 1;
+            old.stats["vit"] = 8;
+            old.stats["vitmax"] = 10;
+            old.stats["scratches"] = 3;
+
+            ASSERT_TRUE(old.save(path));
+
+            LifeSave read;
+            ASSERT_TRUE(read.load(path));
+
+            EXPECT_EQ(read.vitalityIn, LifeSave::VitalityPoints);
+            EXPECT_EQ(read.stats["vit"], 37);
+            EXPECT_EQ(read.stats["vitmax"], 50);
+            EXPECT_EQ(read.stats.count("scratches"), 0u);
+
+            // Written again and read again, it is not counted twice
+            ASSERT_TRUE(read.save(path));
+
+            LifeSave again;
+            ASSERT_TRUE(again.load(path));
+
+            EXPECT_EQ(again.stats["vit"], 37);
+            EXPECT_EQ(again.stats["vitmax"], 50);
+
+            std::remove(path.c_str());
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         TEST(lifescene_test, on_leave_is_clean)
         {
             MockLogger logger;
@@ -3352,15 +3403,15 @@ namespace pg
 
             life->save.age = 30.0f - 1.0f / 12.0f;
             life->save.stats["rations"] = 24;
-            life->save.stats["vit"] = 20;
-            life->save.stats["vitmax"] = 20;
+            life->save.stats["vit"] = 100;
+            life->save.stats["vitmax"] = 100;
 
             life->onMonth();
             f.settle();
 
             EXPECT_EQ(f.fact<std::string>("life.headline.ageText"), "30.0");
             EXPECT_EQ(f.fact<std::string>("life.next.label"), "");
-            EXPECT_EQ(life->save.stats["vit"], 20);
+            EXPECT_EQ(life->save.stats["vit"], 100);
 
             bool written = false;
 
@@ -3394,21 +3445,21 @@ namespace pg
             life->onMonth();
             f.settle();
 
-            EXPECT_EQ(life->save.stats["vit"], 20);
+            EXPECT_EQ(life->save.stats["vit"], 100);
             EXPECT_FALSE(life->paused);
 
             life->onMonth();
             f.settle();
 
-            EXPECT_EQ(life->save.stats["vit"], 19);
-            EXPECT_EQ(life->save.stats["vitmax"], 19);
+            EXPECT_EQ(life->save.stats["vit"], 95);
+            EXPECT_EQ(life->save.stats["vitmax"], 95);
             EXPECT_EQ(life->save.done["tales"], 1);
             EXPECT_EQ(life->save.stats["coin"], coin + 2);
             EXPECT_EQ(life->save.stats["rations"], rations);
 
             // The years took it: no part in red
             EXPECT_FALSE(life->piece<StatLine>("vit")->spec.alert);
-            EXPECT_EQ(life->piece<StatLine>("vit")->figure.spec.text, "19");
+            EXPECT_EQ(life->piece<StatLine>("vit")->figure.spec.text, "95");
 
             // A year into his old age: the clock's figure goes past the end of its track
             for (int i = 0; i < 10; ++i)
@@ -3417,7 +3468,7 @@ namespace pg
 
             EXPECT_EQ(f.fact<std::string>("life.headline.ageText"), "31.0");
             EXPECT_EQ(life->piece<LifeClock>("clock")->age.spec.text, "31");
-            EXPECT_EQ(life->save.stats["vit"], 14);
+            EXPECT_EQ(life->save.stats["vit"], 70);
             EXPECT_NE(list->find(&f.ecs, "tales"), nullptr);
 
             // The last of it: the life ends, and the next one says it ended old

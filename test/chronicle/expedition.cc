@@ -79,14 +79,14 @@ namespace pg
             // A boy who has helped at the hedges: the Hedgerows are open to him
             ElementMap gatherer()
             {
-                return {{"str", ElementType{6}}, {"dex", ElementType{6}}, {"int", ElementType{6}}, {"vit", ElementType{8}}, {"vitmax", ElementType{8}},
+                return {{"str", ElementType{6}}, {"dex", ElementType{6}}, {"int", ElementType{6}}, {"vit", ElementType{40}}, {"vitmax", ElementType{40}},
                         {"coin", ElementType{0}}, {"rations", ElementType{12}}, {"hedges_known", ElementType{1}}};
             }
 
             // A youth who can fight: the Hollow Woods are open to him
             ElementMap hunter()
             {
-                return {{"str", ElementType{11}}, {"dex", ElementType{10}}, {"int", ElementType{9}}, {"vit", ElementType{14}}, {"vitmax", ElementType{14}},
+                return {{"str", ElementType{11}}, {"dex", ElementType{10}}, {"int", ElementType{9}}, {"vit", ElementType{70}}, {"vitmax", ElementType{70}},
                         {"arms", ElementType{2}}, {"coin", ElementType{5}}, {"rations", ElementType{10}}, {"remedy", ElementType{2}}, {"bow_learned", ElementType{1}}};
             }
 
@@ -441,13 +441,11 @@ namespace pg
 
             EXPECT_LE(intOf(w.state.run, "ap"), before - seekCost - intOf(*line, "ap"));
 
-            // His Vitality at home follows the one in the field, rounded up, and never to nothing;
-            // what the rounding spared him is kept as scratches, for the next walk to count
+            // His Vitality in the field is his own: the same points at home, and never nothing
             EXPECT_GE(intOf(w.character, "vit"), 1);
-            EXPECT_EQ(intOf(w.character, "vit"), (intOf(w.state.run, "hp") + 4) / 5);
-
-            if (intOf(w.state.run, "hp") < 70)
-                EXPECT_EQ(intOf(w.character, "scratches"), intOf(w.character, "vit") * 5 - intOf(w.state.run, "hp"));
+            EXPECT_EQ(intOf(w.character, "vit"), intOf(w.state.run, "hp"));
+            EXPECT_EQ(intOf(w.state.run, "hpMax"), intOf(w.character, "vitmax"));
+            EXPECT_EQ(w.character.count("scratches"), 0u);
         }
 
         // ----------------------------------------------------------------------------------------
@@ -833,7 +831,7 @@ namespace pg
 
             // What the walk cost him it costs again, and never his life
             EXPECT_GE(intOf(w.character, "vit"), 1);
-            EXPECT_LE(intOf(w.character, "vit"), 14);
+            EXPECT_LE(intOf(w.character, "vit"), 70);
 
             if (total < 0)
                 EXPECT_LE(intOf(w.character, "vit"), vit);

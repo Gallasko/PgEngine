@@ -223,6 +223,7 @@ namespace pg
         serialize(archive, "recorded", value.recorded);
         serialize(archive, "walksByHand", value.walksByHand);
         serialize(archive, "walksByRecord", value.walksByRecord);
+        serialize(archive, "vitalityIn", value.vitalityIn);
         serialize(archive, "running", value.running);
         serialize(archive, "monthsIn", value.monthsIn);
         serialize(archive, "stats", value.stats);
@@ -283,6 +284,26 @@ namespace pg
 
         for (const auto& [thing, amount] : store)
             data.stats[thing] += amount;
+
+        // A save from before Vitality was counted in the points of a fight (a boy had 8, and
+        // five times that on a walk): his own is brought to the same count, less the scratches
+        // the walks' rounding had left him
+        data.vitalityIn = 1;
+        defaultDeserialize(serialized, "vitalityIn", data.vitalityIn);
+
+        if (data.vitalityIn < chronicle::LifeSave::VitalityPoints)
+        {
+            const int by = chronicle::LifeSave::VitalityPoints / std::max(1, data.vitalityIn);
+
+            if (data.stats.count("vitmax") > 0)
+                data.stats["vitmax"] *= by;
+
+            if (data.stats.count("vit") > 0)
+                data.stats["vit"] = std::max(1, data.stats["vit"] * by - (data.stats.count("scratches") > 0 ? data.stats["scratches"] : 0));
+
+            data.stats.erase("scratches");
+            data.vitalityIn = chronicle::LifeSave::VitalityPoints;
+        }
 
         defaultDeserialize(serialized, "parts", data.parts);
         defaultDeserialize(serialized, "skills", data.skills);
@@ -543,7 +564,7 @@ namespace chronicle
         life.townKnown = true;   // At 17 he knows Bellmoor street by street: its page is open, nothing raised yet
 
         life.stats = {
-            {"str", 12}, {"dex", 8}, {"int", 6}, {"vit", 10}, {"vitmax", 10},
+            {"str", 12}, {"dex", 8}, {"int", 6}, {"vit", 50}, {"vitmax", 50},
             {"arms", 5}, {"discipline", 2}, {"letters", 0}, {"lore", 0}, {"arcana", 0}, {"stealth", 0}, {"guile", 0}, {"renown", 1},
             {"watch_known", 1}, {"edric_support", 1}, {"keep_oath", 1},
             {"coin", 46}, {"rations", 3},
@@ -595,7 +616,7 @@ namespace chronicle
         life.age = first ? 6.0f + 11.0f / 12.0f : 7.0f;
 
         life.stats = {
-            {"str", 6}, {"dex", 6}, {"int", 6}, {"vit", 8}, {"vitmax", 8},
+            {"str", 6}, {"dex", 6}, {"int", 6}, {"vit", 40}, {"vitmax", 40},
             {"arms", 0}, {"discipline", 0}, {"letters", 0}, {"lore", 0}, {"arcana", 0}, {"stealth", 0}, {"guile", 0}, {"renown", 0},
             {"coin", 0}, {"rations", 12},
         };

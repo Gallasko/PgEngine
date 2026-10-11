@@ -603,13 +603,14 @@ var statLimits = {
 
 // The most a stat can ever be: what a term brings stops there (forecast.pg). Unlike a limit it
 // closes nothing, the rest of what the term brings still comes. Parts stop at 30, skills at 10;
-// renown, favors and what he holds have none.
+// renown, favors and what he holds have none. Vitality is counted in the points a blow takes
+// (a boy has 40, a hurt is 5 of them), so it stops at 150.
 var statCeilings = {
     str: 30,
     dex: 30,
     int: 30,
-    vit: 30,
-    vitmax: 30,
+    vit: 150,
+    vitmax: 150,
     arms: 10,
     discipline: 10,
     letters: 10,

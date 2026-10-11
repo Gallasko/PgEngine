@@ -101,10 +101,10 @@ saying who he was, how it ended and what the chronicle keeps of him, and nothing
 *Begin a new life* (or `N`). The next one begins at 7 with 12 rations, the
 months stopped and a line in its log saying how the last one ended. His prime ends at 30: every
 activity of it closes, only an old man's work and the market are left, and from there the most
-his Vitality can be falls by one every two months, until that life ends too. Vitality stands under the
+his Vitality can be falls by five every two months, until that life ends too. Vitality stands under the
 clock's age at the top of the right column, his other parts in a panel under the log. A month
 that takes from it turns it red for a moment, and the first such month stops the running
-months, with a line in the log naming the part and the key that goes on. What was taken mends, one every two months, up to the most it can be: the hatch on its
+months, with a line in the log naming the part and the key that goes on. What was taken mends, five every two months, up to the most it can be: the hatch on its
 line and the `-> 12` beside its figure.
 
 Tests:
@@ -872,13 +872,14 @@ files of their own, `expeditionlib.pg` and `fightlib.pg`, imported first: a scri
 - **Days.** A stay is `stay x apPerDay` action points. Seeking a beast costs
   `max(1, base(rarity) - Guile/5 - zone knowledge - familiarity + pack or lone)`, a study 2, a
   watch 1, a rest 2 and a ration (+40 % of his Vitality), a remedy nothing, leaving nothing (asked
-  twice: the first press says what is lost). His Vitality counts five in the field
-  (`vigour`: 12 of 14 at home is 60 of 70 on a walk), and comes home rounded up.
+  twice: the first press says what is lost). His Vitality on a walk is
+  his own: one count, the points a blow takes, at home, on the site and in a fight (a boy has
+  40; a month with nothing to eat takes 5, and 5 come back every two months).
 - **A fight** is turns: he acts once, every beast standing acts once (its `script`, cycled), the
   quicker side first. Every `turnsPerAp` turns (3, one more for every 10 Dexterity, one fewer
   under half his Vitality) a day is gone, and a day begun is a day spent. A pack that holds back
   attacks with its first `holdsBack` members only. Where no one dies he is left with one point,
-  carried home, and the most his Vitality can be is one less. Handed over, the fight plays
+  carried home, and the most his Vitality can be is five less. Handed over, the fight plays
   itself (`autoChoice`: a remedy under 30 %, a beast one strike ends, a sweep at three, then a
   technique he knows or a plain strike).
 - **What he can do in a fight** is short on purpose. Anyone strikes, defends, takes a remedy he

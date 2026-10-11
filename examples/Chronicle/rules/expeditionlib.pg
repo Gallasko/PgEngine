@@ -563,18 +563,15 @@ fun take(itemId, n)
     step.used = stepText(len(record), "use", "−")
 }
 
-// His Vitality at home, from the one in the field: rounded up, and what the rounding gave him is
-// kept as scratches (0 to 4), so that five small wounds on five walks are one point all the same
+// His Vitality on a walk is his own: the same points at home, on the site and in a fight
 fun homeHp(field)
 {
-    after.vit = wholeUp(field, walkKnobs.vigour)
-    after.scratches = after.vit * walkKnobs.vigour - field
+    after.vit = field
 }
 
-// And the one in the field, from his own: the scratches he still carries are counted
 fun fieldHp()
 {
-    return larger(1, mine("vit") * walkKnobs.vigour - mine("scratches"))
+    return larger(1, mine("vit"))
 }
 
 // His Vitality in the field moves by `amount`, and his own follows it. Where no one dies he is
@@ -868,7 +865,7 @@ fun enterZone(zoneId)
     var most = mostOf(after, "vit")
 
     run = {zone: zone.id, mode: "site", seed: diceFrom(seed), ap: stay * walkKnobs.apPerDay, apTotal: stay * walkKnobs.apPerDay, spent: 0,
-           hp: fieldHp(), hpMax: most * walkKnobs.vigour, hpStart: fieldHp(),
+           hp: fieldHp(), hpMax: most, hpStart: fieldHp(),
            months: monthsOf(zone), travel: travelOf(zone), found: "", foundCount: 0, event: "", refused: "", stance: "balanced",
            downed: 0, leaving: 0, firstWalk: 0, startMonth: monthOf(age)}
 
@@ -1442,7 +1439,7 @@ fun replayTerm(recipe, steps, list)
     var zone = zoneOf(recipe.zone)
     var brought = {}
     var hp = fieldHp()
-    var most = mostOf(after, "vit") * walkKnobs.vigour
+    var most = mostOf(after, "vit")
 
     for (var s = 0; s < len(steps); s++)
     {

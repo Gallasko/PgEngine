@@ -62,7 +62,7 @@ var holdings = [
     {id: "rations", group: "purse", groupLabel: "PURSE", glyph: "trade", name: "Rations", tone: 0,
      about: "Food for the month. With none left, his Vitality pays for it. Work that feeds him leaves them be.",
      decays: 1,
-     empty: {effects: [{stat: "vit", amount: -1}], entry: "The rations ran out",
+     empty: {effects: [{stat: "vit", amount: -5}], entry: "The rations ran out",
              low: "Rations are running low: help in the kitchen, or take work with meals",
              gone: "No rations left: his Vitality pays. Help in the kitchen, or take work with meals"}},
     {id: "reagents", group: "purse", groupLabel: "PURSE", glyph: "magic", name: "Reagents", tone: 0,
@@ -137,14 +137,14 @@ for (var t = 0; t < len(ties); t++)
 // `quick`: with that stat at `needed` or more it mends every `every` months instead (the
 // family's room at the inn, towntable.pg).
 var mending = [
-    {stat: "vit", amount: 1, every: 2, quick: {stat: "town.inn", needed: 3, every: 1}}
+    {stat: "vit", amount: 5, every: 2, quick: {stat: "town.inn", needed: 3, every: 1}}
 ]
 
 // Old age: from `fromAge` on, the most a stat can be (its cap) falls by `amount` every `every`
 // months, and the stat with it, so nothing mends it back. It is not a hurt (`month.hurt`): the
 // years take it, the page does not stop for it.
 var aging = [
-    {stat: "vit", fromAge: lastAge, amount: 1, every: 2}
+    {stat: "vit", fromAge: lastAge, amount: 5, every: 2}
 ]
 
 // What a life cannot go on without: with none of it left the life ends, and a new one begins.
