@@ -6,6 +6,9 @@
 #include "Systems/basicsystems.h"
 #include "Profiler/profiler.h"
 #include "Profiler/profilerstats.h"
+#include "UI/displayscale.h"
+
+#include <algorithm>
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -484,6 +487,16 @@ int Engine::exec()
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
     Uint32 windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN;
+
+#ifdef __EMSCRIPTEN__
+    // In a browser a dense screen (a 4K monitor at 200 %, a phone) gives the canvas more pixels
+    // than the page has units: drawn on all of them, and what is rasterised ahead (fonts, icons)
+    // is rasterised for them, or the browser stretches a small picture and everything is soft
+    windowFlags |= SDL_WINDOW_ALLOW_HIGHDPI;
+
+    displayPixelRatio() = std::clamp(static_cast<float>(emscripten_get_device_pixel_ratio()), 1.0f, 3.0f);
+    printf("Display pixel ratio: %.2f\n", displayPixelRatio());
+#endif
 
     if (config.resizable)
         windowFlags |= SDL_WINDOW_RESIZABLE;

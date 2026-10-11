@@ -3,6 +3,7 @@
 #include "gl_debug.hpp"
 
 #include "window.h"
+#include "UI/displayscale.h"
 
 #include <string>
 #include <chrono>
@@ -505,7 +506,23 @@ namespace pg
 
         // std::lock_guard<std::mutex> lock(renderMutex);
 
-        glViewport(0, 0, width, height);
+        // The window is measured in the page's units, and drawn on the pixels it has: more of
+        // them on a dense screen (SDL_WINDOW_ALLOW_HIGHDPI), the same number on any other
+        int drawnWidth = width;
+        int drawnHeight = height;
+
+        if (window)
+            SDL_GL_GetDrawableSize(window, &drawnWidth, &drawnHeight);
+
+        if (drawnWidth <= 0 or drawnHeight <= 0)
+        {
+            drawnWidth = width;
+            drawnHeight = height;
+        }
+
+        glViewport(0, 0, drawnWidth, drawnHeight);
+
+        drawablePixelRatio() = width > 0 ? static_cast<float>(drawnWidth) / static_cast<float>(width) : 1.0f;
 
         auto ent = ecs->getEntity("__MainWindow");
         if (ent and ent->has<PositionComponent>())

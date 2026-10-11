@@ -2,6 +2,7 @@
 #include "stdafx.h"
 
 #include "ttftext.h"
+#include "displayscale.h"
 
 #include "ECS/entitysystem.h"
 
@@ -161,7 +162,8 @@ namespace pg
         // FreeType work is synchronous and CPU-only, so glyphs and metrics are
         // available before the first frame; only the GL upload stays deferred.
         FontAtlas atlas;
-        if (not atlas.build(ft, fontPath, size, defaultCharset()))
+        // As sharp as the screen is: the glyphs are rasterised at its pixels (displayscale.h)
+        if (not atlas.build(ft, fontPath, size, defaultCharset(), displayPixelRatio()))
         {
             LOG_ERROR(DOM, "Failed to build font atlas for: " << fontPath);
             return;
@@ -171,8 +173,10 @@ namespace pg
 
         // Copy the atlas bytes into the upload lambda; the atlas itself stays on the CPU for measuring.
         std::vector<unsigned char> atlasBuffer = fonts[alias].buffer();
+        const int atlasWidth = fonts[alias].width();
+        const int atlasHeight = fonts[alias].height();
 
-        auto f = [atlasBuffer](size_t oldId) -> OpenGLTexture
+        auto f = [atlasBuffer, atlasWidth, atlasHeight](size_t oldId) -> OpenGLTexture
         {
             unsigned int texture;
             if (oldId)
@@ -187,9 +191,9 @@ namespace pg
             }
 
 #ifdef __EMSCRIPTEN__
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, FontAtlas::Width, FontAtlas::Height, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, atlasBuffer.data());
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, atlasWidth, atlasHeight, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, atlasBuffer.data());
 #else
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, FontAtlas::Width, FontAtlas::Height, 0, GL_RED, GL_UNSIGNED_BYTE, atlasBuffer.data());
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, atlasWidth, atlasHeight, 0, GL_RED, GL_UNSIGNED_BYTE, atlasBuffer.data());
 #endif
             // Text is drawn at its rasterised size, so no mipmaps (mipmaps blurred it).
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

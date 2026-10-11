@@ -1,3 +1,5 @@
+#include <algorithm>
+#include <cmath>
 #include "stdafx.h"
 
 #include "fontatlas.h"
@@ -20,6 +22,9 @@ namespace pg
 
     FontAtlas::FontAtlas(FontAtlas&& other) noexcept :
         pixelSize(other.pixelSize),
+        atlasWidth(other.atlasWidth),
+        atlasHeight(other.atlasHeight),
+        rasterRatio(other.rasterRatio),
         fontMetrics(other.fontMetrics),
         atlasBuffer(std::move(other.atlasBuffer)),
         glyphs(std::move(other.glyphs)),
@@ -38,6 +43,9 @@ namespace pg
                 FT_Done_Face(face);
 
             pixelSize = other.pixelSize;
+            atlasWidth = other.atlasWidth;
+            atlasHeight = other.atlasHeight;
+            rasterRatio = other.rasterRatio;
             fontMetrics = other.fontMetrics;
             atlasBuffer = std::move(other.atlasBuffer);
             glyphs = std::move(other.glyphs);
@@ -51,7 +59,7 @@ namespace pg
         return *this;
     }
 
-    bool FontAtlas::build(FT_Library ft, const std::string& fontPath, int sizePx, const std::vector<uint32_t>& codepoints)
+    bool FontAtlas::build(FT_Library ft, const std::string& fontPath, int sizePx, const std::vector<uint32_t>& codepoints, float pixelRatio)
     {
         if (face)
         {
@@ -66,13 +74,28 @@ namespace pg
             return false;
         }
 
-        FT_Set_Pixel_Sizes(face, 0, sizePx);
+        // Rasterised at the screen's pixels, measured in the page's units: a whole number of
+        // pixels to the glyph size, so the ratio the atlas keeps is the one it was really built at
+        const int rasterPx = std::max(1, static_cast<int>(std::lround(static_cast<float>(sizePx) * std::max(1.0f, pixelRatio))));
+
+        FT_Set_Pixel_Sizes(face, 0, rasterPx);
 
         pixelSize = sizePx;
+        rasterRatio = static_cast<float>(rasterPx) / static_cast<float>(std::max(1, sizePx));
 
-        fontMetrics.ascender = face->size->metrics.ascender / 64.0f;
-        fontMetrics.descender = -face->size->metrics.descender / 64.0f;
-        fontMetrics.lineHeight = face->size->metrics.height / 64.0f;
+        // Glyphs that many times larger take that many times the room, each way
+        const int larger = std::max(1, static_cast<int>(std::ceil(rasterRatio)));
+
+        atlasWidth = Width * larger;
+        atlasHeight = Height * larger;
+
+        const int Width = atlasWidth;      // The packer below is written against these names
+        const int Height = atlasHeight;
+        const float ratio = rasterRatio;
+
+        fontMetrics.ascender = face->size->metrics.ascender / 64.0f / ratio;
+        fontMetrics.descender = -face->size->metrics.descender / 64.0f / ratio;
+        fontMetrics.lineHeight = face->size->metrics.height / 64.0f / ratio;
         fontMetrics.hasKerning = FT_HAS_KERNING(face);
 
         atlasBuffer.assign(static_cast<size_t>(Width) * Height, 0);
@@ -111,9 +134,9 @@ namespace pg
                 }
             }
 
-            out.size = glm::ivec2(w, h);
-            out.bearing = glm::ivec2(slot->bitmap_left, slot->bitmap_top);
-            out.advance = slot->advance.x / 64.0f;
+            out.size = glm::vec2(w, h) / ratio;
+            out.bearing = glm::vec2(slot->bitmap_left, slot->bitmap_top) / ratio;
+            out.advance = slot->advance.x / 64.0f / ratio;
             out.uvTopLeft = glm::vec2(static_cast<float>(currentX) / Width, static_cast<float>(currentY) / Height);
             out.uvBottomRight = glm::vec2(static_cast<float>(currentX + w) / Width, static_cast<float>(currentY + h) / Height);
 
@@ -190,7 +213,7 @@ namespace pg
         FT_Vector delta;
         float result = 0.0f;
         if (FT_Get_Kerning(face, leftIndex, rightIndex, FT_KERNING_DEFAULT, &delta) == 0)
-            result = delta.x / 64.0f;
+            result = delta.x / 64.0f / rasterRatio;
 
         kernCache[key] = result;
 

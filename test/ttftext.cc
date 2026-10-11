@@ -315,6 +315,67 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // On a dense screen an atlas is rasterised at the screen's pixels and measured in the
+        // page's units: a text is laid the same, and its glyphs hold that many times more pixels.
+        TEST(ttftext_test, an_atlas_at_a_pixel_ratio_measures_the_same)
+        {
+            MockLogger logger;
+
+            FT_Library ft;
+            ASSERT_EQ(FT_Init_FreeType(&ft), 0);
+
+            {
+                FontAtlas plain;
+                FontAtlas dense;
+
+                ASSERT_TRUE(plain.build(ft, "fonts/Inter-Regular.ttf", 16, defaultCharset()));
+                ASSERT_TRUE(dense.build(ft, "fonts/Inter-Regular.ttf", 16, defaultCharset(), 2.0f));
+
+                EXPECT_FLOAT_EQ(plain.ratio(), 1.0f);
+                EXPECT_FLOAT_EQ(dense.ratio(), 2.0f);
+                EXPECT_EQ(plain.width(), FontAtlas::Width);
+                EXPECT_EQ(dense.width(), 2 * FontAtlas::Width);
+                EXPECT_EQ(dense.height(), 2 * FontAtlas::Height);
+                EXPECT_EQ(dense.buffer().size(), static_cast<size_t>(dense.width()) * dense.height());
+                EXPECT_EQ(dense.sizePx(), 16);
+
+                // The same line, to the hinting's half pixel
+                EXPECT_NEAR(dense.metrics().ascender, plain.metrics().ascender, 0.6f);
+                EXPECT_NEAR(dense.metrics().descender, plain.metrics().descender, 0.6f);
+                EXPECT_NEAR(dense.metrics().lineHeight, plain.metrics().lineHeight, 0.6f);
+
+                for (uint32_t cp : {static_cast<uint32_t>('A'), static_cast<uint32_t>('g'), static_cast<uint32_t>('W'), static_cast<uint32_t>('i')})
+                {
+                    const GlyphInfo* p = plain.glyph(cp);
+                    const GlyphInfo* d = dense.glyph(cp);
+
+                    ASSERT_NE(p, nullptr);
+                    ASSERT_NE(d, nullptr);
+
+                    // The same glyph in the page's units
+                    EXPECT_NEAR(d->advance, p->advance, 0.6f) << cp;
+                    EXPECT_NEAR(d->size.x, p->size.x, 1.01f) << cp;
+                    EXPECT_NEAR(d->size.y, p->size.y, 1.01f) << cp;
+                    EXPECT_NEAR(d->bearing.y, p->bearing.y, 1.01f) << cp;
+
+                    // On twice the pixels each way
+                    const float pixelsPlain = (p->uvBottomRight.x - p->uvTopLeft.x) * plain.width();
+                    const float pixelsDense = (d->uvBottomRight.x - d->uvTopLeft.x) * dense.width();
+
+                    EXPECT_NEAR(pixelsPlain, p->size.x, 0.01f) << cp;
+                    EXPECT_NEAR(pixelsDense, 2.0f * d->size.x, 0.01f) << cp;
+                    EXPECT_GT(pixelsDense, pixelsPlain * 1.4f) << cp;
+                }
+
+                EXPECT_NEAR(dense.kerning('A', 'V'), plain.kerning('A', 'V'), 0.6f);
+            }
+
+            FT_Done_FreeType(ft);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         TEST(ttftext_test, letter_spacing_widens)
         {
             MockLogger logger;

@@ -6,6 +6,18 @@ All notable changes to ColumbaEngine are documented here. The project is in earl
 
 First tagged release. Everything below describes the state of the engine at the point of tagging rather than a delta.
 
+### Added
+- Dense screens, in a browser: the page was drawn at the canvas's CSS size and stretched by the browser,
+  soft on a 4K monitor at 200 % or a phone. The window is now created with `SDL_WINDOW_ALLOW_HIGHDPI`
+  on the web, `Window::resize` sets the viewport to the drawable's size, and a clip's scissor is counted
+  in drawn pixels (`drawablePixelRatio()`). What is rasterised ahead of the drawing is rasterised at
+  the screen's pixels (`displayPixelRatio()`, `UI/displayscale.h`, set from the browser's
+  `devicePixelRatio` before the fonts and icons are registered): `FontAtlas::build` takes a pixel ratio
+  and keeps every measure in the units of the size asked for, so text is laid the same and drawn
+  sharper (`GlyphInfo::size` and `bearing` are `vec2` for it, and an atlas is as many times larger as
+  the ratio); `IconSystem::registerIconSet` does the same for icons. Native builds are unchanged
+  (the ratio is 1).
+
 ### Fixed
 - ECS: an entity made and removed in the same pass was not removed. Its creation was still queued when
   the removals were run, so nothing was removed and it was made right after, for good, with whatever

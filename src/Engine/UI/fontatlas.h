@@ -14,8 +14,8 @@ namespace pg
 {
     struct GlyphInfo
     {
-        glm::ivec2 size{0, 0};
-        glm::ivec2 bearing{0, 0};
+        glm::vec2 size{0.0f, 0.0f};    // In the units text is laid in: the raster's size over the atlas's pixel ratio
+        glm::vec2 bearing{0.0f, 0.0f};
         float advance = 0.0f;          // pixels, fractional (26.6 / 64)
         glm::vec2 uvTopLeft{0.0f, 0.0f};
         glm::vec2 uvBottomRight{0.0f, 0.0f};
@@ -33,7 +33,7 @@ namespace pg
     class FontAtlas
     {
     public:
-        static constexpr int Width = 1024;
+        static constexpr int Width = 1024;    // At a pixel ratio of 1: as many times larger as the ratio, rounded up
         static constexpr int Height = 1024;
 
         FontAtlas() = default;
@@ -43,7 +43,9 @@ namespace pg
         FontAtlas& operator=(FontAtlas&& other) noexcept;
 
         /// Returns false (and logs) if the face cannot be opened or the atlas overflows.
-        bool build(FT_Library ft, const std::string& fontPath, int sizePx, const std::vector<uint32_t>& codepoints);
+        // `pixelRatio`: the glyphs are rasterised that many times larger (displayscale.h), and every
+        // measure the atlas gives stays in the units of `sizePx`: a text is laid the same and drawn sharper
+        bool build(FT_Library ft, const std::string& fontPath, int sizePx, const std::vector<uint32_t>& codepoints, float pixelRatio = 1.0f);
 
         const GlyphInfo* glyph(uint32_t codepoint) const;   // nullptr if not in the atlas
         const GlyphInfo& glyphOrNotdef(uint32_t codepoint) const;
@@ -51,12 +53,18 @@ namespace pg
         const FontMetrics& metrics() const { return fontMetrics; }
         const std::vector<unsigned char>& buffer() const { return atlasBuffer; }
         int sizePx() const { return pixelSize; }
+        int width() const { return atlasWidth; }             // The atlas's own size, in its pixels
+        int height() const { return atlasHeight; }
+        float ratio() const { return rasterRatio; }          // Raster pixels to a unit of `sizePx`
 
     private:
         FontAtlas(const FontAtlas&) = delete;
         FontAtlas& operator=(const FontAtlas&) = delete;
 
         int pixelSize = 0;
+        int atlasWidth = Width;
+        int atlasHeight = Height;
+        float rasterRatio = 1.0f;
         FontMetrics fontMetrics;
         std::vector<unsigned char> atlasBuffer;
         std::unordered_map<uint32_t, GlyphInfo> glyphs;

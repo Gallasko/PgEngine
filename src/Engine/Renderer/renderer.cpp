@@ -4,6 +4,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 
 #include "renderer.h"
+#include <cmath>
+#include "UI/displayscale.h"
 
 #include "ECS/entitysystem.h"
 
@@ -651,7 +653,14 @@ namespace pg
             const int screenHeight = rTable["ScreenHeight"].get<int>();
 
             //glScissor defined the box from the bottom left corner (x, y, w, h);
-            glScissor(state.scissorBound.x, (screenHeight - state.scissorBound.w) - state.scissorBound.y, state.scissorBound.z, state.scissorBound.w);
+            // The box is in the window's units; OpenGL counts in the pixels it draws on, which a
+            // dense screen has more of (displayscale.h)
+            const float px = drawablePixelRatio();
+
+            glScissor(static_cast<GLint>(std::floor(state.scissorBound.x * px)),
+                      static_cast<GLint>(std::floor(((screenHeight - state.scissorBound.w) - state.scissorBound.y) * px)),
+                      static_cast<GLsizei>(std::ceil(state.scissorBound.z * px)),
+                      static_cast<GLsizei>(std::ceil(state.scissorBound.w * px)));
         }
 
         // Depth test

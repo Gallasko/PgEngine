@@ -1,6 +1,9 @@
 #include "stdafx.h"
 
 #include "iconsystem.h"
+#include <algorithm>
+#include <cmath>
+#include "displayscale.h"
 
 #include "ECS/entitysystem.h"
 
@@ -269,7 +272,12 @@ namespace pg
     {
         LOG_THIS_MEMBER(DOM);
 
-        IconAtlasBuilder builder;
+        // As sharp as the screen is: each icon is rasterised at its pixels and kept under the size
+        // it is asked for by (displayscale.h), in an atlas that many times larger each way
+        const float ratio = std::max(1.0f, displayPixelRatio());
+        const int larger = static_cast<int>(std::ceil(ratio));
+
+        IconAtlasBuilder builder(1024 * larger, 1024 * larger);
 
         for (const auto& path : svgPaths)
         {
@@ -284,7 +292,7 @@ namespace pg
 
             for (int size : sizes)
             {
-                SvgCoverage coverage = SvgLoader::rasterizeCoverage(*doc, size);
+                SvgCoverage coverage = SvgLoader::rasterizeCoverage(*doc, static_cast<int>(std::lround(static_cast<float>(size) * ratio)));
 
                 if (not builder.add(name, size, coverage))
                     LOG_ERROR(DOM, "Icon atlas full, dropped: " << name << "@" << size);
