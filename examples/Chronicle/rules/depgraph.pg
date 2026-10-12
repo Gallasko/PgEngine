@@ -3,14 +3,16 @@
 // A tool: the game never loads it. It stands with the rules because a module's own imports are
 // looked for beside the script that is run, and activitytable.pg imports lib.pg and towntable.pg.
 //
-// Reads the activity table and the town table of the game and writes one of two pictures.
+// Reads the activity table, the town table and the expedition table of the game and writes one
+// of two pictures.
 //
 // The timeline (no focus), an SVG: the years run left to right, a month is `monthWidth` wide.
 //   - A task is a bar from the month it can first be begun, as wide as the months it takes: two
 //     bars that share a stretch of the axis cannot both be done in it. That month is its age
-//     (`fromAge`), or the month the task that brings a flag it asks for is over, when that is
-//     later. The line after a bar runs to the age it must be over by. What it asks, takes and
-//     brings is written on it.
+//     (`fromAge`, and its `fromMonths` past that birthday: "from 6y4m"), or the month the task
+//     that brings a flag it asks for is over, when that is later. The line after a bar runs to
+//     the age it must be over by, to the month too. What it asks, takes and brings is written
+//     on it.
 //   - A frame a group, as wide as its tasks and as high on the page as the frames over its years
 //     allow: a childhood's groups stand beside a class's, not over them. The ways into a class
 //     come first, in gold; a task of a class has a stripe of the class's colour, and its group
@@ -30,6 +32,18 @@
 //     town sells is on the page from the start. A task a level only makes better says so on
 //     its bar ("town: The Mill 1").
 //
+//   - A walk outside the town is a red bar of the Adventure frame, as wide as the months it
+//     blocks. Its row of the table says nothing of what it brings (a walk is played on a screen
+//     of its own), so that is read from the expedition table: its days, what is gathered there,
+//     and a line a beast with what it leaves and the part a kill trains. What a walk brings home
+//     has no arrow: what takes it (what is sold or brewed of it at the market, a place of the
+//     town that is built of it) has a red chip before it with every walk that brings it,
+//     "The Hedgerows, The Quarry Road", and the thing before them when it takes several
+//     ("stone: The Quarry Road"). What is sold or brewed stands where the first of those walks
+//     is over. A walk another asks for (walked, or studied) has an arrow like any flag.
+//   - A task that gives a flag a technique of a fight is learned by says so on its bar
+//     ("in a fight: Sweep"): no arrow, every walk with a beast would have one.
+//
 // A focus (the id of a task, "keep", or the key of a stat, "arms", "town.mill"), a Graphviz file:
 // the detail around it, with a node for every stat. For a task: what it asks, takes and brings,
 // the tasks that bring what it asks and the tasks that read what it brings. For a stat: the tasks
@@ -42,6 +56,8 @@
 //   green   it makes a task easier (dashed) or better (solid), or is one of several that will do
 //   grey    a task is of a class
 //   purple  the town: a work raises a place, a place gives a new life something at birth
+//   orange  a fight: a flag teaches a technique ("fight.sweep", a hexagon), and a walk makes
+//           use of it, or of a remedy he holds (dashed)
 //
 // Usage:  PgCompilerBootstrap examples/Chronicle/rules/depgraph.pg [out.svg]
 //         PgCompilerBootstrap examples/Chronicle/rules/depgraph.pg <out.dot> <focus>
@@ -85,6 +101,13 @@ var chipGap = 16
 var townColour = "#6b46c1"
 var workColours = ["#e9d8fd", "#d6bcfa", "#b794f4"]
 
+// A walk's colour: its frame, its bars, and the chip before what takes a thing it brings
+var walkColour = "#c53030"
+var walkFill = "#fed7d7"
+
+// The height a chip takes before a bar, with the room under it
+var chipTall = 22
+
 // The colour of each class, in the order of the table's `paths`
 var classColours = ["#2b6cb0", "#6b46c1", "#2f855a", "#975a16"]
 
@@ -103,12 +126,14 @@ var linkStyles = {
     town: "color=\"#6b46c1\", fontcolor=\"#6b46c1\"",
     birth: "color=\"#6b46c1\", fontcolor=\"#6b46c1\", style=dashed",
     shows: "color=\"#6b46c1\", fontcolor=\"#6b46c1\", penwidth=1.6",
-    opens: "color=\"#6b46c1\", fontcolor=\"#6b46c1\", penwidth=1.6"
+    opens: "color=\"#6b46c1\", fontcolor=\"#6b46c1\", penwidth=1.6",
+    teaches: "color=\"#c05621\", fontcolor=\"#c05621\"",
+    uses: "color=\"#c05621\", fontcolor=\"#c05621\", style=dashed"
 }
 
 // The kinds that bring a stat, and the kinds that read one
 var bringKinds = ["brings", "later", "town", "birth"]
-var readKinds = ["asks", "takes", "eases", "betters", "classOf", "shows", "opens"]
+var readKinds = ["asks", "takes", "eases", "betters", "classOf", "shows", "opens", "teaches", "uses"]
 
 // ============================================================================
 // Helpers
@@ -179,6 +204,41 @@ fun xmlText(text)
     return out
 }
 
+// An age to the month: "6" at a birthday, "6y4m" four months past it
+fun ageOfMonth(months)
+{
+    var years = toInt(floor(months / 12))
+    var past = months - years * 12
+
+    if (past == 0)
+    {
+        return toString(years)
+    }
+
+    return toString(years) + "y" + toString(past) + "m"
+}
+
+// "2-4", or "2" when the two are the same
+fun rangeOf(least, most)
+{
+    if (most > least)
+    {
+        return toString(least) + "-" + toString(most)
+    }
+
+    return toString(least)
+}
+
+fun daysOf(count)
+{
+    if (count == 1)
+    {
+        return "1 day"
+    }
+
+    return toString(count) + " days"
+}
+
 fun taskNode(id)
 {
     return "task/" + id
@@ -226,7 +286,7 @@ fun amountsText(list, sign, hubs)
 
 fun newGraph()
 {
-    return {tasks: [], taskIds: {}, stats: [], statKeys: {}, statLabels: {}, links: [], groups: []}
+    return {tasks: [], taskIds: {}, stats: [], statKeys: {}, statLabels: {}, links: [], groups: [], things: {}}
 }
 
 fun addStat(graph, stat)
@@ -307,11 +367,15 @@ fun addTask(graph, a)
         time = toString(a.months) + " mo"
     }
 
-    time = time + " | from " + toString(a.fromAge)
+    // Its ages, to the month (`fromMonths` and `finishMonths` are the months past the birthday)
+    var fromMonth = a.fromAge * 12 + lookup(a, "fromMonths", 0)
+    var byMonth = a.finishBy * 12 + lookup(a, "finishMonths", 0)
+
+    time = time + " | from " + ageOfMonth(fromMonth)
 
     if (a.finishBy < anyAge and a.finishBy < lastAge)
     {
-        time = time + " | by " + toString(a.finishBy)
+        time = time + " | by " + ageOfMonth(byMonth)
     }
 
     if (a.uses > 0)
@@ -336,8 +400,8 @@ fun addTask(graph, a)
         label = label + "\n" + hubs
     }
 
-    push(graph.tasks, {id: a.id, node: node, group: a.group, label: label, name: a.name, time: time, fromAge: a.fromAge, finishBy: a.finishBy, months: a.months, path: a.path, enters: a.enters, raises: a.raises,
-                       lastResort: lookup(a, "lastResort", false),
+    push(graph.tasks, {id: a.id, node: node, group: a.group, label: label, name: a.name, time: time, fromAge: a.fromAge, finishBy: a.finishBy, fromMonth: fromMonth, byMonth: byMonth, months: a.months, path: a.path, enters: a.enters, raises: a.raises,
+                       zone: lookup(a, "zone", ""), lastResort: lookup(a, "lastResort", false),
                        needs: a.needs, gains: a.gains, costs: a.costs})
     graph.taskIds[a.id] = true
 
@@ -482,7 +546,92 @@ fun addTask(graph, a)
     }
 }
 
-// Reads the tables the import below leaves: `activities`, `paths` and `townPlaces`
+// What a walk brings that its row of the table does not say (its `gains` are empty: a walk is
+// played on a screen of its own, expeditiontable.pg): what is gathered there, what its beasts
+// leave and the part a kill trains, what its events give, and the two flags another task may
+// ask for (the place walked, its studies), when one does. And what it makes use of: a remedy
+// he holds, drunk there
+fun addWalk(graph, zone)
+{
+    var node = taskNode("walk." + zone.id)
+
+    if (not contain(graph.taskIds, "walk." + zone.id))
+    {
+        return
+    }
+
+    var brought = {}
+
+    for (var s = 0; s < len(zone.spots); s = s + 1)
+    {
+        var spot = zone.spots[s]
+
+        brought[spot.id] = true
+        graph.things[spot.id] = true
+        addLink(graph, node, statNode(spot.id), spot.id, "brings", "+" + rangeOf(spot.least, spot.most) + " for " + daysOf(spot.ap), 0)
+    }
+
+    for (var m = 0; m < len(zone.mobs); m = m + 1)
+    {
+        var mob = byId(walkMobs, zone.mobs[m])
+
+        for (var d = 0; d < len(mob.loot); d = d + 1)
+        {
+            var drop = mob.loot[d]
+
+            brought[drop.id] = true
+            graph.things[drop.id] = true
+            addLink(graph, node, statNode(drop.id), drop.id, "brings", "+" + rangeOf(drop.least, drop.most) + " a " + toLowerCase(mob.name) + ", " + toString(drop.chance) + "%", 0)
+        }
+
+        addLink(graph, node, statNode(mob.trains), mob.trains, "later", "a " + toLowerCase(mob.name) + " killed: " + toString(mob.xp) + " of the " + toString(walkKnobs.xpStep) + " to a point", 0)
+    }
+
+    for (var e = 0; e < len(zone.events); e = e + 1)
+    {
+        var event = byId(walkEvents, zone.events[e])
+
+        for (var o = 0; o < len(event.options); o = o + 1)
+        {
+            var option = event.options[o]
+
+            for (var i = 0; i < len(option.items); i = i + 1)
+            {
+                if (option.items[i].amount > 0 and not contain(brought, option.items[i].id))
+                {
+                    brought[option.items[i].id] = true
+                    graph.things[option.items[i].id] = true
+                    addLink(graph, node, statNode(option.items[i].id), option.items[i].id, "brings", signedText(option.items[i].amount) + " by " + event.title, 0)
+                }
+            }
+
+            for (var f = 0; f < len(option.effects); f = f + 1)
+            {
+                if (option.effects[f].kind == "stat")
+                {
+                    addLink(graph, node, statNode(option.effects[f].stat), option.effects[f].stat, "later", signedText(option.effects[f].amount) + " by " + event.title, 0)
+                }
+            }
+        }
+    }
+
+    if (contain(graph.statKeys, "walked." + zone.id))
+    {
+        addLink(graph, node, statNode("walked." + zone.id), "walked." + zone.id, "brings", "+1", 0)
+    }
+
+    if (contain(graph.statKeys, "know.study." + zone.id))
+    {
+        addLink(graph, node, statNode("know.study." + zone.id), "know.study." + zone.id, "brings", "+1 a study, " + daysOf(walkKnobs.studyAp), 0)
+    }
+
+    var remedy = byId(walkItems, "remedy")
+
+    addLink(graph, statNode("remedy"), node, "remedy", "uses", "drunk there: " + toString(remedy.heals) + "% of his Vitality", 1)
+}
+
+// Reads the tables the import below leaves: `activities`, `paths` and `townPlaces`, and the
+// expeditions' (`walkZones`, `walkMobs`, `walkEvents`, `walkItems`, `walkTechniques`)
 fun buildGraph()
 {
     var graph = newGraph()
@@ -490,6 +639,36 @@ fun buildGraph()
     for (var i = 0; i < len(activities); i = i + 1)
     {
         addTask(graph, activities[i])
+    }
+
+    // The walks, once every task has said what it asks for
+    for (var z = 0; z < len(walkZones); z = z + 1)
+    {
+        addWalk(graph, walkZones[z])
+    }
+
+    // What a fight offers to who has learned it: the flags that teach it, and the walks that
+    // have a beast to use it on
+    for (var t = 0; t < len(walkTechniques); t = t + 1)
+    {
+        var technique = walkTechniques[t]
+        var key = "fight." + technique.id
+
+        addStat(graph, key)
+        graph.statLabels[key] = technique.name + ", a " + technique.kind + " of a fight"
+
+        for (var k = 0; k < len(technique.knows); k = k + 1)
+        {
+            addLink(graph, statNode(technique.knows[k]), statNode(key), technique.knows[k], "teaches", "teaches", 1)
+        }
+
+        for (var z = 0; z < len(walkZones); z = z + 1)
+        {
+            if (len(walkZones[z].mobs) > 0 and contain(graph.taskIds, "walk." + walkZones[z].id))
+            {
+                addLink(graph, statNode(key), taskNode("walk." + walkZones[z].id), key, "uses", "in a fight", 1)
+            }
+        }
     }
 
     for (var t = 0; t < len(townPlaces); t = t + 1)
@@ -630,7 +809,7 @@ fun emitDot(graph, kept, focus)
 
     out = out + "    rankdir=LR;\n"
     out = out + "    labelloc=t;\n"
-    out = out + "    label=\"Chronicle: black asks, red takes, blue brings (dashed: later or with a bonus), green eases or betters, grey is of the class, purple is the town\";\n"
+    out = out + "    label=\"Chronicle: black asks, red takes, blue brings (dashed: later or with a bonus), green eases or betters, grey is of the class, purple is the town, orange is a fight (a flag teaches a technique, a walk uses it)\";\n"
     out = out + "    node [fontname=\"Helvetica\", fontsize=11];\n"
     out = out + "    edge [fontname=\"Helvetica\", fontsize=9];\n\n"
 
@@ -679,6 +858,11 @@ fun emitDot(graph, kept, focus)
                 style = "shape=house, style=filled, fillcolor=\"#e9d8fd\""
             }
 
+            if (startsWith(graph.stats[s], "fight."))
+            {
+                style = "shape=hexagon, style=filled, fillcolor=\"#feebc8\""
+            }
+
             if (node == focus)
             {
                 style = style + ", penwidth=3"
@@ -709,7 +893,9 @@ fun emitDot(graph, kept, focus)
 
 // The stats the timeline writes on the bars and draws no arrow for: the hubs, what a life is born
 // with (and its cap), the skills, which `skillFrom` tasks or more bring, and what a task takes as
-// a cost, which is spent and not held
+// a cost, which is spent and not held. What a walk brings home is none of them, however many
+// walks bring it and whatever takes it: its arrows are what ties the walks to the market and
+// to the town
 fun foldedStats(graph)
 {
     var bringers = {}
@@ -719,7 +905,7 @@ fun foldedStats(graph)
     {
         var link = graph.links[l]
 
-        if (link.kind == "takes")
+        if (link.kind == "takes" and not contain(graph.things, link.stat))
         {
             folded[link.stat] = true
         }
@@ -744,7 +930,7 @@ fun foldedStats(graph)
 
         if (contain(bringers, stat))
         {
-            if (len(bringers[stat]) >= skillFrom)
+            if (len(bringers[stat]) >= skillFrom and not contain(graph.things, stat))
             {
                 folded[stat] = true
             }
@@ -771,18 +957,18 @@ fun startMonth(graph, task)
 {
     if (not task.lastResort)
     {
-        return task.fromAge * 12
+        return task.fromMonth
     }
 
-    var latest = task.fromAge * 12
+    var latest = task.fromMonth
 
     for (var i = 0; i < len(graph.tasks); i = i + 1)
     {
         var other = graph.tasks[i]
 
-        if (other.enters and not other.lastResort and other.finishBy * 12 - other.months > latest)
+        if (other.enters and not other.lastResort and other.byMonth - other.months > latest)
         {
-            latest = other.finishBy * 12 - other.months
+            latest = other.byMonth - other.months
         }
     }
 
@@ -816,6 +1002,175 @@ fun unlockedBy(graph, task)
     }
 
     return out
+}
+
+// The walks that bring what a task takes, a text a thing: "The Hedgerows, The Quarry Road",
+// with the thing before it ("stone: The Quarry Road") when `named`, or when there are several.
+// `nodes` is the task, or the works of a place of the town
+fun walkChips(graph, nodes, named)
+{
+    var found = []
+    var seen = {}
+
+    for (var n = 0; n < len(nodes); n = n + 1)
+    {
+        for (var l = 0; l < len(graph.links); l = l + 1)
+        {
+            var link = graph.links[l]
+
+            if (link.target != nodes[n] or link.kind != "takes" or not contain(graph.things, link.stat) or contain(seen, link.stat))
+            {
+                continue
+            }
+
+            seen[link.stat] = true
+
+            var walks = ""
+
+            for (var i = 0; i < len(graph.tasks); i = i + 1)
+            {
+                var brings = false
+
+                for (var b = 0; b < len(graph.links); b = b + 1)
+                {
+                    if (graph.links[b].source == graph.tasks[i].node and graph.links[b].target == link.source and graph.links[b].kind == "brings")
+                    {
+                        brings = true
+                    }
+                }
+
+                if (brings and graph.tasks[i].zone != "")
+                {
+                    if (walks != "")
+                    {
+                        walks = walks + ", "
+                    }
+
+                    walks = walks + graph.tasks[i].name
+                }
+            }
+
+            if (walks != "")
+            {
+                push(found, {thing: toLowerCase(statLabel(graph, link.stat)), walks: walks})
+            }
+        }
+    }
+
+    var chips = []
+
+    for (var f = 0; f < len(found); f = f + 1)
+    {
+        var text = found[f].walks
+
+        if (named or len(found) > 1)
+        {
+            text = found[f].thing + ": " + text
+        }
+
+        push(chips, {text: text, wide: strlen(text) * letterWidth + 12, walk: true})
+    }
+
+    return chips
+}
+
+// The SVG of the chips before a bar or a place, one under the other, each with a short arrow
+// to it: purple for a level of the town, red for the walks
+fun emitChips(chips, x, y)
+{
+    var out = ""
+
+    for (var c = 0; c < len(chips); c = c + 1)
+    {
+        var chip = chips[c]
+        var chipX = x - chipGap - chip.wide
+        var chipY = y + c * chipTall
+        var colour = townColour
+        var fill = workColours[0]
+        var marker = "shows"
+
+        if (chip.walk)
+        {
+            colour = walkColour
+            fill = walkFill
+            marker = "walks"
+        }
+
+        out = out + "<rect x='" + toString(chipX) + "' y='" + toString(chipY) + "' width='" + toString(chip.wide) + "' height='18' rx='9' fill='" + fill + "' stroke='" + colour + "' stroke-width='1'/>\n"
+        out = out + "<text x='" + toString(chipX + 6) + "' y='" + toString(chipY + 13) + "' style='fill: " + colour + "'>" + xmlText(chip.text) + "</text>\n"
+        out = out + "<line x1='" + toString(chipX + chip.wide) + "' y1='" + toString(chipY + 9) + "' x2='" + toString(x - 2) + "' y2='" + toString(chipY + 9) + "' stroke='" + colour + "' stroke-width='1.8' marker-end='url(#" + marker + ")'/>\n"
+    }
+
+    return out
+}
+
+// How long a walk is: the days on site (the longer stay is his once the place is well studied)
+// and the way there
+fun walkDays(zone)
+{
+    var stay = daysOf(zone.stayMin)
+
+    if (zone.stayMax > zone.stayMin)
+    {
+        stay = toString(zone.stayMin) + " to " + toString(zone.stayMax) + " days"
+    }
+
+    return stay + " there, " + daysOf(zone.travel) + " each way"
+}
+
+// What a walk's bar says of the place: what is gathered there, a line, and a line a beast with
+// what it leaves (the chance, when it is not sure) and the part a kill trains
+fun walkLines(zone)
+{
+    var lines = []
+    var gathers = ""
+
+    for (var s = 0; s < len(zone.spots); s = s + 1)
+    {
+        if (gathers != "")
+        {
+            gathers = gathers + ", "
+        }
+
+        gathers = gathers + toLowerCase(statName(zone.spots[s].id)) + " " + rangeOf(zone.spots[s].least, zone.spots[s].most)
+    }
+
+    if (gathers != "")
+    {
+        push(lines, "gathers " + gathers)
+    }
+
+    for (var m = 0; m < len(zone.mobs); m = m + 1)
+    {
+        var mob = byId(walkMobs, zone.mobs[m])
+        var said = toLowerCase(mob.name)
+
+        if (mob.packSize > 1)
+        {
+            said = said + " x" + toString(mob.packSize)
+        }
+
+        var leaves = ""
+
+        for (var d = 0; d < len(mob.loot); d = d + 1)
+        {
+            if (leaves != "")
+            {
+                leaves = leaves + ", "
+            }
+
+            leaves = leaves + toLowerCase(statName(mob.loot[d].id))
+
+            if (mob.loot[d].chance < 100)
+            {
+                leaves = leaves + " " + toString(mob.loot[d].chance) + "%"
+            }
+        }
+
+        push(lines, "beast: " + said + " | " + leaves + " | trains " + toLowerCase(statShortName(mob.trains)))
+    }
+
+    return lines
 }
 
 // What is written on a task's bar: its name, its time, what it asks, takes and brings of what
@@ -901,6 +1256,12 @@ fun taskLines(graph, task, folded)
     }
 
     var lines = [task.name, time]
+    var zone = byId(walkZones, task.zone)
+
+    if (zone.id != "")
+    {
+        push(lines, walkDays(zone))
+    }
 
     if (asks != "")
     {
@@ -915,6 +1276,49 @@ fun taskLines(graph, task, folded)
     if (brings != "")
     {
         push(lines, "brings " + brings)
+    }
+
+    if (zone.id != "")
+    {
+        var found = walkLines(zone)
+
+        for (var n = 0; n < len(found); n = n + 1)
+        {
+            push(lines, found[n])
+        }
+    }
+
+    // What it teaches him of a fight: the techniques one of its flags gives
+    var taught = ""
+
+    for (var t = 0; t < len(walkTechniques); t = t + 1)
+    {
+        var teaches = false
+
+        for (var l = 0; l < len(graph.links); l = l + 1)
+        {
+            var link = graph.links[l]
+
+            if (link.source == task.node and (link.kind == "brings" or link.kind == "later") and inList(walkTechniques[t].knows, link.stat))
+            {
+                teaches = true
+            }
+        }
+
+        if (teaches)
+        {
+            if (taught != "")
+            {
+                taught = taught + ", "
+            }
+
+            taught = taught + walkTechniques[t].name
+        }
+    }
+
+    if (taught != "")
+    {
+        push(lines, "in a fight: " + taught)
     }
 
     if (places != "")
@@ -1167,7 +1571,7 @@ fun earliestMonths(graph, folded)
 // works are bars end to end, each as wide as its months, over what each asks and gives
 fun layoutTown(graph, view)
 {
-    var band = {group: "The town", heading: "THE TOWN", items: [], places: [], rowTops: [], placeTall: 0, placed: false, left: 0, right: 0, top: 0, height: 0, path: "", enters: false, town: true}
+    var band = {group: "The town", heading: "THE TOWN", items: [], places: [], rowTops: [], placeTall: 0, placed: false, left: 0, right: 0, top: 0, height: 0, path: "", enters: false, town: true, walk: false}
 
     // What opens it: the task that makes the town known
     for (var l = 0; l < len(graph.links); l = l + 1)
@@ -1183,7 +1587,7 @@ fun layoutTown(graph, view)
     for (var t = 0; t < len(townPlaces); t = t + 1)
     {
         var place = townPlaces[t]
-        var box = {key: "town." + place.id, name: place.name, found: "", works: [], lines: [], x: 0, y: 0, wide: 0, tall: 0, row: 0}
+        var box = {key: "town." + place.id, name: place.name, found: "", works: [], lines: [], x: 0, y: 0, wide: 0, tall: 0, row: 0, chips: [], lead: 0}
         var bars = 0
 
         // What brings it onto the page, said beside its name
@@ -1275,6 +1679,29 @@ fun layoutTown(graph, view)
         box.x = view.left + (view.starts[statNode(box.key)] - view.firstMonth) * monthWidth
         box.tall = 20 + 18 + len(box.lines) * lineHeight + 6
 
+        // The walks that bring what its works are built of: chips before it, under its name
+        var works = []
+
+        for (var l = 0; l < len(place.levels); l = l + 1)
+        {
+            push(works, taskNode("raise." + place.id + "." + toString(l + 1)))
+        }
+
+        box.chips = walkChips(graph, works, true)
+
+        for (var c = 0; c < len(box.chips); c = c + 1)
+        {
+            if (box.chips[c].wide + chipGap > box.lead)
+            {
+                box.lead = box.chips[c].wide + chipGap
+            }
+        }
+
+        if (20 + len(box.chips) * chipTall + 2 > box.tall)
+        {
+            box.tall = 20 + len(box.chips) * chipTall + 2
+        }
+
         if (box.tall > tall)
         {
             tall = box.tall
@@ -1304,6 +1731,15 @@ fun layoutTown(graph, view)
     var rowEnds = []
 
     band.left = band.places[0].x - framePad
+
+    for (var n = 0; n < len(band.places); n = n + 1)
+    {
+        if (band.places[n].x - band.places[n].lead - framePad < band.left)
+        {
+            band.left = band.places[n].x - band.places[n].lead - framePad
+        }
+    }
+
     band.right = band.left + strlen(band.heading) * 10 + 20
 
     for (var n = 0; n < len(band.places); n = n + 1)
@@ -1313,7 +1749,7 @@ fun layoutTown(graph, view)
 
         for (var r = 0; r < len(rowEnds); r = r + 1)
         {
-            if (row < 0 and rowEnds[r] + 14 <= box.x)
+            if (row < 0 and rowEnds[r] + 14 <= box.x - box.lead)
             {
                 row = r
             }
@@ -1349,14 +1785,15 @@ fun layoutTown(graph, view)
 // tasks on as few rows as hold them without one covering another. A frame is as wide as its
 // tasks; `placeFrames` then sets each as high as the frames over its own years allow, so the
 // groups of a childhood and the groups of a class share the same height of the page
-fun layoutTimeline(graph, folded)
+fun layoutTimeline(graph, folded, left)
 {
-    var view = {left: 24, top: 64, firstMonth: lastAge * 12, lastMonth: (lastAge + 1) * 12, bands: [], items: {}, places: {}, starts: earliestMonths(graph, folded), width: 0, height: 0}
+    var view = {left: left, top: 64, firstMonth: lastAge * 12, lastMonth: (lastAge + 1) * 12, bands: [], items: {}, places: {}, starts: earliestMonths(graph, folded), width: 0, height: 0}
 
     for (var i = 0; i < len(graph.tasks); i = i + 1)
     {
         if (graph.tasks[i].raises == "" and graph.tasks[i].fromAge * 12 < view.firstMonth)
         {
+            // The axis begins at a birthday
             view.firstMonth = graph.tasks[i].fromAge * 12
         }
     }
@@ -1387,7 +1824,7 @@ fun layoutTimeline(graph, folded)
 
     for (var b = 0; b < len(order); b = b + 1)
     {
-        var band = {group: order[b], heading: toUpperCase(order[b]), items: [], places: [], rowTops: [], placeTall: 0, placed: false, left: 0, right: 0, top: 0, height: 0, path: "", enters: false, town: false}
+        var band = {group: order[b], heading: toUpperCase(order[b]), items: [], places: [], rowTops: [], placeTall: 0, placed: false, left: 0, right: 0, top: 0, height: 0, path: "", enters: false, town: false, walk: false}
         var mixed = false
 
         for (var i = 0; i < len(graph.tasks); i = i + 1)
@@ -1426,7 +1863,7 @@ fun layoutTimeline(graph, folded)
 
             if (task.finishBy < lastAge)
             {
-                over = view.left + (task.finishBy * 12 - view.firstMonth) * monthWidth
+                over = view.left + (task.byMonth - view.firstMonth) * monthWidth
             }
 
             var reach = x + bar
@@ -1444,12 +1881,33 @@ fun layoutTimeline(graph, folded)
                 reach = over
             }
 
-            var item = {task: task, lines: lines, start: start, x: x, bar: bar, over: over, body: body, reach: reach, row: 0, y: 0, tall: len(lines) * lineHeight + 8, chip: unlockedBy(graph, task), lead: 0}
+            var item = {task: task, lines: lines, start: start, x: x, bar: bar, over: over, body: body, reach: reach, row: 0, y: 0, tall: len(lines) * lineHeight + 8, chips: walkChips(graph, [task.node], false), lead: 0}
 
-            // The level of the town it waits for stands before it, on a chip
-            if (item.chip != "")
+            // The level of the town it waits for stands before it, on a chip, over the walks
+            // that bring what it takes
+            var waits = unlockedBy(graph, task)
+
+            if (waits != "")
             {
-                item.lead = strlen(item.chip) * letterWidth + 12 + chipGap
+                insert(item.chips, 0, {text: waits, wide: strlen(waits) * letterWidth + 12, walk: false})
+            }
+
+            for (var c = 0; c < len(item.chips); c = c + 1)
+            {
+                if (item.chips[c].wide + chipGap > item.lead)
+                {
+                    item.lead = item.chips[c].wide + chipGap
+                }
+            }
+
+            if (len(item.chips) * chipTall + 2 > item.tall)
+            {
+                item.tall = len(item.chips) * chipTall + 2
+            }
+
+            if (task.zone != "")
+            {
+                band.walk = true
             }
 
             if (task.enters)
@@ -1641,7 +2099,24 @@ fun townArrow(x1, y1, x2, y2, label)
 fun emitTimeline(graph)
 {
     var folded = foldedStats(graph)
-    var view = layoutTimeline(graph, folded)
+    var view = layoutTimeline(graph, folded, 24)
+
+    // A chip before a bar of the first months would stand off the page: everything is set
+    // again, further right
+    var least = view.left
+
+    for (var b = 0; b < len(view.bands); b = b + 1)
+    {
+        if (view.bands[b].left < least)
+        {
+            least = view.bands[b].left
+        }
+    }
+
+    if (least < 12)
+    {
+        view = layoutTimeline(graph, folded, 24 + 12 - least)
+    }
 
     var out = "<svg xmlns='http://www.w3.org/2000/svg' width='" + toString(view.width) + "' height='" + toString(view.height) + "' viewBox='0 0 " + toString(view.width) + " " + toString(view.height) + "'>\n"
 
@@ -1657,9 +2132,11 @@ fun emitTimeline(graph)
     out = out + "<marker id='asks' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='7' markerHeight='7' orient='auto'><path d='M 0 0 L 10 5 L 0 10 z' fill='#1a202c'/></marker>\n"
     out = out + "<marker id='eases' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='7' markerHeight='7' orient='auto'><path d='M 0 0 L 10 5 L 0 10 z' fill='#2f855a'/></marker>\n"
     out = out + "<marker id='shows' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='7' markerHeight='7' orient='auto'><path d='M 0 0 L 10 5 L 0 10 z' fill='" + townColour + "'/></marker>\n"
+    out = out + "<marker id='walks' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='7' markerHeight='7' orient='auto'><path d='M 0 0 L 10 5 L 0 10 z' fill='" + walkColour + "'/></marker>\n"
     out = out + "</defs>\n"
     out = out + "<rect width='" + toString(view.width) + "' height='" + toString(view.height) + "' fill='#ffffff'/>\n"
     out = out + "<text x='" + toString(view.left) + "' y='20' class='note'>A bar: the months a task takes, from the age it opens at. The line after it: the age it must be over by. Gold: a way into a class; a stripe: a task of that class. An arrow: a flag one task brings and another reads (black asks for it, dashed green is eased by it or takes it as one of several). Purple: the town. A place begins where the task that brings it onto the page ends, its three works bars end to end, with an arrow from that task. A purple chip before a task: the level of a place it waits for.</text>\n"
+    out = out + "<text x='" + toString(view.left) + "' y='34' class='note'>Red: a walk outside the town, with its days, what is gathered there and its beasts (what each leaves, and the part a kill trains). A red chip before a task or a place of the town: the walks that bring what it takes; what is sold or brewed of a thing begins once the first walk that brings it is over. \"in a fight\" on a bar: the technique the task teaches, for the walks that have a beast.</text>\n"
 
     // The frames, a group each, in the colour of its class when it is all of one
     for (var b = 0; b < len(view.bands); b = b + 1)
@@ -1675,6 +2152,11 @@ fun emitTimeline(graph)
         if (band.town)
         {
             colour = townColour
+        }
+
+        if (band.walk)
+        {
+            colour = walkColour
         }
 
         out = out + "<rect x='" + toString(band.left) + "' y='" + toString(band.top) + "' width='" + toString(band.right - band.left) + "' height='" + toString(band.height) + "' rx='8' fill='#f7fafc' stroke='" + colour + "' stroke-width='1.5'/>\n"
@@ -1707,6 +2189,11 @@ fun emitTimeline(graph)
             colour = townColour
         }
 
+        if (band.walk)
+        {
+            colour = walkColour
+        }
+
         out = out + "<text x='" + toString(band.left + 10) + "' y='" + toString(band.top + 19) + "' class='band' style='fill: " + colour + "'>" + xmlText(band.heading) + "</text>\n"
 
         // A place: its name, its works as bars end to end, then what each asks and gives
@@ -1715,6 +2202,7 @@ fun emitTimeline(graph)
             var box = band.places[n]
             var at = box.x
 
+            out = out + emitChips(box.chips, box.x, box.y + 22)
             out = out + "<rect x='" + toString(box.x) + "' y='" + toString(box.y) + "' width='" + toString(box.wide) + "' height='" + toString(box.tall) + "' rx='4' fill='#ffffff' stroke='" + townColour + "' stroke-width='1'/>\n"
             out = out + "<text x='" + toString(box.x + 4) + "' y='" + toString(box.y + 15) + "' class='name'>" + xmlText(box.name) + "</text>\n"
             out = out + "<text x='" + toString(box.x + 14 + strlen(box.name) * (letterWidth + 1)) + "' y='" + toString(box.y + 15) + "' class='note' style='fill: " + townColour + "'>" + xmlText(box.found) + "</text>\n"
@@ -1749,17 +2237,14 @@ fun emitTimeline(graph)
                 edgeWidth = "3"
             }
 
-            // The level of the town it waits for: a chip before it, and a short arrow
-            if (item.chip != "")
+            if (task.zone != "")
             {
-                var chipWide = item.lead - chipGap
-                var chipX = item.x - item.lead
-                var chipY = item.y + 3
-
-                out = out + "<rect x='" + toString(chipX) + "' y='" + toString(chipY) + "' width='" + toString(chipWide) + "' height='18' rx='9' fill='" + workColours[0] + "' stroke='" + townColour + "' stroke-width='1'/>\n"
-                out = out + "<text x='" + toString(chipX + 6) + "' y='" + toString(chipY + 13) + "' style='fill: " + townColour + "'>" + xmlText(item.chip) + "</text>\n"
-                out = out + "<line x1='" + toString(chipX + chipWide) + "' y1='" + toString(chipY + 9) + "' x2='" + toString(item.x - 2) + "' y2='" + toString(chipY + 9) + "' stroke='" + townColour + "' stroke-width='1.8' marker-end='url(#shows)'/>\n"
+                fill = walkFill
+                edge = walkColour
             }
+
+            // What it waits for: its chips before it, each with a short arrow
+            out = out + emitChips(item.chips, item.x, item.y + 3)
 
             // Until when it must be over
             if (item.over > item.x + item.bar)
@@ -1829,8 +2314,15 @@ fun emitTimeline(graph)
                 {
                     var task = view.items[givers[g]]
                     var place = view.places[link.target]
+                    var into = place.y + toInt(floor(place.tall / 2))
 
-                    out = out + townArrow(task.x + task.bar, task.y + toInt(floor(task.tall / 2)), place.x - 2, place.y + toInt(floor(place.tall / 2)), label)
+                    // Over the chips of a place that has some
+                    if (len(place.chips) > 0)
+                    {
+                        into = place.y + 10
+                    }
+
+                    out = out + townArrow(task.x + task.bar, task.y + toInt(floor(task.tall / 2)), place.x - 2, into, label)
                 }
             }
         }
@@ -1839,13 +2331,14 @@ fun emitTimeline(graph)
 
     drawn = {}
 
-    // The arrows: a flag, from where the task that brings it ends to where the one that reads it begins
+    // The arrows: a flag, from where the task that brings it ends to where the one that reads it
+    // begins. None for a thing a walk brings home: what takes it has the walks on a chip
 
     for (var s = 0; s < len(graph.stats); s = s + 1)
     {
         var stat = graph.stats[s]
 
-        if (contain(folded, stat) or startsWith(stat, "town"))
+        if (contain(folded, stat) or startsWith(stat, "town") or contain(graph.things, stat))
         {
             continue
         }
@@ -1863,7 +2356,7 @@ fun emitTimeline(graph)
             {
                 var reads = graph.links[r]
 
-                if (reads.source != statNode(stat) or not contain(view.items, reads.target) or reads.kind == "classOf" or reads.target == brings.source)
+                if (reads.source != statNode(stat) or not contain(view.items, reads.target) or reads.kind == "classOf" or reads.kind == "uses" or reads.target == brings.source)
                 {
                     continue
                 }
@@ -1959,7 +2452,8 @@ fun printLooseEnds(graph)
     {
         var stat = graph.stats[s]
 
-        if (contain(read, stat) and not contain(brought, stat) and not inList(born, stat))
+        // (a technique of a fight is taught by a flag, not brought by a task)
+        if (contain(read, stat) and not contain(brought, stat) and not inList(born, stat) and not startsWith(stat, "fight."))
         {
             missing = missing + "  " + stat + "\n"
         }
