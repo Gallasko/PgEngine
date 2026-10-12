@@ -2544,6 +2544,270 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // The wooden blade is three short steps: bought at the market in his eighth year, then two
+        // months of practice that has no row before he holds one, then the edge or the point, one
+        // of the two. A yard that has its racks lends the blade, and none is sold.
+        TEST(rules_test, the_wooden_blade_is_bought_practiced_then_chosen)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            auto listed = [&](float age, const ElementMap& character, const char* id) {
+                return flag(activityAt(f.rules, age, character, id).fields, "listed");
+            };
+
+            ElementMap character = townsman();
+            character["coin"] = ElementType{8};
+
+            // Too young for the stall to show it; at eight it is there, and nothing of the rest
+            EXPECT_FALSE(listed(7.5f, character, "buy.blade"));
+
+            RuleActivity buy = activityAt(f.rules, 8.0f, character, "buy.blade");
+
+            EXPECT_TRUE(flag(buy.fields, "listed"));
+            EXPECT_FALSE(flag(buy.fields, "locked"));
+            EXPECT_EQ(textOf(buy.fields, "place"), "market");
+            EXPECT_EQ(intOf(buy.fields, "months"), 0);
+            EXPECT_EQ(intOf(buy.fields, "uses"), 1);
+
+            EXPECT_FALSE(listed(8.0f, character, "blades"));
+            EXPECT_FALSE(listed(8.0f, character, "slashes"));
+            EXPECT_FALSE(listed(8.0f, character, "stabs"));
+
+            // Short of its price, it is there and shut
+            character["coin"] = ElementType{7};
+            EXPECT_TRUE(flag(activityAt(f.rules, 8.0f, character, "buy.blade").fields, "locked"));
+
+            // Bought: the stall has no other, and the practice is his
+            character["wooden_blade"] = ElementType{1};
+            f.rules.done = {{"buy.blade", ElementType{1}}};
+
+            EXPECT_FALSE(listed(8.0f, character, "buy.blade"));
+
+            RuleActivity practice = activityAt(f.rules, 8.0f, character, "blades");
+
+            EXPECT_TRUE(flag(practice.fields, "listed"));
+            EXPECT_FALSE(flag(practice.fields, "locked"));
+            EXPECT_EQ(intOf(practice.fields, "months"), 2);
+            EXPECT_EQ(intOf(practice.fields, "uses"), 1);
+            EXPECT_FALSE(listed(8.0f, character, "slashes"));
+
+            // Practiced: a point of Arms and the basics, which open the two
+            RuleForecast forecast;
+            ASSERT_TRUE(f.rules.forecast(8.0f, character, "blades", 0, forecast)) << firstError(f.rules);
+
+            EXPECT_EQ(intOf(forecast.atTerm, "arms"), 1);
+            EXPECT_EQ(intOf(forecast.atTerm, "blade_basics"), 1);
+
+            character["arms"] = ElementType{1};
+            character["blade_basics"] = ElementType{1};
+            f.rules.done = {{"buy.blade", ElementType{1}}, {"blades", ElementType{1}}};
+
+            EXPECT_FALSE(listed(8.2f, character, "blades"));
+            EXPECT_TRUE(listed(8.2f, character, "slashes"));
+            EXPECT_TRUE(listed(8.2f, character, "stabs"));
+
+            // The edge: his Strength, his Arms and the slash. The point is gone
+            ASSERT_TRUE(f.rules.forecast(8.2f, character, "slashes", 0, forecast)) << firstError(f.rules);
+
+            EXPECT_EQ(intOf(forecast.atTerm, "str"), 7);
+            EXPECT_EQ(intOf(forecast.atTerm, "arms"), 2);
+            EXPECT_EQ(intOf(forecast.atTerm, "slash_learned"), 1);
+
+            ASSERT_TRUE(f.rules.forecast(8.2f, character, "stabs", 0, forecast)) << firstError(f.rules);
+
+            EXPECT_EQ(intOf(forecast.atTerm, "dex"), 7);
+            EXPECT_EQ(intOf(forecast.atTerm, "thrust_learned"), 1);
+
+            f.rules.done = {{"buy.blade", ElementType{1}}, {"blades", ElementType{1}}, {"slashes", ElementType{1}}};
+
+            EXPECT_FALSE(listed(8.5f, character, "slashes"));
+            EXPECT_FALSE(listed(8.5f, character, "stabs"));
+
+            // No age closes any of it: a grown man who never held one may still begin there
+            f.rules.done = {};
+            EXPECT_TRUE(listed(20.0f, townsman(), "buy.blade"));
+            EXPECT_EQ(intOf(activityAt(f.rules, 20.0f, townsman(), "buy.blade").fields, "closesIn"), -1);
+
+            ElementMap late = townsman();
+            late["wooden_blade"] = ElementType{1};
+            f.rules.done = {{"buy.blade", ElementType{1}}};
+
+            EXPECT_TRUE(listed(20.0f, late, "blades"));
+            EXPECT_EQ(intOf(activityAt(f.rules, 20.0f, late, "blades").fields, "closesIn"), -1);
+
+            // The basics he already has (the yard gives them too) are not his twice: the point of
+            // Arms is all the practice brings then
+            late["blade_basics"] = ElementType{1};
+
+            ASSERT_TRUE(f.rules.forecast(20.0f, late, "blades", 0, forecast)) << firstError(f.rules);
+
+            EXPECT_EQ(intOf(forecast.atTerm, "arms"), 1);
+            EXPECT_EQ(intOf(forecast.atTerm, "blade_basics"), 1);
+            EXPECT_EQ(activityAt(f.rules, 20.0f, late, "blades").gains.size(), 1u);
+
+            f.rules.done = {};
+
+            // The yard's racks: the practice is his with no blade of his own, and the stall sells none
+            ElementMap lent = townsman();
+            lent["town.yard"] = ElementType{1};
+
+            EXPECT_FALSE(listed(8.0f, lent, "buy.blade"));
+            EXPECT_TRUE(listed(8.0f, lent, "blades"));
+            EXPECT_FALSE(flag(activityAt(f.rules, 8.0f, lent, "blades").fields, "locked"));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The yard takes a boy who has watched its tourney from the rail, a month at nine, or one
+        // who comes with the basics of the blade: either, and the tourney is for who has no blade.
+        // What the tourney leaves him is a thing he holds, an enthusiasm, that his first term at
+        // the yard takes; and the yard gives the basics to who came without them.
+        TEST(rules_test, the_yard_asks_the_tourney_or_the_basics)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            auto listed = [&](float age, const ElementMap& character, const char* id) {
+                return flag(activityAt(f.rules, age, character, id).fields, "listed");
+            };
+
+            auto brings = [&](float age, const ElementMap& character, const char* id, const char* stat) {
+                for (const auto& gain : activityAt(f.rules, age, character, id).gains)
+                {
+                    if (textOf(gain, "stat") == stat)
+                        return true;
+                }
+
+                return false;
+            };
+
+            ElementMap character = boy();
+            character["str"] = ElementType{9};
+
+            // Strong enough and of age, and no row: he has never been near the yard
+            EXPECT_FALSE(listed(8.5f, character, "spectate"));
+            EXPECT_TRUE(listed(9.0f, character, "spectate"));
+            EXPECT_FALSE(flag(activityAt(f.rules, 9.0f, character, "spectate").fields, "locked"));
+            EXPECT_EQ(intOf(activityAt(f.rules, 9.0f, character, "spectate").fields, "months"), 1);
+            EXPECT_FALSE(listed(10.0f, character, "yard"));
+            EXPECT_TRUE(flag(activityAt(f.rules, 10.0f, character, "yard").fields, "locked"));
+
+            // The tourney watched: an enthusiasm he holds, and the yard has its row at nine, his at ten
+            RuleForecast forecast;
+            ASSERT_TRUE(f.rules.forecast(9.0f, character, "spectate", 0, forecast)) << firstError(f.rules);
+            EXPECT_EQ(intOf(forecast.atTerm, "yard_enthusiasm"), 1);
+
+            ElementMap watched = character;
+            watched["yard_enthusiasm"] = ElementType{1};
+            f.rules.done = {{"spectate", ElementType{1}}};
+
+            EXPECT_FALSE(listed(9.2f, watched, "spectate"));
+            EXPECT_TRUE(listed(9.2f, watched, "yard"));
+            EXPECT_TRUE(flag(activityAt(f.rules, 9.2f, watched, "yard").fields, "locked"));
+            EXPECT_FALSE(flag(activityAt(f.rules, 10.0f, watched, "yard").fields, "locked"));
+
+            // His first term takes the enthusiasm when it begins, and gives him the basics
+            RuleActivity yard = activityAt(f.rules, 10.0f, watched, "yard");
+
+            ASSERT_EQ(yard.costs.size(), 1u);
+            EXPECT_EQ(textOf(yard.costs[0], "stat"), "yard_enthusiasm");
+            EXPECT_TRUE(brings(10.0f, watched, "yard", "blade_basics"));
+
+            ASSERT_TRUE(f.rules.forecast(10.0f, watched, "yard", 0, forecast)) << firstError(f.rules);
+
+            EXPECT_EQ(intOf(forecast.atStart, "yard_enthusiasm"), 0);
+            EXPECT_EQ(intOf(forecast.atTerm, "blade_basics"), 1);
+            EXPECT_EQ(intOf(forecast.atTerm, "arms"), 1);
+
+            // From then on the basics are what lets him in: nothing more is taken, and they are
+            // not given twice
+            ElementMap trained = character;
+            trained["blade_basics"] = ElementType{1};
+            trained["arms"] = ElementType{1};
+            f.rules.done = {{"spectate", ElementType{1}}, {"yard", ElementType{1}}};
+
+            yard = activityAt(f.rules, 11.0f, trained, "yard");
+
+            EXPECT_TRUE(flag(yard.fields, "listed"));
+            EXPECT_FALSE(flag(yard.fields, "locked"));
+            EXPECT_TRUE(yard.costs.empty());
+            EXPECT_FALSE(brings(11.0f, trained, "yard", "blade_basics"));
+
+            ASSERT_TRUE(f.rules.forecast(11.0f, trained, "yard", 0, forecast)) << firstError(f.rules);
+            EXPECT_EQ(intOf(forecast.atTerm, "blade_basics"), 1);
+
+            // Who comes with the basics has no tourney to watch, and nothing to pay
+            f.rules.done = {};
+
+            ElementMap drilled = character;
+            drilled["blade_basics"] = ElementType{1};
+
+            EXPECT_FALSE(listed(9.0f, drilled, "spectate"));
+            EXPECT_TRUE(listed(10.0f, drilled, "yard"));
+            EXPECT_FALSE(flag(activityAt(f.rules, 10.0f, drilled, "yard").fields, "locked"));
+            EXPECT_TRUE(activityAt(f.rules, 10.0f, drilled, "yard").costs.empty());
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The yard's breathing is for who has done both: practiced the edge or the point, either,
+        // and a term at the yard. One of the two is not enough, nor are the basics alone.
+        TEST(rules_test, the_yards_breathing_asks_the_edge_or_the_point_and_the_yard)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = boy();
+            character["str"] = ElementType{9};
+            character["blade_basics"] = ElementType{1};
+
+            auto listed = [&](float age) { return flag(activityAt(f.rules, age, character, "breathing").fields, "listed"); };
+
+            EXPECT_FALSE(listed(10.0f));
+
+            // The basics and the yard, and no edge nor point yet
+            f.rules.done = {{"blades", ElementType{1}}, {"yard", ElementType{2}}};
+            EXPECT_FALSE(listed(10.0f));
+
+            // The point learned, and never a term at the yard
+            character["thrust_learned"] = ElementType{1};
+            f.rules.done = {{"blades", ElementType{1}}, {"stabs", ElementType{1}}};
+            EXPECT_FALSE(listed(10.0f));
+
+            // Both: the point does as well as the edge
+            f.rules.done = {{"stabs", ElementType{1}}, {"yard", ElementType{1}}};
+            EXPECT_TRUE(listed(10.5f));
+
+            character.erase("thrust_learned");
+            character["slash_learned"] = ElementType{1};
+            f.rules.done = {{"slashes", ElementType{1}}, {"yard", ElementType{1}}};
+
+            RuleActivity breathing = activityAt(f.rules, 10.5f, character, "breathing");
+
+            EXPECT_TRUE(flag(breathing.fields, "listed"));
+            EXPECT_FALSE(flag(breathing.fields, "locked"));
+            EXPECT_EQ(intOf(breathing.fields, "uses"), 1);
+
+            // What it asks is said as what he did
+            ASSERT_EQ(breathing.requires.size(), 2u);
+            EXPECT_EQ(textOf(breathing.requires[0], "label"), "Practiced slashes, or thrusts");
+            EXPECT_EQ(intOf(breathing.requires[0], "current"), 1);
+            EXPECT_EQ(textOf(breathing.requires[1], "label"), "Trained at the yard");
+            EXPECT_EQ(intOf(breathing.requires[1], "current"), 1);
+
+            RuleForecast forecast;
+            ASSERT_TRUE(f.rules.forecast(10.5f, character, "breathing", 0, forecast)) << firstError(f.rules);
+
+            EXPECT_EQ(intOf(forecast.atTerm, "discipline"), 1);
+            EXPECT_EQ(intOf(forecast.atTerm, "yard_breathing"), 1);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // What a place gives reaches a row through its `bonus` steps: its months, what it brings,
         // how often it can be done, the age it opens at.
         TEST(rules_test, bonus_steps_read_the_town)
@@ -2554,7 +2818,6 @@ namespace pg
             ElementMap character = boy();
 
             EXPECT_EQ(intOf(activityAt(f.rules, 8.0f, character, "letters").fields, "months"), 6);
-            EXPECT_EQ(intOf(activityAt(f.rules, 8.0f, character, "blades").fields, "uses"), 3);
             EXPECT_EQ(intOf(activityAt(f.rules, 8.0f, character, "smithy").fields, "fromAge"), 9);
 
             auto coinOf = [&](const RuleActivity& a) {
@@ -2578,7 +2841,6 @@ namespace pg
             character["town.market"] = ElementType{1};
 
             EXPECT_EQ(intOf(activityAt(f.rules, 8.0f, character, "letters").fields, "months"), 4);
-            EXPECT_EQ(intOf(activityAt(f.rules, 8.0f, character, "blades").fields, "uses"), 5);
             EXPECT_EQ(intOf(activityAt(f.rules, 8.0f, character, "smithy").fields, "fromAge"), 8);
             EXPECT_EQ(intOf(activityAt(f.rules, 8.0f, character, "buy.rations").gains[0], "amount"), 8);
 

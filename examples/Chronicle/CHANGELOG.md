@@ -18,12 +18,36 @@ the `CHANGELOG.md` at the root of the repository.
   ends the day you are seven. A whole year takes about half a minute, and no two need be alike.
 - **A keepsake.** *Carry Books for Father Anselm* pays in coin and in a small tome he tells you
   to keep. It is in your Inventory. Nothing asks for it yet.
+- **The wooden blade is bought, then learned, then chosen.** From your eighth year the market
+  sells a wooden blade, once, for 8 coin. Holding one brings *Practice with the Wooden Blade*
+  into your training: two months, a point of Arms and the basics of the blade. Then **one of
+  two**, three months each: *Practice Slashes* (Strength and Arms) or *Practice Thrusts*
+  (Dexterity and Arms); the one you leave is gone. No age closes any of it.
+- **Two things to do in a fight, for a boy.** The edge teaches the **Slash** (it bites deeper
+  than a strike and misses more), the point the **Thrust** (it seldom misses, and bites a
+  little less). They are a better way to strike and cost nothing: no breath, no turn to wait.
+  They are yours for the rest of the life, whatever class you take.
+- **Watch the Tourney at the Yard.** A month, from nine, for a boy with no blade. It leaves
+  you a **Yard enthusiasm**, in your Inventory: with it the sergeants let you train at the
+  yard, and your first term there takes it.
+- **The yard teaches the basics.** A first term of *Train at the Yard* gives the basics of the
+  blade to who came without them, so the edge or the point is theirs to choose too.
+- **Learn the Yard's Breathing.** Three months, once, for who has both practiced slashes or
+  thrusts and trained at the yard: a point of Discipline and the breathing itself, which
+  you keep. Nothing in a fight uses it yet.
 
 ### Changed
 
 - **Every life starts smaller.** 6 years old, 4 of each stat and 35 Vitality, with nothing in
   your Inventory, where a life began at 7 with 6 of each, 40 Vitality and a year of rations.
   The sixth year gives it back, your way: you are seven with 5 to 8 in a stat.
+- **Practice with Wooden Blades is gone.** Six months, three times over, for Arms and
+  Dexterity: the three short steps above stand in its place. They bring 2 Arms in five months
+  where it brought 3 in eighteen.
+- **Train at the Yard has to be earned.** Its row comes once you hold an enthusiasm for the
+  yard or the basics of the blade, either one, and no longer for Strength alone.
+- **The Yard's racks lend the blade.** *Stock the Yard with Blades* made the old practice
+  last five terms. It now lends every boy a wooden blade: none has to be bought.
 - **Go to the Market replaces Explore Bellmoor.** One month of your sixth year opens the Town
   page, where your coin buys the rations you are short of by then. Every life goes there once:
   what was built in town stays built from life to life, but the page opens the month you go.

@@ -621,11 +621,15 @@ namespace chronicle
             {"str", 12}, {"dex", 8}, {"int", 6}, {"vit", 50}, {"vitmax", 50},
             {"arms", 5}, {"discipline", 2}, {"letters", 0}, {"lore", 0}, {"arcana", 0}, {"stealth", 0}, {"guile", 0}, {"renown", 1},
             {"watch_known", 1}, {"edric_support", 1}, {"keep_oath", 1},
+            {"blade_basics", 1},   // What let him into the yard as a boy: he trains there still
             {"coin", 46}, {"rations", 3},
         };
 
         life.done = {
             {"mill", 3}, {"messages", 2}, {"carters", 13}, {"watch", 1}, {"yard", 1}, {"edric", 2}, {"keep", 1},
+            // A boy's works with the wooden blade are behind him, and off his page: the one he
+            // bought, and the edge he chose
+            {"buy.blade", 1}, {"slashes", 1},
         };
 
         // He is past his first wages, knows the carters' road, and has sworn

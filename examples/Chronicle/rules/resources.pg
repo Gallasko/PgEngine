@@ -88,6 +88,9 @@ var holdings = [
     // What he was given as a boy and keeps: nothing asks for it yet
     {id: "tome", group: "keepsakes", groupLabel: "KEEPSAKES", glyph: "relic", name: "Father Anselm's tome", tone: 2, title: true,
      about: "A small book Father Anselm gave him for carrying the others. He has kept it since."},
+    // And what he bought as one: the blade his practice asks for
+    {id: "wooden_blade", group: "keepsakes", groupLabel: "KEEPSAKES", glyph: "swordsmanship", name: "A wooden blade", tone: 0, title: true,
+     about: "A blade of ash from the market, blunt, and a hand too long for him. His practice with it is among his training."},
     // The market hall (towntable.pg, the market's second level) sends a ration every three
     // months: a help, not his bread. One a month was all a month eats, and rations no longer counted
     {id: "town.market", group: "town", groupLabel: "TOWN", glyph: "trade", name: "the market hall", tone: 0, ledger: false,
@@ -101,7 +104,7 @@ var ties = ["watch_known", "street_known", "choir", "edric_support", "library_ac
             "veteran", "watch_commander", "tourney_victor",
             "black_treatise", "orin_known", "harrow_fragments", "harrow_truth", "harrow_relic",
             "guild_clerk", "guild_ledgers", "guild_enemy", "heat_reduced", "great_job_planned", "crew_ready",
-            "band", "hedges_known", "bow_learned"]
+            "band", "hedges_known", "bow_learned", "yard_enthusiasm", "yard_breathing", "slash_learned", "thrust_learned"]
 
 // What a walk brings home (expeditiontable.pg's `walkItems`): a remedy to drink in the field,
 // what is sold at the market, and what a place of the town is built of. He holds all of it, and

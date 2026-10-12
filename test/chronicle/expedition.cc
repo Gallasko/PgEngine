@@ -493,6 +493,42 @@ namespace pg
             urchin["street_known"] = ElementType{1};
             EXPECT_EQ(learned(urchin), (std::vector<std::string>{"tech.feint"}));
 
+            // What the wooden blade taught a boy, the edge or the point, comes first: it was first
+            ElementMap edge = hunter();
+            edge["slash_learned"] = ElementType{1};
+            EXPECT_EQ(learned(edge), (std::vector<std::string>{"tech.slash"}));
+
+            // It is a better strike and no more: it costs no breath, and he is told of none
+            {
+                Walker w(edge);
+
+                EXPECT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
+                w.act("seek", "wolf", 1);
+                w.answer();
+
+                for (const auto& m : w.last.menu)
+                {
+                    if (textOf(m, "id") == "tech.slash")
+                        EXPECT_EQ(textOf(m, "cost"), "");
+                }
+
+                EXPECT_EQ(textOf(w.last.duel, "breath"), "");
+
+                // Used a turn, it is his again the next: nothing to wait for
+                ASSERT_TRUE(w.act("pick", "tech.slash"));
+                ASSERT_TRUE(w.act("do"));
+                EXPECT_EQ(textOf(w.last.duel, "refused"), "");
+
+                ASSERT_TRUE(w.act("pick", "tech.slash"));
+                ASSERT_TRUE(w.act("do"));
+                EXPECT_EQ(textOf(w.last.duel, "refused"), "");
+            }
+
+            ElementMap point = hunter();
+            point["thrust_learned"] = ElementType{1};
+            point["keep_oath"] = ElementType{1};
+            EXPECT_EQ(learned(point), (std::vector<std::string>{"tech.thrust", "tech.heavy"}));
+
             // A working is counted from his Intelligence: a clever man's firebolt is worth his study
             mage["int"] = ElementType{16};
 

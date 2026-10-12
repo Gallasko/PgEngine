@@ -1156,7 +1156,15 @@ fun menuRows()
                 note = note + " · ALL"
             }
 
-            var learned = menuRow("tech." + tech.id, "Learned", tech.name, toString(tech.breath) + " BREATH", note)
+            // (what costs no breath says none)
+            var cost = ""
+
+            if (tech.breath > 0)
+            {
+                cost = toString(tech.breath) + " BREATH"
+            }
+
+            var learned = menuRow("tech." + tech.id, "Learned", tech.name, cost, note)
 
             learned.kind = tech.kind
             push(rows, learned)
@@ -1300,9 +1308,23 @@ fun previewOf(choice)
             name = tech.name
             everyone = tech.all
             view.text = tech.line + "."
-            view.costs = toString(tech.breath) + " breath"
-            view.then = "Ready in " + counted(tech.cool, "turn", "turns") + " · " + toString(larger(0, fight.breath - tech.breath)) + " breath left"
-            view.button = tech.name + " · " + toString(tech.breath) + " breath"
+            view.button = tech.name
+
+            if (tech.breath > 0)
+            {
+                view.costs = toString(tech.breath) + " breath"
+                view.then = "Ready in " + counted(tech.cool, "turn", "turns") + " · " + toString(larger(0, fight.breath - tech.breath)) + " breath left"
+                view.button = tech.name + " · " + toString(tech.breath) + " breath"
+            }
+            else if (tech.cool > 0)
+            {
+                view.then = "Ready in " + counted(tech.cool, "turn", "turns")
+            }
+            else if (knowsAny())
+            {
+                // A better strike, and like a strike it leaves his breath as it is
+                view.then = toString(fight.breath) + " breath left"
+            }
         }
         else
         {
@@ -1500,7 +1522,7 @@ fun knowsAny()
 {
     for (var i = 0; i < len(walkTechniques); i++)
     {
-        if (knowsTech(walkTechniques[i]))
+        if (walkTechniques[i].breath > 0 and knowsTech(walkTechniques[i]))
         {
             return true
         }

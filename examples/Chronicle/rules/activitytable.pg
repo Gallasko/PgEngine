@@ -99,7 +99,9 @@
 //   uses: N          it can be done N times, then it is spent.
 //   requires: [{stat, needed}]
 //                    what he must hold to begin it. `needed` is 1 when the entry gives none:
-//                    {stat: "letters"} asks that he has any. An entry may carry:
+//                    {stat: "letters"} asks that he has any. A stat "done.<activity id>" is
+//                    the terms of that activity done in this life: {stat: "done.yard"} asks
+//                    that he has trained at the yard once. An entry may carry:
 //     label: "text"           what the row calls it, in place of the stat's name.
 //     eased: {flag, needed, at}   with the flag held (at `at` or more: 1 when it gives none), it
 //                             asks `needed` instead. A list of them: the least of those that hold.
@@ -107,7 +109,7 @@
 //     anyOf: [flag]           one of the flags is enough: current is 1 when he holds any.
 //   bonus: [step]    what changes with a stat he holds, or with the town. A step is
 //                    {stat, needed, ...}: with the stat at `needed` or more (1 when the step
-//                    gives none) it replaces the activity's own gains, months, rank, each, uses,
+//                    gives none) it replaces the activity's own gains, costs, months, rank, each, uses,
 //                    fromAge, showAge, showFrom, finishBy, board or path with the ones it gives,
 //                    and adds its `more` [{stat, amount}] to what the term brings. Every step
 //                    that holds is applied, in order: the last one wins what two of them give.
@@ -166,7 +168,7 @@ var errors = []
 var reachShown = 75
 
 // What a `bonus` step may replace of its activity
-var bonusFields = ["gains", "months", "rank", "each", "uses", "fromAge", "showAge", "showFrom", "finishBy", "board", "path"]
+var bonusFields = ["gains", "costs", "months", "rank", "each", "uses", "fromAge", "showAge", "showFrom", "finishBy", "board", "path"]
 
 // A row says when it closes once he has this many months left to begin it, or fewer, and says it
 // as urgent from the second: so no row leaves the list without having said so.
@@ -290,6 +292,16 @@ var activities = [
      requires: [],
      costs: [{stat: "coin", amount: 6}],
      bonus: [{stat: "town.collegium", path: ""}]},
+    // A boy's first blade is bought, not handed to him: the market sells one from his eighth
+    // year, once, and the practice with it comes into his training the day he holds it (below).
+    // No age closes it: a man who never held one may still begin there. Where the yard has
+    // stocked its racks nobody buys one: the yard lends it (`whileNot`)
+    {id: "buy.blade", group: "Market", name: "Buy a Wooden Blade", glyph: "swordsmanship", months: 0, rank: "", each: "AT THE MARKET", path: "", fromAge: 8, finishBy: anyAge, showFrom: 100, uses: 1,
+     place: "market", whileNot: "town.yard",
+     about: "A blade of ash, blunt, and a hand too long for him. With it he can practice: the work comes into his training the day he holds one.",
+     gains: [{stat: "wooden_blade"}],
+     requires: [{stat: "town_known", label: "The town"}],
+     costs: [{stat: "coin", amount: 8}]},
     {id: "buy.sword", group: "Market", name: "Buy a Sword", glyph: "swordsmanship", months: 0, rank: "", each: "AT THE MARKET", path: "", finishBy: anyAge, showFrom: 100, uses: 1,
      place: "market",
      gains: [{stat: "arms"}],
@@ -308,13 +320,33 @@ var activities = [
      gains: [{stat: "dex"}, {stat: "bow_learned"}],
      requires: [{stat: "str", needed: 7}]},
 
-    {id: "blades", group: "Training", name: "Practice with Wooden Blades", glyph: "swordsmanship", months: 6, rank: "", each: "", path: "", fromAge: 8, finishBy: 14, uses: 3,
-     gains: [{stat: "arms"}, {stat: "dex"}],
-     requires: [{stat: "str", needed: 7}],
-     bonus: [{stat: "town.yard", uses: 5}]},
-    {id: "yard", group: "Training", name: "Train at the Yard", glyph: "training", months: 6, rank: "", each: "", path: "", fromAge: 10,
-     gains: [{stat: "str"}, {stat: "arms"}],
-     requires: [{stat: "str", needed: 9}],
+    // The wooden blade, in three short steps. It is bought at the market first (above), or lent
+    // by a yard that has its racks: the practice has no row before that. Two months of it teach
+    // him which end to hold, and open a choice, the edge or the point (the group after this one).
+    // It closes at no age of its own. Who has the basics already (the yard gives them too) has
+    // the point of Arms and no more
+    {id: "blades", group: "Training", name: "Practice with the Wooden Blade", glyph: "swordsmanship", months: 2, rank: "", each: "OPENS THE EDGE OR THE POINT", path: "", fromAge: 8, uses: 1,
+     about: "Two months of a post in the ground and a blade that stings his own shins. Once he has the basics there is an edge to learn, or a point: not both.",
+     gains: [{stat: "arms"}, {stat: "blade_basics"}],
+     requires: [{stat: "wooden_blade", label: "A wooden blade, or a yard that lends one", anyOf: ["wooden_blade", "town.yard"]}],
+     bonus: [{stat: "blade_basics", gains: [{stat: "arms"}]}]},
+    // The yard is not a place a boy walks into: he has watched its tourney from the rail and
+    // come away with an enthusiasm for it, or he comes with the basics of the blade. Either is
+    // enough. The tourney is for who has no blade: a month at nine, and it has no row once he
+    // has the basics (`whileNot`). The enthusiasm is a thing he holds, in his ledger: his first
+    // term at the yard takes it (a cost of the yard, while he holds any: its `bonus`), and gives
+    // him the basics if he came without them
+    {id: "spectate", group: "Training", name: "Watch the Tourney at the Yard", glyph: "training", months: 1, rank: "", each: "OPENS THE YARD", path: "", fromAge: 9, uses: 1,
+     whileNot: "blade_basics",
+     about: "A day of blunt steel and a month of talking about it. He comes away wanting nothing else: with that the sergeants let a boy train at the yard.",
+     gains: [{stat: "yard_enthusiasm"}],
+     requires: []},
+    {id: "yard", group: "Training", name: "Train at the Yard", glyph: "training", months: 6, rank: "", each: "", path: "", fromAge: 10, showAge: 9,
+     gains: [{stat: "str"}, {stat: "arms"}, {stat: "blade_basics"}],
+     requires: [{stat: "str", needed: 9},
+                {stat: "yard_enthusiasm", label: "An enthusiasm for the yard, or the basics of the blade", anyOf: ["yard_enthusiasm", "blade_basics"]}],
+     bonus: [{stat: "blade_basics", gains: [{stat: "str"}, {stat: "arms"}]},
+             {stat: "yard_enthusiasm", costs: [{stat: "yard_enthusiasm"}]}],
      after: [{uses: 2, months: 9}, {uses: 3, months: 12}]},
     {id: "watch", group: "Training", name: "Carry for the Watch", glyph: "gate", months: 12, rank: "", each: "", path: "", fromAge: 10, finishBy: 13, uses: 1,
      gains: [{stat: "arms"}, {stat: "str"}, {stat: "watch_known"}],
@@ -324,6 +356,27 @@ var activities = [
      requires: [{stat: "str", needed: 10}, {stat: "arms", needed: 2, eased: {flag: "watch_known", needed: 1}}],
      after: [{uses: 2, effects: [{stat: "edric_support"}], entry: "Sergeant Edric will speak for him at the Keep"}],
      bonus: [{stat: "town.yard", needed: 3, fromAge: 12}]},
+
+    // What the yard keeps for who has done both: learned the edge or the point (the group after
+    // this one), and a term under its sergeants (`done.<id>`). No row before that. It is a thing
+    // he holds from then on, in his ledger; nothing in a fight reads it yet
+    {id: "breathing", group: "Training", name: "Learn the Yard's Breathing", glyph: "training", months: 3, rank: "", each: "", path: "", fromAge: 10, uses: 1,
+     about: "In on the step, out on the blow, and never held. The sergeants teach it last, to a boy who has shown he will stay.",
+     gains: [{stat: "discipline"}, {stat: "yard_breathing"}],
+     requires: [{stat: "slash_learned", label: "Practiced slashes, or thrusts", anyOf: ["slash_learned", "thrust_learned"]},
+                {stat: "done.yard", label: "Trained at the yard"}]},
+
+    // One or the other (`unless`), once he has the basics: each is a stat, a point of Arms and
+    // something to do in a fight besides striking (expeditiontable.pg's `walkTechniques`). The
+    // one he leaves is gone for this life
+    {id: "slashes", group: "The edge or the point", name: "Practice Slashes", glyph: "strength", months: 3, rank: "", each: "TEACHES THE SLASH", path: "", fromAge: 8, uses: 1, unless: "stabs",
+     about: "The whole arm, and the shoulder behind it. In a fight, a Slash bites deeper than a strike and misses more.",
+     gains: [{stat: "str"}, {stat: "arms"}, {stat: "slash_learned"}],
+     requires: [{stat: "blade_basics", label: "The basics of the blade"}]},
+    {id: "stabs", group: "The edge or the point", name: "Practice Thrusts", glyph: "dexterity", months: 3, rank: "", each: "TEACHES THE THRUST", path: "", fromAge: 8, uses: 1, unless: "slashes",
+     about: "The feet first, then the point, straight. In a fight, a Thrust seldom misses and bites a little less than a strike.",
+     gains: [{stat: "dex"}, {stat: "arms"}, {stat: "thrust_learned"}],
+     requires: [{stat: "blade_basics", label: "The basics of the blade"}]},
 
     {id: "letters", group: "Study", name: "Learn Your Letters", glyph: "quill", months: 6, rank: "", each: "", path: "", finishBy: 14,
      gains: [{stat: "letters"}, {stat: "int"}],
@@ -996,6 +1049,12 @@ for (var i = 0; i < len(activities); i++)
         // Asking for a stat with no number is asking that he holds it
         req.needed = lookup(req, "needed", 1)
         req.current = statOf(character, req.stat)
+
+        // The terms of another activity, done in this life
+        if (startsWith(req.stat, "done."))
+        {
+            req.current = lookup(done, substring(req.stat, 5, strlen(req.stat)), 0)
+        }
 
         if (req.stat == "age")
         {

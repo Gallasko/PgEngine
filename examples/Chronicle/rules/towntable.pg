@@ -91,7 +91,7 @@ var townPlaces = [
     {id: "yard", name: "The Yard", glyph: "training", shows: {flag: "veteran"}, about: "The training yard under the Keep's wall.",
      levels: [
         {work: "Stock the Yard with Blades", built: "The yard's racks", months: 6, coin: 20, costs: [],
-         gives: "Wooden Blades can be practiced 5 times, not 3",
+         gives: "The yard lends a wooden blade: no boy has to buy one",
          lore: "No boy waits for a wooden blade any more."},
         {work: "Lay the Yard's Sand", built: "The sanded yard", months: 9, coin: 60, costs: [{stat: "str"}],
          gives: "The Keep asks Strength 11, not 12",

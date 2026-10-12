@@ -290,9 +290,19 @@ var walkEvents = [
 // what a class gives, or a work here and there, activitytable.pg), `where` it is learned,
 // as its tile says. `power` and `hit` are against a strike's (percent of its blow, points of its
 // chance); a spell's blow is counted from his Intelligence, not from his Strength and Arms.
+// `breath: 0` costs nothing, and says nothing of breath: who has learned only that is not told of it.
 // `cool` is the turns before it can be used again; `all` strikes every beast standing; `holds`
 // deals nothing, and the beast aimed at loses its next move.
 var walkTechniques = [
+    // A boy's: what the wooden blade taught him, the edge or the point and never both
+    // (activitytable.pg's `slashes` and `stabs`). A better way to strike, no more: it costs no
+    // breath and waits for nothing (`breath: 0`, `cool: 0`), and is his every turn. A little of
+    // each way: more blow for less aim, or more aim for less blow
+    {id: "slash", name: "Slash", kind: "blow", breath: 0, cool: 0, power: 130, hit: -10, all: false, holds: false,
+     knows: ["slash_learned"], where: "THE WOODEN BLADE", line: "The whole arm behind it: it bites deeper, and misses more"},
+    {id: "thrust", name: "Thrust", kind: "blow", breath: 0, cool: 0, power: 90, hit: 15, all: false, holds: false,
+     knows: ["thrust_learned"], where: "THE WOODEN BLADE", line: "The point, straight: it seldom misses"},
+
     // The Keep's: what its sworn men are drilled in, and what a campaign teaches
     {id: "heavy", name: "Heavy cut", kind: "blow", breath: 2, cool: 2, power: 170, hit: -15, all: false, holds: false,
      knows: ["keep_oath"], where: "THE KEEP", line: "A slow, full blow"},

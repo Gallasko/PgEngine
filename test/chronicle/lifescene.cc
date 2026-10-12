@@ -5151,17 +5151,17 @@ namespace pg
             EXPECT_FALSE(f.pos(tabs->tabs[1].noticeGround)->visible);
 
             // Eight years old, on the Town page: the market's work and the streets come into the
-            // choice, and the wooden blades he is too weak for yet, behind the Life tab. A row is
-            // new when it comes, open to him or not. (Mill Pond has no row: he has not walked the
-            // Hedgerows)
+            // choice, behind the Life tab. The wooden blade comes to the market, which is the page
+            // in view: no news, and its practice has no row before he holds one. (Mill Pond has
+            // no row: he has not walked the Hedgerows)
             life->save.age = 8.0f - 1.0f / 12.0f;
             life->onMonth();
             f.frames(12);
 
-            ASSERT_NE(life->piece<ActivityList>("activities")->find(&f.ecs, "blades"), nullptr);
-            EXPECT_EQ(life->piece<ActivityList>("activities")->find(&f.ecs, "blades")->spec.state, ActivityState::Locked);
-            EXPECT_EQ(tabs->tabs[0].notice, 3);
-            EXPECT_EQ(life->newInLife, 3);
+            EXPECT_NE(stall(f, life, "buy.blade"), nullptr);
+            EXPECT_EQ(life->piece<ActivityList>("activities")->find(&f.ecs, "blades"), nullptr);
+            EXPECT_EQ(tabs->tabs[0].notice, 2);
+            EXPECT_EQ(life->newInLife, 2);
             EXPECT_EQ(life->piece<ActivityList>("activities")->find(&f.ecs, "walk.millpond"), nullptr);
             EXPECT_EQ(tabs->tabs[1].notice, 0);
             ASSERT_FALSE(tabs->tabs[0].noticeGround.empty());

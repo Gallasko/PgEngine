@@ -44,6 +44,9 @@
 //   - A task that gives a flag a technique of a fight is learned by says so on its bar
 //     ("in a fight: Sweep"): no arrow, every walk with a beast would have one.
 //
+//   - A task that asks for another one done ("done.yard" among what it asks) has an arrow from
+//     it, like a flag's.
+//
 // A focus (the id of a task, "keep", or the key of a stat, "arms", "town.mill"), a Graphviz file:
 // the detail around it, with a node for every stat. For a task: what it asks, takes and brings,
 // the tasks that bring what it asks and the tasks that read what it brings. For a stat: the tasks
@@ -322,7 +325,20 @@ fun bonusText(step)
         {
             var said = ""
 
-            if (key != "gains" and key != "more")
+            if (key == "costs")
+            {
+                // What it takes besides, while he holds the stat
+                for (var c = 0; c < len(step.costs); c = c + 1)
+                {
+                    if (said != "")
+                    {
+                        said = said + " "
+                    }
+
+                    said = said + "takes " + toString(lookup(step.costs[c], "amount", 1)) + " " + toLowerCase(statShortName(step.costs[c].stat))
+                }
+            }
+            else if (key != "gains" and key != "more")
             {
                 said = key + " " + toString(step[key])
             }
@@ -440,6 +456,15 @@ fun addTask(graph, a)
         else
         {
             addLink(graph, statNode(req.stat), node, req.stat, "asks", toString(req.needed), req.needed)
+
+            // Another task done ("done.yard"): that task is what brings it
+            if (startsWith(req.stat, "done.") and not contain(graph.statLabels, req.stat))
+            {
+                var asked = substring(req.stat, 5, strlen(req.stat))
+
+                graph.statLabels[req.stat] = byId(activities, asked).name + ", done"
+                addLink(graph, taskNode(asked), statNode(req.stat), req.stat, "brings", "done", 0)
+            }
         }
 
         if (has(req, "eased"))
