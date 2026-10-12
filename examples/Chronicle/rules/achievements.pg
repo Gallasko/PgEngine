@@ -9,7 +9,8 @@
 //                  "stat.<key>" (a stat of the character), "done.<activity id>" (the terms
 //                  completed; the town's stats too: "stat.town_known", "stat.town.<place id>"),
 //                  "life.age", "life.terms" (the terms done in this life, of every
-//                  activity), "life.working" (1 while he is at a work, else 0), "life.lives"
+//                  activity), "life.working" (1 while he is at a work, else 0),
+//                  "working.<activity id>" (1 while he is at that one; no such fact otherwise), "life.lives"
 //                  (which life of the world this is), "life.town" (1 while the Town page is the one
 //                  in view), "said.<guide step id>" (1 once that step has been said) or "life.guide" (the last step of the guide
 //                  that ended, 0 before the first); `op` is one of ">=", ">", "<=", "<", "==".
@@ -19,7 +20,7 @@
 //           gives  what the character gains the moment it is reached.
 //           entry  the line it writes in the log; `name` is what its toast and the ending say.
 //
-// A guide step: {id, kind: "guide", order, say, point, asks, until or hold, pointChosen, sayChosen}
+// A guide step: {id, kind: "guide", order, say, point, light, asks, until or hold, pointChosen, sayChosen}
 //           The guide walks a first life (`lives` 1, the screen's to check) through its first
 //           works: one step at a time, each one sentence and one thing pointed at. The sentence
 //           stands on a leaf under what is pointed at, with a button to skip the guide and, for
@@ -36,7 +37,15 @@
 //                  "tab:<page>" (a page's tab, by its name in small letters: "tab:town"),
 //                  "place:<id>" (a place of the town, on its page),
 //                  "clock", "log", or "" for nothing. What is not on the page is not pointed at:
-//                  the sentence is said alone.
+//                  the sentence is said alone. A tile of the Life page while another page is
+//                  in view has the hand on the Life tab.
+//           untilAge
+//                  optional, for a step of the sequence: it is for a boy younger than that. Once
+//                  he is that old it is passed over, said or not (the steps of his sixth year:
+//                  its works are closed to him at seven).
+//           light  optional: what else stays lit with what is pointed at, a list with commas
+//                  ("tile:scribe", "stat:dex,stat:int"): the tiles of a choice, his three parts.
+//                  For a step with `pointChosen`, choosing any of the tiles lit sends the hand on.
 //           world  optional, for a step outside the sequence: true, it is said once in a
 //                  world, in whichever life meets it, and never again in a later one (the
 //                  town's steps: any life may be the one that explores it). Without it a step
@@ -103,66 +112,97 @@ var achievements = [
      asks: [{fact: "stat.wood_king", op: ">=", value: 1}],
      gives: []},
 
-    // The guide of a first life
-    {id: "guide.begin", kind: "guide", order: 1, point: "tile:helping", pointChosen: "button:begin",
+    // The guide of a first life: his sixth year, a work at a time, then the classes at seven
+    {id: "guide.begin", kind: "guide", order: 1, untilAge: 7, point: "tile:glean", pointChosen: "button:begin",
      say: "Welcome! Click this task to choose it.",
      sayChosen: "Now press Begin. Time passes while he works. You can also double-click a task to start it.",
      asks: [{fact: "life.terms", op: "==", value: 0}],
      until: [{fact: "life.working", op: "==", value: 1}]},
-    {id: "guide.rations", kind: "guide", order: 2, point: "holding:rations", hold: 5000,
+    {id: "guide.rations", kind: "guide", order: 2, untilAge: 7, point: "holding:rations", hold: 4000,
      say: "This is your food. He eats 1 ration every month.",
-     asks: [{fact: "done.helping", op: ">=", value: 1}]},
-    {id: "guide.carters", kind: "guide", order: 3, point: "tile:carters", pointChosen: "button:begin",
-     say: "Work gives you coin. Click this task.",
+     asks: [{fact: "done.glean", op: ">=", value: 1}]},
+    {id: "guide.flour", kind: "guide", order: 3, untilAge: 7, point: "tile:flour", pointChosen: "button:begin",
+     say: "Some work pays coin. Click this task.",
      sayChosen: "Press Begin, or double-click the task.",
      asks: [],
      until: [{fact: "life.working", op: "==", value: 1}]},
-    {id: "guide.coin", kind: "guide", order: 4, point: "holding:coin", hold: 5000,
-     say: "You earned your first coin. You will need coin to pay for things.",
-     asks: [{fact: "done.carters", op: ">=", value: 1}]},
-    {id: "guide.messages", kind: "guide", order: 5, point: "tile:messages", pointChosen: "button:begin",
-     say: "Each task trains something different. Try this one.",
+    {id: "guide.coin", kind: "guide", order: 4, untilAge: 7, point: "holding:coin", hold: 4000,
+     say: "This is your coin. You will spend it at the market soon.",
+     asks: [{fact: "done.flour", op: ">=", value: 1}]},
+    // The first choice: both tiles are lit, and the hand goes to Begin whichever he takes
+    {id: "guide.choice", kind: "guide", order: 5, untilAge: 7, point: "tile:wheel", light: "tile:scribe", pointChosen: "button:begin",
+     say: "Your first choice: you can only do one of these two. One trains his body, the other his mind.",
      sayChosen: "Press Begin, or double-click the task.",
      asks: [],
      until: [{fact: "life.working", op: "==", value: 1}]},
-    {id: "guide.dex", kind: "guide", order: 6, point: "stat:dex", hold: 5000,
-     say: "Dexterity went up. Your stats are shown here.",
-     asks: [{fact: "done.messages", op: ">=", value: 1}]},
-    {id: "guide.kitchen", kind: "guide", order: 7, point: "tile:kitchen", pointChosen: "button:begin",
-     say: "Food runs out over time. This task gives you more, and feeds him while he works.",
+    {id: "guide.stats", kind: "guide", order: 6, untilAge: 7, point: "stat:int", light: "stat:str,stat:dex", hold: 5000,
+     say: "His stats went up. Each class asks for one of them: Strength, Dexterity or Intelligence.",
+     asks: [{fact: "life.terms", op: ">=", value: 3}]},
+    {id: "guide.tome", kind: "guide", order: 7, untilAge: 7, point: "tile:tome", pointChosen: "button:begin",
+     say: "Hover a task to read what it gives. This one gives a keepsake.",
      sayChosen: "Press Begin, or double-click the task.",
      asks: [],
      until: [{fact: "life.working", op: "==", value: 1}]},
-    // His age, and what the game is about; then the classes, which come into the list with this
-    // term (activitytable.pg, `showAfter: 4`) so that the hand has them to point at
-    {id: "guide.clock", kind: "guide", order: 8, point: "clock", hold: 6000,
+    // Three works and the time for two: they come into the list at six years and four months
+    {id: "guide.pick", kind: "guide", order: 8, untilAge: 7, point: "tile:knots", light: "tile:sacks,tile:sing", pointChosen: "button:begin",
+     say: "Three tasks, and time for only two. The stopwatch on a task counts the months left to start it.",
+     sayChosen: "Press Begin, or double-click the task.",
+     asks: [{fact: "done.tome", op: ">=", value: 1}, {fact: "life.age", op: ">=", value: 6.3}],
+     until: [{fact: "life.working", op: "==", value: 1}]},
+    // The market, at six years and eight months: he is short of food by then, and holds the
+    // coin of the flour and of the books. It waits for him to be free of the work at hand
+    {id: "guide.tomarket", kind: "guide", order: 9, untilAge: 7, point: "tile:tomarket", pointChosen: "button:begin",
+     say: "Food is running low, and you have coin. Go to the market.",
+     sayChosen: "Press Begin, or double-click the task.",
+     asks: [{fact: "life.age", op: ">=", value: 6.6}],
+     until: [{fact: "working.tomarket", op: "==", value: 1}]},
+    // The town's own steps come here (below, outside the sequence): its tab, its market, its
+    // places. The harvest waits for the last of them
+    {id: "guide.harvest", kind: "guide", order: 10, untilAge: 7, point: "tile:harvest", pointChosen: "button:begin",
+     say: "This task takes two months: the box in a task's corner says how long. Longer work gives more.",
+     sayChosen: "Press Begin, or double-click the task.",
+     asks: [{fact: "said.guide.places", op: ">=", value: 1}],
+     until: [{fact: "working.harvest", op: "==", value: 1}]},
+    // His age, and what the game is about, said while the harvest is brought in; then the
+    // classes, which come into the list the month he is seven (activitytable.pg, `showAge: 7`)
+    // so that the hand has them to point at. These two are said at any age: a boy of seven who
+    // let the year go by, or a save from before it, is told them and no more
+    {id: "guide.clock", kind: "guide", order: 11, point: "clock", hold: 6000,
      say: "This is his age. Your goal: keep him alive until he is at least 30 years old.",
-     asks: [{fact: "done.kitchen", op: ">=", value: 1}]},
-    {id: "guide.doors", kind: "guide", order: 9, point: "tile:keep", hold: 9000,
-     say: "These are the three classes: the Keep (warrior), the Collegium (mage) and the Hidden Hand (thief). You can join one at 16, so train for it.",
      asks: []},
-    {id: "guide.rest", kind: "guide", order: 10, point: "", hold: 4000,
+    {id: "guide.doors", kind: "guide", order: 12, point: "tile:keep", hold: 9000,
+     say: "He is 7: the town's work is open to him. These are the three classes: the Keep (warrior), the Collegium (mage) and the Hidden Hand (thief). You can join one at 16, so train for it.",
+     asks: [{fact: "life.age", op: ">=", value: 7}]},
+    {id: "guide.rest", kind: "guide", order: 13, point: "", hold: 4000,
      say: "That is all. Have fun!",
      asks: []},
 
-    // Outside the sequence: said once, the month his rations run low
-    {id: "guide.rations_low", kind: "guide", order: 0, point: "tile:kitchen", hold: 6000,
-     say: "You only have food for 3 months. Work in the kitchen to get more.",
-     asks: [{fact: "stat.rations", op: "<=", value: 3}, {fact: "life.terms", op: ">=", value: 1}, {fact: "stat.town_known", op: "<=", value: 0}]},
-    // The same once the town is known: food is bought at its market
-    {id: "guide.rations_market", kind: "guide", order: 0, point: "tile:goto.market", hold: 6000,
+    // Outside the sequence: said once, while he is at the work that takes from his Vitality
+    // (it takes it as it begins: the months of the work are the time to say so)
+    {id: "guide.vitality", kind: "guide", order: 0, point: "stat:vit", hold: 4000,
+     say: "This work cost him Vitality. It comes back over time, as long as he has food.",
+     asks: [{fact: "working.sacks", op: ">=", value: 1}]},
+    // Said once, the month his rations run low after his sixth year (which has its own word
+    // for it): to the market for who has not been
+    {id: "guide.rations_low", kind: "guide", order: 0, point: "tile:tomarket", hold: 6000,
      say: "You only have food for 3 months. Go to the market to buy more.",
-     asks: [{fact: "stat.rations", op: "<=", value: 3}, {fact: "life.terms", op: ">=", value: 1}, {fact: "stat.town_known", op: ">=", value: 1}]},
+     asks: [{fact: "stat.rations", op: "<=", value: 3}, {fact: "life.age", op: ">=", value: 7}, {fact: "stat.town_known", op: "<=", value: 0}]},
+    // The same once the town is known: food is bought at its market
+    {id: "guide.rations_market", kind: "guide", order: 0, point: "tab:town", hold: 6000,
+     say: "You only have food for 3 months. Buy rations at the market, in the Town tab.",
+     asks: [{fact: "stat.rations", op: "<=", value: 3}, {fact: "life.age", op: ">=", value: 7}, {fact: "stat.town_known", op: ">=", value: 1}]},
     // The town, the month a life comes to know it: its tab, then, once he has opened it, the
-    // market where his coin buys rations, then the places. Said once in a world, in whichever
-    // life explores the town: each waits for the one before it to have been said
+    // market where his coin buys rations (it waits for him to buy some), then the places. Said
+    // once in a world, in the life that first goes to the market: each waits for the one before it
     {id: "guide.town", kind: "guide", order: 0, world: true, point: "tab:town",
      say: "The town is open! Click its tab to see it.",
      asks: [{fact: "stat.town_known", op: ">=", value: 1}],
      until: [{fact: "life.town", op: "==", value: 1}]},
-    {id: "guide.market", kind: "guide", order: 0, world: true, point: "tile:buy.rations", hold: 9000,
-     say: "This is the market. You can spend your coin here to buy rations.",
-     asks: [{fact: "said.guide.town", op: ">=", value: 1}]},
+    {id: "guide.market", kind: "guide", order: 0, world: true, point: "tile:buy.rations", pointChosen: "button:begin",
+     say: "This is the market. Your coin buys food here. Click Buy rations.",
+     sayChosen: "Now press Do it now. Buying takes no time.",
+     asks: [{fact: "said.guide.town", op: ">=", value: 1}],
+     until: [{fact: "done.buy.rations", op: ">=", value: 1}]},
     {id: "guide.places", kind: "guide", order: 0, world: true, point: "place:market", hold: 10000,
      say: "These are the places of the town. The works under them make them better, and they stay for your next lives. More places come with what you do.",
      asks: [{fact: "said.guide.market", op: ">=", value: 1}]},
@@ -214,6 +254,8 @@ for (var i = 0; i < len(achievements); i++)
     a.say = lookup(a, "say", "")
     a.point = lookup(a, "point", "")
     a.pointChosen = lookup(a, "pointChosen", "")
+    a.light = lookup(a, "light", "")
+    a.untilAge = lookup(a, "untilAge", 0)
     a.sayChosen = lookup(a, "sayChosen", "")
     a.order = lookup(a, "order", 0)
     a.world = lookup(a, "world", false)

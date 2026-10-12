@@ -29,6 +29,8 @@ int main(int argc, char* argv[])
             opt.fresh = true;
         else if (a == "--guide" and i + 1 < argc and std::sscanf(argv[i + 1], "%d", &opt.guide) == 1 and opt.guide >= 0)
             ++i;
+        else if (a == "--age" and i + 1 < argc and std::sscanf(argv[i + 1], "%f", &opt.age) == 1 and opt.age >= 7.0f)
+            ++i;
         else if (a == "--no-save")
             opt.noSave = true;
         else if (a == "--save" and i + 1 < argc)
@@ -43,7 +45,7 @@ int main(int argc, char* argv[])
             ++i;
         else
         {
-            std::fprintf(stderr, "usage: Chronicle [--dev <Scene>] [--theme day|candle] [--reduced-motion] [--fresh] [--guide N] [--no-save] [--save <path>] [--size WxH] [--month-ms N] [--walk <zone>] [--walk-seed N]\n");
+            std::fprintf(stderr, "usage: Chronicle [--dev <Scene>] [--theme day|candle] [--reduced-motion] [--fresh] [--guide N] [--age N] [--no-save] [--save <path>] [--size WxH] [--month-ms N] [--walk <zone>] [--walk-seed N]\n");
             return 2;
         }
     }

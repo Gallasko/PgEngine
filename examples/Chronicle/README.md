@@ -10,8 +10,9 @@ Run from the repo root (assets are read relative to the working directory):
 ```
 ./release/Chronicle                           # the Life scene, from save/chronicle/life.sz (the mockup's life when there is none)
 ./release/Chronicle --no-save                 # the mockup's life, never written
-./release/Chronicle --fresh                   # a first life: a month before 7, one task, the guide
+./release/Chronicle --fresh                   # a first life: six years old, one task, the guide
 ./release/Chronicle --fresh --guide 6         # the same, its guide already past step 6
+./release/Chronicle --fresh --age 7           # a boy of seven, his sixth year not played: the town's work at once
 ./release/Chronicle --save save/other.sz      # another save file
 ./release/Chronicle --month-ms 1000           # a month every second instead of every 2
 ./release/Chronicle --walk hollow             # a life never written, opened on a walk (hedgerows, millpond, hollow, quarry)
@@ -19,31 +20,48 @@ Run from the repo root (assets are read relative to the working directory):
 ./release/Chronicle --dev TypeSpecimen --theme candle
 ```
 
-**A first life** (a browser with no save, or `--fresh`) opens on one tile: he is 6 years 11
-months old and holds nothing. A **guide** walks him through his first works: one short sentence
+**His sixth year.** Every life opens at 6 years old with 4 of each part, 35 of Vitality and
+nothing held, and its first year is made of short works, a month or two each, that shape the
+boy he is at seven: *Glean Behind the Reapers* (his first rations), *Carry Flour to the Baker*
+(his first coin), **one of two** (*Climb the Mill Wheel* for his body, Strength and Dexterity,
+or *Sit with the Old Scribe* for his mind, Intelligence and 5 of Vitality: the one not taken
+has no tile any more), *Carry Books for Father Anselm* (a keepsake tome, kept in the Inventory;
+nothing asks for it yet), then **two of three** works of two months that open at 6 years 4
+months and are over by 6 years 9 months (*Learn Knots from the Bargemen*, *Haul Sacks at the
+Mill*, which takes 5 of his Vitality, *Sing at the Chapel Door*: there is time for two, the
+stopwatch on each counts down, and the third closes), *Go to the Market* at 6 years 8 months
+(the Town page, where his coin buys the rations he is short of by then), *Bring in the
+Harvest* (two months, a point of each part) and *Start Helping Out* at 6 years 11 months,
+which ends the day he is seven. From there the town's work is his, the whole list at once.
+
+**A first life** (a browser with no save, or `--fresh`) is shown the year one work at a time,
+and a **guide** walks him through it: one short sentence
 at a time on a leaf under the one thing it is about (a tile, what he holds, a stat, the clock),
 a pointing hand beside that thing and a shade over the rest of the page, which can still be
-pressed. The leaf has two buttons: *Skip tutorial* ends it for good, and *Next* passes a step
-that would otherwise wait a few seconds (a step that waits for a press has none). A work is begun in two presses, and the hand shows both: first the task
-(*Start Helping Out*), then, once it is chosen, the Begin button, while the leaf says that a
-double click on the task begins it too. That first task takes one month: he turns 7 and his
-first rations arrive. The list grows one task at a time, the three
-classes come with the fourth term, when the guide says what the game is about (keep him alive
-to 30 at least) and what the classes are, and after its last sentence nothing of the guide is left. A
+pressed. For a choice every tile of it is left lit. The leaf has two buttons: *Skip tutorial* ends it for good, and *Next* passes a step
+that would otherwise wait a few seconds (a step that waits for a press has none). A work is begun in two presses, and the hand shows both: first the task,
+then, once it is chosen, the Begin button, while the leaf says that a
+double click on the task begins it too. The steps: begin a task, his food, the flour, his
+coin, the first choice, his stats, the tome, two of the three, the market (then the town's own
+steps: its tab, buying rations, which the step waits for, its places), the harvest (with the
+hand on the Life tab while the Town page is the one in view), his age and what the game is
+about (keep him alive to 30 at least), and the classes the day he is seven. After its last
+sentence nothing of the guide is left. A
 few lines of the town's story are written in the log on the way. The second life and every later
-one open as before: 7 years old, 12 rations, the whole list, no guide.
+one play the same year with no guide and its works all listed from the first day, in whatever
+order the player likes.
 
-**The town.** *Explore Bellmoor* (three months, once in a world; its tile stands on a gold
-ground so that no life misses it) opens the **Town page**: it takes the place of the list of
+**The town.** *Go to the Market* (a month of his sixth year, in every life; its tile stands on a gold
+ground, and no age closes it, so that no life misses it) opens the **Town page**: it takes the place of the list of
 activities in the middle column, by the `Town` tab, and the two other columns stay. The tab is
 not on the page at all before that. When it comes, the guide shows it, then the market where his
-coin buys rations, then the places, once in a world and in whichever life explores. Whatever is
+coin buys rations, then the places, once in a world, in the life that first goes there. Whatever is
 new on the page that is not in view (a task, a thing sold, a place) is counted in a small round
-at its tab's corner until the page is opened. It shows the places of Bellmoor, each with three levels, and under them
+at its tab's corner until the page is opened. The Adventure tab does the same for the places to walk to: it comes with a count of the places behind it the day of his first walk, and counts a place whose tile comes onto its page, open to him or not, and a place that opens (`newInAdventure`, `stoodWalks`, `openedWalks`). It shows the places of Bellmoor, each with three levels, and under them
 the market, where what is bought on the spot is bought (reached by the Town tab: no tile of the Life page goes there). A place is raised by a work that stands under the places, on the same page (a click on a
 place chooses its work, and Begin begins it): months, coin, and for some a stat or years of his
 life. What is raised is the world's and outlives him: the next
-life is born into that town, with what its places give (a shorter task, a class that asks one
+life finds that town the month it goes to the market (its page is not open before: the places stay raised, the page is each life's to open), with what its places give (a shorter task, a class that asks one
 less, rations or a skill point at birth), never a class for free. At his death the coin he holds
 can be left to one place, and counts toward its next level. The page grows with what he does
 (`shows` in `towntable.pg`): two places the day the town is known (the Market, the Mill), the
@@ -200,9 +218,12 @@ of this game told apart by their `chronicle.` prefix:
   `picks`, `begun`, `atOnce` and `skips` are what the player pressed in this life: the tiles he
   chose in the list, the works begun, the things done on the spot, the months passed by the
   button with no work at hand. `guide` is the last step of the first life's guide that ended
-  (the `order` of `rules/achievements.pg`, 0 before the first, 10 once it has said everything; a
-  later life keeps 0, and a digest from before 0.3 has no such key). `townKnown` is 1 once a
-  life of this browser has explored the town, and `town` the levels of its places added up (0 to
+  (the `order` of `rules/achievements.pg`, 0 before the first, 13 once it has said everything,
+  10 before 0.6, whose guide had ten steps and other works; a
+  later life keeps 0, and a digest from before 0.3 has no such key). `v` is the build the digest
+  is of (`LifeSave::DigestBuild`, "0.6" for the first that says so): changed with what a digest
+  means, so that two builds' rows are told apart. `townKnown` is 1 once
+  this life has been to the market (before 0.6: once a life of this browser had explored the town), and `town` the levels of its places added up (0 to
   30). `walks` and `replays` are the walks outside the town he made by hand and the ones a record
   made for him in this life, `records` the records he keeps, `onWalk` 1 while he is on site (a
   digest from before 0.5 has none of the four). The same place by place: `walk.<zone>` and
@@ -214,8 +235,10 @@ of this game told apart by their `chronicle.` prefix:
   added up: the places studied and the beasts watched, life after life. The works of the end
   of a life he has done are named one by one with how often, `did.<id>` (`"did.serve":2,
   "did.campaign":1`): the ways into a class, and every work that opens at 16 or later, a
-  class's own and old age's (`LifeScene::lateWorks`, from the rules' `enters` and `fromAge`);
-  a work he has not done has no key. `guideSkipped` is the step
+  class's own and old age's. So are the works of his sixth year, what opens before 7
+  (`"did.scribe":1,"did.knots":1,"did.sing":1` is the mind, and which two of the three):
+  `LifeScene::namedWorks`, from the rules' `enters` and `fromAge`.
+  A work he has not done has no key. `guideSkipped` is the step
   that was being said when the player pressed *Skip tutorial* (0 when he did not): `guide` then
   reads 10. `deeds` counts the deeds
   alone, not the lore read nor the guide's words.
@@ -238,7 +261,8 @@ GROUP BY session_id ORDER BY MIN(timestamp_ms) DESC;
 `tools/chronicle_stats.pg` makes the whole report from a CSV export of the `chronicle.%` rows
 (the query is in its header): sessions and their length, the days, how far a session got, how
 many first lives got past each step of the guide (a drop between two steps is a drop between two
-sentences), where a session stopped, the lives lost, and the screens: how many came with a
+sentences), one funnel a build since the steps changed with 0.6; his sixth year, by the works
+the first lives did, which of the two and which two of the three; where a session stopped, the lives lost, and the screens: how many came with a
 finger and how long they stayed beside those with a mouse, the views' widths against the game's
 own steps, the page read, and the views most seen.
 
@@ -602,12 +626,12 @@ come from `rules/*.pg` through the scene, never from the component.
   next tab, so no face moves.
 - **A featured tile**: `ActivityRowSpec::featured` gives a compact row the ground
   `activity.kind.featured` in the place of its kind's, while it can be chosen. The rules set it
-  with `featured: true` on an activity (Explore Bellmoor).
+  with `featured: true` on an activity (Go to the Market).
 - **A major tile**: `ActivityRowSpec::major` frames a tile with two gold rules
   (`activity.major.frame`, `.locked`), shows its mark in its top right corner
   (`activity.major.mark`, `.locked`; the name wraps short of it) and gives it the ground
   `activity.kind.major`. It holds in every state. The rules set it with `major: true` on what
-  turns a life: the four ways into a class and Explore Bellmoor. Such an activity also carries
+  turns a life: the four ways into a class and Go to the Market. Such an activity also carries
   `about`, a sentence on what it does and a word of the town's, which its gloss says under its
   name in the place of its group.
 - **What is not counted in months.** `ActivityRowSpec::cost` (a row, a tile) and
@@ -812,32 +836,42 @@ ends. It is not in `month.hurt`: no red, no pause. The clock's track stops at 30
 figure does not.
 
 **Deeds** (`achievements.pg`). Each deed asks facts the Life scene publishes (`stat.<key>`,
-`done.<activity id>`, `life.age`, `life.terms`, `life.working`, `life.lives`, `life.guide`) with
-an `op` of `>=`, `>`, `<=`, `<` or `==`. The scene hands them to the engine's `AchievementSys`
+`done.<activity id>`, `life.age`, `life.terms`, `life.working`, `working.<activity id>`, `life.lives`, `life.guide`) with
+an `op` of `>=`, `>`, `<=`, `<` or `==`. An ask may be one that comes and goes (rations at 3 or
+fewer): the entry is reached the month all of its asks hold at once. The scene hands them to the engine's `AchievementSys`
 (`src/Engine/Systems/achievement.h`); when one is reached the scene applies `gives`, writes
 `entry` in the log and keeps the id in the save.
 
-**A first life** (`lives`, `activitytable.pg`). `Rules::lives` is the save's count of lives, this
-one included; every script gets it as the `lives` input, as it gets `world`. With `lives` 1 the
-list is shown one task at a time. Two optional fields of an activity say how:
+**His sixth year** (`activitytable.pg`). The year's works are rows like the others, at the
+head of the table, with ages counted to the month and a few optional fields:
 
-- `firstLife: true`: the opening task (`helping`, *Start Helping Out*: one month, meals provided,
-  +12 rations, `uses: 1`). It is listed only in a first life that has done nothing yet.
-- `showAfter: N`: listed once N terms in all are done in this life, on top of what else lists
-  it. The carters come after 1 term, the messages after 2, the kitchen and the mill after 3, his
-  letters and the three classes after 4 (the guide speaks of the classes then), what age 8 opens
-  after 5. With `lives` above 1 it is
-  ignored and the list is whole from the first day.
+- `fromMonths: N`, `finishMonths: N`: months past the `fromAge` and `finishBy` birthdays. The
+  three works of two months are `fromAge: 6, fromMonths: 4, finishBy: 6, finishMonths: 9`: begun
+  at 6y4m and 6y6m, two of them fit, and the third closes.
+- `unless: "id"`: its row is not listed once that activity is done in this life (the wheel and
+  the scribe name each other).
+- `closingShown: N`: its closing is said from N months before and not sooner (-1: never), so
+  that the year's short works do not count down a whole year.
+- `showAfter: N`: in a first life (`Rules::lives` 1, the save's count of lives, which every
+  script gets as the `lives` input), listed once N terms in all are done in this life: the
+  gleaning, the flour, the choice and the tome come one at a time. With `lives` above 1 it is
+  ignored. The rest of the year is listed by age in every life, and the town's work has no
+  `showAfter` any more: it is whole the day he is seven.
 
-`freshLife(true)` (`Scenes/lifesave.h`) is that life's first frame: 6 years 11 months, no
+What is done in town (a `place`, a `raises`) is his from six, so that the market sells to the
+boy who has just been taken there; every other activity asks 7 unless it says otherwise.
+
+`freshLife()` (`Scenes/lifesave.h`) is a life's first frame, the first of a world or a later
+one: 6 years old, 4 of each part, 35 of Vitality, no
 `rations` stat at all (so no hunger and no row until the first task brings them), an empty
-Inventory. `buy.rations` waits for the town: it asks the flag `market_known`, which nothing sets
-yet, and has no row until then. *Help in the Kitchen* (`kitchen`: 3 months, meals provided, +6
-rations) is what feeds him meanwhile.
+Inventory, the town not known. `boyOfSeven()` is the same boy past his sixth year without
+having lived it (6 of each part, 40 of Vitality, 12 rations, nothing done), for `--age` and the
+tests of what the town's work does.
 
 **The town** (`towntable.pg`, `town.pg`). The town is the world's, not the life's: the save
-keeps it beside `world` and `lives` (`LifeSave::townKnown`, `town` place -> level, `raisedBy`,
-`fund`, `seen`) and `newLife` carries it over. The rules read it in `character`, with his stats,
+keeps it beside `world` and `lives` (`town` place -> level, `raisedBy`,
+`fund`, `seen`) and `newLife` carries it over. Its page is each life's to open
+(`LifeSave::townKnown`, which a new life does not take from the last: *Go to the Market* gives it). The rules read it in `character`, with his stats,
 under four names: `town_known` (1 or 0), `town.<place>` (its level), `fund.<place>` (the coin
 left to it) and `seen.<place>` (1 once a life has had the place on its page). What a script hands back under those names is never written among his stats
 (`LifeSave::takeTown`); the one thing a script does to the town this way is to make it known.
@@ -971,7 +1005,7 @@ The scene's part is `Scenes/lifewalk.cpp` (LifeScene's own functions, in a file 
 takes its answer (`after` becomes the character, with what the world knows:
 `LifeSave::takeTown`), `fillSite` and `fillFight` write the answer on the screen by name,
 `endWalk` keeps the record and puts the walk's months on the calendar, `fillAdventure` shows the
-places (`zones`, a line each, from the rules' `places`; `chooseZone`, `adventureZone`), the
+places (`zones`, a `PlaceGrid` as the town's: a tile each with its mark, a seal for each level he knows it to and a line, from the rules' `places`; a click sends `PlaceSelectedEvent` "walk.<zone>", which `onPlace` hands to `chooseZone`; `adventureZone`), the
 button that sets out for the one chosen (`setOutAnew`), the walks kept of it (`records`, at most
 five a place, sorted by the rules' `worth`; a line's own button is `walk.run.<id>`), the form
 of a queue (its figures are the rules' `addFigures`) or, while one runs, the panel of the walk

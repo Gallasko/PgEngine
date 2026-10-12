@@ -13,6 +13,7 @@ namespace chronicle
         std::string theme = "day";
         bool fresh = false;            // --fresh: a first life, a month before 7, led by its guide
         int guide = 0;                 // --guide N, with --fresh: the guide past its step N
+        float age = 0.0f;              // --age N, with --fresh: opened at that age (7 or more), his sixth year not played
         bool noSave = false;           // --no-save: the mockup's life, never written
         bool freshWithoutSave = false; // No save to load: a first life, not the mockup's (the web build)
         std::string savePath = "save/chronicle/life.sz";

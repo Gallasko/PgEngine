@@ -61,7 +61,7 @@ namespace chronicle
         constexpr const char * const SeeksList = "walk.seeks";
         constexpr const char * const WorksList = "walk.works";
         constexpr const char * const RecordsList = "walk.records";
-        constexpr const char * const ZonesList = "walk.zones";
+        const std::string ZoneTile = "walk.";              // A place's tile on the Adventure page: followed by its zone (PlaceSelectedEvent's id)
 
         // Their buttons, by tag
         constexpr const char * const WalkTag = "walk.";
@@ -1121,6 +1121,8 @@ namespace chronicle
                 piece->get<EventLog>()->setWidth(ecs, inner);
             else if (piece->has<ActivityList>())
                 piece->get<ActivityList>()->setSize(ecs, inner, 0.0f);
+            else if (piece->has<PlaceGrid>())
+                piece->get<PlaceGrid>()->setWidth(ecs, inner);
             else if (piece->has<StatLine>())
                 piece->get<StatLine>()->setWidth(ecs, inner);
             else if (piece->has<LifeClock>())
@@ -2303,14 +2305,6 @@ namespace chronicle
             return;
         }
 
-        if (event.list == ZonesList)
-        {
-            if (not event.id.empty())
-                chooseZone(event.id);
-
-            return;
-        }
-
         if (not onWalk() or ended or walkTelling)
             return;
 
@@ -2334,15 +2328,6 @@ namespace chronicle
                 chooseRecord(event.id);
 
             queueWalks(1);
-
-            return;
-        }
-
-        // A second click on a place sets out for it, as its button does
-        if (event.list == ZonesList)
-        {
-            chooseZone(event.id);
-            setOutAnew();
 
             return;
         }
@@ -2575,6 +2560,10 @@ namespace chronicle
                 label->setWidth(ecs, std::max(1.0f, to));
         };
 
+        // The places' tiles share the panel's width out, as the town's do
+        if (auto grid = piece<PlaceGrid>(ZonesName); grid and std::abs(grid->spec.width - inner) > 0.5f)
+            grid->setWidth(ecs, inner);
+
         // What a walk by hand is at the left, the button that sets out at the right: the line
         // has what the button leaves
         if (EntityRef row = named("zoneGo"); not row.empty() and std::abs(row->get<PositionComponent>()->width - inner) > 0.5f)
@@ -2762,11 +2751,12 @@ namespace chronicle
         // what kind of walk it is and what he is short of are left to the line under the name
         const bool cells = adventureRoomy();
 
-        // ---- Where to walk: a line a place, the open ones first, the one in view chosen ----
-        std::vector<ActivityRowSpec> open;
-        std::vector<ActivityRowSpec> closed;
-        std::string placeSignature = cells ? "c;" : "n;";
-        std::string litPlace;
+        // ---- Where to walk: a tile a place, as the town's places are shown, the open ones first
+        // and the one in view lit. Its mark and its name, a seal for each level he knows it to,
+        // and a line: what kind of walk it is and what it costs, or what it asks of him ----
+        std::vector<PlaceTileSpec> open;
+        std::vector<PlaceTileSpec> closed;
+        std::string placeSignature;
 
         for (const RuleActivity* a : places)
         {
@@ -2774,51 +2764,40 @@ namespace chronicle
             const ElementMap* said = placeRow(zone);
             const bool locked = boolOf(a->fields, "locked");
 
-            ActivityRowSpec row;
-            row.id = zone;
-            row.name = textOf(a->fields, "name");
-            row.glyph = "";
-            row.rank = said and cells ? upper(textOf(*said, "kind")) : std::string();
-            row.glossKey = "activity/" + textOf(a->fields, "id");
+            PlaceTileSpec tile;
+            tile.id = ZoneTile + zone;
+            tile.name = textOf(a->fields, "name");
+            tile.glyph = textOf(a->fields, "glyph").empty() ? std::string("adventure") : textOf(a->fields, "glyph");
+            tile.level = said ? intOf(*said, "level") : 0;
+            tile.of = said and intOf(*said, "levels") > 0 ? intOf(*said, "levels") : 4;
+            tile.glossKey = "activity/" + textOf(a->fields, "id");
 
             if (locked)
             {
-                // Shut to him: what it asks, in a line, and the first thing he is short of
+                // Shut to him: what it asks, in a line
                 std::string asks;
-                std::string gap;
 
                 for (const auto& r : a->requires)
                 {
                     const int needed = intOf(r, "needed");
-                    const int current = intOf(r, "current");
                     const std::string label = textOf(r, "label");
 
                     asks += (asks.empty() ? "Asks " : ", ") + (needed > 1 ? label + " " + std::to_string(needed) : lower(label));
-
-                    if (gap.empty() and current < needed)
-                        gap = needed > 1 ? "Short " + std::to_string(needed - current) + " " + label : "Not yet";
                 }
 
-                row.state = ActivityState::Locked;
-                row.cost = std::to_string(intOf(a->fields, "months")) + " mo";
-                row.line = asks.empty() ? std::string("Not open to him yet.") : asks + ".";
-                row.each = cells ? gap : std::string();
-                row.eachTone = "muted";
+                tile.line = upper(asks.empty() ? std::string("Not open to him yet") : asks);
             }
             else
             {
-                row.cost = said ? textOf(*said, "cost") : std::to_string(intOf(a->fields, "months")) + " mo";
-                row.line = said ? textOf(*said, "gives") : textOf(a->fields, "about");
-                row.each = said ? textOf(*said, "known") : std::string();
-                row.eachTone = "know";
+                const std::string kind = said ? textOf(*said, "kind") : std::string();
+                const std::string cost = said ? textOf(*said, "cost") : std::to_string(intOf(a->fields, "months")) + " mo";
 
-                if (zone == adventureZone)
-                    litPlace = zone;
+                tile.line = upper(kind.empty() ? cost : kind + " \xC2\xB7 " + cost);
             }
 
-            placeSignature += row.id + "|" + row.cost + "|" + row.line + "|" + row.each + "|" + (locked ? "x" : "o") + ";";
+            placeSignature += tile.id + "|" + tile.name + "|" + tile.line + "|" + std::to_string(tile.level) + "/" + std::to_string(tile.of) + ";";
 
-            (locked ? closed : open).push_back(row);
+            (locked ? closed : open).push_back(tile);
         }
 
         const size_t opened = open.size();
@@ -2826,15 +2805,19 @@ namespace chronicle
 
         open.insert(open.end(), closed.begin(), closed.end());
 
-        if (auto list = piece<ActivityList>(ZonesName))
+        if (auto grid = piece<PlaceGrid>(ZonesName))
         {
-            if (walkFilled[ZonesName] != placeSignature or list->spec.groups.empty() != open.empty())
+            // Made again only when what a tile says has changed; the one lit follows the place in view
+            if (walkFilled[ZonesName] != placeSignature)
             {
                 walkFilled[ZonesName] = placeSignature;
-                list->setRows(ecs, open.empty() ? std::vector<ActivityGroup>{} : std::vector<ActivityGroup>{{"", open}});
+                grid->setPlaces(ecs, open);
             }
 
-            walkPicks[ZonesName] = litPlace;
+            const std::string lit = placeOf(adventureZone) ? ZoneTile + adventureZone : std::string();
+
+            if (grid->selected() != lit)
+                grid->select(ecs, lit);
         }
 
         if (auto panel = piece<Panel>("zonePanel"))

@@ -517,6 +517,7 @@ var statNames = {
     wood_king: "King of the Greenwood",
     hedges_known: "Knows the hedges",
     bow_learned: "Learned the bow",
+    tome: "Father Anselm's tome",
     remedy: "Wortleaf remedies",
     berries: "Berries",
     wortleaf: "Wortleaf",
@@ -589,6 +590,7 @@ var statShort = {
     wood_king: "KING",
     hedges_known: "HEDGES",
     bow_learned: "BOW",
+    tome: "TOME",
     remedy: "REMEDY",
     antler: "ANTLER",
     ashwood: "ASH WOOD"

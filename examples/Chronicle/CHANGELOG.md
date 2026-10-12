@@ -3,6 +3,53 @@
 What changed in the game, build by build, as a player sees it. The engine's own changes are in
 the `CHANGELOG.md` at the root of the repository.
 
+## 0.6 - Unreleased
+
+### New
+
+- **His sixth year.** Every life now begins at 6, and its first year is a row of short tasks, a
+  month or two each, that decide who the boy is at seven. You glean for your first rations and
+  carry flour for your first coin. Then a first choice, **one of two**: *Climb the Mill Wheel*
+  (Strength and Dexterity) or *Sit with the Old Scribe* (Intelligence and Vitality); the one
+  you leave is gone. Then **two of three** tasks of two months that close before you can do
+  them all: *Learn Knots from the Bargemen* (Dexterity and Intelligence), *Haul Sacks at the
+  Mill* (Strength, at a cost in Vitality) or *Sing at the Chapel Door* (Intelligence and
+  Renown). Then the market, the harvest (a point of everything), and a month at the mill that
+  ends the day you are seven. A whole year takes about half a minute, and no two need be alike.
+- **A keepsake.** *Carry Books for Father Anselm* pays in coin and in a small tome he tells you
+  to keep. It is in your Inventory. Nothing asks for it yet.
+
+### Changed
+
+- **Every life starts smaller.** 6 years old, 4 of each stat and 35 Vitality, with nothing in
+  your Inventory, where a life began at 7 with 6 of each, 40 Vitality and a year of rations.
+  The sixth year gives it back, your way: you are seven with 5 to 8 in a stat.
+- **Go to the Market replaces Explore Bellmoor.** One month of your sixth year opens the Town
+  page, where your coin buys the rations you are short of by then. Every life goes there once:
+  what was built in town stays built from life to life, but the page opens the month you go.
+- **The tutorial is the sixth year.** A first life is shown its tasks one at a time and the
+  guide says a sentence for each: your food, your coin, the choice (both tiles lit), your stats,
+  the stopwatch on tasks that close, the market and how to buy, the task that takes two months,
+  your age, and the classes the day you are seven. Its sentences are shorter-lived, and none
+  asks you to wait for a task of three months any more. Later lives have no guide and the
+  whole year on the page from the first day.
+- **The town's work comes all at once at seven** in a first life too, counted in one toast
+  ("New: 9 tasks") where each used to be named.
+- **The places to walk to are tiles**, like the places of the town: its mark and its name, a
+  seal for each level you know it to, and a line with what kind of walk it is and what it
+  costs, or what it asks. A closed place can be chosen too: the button says what it asks.
+- **The Adventure tab says when it has something new.** The small count at its corner used to
+  come only when a place opened to you. It now comes with the tab itself, the day of your first
+  walk, and whenever a new place appears on the page, open or not yet.
+- *Start Helping Out* is the last month before seven now, and brings 6 rations.
+- The anonymous play statistics now say which build they are from and which tasks of the sixth
+  year were done (which of the two, which two of the three).
+
+### Fixed
+
+- **The low-food hint of the tutorial could go unsaid.** It was lost when your rations had run
+  low once before the hint was allowed to speak.
+
 ## 0.5 - 2026-10-11
 
 ### New

@@ -55,7 +55,7 @@ import "expeditiontable"
 var errors = []
 
 
-var opened = "He knows the town street by street: the Town page is open"
+var opened = "He has been to the market: the Town page is open"
 var raisedLine = " stands in Bellmoor: the town will keep it"
 var fundLine = "Left to it by those before him"
 var foundLine = " is his to raise now: it has come onto the Town page"

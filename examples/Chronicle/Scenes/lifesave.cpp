@@ -475,7 +475,7 @@ namespace chronicle
         return earned;
     }
 
-    std::string LifeSave::digest(const std::vector<std::string>& late) const
+    std::string LifeSave::digest(const std::vector<std::string>& named) const
     {
         const int terms = termsDone();
 
@@ -510,7 +510,7 @@ namespace chronicle
              << ",\"town\":" << townLevels() << ",\"townKnown\":" << (townKnown ? 1 : 0)
              << ",\"walks\":" << walksByHand << ",\"replays\":" << walksByRecord << ",\"records\":" << recipes.size() << ",\"onWalk\":" << (walk.under() ? 1 : 0)
              << ",\"fights\":" << fights << ",\"fightsWon\":" << fightsWon << ",\"fightsLost\":" << fightsLost << ",\"fightsFled\":" << fightsFled << ",\"fightsAuto\":" << fightsAuto
-             << ",\"carried\":" << carried << ",\"queued\":" << queued << ",\"known\":" << known;
+             << ",\"carried\":" << carried << ",\"queued\":" << queued << ",\"known\":" << known << ",\"v\":\"" << DigestBuild << "\"";
 
         // Place by place, the ones he went to alone: in the order of their names, so that two
         // digests of the same life read the same
@@ -526,8 +526,8 @@ namespace chronicle
                 line << ",\"replay." << zone << "\":" << times;
         }
 
-        // The works of the end of a life he has done, in the order the rules list them
-        for (const auto& id : late)
+        // The works followed one by one that he has done, in the order the rules list them
+        for (const auto& id : named)
         {
             if (auto it = done.find(id); it != done.end() and it->second > 0)
                 line << ",\"did." << id << "\":" << it->second;
@@ -660,38 +660,50 @@ namespace chronicle
         return life;
     }
 
-    LifeSave freshLife(bool first)
+    LifeSave freshLife()
     {
         LifeSave life;
         life.name = "Aldren of Bellmoor";
         life.profession = "The miller's second son";
         life.origin = "Born at the mill on the Bell.";
         life.aim = "warrior";
-        life.age = first ? 6.0f + 11.0f / 12.0f : 7.0f;
+        life.age = 6.0f;
 
+        // A boy of six: his sixth year makes him what he is at seven (activitytable.pg)
         life.stats = {
-            {"str", 6}, {"dex", 6}, {"int", 6}, {"vit", 40}, {"vitmax", 40},
+            {"str", 4}, {"dex", 4}, {"int", 4}, {"vit", 35}, {"vitmax", 35},
             {"arms", 0}, {"discipline", 0}, {"letters", 0}, {"lore", 0}, {"arcana", 0}, {"stealth", 0}, {"guile", 0}, {"renown", 0},
-            {"coin", 0}, {"rations", 12},
+            {"coin", 0},
         };
 
         life.parts = {"str", "dex", "int", "vit"};
         life.skills = skillRows();
 
-        // Nothing earned yet: the ledger shows only what he was sent off with
+        // He holds nothing yet: no rations to eat or to run out of, no row in the ledger, until
+        // his first work brings them
+        life.log = {{life.age, "Childhood", LogKind::Milestone, "", ""}};
+
+        return life;
+    }
+
+    LifeSave boyOfSeven()
+    {
+        LifeSave life = freshLife();
+
+        life.age = 7.0f;
+
+        for (const char* part : {"str", "dex", "int"})
+            life.stats[part] = 6;
+
+        life.stats["vit"] = 40;
+        life.stats["vitmax"] = 40;
+        life.stats["rations"] = 12;
+
         life.resources = {
             {"purse", "PURSE", "rations", "trade", "Rations", "", "", 0, false},
         };
 
         life.log = {{life.age, "Childhood", LogKind::Milestone, "", ""}};
-
-        // A first life holds nothing yet: no rations to eat or to run out of, no row in the
-        // ledger, until its first task brings them
-        if (first)
-        {
-            life.stats.erase("rations");
-            life.resources.clear();
-        }
 
         return life;
     }

@@ -1,5 +1,6 @@
 #include "stdafx.h"
 
+#include <sstream>
 #include <algorithm>
 #include <chrono>
 #include <functional>
@@ -109,20 +110,20 @@ namespace pg
                         {"coin", ElementType{0}}, {"rations", ElementType{12}}};
             }
 
-            // The same boy once a life has explored the town: its market is his to buy at
+            // A boy of six, the day a life begins: nothing held
+            ElementMap child()
+            {
+                return {{"str", ElementType{4}}, {"dex", ElementType{4}}, {"int", ElementType{4}}, {"vit", ElementType{35}}, {"vitmax", ElementType{35}},
+                        {"coin", ElementType{0}}};
+            }
+
+            // The same boy once he has been to the market: it is his to buy at
             ElementMap townsman()
             {
                 ElementMap character = boy();
                 character["town_known"] = ElementType{1};
 
                 return character;
-            }
-
-            // A first life at its first frame: a month before 7, holding nothing
-            ElementMap newcomer()
-            {
-                return {{"str", ElementType{6}}, {"dex", ElementType{6}}, {"int", ElementType{6}}, {"vit", ElementType{40}}, {"vitmax", ElementType{40}},
-                        {"coin", ElementType{0}}};
             }
 
             // The balance's good Warrior the month he swore to the Keep, at 17.5
@@ -1721,51 +1722,74 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
-        // The opening task: a month that costs nothing and brings the first rations, for a first
-        // life that has done nothing yet and for no other.
-        TEST(rules_test, helping_is_listed_only_in_a_first_life)
+        // His sixth year: what each of its works brings, and takes.
+        TEST(rules_test, the_works_of_his_sixth_year)
         {
             MockLogger logger;
             RulesFixture f;
 
-            const float start = 6.0f + 11.0f / 12.0f;
+            f.rules.lives = 2;
 
-            f.rules.lives = 1;
+            auto brings = [](const RuleActivity& a) {
+                std::vector<std::string> gains;
 
-            RuleActivity helping = activityAt(f.rules, start, newcomer(), "helping");
+                for (const auto& g : a.gains)
+                    gains.push_back(textOf(g, "stat") + " " + std::to_string(intOf(g, "amount")));
+
+                return gains;
+            };
+
+            const float four = 6.0f + 4.0f / 12.0f;
+
+            // What he gleans feeds him until the market; the flour and the books pay what buys the rest
+            RuleActivity glean = activityAt(f.rules, 6.0f, child(), "glean");
+
+            EXPECT_TRUE(flag(glean.fields, "listed"));
+            EXPECT_FALSE(flag(glean.fields, "locked"));
+            EXPECT_EQ(intOf(glean.fields, "months"), 1);
+            EXPECT_TRUE(flag(glean.fields, "board"));
+            EXPECT_EQ(brings(glean), (std::vector<std::string>{"rations 10"}));
+
+            EXPECT_EQ(brings(activityAt(f.rules, 6.0f, child(), "flour")), (std::vector<std::string>{"coin 6"}));
+            EXPECT_EQ(brings(activityAt(f.rules, 6.0f, child(), "tome")), (std::vector<std::string>{"tome 1", "coin 4"}));
+
+            // His body or his mind: the scribe's bench is the one that builds his Vitality
+            EXPECT_EQ(brings(activityAt(f.rules, 6.0f, child(), "wheel")), (std::vector<std::string>{"str 1", "dex 1"}));
+            EXPECT_EQ(brings(activityAt(f.rules, 6.0f, child(), "scribe")), (std::vector<std::string>{"int 1", "vit 5"}));
+
+            // The three of two months: the sacks take from his Vitality as they begin
+            EXPECT_EQ(brings(activityAt(f.rules, four, child(), "knots")), (std::vector<std::string>{"dex 1", "int 1"}));
+            EXPECT_EQ(brings(activityAt(f.rules, four, child(), "sing")), (std::vector<std::string>{"int 1", "renown 1"}));
+
+            RuleActivity sacks = activityAt(f.rules, four, child(), "sacks");
+
+            EXPECT_EQ(intOf(sacks.fields, "months"), 2);
+            EXPECT_EQ(brings(sacks), (std::vector<std::string>{"str 1"}));
+            ASSERT_EQ(sacks.costs.size(), 1u);
+            EXPECT_EQ(textOf(sacks.costs[0], "stat"), "vit");
+            EXPECT_EQ(intOf(sacks.costs[0], "amount"), 5);
+
+            // The harvest, and the month at the mill that brings him to seven
+            RuleActivity harvest = activityAt(f.rules, 6.75f, child(), "harvest");
+
+            EXPECT_EQ(intOf(harvest.fields, "months"), 2);
+            EXPECT_EQ(brings(harvest), (std::vector<std::string>{"str 1", "dex 1", "int 1"}));
+
+            RuleActivity helping = activityAt(f.rules, 6.0f + 11.0f / 12.0f, child(), "helping");
 
             EXPECT_TRUE(flag(helping.fields, "listed"));
-            EXPECT_FALSE(flag(helping.fields, "locked"));
             EXPECT_EQ(intOf(helping.fields, "months"), 1);
             EXPECT_TRUE(flag(helping.fields, "board"));
             EXPECT_EQ(intOf(helping.fields, "uses"), 1);
-            EXPECT_TRUE(flag(helping.fields, "firstLife"));
-
-            ASSERT_EQ(helping.gains.size(), 1u);
-            EXPECT_EQ(textOf(helping.gains[0], "stat"), "rations");
-            EXPECT_EQ(intOf(helping.gains[0], "amount"), 12);
-
-            // Done, it is spent; and a first life that has done anything else no longer opens on it
-            f.rules.done = {{"helping", ElementType{1}}};
-            EXPECT_FALSE(flag(activityAt(f.rules, 7.0f, boy(), "helping").fields, "listed"));
-
-            f.rules.done = {{"carters", ElementType{1}}};
-            EXPECT_FALSE(flag(activityAt(f.rules, 7.25f, boy(), "helping").fields, "listed"));
-
-            // A later life never has its row
-            f.rules.done = {};
-            f.rules.lives = 2;
-
-            EXPECT_FALSE(flag(activityAt(f.rules, start, newcomer(), "helping").fields, "listed"));
-            EXPECT_FALSE(flag(activityAt(f.rules, 7.0f, boy(), "helping").fields, "listed"));
+            EXPECT_EQ(brings(helping), (std::vector<std::string>{"rations 6"}));
         }
 
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
-        // A first life is shown its tasks one at a time, by the terms it has done; a later life has
-        // them all from its first day.
-        TEST(rules_test, show_after_counts_terms_in_a_first_life)
+        // The year as a first life meets it: a work at a time, one of the two, two of the three,
+        // the market, the harvest, the mill; then the town's work, whole, the day he is seven.
+        TEST(rules_test, the_sixth_year_a_work_at_a_time)
         {
             MockLogger logger;
             RulesFixture f;
@@ -1785,44 +1809,142 @@ namespace pg
                 return ids;
             };
 
-            auto has = [](const std::vector<std::string>& ids, const std::string& id) {
-                return std::find(ids.begin(), ids.end(), id) != ids.end();
-            };
+            auto at = [](int months) { return 6.0f + static_cast<float>(months) / 12.0f; };
+
+            using Ids = std::vector<std::string>;
 
             f.rules.lives = 1;
 
-            // Nothing done: the opening task alone
-            EXPECT_EQ(listed(6.0f + 11.0f / 12.0f, newcomer()), (std::vector<std::string>{"helping"}));
+            // Nothing done: the gleaning alone
+            EXPECT_EQ(listed(at(0), child()), (Ids{"glean"}));
 
-            f.rules.done = {{"helping", ElementType{1}}};
-            EXPECT_EQ(listed(7.0f, boy()), (std::vector<std::string>{"carters"}));
+            f.rules.done = {{"glean", ElementType{1}}};
+            EXPECT_EQ(listed(at(1), child()), (Ids{"flour"}));
 
-            f.rules.done = {{"helping", ElementType{1}}, {"carters", ElementType{1}}};
-            EXPECT_EQ(listed(7.25f, boy()), (std::vector<std::string>{"carters", "messages"}));
+            // One or the other
+            f.rules.done = {{"glean", ElementType{1}}, {"flour", ElementType{1}}};
+            EXPECT_EQ(listed(at(2), child()), (Ids{"wheel", "scribe"}));
 
-            // Three terms: the kitchen and the mill
-            f.rules.done = {{"helping", ElementType{1}}, {"carters", ElementType{1}}, {"messages", ElementType{1}}};
-            EXPECT_EQ(listed(7.5f, boy()), (std::vector<std::string>{"carters", "mill", "messages", "kitchen"}));
+            // The wheel climbed: the scribe's bench has no row any more
+            f.rules.done = {{"glean", ElementType{1}}, {"flour", ElementType{1}}, {"wheel", ElementType{1}}};
+            EXPECT_EQ(listed(at(3), child()), (Ids{"tome"}));
 
-            // Four: his letters, and the three ways into a class, which the guide speaks of then
-            f.rules.done = {{"helping", ElementType{1}}, {"carters", ElementType{1}}, {"messages", ElementType{1}}, {"kitchen", ElementType{1}}};
-            EXPECT_EQ(listed(7.75f, boy()), (std::vector<std::string>{"carters", "mill", "messages", "kitchen", "letters", "explore", "keep", "collegium", "hand"}));
+            // Three works of two months, from his fourth month
+            f.rules.done["tome"] = ElementType{1};
+            EXPECT_EQ(listed(at(4), child()), (Ids{"knots", "sacks", "sing"}));
 
-            // Five: whatever his age has opened meanwhile. The terms count, whichever they were
-            f.rules.done = {{"helping", ElementType{1}}, {"carters", ElementType{4}}};
+            RuleActivity knots = activityAt(f.rules, at(4), child(), "knots");
 
-            const std::vector<std::string> grown = listed(8.25f, boy());
+            EXPECT_FALSE(flag(knots.fields, "locked"));
+            EXPECT_EQ(intOf(knots.fields, "closesIn"), 3);
 
-            for (const char* id : {"carters", "mill", "messages", "kitchen", "letters", "keep", "collegium", "hand", "market", "roam"})
-                EXPECT_TRUE(has(grown, id)) << id;
+            f.rules.done["knots"] = ElementType{1};
+            EXPECT_EQ(listed(at(6), child()), (Ids{"sacks", "sing"}));
+            EXPECT_EQ(intOf(activityAt(f.rules, at(6), child(), "sing").fields, "closesIn"), 1);
 
-            // A later life with nothing done: the list of its first day, whole
-            f.rules.done = {};
+            // The second done, the third has closed: there was time for two. The market is all there is
+            f.rules.done["sacks"] = ElementType{1};
+            EXPECT_TRUE(flag(activityAt(f.rules, at(8), child(), "sing").fields, "closed"));
+            EXPECT_EQ(listed(at(8), child()), (Ids{"tomarket"}));
+
+            // (begun a month late, the second still fits, and no later)
+            EXPECT_FALSE(flag(activityAt(f.rules, at(7), child(), "sing").fields, "closed"));
+
+            // The town known, the harvest; then the mill's month, which ends the day he is seven
+            ElementMap known = child();
+            known["town_known"] = ElementType{1};
+
+            // (with what its market sells and the works that raise its places, on the town's own page)
+            f.rules.done["tomarket"] = ElementType{1};
+            EXPECT_EQ(listed(at(9), known), (Ids{"harvest", "buy.rations", "raise.market.1", "raise.mill.1"}));
+
+            f.rules.done["harvest"] = ElementType{1};
+            EXPECT_EQ(listed(at(11), known), (Ids{"helping", "buy.rations", "raise.market.1", "raise.mill.1"}));
+
+            // The market sells to a boy of six: nothing of the town waits for him to be seven
+            RuleActivity buy = activityAt(f.rules, at(9), known, "buy.rations");
+
+            EXPECT_TRUE(flag(buy.fields, "listed"));
+            EXPECT_EQ(intOf(buy.fields, "fromAge"), 6);
+
+            // Seven: the town's work, all of it at once. The year has taught him the page
+            f.rules.done["helping"] = ElementType{1};
+
+            ElementMap seven = boy();
+            seven["town_known"] = ElementType{1};
+
+            // (the first walk outside the town is among them, right under his work)
+            // (and, the town being known, what its market sells and the works that raise its places)
+            EXPECT_EQ(listed(7.0f, seven), (Ids{"carters", "mill", "messages", "kitchen", "walk.hedgerows", "buy.rations", "letters", "keep", "collegium", "hand", "raise.market.1", "raise.mill.1"}));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A later life has the year's works from its first day, in whatever order it likes; the
+        // three still wait for his fourth month and are over by his ninth, and what he did not do
+        // by seven is closed to him.
+        TEST(rules_test, the_sixth_year_of_a_later_life)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            auto listed = [&](float age, const ElementMap& character) {
+                std::vector<RuleActivity> activities;
+                EXPECT_TRUE(f.rules.activities(age, character, activities)) << firstError(f.rules);
+
+                std::vector<std::string> ids;
+
+                for (const auto& a : activities)
+                {
+                    if (flag(a.fields, "listed"))
+                        ids.push_back(textOf(a.fields, "id"));
+                }
+
+                return ids;
+            };
+
+            auto at = [](int months) { return 6.0f + static_cast<float>(months) / 12.0f; };
+
+            using Ids = std::vector<std::string>;
+
             f.rules.lives = 2;
 
-            // (the first walk outside the town is among them, open, right under his work: no task
-            // stands before it, and the next walk has no row until this one is walked)
-            EXPECT_EQ(listed(7.0f, boy()), (std::vector<std::string>{"carters", "mill", "messages", "kitchen", "walk.hedgerows", "letters", "explore", "keep", "collegium", "hand"}));
+            EXPECT_EQ(listed(at(0), child()), (Ids{"glean", "flour", "wheel", "scribe", "tome"}));
+
+            // The scribe first: the wheel is gone, in a later life as in the first
+            f.rules.done = {{"scribe", ElementType{1}}};
+            EXPECT_EQ(listed(at(1), child()), (Ids{"glean", "flour", "tome"}));
+
+            // Too young for the three, for the market and for the harvest: none has a row yet
+            f.rules.done = {};
+
+            for (const char* id : {"knots", "sacks", "sing", "tomarket", "harvest", "helping"})
+            {
+                RuleActivity early = activityAt(f.rules, at(3), child(), id);
+
+                EXPECT_FALSE(flag(early.fields, "listed")) << id;
+                EXPECT_TRUE(flag(early.fields, "locked")) << id;
+            }
+
+            EXPECT_EQ(listed(at(4), child()), (Ids{"glean", "flour", "wheel", "scribe", "tome", "knots", "sacks", "sing"}));
+
+            // The three are over by his ninth month, the market opens at his eighth and never closes
+            EXPECT_EQ(listed(at(8), child()), (Ids{"glean", "flour", "wheel", "scribe", "tome", "tomarket"}));
+            EXPECT_EQ(listed(at(9), child()), (Ids{"glean", "flour", "wheel", "scribe", "tome", "tomarket", "harvest"}));
+
+            // What a short work of the year has left to begin is only said near its end
+            EXPECT_EQ(intOf(activityAt(f.rules, at(0), child(), "glean").fields, "closesIn"), -1);
+            EXPECT_EQ(intOf(activityAt(f.rules, at(8), child(), "glean").fields, "closesIn"), 3);
+            EXPECT_EQ(intOf(activityAt(f.rules, at(9), child(), "harvest").fields, "closesIn"), -1);
+
+            // Seven with none of it done: the year is closed, the market still waits for him
+            const Ids seven = listed(7.0f, boy());
+
+            for (const char* id : {"glean", "flour", "wheel", "scribe", "tome", "knots", "sacks", "sing", "harvest", "helping"})
+                EXPECT_TRUE(std::find(seven.begin(), seven.end(), id) == seven.end()) << id;
+
+            EXPECT_EQ(seven, (Ids{"tomarket", "carters", "mill", "messages", "kitchen", "walk.hedgerows", "letters", "keep", "collegium", "hand"}));
         }
 
         // ----------------------------------------------------------------------------------------
@@ -1967,12 +2089,15 @@ namespace pg
             const std::vector<std::string> kinds = {"button:", "tile:", "holding:", "stat:", "tab:", "place:"};
             const std::vector<std::string> places = {"", "clock", "log"};
 
-            // The steps outside the sequence: his rations low, before and after he knows the town; and
+            // The steps outside the sequence: the work that took from his Vitality; his rations low,
+            // before and after he knows the town; and
             // the town opened, its tab, its market and its places, which are said once in a world
-            const std::vector<std::string> asides = {"guide.rations_low", "guide.rations_market", "guide.town", "guide.market", "guide.places"};
+            const std::vector<std::string> asides = {"guide.vitality", "guide.rations_low", "guide.rations_market", "guide.town", "guide.market", "guide.places"};
             const std::vector<std::string> worlds = {"guide.town", "guide.market", "guide.places"};
 
-            std::vector<int> taken(11, 0);
+            const int last = 13;
+
+            std::vector<int> taken(last + 1, 0);
             size_t outside = 0;
 
             for (const auto& a : achievements)
@@ -1995,6 +2120,19 @@ namespace pg
                     known = known or (point.rfind(kind, 0) == 0 and point.size() > kind.size());
 
                 EXPECT_TRUE(known) << id << " points at " << point;
+
+                // What is lit with it is of the same kinds: the other tiles of a choice, his other parts
+                std::istringstream lights(textOf(a.fields, "light"));
+
+                for (std::string one; std::getline(lights, one, ',');)
+                {
+                    bool lit = false;
+
+                    for (const auto& kind : kinds)
+                        lit = lit or (one.rfind(kind, 0) == 0 and one.size() > kind.size());
+
+                    EXPECT_TRUE(lit) << id << " lights " << one;
+                }
 
                 // A work is begun in two presses: a step that waits for one shows its tile, then
                 // the button that begins it, and says what to press
@@ -2025,14 +2163,18 @@ namespace pg
                 }
 
                 ASSERT_GE(a.order, 1) << id;
-                ASSERT_LE(a.order, 10) << id;
+                ASSERT_LE(a.order, last) << id;
 
                 ++taken[a.order];
 
                 EXPECT_EQ(waitsFor(a), a.order - 1) << id;
+
+                // The steps of his sixth year are for a boy under seven; his age and the classes
+                // are said at any age
+                EXPECT_EQ(intOf(a.fields, "untilAge"), a.order <= 10 ? 7 : 0) << id;
             }
 
-            for (int order = 1; order <= 10; ++order)
+            for (int order = 1; order <= last; ++order)
                 EXPECT_EQ(taken[order], 1) << "order " << order;
 
             EXPECT_EQ(outside, asides.size());
@@ -2305,24 +2447,33 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
-        // Exploring the town is for who does not know it.
-        TEST(rules_test, explore_hidden_once_known)
+        // Going to the market is for who has not been, in this life: it opens the town's page.
+        TEST(rules_test, the_market_visit_opens_the_town_once_a_life)
         {
             MockLogger logger;
             RulesFixture f;
 
-            RuleActivity explore = activityAt(f.rules, 7.0f, boy(), "explore");
+            const float eighth = 6.0f + 8.0f / 12.0f;
 
-            EXPECT_TRUE(flag(explore.fields, "listed"));
-            EXPECT_FALSE(flag(explore.fields, "locked"));
-            EXPECT_EQ(intOf(explore.fields, "months"), 3);
+            RuleActivity visit = activityAt(f.rules, eighth, child(), "tomarket");
+
+            EXPECT_TRUE(flag(visit.fields, "listed"));
+            EXPECT_FALSE(flag(visit.fields, "locked"));
+            EXPECT_EQ(intOf(visit.fields, "months"), 1);
+
+            // Not before his eighth month, and no age closes it: no boy goes without
+            EXPECT_FALSE(flag(activityAt(f.rules, 6.0f + 7.0f / 12.0f, child(), "tomarket").fields, "listed"));
+            EXPECT_TRUE(flag(activityAt(f.rules, 6.0f + 7.0f / 12.0f, child(), "tomarket").fields, "locked"));
+            EXPECT_TRUE(flag(activityAt(f.rules, 25.0f, boy(), "tomarket").fields, "listed"));
+            EXPECT_FALSE(flag(activityAt(f.rules, 25.0f, boy(), "tomarket").fields, "closed"));
+            EXPECT_EQ(intOf(activityAt(f.rules, eighth, child(), "tomarket").fields, "closesIn"), -1);
 
             // The page wants it seen, and no other row of a first day
-            EXPECT_TRUE(flag(explore.fields, "featured"));
+            EXPECT_TRUE(flag(visit.fields, "featured"));
             EXPECT_FALSE(flag(activityAt(f.rules, 7.0f, boy(), "carters").fields, "featured"));
 
             // It turns a life, as a class does: such a row says so, and tells what it does
-            for (const char* id : {"explore", "keep", "collegium", "hand", "greenwood"})
+            for (const char* id : {"tomarket", "keep", "collegium", "hand", "greenwood"})
             {
                 RuleActivity turning = activityAt(f.rules, 16.0f, boy(), id);
 
@@ -2332,18 +2483,17 @@ namespace pg
 
             EXPECT_FALSE(flag(activityAt(f.rules, 7.0f, boy(), "carters").fields, "major"));
             EXPECT_EQ(textOf(activityAt(f.rules, 7.0f, boy(), "carters").fields, "about"), "");
-            ASSERT_EQ(explore.gains.size(), 1u);
-            EXPECT_EQ(textOf(explore.gains[0], "stat"), "town_known");
+            ASSERT_EQ(visit.gains.size(), 1u);
+            EXPECT_EQ(textOf(visit.gains[0], "stat"), "town_known");
 
-            EXPECT_FALSE(flag(activityAt(f.rules, 7.0f, townsman(), "explore").fields, "listed"));
+            // Known, it has no row; and nothing is left of the three months that used to open it
+            EXPECT_FALSE(flag(activityAt(f.rules, 7.0f, townsman(), "tomarket").fields, "listed"));
 
-            // A first life meets it with its fourth term
-            f.rules.lives = 1;
-            f.rules.done = {{"helping", ElementType{1}}, {"carters", ElementType{2}}};
-            EXPECT_FALSE(flag(activityAt(f.rules, 7.5f, boy(), "explore").fields, "listed"));
+            std::vector<RuleActivity> activities;
+            ASSERT_TRUE(f.rules.activities(7.0f, boy(), activities)) << firstError(f.rules);
 
-            f.rules.done = {{"helping", ElementType{1}}, {"carters", ElementType{3}}};
-            EXPECT_TRUE(flag(activityAt(f.rules, 7.75f, boy(), "explore").fields, "listed"));
+            for (const auto& a : activities)
+                EXPECT_NE(textOf(a.fields, "id"), "explore");
         }
 
         // ----------------------------------------------------------------------------------------

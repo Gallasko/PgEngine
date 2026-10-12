@@ -24,8 +24,9 @@ namespace chronicle
 
     struct LifeSceneOptions
     {
-        bool fresh = false;            // --fresh: a new life, nothing earned. A first life (`lives` 1), led by its guide
-        int lives = 1;                 // With `fresh`: which life of the world it is. From the second, the old opening: 7 years old, a year of rations, every task listed
+        bool fresh = false;            // --fresh: a new life at six, nothing earned. A first life (`lives` 1), led by its guide
+        int lives = 1;                 // With `fresh`: which life of the world it is. From the second, no guide, and the works of his sixth year all listed
+        float age = 0.0f;              // --age N, with `fresh`: opened at that age (7 or more), his sixth year behind him and not lived (`boyOfSeven`)
         int guide = 0;                 // --guide N, with `fresh`: a first life past the step N of its guide
         bool noSave = false;           // --no-save: the mockup's life, never written
         bool freshWithoutSave = false; // No save to load: a first life, not the mockup's (the web build)
@@ -52,7 +53,8 @@ namespace chronicle
         int order = 0;                 // Its place in the sequence, 0 for a step outside it
         std::string say;               // Its sentence, on the guide's leaf
         std::string point;             // What the hand points at: "button:begin", "tile:<id>", "holding:<id>", "stat:<key>", "clock", "log", ""
-        std::string pointChosen;       // For a step that points at a tile: what the hand points at once that tile is chosen, "" to stay on it
+        std::vector<std::string> light;   // What else stays lit with it: the other tiles of a choice, his other parts
+        std::string pointChosen;       // For a step that points at a tile: what the hand points at once that tile (or one lit with it) is chosen, "" to stay on it
         std::string sayChosen;         // And what is said then, "" for the same sentence
         pg::RecordList until;          // It ends when these hold; none: once `left` has run out
         float left = 0.0f;             // Milliseconds left of a step that ends with time
@@ -82,7 +84,7 @@ namespace chronicle
         bool saveNow();                // Writes the save (not with --no-save)
         void autoSave();               // The same with no line in the log: after a month, a choice, a thing done at once, a new life
         void tellAnalytics(const std::string& event = "");   // Where the life stands, kept by the analytics for its next row; with an event, a row now
-        std::vector<std::string> lateWorks() const;          // The works of the end of a life, for the digest: the ways into a class, and what opens at their age or later
+        std::vector<std::string> namedWorks() const;         // The works the digest names one by one: his sixth year's, the ways into a class, and what opens at their age or later
         void newLife();                // A fresh life, rebuilt and republished
         void beginAgain();             // From the ending: it closes, the next life begins and says how the last one ended
 
@@ -144,6 +146,7 @@ namespace chronicle
         // place of the choice, once a life has explored it
         RuleTown town;                 // The last answer of Rules::town
         bool townShown = false;        // The Town page is in view
+        std::string workSaid;          // The work the facts say he is at ("working.<id>"), to say he has left it
         std::string gift;              // At an ending: the place he leaves his coin to, "" for none
         std::vector<std::pair<std::string, Button>> gifts;   // The ending's buttons: a place that can still be raised, each
 
@@ -184,8 +187,10 @@ namespace chronicle
 
         int newInLife = 0;             // What has come onto the Life page while the Town page was in view: said at its tab's corner
         int newInTown = 0;             // And onto the Town page while the Life page was
-        int newInAdventure = 0;        // The places that opened to him while the Adventure page was not in view
+        int newInAdventure = 0;        // What is new on the Adventure page while it is not in view: a place's tile come onto it, a place that opened to him; and its tiles the day the page itself comes
         std::vector<std::string> openedWalks;   // The places seen open to him, so that one is new once
+        std::vector<std::string> stoodWalks;    // And the places whose tile has stood on a page, open or not
+        bool adventureWas = false;     // The Adventure page was there the last time the list was filled: the day it comes is news
 
         bool guiding() const;          // A first life whose guide has not said its last step
         int toastsUp() const { return toasts; }   // The toasts at the foot of the window now
@@ -267,13 +272,15 @@ namespace chronicle
         bool holds(const pg::RecordList& asks) const;    // Every one of them, as the life stands now
         void runGuide();               // The step being said ends or goes on, the next one begins, the hand follows what it points at
         void endStep();                // The step being said has ended: the guide is one step further
+        void passOutgrownSteps();      // The steps of the sequence he is too old for (`untilAge`) are passed over unsaid
         void nextStep();               // "Next": the step being said for a time ends now
         void skipGuide();              // "Skip tutorial": past its last step for good
         void makeNote();               // The leaf, its words and its two buttons
         void sayNote(pg::EntityRef target);   // The leaf with the step's sentence under what it points at, or gone with no step
         void clearGuide();             // No step, no hand, no shade: the life is over, or another begins
         pg::EntityRef pointed(const std::string& point) const;   // What a step points at, empty when it is not on the page
-        void pointAt(pg::EntityRef target);     // The hand beside it and the shade around it, or neither for nothing
+        bool behindPage(const std::string& point) const;   // A tile of the Life page while the Town page or the Adventure page is the one in view
+        void pointAt(pg::EntityRef target, const std::vector<pg::EntityRef>& also = {});     // The hand beside it and the shade around it and what is lit with it, or neither for nothing
         void shadeAround(const std::vector<pg::EntityRef>& lit);   // The page under a shade, but what is given
         void takeStats(const pg::ElementMap& stats);     // A script's numbers become the character's
         void writeEntries(const pg::RecordList& entries); // A script's lines become the log's

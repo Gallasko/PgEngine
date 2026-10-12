@@ -1,5 +1,7 @@
 #include "lifescene.h"
 
+#include <sstream>
+
 #ifdef __EMSCRIPTEN__
 #include <SDL2/SDL.h>
 #elif __linux__
@@ -72,6 +74,8 @@ namespace chronicle
         constexpr float GiftGap = 6.0f;            // Between two of them
         constexpr int MonthsAYear = 12;
         constexpr float LateFromAge = 16.0f;       // The age the classes open at: what opens then or later is the end of a life, for the analytics
+        constexpr float EarlyUnderAge = 7.0f;      // And what opens before this age is his sixth year: the choices that shape him
+        constexpr size_t NewNamed = 3;             // New tasks are toasted by name up to this many at once, counted past it
         const std::string PlaceGloss = "place/";
         const std::string SaidFact = "said.";                    // Followed by a guide step's id: 1 once the world has been told it
 
@@ -196,6 +200,7 @@ namespace chronicle
         constexpr const char * const HandColor = "vermilion";
         constexpr const char * const VeilElement = "guide.veil";
         const std::string TilePoint = "tile:";                  // What a step that points at a tile begins with, before the activity's id
+        const std::string BackToLife = "Go back to the Life tab: there is a new task for him.";   // Said with the hand on that tab, for a step about a work of the Life page
 
         // What a step says stands on a leaf of its own under what it points at (over it when the
         // window ends there), with the two buttons of the guide: the one that leaves it for good,
@@ -824,14 +829,22 @@ namespace chronicle
         {
             const bool first = opt.lives <= 1;
 
-            save = freshLife(first);
+            save = freshLife();
+
+            // Past his sixth year, for who wants the town's work at once
+            if (opt.age >= 7.0f)
+            {
+                save = boyOfSeven();
+                save.age = opt.age;
+            }
+
             save.lives = std::max(1, opt.lives);
             save.guide = first ? std::max(0, opt.guide) : 0;
         }
         else if (opt.noSave)
             save = firstLife();
         else if (not save.load(opt.savePath))
-            save = opt.freshWithoutSave ? freshLife(true) : firstLife();
+            save = opt.freshWithoutSave ? freshLife() : firstLife();
 
         rules.done = save.terms();
         rules.world = save.world;
@@ -1635,6 +1648,10 @@ namespace chronicle
         facts["life.age"] = ElementType{save.age};
         facts["life.terms"] = ElementType{save.termsDone()};
         facts["life.working"] = ElementType{save.running.empty() ? 0 : 1};
+
+        // (and which one: a step that waits for a given work to begin asks after it)
+        if (not save.running.empty())
+            facts["working." + save.running] = ElementType{1};
         facts["life.lives"] = ElementType{save.lives};
         facts["life.guide"] = ElementType{save.guide};
         facts["life.town"] = ElementType{townShown ? 1 : 0};
@@ -1670,6 +1687,15 @@ namespace chronicle
         reachedStep.say = textOf(entry.fields, "say");
         reachedStep.point = textOf(entry.fields, "point");
         reachedStep.pointChosen = textOf(entry.fields, "pointChosen");
+
+        // What stays lit with it: a list with commas
+        std::istringstream lights(textOf(entry.fields, "light"));
+
+        for (std::string one; std::getline(lights, one, ',');)
+        {
+            if (not one.empty())
+                reachedStep.light.push_back(one);
+        }
         reachedStep.sayChosen = textOf(entry.fields, "sayChosen");
         reachedStep.until = entry.until;
         reachedStep.world = entry.world;
@@ -1678,6 +1704,11 @@ namespace chronicle
         // A step of a guide that is over (skipped the pass it was reached in) is not said, nor one
         // the world has been told already
         if ((reachedStep.order > 0 and not guiding()) or (reachedStep.world and told(reachedStep.id)))
+            return;
+
+        // Nor a step the guide is already past: reached on the facts of a moment ago, while the
+        // steps he is too old for were being passed over
+        if (reachedStep.order > 0 and reachedStep.order <= save.guide)
             return;
 
         // A step outside the sequence is kept as a deed is: said once in a life. One the world
@@ -1704,6 +1735,8 @@ namespace chronicle
             return;
         }
 
+        passOutgrownSteps();
+
         // The step being said ends on what it waits for, or with its time
         if (step.active and (step.until.empty() ? step.left <= 0.0f : holds(step.until)))
             endStep();
@@ -1722,17 +1755,78 @@ namespace chronicle
 
         // Found again every time: a page built again has other tiles, a list that scrolled other
         // rows in view
-        const EntityRef target = step.active ? pointed(stepChosen() ? step.pointChosen : step.point) : EntityRef{};
+        const bool onward = stepChosen();
+        const EntityRef target = step.active ? pointed(onward ? step.pointChosen : step.point) : EntityRef{};
 
-        pointAt(target);
+        // What is lit with it, while the hand is on the thing itself: once it has gone on to the
+        // button, the button alone
+        std::vector<EntityRef> also;
+
+        if (step.active and not onward)
+        {
+            for (const auto& one : step.light)
+            {
+                if (EntityRef other = pointed(one); not other.empty() and other.id != target.id)
+                    also.push_back(other);
+            }
+        }
+
+        pointAt(target, also);
         sayNote(target);
+    }
+
+    void LifeScene::passOutgrownSteps()
+    {
+        // A step of the sequence is for before an age when it says so (the steps of his sixth
+        // year): a boy of seven who let the year go by, or a save from before the year, is not
+        // told of works that are closed to him
+        bool passed = false;
+
+        while (guiding())
+        {
+            const RuleAchievement* next = nullptr;
+
+            for (const auto& deed : deeds)
+            {
+                if (deed.kind == RuleKind::Guide and deed.order == save.guide + 1)
+                    next = &deed;
+            }
+
+            if (not next)
+                break;
+
+            const auto until = next->fields.find("untilAge");
+            const float age = until == next->fields.end() ? 0.0f : floatOf(until->second);
+
+            // (an age is a sum of twelfths: seven is seven, give or take the last bit)
+            if (age <= 0.0f or save.age + 0.001f < age)
+                break;
+
+            save.guide = next->order;
+            passed = true;
+        }
+
+        if (not passed)
+            return;
+
+        // The one being said and the ones waiting, when they are among those passed
+        if (step.active and step.order > 0 and step.order <= save.guide)
+            step = GuideStep{};
+
+        stepsDue.erase(std::remove_if(stepsDue.begin(), stepsDue.end(), [this](const GuideStep& due) { return due.order > 0 and due.order <= save.guide; }), stepsDue.end());
+
+        setFact("life.guide", save.guide);
     }
 
     bool LifeScene::stepChosen() const
     {
         // A work is begun in two presses: the hand shows the tile until it is the one chosen, then
         // the button that begins it; let go of, the tile has the hand again
-        return step.active and not step.pointChosen.empty() and not chosen.empty() and step.point == TilePoint + chosen;
+        if (not step.active or step.pointChosen.empty() or chosen.empty())
+            return false;
+
+        // (of a choice, whichever of its tiles he takes)
+        return step.point == TilePoint + chosen or std::find(step.light.begin(), step.light.end(), TilePoint + chosen) != step.light.end();
     }
 
     void LifeScene::endStep()
@@ -1937,8 +2031,12 @@ namespace chronicle
         if (note.empty())
             makeNote();
 
-        // The step's sentence, or the one of its second half once its tile is chosen
-        const std::string words = stepChosen() and not step.sayChosen.empty() ? step.sayChosen : step.say;
+        // The step's sentence, or the one of its second half once its tile is chosen; and for a
+        // work of the Life page he has to go back to, the way there
+        std::string words = stepChosen() and not step.sayChosen.empty() ? step.sayChosen : step.say;
+
+        if (not stepChosen() and behindPage(step.point))
+            words = BackToLife;
         // Only a step said for a time can be passed: one that waits for him ends when he does it
         const bool timed = step.until.empty();
 
@@ -2051,6 +2149,14 @@ namespace chronicle
             target = named("happened");
         }
 
+        // A work of the Life page while the Town page or the Adventure page is the one in view:
+        // the hand goes to the Life tab, and to the tile once he is back
+        if (behindPage(point))
+        {
+            if (auto tabs = piece<Tabs>("tabs"); tabs and not tabs->tabs.empty())
+                target = tabs->tabs[0].face;
+        }
+
         // On the phone page what the guide speaks of may be behind a tab: the hand goes to the tab,
         // and to the thing itself once the tab is open
         if (phone and not target.empty() and target->has<PositionComponent>() and not target->get<PositionComponent>()->isRenderable())
@@ -2079,7 +2185,17 @@ namespace chronicle
         return target;
     }
 
-    void LifeScene::pointAt(EntityRef target)
+    bool LifeScene::behindPage(const std::string& point) const
+    {
+        if (point.rfind(TilePoint, 0) != 0 or not (townShown or adventureShown))
+            return false;
+
+        auto list = listHolding(point.substr(TilePoint.size()));
+
+        return list != nullptr and list == piece<ActivityList>(ChoiceName);
+    }
+
+    void LifeScene::pointAt(EntityRef target, const std::vector<EntityRef>& also)
     {
         if (target.empty())
         {
@@ -2134,8 +2250,12 @@ namespace chronicle
 
         anchor->setRightMargin(std::min(gap, where->x - hand->get<PositionComponent>()->width));
 
-        // The rest of the page under a shade: what is pointed at stays lit
-        shadeAround({target});
+        // The rest of the page under a shade: what is pointed at stays lit, and what goes with it
+        std::vector<EntityRef> lit = {target};
+
+        lit.insert(lit.end(), also.begin(), also.end());
+
+        shadeAround(lit);
     }
 
     void LifeScene::shadeAround(const std::vector<EntityRef>& lit)
@@ -2757,6 +2877,10 @@ namespace chronicle
 
         if (not known.empty())
         {
+            // The ones that come with nothing of their own to say: named one by one while they are
+            // few, counted when a birthday opens a list of them at once (the day he is seven)
+            std::vector<std::string> plain;
+
             for (const auto& id : ids)
             {
                 if (std::find(known.begin(), known.end(), id) != known.end())
@@ -2773,13 +2897,23 @@ namespace chronicle
 
                 if (opens.empty())
                 {
-                    toast("New: " + activityName(id));
+                    plain.push_back(id);
                 }
                 else
                 {
                     appendLog({save.age, opens, LogKind::Milestone, "", ""});
                     toast(opens);
                 }
+            }
+
+            if (plain.size() > NewNamed)
+            {
+                toast("New: " + std::to_string(plain.size()) + " tasks");
+            }
+            else
+            {
+                for (const auto& id : plain)
+                    toast("New: " + activityName(id));
             }
         }
 
@@ -2790,18 +2924,39 @@ namespace chronicle
         // coin came back for what the market sells) is no news
         const bool filledBefore = not stood.empty();
 
+        // The Adventure page comes with his first walk: that day its tab says how many places
+        // stand behind it, as the Town's tab does the day the town opens
+        const bool adventureHere = adventureKnown();
+
+        if (not filledBefore)
+            adventureWas = adventureHere;
+
+        const bool adventureCame = adventureHere and not adventureWas;
+        int placesThere = 0;
+
+        adventureWas = adventureHere;
+
         for (const auto& a : activities)
         {
             const std::string id = textOf(a.fields, "id");
 
-            // A place that opens to him while the Adventure page is not in view is counted at its
-            // tab's corner: once, the day it opens, whether its tile was already there or not
-            if (not textOf(a.fields, "zone").empty() and boolOf(a.fields, "listed") and not boolOf(a.fields, "locked")
-                and std::find(openedWalks.begin(), openedWalks.end(), id) == openedWalks.end())
+            // The Adventure page's own news, counted at its tab's corner while it is not the one
+            // in view: a place whose tile comes onto it, open to him or not, and a place that
+            // opens to him. Once each, and once for a tile that comes open
+            if (not textOf(a.fields, "zone").empty() and boolOf(a.fields, "listed"))
             {
-                openedWalks.push_back(id);
+                ++placesThere;
 
-                if (filledBefore and adventureKnown() and not adventureShown)
+                const bool tileNew = std::find(stoodWalks.begin(), stoodWalks.end(), id) == stoodWalks.end();
+                const bool openNew = not boolOf(a.fields, "locked") and std::find(openedWalks.begin(), openedWalks.end(), id) == openedWalks.end();
+
+                if (tileNew)
+                    stoodWalks.push_back(id);
+
+                if (openNew)
+                    openedWalks.push_back(id);
+
+                if ((tileNew or openNew) and filledBefore and adventureHere and not adventureCame and not adventureShown)
                     ++newInAdventure;
             }
 
@@ -2825,6 +2980,9 @@ namespace chronicle
             if (filledBefore and not inView)
                 ++(onTown ? newInTown : newInLife);
         }
+
+        if (adventureCame and not adventureShown)
+            newInAdventure = placesThere;
 
         // Grouped as the table orders them; what the rules do not list (spent, too late, another
         // path's) has no row
@@ -3635,6 +3793,19 @@ namespace chronicle
         // whether he is at work, which life this is and the step of the guide he is past
         setFact("life.terms", save.termsDone());
         setFact("life.working", save.running.empty() ? 0 : 1);
+
+        // (and at which one, "working.<id>": the one before reads 0 again)
+        if (workSaid != save.running)
+        {
+            if (not workSaid.empty())
+                setFact("working." + workSaid, 0);
+
+            workSaid = save.running;
+        }
+
+        if (not save.running.empty())
+            setFact("working." + save.running, 1);
+
         setFact("life.lives", save.lives);
         setFact("life.guide", save.guide);
         setFact("life.town", townShown ? 1 : 0);
@@ -3845,6 +4016,13 @@ namespace chronicle
 
     void LifeScene::onPlace(const PlaceSelectedEvent& event)
     {
+        // A place to walk to, on the Adventure page ("walk.<zone>"): the page shows that place
+        if (event.id.rfind("walk.", 0) == 0)
+        {
+            chooseZone(event.id.substr(5));
+            return;
+        }
+
         auto grid = piece<PlaceGrid>(PlacesName);
         auto works = piece<ActivityList>(WorksName);
 
@@ -5093,23 +5271,32 @@ namespace chronicle
         return ok;
     }
 
-    std::vector<std::string> LifeScene::lateWorks() const
+    std::vector<std::string> LifeScene::namedWorks() const
     {
-        // As the rules have them: the way into a class, and what opens at the age the classes do
-        // or later (a class's own works, old age's). A walk is not one of them: the digest counts
-        // those by place
-        std::vector<std::string> late;
+        // As the rules have them: the works of his sixth year (what opens before he is seven:
+        // which of the two he took, which two of the three), the way into a class, and what
+        // opens at the age the classes do or later (a class's own works, old age's). A walk is
+        // not one of them: the digest counts those by place
+        std::vector<std::string> named;
 
         for (const auto& a : activities)
         {
             const std::string id = textOf(a.fields, "id");
             const auto from = a.fields.find("fromAge");
 
-            if (id.rfind("walk.", 0) != 0 and (boolOf(a.fields, "enters") or (from != a.fields.end() and floatOf(from->second) >= LateFromAge)))
-                late.push_back(id);
+            if (id.rfind("walk.", 0) == 0 or from == a.fields.end())
+                continue;
+
+            const float age = floatOf(from->second);
+
+            // (what is done in town is a boy's from six, and is no work of his sixth year)
+            const bool inTown = not textOf(a.fields, "place").empty() or not textOf(a.fields, "raises").empty();
+
+            if (boolOf(a.fields, "enters") or age >= LateFromAge or (age < EarlyUnderAge and not inTown))
+                named.push_back(id);
         }
 
-        return late;
+        return named;
     }
 
     void LifeScene::tellAnalytics(const std::string& event)
@@ -5120,7 +5307,7 @@ namespace chronicle
             return;
 
         // Where the life stands, and which of the three pages it is read on
-        analytics->note(Analytics::withFields(save.digest(lateWorks()), std::string("\"page\":\"") + (phone ? "phone" : compact ? "compact" : "full") + "\""));
+        analytics->note(Analytics::withFields(save.digest(namedWorks()), std::string("\"page\":\"") + (phone ? "phone" : compact ? "compact" : "full") + "\""));
 
         if (not event.empty())
             analytics->send(event);
@@ -5150,17 +5337,18 @@ namespace chronicle
         closeEnding();
         ended = false;
 
-        // Never a first life: it opens as every later one does, at 7 with a year of rations and
-        // every task in the list, and no guide
+        // Never a first life: it opens as every later one does, at 6 with the works of his sixth
+        // year all in the list, and no guide
         clearGuide();
 
         save = freshLife();
 
         // The world did not begin again with him: its date runs on from the last life's, and he
-        // is one more of its lives. The town is the world's too: what was raised stays raised
+        // is one more of its lives. The town is the world's too: what was raised stays raised.
+        // Its page is not: every boy is taken to the market once, in his sixth year, and has it
+        // from there (`freshLife` knows no town)
         save.world = last.world;
         save.lives = last.lives + 1;
-        save.townKnown = last.townKnown;
         save.town = last.town;
         save.raisedBy = last.raisedBy;
         save.fund = last.fund;
@@ -5179,6 +5367,8 @@ namespace chronicle
         newInTown = 0;
         newInAdventure = 0;
         openedWalks.clear();
+        stoodWalks.clear();
+        adventureWas = false;
 
         rules.world = save.world;
         rules.lives = save.lives;

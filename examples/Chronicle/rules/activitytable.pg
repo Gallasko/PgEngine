@@ -33,7 +33,7 @@
 //           listed (true while the screen has a row for it: its path open, neither spent nor
 //           closed, he is of the age it shows from, has its share of what it asks and, in a
 //           first life, has done the terms it shows after),
-//           showAge, showFrom, showAfter, firstLife (what it is listed by, as below),
+//           showAge, showFrom, showAfter (what it is listed by, as below),
 //           tally (how often it was done and, for a limited one, what is left, as the row
 //           writes it: "DONE 2", "DONE 0 · 1 LEFT"),
 //           place ("" or the place of the town it is done at: the Town page lists it there, not
@@ -52,7 +52,11 @@
 // `months: 0` is an activity done at once: it takes no time, and can be done while another runs.
 //
 // Optional fields of an activity:
-//   fromAge: N       he may begin it from that age (default 7). Younger, it asks for the age.
+//   fromAge: N       he may begin it from that age (default 7; 6 for what is done at a place of
+//                    the town or raises one). Younger, it asks for the age.
+//   fromMonths: N    and that many months past that birthday: `fromAge: 6, fromMonths: 8` is
+//                    six years and eight months. Its row shows from that month too, unless it
+//                    gives a `showAge`.
 //   showAge: N       its row is listed from that age (default `fromAge`): before he may begin
 //                    it, it stands locked, the age the first thing it asks.
 //   showFrom: N      its row is listed once he has that much (in percent) of what it asks
@@ -63,14 +67,17 @@
 //                    the three ways into a path show from his first day, locked: they are what
 //                    a childhood is spent toward.
 //   showAfter: N     in a first life (`lives` 1), its row is listed once N terms in all are done
-//                    in this life, whatever else lists it: the list grows one task at a time
-//                    while the guide (achievements.pg) walks him through it. From the second
-//                    life it is ignored.
-//   firstLife: true  the opening task: listed only in a first life that has done nothing yet.
-//                    A later life never has its row, nor does a first life once any term is
-//                    done.
+//                    in this life, whatever else lists it: the first works of his sixth year
+//                    come one at a time while the guide (achievements.pg) walks him through
+//                    them. From the second life it is ignored.
 //   finishBy: N      its term must fall at that age or before (default lib.pg's `lastAge`): an
 //                    activity of 18 months with finishBy 25 is begun by 23.5 at the latest.
+//   finishMonths: N  and that many months past that birthday, as `fromMonths`.
+//   closingShown: N  its closing is said from N months before, and not sooner: a work of his
+//                    sixth year closes at seven without counting down a whole year for it.
+//                    -1: never said (the last two of the year, which are all there is to do).
+//   unless: "id"     one or the other: its row is not listed once that activity has been done
+//                    in this life.
 //                    lib.pg's `anyAge` for what old age does not close.
 //   board: true      meals provided: a month at it takes no ration and costs no Vitality, held
 //                    rations or not (resources.pg).
@@ -176,30 +183,87 @@ var paths = [
 ]
 
 var activities = [
-    // The opening of a first life: one month that costs nothing and brings the first thing he
-    // holds. It leaves the list once done
-    {id: "helping", group: "Work", name: "Start Helping Out", glyph: "work", months: 1, rank: "", each: "AT THE MILL", path: "", fromAge: 6,
-     board: true, uses: 1, firstLife: true,
-     gains: [{stat: "rations", amount: 12}],
+    // His sixth year, the opening of every life: short works, a month or two each, that shape
+    // him before the town's own work is his at seven. A first life is shown the first four one
+    // at a time (`showAfter`), while its guide walks it through them; a later life has them
+    // all from its first day. What he gleans is all he eats until the market: the flour and the
+    // books pay the coin that buys the rest there.
+    {id: "glean", group: "The sixth year", name: "Glean Behind the Reapers", glyph: "work", months: 1, rank: "", each: "MEALS PROVIDED", path: "",
+     fromAge: 6, finishBy: 7, closingShown: 3, board: true, uses: 1,
+     gains: [{stat: "rations", amount: 10}],
      requires: []},
-    {id: "carters", group: "Work", name: "Carry for the Carters", glyph: "work", months: 3, rank: "", each: "MEALS PROVIDED", path: "", board: true, showAfter: 1,
+    {id: "flour", group: "The sixth year", name: "Carry Flour to the Baker", glyph: "trade", months: 1, rank: "", each: "", path: "",
+     fromAge: 6, finishBy: 7, closingShown: 3, uses: 1, showAfter: 1,
      gains: [{stat: "coin", amount: 6}],
      requires: []},
-    {id: "mill", group: "Work", name: "Help at the Mill", glyph: "work", months: 6, rank: "", each: "", path: "", showAfter: 3,
+    // One or the other: his body or his mind (`unless`). The scribe's bench is where a boy sits
+    // still and eats what the old man leaves: it is the one that builds his Vitality
+    {id: "wheel", group: "One or the other", name: "Climb the Mill Wheel", glyph: "adventure", months: 1, rank: "", each: "", path: "",
+     fromAge: 6, finishBy: 7, closingShown: 3, uses: 1, showAfter: 2, unless: "scribe",
+     gains: [{stat: "str"}, {stat: "dex"}],
+     requires: []},
+    {id: "scribe", group: "One or the other", name: "Sit with the Old Scribe", glyph: "quill", months: 1, rank: "", each: "", path: "",
+     fromAge: 6, finishBy: 7, closingShown: 3, uses: 1, showAfter: 2, unless: "wheel",
+     gains: [{stat: "int"}, {stat: "vit", amount: 5}],
+     requires: []},
+    // The keepsake: a small book he is given for his trouble. Nothing asks for it yet
+    {id: "tome", group: "The sixth year", name: "Carry Books for Father Anselm", glyph: "relic", months: 1, rank: "", each: "", path: "",
+     fromAge: 6, finishBy: 7, closingShown: 3, uses: 1, showAfter: 3,
+     about: "Father Anselm pays in coin, and in a small book of his own that he says a boy should keep.",
+     gains: [{stat: "tome"}, {stat: "coin", amount: 4}],
+     requires: []},
+    // Three works of two months, open from his fourth month and over by his ninth: there is
+    // time for two of them, and the one left closes
+    {id: "knots", group: "Time for two of them", name: "Learn Knots from the Bargemen", glyph: "adventure", months: 2, rank: "", each: "", path: "",
+     fromAge: 6, fromMonths: 4, finishBy: 6, finishMonths: 9, uses: 1,
+     gains: [{stat: "dex"}, {stat: "int"}],
+     requires: []},
+    {id: "sacks", group: "Time for two of them", name: "Haul Sacks at the Mill", glyph: "work", months: 2, rank: "", each: "", path: "",
+     fromAge: 6, fromMonths: 4, finishBy: 6, finishMonths: 9, uses: 1,
+     gains: [{stat: "str"}],
+     requires: [],
+     costs: [{stat: "vit", amount: 5}]},
+    {id: "sing", group: "Time for two of them", name: "Sing at the Chapel Door", glyph: "academy", months: 2, rank: "", each: "", path: "",
+     fromAge: 6, fromMonths: 4, finishBy: 6, finishMonths: 9, uses: 1,
+     gains: [{stat: "int"}, {stat: "renown"}],
+     requires: []},
+    // A month to know the town: its page opens, with the market his coin is for and the places
+    // he can build. For this life: the places stay raised from one life to the next, but every
+    // boy has to be taken to the market once. No age closes it, so that none goes without
+    {id: "tomarket", group: "The sixth year", name: "Go to the Market", glyph: "town", months: 1, rank: "ONCE", each: "", path: "",
+     fromAge: 6, fromMonths: 8, finishBy: anyAge, uses: 1,
+     whileNot: "town_known", featured: true, major: true,
+     about: "Opens the Town page: a market for his coin, and places he can build that stay for his next lives. Bellmoor has nine streets, and ten opinions about each.",
+     gains: [{stat: "town_known"}],
+     requires: []},
+    {id: "harvest", group: "The sixth year", name: "Bring in the Harvest", glyph: "work", months: 2, rank: "", each: "", path: "",
+     fromAge: 6, fromMonths: 9, finishBy: 7, closingShown: -1, uses: 1,
+     gains: [{stat: "str"}, {stat: "dex"}, {stat: "int"}],
+     requires: []},
+    // The last month before he is seven: the mill takes him on, and feeds him. From there the
+    // town's work is his
+    {id: "helping", group: "Work", name: "Start Helping Out", glyph: "work", months: 1, rank: "", each: "AT THE MILL", path: "",
+     fromAge: 6, fromMonths: 11, finishBy: 7, closingShown: -1, board: true, uses: 1,
+     gains: [{stat: "rations", amount: 6}],
+     requires: []},
+    {id: "carters", group: "Work", name: "Carry for the Carters", glyph: "work", months: 3, rank: "", each: "MEALS PROVIDED", path: "", board: true,
+     gains: [{stat: "coin", amount: 6}],
+     requires: []},
+    {id: "mill", group: "Work", name: "Help at the Mill", glyph: "work", months: 6, rank: "", each: "", path: "",
      gains: [{stat: "str"}, {stat: "vit", amount: 5}, {stat: "coin", amount: 8}],
      requires: [],
      after: [{uses: 2, months: 9, gains: [{stat: "coin", amount: 6}]}],
      bonus: [{stat: "town.mill", more: [{stat: "coin", amount: 4}]}]},
-    {id: "messages", group: "Work", name: "Run Messages", glyph: "town", months: 3, rank: "", each: "", path: "", showAfter: 2,
+    {id: "messages", group: "Work", name: "Run Messages", glyph: "town", months: 3, rank: "", each: "", path: "",
      gains: [{stat: "dex"}, {stat: "coin", amount: 3}],
      requires: [],
      after: [{uses: 2, gains: [{stat: "coin", amount: 5}]}]},
     // What feeds him until the market is his to buy at: meals while he is at it, and rations to
     // take away
-    {id: "kitchen", group: "Work", name: "Help in the Kitchen", glyph: "trade", months: 3, rank: "", each: "MEALS PROVIDED", path: "", board: true, showAfter: 3,
+    {id: "kitchen", group: "Work", name: "Help in the Kitchen", glyph: "trade", months: 3, rank: "", each: "MEALS PROVIDED", path: "", board: true,
      gains: [{stat: "rations", amount: 6}],
      requires: []},
-    {id: "market", group: "Work", name: "Help at the Market", glyph: "trade", months: 6, rank: "", each: "", path: "", fromAge: 8, showAfter: 5,
+    {id: "market", group: "Work", name: "Help at the Market", glyph: "trade", months: 6, rank: "", each: "", path: "", fromAge: 8,
      gains: [{stat: "guile"}, {stat: "coin", amount: 8}],
      requires: [],
      after: [{uses: 2, gains: [{stat: "coin", amount: 12}]}]},
@@ -244,7 +308,7 @@ var activities = [
      gains: [{stat: "dex"}, {stat: "bow_learned"}],
      requires: [{stat: "str", needed: 7}]},
 
-    {id: "blades", group: "Training", name: "Practice with Wooden Blades", glyph: "swordsmanship", months: 6, rank: "", each: "", path: "", fromAge: 8, finishBy: 14, uses: 3, showAfter: 5,
+    {id: "blades", group: "Training", name: "Practice with Wooden Blades", glyph: "swordsmanship", months: 6, rank: "", each: "", path: "", fromAge: 8, finishBy: 14, uses: 3,
      gains: [{stat: "arms"}, {stat: "dex"}],
      requires: [{stat: "str", needed: 7}],
      bonus: [{stat: "town.yard", uses: 5}]},
@@ -261,7 +325,7 @@ var activities = [
      after: [{uses: 2, effects: [{stat: "edric_support"}], entry: "Sergeant Edric will speak for him at the Keep"}],
      bonus: [{stat: "town.yard", needed: 3, fromAge: 12}]},
 
-    {id: "letters", group: "Study", name: "Learn Your Letters", glyph: "quill", months: 6, rank: "", each: "", path: "", finishBy: 14, showAfter: 4,
+    {id: "letters", group: "Study", name: "Learn Your Letters", glyph: "quill", months: 6, rank: "", each: "", path: "", finishBy: 14,
      gains: [{stat: "letters"}, {stat: "int"}],
      requires: [],
      after: [{uses: 3, gains: [{stat: "letters"}]}],
@@ -283,14 +347,7 @@ var activities = [
      gains: [{stat: "lore", amount: 2}, {stat: "discipline"}, {stat: "mara_student"}],
      requires: [{stat: "lore"}, {stat: "letters"}]},
 
-    // Three months to know the town street by street: its page opens, for this life and every
-    // one after it. Not listed to who knows it already
-    {id: "explore", group: "The streets", name: "Explore Bellmoor", glyph: "town", months: 3, rank: "ONCE", each: "", path: "", finishBy: anyAge, uses: 1, showAfter: 4,
-     whileNot: "town_known", featured: true, major: true,
-     about: "Opens the Town page: a market for his coin, and places he can build that stay for his next lives. Bellmoor has nine streets, and ten opinions about each.",
-     gains: [{stat: "town_known"}],
-     requires: []},
-    {id: "roam", group: "The streets", name: "Roam Bellmoor", glyph: "adventure", months: 6, rank: "", each: "", path: "", fromAge: 8, finishBy: 14, uses: 2, showAfter: 5,
+    {id: "roam", group: "The streets", name: "Roam Bellmoor", glyph: "adventure", months: 6, rank: "", each: "", path: "", fromAge: 8, finishBy: 14, uses: 2,
      gains: [{stat: "dex"}, {stat: "lore"}],
      requires: []},
     {id: "hunters", group: "The streets", name: "Follow the Hunters", glyph: "adventure", months: 9, rank: "", each: "", path: "", fromAge: 10, finishBy: 15, uses: 2,
@@ -305,19 +362,19 @@ var activities = [
      gains: [{stat: "dex"}, {stat: "renown"}],
      requires: [{stat: "dex", needed: 7}]},
 
-    {id: "keep", group: "A class", name: "Swear Service to the Keep", glyph: "seal", months: 18, rank: "", each: "MEALS PROVIDED", path: "warrior", enters: true, board: true, fromAge: 16, showAge: 7, showFrom: 0, showAfter: 4, finishBy: 20, uses: 1,
+    {id: "keep", group: "A class", name: "Swear Service to the Keep", glyph: "seal", months: 18, rank: "", each: "MEALS PROVIDED", path: "warrior", enters: true, board: true, fromAge: 16, showAge: 7, showFrom: 0, finishBy: 20, uses: 1,
      major: true,
      about: "Makes him a man of the Keep, for life: it feeds him, its works open, and the other classes close. The oath is short. The sergeants say it is the last short thing about the Keep.",
      gains: [{stat: "keep_oath"}, {stat: "renown"}, {stat: "arms"}],
      requires: [{stat: "str", needed: 12, eased: [{flag: "edric_support", needed: 11}, {flag: "town.yard", at: 2, needed: 11}]}, {stat: "arms", needed: 3}, {stat: "discipline", needed: 2}],
      costs: [{stat: "coin", amount: 10}]},
-    {id: "collegium", group: "A class", name: "Enter the Collegium", glyph: "academy", months: 24, rank: "", each: "MEALS PROVIDED", path: "mage", enters: true, board: true, fromAge: 16, showAge: 7, showFrom: 0, showAfter: 4, finishBy: 20, uses: 1,
+    {id: "collegium", group: "A class", name: "Enter the Collegium", glyph: "academy", months: 24, rank: "", each: "MEALS PROVIDED", path: "mage", enters: true, board: true, fromAge: 16, showAge: 7, showFrom: 0, finishBy: 20, uses: 1,
      major: true,
      about: "Makes him a scholar of the Collegium, for life: it feeds him, its works open, and the other classes close. Nobody will say what the top floor is for. Whoever asks is given more reading.",
      gains: [{stat: "collegium"}, {stat: "arcana"}, {stat: "lore"}],
      requires: [{stat: "int", needed: 12, eased: {flag: "town.collegium", at: 3, needed: 11}}, {stat: "letters", needed: 3}, {stat: "lore", needed: 2, eased: {flag: "mara_student", needed: 1}}],
      costs: [{stat: "coin", amount: 35}]},
-    {id: "hand", group: "A class", name: "Earn the Hidden Hand's Trust", glyph: "guild", months: 18, rank: "", each: "MEALS PROVIDED", path: "thief", enters: true, board: true, fromAge: 16, showAge: 7, showFrom: 0, showAfter: 4, finishBy: 21, uses: 1,
+    {id: "hand", group: "A class", name: "Earn the Hidden Hand's Trust", glyph: "guild", months: 18, rank: "", each: "MEALS PROVIDED", path: "thief", enters: true, board: true, fromAge: 16, showAge: 7, showFrom: 0, finishBy: 21, uses: 1,
      major: true,
      about: "Makes him one of the Hidden Hand, for life: it feeds him, its works open, and the other classes close. The Hand has no door, no sign and no members. Ask anyone.",
      gains: [{stat: "hidden_hand"}, {stat: "favors"}, {stat: "stealth"}],
@@ -506,7 +563,7 @@ for (var z = 0; z < len(walkZones); z++)
 
     push(walkRows, {id: "walk." + zone.id, group: "Adventure", name: zone.name, glyph: zone.glyph, months: walkMonths(zone, studies), rank: "",
                     each: toUpperCase(zone.kind) + " · " + toString(walkStay(zone, studies)) + " DAYS ON SITE", path: "",
-                    fromAge: zone.fromAge, showAge: zone.fromAge - 2, showFrom: lookup(zone, "showFrom", 0), showAfter: lookup(zone, "showAfter", 0), zone: zone.id, about: zone.opens,
+                    fromAge: zone.fromAge, showAge: lookup(zone, "showAge", zone.fromAge - 2), showFrom: lookup(zone, "showFrom", 0), showAfter: lookup(zone, "showAfter", 0), zone: zone.id, about: zone.opens,
                     gains: [], requires: zone.requires})
 }
 
@@ -768,10 +825,23 @@ for (var i = 0; i < len(activities); i++)
     a.needs = a.requires
 
     // Too young for it: the age is the first thing it asks
-    a.fromAge = lookup(a, "fromAge", 7)
+    // (what is done in town, at one of its places or for one of them, is his from the day he
+    // has its page: his sixth year takes him to the market)
+    var youngest = 7
+
+    if (lookup(a, "place", "") != "" or lookup(a, "raises", "") != "")
+    {
+        youngest = 6
+    }
+
+    a.fromAge = lookup(a, "fromAge", youngest)
     a.finishBy = lookup(a, "finishBy", lastAge)
 
-    if (lived < a.fromAge * 12)
+    // To the month: the months past the birthday each of the two is counted from
+    var fromMonth = a.fromAge * 12 + lookup(a, "fromMonths", 0)
+    var byMonth = a.finishBy * 12 + lookup(a, "finishMonths", 0)
+
+    if (lived < fromMonth)
     {
         push(requires, {stat: "age", needed: a.fromAge})
     }
@@ -835,11 +905,11 @@ for (var i = 0; i < len(activities); i++)
     }
 
     // Begun now, its term would come too late
-    a.closed = (lived + a.months) > (a.finishBy * 12)
+    a.closed = (lived + a.months) > byMonth
 
     // The months he still has to begin it, said on its row once they are few. Nothing is said of
     // what no age closes, nor of what is closed already
-    var toBegin = a.finishBy * 12 - a.months - lived
+    var toBegin = byMonth - a.months - lived
 
     a.until = ""
     a.urgent = false
@@ -848,7 +918,15 @@ for (var i = 0; i < len(activities); i++)
     // closes only with his prime and not soon. What a door of its own closes says so all along
     a.closesIn = -1
 
-    if (a.finishBy < anyAge and not a.closed and (a.finishBy < lastAge or toBegin <= closingShown))
+    // (a row may say from how few months its own closing is said: its `closingShown`)
+    var said = a.finishBy < lastAge or toBegin <= closingShown
+
+    if (has(a, "closingShown"))
+    {
+        said = toBegin <= a.closingShown
+    }
+
+    if (a.finishBy < anyAge and not a.closed and said)
     {
         a.closesIn = toBegin
 
@@ -922,6 +1000,12 @@ for (var i = 0; i < len(activities); i++)
         if (req.stat == "age")
         {
             req.current = toInt(floor(lived / 12))
+
+            // Of the age, and not yet of the month
+            if (lived < fromMonth)
+            {
+                locked = true
+            }
         }
 
         if (has(req, "eased"))
@@ -986,24 +1070,33 @@ for (var i = 0; i < len(activities); i++)
     }
 
     // Too young for its row, or too far from what it asks: no row yet
+    var showMonth = fromMonth
+
+    if (has(a, "showAge"))
+    {
+        showMonth = a.showAge * 12
+    }
+
     a.showAge = lookup(a, "showAge", a.fromAge)
     a.showFrom = lookup(a, "showFrom", reachShown)
 
     // A first life is shown its tasks one at a time; a later one has them all from the start
     a.showAfter = lookup(a, "showAfter", 0)
-    a.firstLife = lookup(a, "firstLife", false)
 
     if (lives > 1)
     {
         a.showAfter = 0
     }
 
-    a.listed = a.pathOpen and not a.spent and not a.closed and lived >= a.showAge * 12 and a.reach >= a.showFrom and termsDone >= a.showAfter
+    a.listed = a.pathOpen and not a.spent and not a.closed and lived >= showMonth and a.reach >= a.showFrom and termsDone >= a.showAfter
 
-    // The opening task is for who has done nothing yet, in his first life
-    if (a.firstLife and (lives > 1 or termsDone > 0))
+    // One or the other: the one he did not take has no row once the other is done
+    if (has(a, "unless"))
     {
-        a.listed = false
+        if (lookup(done, a.unless, 0) > 0)
+        {
+            a.listed = false
+        }
     }
 
     // What is for who does not hold a stat yet has no row once he does

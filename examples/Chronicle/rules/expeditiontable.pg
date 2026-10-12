@@ -17,7 +17,7 @@
 //                        {id, name, kind (forage | hunt), line, travel (days, one way),
 //                         stayMin, stayMax (days on site: the longer one from zone knowledge 3),
 //                         mobs [mob id], spots [{id (an item), ap, least, most}], events [event id],
-//                         fromAge, showAfter?, requires [...] (as an activity's, activitytable.pg),
+//                         fromAge, showAge?, showAfter?, requires [...] (as an activity's, activitytable.pg),
 //                         opens (what its row's gloss says of it)}
 //         `walkMobs`   one table per beast:
 //                        {id, name, many (several of it), pack?, lone?, rarity (common | uncommon | rare), packSize,
@@ -125,7 +125,7 @@ var walkZones = [
      mobs: [],
      spots: [{id: "berries", ap: 1, least: 2, most: 4}, {id: "wortleaf", ap: 2, least: 1, most: 2}, {id: "firewood", ap: 2, least: 2, most: 3}],
      events: ["hedge.nest", "hedge.keeper"],
-     fromAge: 7, showAfter: 5,
+     fromAge: 7, showAge: 7,
      requires: [],
      opens: "Berries and wortleaf to sell, firewood for the town. No beast lives there."},
 

@@ -122,9 +122,14 @@ namespace chronicle
         // Where the life stands, in one short line of JSON for the analytics: his age, the world's
         // month, which life this is, his path, the work at hand, how much he has done, what the
         // player pressed to get there, the step of the guide he is past, his walks and his fights.
-        // `late` names the works of the end of a life (the scene knows them from the rules): each
-        // one he has done is written with how often, "did.<id>". Nothing of his name.
-        std::string digest(const std::vector<std::string>& late = {}) const;
+        // `named` are the works the analytics follow one by one (the scene knows them from the
+        // rules: his sixth year's and the end of a life's): each one he has done is written with
+        // how often, "did.<id>". "v" is the build the digest is of. Nothing of his name.
+        std::string digest(const std::vector<std::string>& named = {}) const;
+
+        // The build a digest says it is of: changed with what a digest means (its guide's steps,
+        // the works it names), so that two builds' rows can be told apart
+        static constexpr const char* DigestBuild = "0.6";
 
         bool save(const std::string& path) const;
         bool load(const std::string& path);
@@ -134,8 +139,13 @@ namespace chronicle
     // the balance's good Warrior stands the month he swears to the Keep.
     LifeSave firstLife();
 
-    // A life at its first frame. A later life (`first` false): 7 years old, a year of rations and
-    // nothing earned, one line in the log. The first life of a world: a month before 7 with nothing
-    // held at all, so that its first task, a month long, brings him to 7 and his first rations.
-    LifeSave freshLife(bool first = false);
+    // A life at its first frame, the first of a world or a later one: 6 years old, 4 of each
+    // part and 35 of Vitality, nothing held and nothing earned, one line in the log. His sixth
+    // year (activitytable.pg) is what brings him to 7 with his first rations and his first coin.
+    LifeSave freshLife();
+
+    // The same boy the day he is seven, for the dev flags and the tests: what a sixth year leaves
+    // him at the least (6 of each part, 40 of Vitality, a year of rations), none of it lived: no
+    // term done, no coin, the town not known. The works of his sixth year are closed to him.
+    LifeSave boyOfSeven();
 }

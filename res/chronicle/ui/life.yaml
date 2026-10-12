@@ -192,11 +192,12 @@ children:
             heading: Where to walk
             aside: "2 OPEN · 1 CLOSED"
             children:
-              - kind: ActivityList
+              # The places to walk to, as the town's places are shown: a tile each, a seal for
+              # each level he knows it to
+              - kind: PlaceGrid
                 name: zones
-                id: walk.zones
-                stripes: false
-                framed: true
+                width: 572
+                tileWidth: 148
               - kind: Layout:Horizontal
                 name: zoneGo
                 width: 540
@@ -333,7 +334,7 @@ children:
     children:
       - kind: LifeClock
         name: clock
-        startAge: 7
+        startAge: 6
         endAge: 30
         age: 17.5
         milestones:

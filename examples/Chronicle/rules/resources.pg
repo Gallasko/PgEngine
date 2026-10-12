@@ -63,8 +63,8 @@ var holdings = [
      about: "Food for the month. With none left, his Vitality pays for it. Work that feeds him leaves them be.",
      decays: 1,
      empty: {effects: [{stat: "vit", amount: -5}], entry: "The rations ran out",
-             low: "Rations are running low: help in the kitchen, or take work with meals",
-             gone: "No rations left: his Vitality pays. Help in the kitchen, or take work with meals"}},
+             low: "Rations are running low: buy some at the market, or take work with meals",
+             gone: "No rations left: his Vitality pays. Buy some at the market, or take work with meals"}},
     {id: "reagents", group: "purse", groupLabel: "PURSE", glyph: "magic", name: "Reagents", tone: 0,
      about: "What a working burns. Bought at the Collegium, spent when a working begins."},
     {id: "favors", group: "standing", groupLabel: "STANDING", glyph: "guild", name: "Favors", tone: 2,
@@ -85,6 +85,9 @@ var holdings = [
      about: "He lives outside the town's law, among the outlaws of the Greenwood."},
     {id: "wood_king", group: "standing", groupLabel: "STANDING", glyph: "reputation", name: "King of the Greenwood", tone: 3, title: true,
      about: "The Greenwood answers to him, and the Keep leaves it be."},
+    // What he was given as a boy and keeps: nothing asks for it yet
+    {id: "tome", group: "keepsakes", groupLabel: "KEEPSAKES", glyph: "relic", name: "Father Anselm's tome", tone: 2, title: true,
+     about: "A small book Father Anselm gave him for carrying the others. He has kept it since."},
     // The market hall (towntable.pg, the market's second level) sends a ration every three
     // months: a help, not his bread. One a month was all a month eats, and rations no longer counted
     {id: "town.market", group: "town", groupLabel: "TOWN", glyph: "trade", name: "the market hall", tone: 0, ledger: false,

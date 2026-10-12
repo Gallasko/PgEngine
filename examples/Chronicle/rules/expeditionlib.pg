@@ -2197,7 +2197,7 @@ fun placeRows()
 
             push(rows, {id: zone.id, name: zone.name, kind: kind, months: walk.months, ap: stayOf(zone) * walkKnobs.apPerDay,
                         cost: counted(walk.months, "mo", "mo") + " · " + apText(stayOf(zone) * walkKnobs.apPerDay),
-                        gives: zone.opens, known: "known " + toString(zoneLevel(zone.id)) + " of 4",
+                        gives: zone.opens, known: "known " + toString(zoneLevel(zone.id)) + " of 4", level: zoneLevel(zone.id), levels: 4,
                         locked: walk.locked, kept: kept, foot: said})
         }
     }
