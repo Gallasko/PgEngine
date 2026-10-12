@@ -472,37 +472,33 @@ namespace pg
 
     void MouseHoverSystem::init()
     {
-        // Register group for entities with PositionComponent and MouseEnterComponent.
+        // An entity takes the hover while it is in one of these two groups: a PositionComponent
+        // with a MouseEnterComponent, or with a MouseLeaveComponent.
         auto groupEnter = registerGroup<PositionComponent, MouseEnterComponent>();
+        auto groupLeave = registerGroup<PositionComponent, MouseLeaveComponent>();
 
         groupEnter->addOnGroup([this](EntityRef entity) {
             // Insert the entity into our hover state map.
             hoverState[entity->id] = false;
         });
 
-        groupEnter->removeOfGroup([this](EntitySystem*, _unique_id id) {
-            auto entity = ecsRef->getEntity(id);
-            // Only remove from hoverState if the entity no longer has either hover component.
-            if (not entity or (not entity->has<MouseEnterComponent>() and not entity->has<MouseLeaveComponent>()))
-            {
-                forget(id);
-            }
-        });
-
-        // Register group for entities with PositionComponent and MouseLeaveComponent.
-        auto groupLeave = registerGroup<PositionComponent, MouseLeaveComponent>();
-
         groupLeave->addOnGroup([this](EntityRef entity) {
             // Insert the entity into our hover state map.
             hoverState[entity->id] = false;
         });
 
-        groupLeave->removeOfGroup([this](EntitySystem*, _unique_id id) {
-            auto entity = ecsRef->getEntity(id);
-            if (not entity or (not entity->has<MouseEnterComponent>() and not entity->has<MouseLeaveComponent>()))
-            {
+        // Only remove from hoverState an entity that is out of both groups. What it holds does
+        // not tell: a group is left before the component that goes is taken off the entity, and
+        // an entity being removed still holds its hover components here. The other group does:
+        // it has let go of the entity already when it lost it first.
+        groupEnter->removeOfGroup([this, groupLeave](EntitySystem*, _unique_id id) {
+            if (groupLeave->elements.atEntity(id) == nullptr)
                 forget(id);
-            }
+        });
+
+        groupLeave->removeOfGroup([this, groupEnter](EntitySystem*, _unique_id id) {
+            if (groupEnter->elements.atEntity(id) == nullptr)
+                forget(id);
         });
     }
 
