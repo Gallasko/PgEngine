@@ -565,6 +565,8 @@ fun newSession(id)
     session["mostTerms"] = 0
     session["furthestGuide"] = none
     session["guideSkipped"] = 0
+    session["build"] = none
+    session["year"] = {}
     session["screen"] = none
 
     return session
@@ -711,6 +713,27 @@ fun collect(records, columns)
                 if (digest["guideSkipped"] != none and digest["lives"] == 1 and digest["guideSkipped"] > session["guideSkipped"])
                 {
                     session["guideSkipped"] = digest["guideSkipped"]
+                }
+
+                // The build the digest says it is of ("v", from 0.6): the guide's steps are not
+                // the same from one build to the next
+                if (digest["v"] != none)
+                {
+                    session["build"] = digest["v"]
+                }
+
+                // The works a first life has done, of those the digest names one by one ("did.<id>")
+                if (digest["lives"] == 1)
+                {
+                    var year = session["year"]
+
+                    for (var key : digest)
+                    {
+                        if (startsWith(key, "did."))
+                        {
+                            year[substring(key, 4)] = digest[key]
+                        }
+                    }
                 }
             }
 
@@ -1069,13 +1092,29 @@ fun reportReach(out, data)
     }
 }
 
+// The steps of the guide by their order, for a build that says which it is: before 0.6 the guide
+// had ten steps and other works, and its steps are numbered only.
+fun guideStepName(build, step)
+{
+    var names = ["begin a task", "his food", "the flour", "his coin", "one of the two", "his stats", "the tome",
+                 "two of the three", "to the market", "the harvest", "his age", "the classes", "the end"]
+
+    if (build == "before 0.6" or step < 1 or step > len(names))
+    {
+        return ""
+    }
+
+    return "  " + names[step - 1]
+}
+
 // How many sessions got past each step of a first life's guide (rules/achievements.pg, the steps
 // of kind "guide" by their order): of the sessions whose first life says where its guide stood,
 // the ones that reached the step or a later one. A drop between two lines is a drop between two
 // sentences. A guide that was skipped is past its last step: such sessions are counted apart, by
 // the step they were at, and left out of the steps. The digest says nothing of it before 0.3, and
-// such sessions are left out too.
-fun reportGuide(out, data)
+// such sessions are left out too. One funnel a build: the steps changed with 0.6, whose digests
+// say which build they are of ("v").
+fun reportGuideOf(out, data, build)
 {
     var furthest = []
     var last = 0
@@ -1085,11 +1124,22 @@ fun reportGuide(out, data)
     for (var session : data["sessions"])
     {
         var guide = session["furthestGuide"]
+        var said = "before 0.6"
+
+        if (session["build"] != none)
+        {
+            said = session["build"]
+        }
+
+        if (said != build)
+        {
+            guide = none
+        }
 
         if (guide != none and session["guideSkipped"] > 0)
         {
             skipped = skipped + 1
-            bump(skippedAt, "skipped at step " + toString(toInt(session["guideSkipped"])))
+            bump(skippedAt, "skipped at step " + toString(toInt(session["guideSkipped"])) + guideStepName(build, toInt(session["guideSkipped"])))
         }
         else if (guide != none)
         {
@@ -1102,20 +1152,19 @@ fun reportGuide(out, data)
         }
     }
 
-    title(out, "The guide of a first life (sessions past each of its steps)")
-
     if (len(furthest) == 0 and skipped == 0)
     {
-        line(out, "  no digest says where a guide stood")
-        return
+        return false
     }
+
+    title(out, "The guide of a first life, build " + build + " (sessions past each of its steps)")
 
     entry(out, "first lives that say", toString(len(furthest) + skipped))
     entry(out, "skipped the guide", toString(skipped) + "  (" + percent(skipped, len(furthest) + skipped) + ")")
 
     if (skipped > 0)
     {
-        ranking(out, skippedAt, 12)
+        ranking(out, skippedAt, 14)
     }
 
     entry(out, "followed it", toString(len(furthest)))
@@ -1132,8 +1181,122 @@ fun reportGuide(out, data)
             }
         }
 
-        line(out, "  " + padRight("past step " + toString(step), 26) + padLeft(toString(past), 6) + padLeft(percent(past, len(furthest)), 8) + "  " + bar(past, len(furthest), 30))
+        line(out, "  " + padRight("past step " + toString(step) + guideStepName(build, step), 34) + padLeft(toString(past), 6) + padLeft(percent(past, len(furthest)), 8) + "  " + bar(past, len(furthest), 30))
     }
+
+    return true
+}
+
+fun reportGuide(out, data)
+{
+    // The builds the sessions say they are of, the one that says nothing first
+    var builds = ["before 0.6"]
+
+    for (var session : data["sessions"])
+    {
+        if (session["build"] != none)
+        {
+            var known = false
+
+            for (var build : builds)
+            {
+                if (build == session["build"])
+                {
+                    known = true
+                }
+            }
+
+            if (not known)
+            {
+                push(builds, session["build"])
+            }
+        }
+    }
+
+    var any = false
+
+    for (var build : builds)
+    {
+        if (reportGuideOf(out, data, build))
+        {
+            any = true
+        }
+    }
+
+    if (not any)
+    {
+        title(out, "The guide of a first life (sessions past each of its steps)")
+        line(out, "  no digest says where a guide stood")
+    }
+}
+
+// His sixth year, from 0.6: of the first lives that say which build they are of, how many did
+// each of its works (the digest names them, "did.<id>"), which of the two they took and which
+// two of the three. A digest is only sent when the page is hidden or a life ends: a session
+// counts for a work once a digest of its first life says the work is done.
+fun reportYear(out, data)
+{
+    var works = ["glean", "flour", "wheel", "scribe", "tome", "knots", "sacks", "sing", "tomarket", "harvest", "helping"]
+    var names = ["Glean Behind the Reapers", "Carry Flour to the Baker", "  Climb the Mill Wheel (body)", "  Sit with the Old Scribe (mind)",
+                 "Carry Books (the tome)", "  Learn Knots", "  Haul Sacks", "  Sing at the Chapel Door", "Go to the Market", "Bring in the Harvest", "Start Helping Out"]
+    var counts = []
+    var lives = 0
+    var pairs = newTally()
+
+    for (var w : works)
+    {
+        push(counts, 0)
+    }
+
+    for (var session : data["sessions"])
+    {
+        if (session["build"] == none or session["furthestGuide"] == none)
+        {
+            continue
+        }
+
+        lives = lives + 1
+
+        var year = session["year"]
+        var took = []
+
+        for (var w = 0; w < len(works); w = w + 1)
+        {
+            if (year[works[w]] != none)
+            {
+                counts[w] = counts[w] + 1
+
+                if (works[w] == "knots" or works[w] == "sacks" or works[w] == "sing")
+                {
+                    push(took, works[w])
+                }
+            }
+        }
+
+        if (len(took) > 0)
+        {
+            bump(pairs, join(took, " + "))
+        }
+    }
+
+    title(out, "His sixth year (first lives of 0.6 and later, by the works they did)")
+
+    if (lives == 0)
+    {
+        line(out, "  no digest says which build it is of")
+        return
+    }
+
+    entry(out, "first lives that say", toString(lives))
+
+    for (var w = 0; w < len(works); w = w + 1)
+    {
+        line(out, "  " + padRight(names[w], 34) + padLeft(toString(counts[w]), 6) + padLeft(percent(counts[w], lives), 8) + "  " + bar(counts[w], lives, 30))
+    }
+
+    line(out, "")
+    line(out, "  Of the three works of two months:")
+    ranking(out, pairs, 8)
 }
 
 // What the player pressed in the life, over the digests that count it (rows from before the
@@ -1451,6 +1614,7 @@ fun main()
     reportDays(out, data)
     reportReach(out, data)
     reportGuide(out, data)
+    reportYear(out, data)
     reportStops(out, data)
     reportDeaths(out, data)
     reportScreens(out, data)
