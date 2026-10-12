@@ -142,6 +142,96 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // A prerequisite that held and no longer does is still waited on: the achievement is the
+        // moment they all hold together, whichever order they came to hold in.
+        TEST(achievement_test, a_fact_that_stops_holding_is_waited_on_again)
+        {
+            MockLogger logger;
+            EntitySystem ecs;
+
+            createTestFacts(&ecs);
+            auto achievements = createTestAchievements(&ecs);
+            auto recorder = ecs.createSystem<UnlockRecorder>();
+
+            // Hungry, and of age: his store runs low as a boy, fills, and runs low again as a man
+            achievements->addNewAchivement(makeAchievement("hungry", {
+                FactChecker("rations", 3, FactCheckEquality::LesserEqual),
+                FactChecker("age", 7, FactCheckEquality::GreaterEqual)}));
+
+            ecs.sendEvent(AddFact{"rations", ElementType{10}});
+            ecs.sendEvent(AddFact{"age", ElementType{6}});
+            frames(ecs, 3);
+
+            ecs.sendEvent(AddFact{"rations", ElementType{2}});
+            frames(ecs, 3);
+
+            EXPECT_TRUE(achievements->achievementUnlocked.empty());
+
+            ecs.sendEvent(AddFact{"rations", ElementType{12}});
+            frames(ecs, 3);
+
+            // Of age, with a full store: not yet
+            ecs.sendEvent(AddFact{"age", ElementType{7}});
+            frames(ecs, 3);
+
+            EXPECT_TRUE(achievements->achievementUnlocked.empty());
+            EXPECT_EQ(achievements->achievementLocked.size(), 1u);
+
+            ecs.sendEvent(AddFact{"rations", ElementType{3}});
+            frames(ecs, 3);
+
+            ASSERT_EQ(achievements->achievementUnlocked.size(), 1u);
+            EXPECT_EQ(achievements->achievementUnlocked[0].name, "hungry");
+            EXPECT_TRUE(achievements->achievementLocked.empty());
+
+            // Once: both of its facts move again, and nothing is sent
+            ecs.sendEvent(AddFact{"age", ElementType{8}});
+            ecs.sendEvent(AddFact{"rations", ElementType{1}});
+            frames(ecs, 3);
+
+            EXPECT_EQ(recorder->unlocked.size(), 1u);
+            EXPECT_EQ(achievements->achievementUnlocked.size(), 1u);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The same for a fact that holds the day the achievement is added and has stopped holding
+        // when the other comes: it is waited on like the others.
+        TEST(achievement_test, a_fact_that_held_when_added_is_waited_on)
+        {
+            MockLogger logger;
+            EntitySystem ecs;
+
+            createTestFacts(&ecs);
+            auto achievements = createTestAchievements(&ecs);
+
+            ecs.sendEvent(AddFact{"rations", ElementType{2}});
+            ecs.sendEvent(AddFact{"age", ElementType{6}});
+            frames(ecs, 3);
+
+            achievements->addNewAchivement(makeAchievement("hungry", {
+                FactChecker("rations", 3, FactCheckEquality::LesserEqual),
+                FactChecker("age", 7, FactCheckEquality::GreaterEqual)}));
+
+            frames(ecs, 3);
+
+            ecs.sendEvent(AddFact{"rations", ElementType{12}});
+            ecs.sendEvent(AddFact{"age", ElementType{7}});
+            frames(ecs, 3);
+
+            EXPECT_TRUE(achievements->achievementUnlocked.empty());
+
+            ecs.sendEvent(AddFact{"rations", ElementType{1}});
+            frames(ecs, 3);
+
+            ASSERT_EQ(achievements->achievementUnlocked.size(), 1u);
+            EXPECT_EQ(achievements->achievementUnlocked[0].name, "hungry");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         TEST(achievement_test, already_true_when_added)
         {
             MockLogger logger;

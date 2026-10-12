@@ -203,28 +203,33 @@ namespace pg
                     continue;
                 }
 
-                if (not it->factChecker->check(*event.factMap))
+                // Unlocked since, through another of its facts: nothing is waited on for it
+                if (it->achievement->unlocked)
+                {
+                    it = decltype(it)(achievementVec.erase(std::next(it).base()));
+                    continue;
+                }
+
+                // Not yet, or not all of them at once: the fact stays waited on. One that holds
+                // may stop holding before the others do (a store that empties and fills again),
+                // and the achievement is the moment they all hold together
+                if (not it->factChecker->check(*event.factMap) or not it->achievement->isComplete(*event.factMap))
                 {
                     ++it;
                     continue;
                 }
 
-                // As this fact is done we try to see if the achievement is completed
-                if (it->achievement->isComplete(*event.factMap))
+                it->achievement->setUnlocked(ecsRef);
+
+                achievementUnlocked.push_back(*(it->achievement));
+
+                const auto& it2 = std::find(achievementLocked.begin(), achievementLocked.end(), it->achievement);
+
+                if (it2 != achievementLocked.end())
                 {
-                    it->achievement->setUnlocked(ecsRef);
-
-                    achievementUnlocked.push_back(*(it->achievement));
-
-                    const auto& it2 = std::find(achievementLocked.begin(), achievementLocked.end(), it->achievement);
-
-                    if (it2 != achievementLocked.end())
-                    {
-                        achievementLocked.erase(it2);
-                    }
+                    achievementLocked.erase(it2);
                 }
 
-                // This fact is no longer waited on
                 it = decltype(it)(achievementVec.erase(std::next(it).base()));
             }
         }
@@ -251,19 +256,25 @@ namespace pg
 
     bool AchievementSys::checkAchievementForResolve(AchievementPtr ptr, WorldFacts* facts)
     {
-        bool unlocked = true;
+        if (ptr->isComplete(facts->factMap))
+            return true;
+
+        // Every fact it asks after is waited on, the ones that hold now as well: one of them may
+        // stop holding before the others come to hold. Once for each fact, however many of its
+        // prerequisites read it
+        std::vector<std::string> waited;
 
         for (const auto& fact : ptr->prerequisiteFacts)
         {
-            if (not fact.check(facts->factMap))
-            {
-                unlocked = false;
+            if (std::find(waited.begin(), waited.end(), fact.name) != waited.end())
+                continue;
 
-                achievementToResolve[fact.name].emplace_back(fact.name, ptr);
-            }
+            waited.push_back(fact.name);
+
+            achievementToResolve[fact.name].emplace_back(fact.name, ptr);
         }
 
-        return unlocked;
+        return false;
     }
 
     template <>

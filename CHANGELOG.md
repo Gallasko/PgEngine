@@ -19,6 +19,14 @@ First tagged release. Everything below describes the state of the engine at the 
   (the ratio is 1).
 
 ### Fixed
+- Achievements: a prerequisite that held and then stopped holding was never looked at again.
+  `AchievementSys` waited on a fact until the first time it passed and dropped it there, so an
+  achievement asking "rations at 3 or fewer" and "age 7 or more" was lost for good when the store
+  ran low at 6 and had filled again by 7: each fact had passed once, and never both at once. A
+  fact that held the day the achievement was added had no watch at all. Every fact an
+  achievement asks after is now waited on until the achievement unlocks, which is the moment
+  they all hold together, in whatever order they came to hold. In Chronicle the guide's word
+  for low rations was never said to a boy who had been short of food in his sixth year.
 - ECS: an entity made and removed in the same pass was not removed. Its creation was still queued when
   the removals were run, so nothing was removed and it was made right after, for good, with whatever
   it held. `CommandDispatcher::process` now makes such an entity with its components, then removes
