@@ -4057,15 +4057,41 @@ namespace pg
             EXPECT_EQ(life->step.light, (std::vector<std::string>{"tile:scribe"}));
             EXPECT_TRUE(life->veiled);
 
+            // The gloss of each says what taking it gives up; a task that closes nothing says none
+            {
+                auto registry = f.ecs.getSystem<GlossRegistry>();
+
+                ASSERT_NE(registry->find("activity/scribe"), nullptr);
+                EXPECT_NE(registry->find("activity/scribe")->caution.find("Climb the Mill Wheel"), std::string::npos);
+                EXPECT_NE(registry->find("activity/wheel")->caution.find("Sit with the Old Scribe"), std::string::npos);
+                EXPECT_EQ(registry->find("activity/glean")->caution, "");
+            }
+
             f.ecs.sendEvent(ActivitySelectedEvent{"life.activities", "scribe"});
             f.settle();
 
             EXPECT_EQ(life->handOn, life->piece<Button>("begin")->root.id);
             EXPECT_EQ(life->noteWords.spec.text, life->step.sayChosen);
 
-            // The scribe's bench: his mind, and his Vitality; the wheel has no row any more
+            // The scribe's bench: his mind, and his Vitality; the wheel has no row any more, and
+            // the log says it went, as a loss
             work("scribe", 1);
             EXPECT_EQ(list->find(&f.ecs, "wheel"), nullptr);
+
+            {
+                bool written = false;
+
+                for (const auto& line : life->save.log)
+                {
+                    if (line.text == "One or the other: Climb the Mill Wheel is closed to him")
+                    {
+                        written = true;
+                        EXPECT_EQ(line.kind, LogKind::Loss);
+                    }
+                }
+
+                EXPECT_TRUE(written);
+            }
             EXPECT_EQ(life->save.stats["int"], 5);
             EXPECT_EQ(life->save.stats["vitmax"], 40);
             EXPECT_EQ(life->save.stats["str"], 4);

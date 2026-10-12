@@ -193,6 +193,15 @@ namespace chronicle
             g.text = stack("body-sm", spec.text, "ink-muted", Overflow::Wrap, inner, false);
             y += boxH(*g.text);
         }
+        if (not spec.caution.empty())
+        {
+            // What it costs him to choose it: under what it is, wrapped like it, in the loss's colour
+            if (not spec.text.empty())
+                y += GAP1;
+
+            g.caution = stack("body-sm", spec.caution, "status-loss", Overflow::Wrap, inner, false);
+            y += boxH(*g.caution);
+        }
         for (const auto& row : spec.rows)
         {
             // A heading opens a section: a hair rule across the gloss, a footnote's room above it,

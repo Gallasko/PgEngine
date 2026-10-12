@@ -5114,6 +5114,9 @@ namespace chronicle
             if (not textOf(a.fields, "about").empty())
                 gloss.text = textOf(a.fields, "about");
 
+            // One or the other: what taking it gives up, in red under what it is
+            gloss.caution = textOf(a.fields, "caution");
+
             // The number of times alone, over how many it can be done when that is limited (0: as
             // often as he likes)
             gloss.aside = std::to_string(intOf(a.fields, "done"));

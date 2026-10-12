@@ -2619,6 +2619,25 @@ namespace pg
             EXPECT_EQ(intOf(forecast.atTerm, "dex"), 7);
             EXPECT_EQ(intOf(forecast.atTerm, "thrust_learned"), 1);
 
+            // Each says before it is taken what it gives up, and its term writes it as a loss
+            EXPECT_EQ(textOf(activityAt(f.rules, 8.2f, character, "slashes").fields, "caution"),
+                      "One or the other: once this is done, Practice Thrusts is closed to him for this life.");
+            EXPECT_EQ(textOf(activityAt(f.rules, 8.2f, character, "stabs").fields, "caution"),
+                      "One or the other: once this is done, Practice Slashes is closed to him for this life.");
+            EXPECT_EQ(textOf(activityAt(f.rules, 8.2f, character, "blades").fields, "caution"), "");
+
+            ASSERT_TRUE(f.rules.forecast(8.2f, character, "slashes", 0, forecast)) << firstError(f.rules);
+
+            ASSERT_EQ(forecast.entries.size(), 2u);
+            EXPECT_EQ(textOf(forecast.entries[0], "text"), "Practice Slashes");
+            EXPECT_EQ(textOf(forecast.entries[1], "text"), "One or the other: Practice Thrusts is closed to him");
+            EXPECT_EQ(textOf(forecast.entries[1], "kind"), "loss");
+
+            // What closes nothing writes its own line and no more
+            f.rules.done = {{"buy.blade", ElementType{1}}};
+            ASSERT_TRUE(f.rules.forecast(8.0f, character, "blades", 0, forecast)) << firstError(f.rules);
+            EXPECT_EQ(forecast.entries.size(), 1u);
+
             f.rules.done = {{"buy.blade", ElementType{1}}, {"blades", ElementType{1}}, {"slashes", ElementType{1}}};
 
             EXPECT_FALSE(listed(8.5f, character, "slashes"));

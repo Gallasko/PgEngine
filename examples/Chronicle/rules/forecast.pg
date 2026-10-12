@@ -21,8 +21,10 @@
 //           gaps     [{stat, label, current, needed}]: the next milestone's asks for the path the
 //                    activity leads toward, against the character as he is (atTerm says after)
 //           entries  [{text, kind, figure, glyph}]: the log lines the term writes, the reached
-//                    steps' after the activity's own. In a figure an amount holds to its stat by
-//                    a no-break space (lib.pg's `noBreak`), and a plain space parts two gains
+//                    steps' after the activity's own, then a line for each activity this term
+//                    closes for good (it was one or the other: their `unless`). In a figure an
+//                    amount holds to its stat by a no-break space (lib.pg's `noBreak`), and a
+//                    plain space parts two gains
 //           error    "" or "unknown activity"
 // Run once per month tick; it keeps nothing between runs.
 
@@ -163,6 +165,21 @@ else
             if (has(step, "entry"))
             {
                 push(entries, {text: step.entry, kind: "milestone", figure: stepFigure, glyph: activity.glyph})
+            }
+        }
+    }
+
+    // One or the other: what this term closes for the rest of his life is written, as a loss
+    if (activity.done == 0)
+    {
+        // (activitytable.pg's `tabledAll`: `activities` holds this one alone)
+        for (var o = 0; o < len(tabledAll); o++)
+        {
+            var other = tabledAll[o]
+
+            if (lookup(other, "unless", "") == activity.id and lookup(done, other.id, 0) == 0)
+            {
+                push(entries, {text: "One or the other: " + other.name + " is closed to him", kind: "loss", figure: "", glyph: lookup(other, "glyph", "")})
             }
         }
     }

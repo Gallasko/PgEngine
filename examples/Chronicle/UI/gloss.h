@@ -37,6 +37,7 @@ namespace chronicle
         float width = 0.0f;                // 0 -> 240 (Margin) / 280 (Tooltip)
         int z = 20;                        // Margin: content band. Tooltip: ignored (placed at 200)
         bool inlineValues = false;         // Tooltip only: false, the values in a column at the right edge; true, each after its label
+        std::string caution;               // Tooltip only: body-sm, status-loss, wraps, under the text (what choosing it gives up)
     };
 
     struct Gloss
@@ -45,6 +46,7 @@ namespace chronicle
         pg::EntityRef edge;                // Margin only: the rule-hair left edge
         pg::EntityRef ground, frame;       // Tooltip only
         std::optional<Label> title, aside, text, footnote;
+        std::optional<Label> caution;      // Tooltip only
         std::vector<std::pair<Label, Label>> rows;
         std::vector<pg::EntityRef> rules;  // Tooltip only: the hair rule of each heading, in the rows' order
         GlossSpec spec;

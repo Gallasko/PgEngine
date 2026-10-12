@@ -160,6 +160,45 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // What choosing a thing gives up is said under what it is, in the loss's colour, wrapped to
+        // the gloss like the text; the rows follow it. Without one, nothing is made for it.
+        TEST(gloss_test, tooltip_caution_under_the_text)
+        {
+            MockLogger logger;
+            GlossFixture s;
+
+            GlossSpec spec; spec.kind = GlossKind::Tooltip; spec.title = "Practice Slashes";
+            spec.text = "The whole arm, and the shoulder behind it.";
+            spec.caution = "One or the other: once this is done, Practice Thrusts is closed to him for this life.";
+            spec.rows = {{"Time", "3 mo"}};
+            Gloss g = makeGloss(&s.ecs, spec);
+            s.settle();
+
+            ASSERT_TRUE(g.text.has_value());
+            ASSERT_TRUE(g.caution.has_value());
+            ASSERT_EQ(g.rows.size(), 1u);
+
+            auto top = [&](EntityRef e) { return s.pos(e)->y; };
+            auto bottom = [&](EntityRef e) { return s.pos(e)->y + s.pos(e)->height; };
+
+            EXPECT_EQ(g.caution->spec.color, "status-loss");
+            EXPECT_NEAR(top(g.caution->entity), bottom(g.text->entity) + 4.0f, 0.5f);
+            EXPECT_NEAR(top(g.rows[0].first.entity), bottom(g.caution->entity) + 4.0f, 0.5f);
+
+            // It wraps: more than a line of it, and never wider than the gloss
+            EXPECT_GT(s.pos(g.caution->entity)->height, s.pos(g.rows[0].first.entity)->height + 1.0f);
+            EXPECT_LE(s.pos(g.caution->entity)->x + s.pos(g.caution->entity)->width, s.pos(g.root)->x + s.pos(g.root)->width + 0.5f);
+
+            GlossSpec plain; plain.kind = GlossKind::Tooltip; plain.title = "Help at the Mill";
+            Gloss none = makeGloss(&s.ecs, plain);
+            s.settle();
+
+            EXPECT_FALSE(none.caution.has_value());
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // A row's value is written in the colour its tone names, its label never; a heading opens a
         // section: caps, faint, with more room above it than a row has.
         TEST(gloss_test, tooltip_tones_and_sections)

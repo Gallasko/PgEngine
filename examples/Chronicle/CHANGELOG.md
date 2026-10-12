@@ -36,6 +36,10 @@ the `CHANGELOG.md` at the root of the repository.
   thrusts and trained at the yard: a point of Discipline and the breathing itself, which
   you keep. Nothing in a fight uses it yet.
 
+- **One or the other is said, in red.** A task that closes another when you take it (the mill
+  wheel or the old scribe, slashes or thrusts) says so in its description before you choose,
+  and the log writes which one went when its term is done.
+
 ### Changed
 
 - **Every life starts smaller.** 6 years old, 4 of each stat and 35 Vitality, with nothing in

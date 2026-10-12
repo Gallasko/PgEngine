@@ -47,6 +47,7 @@
 //           `closingShown` months before it), urgent (true from `closingUrgent` months before),
 //           closesIn (-1, or the months he still has to begin it: said all along of what closes
 //           before his prime does, and from `closingShown` months before of the rest),
+//           caution ("" or what choosing it gives up, for its gloss: "One or the other: ..."),
 //           after (its steps, as below).
 //
 // `months: 0` is an activity done at once: it takes no time, and can be done while another runs.
@@ -77,7 +78,8 @@
 //                    sixth year closes at seven without counting down a whole year for it.
 //                    -1: never said (the last two of the year, which are all there is to do).
 //   unless: "id"     one or the other: its row is not listed once that activity has been done
-//                    in this life.
+//                    in this life. Its gloss says so in the loss's colour (`caution`), and the
+//                    term of the one he takes writes in the log which one it closed (forecast.pg).
 //                    lib.pg's `anyAge` for what old age does not close.
 //   board: true      meals provided: a month at it takes no ration and costs no Vitality, held
 //                    rations or not (resources.pg).
@@ -758,7 +760,10 @@ for (var w = 0; w < len(activities); w++)
     }
 }
 
-// The forecast asks after one activity: only that one is shaped
+// The forecast asks after one activity: only that one is shaped. The table whole, as it is
+// written, stays in `tabledAll`: for what one activity says of another (its `unless`)
+var tabledAll = activities
+
 if (activityId != "")
 {
     var shaped = []
@@ -936,6 +941,16 @@ for (var i = 0; i < len(activities); i++)
     a.featured = lookup(a, "featured", false)
     a.major = lookup(a, "major", false)
     a.about = lookup(a, "about", "")
+
+    // One or the other: what taking this one gives up, said before he takes it
+    a.caution = ""
+
+    if (has(a, "unless"))
+    {
+        var other = byId(tabledAll, a.unless)
+
+        a.caution = "One or the other: once this is done, " + other.name + " is closed to him for this life."
+    }
     a.place = lookup(a, "place", "")
     a.goto = lookup(a, "goto", "")
     a.raises = lookup(a, "raises", "")

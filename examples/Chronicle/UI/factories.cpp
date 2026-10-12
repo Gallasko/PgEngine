@@ -596,6 +596,7 @@ namespace chronicle
                 {"gloss",    "margin"},
                 {"title",    ""},
                 {"text",     ""},
+                {"caution",  ""},
                 {"footnote", ""},
                 {"width",    0.0f},
                 {"z",        20},
@@ -613,6 +614,7 @@ namespace chronicle
                     s.kind     = enumProp(spec.props, "gloss", KIND, s.kind);
                     s.title    = stringProp(spec.props, "title", s.title);
                     s.text     = stringProp(spec.props, "text", s.text);
+                    s.caution  = stringProp(spec.props, "caution", s.caution);
                     s.footnote = stringProp(spec.props, "footnote", s.footnote);
                     s.width    = numberProp(spec.props, "width", theme, s.width);
                     s.z        = getParamInt(spec.props, "z", s.z);
