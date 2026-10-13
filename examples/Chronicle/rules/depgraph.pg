@@ -44,6 +44,9 @@
 //   - A task that gives a flag a technique of a fight is learned by says so on its bar
 //     ("in a fight: Sweep"): no arrow, every walk with a beast would have one.
 //
+//   - No arrow goes into a way into a class: too many would climb to the same frame. The task
+//     that brings what a way in reads (asks for, is eased by, takes as one of several) has a
+//     gold chip after its bar instead, in the class's colour: "The Keep (arms 2)".
 //   - A task that asks for another one done ("done.yard" among what it asks) has an arrow from
 //     it, like a flag's.
 //
@@ -1029,6 +1032,107 @@ fun unlockedBy(graph, task)
     return out
 }
 
+// The place of a class among the table's `paths`, -1 for none
+fun classIndex(path)
+{
+    for (var p = 0; p < len(paths); p = p + 1)
+    {
+        if (paths[p].id == path)
+        {
+            return p
+        }
+    }
+
+    return -1
+}
+
+// The classes a task leads to: the ways in that read a flag it brings (ask for it, are eased by
+// it, or take it as one of several), a chip each, "The Keep (arms 2)". They stand after its bar
+// in the place of the arrows, which would all climb to the same frame
+fun classChips(graph, task, folded)
+{
+    var chips = []
+    var seen = {}
+
+    for (var b = 0; b < len(graph.links); b = b + 1)
+    {
+        var brings = graph.links[b]
+
+        if (brings.source != task.node or (brings.kind != "brings" and brings.kind != "later"))
+        {
+            continue
+        }
+
+        if (contain(folded, brings.stat) or startsWith(brings.stat, "town") or contain(graph.things, brings.stat))
+        {
+            continue
+        }
+
+        for (var r = 0; r < len(graph.links); r = r + 1)
+        {
+            var reads = graph.links[r]
+
+            if (reads.source != statNode(brings.stat) or reads.kind == "classOf" or reads.kind == "uses" or reads.kind == "takes" or reads.target == task.node)
+            {
+                continue
+            }
+
+            if (contain(seen, reads.target + ">" + brings.stat))
+            {
+                continue
+            }
+
+            for (var i = 0; i < len(graph.tasks); i = i + 1)
+            {
+                var way = graph.tasks[i]
+
+                if (way.node != reads.target or not way.enters or classIndex(way.path) < 0)
+                {
+                    continue
+                }
+
+                seen[reads.target + ">" + brings.stat] = true
+
+                var text = paths[classIndex(way.path)].name
+
+                if (reads.kind != "asks" or reads.label != "1")
+                {
+                    text = text + " (" + reads.label + ")"
+                }
+
+                if (brings.kind == "later")
+                {
+                    text = text + " [" + brings.label + "]"
+                }
+
+                push(chips, {text: text, wide: strlen(text) * letterWidth + 12, path: way.path})
+            }
+        }
+    }
+
+    return chips
+}
+
+// The SVG of the chips after a bar, one under the other, each with a short arrow from it: the
+// classes it leads to, gold like a way in, in the class's colour
+fun emitTails(tails, x, y)
+{
+    var out = ""
+
+    for (var c = 0; c < len(tails); c = c + 1)
+    {
+        var chipX = x + chipGap
+        var chipY = y + c * chipTall
+        var colour = classColour(tails[c].path)
+
+        out = out + "<line x1='" + toString(x + 2) + "' y1='" + toString(chipY + 9) + "' x2='" + toString(chipX - 2) + "' y2='" + toString(chipY + 9) + "' stroke='" + colour + "' stroke-width='1.8' marker-end='url(#way" + toString(classIndex(tails[c].path)) + ")'/>\n"
+        out = out + "<rect x='" + toString(chipX) + "' y='" + toString(chipY) + "' width='" + toString(tails[c].wide) + "' height='18' rx='9' fill='#f6e05e' stroke='" + colour + "' stroke-width='1.5'/>\n"
+        out = out + "<text x='" + toString(chipX + 6) + "' y='" + toString(chipY + 13) + "' style='fill: " + colour + "'>" + xmlText(tails[c].text) + "</text>\n"
+    }
+
+    return out
+}
+
 // The walks that bring what a task takes, a text a thing: "The Hedgerows, The Quarry Road",
 // with the thing before it ("stone: The Quarry Road") when `named`, or when there are several.
 // `nodes` is the task, or the works of a place of the town
@@ -1930,6 +2034,29 @@ fun layoutTimeline(graph, folded, left)
                 item.tall = len(item.chips) * chipTall + 2
             }
 
+            // The classes it leads to stand after it, on chips: room for them, and for the line
+            // that runs under them to the age it closes at
+            item.tails = classChips(graph, task, folded)
+            item.tailEnd = item.body
+
+            for (var c = 0; c < len(item.tails); c = c + 1)
+            {
+                if (item.body + chipGap + item.tails[c].wide > item.tailEnd)
+                {
+                    item.tailEnd = item.body + chipGap + item.tails[c].wide
+                }
+            }
+
+            if (item.tailEnd > item.reach)
+            {
+                item.reach = item.tailEnd
+            }
+
+            if (len(item.tails) * chipTall + 10 > item.tall and len(item.tails) > 0)
+            {
+                item.tall = len(item.tails) * chipTall + 10
+            }
+
             if (task.zone != "")
             {
                 band.walk = true
@@ -2048,9 +2175,9 @@ fun layoutTimeline(graph, folded, left)
 
         for (var n = 0; n < len(band.items); n = n + 1)
         {
-            if (band.items[n].body + framePad > band.right)
+            if (band.items[n].tailEnd + framePad > band.right)
             {
-                band.right = band.items[n].body + framePad
+                band.right = band.items[n].tailEnd + framePad
             }
 
             if (band.items[n].over - framePad > band.right)
@@ -2158,10 +2285,16 @@ fun emitTimeline(graph)
     out = out + "<marker id='eases' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='7' markerHeight='7' orient='auto'><path d='M 0 0 L 10 5 L 0 10 z' fill='#2f855a'/></marker>\n"
     out = out + "<marker id='shows' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='7' markerHeight='7' orient='auto'><path d='M 0 0 L 10 5 L 0 10 z' fill='" + townColour + "'/></marker>\n"
     out = out + "<marker id='walks' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='7' markerHeight='7' orient='auto'><path d='M 0 0 L 10 5 L 0 10 z' fill='" + walkColour + "'/></marker>\n"
+
+    for (var p = 0; p < len(paths); p = p + 1)
+    {
+        out = out + "<marker id='way" + toString(p) + "' viewBox='0 0 10 10' refX='9' refY='5' markerWidth='7' markerHeight='7' orient='auto'><path d='M 0 0 L 10 5 L 0 10 z' fill='" + classColour(paths[p].id) + "'/></marker>\n"
+    }
+
     out = out + "</defs>\n"
     out = out + "<rect width='" + toString(view.width) + "' height='" + toString(view.height) + "' fill='#ffffff'/>\n"
     out = out + "<text x='" + toString(view.left) + "' y='20' class='note'>A bar: the months a task takes, from the age it opens at. The line after it: the age it must be over by. Gold: a way into a class; a stripe: a task of that class. An arrow: a flag one task brings and another reads (black asks for it, dashed green is eased by it or takes it as one of several). Purple: the town. A place begins where the task that brings it onto the page ends, its three works bars end to end, with an arrow from that task. A purple chip before a task: the level of a place it waits for.</text>\n"
-    out = out + "<text x='" + toString(view.left) + "' y='34' class='note'>Red: a walk outside the town, with its days, what is gathered there and its beasts (what each leaves, and the part a kill trains). A red chip before a task or a place of the town: the walks that bring what it takes; what is sold or brewed of a thing begins once the first walk that brings it is over. \"in a fight\" on a bar: the technique the task teaches, for the walks that have a beast.</text>\n"
+    out = out + "<text x='" + toString(view.left) + "' y='34' class='note'>Red: a walk outside the town, with its days, what is gathered there and its beasts (what each leaves, and the part a kill trains). A red chip before a task or a place of the town: the walks that bring what it takes; what is sold or brewed of a thing begins once the first walk that brings it is over. \"in a fight\" on a bar: the technique the task teaches, for the walks that have a beast. A gold chip after a task: the class it leads to, and what it changes of what that class asks; no arrow climbs to the ways in.</text>\n"
 
     // The frames, a group each, in the colour of its class when it is all of one
     for (var b = 0; b < len(view.bands); b = b + 1)
@@ -2270,6 +2403,7 @@ fun emitTimeline(graph)
 
             // What it waits for: its chips before it, each with a short arrow
             out = out + emitChips(item.chips, item.x, item.y + 3)
+            out = out + emitTails(item.tails, item.body, item.y + 3)
 
             // Until when it must be over
             if (item.over > item.x + item.bar)
@@ -2387,6 +2521,12 @@ fun emitTimeline(graph)
                 }
 
                 if (contain(drawn, brings.source + ">" + reads.target + ">" + stat))
+                {
+                    continue
+                }
+
+                // None into a way into a class: the task that leads there has the class on a chip
+                if (view.items[reads.target].task.enters and classIndex(view.items[reads.target].task.path) >= 0)
                 {
                     continue
                 }
