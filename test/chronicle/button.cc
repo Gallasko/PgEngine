@@ -325,6 +325,70 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // Another variant is other colours on the button that stands: the same parts, what it knew
+        // of the mouse kept, and a sheen made the day a quiet face turns tonal.
+        TEST(button_test, set_variant_recolours_the_button_that_stands)
+        {
+            MockLogger logger;
+            ButtonFixture s;
+
+            ButtonSpec spec; spec.label = "Wolf"; spec.tag = "aim"; spec.months = 3;
+            Button b = s.place(spec);
+
+            const _unique_id face = b.face.id;
+            const _unique_id ground = s.state(b)->ground;
+
+            EXPECT_EQ(s.state(b)->sheen, 0u);
+
+            s.hover(110.0f, 118.0f);
+            ASSERT_TRUE(s.state(b)->hovered);
+
+            b.setVariant(&s.ecs, ButtonVariant::Study);
+            s.pump();
+
+            EXPECT_EQ(b.face.id, face);
+            EXPECT_EQ(s.state(b)->ground, ground);
+            EXPECT_EQ(b.spec.variant, ButtonVariant::Study);
+            EXPECT_EQ(s.token(ground), "lapis");
+            EXPECT_EQ(s.token(s.state(b)->frame), "lapis");
+            EXPECT_EQ(s.token(b.label.entity.id), "on-lapis");
+            EXPECT_EQ(s.token(b.costMark->entity.id), "on-lapis");
+
+            // Under the mouse still: its new sheen is lit, and a press is taken without a move
+            EXPECT_TRUE(s.state(b)->hovered);
+            ASSERT_NE(s.state(b)->sheen, 0u);
+            EXPECT_NEAR(s.palpha(s.state(b)->sheen), 0.14f, 0.001f);
+            EXPECT_FLOAT_EQ(s.pos(s.state(b)->sheen)->z, s.pos(s.state(b)->frame)->z);
+
+            s.press(110.0f, 118.0f);
+            s.release(110.0f, 118.0f);
+            EXPECT_EQ(s.recorder->events.size(), 1u);
+
+            // And quiet again: the sheen it was given is kept, out of sight
+            const _unique_id sheen = s.state(b)->sheen;
+
+            b.setVariant(&s.ecs, ButtonVariant::Quiet);
+            s.pump();
+
+            EXPECT_EQ(s.token(ground), "vellum-tint");
+            EXPECT_EQ(s.token(s.state(b)->frame), "rule-ruled");
+            EXPECT_EQ(s.token(b.label.entity.id), "ink");
+            EXPECT_EQ(s.token(b.costMark->entity.id), "status-time");
+            EXPECT_EQ(s.state(b)->sheen, sheen);
+            EXPECT_FALSE(s.pos(sheen)->visible);
+
+            b.setVariant(&s.ecs, ButtonVariant::Seal);
+            s.pump();
+
+            EXPECT_EQ(s.state(b)->sheen, sheen);
+            EXPECT_TRUE(s.pos(sheen)->visible);
+            EXPECT_NEAR(s.palpha(sheen), 0.14f, 0.001f);
+            EXPECT_EQ(s.token(ground), "vermilion");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         TEST(button_test, tab_focuses_in_order_and_draws_ring)
         {
             MockLogger logger;

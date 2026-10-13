@@ -100,6 +100,7 @@ namespace chronicle
         const std::string MoveGloss = "walk/move/";        // Followed by a move's id: what it would do, before it is done
         const std::string WorkGloss = "walk/work/";        // Followed by a field work's id: a line on it, what it costs, what it gives
         constexpr float MoveGap = 8.0f;                    // Between two buttons of his turn
+        constexpr int HoverFrames = 12;                    // After they are made again: the frames in which the hover is worked out again
         constexpr float HurtMs = 320.0f;                   // A rule that was just taken from stays in the loss's colour that long
         constexpr float HurtRiseMs = 900.0f;               // And what was taken lifts off it for that long,
         constexpr float HurtRise = 0.02f;                  // by so many pixels a millisecond
@@ -969,6 +970,7 @@ namespace chronicle
         walkMoves.clear();
         moveRows.clear();
         moveFlow.clear();
+        moveHoverStale = 0;
         walkGlossed = false;
         accountFitted = 0.0f;
     }
@@ -1539,7 +1541,8 @@ namespace chronicle
         auto registry = ecs->getSystem<GlossRegistry>();
 
         // What the buttons are: the beasts to aim at (against several), then every move of the
-        // menu. Made again only when that changes: a move learned, a remedy drunk, another aim
+        // menu. Made again only when what stands on them changes (a move learned, another cost):
+        // which beast is aimed at is a colour, given to the button that stands
         struct Wanted
         {
             std::string layout;        // "aims" or "moves"
@@ -1617,7 +1620,7 @@ namespace chronicle
         }
 
         for (const auto& w : wanted)
-            signature += w.layout + "|" + w.tag + "|" + w.label + "|" + w.cost + "|" + std::to_string(static_cast<int>(w.variant)) + (w.newLine ? "/" : "") + ";";
+            signature += w.layout + "|" + w.tag + "|" + w.label + "|" + w.cost + (w.newLine ? "/" : "") + ";";
 
         const bool again = signature != walkFilled["moves"];
 
@@ -1625,7 +1628,8 @@ namespace chronicle
         {
             walkFilled["moves"] = signature;
 
-            // The rows of buttons there were go: the layout destroys each one as it lets it go
+            // The rows of buttons there were go: the layout destroys each one as it lets it go,
+            // and the screen forgets it
             for (const char* name : {"aims", "moves"})
             {
                 EntityRef rows = inWalk(name);
@@ -1634,10 +1638,19 @@ namespace chronicle
                     continue;
 
                 for (auto id : moveRows[name])
+                {
                     rows->get<VerticalLayout>()->removeEntity(id);
+
+                    if (not walkPage.empty())
+                        walkPage->get<Prefab>()->childrenIds.erase(id);
+                }
 
                 moveRows[name].clear();
             }
+
+            // Other buttons than a frame ago, and the mouse may not have moved: the one now under
+            // it is hovered, and takes a press, only once the hover is worked out again (runWalk)
+            moveHoverStale = HoverFrames;
 
             walkMoves.clear();
             moveFlow.clear();
@@ -1694,8 +1707,9 @@ namespace chronicle
                     rows->get<VerticalLayout>()->addEntity(row);
                     moveRows[w.layout].push_back(row.id);
 
-                    // It leaves with the screen, as everything on it does
-                    walkPage->get<Prefab>()->addToPrefab(row, "moveRow" + std::to_string(++moveRowsMade));
+                    // It leaves with the screen, as everything on it does. Under no name: a name
+                    // the screen kept would outlive the row, and be looked through with the others
+                    walkPage->get<Prefab>()->addToPrefab(row);
                 }
 
                 auto anchor = button.root->get<UiAnchor>();
@@ -1716,9 +1730,13 @@ namespace chronicle
             }
         }
 
-        // What cannot be done now waits, greyed: its gloss says why
+        // What cannot be done now waits, greyed: its gloss says why. And the beast his blows go to
+        // is the lit one of its line
         for (size_t i = 0; i < walkMoves.size() and i < wanted.size(); ++i)
         {
+            if (walkMoves[i].second.spec.variant != wanted[i].variant)
+                walkMoves[i].second.setVariant(ecs, wanted[i].variant);
+
             if (walkMoves[i].second.spec.disabled != wanted[i].locked)
             {
                 walkMoves[i].second.setDisabled(ecs, wanted[i].locked);
@@ -2217,6 +2235,14 @@ namespace chronicle
         // A width that came while the screen did not hold its pieces yet: it is sized for it now
         if (walkSettling <= 0 and not walkPage.empty() and (windowWidth < NarrowBelow) == walkNarrow and std::abs(windowWidth - walkWidth) > 0.5f)
             sizeWalk(windowWidth, windowHeight);
+
+        // The buttons of his turn were made again: the hover is asked for while they are placed
+        if (moveHoverStale > 0)
+        {
+            --moveHoverStale;
+
+            ecsRef->sendEvent(RefreshHoverEvent{});
+        }
 
         // The account follows the order of the turn over it, whenever that one changes its height
         fitAccount();

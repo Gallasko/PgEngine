@@ -63,6 +63,7 @@ namespace chronicle
 
         void setDisabled(pg::EntitySystem*, bool, const std::string& reason = "");
         void setLabel(pg::EntitySystem*, const std::string&);
+        void setVariant(pg::EntitySystem*, ButtonVariant);   // The same button in another variant's colours: nothing of it is made again but a sheen it did not have
         void setMonths(pg::EntitySystem*, int);    // On a button made with a cost: the time it writes, < 0 hides it
         void setCost(pg::EntitySystem*, const std::string&);   // On a button made with a cost: what it reads in the months' place ("2 AP"), "" hides it
         float faceWidth(pg::EntitySystem*) const;

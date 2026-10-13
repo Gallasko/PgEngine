@@ -365,7 +365,7 @@ namespace chronicle
         float autoLeft = 0.0f;         // Milliseconds before his stance plays the next turn of a fight handed to it
         std::vector<std::pair<std::string, Button>> walkMoves;   // The buttons of his turn, by tag, in the order they were made
         std::unordered_map<std::string, std::vector<pg::_unique_id>> moveRows;   // The rows they stand on, by the layout that holds them
-        int moveRowsMade = 0;          // How many rows were ever made: each has a name of its own on the screen
+        int moveHoverStale = 0;        // Frames left in which the hover is asked for again: buttons made again under a mouse that stays still
         std::unordered_map<std::string, std::pair<float, float>> moveFlow;   // By layout: the widths between which its buttons stand on their lines as they do (at least, under)
         bool walkGlossed = false;      // The glosses of the beasts' panels hang on them
         float accountFitted = 0.0f;    // The height the account of a fight was last given, under the order of the turn

@@ -7759,6 +7759,140 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // Against a pack he aims at one beast and then at another as often as he likes in a turn:
+        // the buttons of his turn stand where they stood, the one aimed at lit. When they are made
+        // again (a button more or less), the screen keeps hold of nothing that is gone, and the
+        // button under a mouse that has not moved takes the next press.
+        TEST(lifescene_test, another_aim_keeps_the_buttons_of_his_turn)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.walk = "hollow";
+            opt.walkSeed = 3;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+            f.frames(12);
+            f.pass(400.0f, 50.0f);
+            ASSERT_TRUE(life->onWalk());
+
+            life->walkDo(WalkAct{"seek", "wolf", 3});
+            f.frames(12);
+            answerEvents(f, life);
+            f.frames(12);
+
+            ASSERT_EQ(life->walkScreen, "fight");
+            ASSERT_EQ(life->walk.targets.size(), 3u);
+
+            f.pass(100.0f, 50.0f);
+            f.settle();
+
+            auto faces = [&]() {
+                std::vector<_unique_id> ids;
+
+                for (const auto& [tag, button] : life->moves())
+                    ids.push_back(button.face.id);
+
+                return ids;
+            };
+
+            auto state = [&](const Button& button) { return f.ecs.getEntity(button.face.id)->get<ButtonState>(); };
+
+            // A button a wolf, then what he may do
+            const std::vector<_unique_id> stood = faces();
+
+            ASSERT_GT(stood.size(), 4u);
+            EXPECT_EQ(life->moves()[0].first, "walk.aim.0");
+            EXPECT_EQ(life->moves()[2].first, "walk.aim.2");
+            ASSERT_EQ(life->moves()[3].first, "walk.move.strike");
+
+            const std::string turn = walkPart(life, "turn")->get<Label>()->spec.text;
+
+            // The second, the third, and the second again
+            for (int aim : {1, 2, 1})
+            {
+                f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.aim." + std::to_string(aim)});
+                f.frames(12);
+
+                ASSERT_EQ(life->walkScreen, "fight") << aim;
+                EXPECT_EQ(faces(), stood) << aim;
+
+                for (int i = 0; i < 3; ++i)
+                {
+                    const Button& button = life->moves()[i].second;
+                    const ButtonVariant lit = i == aim ? ButtonVariant::Study : ButtonVariant::Quiet;
+
+                    EXPECT_EQ(button.spec.variant, lit) << aim << " " << i;
+                    EXPECT_EQ(state(button)->variant, lit) << aim << " " << i;
+                }
+            }
+
+            // In the same turn: to aim is not to strike
+            EXPECT_EQ(walkPart(life, "turn")->get<Label>()->spec.text, turn);
+
+            // The mouse on Strike, and left there
+            const _unique_id strike = life->moves()[3].second.face.id;
+            auto box = f.pos(life->moves()[3].second.face);
+            const Point2D at{box->x + box->width / 2.0f, box->y + box->height / 2.0f};
+
+            f.ecs.sendEvent(OnMouseMove{at, nullptr});
+            f.frames(4);
+
+            ASSERT_TRUE(state(life->moves()[3].second)->hovered);
+
+            // A remedy more in his bag, or none left: his turn has a button more, or one less, and
+            // its buttons are made again
+            bool remedy = false;
+
+            for (const auto& [tag, button] : life->moves())
+                remedy = remedy or tag == "walk.move.remedy";
+
+            life->save.stats["remedy"] = remedy ? 0 : 2;
+
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.aim.2"});
+            f.pass(240.0f, 16.0f);
+            f.settle();
+
+            ASSERT_EQ(life->walkScreen, "fight");
+            ASSERT_EQ(faces().size(), remedy ? stood.size() - 1 : stood.size() + 1);
+
+            for (auto id : stood)
+                EXPECT_EQ(f.ecs.getEntity(id), nullptr) << id;
+
+            // Nothing the screen knows by a name is gone: a name is looked through at every lookup
+            for (const auto& [name, child] : life->walkPage->get<Prefab>()->namedChildrenIds)
+                EXPECT_NE(f.ecs.getEntity(child.id), nullptr) << name;
+
+            // Strike stands where it stood, another button: hovered with no move of the mouse,
+            // and a press on it is a blow
+            ASSERT_EQ(life->moves()[3].first, "walk.move.strike");
+            EXPECT_NE(life->moves()[3].second.face.id, strike);
+            EXPECT_TRUE(state(life->moves()[3].second)->hovered);
+
+            const size_t told = life->walk.state.account.size();
+
+            f.ecs.sendEvent(OnMouseClick{at, static_cast<MouseButton>(1)});
+            f.frames(4);
+            f.ecs.sendEvent(OnMouseRelease{at, static_cast<MouseButton>(1)});
+            f.frames(12);
+
+            EXPECT_GT(life->walk.state.account.size(), told);
+
+            // And he aims on as before
+            for (int aim : {0, 1, 0, 2})
+            {
+                f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.aim." + std::to_string(aim)});
+                f.frames(12);
+
+                ASSERT_FALSE(life->walkPage.empty()) << aim;
+            }
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // What his walks brought for the town ends with him, but for what the place he leaves his
         // coin to still asks: that much is left to it, and the next life finds the place asking less.
         TEST(lifescene_test, gift_at_death_leaves_what_the_place_asks)

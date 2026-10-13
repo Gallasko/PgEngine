@@ -81,6 +81,18 @@ namespace chronicle
             e->get<ThemeComponent>()->setElement(element);
         }
 
+        // The hover's brighten over a tonal face, alpha 0 until then: a quiet face has none
+        _unique_id makeSheen(EntitySystem* ecs, EntityRef root, EntityRef face, const std::string& element)
+        {
+            auto sheen = makeRoundedRect2DShape(ecs, ecs->getSystem<ThemeSystem>()->radius("radius-md"), 1.0f, 1.0f);
+            sheen.get<UiAnchor>()->fillIn(face->get<UiAnchor>());
+            sheen.get<UiAnchor>()->setZConstrain(PosConstrain{face.id, AnchorType::Z, PosOpType::Add, 1.0f});
+            ecs->attach<ThemeComponent>(sheen.entity, element);
+            root->get<Prefab>()->addToPrefab(sheen.entity);
+
+            return sheen.entity.id;
+        }
+
         // The face as wide as what stands on it, the cost pair after the label. The cost pair of a
         // button that costs nothing for now is kept, hidden, and takes no room
         void layFace(Button& b)
@@ -208,14 +220,7 @@ namespace chronicle
 
         // sheen (tonal only): a hover brighten/darken, alpha 0 until hovered.
         if (spec.variant != ButtonVariant::Quiet)
-        {
-            auto sheen = makeRoundedRect2DShape(ecs, theme->radius("radius-md"), 1.0f, 1.0f);
-            sheen.get<UiAnchor>()->fillIn(face->get<UiAnchor>());
-            sheen.get<UiAnchor>()->setZConstrain(PosConstrain{faceId, AnchorType::Z, PosOpType::Add, 1.0f});
-            ecs->attach<ThemeComponent>(sheen.entity, partElement(spec.variant, "sheen"));
-            root.get<Prefab>()->addToPrefab(sheen.entity);
-            state->sheen = sheen.entity.id;
-        }
+            state->sheen = makeSheen(ecs, root.entity, face, partElement(spec.variant, "sheen"));
 
         // focus ring: 2 px focus-ink, radius 5, 4 px outside the face, hidden until keyboard focus.
         auto ring = makeStrokeRect2DShape(ecs, 1.0f, 1.0f, {255.0f, 255.0f, 255.0f, 255.0f}, theme->border("border-rule"));
@@ -313,6 +318,24 @@ namespace chronicle
         layFace(*this);
     }
 
+    void Button::setVariant(EntitySystem* ecs, ButtonVariant variant)
+    {
+        auto state = face->get<ButtonState>();
+
+        spec.variant = variant;
+
+        if (state->variant == variant)
+            return;
+
+        state->variant = variant;
+
+        // A face made quiet has no sheen: it gets one the day it turns tonal
+        if (variant != ButtonVariant::Quiet and state->sheen == 0)
+            state->sheen = makeSheen(ecs, root, face, partElement(variant, "sheen", (state->hovered and not state->disabled) ? ".hover" : ""));
+
+        ecs->getSystem<ButtonSystem>()->applyVisual(face);
+    }
+
     void Button::setMonths(EntitySystem* ecs, int months)
     {
         spec.months = months;
@@ -387,10 +410,18 @@ namespace chronicle
         if (auto f = ecsRef->getEntity(st->frame))
             rekey(f, partElement(st->variant, "frame", state));
 
-        // The sheen only lights on an enabled hover; it never dims, it is invisible at rest.
+        // The sheen only lights on an enabled hover; it never dims, it is invisible at rest. A
+        // face turned quiet keeps the one it had, out of sight: the theme has none for it
         if (st->sheen)
             if (auto s = ecsRef->getEntity(st->sheen))
-                rekey(s, partElement(st->variant, "sheen", (st->hovered and enabled) ? ".hover" : ""));
+            {
+                const bool tonal = st->variant != ButtonVariant::Quiet;
+
+                s->get<PositionComponent>()->setVisible(tonal);
+
+                if (tonal)
+                    rekey(s, partElement(st->variant, "sheen", (st->hovered and enabled) ? ".hover" : ""));
+            }
 
         if (st->ring)
             if (auto r = ecsRef->getEntity(st->ring))
