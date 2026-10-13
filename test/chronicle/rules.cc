@@ -2679,6 +2679,212 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // The Flood comes the month he is eleven, in every life: two months to answer it, and one
+        // answer of three. What he answers is his for the life: who stood in the mill's water
+        // mends its wheel for half, and who looted is not given the sacristan's keys.
+        TEST(rules_test, the_flood_is_answered_once_at_eleven)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            auto listed = [&](float age, const ElementMap& character, const char* id) {
+                return flag(activityAt(f.rules, age, character, id).fields, "listed");
+            };
+
+            ElementMap character = townsman();
+            character["str"] = ElementType{7};
+            character["dex"] = ElementType{7};
+            character["letters"] = ElementType{2};
+            character["coin"] = ElementType{30};
+
+            const float month = 1.0f / 12.0f;
+
+            // Not before, and not after its two months
+            for (const char* id : {"flood.sandbags", "flood.rescue", "flood.salvage"})
+            {
+                EXPECT_FALSE(listed(11.0f - month, character, id)) << id;
+                EXPECT_TRUE(listed(11.0f, character, id)) << id;
+                EXPECT_TRUE(listed(11.0f + month, character, id)) << id;
+                EXPECT_FALSE(listed(11.0f + 2.0f * month, character, id)) << id;
+            }
+
+            // A row whatever he has: what he cannot do he sees he cannot
+            ElementMap weak = townsman();
+            weak["str"] = ElementType{4};
+
+            EXPECT_TRUE(listed(11.0f, weak, "flood.sandbags"));
+            EXPECT_TRUE(flag(activityAt(f.rules, 11.0f, weak, "flood.sandbags").fields, "locked"));
+
+            // Each says what it closes; the looting closes the keys besides
+            EXPECT_EQ(textOf(activityAt(f.rules, 11.0f, character, "flood.sandbags").fields, "caution"),
+                      "One or the other: once this is done, Pull Folk from the Water and Salvage the Wreck are closed to him for this life.");
+            EXPECT_NE(textOf(activityAt(f.rules, 11.0f, character, "flood.salvage").fields, "caution").find("Take the Sacristan's Keys"), std::string::npos);
+
+            // The mill's wheel, before: twenty coin
+            EXPECT_EQ(intOf(activityAt(f.rules, 11.0f, character, "raise.mill.1").costs[0], "amount"), 20);
+
+            // The sandbags: the others are gone, and the wheel is ten
+            RuleForecast forecast;
+            ASSERT_TRUE(f.rules.forecast(11.0f, character, "flood.sandbags", 0, forecast)) << firstError(f.rules);
+
+            EXPECT_EQ(intOf(forecast.atTerm, "str"), 8);
+            EXPECT_EQ(intOf(forecast.atTerm, "mill_saved"), 1);
+            ASSERT_EQ(forecast.entries.size(), 3u);
+
+            ElementMap saved = character;
+            saved["mill_saved"] = ElementType{1};
+            f.rules.done = {{"flood.sandbags", ElementType{1}}};
+
+            EXPECT_FALSE(listed(11.0f + month, saved, "flood.rescue"));
+            EXPECT_FALSE(listed(11.0f + month, saved, "flood.salvage"));
+            EXPECT_EQ(intOf(activityAt(f.rules, 11.5f, saved, "raise.mill.1").costs[0], "amount"), 10);
+            EXPECT_TRUE(listed(11.5f, saved, "keys"));
+
+            // The looting: the keys are not his, the forbidden shelf is
+            f.rules.done = {{"flood.salvage", ElementType{1}}};
+
+            EXPECT_FALSE(listed(11.5f, character, "keys"));
+            EXPECT_TRUE(listed(11.5f, character, "shelf"));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A lead shows the next thing and gives no stat: the forge to who worked the smithy, the
+        // tunnel to who roamed the town twice. What a task closes besides its own choice is
+        // written plainly: the Boys' oath shuts the Watch, turning them in shuts the Hidden Hand.
+        TEST(rules_test, a_childhood_of_leads_and_forks)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            auto listed = [&](float age, const ElementMap& character, const char* id) {
+                return flag(activityAt(f.rules, age, character, id).fields, "listed");
+            };
+
+            ElementMap character = townsman();
+            character["str"] = ElementType{9};
+            character["dex"] = ElementType{8};
+
+            // Nothing leads to them yet
+            EXPECT_FALSE(listed(10.0f, character, "forge"));
+            EXPECT_FALSE(listed(10.0f, character, "tunnel"));
+            EXPECT_FALSE(listed(10.5f, character, "temper"));
+            EXPECT_TRUE(listed(10.5f, character, "drive"));
+
+            f.rules.done = {{"smithy", ElementType{1}}, {"roam", ElementType{1}}};
+
+            EXPECT_TRUE(listed(10.0f, character, "forge"));
+            EXPECT_FALSE(listed(10.0f, character, "tunnel"));
+
+            f.rules.done = {{"smithy", ElementType{1}}, {"roam", ElementType{2}}};
+
+            EXPECT_TRUE(listed(10.0f, character, "tunnel"));
+
+            // The forge seen: the tempering, or the carters' reins
+            RuleForecast forecast;
+            ASSERT_TRUE(f.rules.forecast(10.0f, character, "forge", 0, forecast)) << firstError(f.rules);
+            EXPECT_EQ(intOf(forecast.atTerm, "forge_seen"), 1);
+            EXPECT_EQ(intOf(forecast.atTerm, "str"), 9);
+
+            character["forge_seen"] = ElementType{1};
+            character["tunnel_found"] = ElementType{1};
+
+            EXPECT_TRUE(listed(10.5f, character, "temper"));
+            EXPECT_FALSE(listed(10.5f, character, "smuggler"));
+            EXPECT_TRUE(listed(11.0f, character, "smuggler"));
+
+            f.rules.done = {{"smithy", ElementType{1}}, {"roam", ElementType{2}}, {"forge", ElementType{1}}, {"temper", ElementType{1}}};
+
+            EXPECT_FALSE(listed(10.5f, character, "drive"));
+
+            // The Boys: an oath, or a word to the sergeant
+            f.rules.done = {{"boys", ElementType{1}}};
+
+            EXPECT_TRUE(listed(12.0f, character, "oath"));
+            EXPECT_TRUE(listed(12.0f, character, "turnin"));
+            EXPECT_EQ(textOf(activityAt(f.rules, 12.0f, character, "oath").fields, "caution"),
+                      "One or the other: once this is done, Carry for the Watch and Turn the Boys In are closed to him for this life.");
+
+            ASSERT_TRUE(f.rules.forecast(12.0f, character, "oath", 0, forecast)) << firstError(f.rules);
+
+            ASSERT_EQ(forecast.entries.size(), 3u);
+            EXPECT_EQ(textOf(forecast.entries[1], "text"), "Carry for the Watch is closed to him");
+            EXPECT_EQ(textOf(forecast.entries[2], "text"), "One or the other: Turn the Boys In is closed to him");
+
+            f.rules.done = {{"boys", ElementType{1}}, {"oath", ElementType{1}}};
+
+            EXPECT_FALSE(listed(12.0f, character, "watch"));
+            EXPECT_FALSE(listed(12.5f, character, "turnin"));
+            EXPECT_TRUE(listed(12.5f, character, "hand"));
+
+            f.rules.done = {{"boys", ElementType{1}}, {"turnin", ElementType{1}}};
+
+            EXPECT_FALSE(listed(12.5f, character, "hand"));
+            EXPECT_FALSE(listed(12.5f, character, "oath"));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The Lord's Levy comes the month he is fifteen: that month to answer, one answer. Who
+        // marched is asked less Arms by the Keep; who hid is a deserter, shut out of the Keep, and
+        // the Greenwood is a door like the others for him at sixteen.
+        TEST(rules_test, the_levy_at_fifteen_turns_the_classes)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            auto listed = [&](float age, const ElementMap& character, const char* id) {
+                return flag(activityAt(f.rules, age, character, id).fields, "listed");
+            };
+
+            ElementMap character = townsman();
+            character["str"] = ElementType{12};
+            character["arms"] = ElementType{2};
+            character["discipline"] = ElementType{2};
+            character["coin"] = ElementType{30};
+
+            const float month = 1.0f / 12.0f;
+
+            for (const char* id : {"levy.march", "levy.pay", "levy.hide"})
+            {
+                EXPECT_FALSE(listed(15.0f - month, character, id)) << id;
+                EXPECT_TRUE(listed(15.0f, character, id)) << id;
+                EXPECT_FALSE(listed(15.0f + month, character, id)) << id;
+            }
+
+            // The scutage is paid at once, and closes the other two
+            EXPECT_EQ(intOf(activityAt(f.rules, 15.0f, character, "levy.pay").fields, "months"), 0);
+            EXPECT_EQ(intOf(activityAt(f.rules, 15.0f, character, "levy.pay").costs[0], "amount"), 20);
+
+            // Two of Arms are not the Keep's three, nor is the Greenwood a door while others stand
+            EXPECT_TRUE(flag(activityAt(f.rules, 16.0f, character, "keep").fields, "locked"));
+            EXPECT_FALSE(listed(16.0f, character, "greenwood"));
+
+            // Marched: the Keep asks two
+            ElementMap marched = character;
+            marched["levy_served"] = ElementType{1};
+            f.rules.done = {{"levy.march", ElementType{1}}};
+
+            EXPECT_TRUE(listed(16.0f, marched, "keep"));
+            EXPECT_FALSE(flag(activityAt(f.rules, 16.0f, marched, "keep").fields, "locked"));
+
+            // Hid: no Keep, and the Greenwood at sixteen with the other doors still open
+            ElementMap hid = character;
+            hid["deserter"] = ElementType{1};
+            f.rules.done = {{"levy.hide", ElementType{1}}};
+
+            EXPECT_FALSE(listed(16.0f, hid, "keep"));
+            EXPECT_TRUE(listed(16.0f, hid, "collegium"));
+            EXPECT_FALSE(listed(15.5f, hid, "greenwood"));
+            EXPECT_TRUE(listed(16.0f, hid, "greenwood"));
+            EXPECT_FALSE(flag(activityAt(f.rules, 16.0f, hid, "greenwood").fields, "locked"));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // The yard takes a boy who has watched its tourney from the rail, a month at nine, or one
         // who comes with the basics of the blade: either, and the tourney is for who has no blade.
         // What the tourney leaves him is a thing he holds, an enthusiasm, that his first term at

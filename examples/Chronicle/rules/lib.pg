@@ -340,6 +340,76 @@ fun byId(list, id)
     return {id: ""}
 }
 
+// A field that is one thing or a list of them, as a list.
+fun asList(value)
+{
+    if (typeOf(value) == "array")
+    {
+        return value
+    }
+
+    return [value]
+}
+
+// Whether a row of the activity table is closed once that activity is done: its `unless`, one id
+// or several.
+fun closedBy(row, id)
+{
+    if (not contain(row, "unless"))
+    {
+        return false
+    }
+
+    var ids = asList(row.unless)
+
+    for (var i = 0; i < len(ids); i++)
+    {
+        if (ids[i] == id)
+        {
+            return true
+        }
+    }
+
+    return false
+}
+
+// "A", "A and B", "A, B and C"
+fun namesText(names)
+{
+    var out = ""
+
+    for (var i = 0; i < len(names); i++)
+    {
+        if (i > 0 and i == len(names) - 1)
+        {
+            out = out + " and "
+        }
+        else if (i > 0)
+        {
+            out = out + ", "
+        }
+
+        out = out + names[i]
+    }
+
+    return out
+}
+
+// The coin a level of a place asks of this character (towntable.pg): what it writes, or less
+// with the flag its `cheaper` names, {flag, coin}.
+fun levelCoin(step, character)
+{
+    if (contain(step, "cheaper"))
+    {
+        if (statOf(character, step.cheaper.flag) > 0)
+        {
+            return step.cheaper.coin
+        }
+    }
+
+    return step.coin
+}
+
 // The flag that makes him one of a path (activitytable.pg's `paths`), "" for none.
 fun pathFlagOf(paths, path)
 {
@@ -396,7 +466,8 @@ fun shiftIn(after, change, stat, amount)
 // A walk outside the town (expeditiontable.pg): the days on site, the days of the way there, and
 // the months it blocks, for a zone studied that often. The Life page's row and the walk itself
 // read the same three, so they never disagree. A zone studied to its third level is stayed in
-// longer; to its fourth, the way is shorter.
+// longer; to its fourth, the way is shorter. Who knows the roads (`roads`: 1, a carter's boy) is
+// there, and home, a day sooner.
 fun walkStay(zone, studies)
 {
     if (studies >= walkKnobs.studyLevels[2])
@@ -407,19 +478,26 @@ fun walkStay(zone, studies)
     return zone.stayMin
 }
 
-fun walkTravel(zone, studies)
+fun walkTravel(zone, studies, roads)
 {
+    var days = zone.travel
+
     if (studies >= walkKnobs.studyLevels[3])
     {
-        return clamp(toInt(floor(zone.travel * (100 - walkKnobs.travelCut) / 100)), 1, zone.travel)
+        days = clamp(toInt(floor(zone.travel * (100 - walkKnobs.travelCut) / 100)), 1, zone.travel)
     }
 
-    return zone.travel
+    if (roads > 0)
+    {
+        days = clamp(days - walkKnobs.roadsCut, 1, days)
+    }
+
+    return days
 }
 
-fun walkMonths(zone, studies)
+fun walkMonths(zone, studies, roads)
 {
-    var span = 2 * walkTravel(zone, studies) + walkStay(zone, studies)
+    var span = 2 * walkTravel(zone, studies, roads) + walkStay(zone, studies)
 
     return clamp(toInt(ceil(toFloat(span) / toFloat(walkKnobs.daysAMonth))), 1, span)
 }
@@ -520,6 +598,23 @@ var statNames = {
     wooden_blade: "A wooden blade",
     blade_basics: "The basics of the blade",
     yard_enthusiasm: "Yard enthusiasm",
+    forge_seen: "Seen the forge",
+    smith_apprentice: "Smith's apprentice",
+    roads_known: "Knows the roads",
+    anselm_trust: "Anselm's trust",
+    forbidden_read: "Read what is forbidden",
+    herbal: "The herbal",
+    snare_set: "Set a snare",
+    tunnel_found: "The tunnel",
+    smuggler_runner: "Smuggler's runner",
+    boys_sworn: "Sworn to the Boys",
+    mill_saved: "Saved the mill",
+    flood_hero: "The flood hero",
+    flood_looted: "Looted the flood",
+    levy_served: "Served the levy",
+    levy_paid: "Paid off",
+    deserter: "Deserter",
+    bargemen_tale: "The bargemen's tale",
     yard_breathing: "The yard's breathing",
     slash_learned: "Learned the slash",
     thrust_learned: "Learned the thrust",
@@ -599,6 +694,23 @@ var statShort = {
     wooden_blade: "BLADE",
     blade_basics: "BASICS",
     yard_enthusiasm: "ENTHUSIASM",
+    forge_seen: "FORGE",
+    smith_apprentice: "SMITH",
+    roads_known: "ROADS",
+    anselm_trust: "TRUST",
+    forbidden_read: "FORBIDDEN",
+    herbal: "HERBAL",
+    snare_set: "SNARE",
+    tunnel_found: "TUNNEL",
+    smuggler_runner: "RUNNER",
+    boys_sworn: "OATH",
+    mill_saved: "MILL SAVED",
+    flood_hero: "HERO",
+    flood_looted: "LOOT",
+    levy_served: "LEVY",
+    levy_paid: "PAID OFF",
+    deserter: "DESERTER",
+    bargemen_tale: "TALE",
     yard_breathing: "BREATHING",
     slash_learned: "SLASH",
     thrust_learned: "THRUST",

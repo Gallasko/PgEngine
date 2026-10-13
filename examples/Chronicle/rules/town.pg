@@ -113,7 +113,7 @@ for (var t = 0; t < len(townPlaces); t++)
     if (level < most)
     {
         var next = place.levels[level]
-        var coin = clamp(next.coin - fund, 0, next.coin)
+        var coin = clamp(levelCoin(next, character) - fund, 0, next.coin)
         var asks = ""
 
         shown.nextWork = "raise." + place.id + "." + toString(level + 1)

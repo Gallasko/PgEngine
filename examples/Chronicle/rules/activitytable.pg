@@ -47,7 +47,8 @@
 //           `closingShown` months before it), urgent (true from `closingUrgent` months before),
 //           closesIn (-1, or the months he still has to begin it: said all along of what closes
 //           before his prime does, and from `closingShown` months before of the rest),
-//           caution ("" or what choosing it gives up, for its gloss: "One or the other: ..."),
+//           caution ("" or what doing it closes for this life, for its gloss: the rows whose
+//           `unless` names it; "One or the other: ..." when it is itself one of a choice),
 //           after (its steps, as below).
 //
 // `months: 0` is an activity done at once: it takes no time, and can be done while another runs.
@@ -77,9 +78,14 @@
 //   closingShown: N  its closing is said from N months before, and not sooner: a work of his
 //                    sixth year closes at seven without counting down a whole year for it.
 //                    -1: never said (the last two of the year, which are all there is to do).
-//   unless: "id"     one or the other: its row is not listed once that activity has been done
-//                    in this life. Its gloss says so in the loss's colour (`caution`), and the
-//                    term of the one he takes writes in the log which one it closed (forecast.pg).
+//   unless: "id"     its row is not listed once that activity has been done in this life: one
+//                    or the other, when the two name each other. A list of ids: any of them
+//                    closes it (a fork of three; a task something else shuts, as the Boys' oath
+//                    shuts the Watch). The gloss of what closes another says so in the loss's
+//                    colour (its `caution`), and its term writes in the log what it closed
+//                    (forecast.pg).
+//   firstWith: "stat" on a `lastResort`: with that stat held it is a way in like the others,
+//                    from its age, and waits for no door to close (a deserter's Greenwood).
 //                    lib.pg's `anyAge` for what old age does not close.
 //   board: true      meals provided: a month at it takes no ration and costs no Vitality, held
 //                    rations or not (resources.pg).
@@ -275,6 +281,31 @@ var activities = [
      gains: [{stat: "str"}, {stat: "coin", amount: 18}],
      requires: [{stat: "str", needed: 8}],
      bonus: [{stat: "town.smithy", fromAge: 8}, {stat: "town.smithy", needed: 3, more: [{stat: "coin", amount: 6}]}]},
+    // A chain off the smithy that ends in a fork. A month at the master's elbow, once he has
+    // worked the smithy, shows him the forge; with that he may learn to temper, or he may drive
+    // for the carters: one or the other (`unless`). The first leaves him a smith's apprentice,
+    // whom the Keep takes with less Arms; the second knows the roads, and every walk of his is
+    // a day shorter each way (lib.pg's `walkTravel`)
+    {id: "forge", group: "Work", name: "Watch the Master Temper a Blade", glyph: "forge", months: 1, rank: "", each: "A LEAD", path: "", fromAge: 9, uses: 1,
+     about: "A month of holding the tongs and being told to hold them still. He is shown the colour the steel must be, once.",
+     gains: [{stat: "forge_seen"}],
+     requires: [{stat: "done.smithy", label: "Worked the smithy"}]},
+    {id: "temper", group: "Work", name: "Learn to Temper", glyph: "forge", months: 3, rank: "", each: "", path: "", fromAge: 10, finishBy: 13, uses: 1, unless: "drive",
+     about: "Straw, then blue, then the water. The master's apprentices are known at the Keep, which asks them for less.",
+     gains: [{stat: "arms"}, {stat: "smith_apprentice"}],
+     requires: [{stat: "forge_seen"}, {stat: "str", needed: 9}]},
+    {id: "drive", group: "Work", name: "Drive for the Carters", glyph: "work", months: 3, rank: "", each: "A DAY SHORTER, EVERY WALK", path: "", fromAge: 10, finishBy: 13, uses: 1, unless: "temper",
+     about: "The reins, at last, and every lane within three days of Bellmoor. Whoever knows the roads is a day sooner anywhere, and a day sooner home.",
+     gains: [{stat: "coin", amount: 8}, {stat: "roads_known"}],
+     requires: [{stat: "dex", needed: 7}]},
+    // A lead: a month and a little coin for something worth knowing, and no more. The bargemen
+    // know the pond above the mill: with their tale it is his to walk at nine, a year sooner
+    // (expeditiontable.pg's `sooner`). It is not sold to who is ten already
+    {id: "bargemen", group: "Work", name: "Hear the Bargemen's Tale", glyph: "adventure", months: 1, rank: "", each: "MILL POND A YEAR SOONER", path: "", fromAge: 9, finishBy: 10, closingShown: 3, uses: 1,
+     about: "The bargemen tie up below the mill and talk for anyone who brings ale. What lives in the reeds above the weir is their favourite story.",
+     gains: [{stat: "bargemen_tale"}],
+     requires: [],
+     costs: [{stat: "coin", amount: 2}]},
     {id: "night", group: "Work", name: "Work the Night Market", glyph: "trade", months: 6, rank: "", each: "", path: "", fromAge: 13, finishBy: 18, uses: 2,
      gains: [{stat: "guile"}, {stat: "coin", amount: 12}],
      requires: [{stat: "guile"}],
@@ -351,6 +382,7 @@ var activities = [
              {stat: "yard_enthusiasm", costs: [{stat: "yard_enthusiasm"}]}],
      after: [{uses: 2, months: 9}, {uses: 3, months: 12}]},
     {id: "watch", group: "Training", name: "Carry for the Watch", glyph: "gate", months: 12, rank: "", each: "", path: "", fromAge: 10, finishBy: 13, uses: 1,
+     unless: "oath",
      gains: [{stat: "arms"}, {stat: "str"}, {stat: "watch_known"}],
      requires: [{stat: "str", needed: 8}]},
     {id: "edric", group: "Training", name: "Train under Sergeant Edric", glyph: "training", months: 12, rank: "", each: "", path: "", fromAge: 13, finishBy: 18, uses: 2,
@@ -398,6 +430,23 @@ var activities = [
      gains: [{stat: "letters"}, {stat: "lore"}, {stat: "coin", amount: 8}],
      requires: [{stat: "letters", needed: 2}],
      after: [{uses: 2, effects: [{stat: "library_access"}], entry: "Father Anselm opens the chapel library to him"}]},
+    // The Church or what it forbids: one or the other, and the first fork a later life is built
+    // on. The keys are Father Anselm's trust, which the Collegium counts; the shelf is read by
+    // who will go after Harrow. Whoever looted the flood is not given the keys
+    {id: "keys", group: "Study", name: "Take the Sacristan's Keys", glyph: "study", months: 3, rank: "", each: "", path: "", fromAge: 11, finishBy: 13, uses: 1, unless: ["shelf", "flood.salvage"],
+     about: "The chapel at five in the morning, the candles, the offices said aloud to nobody. Father Anselm gives his keys to very few.",
+     gains: [{stat: "discipline"}, {stat: "anselm_trust"}],
+     requires: [{stat: "letters", needed: 2}]},
+    {id: "shelf", group: "Study", name: "Read the Forbidden Shelf", glyph: "magic", months: 3, rank: "", each: "", path: "", fromAge: 11, finishBy: 13, uses: 1, unless: "keys",
+     about: "The top shelf of the chapel library has a lock, and the lock has been broken for years. Nobody will thank him for what he reads there.",
+     gains: [{stat: "lore"}, {stat: "forbidden_read"}],
+     requires: [{stat: "letters", needed: 2}]},
+    // The herbal: nothing for his stats, and a thing to do on every walk from then on (he brews
+    // a remedy where he stands, expeditionlib.pg)
+    {id: "herbal", group: "Study", name: "Learn the Herbal", glyph: "study", months: 2, rank: "", each: "BREW ON A WALK", path: "", fromAge: 10, uses: 1,
+     about: "Which leaf, which root, how long over the fire. On a walk, two wortleaf become a remedy on the spot.",
+     gains: [{stat: "herbal"}],
+     requires: [{stat: "letters"}]},
     {id: "mara", group: "Study", name: "Lessons with Mara", glyph: "magic", months: 12, rank: "", each: "", path: "", fromAge: 15, finishBy: 17, uses: 1,
      gains: [{stat: "lore", amount: 2}, {stat: "discipline"}, {stat: "mara_student"}],
      requires: [{stat: "lore"}, {stat: "letters"}]},
@@ -407,7 +456,7 @@ var activities = [
      requires: []},
     {id: "hunters", group: "The streets", name: "Follow the Hunters", glyph: "adventure", months: 9, rank: "", each: "", path: "", fromAge: 10, finishBy: 15, uses: 2,
      gains: [{stat: "stealth"}, {stat: "vit", amount: 5}, {stat: "dex"}],
-     requires: [{stat: "dex", needed: 8}]},
+     requires: [{stat: "dex", needed: 8, eased: {flag: "snare_set", needed: 7}}]},
     {id: "boys", group: "The streets", name: "Run with the Bellmoor Boys", glyph: "town", months: 12, rank: "", each: "", path: "", fromAge: 10, finishBy: 14, uses: 1,
      gains: [{stat: "stealth"}, {stat: "guile"}, {stat: "street_known"}],
      requires: [{stat: "dex", needed: 8}]},
@@ -417,34 +466,106 @@ var activities = [
      gains: [{stat: "dex"}, {stat: "renown"}],
      requires: [{stat: "dex", needed: 7}]},
 
+    // A deadline, a chain, and the fork that first shuts a class. The snares close at eleven. The
+    // tunnel is found by who has roamed the town twice, and the smuggler works through it. The
+    // Boys ask for an oath or are turned in, one or the other: the oath shuts the Watch to him,
+    // turning them in shuts the Hidden Hand
+    {id: "snare", group: "The streets", name: "Snare Rabbits on the Common", glyph: "adventure", months: 2, rank: "", each: "SNARES ON A WALK", path: "", fromAge: 9, finishBy: 11, uses: 1,
+     about: "A loop of wire, a bent sapling, and two months of learning where rabbits will not go. On a walk, a snare is a day for two rations.",
+     gains: [{stat: "dex"}, {stat: "snare_set"}],
+     requires: [{stat: "dex", needed: 6}]},
+    {id: "tunnel", group: "The streets", name: "Find the Tunnel under the Wall", glyph: "gate", months: 1, rank: "", each: "A LEAD", path: "", fromAge: 10, uses: 1,
+     about: "Every boy in Bellmoor has heard there is one. He has walked the town twice over and knows which cellar it must be.",
+     gains: [{stat: "tunnel_found"}],
+     requires: [{stat: "done.roam", label: "Roamed Bellmoor, twice", needed: 2}]},
+    {id: "smuggler", group: "The streets", name: "Carry for the Smuggler", glyph: "guild", months: 3, rank: "", each: "", path: "", fromAge: 11, finishBy: 14, uses: 1,
+     about: "Sacks one way, sacks the other, and never a word about either. The smuggler teaches one trick, and it is not a clean one.",
+     gains: [{stat: "guile"}, {stat: "coin", amount: 8}, {stat: "smuggler_runner"}],
+     requires: [{stat: "tunnel_found"}, {stat: "dex", needed: 8}]},
+    {id: "oath", group: "The streets", name: "Take the Boys' Oath", glyph: "guild", months: 1, rank: "", each: "", path: "", fromAge: 12, finishBy: 14, uses: 1, unless: "turnin",
+     about: "A thumb cut on a roof at midnight, and a name he does not give the Watch from then on. The Watch does not forget which boys those are.",
+     gains: [{stat: "stealth"}, {stat: "boys_sworn"}],
+     requires: [{stat: "done.boys", label: "Ran with the Bellmoor Boys"}]},
+    {id: "turnin", group: "The streets", name: "Turn the Boys In", glyph: "gate", months: 1, rank: "", each: "", path: "", fromAge: 12, finishBy: 14, uses: 1, unless: "oath",
+     about: "A word to the sergeant, a purse, and a welcome at the gatehouse. No one who lives by quick hands will ever trust him.",
+     gains: [{stat: "renown"}, {stat: "coin", amount: 8}, {stat: "watch_known"}],
+     requires: [{stat: "done.boys", label: "Ran with the Bellmoor Boys"}]},
+
+    // The Flood, the month he is eleven, in every life: two months to answer it, a month each,
+    // and one answer (each `unless` the other two). Doing nothing is allowed. Its rows show
+    // whatever he has (`showFrom: 0`): what he cannot do he sees he cannot
+    {id: "flood.sandbags", group: "The Flood", name: "Haul Sandbags at the Mill", glyph: "work", months: 1, rank: "", each: "THE FLOOD", path: "", fromAge: 11, finishBy: 11, finishMonths: 2, showFrom: 0, uses: 1,
+     unless: ["flood.rescue", "flood.salvage"],
+     about: "The Bell is over its banks and the wheel is under water. The miller remembers who stood in it with him: the mill's wheel costs half as much to mend, this life.",
+     gains: [{stat: "str"}, {stat: "mill_saved"}],
+     requires: [{stat: "str", needed: 7}]},
+    {id: "flood.rescue", group: "The Flood", name: "Pull Folk from the Water", glyph: "vitality", months: 1, rank: "", each: "THE FLOOD", path: "", fromAge: 11, finishBy: 11, finishMonths: 2, showFrom: 0, uses: 1,
+     unless: ["flood.sandbags", "flood.salvage"],
+     about: "The low streets are a river, with people on the roofs. It is cold work and the town talks of it for years: the Master-at-Arms has heard.",
+     gains: [{stat: "renown"}, {stat: "flood_hero"}],
+     requires: [{stat: "dex", needed: 7}],
+     costs: [{stat: "vit", amount: 5}]},
+    {id: "flood.salvage", group: "The Flood", name: "Salvage the Wreck", glyph: "gold", months: 1, rank: "", each: "THE FLOOD", path: "", fromAge: 11, finishBy: 11, finishMonths: 2, showFrom: 0, uses: 1,
+     unless: ["flood.sandbags", "flood.rescue"],
+     about: "What the water took from the warehouses it left on the common, and nobody is counting. Father Anselm hears of it. So does the Hidden Hand.",
+     gains: [{stat: "coin", amount: 15}, {stat: "guile"}, {stat: "flood_looted"}],
+     requires: []},
+
+    // The Lord's Levy, the month he is fifteen, in every life, a year before the classes open:
+    // that month to answer it, and one answer. To march is six months and the Keep's good word;
+    // the scutage is paid at once and changes nothing; who hides is a deserter, the Keep is shut
+    // to him, and the Greenwood takes him at sixteen like any other class (its `firstWith`)
+    {id: "levy.march", group: "The Lord's Levy", name: "March with the Levy", glyph: "swordsmanship", months: 6, rank: "", each: "THE LEVY", path: "", fromAge: 15, finishBy: 15, finishMonths: 7, showFrom: 0, uses: 1,
+     unless: ["levy.pay", "levy.hide"],
+     about: "Six months behind the Lord's banner, with a spear too heavy for him. The Keep asks less Arms of who served, and the sergeants teach the levies one blow: the heavy cut.",
+     gains: [{stat: "arms"}, {stat: "discipline"}, {stat: "coin", amount: 10}, {stat: "levy_served"}],
+     requires: [{stat: "str", needed: 9}]},
+    {id: "levy.pay", group: "The Lord's Levy", name: "Pay the Scutage", glyph: "gold", months: 0, rank: "", each: "THE LEVY", path: "", fromAge: 15, finishBy: 15, finishMonths: 1, showFrom: 0, uses: 1,
+     unless: ["levy.march", "levy.hide"],
+     about: "Twenty coin to the Lord's clerk, and another boy marches in his place. Nothing closes, and nothing opens.",
+     gains: [{stat: "levy_paid"}],
+     requires: [],
+     costs: [{stat: "coin", amount: 20}]},
+    {id: "levy.hide", group: "The Lord's Levy", name: "Hide in the Greenwood", glyph: "adventure", months: 3, rank: "", each: "THE LEVY", path: "", fromAge: 15, finishBy: 15, finishMonths: 4, showFrom: 0, uses: 1,
+     unless: ["levy.march", "levy.pay"],
+     about: "Three months under the trees while the levy is counted without him. The Keep has no place for a deserter. The Greenwood does, at sixteen, with the other doors.",
+     gains: [{stat: "stealth"}, {stat: "deserter"}],
+     requires: []},
+
     {id: "keep", group: "A class", name: "Swear Service to the Keep", glyph: "seal", months: 18, rank: "", each: "MEALS PROVIDED", path: "warrior", enters: true, board: true, fromAge: 16, showAge: 7, showFrom: 0, finishBy: 20, uses: 1,
      major: true,
      about: "Makes him a man of the Keep, for life: it feeds him, its works open, and the other classes close. The oath is short. The sergeants say it is the last short thing about the Keep.",
      gains: [{stat: "keep_oath"}, {stat: "renown"}, {stat: "arms"}],
-     requires: [{stat: "str", needed: 12, eased: [{flag: "edric_support", needed: 11}, {flag: "town.yard", at: 2, needed: 11}]}, {stat: "arms", needed: 3}, {stat: "discipline", needed: 2}],
+     unless: "levy.hide",
+     requires: [{stat: "str", needed: 12, eased: [{flag: "edric_support", needed: 11}, {flag: "town.yard", at: 2, needed: 11}]},
+                {stat: "arms", needed: 3, eased: [{flag: "smith_apprentice", needed: 2}, {flag: "levy_served", needed: 2}]}, {stat: "discipline", needed: 2}],
      costs: [{stat: "coin", amount: 10}]},
     {id: "collegium", group: "A class", name: "Enter the Collegium", glyph: "academy", months: 24, rank: "", each: "MEALS PROVIDED", path: "mage", enters: true, board: true, fromAge: 16, showAge: 7, showFrom: 0, finishBy: 20, uses: 1,
      major: true,
      about: "Makes him a scholar of the Collegium, for life: it feeds him, its works open, and the other classes close. Nobody will say what the top floor is for. Whoever asks is given more reading.",
      gains: [{stat: "collegium"}, {stat: "arcana"}, {stat: "lore"}],
-     requires: [{stat: "int", needed: 12, eased: {flag: "town.collegium", at: 3, needed: 11}}, {stat: "letters", needed: 3}, {stat: "lore", needed: 2, eased: {flag: "mara_student", needed: 1}}],
+     requires: [{stat: "int", needed: 12, eased: [{flag: "town.collegium", at: 3, needed: 11}, {flag: "anselm_trust", needed: 11}]}, {stat: "letters", needed: 3}, {stat: "lore", needed: 2, eased: {flag: "mara_student", needed: 1}}],
      costs: [{stat: "coin", amount: 35}]},
     {id: "hand", group: "A class", name: "Earn the Hidden Hand's Trust", glyph: "guild", months: 18, rank: "", each: "MEALS PROVIDED", path: "thief", enters: true, board: true, fromAge: 16, showAge: 7, showFrom: 0, finishBy: 21, uses: 1,
      major: true,
      about: "Makes him one of the Hidden Hand, for life: it feeds him, its works open, and the other classes close. The Hand has no door, no sign and no members. Ask anyone.",
      gains: [{stat: "hidden_hand"}, {stat: "favors"}, {stat: "stealth"}],
-     requires: [{stat: "dex", needed: 12}, {stat: "stealth", needed: 2}, {stat: "guile", needed: 2},
-                {stat: "street_known", label: "Known on the street or at the night market", anyOf: ["street_known", "night_contacts"]}],
+     unless: "turnin",
+     requires: [{stat: "dex", needed: 12}, {stat: "stealth", needed: 2},
+                {stat: "guile", needed: 2, eased: [{flag: "smuggler_runner", needed: 1}, {flag: "flood_looted", needed: 1}]},
+                {stat: "street_known", label: "Known on the street or at the night market", anyOf: ["street_known", "night_contacts", "boys_sworn"]}],
      costs: [{stat: "coin", amount: 15}]},
     // Past every door: the class of who took none of the three in time, and of no one else. It
     // has no row until the last of the others has closed on a man of no class; from that month
     // it asks nothing of him, and it is open until old age
     {id: "greenwood", group: "A class", name: "Take to the Greenwood", glyph: "adventure", months: 12, rank: "", each: "MEALS PROVIDED", path: "renegade", enters: true, lastResort: true, board: true, uses: 1,
+     firstWith: "deserter",
      opens: "Every class has shut its door on him: the Greenwood takes who is left",
      major: true,
      about: "Makes him an outlaw of the Greenwood, for life: the wood feeds him, and its works open. It asks no letters, no oath and no questions. It is the questions that people come for.",
      gains: [{stat: "renegade"}, {stat: "stealth"}],
-     requires: []},
+     requires: [],
+     bonus: [{stat: "deserter", fromAge: 16}]},
 
     {id: "serve", group: "The Keep", name: "Serve at the Keep", glyph: "swordsmanship", months: 12, rank: "", each: "MEALS PROVIDED", path: "warrior", board: true, fromAge: 18,
      gains: [{stat: "arms"}, {stat: "discipline"}, {stat: "coin", amount: 12}],
@@ -463,7 +584,7 @@ var activities = [
      requires: [{stat: "arms", needed: 5}, {stat: "discipline", needed: 3}]},
     {id: "master", group: "The Keep", name: "Train with the Master-at-Arms", glyph: "training", months: 18, rank: "", each: "MEALS PROVIDED", path: "warrior", board: true, fromAge: 19, uses: 1,
      gains: [{stat: "arms", amount: 2}, {stat: "discipline"}],
-     requires: [{stat: "arms", needed: 5}, {stat: "discipline", needed: 3}, {stat: "renown", needed: 2}]},
+     requires: [{stat: "arms", needed: 5}, {stat: "discipline", needed: 3}, {stat: "renown", needed: 2, eased: {flag: "flood_hero", needed: 1}}]},
     {id: "campaign", group: "The Keep", name: "Join the Border Campaign", glyph: "swordsmanship", months: 24, rank: "", each: "MEALS PROVIDED", path: "warrior", board: true, fromAge: 21, showAge: 16, showFrom: 0, finishBy: 26, uses: 1,
      gains: [{stat: "arms"}, {stat: "discipline"}, {stat: "vit", amount: 5}, {stat: "renown", amount: 2}, {stat: "coin", amount: 50}, {stat: "veteran"}],
      requires: [{stat: "arms", needed: 6}, {stat: "discipline", needed: 4}, {stat: "renown", needed: 3}],
@@ -504,7 +625,7 @@ var activities = [
      costs: [{stat: "reagents", amount: 3}]},
     {id: "fragments", group: "The Collegium", name: "Examine the Harrow Fragments", glyph: "relic", months: 12, rank: "", each: "", path: "mage", fromAge: 20, uses: 1,
      gains: [{stat: "lore"}, {stat: "harrow_fragments"}],
-     requires: [{stat: "lore", needed: 5}, {stat: "library_access", label: "The chapel library or the Collegium", anyOf: ["library_access", "collegium"]}],
+     requires: [{stat: "lore", needed: 5, eased: {flag: "forbidden_read", needed: 4}}, {stat: "library_access", label: "The chapel library or the Collegium", anyOf: ["library_access", "collegium"]}],
      bonus: [{stat: "town.harrow", showFrom: 0}]},
     {id: "harrow", group: "The Collegium", name: "Expedition to Harrow", glyph: "adventure", months: 18, rank: "", each: "MEALS PROVIDED", path: "mage", board: true, fromAge: 21, showAge: 16, showFrom: 0, finishBy: 26, uses: 1,
      gains: [{stat: "arcana"}, {stat: "lore"}, {stat: "harrow_truth"}, {stat: "harrow_relic"}],
@@ -539,7 +660,7 @@ var activities = [
      costs: [{stat: "favors", amount: 2}]},
     {id: "smuggle", group: "The Hidden Hand", name: "Smuggle Through the North Gate", glyph: "gate", months: 9, rank: "", each: "", path: "thief", fromAge: 19, finishBy: 27, uses: 3,
      gains: [{stat: "coin", amount: 35}, {stat: "favors", amount: 2}],
-     requires: [{stat: "stealth", needed: 4}, {stat: "guile", needed: 4}]},
+     requires: [{stat: "stealth", needed: 4, eased: {flag: "smuggler_runner", needed: 3}}, {stat: "guile", needed: 4}]},
     {id: "blackmail", group: "The Hidden Hand", name: "Blackmail a Guild Clerk", glyph: "skull", months: 9, rank: "", each: "", path: "thief", fromAge: 19, finishBy: 25, uses: 1,
      gains: [{stat: "coin", amount: 45}, {stat: "guild_clerk"}],
      requires: [{stat: "guile", needed: 5}],
@@ -616,10 +737,18 @@ for (var z = 0; z < len(walkZones); z++)
     var zone = walkZones[z]
     var studies = statOf(character, "know.study." + zone.id)
 
-    push(walkRows, {id: "walk." + zone.id, group: "Adventure", name: zone.name, glyph: zone.glyph, months: walkMonths(zone, studies), rank: "",
+    // What a lead gives of it: the zone is his from a younger age with that flag (its `sooner`)
+    var sooner = []
+
+    if (has(zone, "sooner"))
+    {
+        sooner = [{stat: zone.sooner.flag, fromAge: zone.sooner.fromAge}]
+    }
+
+    push(walkRows, {id: "walk." + zone.id, group: "Adventure", name: zone.name, glyph: zone.glyph, months: walkMonths(zone, studies, statOf(character, "roads_known")), rank: "",
                     each: toUpperCase(zone.kind) + " · " + toString(walkStay(zone, studies)) + " DAYS ON SITE", path: "",
                     fromAge: zone.fromAge, showAge: lookup(zone, "showAge", zone.fromAge - 2), showFrom: lookup(zone, "showFrom", 0), showAfter: lookup(zone, "showAfter", 0), zone: zone.id, about: zone.opens,
-                    gains: [], requires: zone.requires})
+                    gains: [], requires: zone.requires, bonus: sooner})
 }
 
 var tabled = activities
@@ -683,7 +812,7 @@ for (var t = 0; t < len(townPlaces); t++)
     {
         var step = place.levels[l]
         var asked = []
-        var coin = step.coin - statOf(character, "fund." + place.id)
+        var coin = levelCoin(step, character) - statOf(character, "fund." + place.id)
 
         if (coin > 0)
         {
@@ -942,15 +1071,37 @@ for (var i = 0; i < len(activities); i++)
     a.major = lookup(a, "major", false)
     a.about = lookup(a, "about", "")
 
-    // One or the other: what taking this one gives up, said before he takes it
+    // What doing it closes for this life, said before he does it: the rows whose `unless` names it
     a.caution = ""
 
-    if (has(a, "unless"))
-    {
-        var other = byId(tabledAll, a.unless)
+    var shuts = []
 
-        a.caution = "One or the other: once this is done, " + other.name + " is closed to him for this life."
+    for (var o = 0; o < len(tabledAll); o++)
+    {
+        if (closedBy(tabledAll[o], a.id))
+        {
+            push(shuts, tabledAll[o].name)
+        }
     }
+
+    if (len(shuts) > 0)
+    {
+        var verb = " is"
+
+        if (len(shuts) > 1)
+        {
+            verb = " are"
+        }
+
+        a.caution = "Once this is done, " + namesText(shuts) + verb + " closed to him for this life."
+
+        // One of a choice itself: it is said as one
+        if (has(a, "unless"))
+        {
+            a.caution = "One or the other: once this is done, " + namesText(shuts) + verb + " closed to him for this life."
+        }
+    }
+
     a.place = lookup(a, "place", "")
     a.goto = lookup(a, "goto", "")
     a.raises = lookup(a, "raises", "")
@@ -1034,7 +1185,8 @@ for (var i = 0; i < len(activities); i++)
 
             // The last resort is for who missed the others: not while one is still his to take,
             // nor while he is on his way into one
-            if (lookup(a, "lastResort", false) and (waysLeft or entering))
+            // (but with the stat that makes it a way like the others: a deserter's Greenwood)
+            if (lookup(a, "lastResort", false) and (waysLeft or entering) and statOf(character, lookup(a, "firstWith", "")) <= 0)
             {
                 a.pathOpen = false
             }
@@ -1167,9 +1319,14 @@ for (var i = 0; i < len(activities); i++)
     // One or the other: the one he did not take has no row once the other is done
     if (has(a, "unless"))
     {
-        if (lookup(done, a.unless, 0) > 0)
+        var closers = asList(a.unless)
+
+        for (var u = 0; u < len(closers); u++)
         {
-            a.listed = false
+            if (lookup(done, closers[u], 0) > 0)
+            {
+                a.listed = false
+            }
         }
     }
 

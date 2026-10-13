@@ -1268,7 +1268,17 @@ fun previewOf(choice)
         view.deals = "Nothing"
         view.costs = toString(word.breath) + " breath"
         view.then = "Ready in " + counted(word.cool, "turn", "turns") + " · " + toString(larger(0, fight.breath - word.breath)) + " breath left"
+
         view.button = word.name + " · " + toString(word.breath) + " breath"
+
+        // (what costs no breath says none)
+        if (word.breath <= 0)
+        {
+            view.costs = ""
+            view.then = "Ready in " + counted(word.cool, "turn", "turns")
+            view.button = word.name
+        }
+
         view.odds = "What it meant to do to him, it does not do."
 
         return view

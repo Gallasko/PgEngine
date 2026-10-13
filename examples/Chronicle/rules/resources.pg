@@ -104,7 +104,10 @@ var ties = ["watch_known", "street_known", "choir", "edric_support", "library_ac
             "veteran", "watch_commander", "tourney_victor",
             "black_treatise", "orin_known", "harrow_fragments", "harrow_truth", "harrow_relic",
             "guild_clerk", "guild_ledgers", "guild_enemy", "heat_reduced", "great_job_planned", "crew_ready",
-            "band", "hedges_known", "bow_learned", "yard_enthusiasm", "yard_breathing", "slash_learned", "thrust_learned"]
+            "band", "hedges_known", "bow_learned", "yard_enthusiasm", "yard_breathing", "slash_learned", "thrust_learned",
+            "forge_seen", "smith_apprentice", "roads_known", "anselm_trust", "forbidden_read", "herbal", "snare_set",
+            "tunnel_found", "smuggler_runner", "boys_sworn", "mill_saved", "flood_hero", "flood_looted",
+            "levy_served", "levy_paid", "deserter", "bargemen_tale"]
 
 // What a walk brings home (expeditiontable.pg's `walkItems`): a remedy to drink in the field,
 // what is sold at the market, and what a place of the town is built of. He holds all of it, and

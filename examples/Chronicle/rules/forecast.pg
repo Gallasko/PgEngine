@@ -177,9 +177,17 @@ else
         {
             var other = tabledAll[o]
 
-            if (lookup(other, "unless", "") == activity.id and lookup(done, other.id, 0) == 0)
+            if (closedBy(other, activity.id) and lookup(done, other.id, 0) == 0)
             {
-                push(entries, {text: "One or the other: " + other.name + " is closed to him", kind: "loss", figure: "", glyph: lookup(other, "glyph", "")})
+                // "One or the other" when the two close each other; what it merely shuts is said plainly
+                var said = other.name + " is closed to him"
+
+                if (closedBy(activity, other.id))
+                {
+                    said = "One or the other: " + said
+                }
+
+                push(entries, {text: said, kind: "loss", figure: "", glyph: lookup(other, "glyph", "")})
             }
         }
     }

@@ -230,6 +230,125 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // What he learned as a boy is his in the field: a snare is a day for two rations, the
+        // herbal makes a remedy of two wortleaf where he stands, who says the office rests a
+        // little better, and who knows the roads is a day sooner there. Who learned none of it
+        // has none of it.
+        TEST(expedition_test, a_boys_trades_are_his_in_the_field)
+        {
+            MockLogger logger;
+
+            // Never taught: no tile for it, and asking is refused
+            {
+                Walker w(gatherer());
+
+                ASSERT_TRUE(w.ask("enter", WalkAct{"", "hedgerows", 0}));
+
+                EXPECT_EQ(byId(w.last.works, "snare"), nullptr);
+                EXPECT_EQ(byId(w.last.works, "brew"), nullptr);
+
+                const size_t steps = w.state.record.size();
+
+                ASSERT_TRUE(w.act("snare"));
+                EXPECT_EQ(w.state.record.size(), steps);
+                EXPECT_FALSE(textOf(w.last.site, "refused").empty());
+
+                ASSERT_TRUE(w.act("brew"));
+                EXPECT_EQ(w.state.record.size(), steps);
+                EXPECT_FALSE(textOf(w.last.site, "refused").empty());
+            }
+
+            // A snare: a day of the stay, two rations
+            {
+                ElementMap trapper = gatherer();
+                trapper["snare_set"] = ElementType{1};
+
+                Walker w(trapper);
+
+                ASSERT_TRUE(w.ask("enter", WalkAct{"", "hedgerows", 0}));
+                ASSERT_NE(byId(w.last.works, "snare"), nullptr);
+                EXPECT_EQ(textOf(*byId(w.last.works, "snare"), "costText"), "1 AP");
+
+                const int rations = intOf(w.character, "rations");
+                const int days = intOf(w.state.run, "ap");
+
+                ASSERT_TRUE(w.act("snare"));
+
+                EXPECT_EQ(intOf(w.character, "rations"), rations + 2);
+                EXPECT_EQ(intOf(w.state.run, "ap"), days - 1);
+                ASSERT_FALSE(w.state.record.empty());
+                EXPECT_EQ(textOf(w.state.record.back(), "kind"), "snare");
+            }
+
+            // The herbal: shut without the leaf, then two wortleaf for a remedy, and no day spent
+            {
+                ElementMap herbalist = gatherer();
+                herbalist["herbal"] = ElementType{1};
+
+                Walker w(herbalist);
+
+                ASSERT_TRUE(w.ask("enter", WalkAct{"", "hedgerows", 0}));
+                ASSERT_NE(byId(w.last.works, "brew"), nullptr);
+                EXPECT_EQ(intOf(*byId(w.last.works, "brew"), "locked"), 1);
+
+                const size_t steps = w.state.record.size();
+
+                ASSERT_TRUE(w.act("brew"));
+                EXPECT_EQ(w.state.record.size(), steps);
+                EXPECT_FALSE(textOf(w.last.site, "refused").empty());
+
+                w.character["wortleaf"] = ElementType{3};
+
+                const int days = intOf(w.state.run, "ap");
+
+                ASSERT_TRUE(w.act("brew"));
+
+                EXPECT_EQ(intOf(w.character, "wortleaf"), 1);
+                EXPECT_EQ(intOf(w.character, "remedy"), 1);
+                EXPECT_EQ(intOf(w.state.run, "ap"), days);
+                EXPECT_EQ(w.state.record.size(), steps + 1);
+            }
+
+            // The office said over his fire: a rest gives two more
+            {
+                auto rested = [](ElementMap who) {
+                    who["vit"] = ElementType{10};
+
+                    Walker w(std::move(who));
+
+                    EXPECT_TRUE(w.ask("enter", WalkAct{"", "hedgerows", 0}));
+
+                    const int before = intOf(w.state.run, "hp");
+
+                    EXPECT_TRUE(w.act("rest"));
+
+                    return intOf(w.state.run, "hp") - before;
+                };
+
+                ElementMap sacristan = gatherer();
+                sacristan["anselm_trust"] = ElementType{1};
+
+                EXPECT_EQ(rested(sacristan), rested(gatherer()) + 2);
+            }
+
+            // The roads known: a day off the way there, and so off the way home
+            {
+                Walker plain(hunter());
+                ASSERT_TRUE(plain.ask("enter", WalkAct{"", "hollow", 0}));
+
+                ElementMap carter = hunter();
+                carter["roads_known"] = ElementType{1};
+
+                Walker w(carter);
+                ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
+
+                EXPECT_EQ(intOf(w.state.run, "travel"), intOf(plain.state.run, "travel") - 1);
+            }
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // Every day spent is a line of the record, with what it cost and what it gave.
         TEST(expedition_test, a_day_is_written_to_the_record)
         {
@@ -528,6 +647,15 @@ namespace pg
             point["thrust_learned"] = ElementType{1};
             point["keep_oath"] = ElementType{1};
             EXPECT_EQ(learned(point), (std::vector<std::string>{"tech.thrust", "tech.heavy"}));
+
+            // The levy teaches its boys the heavy cut before any oath, and the smuggler his one trick
+            ElementMap levied = hunter();
+            levied["levy_served"] = ElementType{1};
+            EXPECT_EQ(learned(levied), (std::vector<std::string>{"tech.heavy"}));
+
+            ElementMap runner = hunter();
+            runner["smuggler_runner"] = ElementType{1};
+            EXPECT_EQ(learned(runner), (std::vector<std::string>{"tech.sand"}));
 
             // A working is counted from his Intelligence: a clever man's firebolt is worth his study
             mage["int"] = ElementType{16};

@@ -18,6 +18,7 @@
 //                         stayMin, stayMax (days on site: the longer one from zone knowledge 3),
 //                         mobs [mob id], spots [{id (an item), ap, least, most}], events [event id],
 //                         fromAge, showAge?, showAfter?, requires [...] (as an activity's, activitytable.pg),
+//                         sooner? ({flag, fromAge}: with that flag held it is his from that age),
 //                         opens (what its row's gloss says of it)}
 //         `walkMobs`   one table per beast:
 //                        {id, name, many (several of it), pack?, lone?, rarity (common | uncommon | rare), packSize,
@@ -89,7 +90,15 @@ var walkKnobs = {
     studyLevels: [0, 3, 6, 10],     // Studies of a zone, in all, to its knowledge 1 to 4: the first visit alone gives 1
     observeLevels: [1, 2, 5, 8],    // A beast observed that often is known 1 to 4
     fightLevels: [1, 8, 20],        // Fought that often it is known 1 to 3: the fourth is by watching only
-    travelCut: 25           // Percent off the way there and back at zone knowledge 4
+    travelCut: 25,          // Percent off the way there and back at zone knowledge 4
+    roadsCut: 1,            // Days off the way there, and off the way back, for who knows the roads (`roads_known`)
+    officeHeal: 2,          // Vitality a rest gives besides, to who says the office (`anselm_trust`)
+    snareAp: 1,             // A snare set and lifted (`snare_set`): days,
+    snareItem: "rations",   // what it catches,
+    snareMost: 2,           // and how much
+    brewAp: 0,              // A remedy brewed where he stands (`herbal`): days,
+    brewItem: "wortleaf",   // what it is made of,
+    brewTakes: 2            // and how much of it
 }
 
 // `gather`: a line on the gathering of it, for the gloss of its tile on the site
@@ -139,6 +148,7 @@ var walkZones = [
      spots: [{id: "reeds", ap: 1, least: 2, most: 3}, {id: "fish", ap: 2, least: 1, most: 3}, {id: "clay", ap: 2, least: 2, most: 3}],
      events: ["pond.heron"],
      fromAge: 10, showFrom: 100,   // No row until he has walked the Hedgerows: one walk at a time
+     sooner: {flag: "bargemen_tale", fromAge: 9},   // The bargemen's tale (activitytable.pg's `bargemen`)
      requires: [{stat: "walked.hedgerows", label: "Walked the Hedgerows"}],
      opens: "Reeds and fish to sell, clay for the town, and the first beast to fight."},
 
@@ -305,7 +315,7 @@ var walkTechniques = [
 
     // The Keep's: what its sworn men are drilled in, and what a campaign teaches
     {id: "heavy", name: "Heavy cut", kind: "blow", breath: 2, cool: 2, power: 170, hit: -15, all: false, holds: false,
-     knows: ["keep_oath"], where: "THE KEEP", line: "A slow, full blow"},
+     knows: ["keep_oath", "levy_served"], where: "THE KEEP", line: "A slow, full blow"},
     {id: "sweep", name: "Sweep", kind: "blow", breath: 3, cool: 3, power: 70, hit: 0, all: true, holds: false,
      knows: ["veteran"], where: "THE CAMPAIGN", line: "One blow at every beast standing"},
 
@@ -314,6 +324,11 @@ var walkTechniques = [
      knows: ["collegium"], where: "THE COLLEGIUM", line: "A working thrown like a stone: it seldom misses"},
     {id: "binding", name: "Binding word", kind: "spell", breath: 2, cool: 3, power: 0, hit: 0, all: false, holds: true,
      knows: ["orin_known"], where: "MAGISTER ORIN", line: "The beast aimed at is held, and loses its next move"},
+
+    // The smuggler's one trick: a fistful of sand. It costs no breath, and he has to find more
+    // sand before the next (`cool`)
+    {id: "sand", name: "Sand in the eyes", kind: "blow", breath: 0, cool: 3, power: 0, hit: 0, all: false, holds: true,
+     knows: ["smuggler_runner"], where: "THE SMUGGLER", line: "The beast aimed at is blinded, and loses its next move"},
 
     // Learned here and there: the streets teach it, and so does the Hidden Hand
     {id: "feint", name: "Feint and step", kind: "blow", breath: 1, cool: 1, power: 80, hit: 20, all: false, holds: false,

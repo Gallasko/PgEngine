@@ -36,6 +36,29 @@ the `CHANGELOG.md` at the root of the repository.
   thrusts and trained at the yard: a point of Discipline and the breathing itself, which
   you keep. Nothing in a fight uses it yet.
 
+- **A childhood of short tasks, 8 to 13.** Eleven new ones, none longer than three months.
+  At the smithy, a month watching the master opens *Learn to Temper* (Arms, and the Keep asks
+  you for less) or you *Drive for the Carters* (coin, and every walk is a day shorter each
+  way): one or the other. At the chapel, *Take the Sacristan's Keys* (Discipline, and the
+  Collegium asks less Intelligence) or *Read the Forbidden Shelf* (Lore, and the Harrow
+  fragments ask less): one or the other; and *Learn the Herbal*. In the streets, *Snare
+  Rabbits on the Common* before eleven, the tunnel under the wall for who has roamed the town
+  twice, the smuggler who works through it, and the Boys, who ask for an oath or are turned
+  in: the oath shuts the Watch to you, turning them in shuts the Hidden Hand.
+- **Things a boy learns that a walk uses.** A snare is a day for two rations; the herbal
+  brews a remedy from two wortleaf where you stand; who holds the sacristan's keys rests a
+  little better; who knows the roads arrives a day sooner. In a fight, the smuggler's *Sand
+  in the eyes* costs a beast its next move.
+- **The Flood, at eleven.** In every life, the month you are eleven: two months to answer it,
+  a month each, and one answer. Haul sandbags (Strength, and the mill's wheel costs half to
+  mend this life), pull folk from the water (Renown, at a cost in Vitality), or salvage the
+  wreck (coin and Guile, and Father Anselm will not give you his keys).
+- **The Lord's Levy, at fifteen.** That month, one answer. March for six months (Arms,
+  Discipline, the heavy cut, and the Keep asks less Arms), pay the scutage, or hide in the
+  Greenwood: a deserter is shut out of the Keep, and the Greenwood is a class he may choose at
+  sixteen like the others.
+- **A lead.** *Hear the Bargemen's Tale*, a month and 2 coin at nine: Mill Pond is yours to
+  walk a year sooner.
 - **One or the other is said, in red.** A task that closes another when you take it (the mill
   wheel or the old scribe, slashes or thrusts) says so in its description before you choose,
   and the log writes which one went when its term is done.

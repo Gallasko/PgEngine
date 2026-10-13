@@ -30,6 +30,9 @@
 //           costs   [{stat, amount}]: what else it takes from him when it begins, for good: a
 //                   stat, or a thing his walks bring for the town (firewood, clay, ash wood, stone)
 //           years   optional: years of his life given at once when it begins, on top of its months
+//           cheaper optional {flag, coin}: the coin it costs a life that holds the flag, in
+//                   place of `coin` (lib.pg's `levelCoin`: who saved the mill mends its wheel
+//                   for half)
 //           gives   what this level gives, in one line, as its tile and its gloss say it
 //           start   optional [{stat, amount}]: what a new life is born with for it (town.pg's
 //                   `start`), every later life and never the first of a world
@@ -62,7 +65,7 @@ var townPlaces = [
      ]},
     {id: "mill", name: "The Mill", glyph: "work", about: "Where he was born. The town's bread starts here.",
      levels: [
-        {work: "Mend the Mill Wheel", built: "The mended wheel", months: 6, coin: 20, costs: [],
+        {work: "Mend the Mill Wheel", built: "The mended wheel", months: 6, coin: 20, costs: [], cheaper: {flag: "mill_saved", coin: 10},
          gives: "Help at the Mill pays 4 more coin",
          lore: "The wheel turns true again. The miller's boys are paid in more than flour."},
         {work: "Raise the Mill Loft", built: "The mill loft", months: 9, coin: 50, costs: [],

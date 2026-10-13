@@ -360,13 +360,13 @@ fun stayOf(zone)
 
 fun travelOf(zone)
 {
-    return walkTravel(zone, mine("know.study." + zone.id))
+    return walkTravel(zone, mine("know.study." + zone.id), mine("roads_known"))
 }
 
 // The months a walk blocks: there, the stay, and back
 fun monthsOf(zone)
 {
-    return walkMonths(zone, mine("know.study." + zone.id))
+    return walkMonths(zone, mine("know.study." + zone.id), mine("roads_known"))
 }
 
 fun seekBase(mob)
@@ -1061,10 +1061,71 @@ fun doRest()
 
     openStep("rest", "", 1, walkKnobs.restAp, "Rested by the fire", "vitality")
     take(walkKnobs.restItem, 1)
-    shiftHp(share(runOf("hpMax"), walkKnobs.restHeal))
+    shiftHp(restHeals())
     closeStep()
 
     maybeEvent("rest")
+}
+
+// What a rest gives back: a share of his Vitality, and a little more to who says the office
+// over his fire (the sacristan's keys)
+fun restHeals()
+{
+    var heal = share(runOf("hpMax"), walkKnobs.restHeal)
+
+    if (mine("anselm_trust") > 0)
+    {
+        heal = heal + walkKnobs.officeHeal
+    }
+
+    return heal
+}
+
+// A snare, for who has learned to set one: a day, and what it catches is his supper
+fun doSnare()
+{
+    if (mine("snare_set") <= 0)
+    {
+        run.refused = "He does not know how to do that"
+        return
+    }
+
+    if (walkKnobs.snareAp > runOf("ap"))
+    {
+        run.refused = "Not enough days left for a snare"
+        return
+    }
+
+    openStep("snare", walkKnobs.snareItem, 1, walkKnobs.snareAp, "Set a snare, and lifted it", "work")
+    give(walkKnobs.snareItem, walkKnobs.snareMost)
+    closeStep()
+}
+
+// A remedy brewed where he stands, for who has the herbal: out of the wortleaf in his bag
+fun doBrew()
+{
+    if (mine("herbal") <= 0)
+    {
+        run.refused = "He does not know how to do that"
+        return
+    }
+
+    if (held(walkKnobs.brewItem) < walkKnobs.brewTakes)
+    {
+        run.refused = "A remedy takes " + toString(walkKnobs.brewTakes) + " " + toLowerCase(itemOf(walkKnobs.brewItem).name)
+        return
+    }
+
+    if (walkKnobs.brewAp > runOf("ap"))
+    {
+        run.refused = "Not enough days left to brew"
+        return
+    }
+
+    openStep("brew", "remedy", 1, walkKnobs.brewAp, "Brewed a wortleaf remedy", "vitality")
+    take(walkKnobs.brewItem, walkKnobs.brewTakes)
+    give("remedy", 1)
+    closeStep()
 }
 
 fun doRemedy()
@@ -1188,6 +1249,14 @@ fun walkAct(kind, target, count)
     else if (kind == "remedy")
     {
         doRemedy()
+    }
+    else if (kind == "snare")
+    {
+        doSnare()
+    }
+    else if (kind == "brew")
+    {
+        doBrew()
     }
     else if (kind == "leave")
     {
@@ -1711,7 +1780,7 @@ fun workRows()
                        "He walks the place and learns its paths. What he learns, every life after his knows.",
                        daysText(walkKnobs.studyAp) + " of the stay", studyGives))
 
-    var heal = smaller(share(runOf("hpMax"), walkKnobs.restHeal), runOf("hpMax") - runOf("hp"))
+    var heal = smaller(restHeals(), runOf("hpMax") - runOf("hp"))
     var rations = held(walkKnobs.restItem)
     var restShort = ""
 
@@ -1724,6 +1793,32 @@ fun workRows()
                        "Off his feet by a fire, and a ration eaten.",
                        daysText(walkKnobs.restAp) + " of the stay, 1 ration of " + toString(rations),
                        "+" + toString(heal) + " Vitality"))
+
+    // What he learned as a boy and does in the field: a snare, and the herbal's remedy
+    if (mine("snare_set") > 0)
+    {
+        var caught = toString(walkKnobs.snareMost) + " " + toLowerCase(itemOf(walkKnobs.snareItem).name)
+
+        push(rows, workRow("snare", "Set a snare", "+" + toUpperCase(caught), walkKnobs.snareAp, "", "",
+                           "A loop of wire where the rabbits run, lifted the next morning.",
+                           daysText(walkKnobs.snareAp) + " of the stay", caught))
+    }
+
+    if (mine("herbal") > 0)
+    {
+        var leaf = toLowerCase(itemOf(walkKnobs.brewItem).name)
+        var brewShort = ""
+
+        if (held(walkKnobs.brewItem) < walkKnobs.brewTakes)
+        {
+            brewShort = "ASKS " + toString(walkKnobs.brewTakes) + " " + toUpperCase(leaf)
+        }
+
+        push(rows, workRow("brew", "Brew a remedy", "+1 REMEDY · " + toString(walkKnobs.brewTakes) + " " + toUpperCase(leaf) + ", " + toString(held(walkKnobs.brewItem)) + " HELD", walkKnobs.brewAp, brewShort, "",
+                           "The herbal's remedy, made over his own fire. It takes no time.",
+                           toString(walkKnobs.brewTakes) + " " + leaf + " of " + toString(held(walkKnobs.brewItem)),
+                           "1 remedy"))
+    }
 
     if (held("remedy") > 0)
     {
