@@ -23,6 +23,7 @@
 #include "ECS/entitysystem_fwd.h"
 #include "ECS/callable.h"
 #include "Input/sdlevents.h"
+#include "Input/inputcomponent.h"
 #include "2D/position.h"
 #include "2D/simple2dobject.h"
 #include "Core/analytics.h"
@@ -759,6 +760,9 @@ namespace chronicle
                     clearAlert();
             }
 
+            // Months that stand still with nobody at the game write time, as a game shut does
+            runStill(e.tick);
+
             if (paused)
                 return;
 
@@ -782,7 +786,14 @@ namespace chronicle
             }
         });
 
+        // Somebody is at the game: the time the months stand still is play, not time away
+        listenToEvent<OnMouseClick>([this](const OnMouseClick&) { stirred(); });
+        listenToEvent<OnMouseMove>([this](const OnMouseMove&) { stirred(); });
+        listenToEvent<OnSDLMouseWheel>([this](const OnSDLMouseWheel&) { stirred(); });
+
         listenToEvent<OnSDLScanCode>([this](const OnSDLScanCode& e) {
+            stirred();
+
             auto theme = ecsRef->getSystem<ThemeSystem>();
 
             switch (e.key)
@@ -4001,11 +4012,7 @@ namespace chronicle
             return;
 
         // A second away is a second written, up to what can be held
-        const int held = written();
-        const int room = std::max(0, writtenMost - held);
-        const int away = static_cast<int>(std::min<unsigned long long>(now - since, static_cast<unsigned long long>(room)));
-
-        save.stats[writtenStat] = held + away;
+        const int away = addWritten(static_cast<int>(std::min<unsigned long long>(now - since, static_cast<unsigned long long>(writtenMost))));
 
         if (away <= 0)
             return;
@@ -4014,6 +4021,64 @@ namespace chronicle
         awayLine = std::to_string(away) + " seconds were written while the chronicle was shut: they run the months faster";
 
         save.log.push_back({save.age, awayLine, LogKind::Note, "", ""});
+    }
+
+    int LifeScene::addWritten(int seconds)
+    {
+        if (writtenStat.empty() or writtenMost <= 0)
+            return 0;
+
+        const int held = written();
+        const int more = std::min(std::max(0, seconds), std::max(0, writtenMost - held));
+
+        save.stats[writtenStat] = held + more;
+
+        return more;
+    }
+
+    void LifeScene::stirred()
+    {
+        stillMs = 0.0f;
+        stillLeft = 0.0f;
+    }
+
+    void LifeScene::runStill(float ms)
+    {
+        // Months that run are play, whoever watches them
+        if (not paused)
+        {
+            stirred();
+            return;
+        }
+
+        const float least = static_cast<float>(AwayLeast) * MsASecond;
+        const float before = stillMs;
+
+        stillMs += ms;
+
+        if (stillMs < least)
+            return;
+
+        // The minute that made it time away is written with what follows, as a minute shut is
+        stillLeft += before < least ? stillMs : ms;
+
+        const int seconds = static_cast<int>(stillLeft / MsASecond);
+
+        if (seconds <= 0)
+            return;
+
+        stillLeft -= static_cast<float>(seconds) * MsASecond;
+
+        const bool had = written() > 0;
+
+        if (addWritten(seconds) <= 0)
+            return;
+
+        publishWritten();
+
+        // The button comes with the first of it
+        if (not had)
+            showWorkButtons();
     }
 
     float LifeScene::spendWritten(float ms)

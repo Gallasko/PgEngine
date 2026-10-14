@@ -87,6 +87,8 @@ namespace chronicle
         void setHaste(int times);      // The months run so many times as fast, on written time: 1 is their own pace, and all there is with none left
         void pressHaste();             // The button's press: the next speed, and back to 1 after the last
         void creditAway();             // The time since the save was written is written time, up to what can be held: once, when a save is opened
+        void runStill(float ms);       // A frame of the months standing still: a minute of it with no input from the player, and it is written time from its start
+        void stirred();                // An input: the player is at the game, the count of time standing still begins again
         bool saveNow();                // Writes the save (not with --no-save)
         void autoSave();               // The same with no line in the log: after a month, a choice, a thing done at once, a new life
         void tellAnalytics(const std::string& event = "");   // Where the life stands, kept by the analytics for its next row; with an event, a row now
@@ -302,6 +304,7 @@ namespace chronicle
         unsigned long long wallClock() const;   // The hour it is, in seconds since 1970 (opt.now for a test)
         bool writeSave();              // The save to its file, with the hour it is written at
         float spendWritten(float ms);  // So many ms of written time are spent, or what is left of it: what was, in ms
+        int addWritten(int seconds);   // So many seconds written, up to what can be held: how many were
         void publishWritten();         // -> resources.<written time>.value and .rate, stat.<written time>
         bool hastens() const;          // Whether "At work now" has the button that spends it: while any is held, in a life past its guide
         float hasteRoom() const;       // And the room it takes there: a line under a running row, none where a button's line stands
@@ -454,6 +457,8 @@ namespace chronicle
         int hasteMost = 1;                        // How many times as fast it can run the months
         float writtenSpent = 0.0f;                // The part of its next second already spent, in ms
         std::string awayLine;                     // What was written while the chronicle stayed shut, to be said once the page has arrived
+        float stillMs = 0.0f;                     // How long the months have stood still with no input from the player, in ms
+        float stillLeft = 0.0f;                   // Of that, once it is time away, the part of a second not written yet
         std::vector<std::string> alerted;         // The parts in red
         float alertLeft = 0.0f;                   // Milliseconds of red left
         bool endangered = false;                  // The last month took from what the life hangs on

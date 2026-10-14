@@ -109,7 +109,9 @@ middle as tiles, what he has taken and the record at the right.
 
 **Written time.** The time the chronicle stays shut is kept: a second for a second from the
 hour the save was last written (`LifeSave::savedAt`), an hour of it at most, and none for less
-than a minute away. It is a holding of the rules (`resources.pg`, the one with a `haste`; its
+than a minute away. So is the time the months stand still in the game with nobody at it
+(`LifeScene::runStill`): a minute of them with no key, click, wheel or mouse movement, and that
+minute and every second after it are written, until an input or months that run. It is a holding of the rules (`resources.pg`, the one with a `haste`; its
 limit is `lib.pg`'s `statLimits`), so it stands in the Inventory with his coin and his rations,
 in seconds and from the first ("0/3600": `always` on its row), but it is the player's: a new
 life has what the last one held. The button *Months ×1* (or `F`) spends it: a press goes ×1, ×2, ×3 and back, and the

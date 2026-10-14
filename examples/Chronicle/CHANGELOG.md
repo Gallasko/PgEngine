@@ -19,7 +19,8 @@ the `CHANGELOG.md` at the root of the repository.
   be alike.
 - **Written time.** While the game is closed the chronicle goes on being written: every
   second away is kept, up to an hour (3600 seconds), and waits in your Inventory beside your
-  coin. While you have some, the button *Months ×1* in *At work now* spends it: press it for
+  coin. So is time in the game with nothing running and nobody at it: a minute with no key,
+  click or mouse movement while the months are stopped, and from then on it counts. While you have some, the button *Months ×1* in *At work now* spends it: press it for
   ×2, again for ×3, again to stop. The months run that fast until it is used up, then go back to their own pace by
   themselves. It is yours, not his: a new life keeps it.
 - **A keepsake.** *Carry Books for Father Anselm* pays in coin and in a small tome he tells you

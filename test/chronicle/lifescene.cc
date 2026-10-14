@@ -1600,6 +1600,65 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // Months that stand still with nobody at the game write time too: a minute of them with
+        // no input, and it is written from its start, a second a second after, up to what can be
+        // held. An input begins the count again; months that run are play.
+        TEST(lifescene_test, idle_time_is_written)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = f.life();
+            ASSERT_NE(life, nullptr);
+
+            ASSERT_TRUE(life->paused);
+            ASSERT_EQ(life->written(), 0);
+
+            // Less than a minute: nothing
+            f.pass(59000.0f, 1000.0f);
+            EXPECT_EQ(life->written(), 0);
+            EXPECT_FALSE(f.pos(life->named("haste"))->visible);
+
+            // The minute: all of it, and the button comes with it
+            f.pass(1000.0f, 1000.0f);
+            EXPECT_EQ(life->written(), 60);
+            EXPECT_TRUE(f.pos(life->named("haste"))->visible);
+            EXPECT_EQ(life->piece<ResourceLedger>("ledger")->row("written")->figure.spec.text, "60/3600");
+
+            f.pass(5000.0f, 500.0f);
+            EXPECT_EQ(life->written(), 65);
+
+            // A key: somebody is there, and the count begins again
+            f.ecs.sendEvent(OnSDLScanCode{SDL_SCANCODE_Q, 0});
+            f.pass(30000.0f, 1000.0f);
+            EXPECT_EQ(life->written(), 65);
+
+            // The mouse too
+            f.pass(29000.0f, 1000.0f);
+            f.ecs.sendEvent(OnSDLMouseWheel{0, 1});
+            f.pass(59000.0f, 1000.0f);
+            EXPECT_EQ(life->written(), 65);
+
+            // Months that run write nothing, however long nobody touches the game
+            life->save.stats["rations"] = 24;
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "yard"});
+            f.settle();
+
+            ASSERT_EQ(life->save.running, "yard");
+
+            f.pass(70000.0f, 70000.0f);
+            EXPECT_EQ(life->written(), 65);
+
+            // No more than can be held
+            ASSERT_TRUE(life->paused);
+            life->save.stats["written"] = 3590;
+            f.pass(120000.0f, 1000.0f);
+            EXPECT_EQ(life->written(), 3600);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // The time the chronicle stays shut is written time: a second for a second from the hour
         // the save was written, an hour of it at most, and none for a page loaded again. It is
         // the player's: a new life has what the last one held.
