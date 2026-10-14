@@ -43,7 +43,7 @@ namespace chronicle
         int walkSeed = 0;              // The dice of the walks: 0 takes them from the clock, a test gives its own
         std::string walk;              // --walk <zone>: a later life, never written, opened on a walk to that zone with what the zone asks
         float autoTurnMs = 600.0f;     // A fight handed to his stance plays a turn every so many ms
-        float monthMs = 2000.0f;       // One month every so many ms while the loop runs (--month-ms)
+        float monthMs = 2000.0f;       // One month every so many ms while the loop runs (--month-ms); a child's months are a part of it (`LifeScene::monthMs`)
     };
 
     // A step of the guide (achievements.pg, kind "guide") as the scene holds it
@@ -81,6 +81,7 @@ namespace chronicle
 
         // Public for the tests and the dev keys
         void onMonth();                // One month passes; a life with nothing left to live on ends
+        float monthMs() const;         // How long a month lasts at his age: opt.monthMs from ten, shorter before, to bring a new player in
         bool saveNow();                // Writes the save (not with --no-save)
         void autoSave();               // The same with no line in the log: after a month, a choice, a thing done at once, a new life
         void tellAnalytics(const std::string& event = "");   // Where the life stands, kept by the analytics for its next row; with an event, a row now

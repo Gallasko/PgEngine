@@ -15,7 +15,8 @@ the `CHANGELOG.md` at the root of the repository.
   them all: *Learn Knots from the Bargemen* (Dexterity and Intelligence), *Haul Sacks at the
   Mill* (Strength, at a cost in Vitality) or *Sing at the Chapel Door* (Intelligence and
   Renown). Then the market, the harvest (a point of everything), and a month at the mill that
-  ends the day you are seven. A whole year takes about half a minute, and no two need be alike.
+  ends the day you are seven. A whole year takes about a quarter of a minute, and no two need
+  be alike.
 - **A keepsake.** *Carry Books for Father Anselm* pays in coin and in a small tome he tells you
   to keep. It is in your Inventory. Nothing asks for it yet.
 - **The wooden blade is bought, then learned, then chosen.** From your eighth year the market
@@ -89,6 +90,9 @@ the `CHANGELOG.md` at the root of the repository.
 - **Every life starts smaller.** 6 years old, 4 of each stat and 35 Vitality, with nothing in
   your Inventory, where a life began at 7 with 6 of each, 40 Vitality and a year of rations.
   The sixth year gives it back, your way: you are seven with 5 to 8 in a stat.
+- **A child's months go by faster.** A month lasts a second in your sixth year and a second
+  and a half until you are ten, then the two seconds it always took. Every life, not only the
+  first.
 - **Practice with Wooden Blades is gone.** Six months, three times over, for Arms and
   Dexterity: the three short steps above stand in its place. They bring 2 Arms in five months
   where it brought 3 in eighteen.

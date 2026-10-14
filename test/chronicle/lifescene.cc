@@ -1350,6 +1350,71 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // A child's months are shorter: half opt.monthMs in his sixth year, three quarters of it
+        // until he is ten, the whole of it from there.
+        TEST(lifescene_test, a_childs_months_are_shorter)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = f.life(LifeFixture::first());
+            ASSERT_NE(life, nullptr);
+
+            f.frames(12);
+
+            const float whole = life->opt.monthMs;
+
+            ASSERT_FLOAT_EQ(life->save.age, 6.0f);
+            EXPECT_FLOAT_EQ(life->monthMs(), whole * 0.5f);
+
+            // The opening task is a month: its rule fills in half the time, and it ends there
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "glean"});
+            f.settle();
+
+            ASSERT_EQ(life->save.running, "glean");
+            EXPECT_FLOAT_EQ(f.fact<float>("activity.running.glideMs"), whole * 0.5f);
+
+            f.ecs.sendEvent(TickEvent{whole * 0.5f - 1.0f});
+            f.settle();
+
+            EXPECT_EQ(life->save.running, "glean");
+
+            f.ecs.sendEvent(TickEvent{1.0f});
+            f.settle();
+
+            EXPECT_TRUE(life->save.running.empty());
+            EXPECT_EQ(life->save.done["glean"], 1);
+            EXPECT_NEAR(life->save.age, 6.0f + 1.0f / 12.0f, 0.0001f);
+
+            // Seven and ten as the months reach them, one twelfth of a year at a time
+            life->save.age = 6.0f;
+
+            for (int i = 0; i < 11; ++i)
+                life->save.age += 1.0f / 12.0f;
+
+            EXPECT_FLOAT_EQ(life->monthMs(), whole * 0.5f);
+
+            life->save.age += 1.0f / 12.0f;
+
+            EXPECT_FLOAT_EQ(life->monthMs(), whole * 0.75f);
+
+            for (int i = 0; i < 35; ++i)
+                life->save.age += 1.0f / 12.0f;
+
+            EXPECT_FLOAT_EQ(life->monthMs(), whole * 0.75f);
+
+            life->save.age += 1.0f / 12.0f;
+
+            EXPECT_FLOAT_EQ(life->monthMs(), whole);
+
+            life->save.age = 17.5f;
+
+            EXPECT_FLOAT_EQ(life->monthMs(), whole);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // The work he is at keeps its tile, even once it could no longer be begun: it leaves the
         // list when its term ends, not under him.
         TEST(lifescene_test, the_work_he_is_at_keeps_its_tile)

@@ -14,7 +14,7 @@ Run from the repo root (assets are read relative to the working directory):
 ./release/Chronicle --fresh --guide 6         # the same, its guide already past step 6
 ./release/Chronicle --fresh --age 7           # a boy of seven, his sixth year not played: the town's work at once
 ./release/Chronicle --save save/other.sz      # another save file
-./release/Chronicle --month-ms 1000           # a month every second instead of every 2
+./release/Chronicle --month-ms 1000           # a month every second instead of every 2 (a child's months are shorter in proportion)
 ./release/Chronicle --walk hollow             # a life never written, opened on a walk (hedgerows, millpond, hollow, quarry)
 ./release/Chronicle --walk hollow --walk-seed 7   # the same walk with the same dice every time
 ./release/Chronicle --dev TypeSpecimen --theme candle
@@ -110,7 +110,9 @@ middle as tiles, what he has taken and the record at the right.
 With no `--dev` the game opens on the **Life scene** (`--dev LifeScene` names it too).
 `--dev <Scene>` picks a dev gallery instead; an unknown name exits with code 2 before a
 window opens. On the Life scene, confirming an activity starts the months (one every 2 s,
-`--month-ms`), and they stop when its term ends, waiting for the next choice. The running
+`--month-ms`), and they stop when its term ends, waiting for the next choice. A child's months
+are a part of that (`LifeScene::monthMs`): half of it in his sixth year, three quarters until
+he is ten, so a new player is not kept waiting. The running
 row's rule fills through each month in the month's own time. `SPACE` pauses or resumes work
 under way (a paused month keeps what it ran), and the head of *At work now* says which:
 `RUNNING`, `PAUSED · SPACE` in red, or `IDLE` between two works. A work that is stopped (by

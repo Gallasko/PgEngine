@@ -75,6 +75,9 @@ namespace chronicle
         constexpr int MonthsAYear = 12;
         constexpr float LateFromAge = 16.0f;       // The age the classes open at: what opens then or later is the end of a life, for the analytics
         constexpr float EarlyUnderAge = 7.0f;      // And what opens before this age is his sixth year: the choices that shape him
+        constexpr float EarlyPace = 0.5f;          // His sixth year runs at half opt.monthMs: a month a second
+        constexpr float ChildPace = 0.75f;         // And his childhood at three quarters of it: a month every second and a half
+        constexpr float ChildUnderAge = 10.0f;     // From ten a month is opt.monthMs whole
         constexpr size_t NewNamed = 3;             // New tasks are toasted by name up to this many at once, counted past it
         const std::string PlaceGloss = "place/";
         const std::string SaidFact = "said.";                    // Followed by a guide step's id: 1 once the world has been told it
@@ -714,7 +717,7 @@ namespace chronicle
                 reached.push_back(name->second.toString());
         });
 
-        // The month loop: one month every opt.monthMs while it runs
+        // The month loop: one month every monthMs() while it runs
         listenToEvent<TickEvent>([this](const TickEvent& e) {
             // What lasts a moment runs its course whether the months run or not
             if (quiet > 0.0f)
@@ -746,9 +749,10 @@ namespace chronicle
 
             sinceMonth += e.tick;
 
-            while (sinceMonth >= opt.monthMs)
+            // Asked again after each month: the one that makes him seven, or ten, slows the next
+            for (float ms = monthMs(); sinceMonth >= ms; ms = monthMs())
             {
-                sinceMonth -= opt.monthMs;
+                sinceMonth -= ms;
                 onMonth();
             }
         });
@@ -3868,7 +3872,19 @@ namespace chronicle
         setFact("activity.running.pace", std::string(paused ? "paused" : "running"));
 
         // The rule reaches next month's figure as the month ends, and holds while the months stop
-        setFact("activity.running.glideMs", paused ? 0.0f : std::max(0.0f, opt.monthMs - sinceMonth));
+        setFact("activity.running.glideMs", paused ? 0.0f : std::max(0.0f, monthMs() - sinceMonth));
+    }
+
+    float LifeScene::monthMs() const
+    {
+        // Twelve months added one by one fall a hair to either side of the year
+        if (save.age + 0.001f < EarlyUnderAge)
+            return opt.monthMs * EarlyPace;
+
+        if (save.age + 0.001f < ChildUnderAge)
+            return opt.monthMs * ChildPace;
+
+        return opt.monthMs;
     }
 
     void LifeScene::pause(bool on)
