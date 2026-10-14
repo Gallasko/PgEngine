@@ -44,6 +44,9 @@
 //   - A task that gives a flag a technique of a fight is learned by says so on its bar
 //     ("in a fight: Sweep"): no arrow, every walk with a beast would have one.
 //
+//   - A second calling is drawn as a class is: its ways in are gold, in the frame of the group
+//     `callingGroup`, beside the classes'; its works have no arrow from it, their frame says
+//     which way in opened it, and a task that leads to one has its name on a chip ("Castellan").
 //   - No arrow goes into a way into a class: too many would climb to the same frame. The task
 //     that brings what a way in reads (asks for, is eased by, takes as one of several) has a
 //     gold chip after its bar instead, in the class's colour: "The Keep (arms 2)".
@@ -113,6 +116,10 @@ var walkFill = "#fed7d7"
 
 // The height a chip takes before a bar, with the room under it
 var chipTall = 22
+
+// The group of the ways into a second calling: each is drawn as a way into a class is (gold, no
+// arrow out of it), and the works that ask for what it brings as the works of a class are
+var callingGroup = "A second calling"
 
 // The colour of each class, in the order of the table's `paths`
 var classColours = ["#2b6cb0", "#6b46c1", "#2f855a", "#975a16"]
@@ -292,7 +299,7 @@ fun amountsText(list, sign, hubs)
 
 fun newGraph()
 {
-    return {tasks: [], taskIds: {}, stats: [], statKeys: {}, statLabels: {}, links: [], groups: [], things: {}}
+    return {tasks: [], taskIds: {}, stats: [], statKeys: {}, statLabels: {}, links: [], groups: [], things: {}, callings: {}}
 }
 
 fun addStat(graph, stat)
@@ -420,7 +427,7 @@ fun addTask(graph, a)
     }
 
     push(graph.tasks, {id: a.id, node: node, group: a.group, label: label, name: a.name, time: time, fromAge: a.fromAge, finishBy: a.finishBy, fromMonth: fromMonth, byMonth: byMonth, months: a.months, path: a.path, enters: a.enters, raises: a.raises,
-                       zone: lookup(a, "zone", ""), lastResort: lookup(a, "lastResort", false),
+                       zone: lookup(a, "zone", ""), lastResort: lookup(a, "lastResort", false), calling: "", under: "",
                        needs: a.needs, gains: a.gains, costs: a.costs})
     graph.taskIds[a.id] = true
 
@@ -673,6 +680,70 @@ fun buildGraph()
     for (var z = 0; z < len(walkZones); z = z + 1)
     {
         addWalk(graph, walkZones[z])
+    }
+
+    // A second calling is a class of its own on the picture. The way into one brings a flag its
+    // works ask for: those asks are drawn as a class's are (no arrow: a stripe, and the frame
+    // says what opened it). `calling` on the way in is that flag, `under` on a work the flag of
+    // the calling it is of
+    for (var i = 0; i < len(graph.tasks); i = i + 1)
+    {
+        var way = graph.tasks[i]
+
+        if (way.group != callingGroup)
+        {
+            continue
+        }
+
+        // The flag of the calling: what it alone brings, and another task asks for
+        for (var g = 0; g < len(way.gains); g = g + 1)
+        {
+            var stat = way.gains[g].stat
+            var asked = false
+            var others = false
+
+            for (var l = 0; l < len(graph.links); l = l + 1)
+            {
+                var link = graph.links[l]
+
+                if (link.kind == "asks" and link.source == statNode(stat) and link.target != way.node)
+                {
+                    asked = true
+                }
+
+                if ((link.kind == "brings" or link.kind == "later") and link.target == statNode(stat) and link.source != way.node)
+                {
+                    others = true
+                }
+            }
+
+            if (asked and not others)
+            {
+                way.calling = stat
+                graph.callings[stat] = way.name
+            }
+        }
+    }
+
+    for (var l = 0; l < len(graph.links); l = l + 1)
+    {
+        var link = graph.links[l]
+
+        if (link.kind != "asks" or not contain(graph.callings, link.stat) or link.source != statNode(link.stat))
+        {
+            continue
+        }
+
+        link.kind = "classOf"
+        link.label = ""
+
+        for (var i = 0; i < len(graph.tasks); i = i + 1)
+        {
+            if (graph.tasks[i].node == link.target)
+            {
+                graph.tasks[i].under = link.stat
+            }
+        }
     }
 
     // What a fight offers to who has learned it: the flags that teach it, and the walks that
@@ -1046,7 +1117,7 @@ fun classIndex(path)
     return -1
 }
 
-// The classes a task leads to: the ways in that read a flag it brings (ask for it, are eased by
+// The classes, and the second callings, a task leads to: the ways in that read a flag it brings (ask for it, are eased by
 // it, or take it as one of several), a chip each, "The Keep (arms 2)". They stand after its bar
 // in the place of the arrows, which would all climb to the same frame
 fun classChips(graph, task, folded)
@@ -1086,7 +1157,7 @@ fun classChips(graph, task, folded)
             {
                 var way = graph.tasks[i]
 
-                if (way.node != reads.target or not way.enters or classIndex(way.path) < 0)
+                if (way.node != reads.target or not (way.enters or way.calling != "") or classIndex(way.path) < 0)
                 {
                     continue
                 }
@@ -1094,6 +1165,12 @@ fun classChips(graph, task, folded)
                 seen[reads.target + ">" + brings.stat] = true
 
                 var text = paths[classIndex(way.path)].name
+
+                // A second calling is named as what it makes of him: "Castellan"
+                if (way.calling != "")
+                {
+                    text = statLabel(graph, way.calling)
+                }
 
                 if (reads.kind != "asks" or reads.label != "1")
                 {
@@ -1938,7 +2015,7 @@ fun layoutTimeline(graph, folded, left)
 
             for (var i = 0; i < len(graph.tasks); i = i + 1)
             {
-                if (graph.tasks[i].group == graph.groups[g] and graph.tasks[i].enters)
+                if (graph.tasks[i].group == graph.groups[g] and (graph.tasks[i].enters or graph.tasks[i].calling != ""))
                 {
                     enters = true
                 }
@@ -2062,7 +2139,7 @@ fun layoutTimeline(graph, folded, left)
                 band.walk = true
             }
 
-            if (task.enters)
+            if (task.enters or task.calling != "")
             {
                 band.enters = true
             }
@@ -2146,8 +2223,23 @@ fun layoutTimeline(graph, folded, left)
 
         band.height = under
 
-        // A group all of one class says which way in opens it
-        if (band.path != "" and not band.enters)
+        // A group all of one class says which way in opens it; all of one second calling, that
+        // calling's own way in
+        var under = band.items[0].task.under
+
+        for (var n = 0; n < len(band.items); n = n + 1)
+        {
+            if (band.items[n].task.under != under)
+            {
+                under = ""
+            }
+        }
+
+        if (under != "")
+        {
+            band.heading = band.heading + "  -  opened by " + graph.callings[under]
+        }
+        else if (band.path != "" and not band.enters)
         {
             for (var i = 0; i < len(graph.tasks); i = i + 1)
             {
@@ -2388,7 +2480,7 @@ fun emitTimeline(graph)
             var edgeWidth = "1"
             var stripe = classColour(task.path)
 
-            if (task.enters)
+            if (task.enters or task.calling != "")
             {
                 fill = "#f6e05e"
                 edge = stripe
@@ -2416,7 +2508,7 @@ fun emitTimeline(graph)
 
             out = out + "<rect x='" + toString(item.x) + "' y='" + toString(item.y) + "' width='" + toString(item.bar) + "' height='" + toString(item.tall) + "' rx='4' fill='" + fill + "' stroke='" + edge + "' stroke-width='" + edgeWidth + "'/>\n"
 
-            if (stripe != "" and not task.enters)
+            if (stripe != "" and not task.enters and task.calling == "")
             {
                 out = out + "<rect x='" + toString(item.x) + "' y='" + toString(item.y) + "' width='5' height='" + toString(item.tall) + "' fill='" + stripe + "'/>\n"
             }
@@ -2526,7 +2618,7 @@ fun emitTimeline(graph)
                 }
 
                 // None into a way into a class: the task that leads there has the class on a chip
-                if (view.items[reads.target].task.enters and classIndex(view.items[reads.target].task.path) >= 0)
+                if ((view.items[reads.target].task.enters or view.items[reads.target].task.calling != "") and classIndex(view.items[reads.target].task.path) >= 0)
                 {
                     continue
                 }
@@ -2762,7 +2854,10 @@ var lives = 2
 var running = ""
 var activityId = ""
 var done = {}
-var character = {}
+
+// (but for the Inn, which stands: the picture is of the whole table, a second calling and the
+// years to fifty with it)
+var character = {"town.inn": 1}
 
 import "activitytable"
 
