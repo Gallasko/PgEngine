@@ -405,6 +405,12 @@ fun seekCost(zone, mob, count)
         cost = cost - 1
     }
 
+    // And who scouts ahead, as a man of the far roads does, sooner still
+    if (mine("adventurer") > 0)
+    {
+        cost = cost - walkKnobs.scoutCut
+    }
+
     if (mob.packSize > 1)
     {
         if (count > 1)
@@ -981,7 +987,16 @@ fun doGather(spotId)
     }
 
     openStep("gather", spot.id, 1, spot.ap, "Gathered " + toLowerCase(itemOf(spot.id).name), "work")
-    give(spot.id, rollBetween(spot.least, spot.most))
+
+    var found = rollBetween(spot.least, spot.most)
+
+    // Porters carry half again as much home
+    if (mine("porters") > 0)
+    {
+        found = share(found, walkKnobs.portersShare)
+    }
+
+    give(spot.id, found)
     closeStep()
 
     maybeEvent("gather")

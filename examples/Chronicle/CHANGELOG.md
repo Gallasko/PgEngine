@@ -49,14 +49,35 @@ the `CHANGELOG.md` at the root of the repository.
   brews a remedy from two wortleaf where you stand; who holds the sacristan's keys rests a
   little better; who knows the roads arrives a day sooner. In a fight, the smuggler's *Sand
   in the eyes* costs a beast its next move.
-- **The Flood, at eleven.** In every life, the month you are eleven: two months to answer it,
+- **The Flood, at eleven.** In every life, the month you are eleven: six months to answer it,
   a month each, and one answer. Haul sandbags (Strength, and the mill's wheel costs half to
   mend this life), pull folk from the water (Renown, at a cost in Vitality), or salvage the
   wreck (coin and Guile, and Father Anselm will not give you his keys).
-- **The Lord's Levy, at fifteen.** That month, one answer. March for six months (Arms,
+- **The Lord's Levy, at fifteen.** Six months to answer, one answer. March for six months (Arms,
   Discipline, the heavy cut, and the Keep asks less Arms), pay the scutage, or hide in the
   Greenwood: a deserter is shut out of the Keep, and the Greenwood is a class he may choose at
   sixteen like the others.
+- **A second calling, and twenty more years.** In a town whose Inn stands (its first level),
+  a man of thirty is not old: your prime runs to fifty, old age begins there, and the works no
+  age closes stay yours. At twenty-nine each class is offered two callings, one or the other:
+  the Keep's man becomes the **Defender of Bellmoor** or a **Crusader**, the scholar a
+  **Curse-breaker** or a **Spellwright**, the thief an **Assassin** or an **Adventurer**. Each
+  is a year to enter and five works after it: its bread, its choice, its moment, and a work of
+  two years from forty-two. The Greenwood has none yet. A Spellwright's bound elements are
+  spells in a fight (Frostbind, the second firebolt, chain lightning); an Adventurer finds any
+  beast two days sooner, and with porters every gathering is half again as much.
+- **Every class has its fork, its chain and its deadline.** The Keep: the ambush tracks that
+  lead to the Greenwood camp, and a duel for the captain's favour. The Collegium: orders in the
+  Church or the demon scholar, one or the other, each with its own account of the curse; the
+  margin glyphs that open a cellar under the mill (the mill's loft must stand); the Magister's
+  examination. The Hidden Hand: its mark (every favor is one more, silence is free) or your
+  own name (the jobs pay more, and earn no favor); the Collegium's stores to steal from; Old
+  Vey's last summons. The Greenwood: spare the village carts or take the toll from all; the
+  burners' shrine and the woodfolk; the Lord's pardon, which opens the Keep's service and
+  closes the Greenwood's own.
+- **The Plague Year, at twenty-three, and the Old Lord's death, at twenty-seven.** Six months
+  to answer each, one answer. The succession asks what only a class gives: a man of none sees
+  its three answers and can take none.
 - **A lead.** *Hear the Bargemen's Tale*, a month and 2 coin at nine: Mill Pond is yours to
   walk a year sooner.
 - **One or the other is said, in red.** A task that closes another when you take it (the mill

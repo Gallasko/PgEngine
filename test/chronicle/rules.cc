@@ -2679,7 +2679,7 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
-        // The Flood comes the month he is eleven, in every life: two months to answer it, and one
+        // The Flood comes the month he is eleven, in every life: six months to answer it, and one
         // answer of three. What he answers is his for the life: who stood in the mill's water
         // mends its wheel for half, and who looted is not given the sacristan's keys.
         TEST(rules_test, the_flood_is_answered_once_at_eleven)
@@ -2699,13 +2699,13 @@ namespace pg
 
             const float month = 1.0f / 12.0f;
 
-            // Not before, and not after its two months
+            // Not before, and not after its six months: time enough for who was at a long work
             for (const char* id : {"flood.sandbags", "flood.rescue", "flood.salvage"})
             {
                 EXPECT_FALSE(listed(11.0f - month, character, id)) << id;
                 EXPECT_TRUE(listed(11.0f, character, id)) << id;
-                EXPECT_TRUE(listed(11.0f + month, character, id)) << id;
-                EXPECT_FALSE(listed(11.0f + 2.0f * month, character, id)) << id;
+                EXPECT_TRUE(listed(11.0f + 5.0f * month, character, id)) << id;
+                EXPECT_FALSE(listed(11.0f + 6.0f * month, character, id)) << id;
             }
 
             // A row whatever he has: what he cannot do he sees he cannot
@@ -2827,7 +2827,7 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
-        // The Lord's Levy comes the month he is fifteen: that month to answer, one answer. Who
+        // The Lord's Levy comes the month he is fifteen: six months to answer, one answer. Who
         // marched is asked less Arms by the Keep; who hid is a deserter, shut out of the Keep, and
         // the Greenwood is a door like the others for him at sixteen.
         TEST(rules_test, the_levy_at_fifteen_turns_the_classes)
@@ -2851,7 +2851,8 @@ namespace pg
             {
                 EXPECT_FALSE(listed(15.0f - month, character, id)) << id;
                 EXPECT_TRUE(listed(15.0f, character, id)) << id;
-                EXPECT_FALSE(listed(15.0f + month, character, id)) << id;
+                EXPECT_TRUE(listed(15.0f + 5.0f * month, character, id)) << id;
+                EXPECT_FALSE(listed(15.0f + 6.0f * month, character, id)) << id;
             }
 
             // The scutage is paid at once, and closes the other two
@@ -2880,6 +2881,169 @@ namespace pg
             EXPECT_FALSE(listed(15.5f, hid, "greenwood"));
             EXPECT_TRUE(listed(16.0f, hid, "greenwood"));
             EXPECT_FALSE(flag(activityAt(f.rules, 16.0f, hid, "greenwood").fields, "locked"));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // In a town whose Inn stands a man of thirty is not old: his prime runs to fifty, old age
+        // begins there, and thirty is where a second calling does. Without the Inn nothing moves.
+        TEST(rules_test, the_inn_gives_a_life_a_second_calling)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            auto listed = [&](float age, const ElementMap& character, const char* id) {
+                return flag(activityAt(f.rules, age, character, id).fields, "listed");
+            };
+
+            auto ages = [&]() {
+                std::vector<RuleMilestone> milestones;
+                ElementMap next;
+
+                EXPECT_TRUE(f.rules.milestones(29.0f, milestones, next)) << firstError(f.rules);
+
+                std::vector<std::string> out;
+
+                for (const auto& m : milestones)
+                    out.push_back(textOf(m.fields, "id") + " " + std::to_string(intOf(m.fields, "age")));
+
+                return out;
+            };
+
+            // A veteran of the Keep at twenty-nine
+            ElementMap veteran = sworn();
+            veteran["veteran"] = ElementType{1};
+            veteran["arms"] = ElementType{7};
+            veteran["discipline"] = ElementType{5};
+            veteran["renown"] = ElementType{4};
+            veteran["coin"] = ElementType{100};
+            f.rules.done = {{"keep", ElementType{1}}, {"campaign", ElementType{1}}};
+
+            // No Inn: old at thirty, the old man's works at twenty-nine, and no calling
+            EXPECT_EQ(ages().back(), "old 30");
+            EXPECT_TRUE(listed(29.0f, veteran, "garden"));
+            EXPECT_FALSE(listed(29.0f, veteran, "castellan"));
+            EXPECT_FALSE(listed(29.0f, veteran, "cross"));
+
+            // The Inn stands: a calling at thirty, old at fifty
+            veteran["town.inn"] = ElementType{1};
+            f.rules.inn = 1;
+
+            const std::vector<std::string> long_ = ages();
+
+            ASSERT_GE(long_.size(), 2u);
+            EXPECT_EQ(long_[long_.size() - 2], "calling 30");
+            EXPECT_EQ(long_.back(), "old 50");
+
+            EXPECT_FALSE(listed(29.0f, veteran, "garden"));
+            EXPECT_TRUE(listed(49.0f, veteran, "garden"));
+
+            // What no age of its own closes is his past thirty
+            EXPECT_TRUE(listed(35.0f, veteran, "serve"));
+            EXPECT_EQ(intOf(activityAt(f.rules, 35.0f, veteran, "serve").fields, "closesIn"), -1);
+
+            // His two callings, a warrior's, and no other class's; one or the other
+            EXPECT_TRUE(listed(29.0f, veteran, "castellan"));
+            EXPECT_TRUE(listed(29.0f, veteran, "cross"));
+            EXPECT_FALSE(listed(29.0f, veteran, "contract"));
+            EXPECT_FALSE(flag(activityAt(f.rules, 29.0f, veteran, "castellan").fields, "locked"));
+            EXPECT_NE(textOf(activityAt(f.rules, 29.0f, veteran, "castellan").fields, "caution").find("Take the Cross"), std::string::npos);
+
+            // The keys taken: the cross is gone, the militia is his at thirty-one, and the siege
+            // shows him what the calling leads to
+            veteran["castellan"] = ElementType{1};
+            f.rules.done = {{"keep", ElementType{1}}, {"campaign", ElementType{1}}, {"castellan", ElementType{1}}};
+
+            EXPECT_FALSE(listed(31.0f, veteran, "cross"));
+            EXPECT_TRUE(listed(31.0f, veteran, "militia"));
+            EXPECT_FALSE(listed(31.0f, veteran, "marches"));
+            EXPECT_TRUE(listed(31.0f, veteran, "siege"));
+            EXPECT_TRUE(flag(activityAt(f.rules, 31.0f, veteran, "siege").fields, "locked"));
+            EXPECT_FALSE(listed(31.0f, veteran, "crusade"));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // What kind of man of his class he is: a fork a class, whose flag changes what the class's
+        // own works bring or ask. The Hand's mark makes every favor one more and silence free; his
+        // own name pays more and earns none. An outlaw the roads fear is asked more Renown.
+        TEST(rules_test, a_class_has_its_fork)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            auto brought = [&](float age, const ElementMap& character, const char* id, const char* stat) {
+                for (const auto& gain : activityAt(f.rules, age, character, id).gains)
+                {
+                    if (textOf(gain, "stat") == stat)
+                        return intOf(gain, "amount");
+                }
+
+                return 0;
+            };
+
+            ElementMap thief = {{"hidden_hand", ElementType{1}}, {"favors", ElementType{3}}, {"stealth", ElementType{5}}, {"guile", ElementType{5}},
+                                {"guild_enemy", ElementType{1}}, {"coin", ElementType{100}}};
+
+            EXPECT_EQ(brought(21.0f, thief, "run", "favors"), 1);
+            EXPECT_EQ(brought(21.0f, thief, "blackmail", "coin"), 45);
+            EXPECT_EQ(activityAt(f.rules, 22.0f, thief, "silence").costs.size(), 1u);
+
+            ElementMap marked = thief;
+            marked["hand_marked"] = ElementType{1};
+
+            EXPECT_EQ(brought(21.0f, marked, "run", "favors"), 2);
+            EXPECT_EQ(brought(21.0f, marked, "smuggle", "favors"), 3);
+            EXPECT_TRUE(activityAt(f.rules, 22.0f, marked, "silence").costs.empty());
+
+            ElementMap own = thief;
+            own["freelance"] = ElementType{1};
+
+            EXPECT_EQ(brought(21.0f, own, "run", "favors"), 0);
+            EXPECT_EQ(brought(21.0f, own, "smuggle", "favors"), 0);
+            EXPECT_EQ(brought(21.0f, own, "network", "favors"), 2);
+            EXPECT_EQ(brought(21.0f, own, "blackmail", "coin"), 65);
+
+            // The Greenwood: who the band robs
+            ElementMap outlaw = {{"renegade", ElementType{1}}, {"band", ElementType{1}}, {"arms", ElementType{5}}, {"stealth", ElementType{5}}, {"renown", ElementType{4}}};
+
+            auto renownAsked = [&](const ElementMap& character) {
+                for (const auto& r : activityAt(f.rules, 26.0f, character, "woodking").requires)
+                {
+                    if (textOf(r, "stat") == "renown")
+                        return intOf(r, "needed");
+                }
+
+                return 0;
+            };
+
+            EXPECT_EQ(renownAsked(outlaw), 4);
+            EXPECT_EQ(brought(22.0f, outlaw, "waylay", "coin"), 40);
+
+            ElementMap sung = outlaw;
+            sung["peoples_outlaw"] = ElementType{1};
+
+            EXPECT_EQ(renownAsked(sung), 3);
+            EXPECT_EQ(brought(22.0f, sung, "waylay", "coin"), 30);
+            EXPECT_EQ(brought(22.0f, sung, "waylay", "renown"), 2);
+
+            ElementMap feared = outlaw;
+            feared["feared"] = ElementType{1};
+
+            EXPECT_EQ(renownAsked(feared), 5);
+            EXPECT_EQ(brought(22.0f, feared, "waylay", "coin"), 55);
+            EXPECT_EQ(brought(22.0f, feared, "waylay", "renown"), 0);
+
+            // The pardon: the Keep's service is his at twenty-five, and the Greenwood is not his to hold
+            ElementMap pardoned = outlaw;
+            pardoned["pardoned"] = ElementType{1};
+            f.rules.done = {{"pardon", ElementType{1}}};
+
+            EXPECT_FALSE(flag(activityAt(f.rules, 26.0f, pardoned, "woodking").fields, "listed"));
+            EXPECT_TRUE(flag(activityAt(f.rules, 25.0f, pardoned, "serve").fields, "listed"));
+            EXPECT_FALSE(flag(activityAt(f.rules, 25.0f, outlaw, "serve").fields, "listed"));
         }
 
         // ----------------------------------------------------------------------------------------

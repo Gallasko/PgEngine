@@ -678,7 +678,7 @@ namespace chronicle
         if (headline)
             headline->clear();
 
-        if (not milestonesKnown or milestonesAge != age or milestonesWorld != world or milestonesLives != lives)
+        if (not milestonesKnown or milestonesAge != age or milestonesWorld != world or milestonesLives != lives or milestonesInn != inn)
         {
             RuleScript& s = milestonesScript;
             s.clearErrors();
@@ -688,6 +688,7 @@ namespace chronicle
             s.set("age", ElementType{age});
             s.set("world", ElementType{world});
             s.set("lives", ElementType{lives});
+            s.set("character", ElementMap{{"town.inn", ElementType{inn}}});
 
             ++nbRuns;
 
@@ -715,6 +716,7 @@ namespace chronicle
             milestonesAge = age;
             milestonesWorld = world;
             milestonesLives = lives;
+            milestonesInn = inn;
         }
 
         out = keptMilestones;

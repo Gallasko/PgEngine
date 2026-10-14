@@ -120,7 +120,7 @@ var townPlaces = [
     // Orin, the road once he has been to Harrow
     {id: "chapel", name: "The Chapel", glyph: "study", shows: {flag: "collegium"}, about: "Father Anselm's chapel, and the only school in Bellmoor.",
      levels: [
-        {work: "Glaze the Chapel Windows", built: "The chapel windows", months: 6, coin: 15, costs: [],
+        {work: "Glaze the Chapel Windows", built: "The chapel windows", months: 6, coin: 15, costs: [], cheaper: {flag: "plague_stayed", coin: 0},
          gives: "Learn Your Letters takes 4 months, not 6",
          lore: "There is light to read by now, even in winter."},
         {work: "Give the Chapel a Primer", built: "The chapel primer", months: 9, coin: 40, costs: [{stat: "letters"}],
@@ -144,7 +144,7 @@ var townPlaces = [
      ]},
     {id: "harrow", name: "The Harrow Road", glyph: "relic", shows: {flag: "harrow_truth"}, about: "The old road east, to what is left of Harrow.",
      levels: [
-        {work: "Clear the Harrow Road", built: "The cleared road", months: 9, coin: 40, costs: [],
+        {work: "Clear the Harrow Road", built: "The cleared road", months: 9, coin: 40, costs: [], cheaper: {flag: "woodfolk_guest", coin: 20},
          gives: "The works of Harrow show what they ask from the start",
          lore: "The road is open as far as the first ruins."},
         {work: "Build the Waystation", built: "The waystation", months: 12, coin: 100, costs: [],

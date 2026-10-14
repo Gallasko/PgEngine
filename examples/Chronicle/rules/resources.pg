@@ -54,6 +54,9 @@ import "algorithm"
 import "lib"
 import "expeditiontable"
 
+// Old age begins where his prime ends: thirty, or fifty in a town whose Inn stands
+lastAge = primeEnd(character)
+
 var errors = []
 
 var holdings = [
@@ -85,6 +88,21 @@ var holdings = [
      about: "He lives outside the town's law, among the outlaws of the Greenwood."},
     {id: "wood_king", group: "standing", groupLabel: "STANDING", glyph: "reputation", name: "King of the Greenwood", tone: 3, title: true,
      about: "The Greenwood answers to him, and the Keep leaves it be."},
+    // What a second calling counts: each is a number he holds, that its last work asks for
+    {id: "relics", group: "standing", groupLabel: "STANDING", glyph: "relic", name: "Relics", tone: 0,
+     about: "Relics of the curse, gathered for the Harrow Study. The first seal asks three."},
+    {id: "elements", group: "standing", groupLabel: "STANDING", glyph: "magic", name: "Elements bound", tone: 0,
+     about: "The elements he has bound, each a spell of his."},
+    {id: "spells_written", group: "standing", groupLabel: "STANDING", glyph: "quill", name: "Spells written down", tone: 0,
+     about: "The spells he has set down for the Collegium's shelves."},
+    {id: "marks_studied", group: "standing", groupLabel: "STANDING", glyph: "town", name: "Marks studied", tone: 0,
+     about: "The people of Bellmoor he has watched for a contract."},
+    {id: "kills", group: "standing", groupLabel: "STANDING", glyph: "skull", name: "Contracts kept", tone: 0,
+     about: "The contracts he has carried out."},
+    {id: "far_walks", group: "standing", groupLabel: "STANDING", glyph: "adventure", name: "Far roads walked", tone: 0,
+     about: "The far roads he has walked to their end."},
+    {id: "maps_drawn", group: "standing", groupLabel: "STANDING", glyph: "quill", name: "Maps drawn", tone: 0,
+     about: "The far roads he has put on paper."},
     // What he was given as a boy and keeps: nothing asks for it yet
     {id: "tome", group: "keepsakes", groupLabel: "KEEPSAKES", glyph: "relic", name: "Father Anselm's tome", tone: 2, title: true,
      about: "A small book Father Anselm gave him for carrying the others. He has kept it since."},
@@ -107,7 +125,17 @@ var ties = ["watch_known", "street_known", "choir", "edric_support", "library_ac
             "band", "hedges_known", "bow_learned", "yard_enthusiasm", "yard_breathing", "slash_learned", "thrust_learned",
             "forge_seen", "smith_apprentice", "roads_known", "anselm_trust", "forbidden_read", "herbal", "snare_set",
             "tunnel_found", "smuggler_runner", "boys_sworn", "mill_saved", "flood_hero", "flood_looted",
-            "levy_served", "levy_paid", "deserter", "bargemen_tale"]
+            "levy_served", "levy_paid", "deserter", "bargemen_tale",
+            "bandit_trail", "band_broken", "captain_favour", "ordained", "demon_spoken", "engines_seen",
+            "other_account", "glyphs_read", "mill_engine", "magister", "hand_marked", "freelance",
+            "reagent_run", "collegium_thief", "tourney_fixed", "vey_heir", "peoples_outlaw", "feared",
+            "forest_shrine", "woodfolk_guest", "barn_burned", "pardoned", "plague_stayed", "plague_shut",
+            "plague_profiteer", "kingmaker", "church_candidate", "interregnum", "castellan", "crusader",
+            "curse_breaker", "spellwright", "assassin", "adventurer", "walls_raised", "bellmoor_shield",
+            "shut_gate", "wall_held", "zealot", "doubts", "relic_bearer", "crusader_king",
+            "whole_story", "working_marked", "first_seal", "stoneskin_bound", "galestep_bound", "firebolt2_bound",
+            "chain_bound", "court_mage", "sealed_library", "grand_working", "own_counsel", "regicide",
+            "porters", "first_city"]
 
 // What a walk brings home (expeditiontable.pg's `walkItems`): a remedy to drink in the field,
 // what is sold at the market, and what a place of the town is built of. He holds all of it, and

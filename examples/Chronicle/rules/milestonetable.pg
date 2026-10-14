@@ -3,7 +3,10 @@
 // Imported by forecast.pg, and loaded by the game through milestones.pg.
 // Input:  `age` (years, a number), `world` (months since the world's Year 0: its calendar, which
 //         runs on from life to life and which no death rewinds). `lives` (which life of the
-//         world this is) is handed with it, and not read here.
+//         world this is) is handed with it, and not read here. `character`, of which only the
+//         town is read ("town.inn": with the Inn standing his prime ends at fifty, lib.pg's
+//         `primeEnd`): the game hands the milestones the Inn's level alone, forecast.pg the
+//         whole character.
 // Output: `milestones`, every milestone {age, id, label, passed, entry, asks}, where `asks` lists
 //         what each path asks at it: [{path, stat, label, needed}] (the doors of
 //         activitytable.pg it opens onto), and `entry` is "" or the line the log writes when he
@@ -23,6 +26,8 @@ import "algorithm"
 import "lib"
 
 var errors = []
+
+lastAge = primeEnd(character)
 
 var milestoneTable = [
     {age: 7, id: "childhood", label: "Childhood", entry: "", asks: []},
@@ -60,9 +65,17 @@ var milestoneTable = [
         {path: "renegade", stat: "arms", label: "Arms", needed: 5},
         {path: "renegade", stat: "stealth", label: "Stealth", needed: 5},
         {path: "renegade", stat: "renown", label: "Renown", needed: 4}
-    ]},
-    {age: lastAge, id: "old", label: "Old age", entry: "His thirtieth year: old age begins, and his strength leaves him", asks: []}
+    ]}
 ]
+
+// In a town whose Inn stands, thirty is where a second calling begins, and not old age: a
+// milestone of its own, before the last
+if (lastAge > shortAge)
+{
+    push(milestoneTable, {age: shortAge, id: "calling", label: "A second calling", entry: "His thirtieth year: a man of Bellmoor is not old at thirty any more", asks: []})
+}
+
+push(milestoneTable, {age: lastAge, id: "old", label: "Old age", entry: "His " + ordinalWord(lastAge) + " year: old age begins, and his strength leaves him", asks: []})
 
 // Counted in whole months, so an age that is a sum of twelfths reaches its milestone on time
 var lived = monthOf(age)

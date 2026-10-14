@@ -22,6 +22,9 @@ import "math"
 import "algorithm"
 import "activitytable"
 
+// (activitytable.pg sets it, and says why: nothing imported after it here writes it again)
+lastAge = primeEnd(character)
+
 var errors = []
 
 // What he became, the highest first: the first flag he holds is the one that is said

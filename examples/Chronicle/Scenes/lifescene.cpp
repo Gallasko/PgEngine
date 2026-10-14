@@ -850,6 +850,7 @@ namespace chronicle
         rules.world = save.world;
         rules.lives = save.lives;
         rules.running = save.running;
+        rules.inn = save.town.count("inn") > 0 ? save.town.at("inn") : 0;
 
         // The guide's length, before the page is filled: a first life's guide line waits for its step
         readDeeds();
@@ -4719,6 +4720,10 @@ namespace chronicle
     void LifeScene::raisePlace(const std::string& place, int level)
     {
         save.town[place] = level;
+
+        // The milestones read no character: the Inn's level, which moves the end of his prime, is theirs by hand
+        if (place == "inn")
+            rules.inn = level;
 
         // What was left to it went into the level: its coin, and each thing under "<place>.<thing>"
         for (auto it = save.fund.begin(); it != save.fund.end();)

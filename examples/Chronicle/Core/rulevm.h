@@ -267,6 +267,11 @@ namespace chronicle
         // man on his way into a class is not one who missed them all).
         std::string running;
 
+        // The Inn's level, the world's: handed to the milestones, which read no character, as
+        // the one stat of one ("town.inn"). With the Inn standing his prime ends at fifty and
+        // not at thirty (lib.pg's `primeEnd`): the other scripts read it in the character.
+        int inn = 0;
+
         // windows.pg, through activitytable.pg: the activity table, and what each still asks of
         // `character` at `age`. One run answers this and windows().
         bool activities(float age, const pg::ElementMap& character, std::vector<RuleActivity>& out);
@@ -351,6 +356,7 @@ namespace chronicle
         float milestonesAge = 0.0f;
         int milestonesWorld = 0;
         int milestonesLives = 1;
+        int milestonesInn = 0;
         std::vector<RuleMilestone> keptMilestones;
         pg::ElementMap keptNext;
         pg::ElementMap keptHeadline;

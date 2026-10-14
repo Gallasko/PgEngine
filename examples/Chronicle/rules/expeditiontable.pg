@@ -98,7 +98,9 @@ var walkKnobs = {
     snareMost: 2,           // and how much
     brewAp: 0,              // A remedy brewed where he stands (`herbal`): days,
     brewItem: "wortleaf",   // what it is made of,
-    brewTakes: 2            // and how much of it
+    brewTakes: 2,           // and how much of it
+    scoutCut: 2,            // Days off the finding of any beast, for who scouts ahead (`adventurer`)
+    portersShare: 150       // Percent of what a gathering brings, with porters hired (`porters`)
 }
 
 // `gather`: a line on the gathering of it, for the gloss of its tile on the site
@@ -334,6 +336,15 @@ var walkTechniques = [
     {id: "feint", name: "Feint and step", kind: "blow", breath: 1, cool: 1, power: 80, hit: 20, all: false, holds: false,
      knows: ["street_known", "hidden_hand"], where: "THE STREETS", line: "A sure blow, and he is hard to bite after it"}
 ]
+
+// A second calling's: what the Elemental Chair teaches, and the elements a Spellwright has
+// bound that a fight can use (activitytable.pg's `bind`: its third and its fourth)
+push(walkTechniques, {id: "frostbind", name: "Frostbind", kind: "spell", breath: 0, cool: 3, power: 0, hit: 0, all: false, holds: true,
+                      knows: ["spellwright"], where: "THE ELEMENTAL CHAIR", line: "The beast aimed at is held in frost, and loses its next move"})
+push(walkTechniques, {id: "firebolt2", name: "Firebolt II", kind: "spell", breath: 2, cool: 1, power: 150, hit: 15, all: false, holds: false,
+                      knows: ["firebolt2_bound"], where: "THE BOUND ELEMENTS", line: "The first working, bound to him: it bites half again as deep"})
+push(walkTechniques, {id: "chain", name: "Chain lightning", kind: "spell", breath: 3, cool: 3, power: 90, hit: 0, all: true, holds: false,
+                      knows: ["chain_bound"], where: "THE BOUND ELEMENTS", line: "One working through every beast standing"})
 
 // `deals` and `takes` are percent of what he deals and of what he takes.
 var walkStances = [

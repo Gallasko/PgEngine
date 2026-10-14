@@ -340,6 +340,17 @@ fun byId(list, id)
     return {id: ""}
 }
 
+// The age his prime ends at, in the town this character lives in (see `longAge`).
+fun primeEnd(character)
+{
+    if (statOf(character, "town." + callingPlace) >= 1)
+    {
+        return longAge
+    }
+
+    return shortAge
+}
+
 // A field that is one thing or a list of them, as a list.
 fun asList(value)
 {
@@ -536,6 +547,14 @@ fun openNote(monthsLeft, attempts)
 // age begins (resources.pg's `aging`). The life goes on past it, until it has nothing left.
 var lastAge = 30
 
+// A second calling: once the Inn stands in his town (its first level, towntable.pg), a man of
+// thirty is not old. His prime runs to `longAge`, and old age begins there. A script that reads
+// `lastAge` and has the character sets it first, after its imports (an import of this file
+// writes the 30 again): `lastAge = primeEnd(character)`.
+var shortAge = 30
+var longAge = 50
+var callingPlace = "inn"
+
 // The `finishBy` of what an old man may still do: no age closes it.
 var anyAge = 200
 
@@ -615,6 +634,69 @@ var statNames = {
     levy_paid: "Paid off",
     deserter: "Deserter",
     bargemen_tale: "The bargemen's tale",
+    bandit_trail: "The bandit trail",
+    band_broken: "Broke the band",
+    captain_favour: "The captain's favour",
+    ordained: "Ordained",
+    demon_spoken: "Spoke with a demon",
+    engines_seen: "Seen the lost engines",
+    other_account: "The other account",
+    glyphs_read: "The glyphs",
+    mill_engine: "The engine under the mill",
+    magister: "Magister",
+    hand_marked: "Marked",
+    freelance: "Freelance",
+    reagent_run: "The reagent run",
+    collegium_thief: "Collegium thief",
+    tourney_fixed: "Fixed the tourney",
+    vey_heir: "Vey's heir",
+    peoples_outlaw: "The people's outlaw",
+    feared: "Feared",
+    forest_shrine: "The forest shrine",
+    woodfolk_guest: "Guest of the woodfolk",
+    barn_burned: "Burned the barn",
+    pardoned: "Pardoned",
+    plague_stayed: "Stayed in the plague",
+    plague_shut: "Shut in",
+    plague_profiteer: "Plague profiteer",
+    kingmaker: "Kingmaker",
+    church_candidate: "The Church's candidate",
+    interregnum: "Took the chance",
+    castellan: "Castellan",
+    crusader: "Crusader",
+    curse_breaker: "Curse-breaker",
+    spellwright: "Spellwright",
+    assassin: "Assassin",
+    adventurer: "Adventurer",
+    walls_raised: "The Walls",
+    bellmoor_shield: "Bellmoor's shield",
+    shut_gate: "The shut gate",
+    wall_held: "The wall that held",
+    zealot: "Zealot",
+    doubts: "Doubts",
+    relic_bearer: "Relic-bearer",
+    crusader_king: "Crusader-king",
+    whole_story: "The whole story",
+    working_marked: "Marked by the working",
+    first_seal: "The first seal",
+    stoneskin_bound: "Stone skin, bound",
+    galestep_bound: "Gale step, bound",
+    firebolt2_bound: "The second firebolt, bound",
+    chain_bound: "Chain lightning, bound",
+    court_mage: "Court mage",
+    sealed_library: "The sealed library",
+    grand_working: "The grand working",
+    own_counsel: "Kept his own counsel",
+    regicide: "Regicide",
+    porters: "Porters",
+    first_city: "Seen the first city",
+    relics: "Relics",
+    elements: "Elements bound",
+    spells_written: "Spells written down",
+    marks_studied: "Marks studied",
+    kills: "Contracts kept",
+    far_walks: "Far roads walked",
+    maps_drawn: "Maps drawn",
     yard_breathing: "The yard's breathing",
     slash_learned: "Learned the slash",
     thrust_learned: "Learned the thrust",
@@ -711,6 +793,69 @@ var statShort = {
     levy_paid: "PAID OFF",
     deserter: "DESERTER",
     bargemen_tale: "TALE",
+    bandit_trail: "TRAIL",
+    band_broken: "BAND BROKEN",
+    captain_favour: "FAVOUR",
+    ordained: "ORDAINED",
+    demon_spoken: "DEMON",
+    engines_seen: "ENGINES",
+    other_account: "ACCOUNT",
+    glyphs_read: "GLYPHS",
+    mill_engine: "ENGINE",
+    magister: "MAGISTER",
+    hand_marked: "MARKED",
+    freelance: "FREELANCE",
+    reagent_run: "RUN",
+    collegium_thief: "THIEF",
+    tourney_fixed: "FIXED",
+    vey_heir: "HEIR",
+    peoples_outlaw: "OUTLAW",
+    feared: "FEARED",
+    forest_shrine: "SHRINE",
+    woodfolk_guest: "GUEST",
+    barn_burned: "BARN",
+    pardoned: "PARDONED",
+    plague_stayed: "STAYED",
+    plague_shut: "SHUT IN",
+    plague_profiteer: "PROFITEER",
+    kingmaker: "KINGMAKER",
+    church_candidate: "CANDIDATE",
+    interregnum: "CHANCE",
+    castellan: "CASTELLAN",
+    crusader: "CRUSADER",
+    curse_breaker: "CURSE-BREAKER",
+    spellwright: "SPELLWRIGHT",
+    assassin: "ASSASSIN",
+    adventurer: "ADVENTURER",
+    walls_raised: "WALLS",
+    bellmoor_shield: "SHIELD",
+    shut_gate: "SHUT GATE",
+    wall_held: "HELD",
+    zealot: "ZEALOT",
+    doubts: "DOUBTS",
+    relic_bearer: "BEARER",
+    crusader_king: "KING",
+    whole_story: "STORY",
+    working_marked: "WORKING",
+    first_seal: "SEAL",
+    stoneskin_bound: "STONE SKIN",
+    galestep_bound: "GALE STEP",
+    firebolt2_bound: "FIREBOLT II",
+    chain_bound: "LIGHTNING",
+    court_mage: "COURT MAGE",
+    sealed_library: "SEALED",
+    grand_working: "GRAND WORKING",
+    own_counsel: "COUNSEL",
+    regicide: "REGICIDE",
+    porters: "PORTERS",
+    first_city: "FIRST CITY",
+    relics: "RELICS",
+    elements: "ELEMENTS",
+    spells_written: "WRITTEN",
+    marks_studied: "MARKS",
+    kills: "CONTRACTS",
+    far_walks: "FAR ROADS",
+    maps_drawn: "MAPS",
     yard_breathing: "BREATHING",
     slash_learned: "SLASH",
     thrust_learned: "THRUST",
