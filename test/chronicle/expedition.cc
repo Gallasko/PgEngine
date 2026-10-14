@@ -90,6 +90,16 @@ namespace pg
                         {"arms", ElementType{2}}, {"coin", ElementType{5}}, {"rations", ElementType{10}}, {"remedy", ElementType{2}}, {"bow_learned", ElementType{1}}};
             }
 
+            // Someone whose world has studied a place that often (3 is its knowledge 2, 6 its 3,
+            // 10 its 4): what the place opens a level at a time is open to him
+            ElementMap knowing(ElementMap who, const std::string& zone, int studies)
+            {
+                who["know.visit." + zone] = ElementType{1};
+                who["know.study." + zone] = ElementType{studies};
+
+                return who;
+            }
+
             // One who walks: the rules, his character and his walk, each answer taken as the Life
             // screen takes it (the stats become his, the walk becomes the walk as it stands)
             struct Walker
@@ -211,10 +221,12 @@ namespace pg
             EXPECT_EQ(textOf(w.last.site, "knowledge"), "ZONE KNOWLEDGE 1 OF 4");
             EXPECT_EQ(textOf(w.last.site, "daysLeft"), "7");
 
+            // Three things to do on a first visit, and no more
             EXPECT_TRUE(w.last.seeks.empty());
+            EXPECT_EQ(w.last.works.size(), 3u);
             ASSERT_NE(byId(w.last.works, "gather.berries"), nullptr);
+            ASSERT_NE(byId(w.last.works, "gather.firewood"), nullptr);
             ASSERT_NE(byId(w.last.works, "study"), nullptr);
-            ASSERT_NE(byId(w.last.works, "rest"), nullptr);
 
             // A cost is said before it is paid, with its unit
             EXPECT_EQ(textOf(*byId(w.last.works, "gather.berries"), "costText"), "1 AP");
@@ -230,20 +242,21 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
-        // What he learned as a boy is his in the field: a snare is a day for two rations, the
-        // herbal makes a remedy of two wortleaf where he stands, who says the office rests a
-        // little better, and who knows the roads is a day sooner there. Who learned none of it
-        // has none of it.
+        // What he learned as a boy is his in the field, where he can camp: a snare is a day for a
+        // ration, the herbal makes a remedy of two wortleaf where he stands, who says the office
+        // rests a little better, and who knows the roads is a day sooner there. Who learned none
+        // of it has none of it, and nobody camps at the Hedgerows.
         TEST(expedition_test, a_boys_trades_are_his_in_the_field)
         {
             MockLogger logger;
 
             // Never taught: no tile for it, and asking is refused
             {
-                Walker w(gatherer());
+                Walker w(knowing(gatherer(), "millpond", 3));
 
-                ASSERT_TRUE(w.ask("enter", WalkAct{"", "hedgerows", 0}));
+                ASSERT_TRUE(w.ask("enter", WalkAct{"", "millpond", 0}));
 
+                ASSERT_NE(byId(w.last.works, "rest"), nullptr);
                 EXPECT_EQ(byId(w.last.works, "snare"), nullptr);
                 EXPECT_EQ(byId(w.last.works, "brew"), nullptr);
 
@@ -258,14 +271,38 @@ namespace pg
                 EXPECT_FALSE(textOf(w.last.site, "refused").empty());
             }
 
-            // A snare: a day of the stay, two rations
+            // Taught, but at the Hedgerows: no camp, so no rest and no trade, whatever is known of them
             {
-                ElementMap trapper = gatherer();
+                ElementMap boy = knowing(gatherer(), "hedgerows", 10);
+                boy["snare_set"] = ElementType{1};
+                boy["herbal"] = ElementType{1};
+
+                Walker w(boy);
+
+                ASSERT_TRUE(w.ask("enter", WalkAct{"", "hedgerows", 0}));
+
+                EXPECT_EQ(byId(w.last.works, "rest"), nullptr);
+                EXPECT_EQ(byId(w.last.works, "snare"), nullptr);
+                EXPECT_EQ(byId(w.last.works, "brew"), nullptr);
+
+                const size_t steps = w.state.record.size();
+
+                ASSERT_TRUE(w.act("rest"));
+                EXPECT_EQ(w.state.record.size(), steps);
+                EXPECT_FALSE(textOf(w.last.site, "refused").empty());
+
+                ASSERT_TRUE(w.act("snare"));
+                EXPECT_EQ(w.state.record.size(), steps);
+            }
+
+            // A snare: a day of the stay, a ration
+            {
+                ElementMap trapper = knowing(gatherer(), "millpond", 3);
                 trapper["snare_set"] = ElementType{1};
 
                 Walker w(trapper);
 
-                ASSERT_TRUE(w.ask("enter", WalkAct{"", "hedgerows", 0}));
+                ASSERT_TRUE(w.ask("enter", WalkAct{"", "millpond", 0}));
                 ASSERT_NE(byId(w.last.works, "snare"), nullptr);
                 EXPECT_EQ(textOf(*byId(w.last.works, "snare"), "costText"), "1 AP");
 
@@ -274,7 +311,7 @@ namespace pg
 
                 ASSERT_TRUE(w.act("snare"));
 
-                EXPECT_EQ(intOf(w.character, "rations"), rations + 2);
+                EXPECT_EQ(intOf(w.character, "rations"), rations + 1);
                 EXPECT_EQ(intOf(w.state.run, "ap"), days - 1);
                 ASSERT_FALSE(w.state.record.empty());
                 EXPECT_EQ(textOf(w.state.record.back(), "kind"), "snare");
@@ -282,12 +319,12 @@ namespace pg
 
             // The herbal: shut without the leaf, then two wortleaf for a remedy, and no day spent
             {
-                ElementMap herbalist = gatherer();
+                ElementMap herbalist = knowing(gatherer(), "millpond", 3);
                 herbalist["herbal"] = ElementType{1};
 
                 Walker w(herbalist);
 
-                ASSERT_TRUE(w.ask("enter", WalkAct{"", "hedgerows", 0}));
+                ASSERT_TRUE(w.ask("enter", WalkAct{"", "millpond", 0}));
                 ASSERT_NE(byId(w.last.works, "brew"), nullptr);
                 EXPECT_EQ(intOf(*byId(w.last.works, "brew"), "locked"), 1);
 
@@ -309,18 +346,20 @@ namespace pg
                 EXPECT_EQ(w.state.record.size(), steps + 1);
             }
 
-            // The office said over his fire: a rest gives two more
+            // A rest eats a ration; the office said over his fire gives two more
             {
                 auto rested = [](ElementMap who) {
                     who["vit"] = ElementType{10};
 
-                    Walker w(std::move(who));
+                    Walker w(knowing(std::move(who), "millpond", 3));
 
-                    EXPECT_TRUE(w.ask("enter", WalkAct{"", "hedgerows", 0}));
+                    EXPECT_TRUE(w.ask("enter", WalkAct{"", "millpond", 0}));
 
                     const int before = intOf(w.state.run, "hp");
+                    const int rations = intOf(w.character, "rations");
 
                     EXPECT_TRUE(w.act("rest"));
+                    EXPECT_EQ(intOf(w.character, "rations"), rations - 1);
 
                     return intOf(w.state.run, "hp") - before;
                 };
@@ -361,7 +400,7 @@ namespace pg
 
             const int berries = marked(w.state.marks, "gain", "berries");
 
-            EXPECT_GE(berries, 2);
+            EXPECT_GE(berries, 1);
             EXPECT_EQ(intOf(w.character, "berries"), berries);
             EXPECT_LE(intOf(w.state.run, "ap"), 6);
 
@@ -375,12 +414,10 @@ namespace pg
             ASSERT_TRUE(w.act("gather", "firewood"));
             w.answer();
 
-            EXPECT_GE(intOf(w.character, "firewood"), 2);
+            EXPECT_GE(intOf(w.character, "firewood"), 1);
             EXPECT_EQ(w.character.count("store.firewood"), 0u);
 
-            // A study teaches the world, and a rest eats a ration
-            const int rations = intOf(w.character, "rations");
-
+            // A study teaches the world
             ASSERT_TRUE(w.act("study"));
             w.answer();
 
@@ -391,11 +428,10 @@ namespace pg
 
             while (intOf(w.state.run, "ap") >= 2 and w.screen() == "site")
             {
-                ASSERT_TRUE(w.act("rest"));
+                ASSERT_TRUE(w.act("study"));
                 w.answer();
             }
 
-            EXPECT_LT(intOf(w.character, "rations"), rations);
             EXPECT_GT(w.state.record.size(), steps);
 
             if (w.screen() == "site" and intOf(w.state.run, "ap") == 1)
@@ -484,19 +520,34 @@ namespace pg
 
             ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
 
-            // The pack is cheaper to find than one wolf alone; the rare beast is not listed yet
-            const ElementMap* pack = byId(w.last.seeks, "wolf*pack");
+            // On a first visit one wolf alone is all the wood shows him: the pack, the boar and
+            // the rare beast come with the place known better
             const ElementMap* lone = byId(w.last.seeks, "wolf");
-            const ElementMap* stag = byId(w.last.seeks, "stag");
 
-            ASSERT_NE(pack, nullptr);
             ASSERT_NE(lone, nullptr);
-            ASSERT_NE(stag, nullptr);
+            EXPECT_EQ(w.last.seeks.size(), 1u);
+            EXPECT_EQ(byId(w.last.seeks, "wolf*pack"), nullptr);
+            EXPECT_EQ(byId(w.last.seeks, "boar"), nullptr);
+            EXPECT_EQ(byId(w.last.seeks, "stag"), nullptr);
 
-            EXPECT_LT(intOf(*pack, "cost"), intOf(*lone, "cost"));
-            EXPECT_EQ(intOf(*pack, "count"), 3);
-            EXPECT_EQ(intOf(*stag, "locked"), 1);
-            EXPECT_EQ(textOf(*stag, "asks"), "ASKS ZONE KNOWLEDGE 2");
+            // Known 4 of 4: the pack is cheaper to find than one wolf alone, and the rare beast is listed
+            {
+                Walker known(knowing(hunter(), "hollow", 10));
+
+                ASSERT_TRUE(known.ask("enter", WalkAct{"", "hollow", 0}));
+
+                const ElementMap* pack = byId(known.last.seeks, "wolf*pack");
+                const ElementMap* alone = byId(known.last.seeks, "wolf");
+                const ElementMap* stag = byId(known.last.seeks, "stag");
+
+                ASSERT_NE(pack, nullptr);
+                ASSERT_NE(alone, nullptr);
+                ASSERT_NE(stag, nullptr);
+
+                EXPECT_LT(intOf(*pack, "cost"), intOf(*alone, "cost"));
+                EXPECT_EQ(intOf(*pack, "count"), 3);
+                EXPECT_EQ(intOf(*stag, "locked"), 0);
+            }
 
             const int before = intOf(w.state.run, "ap");
             const int seekCost = intOf(*lone, "cost");
@@ -695,8 +746,7 @@ namespace pg
         {
             MockLogger logger;
 
-            ElementMap boy = gatherer();
-            boy["walked.hedgerows"] = ElementType{1};
+            ElementMap boy = knowing(gatherer(), "hedgerows", 10);
 
             Walker w(boy);
             w.age = 10.0f;
@@ -790,12 +840,90 @@ namespace pg
             }
 
             EXPECT_EQ(textOf(work("gather.berries"), "costs"), "1 day of the stay");
-            EXPECT_EQ(textOf(work("gather.berries"), "gives"), "2\xE2\x80\x93" "4 berries, to sell");
+            EXPECT_EQ(textOf(work("gather.berries"), "gives"), "1\xE2\x80\x93" "2 berries, to sell");
             EXPECT_EQ(textOf(work("gather.firewood"), "costs"), "2 days of the stay");
-            EXPECT_EQ(textOf(work("gather.firewood"), "gives"), "2\xE2\x80\x93" "3 firewood, for the town");
-            EXPECT_NE(textOf(work("rest"), "costs").find("1 ration of"), std::string::npos);
-            EXPECT_NE(textOf(work("rest"), "gives").find("Vitality"), std::string::npos);
+            EXPECT_EQ(textOf(work("gather.firewood"), "gives"), "1\xE2\x80\x93" "3 firewood, for the town");
+
+            // A study says what the next level opens
             EXPECT_NE(textOf(work("study"), "gives").find("to knowledge 2"), std::string::npos);
+            EXPECT_NE(textOf(work("study"), "gives").find("which opens exploring the nearby pond"), std::string::npos);
+            EXPECT_NE(textOf(w.last.site, "knowledgeNote").find("exploring the nearby pond"), std::string::npos);
+
+            // And so does a rest, where he can camp
+            Walker camper(knowing(gatherer(), "millpond", 3));
+
+            ASSERT_TRUE(camper.ask("enter", WalkAct{"", "millpond", 0}));
+
+            const ElementMap* rest = byId(camper.last.works, "rest");
+
+            ASSERT_NE(rest, nullptr);
+            EXPECT_NE(textOf(*rest, "costs").find("1 ration of"), std::string::npos);
+            EXPECT_NE(textOf(*rest, "gives").find("Vitality"), std::string::npos);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A place opens a little at a time: three things to do on a first visit, one more at each
+        // level of its knowledge, and at the fourth the next place. What is not open is refused.
+        TEST(expedition_test, a_place_opens_a_level_at_a_time)
+        {
+            MockLogger logger;
+
+            auto works = [](int studies) {
+                Walker w(knowing(gatherer(), "hedgerows", studies));
+                std::vector<std::string> ids;
+
+                EXPECT_TRUE(w.ask("enter", WalkAct{"", "hedgerows", 0}));
+
+                for (const auto& row : w.last.works)
+                    ids.push_back(textOf(row, "id"));
+
+                return ids;
+            };
+
+            using Ids = std::vector<std::string>;
+
+            EXPECT_EQ(works(0), (Ids{"gather.berries", "gather.firewood", "study"}));
+            EXPECT_EQ(works(3), (Ids{"gather.berries", "gather.firewood", "study"}));
+            EXPECT_EQ(works(6), (Ids{"gather.berries", "gather.firewood", "gather.wortleaf", "study"}));
+            EXPECT_EQ(works(10), (Ids{"gather.berries", "gather.firewood", "gather.wortleaf", "gather.hazel", "study"}));
+
+            // Known 3 of 4, the study says the fourth opens the next place
+            {
+                Walker w(knowing(gatherer(), "hedgerows", 6));
+
+                ASSERT_TRUE(w.ask("enter", WalkAct{"", "hedgerows", 0}));
+                ASSERT_NE(byId(w.last.works, "study"), nullptr);
+                EXPECT_NE(textOf(*byId(w.last.works, "study"), "gives").find("the way to the Hollow Woods"), std::string::npos);
+            }
+
+            // What is not open is refused, and nothing is written
+            {
+                Walker w(gatherer());
+
+                ASSERT_TRUE(w.ask("enter", WalkAct{"", "hedgerows", 0}));
+                ASSERT_TRUE(w.act("gather", "wortleaf"));
+
+                EXPECT_TRUE(w.state.record.empty());
+                EXPECT_FALSE(textOf(w.last.site, "refused").empty());
+                EXPECT_EQ(intOf(w.state.run, "ap"), 7);
+            }
+
+            // A pack is not sought before the wood is known 4 of 4
+            {
+                Walker w(hunter());
+
+                ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
+
+                const int days = intOf(w.state.run, "ap");
+
+                ASSERT_TRUE(w.act("seek", "wolf", 3));
+
+                EXPECT_EQ(w.screen(), "site");
+                EXPECT_FALSE(textOf(w.last.site, "refused").empty());
+                EXPECT_EQ(intOf(w.state.run, "ap"), days);
+            }
         }
 
         // ----------------------------------------------------------------------------------------
@@ -811,8 +939,7 @@ namespace pg
 
             for (int seed = 100; seed < 1300 and (his == 0 or theirs == 0); seed += 100)
             {
-                ElementMap boy = gatherer();
-                boy["walked.hedgerows"] = ElementType{1};
+                ElementMap boy = knowing(gatherer(), "hedgerows", 10);
 
                 Walker w(boy);
                 w.age = 10.0f;
@@ -854,7 +981,7 @@ namespace pg
         TEST(expedition_test, a_retreat_keeps_the_days_and_leaves_the_loot)
         {
             MockLogger logger;
-            Walker w(hunter());
+            Walker w(knowing(hunter(), "hollow", 10));   // The wood known 4 of 4: its packs are found
 
             ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
             ASSERT_TRUE(w.act("seek", "wolf", 3));
@@ -908,7 +1035,7 @@ namespace pg
             MockLogger logger;
 
             auto walked = [](int seed) {
-                Walker w(hunter());
+                Walker w(knowing(hunter(), "hollow", 10));
                 w.seed = seed;
 
                 EXPECT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
@@ -937,7 +1064,7 @@ namespace pg
         TEST(expedition_test, a_record_is_walked_again_by_its_steps)
         {
             MockLogger logger;
-            Walker w(hunter());
+            Walker w(knowing(hunter(), "hollow", 3));   // The wood known 2 of 4: he camps there
 
             ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
             ASSERT_TRUE(w.act("seek", "wolf", 1));
@@ -954,13 +1081,13 @@ namespace pg
             const int eaten = marked(w.state.marks, "use", "rations");
             const int total = intOf(w.last.recipe, "hp");
 
-            ASSERT_GE(gathered, 2);
+            ASSERT_GE(gathered, 1);
             ASSERT_GE(eaten, 1);
 
             w.keep("r1");
 
             // The records page: his record, with what a queue of it would take and bring
-            w.walks = {{{"zone", ElementType{std::string("hollow")}}, {"listed", ElementType{1}}, {"locked", ElementType{0}}, {"months", ElementType{2}}, {"until", ElementType{std::string()}}}};
+            w.walks = {{{"zone", ElementType{std::string("hollow")}}, {"listed", ElementType{1}}, {"locked", ElementType{0}}, {"months", ElementType{3}}, {"until", ElementType{std::string()}}}};
             w.queue.recipe = "r1";
             w.queue.count = 3;
 
@@ -970,8 +1097,8 @@ namespace pg
             EXPECT_EQ(textOf(w.last.shelf[0], "id"), "r1");
             EXPECT_EQ(textOf(w.last.shelf[0], "state"), "kept");
             EXPECT_EQ(textOf(w.last.form, "recipe"), "r1");
-            EXPECT_EQ(intOf(w.last.form, "months"), 6);
-            EXPECT_EQ(textOf(w.last.form, "total"), "3 TIMES \xC2\xB7 6 MO");
+            EXPECT_EQ(intOf(w.last.form, "months"), 9);
+            EXPECT_EQ(textOf(w.last.form, "total"), "3 TIMES \xC2\xB7 9 MO");
             EXPECT_TRUE(textOf(w.last.form, "blocked").empty());
             EXPECT_FALSE(w.last.stops.empty());
 
@@ -1023,9 +1150,12 @@ namespace pg
 
             ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
 
-            const int unknown = intOf(*byId(w.last.seeks, "boar"), "cost");
+            const int unknown = intOf(*byId(w.last.seeks, "wolf"), "cost");
 
-            // Three studies: the zone is known two of four, and the rare beast is listed
+            EXPECT_EQ(byId(w.last.works, "rest"), nullptr);
+
+            // Three studies: the zone is known two of four, a wolf is found a day sooner, and
+            // what the second level opens is open (a camp); the rare beast waits for the fourth
             for (int i = 0; i < 3; ++i)
             {
                 ASSERT_TRUE(w.act("study"));
@@ -1035,8 +1165,9 @@ namespace pg
             ASSERT_TRUE(w.ask("look"));
 
             EXPECT_EQ(textOf(w.last.site, "knowledge"), "ZONE KNOWLEDGE 2 OF 4");
-            EXPECT_EQ(intOf(*byId(w.last.seeks, "stag"), "locked"), 0);
-            EXPECT_LT(intOf(*byId(w.last.seeks, "boar"), "cost"), unknown);
+            EXPECT_NE(byId(w.last.works, "rest"), nullptr);
+            EXPECT_EQ(byId(w.last.seeks, "stag"), nullptr);
+            EXPECT_LT(intOf(*byId(w.last.seeks, "wolf"), "cost"), unknown);
 
             // Watched twice, a beast is known two of four
             ASSERT_TRUE(w.act("observe", "wolf"));
@@ -1097,15 +1228,52 @@ namespace pg
             EXPECT_EQ(intOf(hedgerows->fields, "locked"), 0);
             EXPECT_TRUE(hedgerows->requires.empty());
 
-            // The next one has no row until the Hedgerows are walked: one walk at a time
+            // The next one has no row until he has explored the pond, a task of his life: one place
+            // at a time. Walked, or known 4 of 4 without it, is not enough
             EXPECT_EQ(intOf(pond->fields, "listed"), 0);
 
+            auto row = [&](const std::string& id) -> const RuleActivity* {
+                for (const auto& a : activities)
+                {
+                    if (textOf(a.fields, "id") == id)
+                        return &a;
+                }
+
+                return nullptr;
+            };
+
+            // That task has no row before the Hedgerows are known 2 of 4
+            ASSERT_NE(row("pond"), nullptr);
+            EXPECT_EQ(intOf(row("pond")->fields, "listed"), 0);
+
             w.character["walked.hedgerows"] = ElementType{1};
+            w.character["know.study.hedgerows"] = ElementType{10};
             ASSERT_TRUE(w.rules.activities(8.0f, w.character, activities));
+
+            ASSERT_NE(row("walk.millpond"), nullptr);
+            EXPECT_EQ(intOf(row("walk.millpond")->fields, "listed"), 0);
+
+            // Known 2 of 4 (and more): the task is his, a month on the Life page, and it is not a walk;
+            // what it gives is the world's
+            ASSERT_NE(row("pond"), nullptr);
+            EXPECT_EQ(intOf(row("pond")->fields, "listed"), 1);
+            EXPECT_EQ(intOf(row("pond")->fields, "locked"), 0);
+            EXPECT_EQ(intOf(row("pond")->fields, "months"), 1);
+            EXPECT_EQ(textOf(row("pond")->fields, "group"), "Work");
+            EXPECT_TRUE(textOf(row("pond")->fields, "zone").empty());
+            ASSERT_EQ(row("pond")->gains.size(), 1u);
+            EXPECT_EQ(textOf(row("pond")->gains[0], "stat"), "know.found.millpond");
+
+            // Done, the world knows the pond (`know.found.millpond`): the task is offered no more
+            w.character["know.found.millpond"] = ElementType{1};
+            ASSERT_TRUE(w.rules.activities(8.0f, w.character, activities));
+
+            ASSERT_NE(row("pond"), nullptr);
+            EXPECT_EQ(intOf(row("pond")->fields, "listed"), 0);
 
             for (const auto& a : activities)
             {
-                // Walked: it is listed, and waits for his tenth year
+                // Explored: it is listed, and waits for his tenth year
                 if (textOf(a.fields, "id") == "walk.millpond")
                 {
                     EXPECT_EQ(intOf(a.fields, "listed"), 1);
@@ -1118,9 +1286,9 @@ namespace pg
                 if (textOf(a.fields, "id") == "walk.hedgerows")
                     EXPECT_EQ(intOf(a.fields, "locked"), 0);
 
-                // The Hollow Woods are two months: the way there, the stay and the way back
+                // The Hollow Woods are three months: the way there, the stay and the way back
                 if (textOf(a.fields, "id") == "walk.hollow")
-                    EXPECT_EQ(intOf(a.fields, "months"), 2);
+                    EXPECT_EQ(intOf(a.fields, "months"), 3);
             }
         }
 

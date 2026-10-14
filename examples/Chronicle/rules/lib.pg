@@ -807,6 +807,7 @@ var statNames = {
     tome: "Father Anselm's tome",
     remedy: "Wortleaf remedies",
     berries: "Berries",
+    hazel: "Hazelnuts",
     wortleaf: "Wortleaf",
     fish: "Fish",
     reeds: "Reeds",
@@ -825,6 +826,9 @@ statNames["walked.hedgerows"] = "Walked the Hedgerows"
 statNames["walked.millpond"] = "Walked Mill Pond"
 statNames["walked.hollow"] = "Walked the Hollow Woods"
 statNames["walked.quarry"] = "Walked the Quarry Road"
+statNames["know.found.millpond"] = "Found the pond"
+statNames["know.study.hedgerows"] = "Studies of the Hedgerows"
+statNames["know.study.millpond"] = "Studies of Mill Pond"
 statNames["know.study.hollow"] = "Studies of the Hollow Woods"
 
 var statShort = {
@@ -974,6 +978,9 @@ var statShort = {
     antler: "ANTLER",
     ashwood: "ASH WOOD"
 }
+
+// What a walk's task leaves the world, as the row of the task says it
+statShort["know.found.millpond"] = "POND"
 
 // The most of a stat he can hold at once. A stat not listed has no limit. The limit closes
 // what would bring more (activitytable.pg) and stops what a month produces (resources.pg); an

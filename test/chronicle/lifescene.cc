@@ -6689,7 +6689,7 @@ namespace pg
             answerEvents(f, life);
 
             ASSERT_FALSE(life->save.walk.record.empty());
-            EXPECT_GE(life->save.stats["berries"], 2);   // What he picked: two at the least
+            EXPECT_GE(life->save.stats["berries"], 1);   // What he picked: one at the least
             EXPECT_GE(walkPart(life, "record")->get<EventLog>()->size(), 1u);
             EXPECT_LE(std::atoi(walkPart(life, "daysLeft")->get<Label>()->spec.text.c_str()), 6);
 
@@ -6976,6 +6976,8 @@ namespace pg
 
             EXPECT_EQ(tabs->tabs[2].notice, 0);
 
+            // (Mill Pond asks the pond found, once for the world by a task of a life, and his tenth year)
+            life->save.knowledge["found.millpond"] = 1;
             life->save.age = 10.0f;
             life->onMonth();
             f.settle();
@@ -7195,9 +7197,10 @@ namespace pg
             LifeScene* life = f.life(opt);
             ASSERT_NE(life, nullptr);
 
-            // A boy who has walked the Hedgerows: Mill Pond is open to him at ten
+            // A boy whose world has found the pond: Mill Pond is open to him at ten
             life->save.age = 10.0f;
             life->save.stats["walked.hedgerows"] = 1;
+            life->save.knowledge["found.millpond"] = 1;
             life->save.stats["remedy"] = 1;
             life->onMonth();
             f.settle();
@@ -7367,6 +7370,82 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // The pond above the mill is found by a task of his life, once the Hedgerows are known 2 of
+        // 4, and found for the world: Mill Pond opens, in this life and in every one after, and no
+        // later life is offered the task again.
+        TEST(lifescene_test, the_pond_is_found_once_for_the_world)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.fresh = true;
+            opt.lives = 2;
+            opt.age = 7.0f;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            auto list = life->piece<ActivityList>("activities");
+            ASSERT_NE(list, nullptr);
+
+            // Not before the Hedgerows are known 2 of 4
+            life->save.age = 9.0f;
+            life->onMonth();
+            f.settle();
+
+            EXPECT_EQ(list->find(&f.ecs, "pond"), nullptr);
+
+            life->save.knowledge["study.hedgerows"] = 3;
+            life->onMonth();
+            f.settle();
+
+            ASSERT_NE(list->find(&f.ecs, "pond"), nullptr);
+
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "pond"});
+            f.settle();
+            ASSERT_EQ(life->save.running, "pond");
+
+            life->onMonth();
+            f.settle();
+            f.frames(12);
+
+            ASSERT_TRUE(life->save.running.empty());
+
+            // The world knows it, and he holds nothing of it
+            EXPECT_EQ(life->save.knowledge["found.millpond"], 1);
+            EXPECT_EQ(life->save.stats.count("know.found.millpond"), 0u);
+            EXPECT_EQ(life->save.stats.count("found.millpond"), 0u);
+
+            // A life after him: the pond is known, its walk asks only his tenth year, and the task is gone
+            life->newLife();
+            f.settle();
+
+            EXPECT_EQ(life->save.knowledge["found.millpond"], 1);
+
+            life->save.knowledge["study.hedgerows"] = 3;
+            life->save.age = 10.0f;
+            life->onMonth();
+            f.settle();
+
+            list = life->piece<ActivityList>("activities");
+            ASSERT_NE(list, nullptr);
+            EXPECT_EQ(list->find(&f.ecs, "pond"), nullptr);
+
+            bool open = false;
+
+            for (const auto& a : life->activities)
+            {
+                if (textOf(a.fields, "id") == "walk.millpond")
+                    open = intOf(a.fields, "locked") == 0;
+            }
+
+            EXPECT_TRUE(open);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // Where things move, a turn of a fight is told in its time: the rule of a blow fills, then
         // the blow is written in the account, and nothing is pressed meanwhile. The walk itself is
         // already where the turn left it.
@@ -7386,6 +7465,7 @@ namespace pg
 
             life->save.age = 10.0f;
             life->save.stats["walked.hedgerows"] = 1;
+            life->save.knowledge["found.millpond"] = 1;
             life->onMonth();
             f.settle();
 
@@ -7702,6 +7782,7 @@ namespace pg
 
                 life->save.age = 10.0f;
                 life->save.stats["walked.hedgerows"] = 1;
+                life->save.knowledge["found.millpond"] = 1;
                 life->onMonth();
                 f.settle();
 
@@ -7828,8 +7909,8 @@ namespace pg
             EXPECT_EQ(gloss->rows[1].label, "Gives");
             EXPECT_NE(gloss->rows[1].value.find("berries, to sell"), std::string::npos);
 
-            // Every work there is has one
-            for (const char* id : {"gather.wortleaf", "gather.firewood", "study", "rest"})
+            // Every work there is has one (a first visit: berries, firewood and a study)
+            for (const char* id : {"gather.firewood", "study"})
                 EXPECT_NE(registry->find(std::string("walk/work/") + id), nullptr) << id;
         }
 
@@ -7969,6 +8050,7 @@ namespace pg
 
             life->save.age = 10.0f;
             life->save.stats["walked.hedgerows"] = 1;
+            life->save.knowledge["found.millpond"] = 1;
             life->onMonth();
             f.settle();
 
@@ -8057,6 +8139,7 @@ namespace pg
 
             life->save.age = 10.0f;
             life->save.stats["walked.hedgerows"] = 1;
+            life->save.knowledge["found.millpond"] = 1;
             life->onMonth();
             f.settle();
 
@@ -8123,6 +8206,7 @@ namespace pg
             // A scholar of the Collegium, sworn to the Keep besides
             life->save.age = 10.0f;
             life->save.stats["walked.hedgerows"] = 1;
+            life->save.knowledge["found.millpond"] = 1;
             life->save.stats["collegium"] = 1;
             life->save.stats["keep_oath"] = 1;
             life->onMonth();
@@ -8213,6 +8297,9 @@ namespace pg
             f.frames(12);
             f.pass(400.0f, 50.0f);
             ASSERT_TRUE(life->onWalk());
+
+            // The wood known 4 of 4 from here on: its packs are found
+            life->save.knowledge["study.hollow"] = 10;
 
             life->walkDo(WalkAct{"seek", "wolf", 3});
             f.frames(12);

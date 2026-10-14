@@ -351,6 +351,112 @@ fun learn(key, amount)
     push(marks, {step: len(record), kind: "learn", id: key, n: amount})
 }
 
+// ---- what a place offers, as it is known -------------------------------------------------------------------
+
+// The zone knowledge a task of the place asks (expeditiontable.pg's `ladder`): a gathering by its
+// item, a beast by its id, "<beast>*pack" for its pack, "camp" for a rest and his trades. What the
+// ladder does not name is there from the first visit, but a camp: a place that names none has none
+fun opensAt(zone, task)
+{
+    var ladder = pick(zone, "ladder", [])
+
+    for (var i = 0; i < len(ladder); i++)
+    {
+        if (ladder[i].task == task)
+        {
+            return ladder[i].level
+        }
+    }
+
+    if (task == "camp")
+    {
+        return 5
+    }
+
+    return 1
+}
+
+fun opened(zone, task)
+{
+    return zoneLevel(zone.id) >= opensAt(zone, task)
+}
+
+// What the place known at `level` opens, in words, "" for nothing: "gathering wortleaf", "a camp",
+// "the boar", "a wolf pack", and at 4 the places that ask this one known 4 of 4
+fun openingAt(zone, level)
+{
+    var parts = []
+    var ladder = pick(zone, "ladder", [])
+
+    for (var i = 0; i < len(ladder); i++)
+    {
+        var task = ladder[i].task
+
+        if (ladder[i].level != level)
+        {
+            continue
+        }
+
+        if (task == "camp")
+        {
+            push(parts, "a camp (a rest, and his own trades)")
+            continue
+        }
+
+        // What the level opens elsewhere, as the table words it
+        if (pick(ladder[i], "says", "") != "")
+        {
+            push(parts, ladder[i].says)
+            continue
+        }
+
+        var item = itemOf(task)
+
+        if (item.id != "")
+        {
+            push(parts, "gathering " + toLowerCase(item.name))
+            continue
+        }
+
+        for (var m = 0; m < len(zone.mobs); m++)
+        {
+            var mob = mobOf(zone.mobs[m])
+
+            if (task == mob.id + "*pack")
+            {
+                push(parts, "a " + toLowerCase(mob.pack))
+            }
+            else if (task == mob.id)
+            {
+                push(parts, "the " + toLowerCase(mob.name))
+            }
+        }
+    }
+
+    if (level == 4)
+    {
+        for (var z = 0; z < len(walkZones); z++)
+        {
+            for (var r = 0; r < len(walkZones[z].requires); r++)
+            {
+                if (walkZones[z].requires[r].stat == "know.study." + zone.id)
+                {
+                    var place = walkZones[z].name
+
+                    if (startsWith(place, "The "))
+                    {
+                        place = "the " + substring(place, 4, strlen(place))
+                    }
+
+                    push(parts, "the way to " + place)
+                }
+            }
+        }
+    }
+
+    return joined(parts, ", ")
+}
+
 // ---- the walk's figures ----------------------------------------------------------------------------------
 
 fun stayOf(zone)
@@ -397,7 +503,7 @@ fun familiar(zoneId)
 // The days it takes to find a beast: a pack, or one of a pack beast alone
 fun seekCost(zone, mob, count)
 {
-    var cost = seekBase(mob) - wholeOf(mine("guile"), walkKnobs.luckStep) - zoneLevel(zone.id) - familiar(zone.id) + runOf("seek." + mob.id)
+    var cost = seekBase(mob) - wholeOf(mine("guile"), walkKnobs.luckStep) - wholeOf(zoneLevel(zone.id), 2) - familiar(zone.id) + runOf("seek." + mob.id)
 
     // The lodge's hounds find any beast a day sooner
     if (mine("town.lodge") >= 3)
@@ -935,6 +1041,19 @@ fun doSeek(mobId, count)
         count = mob.packSize
     }
 
+    var task = mob.id
+
+    if (count > 1)
+    {
+        task = mob.id + "*pack"
+    }
+
+    if (not opened(zone, task))
+    {
+        run.refused = "He does not know the place well enough to find it"
+        return
+    }
+
     var cost = seekCost(zone, mob, count)
 
     if (cost > runOf("ap"))
@@ -977,6 +1096,12 @@ fun doGather(spotId)
     if (spot.id == "")
     {
         run.refused = "Nothing of that kind grows here"
+        return
+    }
+
+    if (not opened(zone, spot.id))
+    {
+        run.refused = "He does not know the place well enough to find it"
         return
     }
 
@@ -1062,6 +1187,12 @@ fun doObserve(mobId)
 
 fun doRest()
 {
+    if (not opened(zoneOf(run.zone), "camp"))
+    {
+        run.refused = "He does not know the place well enough to camp there"
+        return
+    }
+
     if (walkKnobs.restAp > runOf("ap"))
     {
         run.refused = "Not enough days left to rest"
@@ -1099,7 +1230,7 @@ fun restHeals()
 // A snare, for who has learned to set one: a day, and what it catches is his supper
 fun doSnare()
 {
-    if (mine("snare_set") <= 0)
+    if (mine("snare_set") <= 0 or not opened(zoneOf(run.zone), "camp"))
     {
         run.refused = "He does not know how to do that"
         return
@@ -1119,7 +1250,7 @@ fun doSnare()
 // A remedy brewed where he stands, for who has the herbal: out of the wortleaf in his bag
 fun doBrew()
 {
-    if (mine("herbal") <= 0)
+    if (mine("herbal") <= 0 or not opened(zoneOf(run.zone), "camp"))
     {
         run.refused = "He does not know how to do that"
         return
@@ -1708,12 +1839,16 @@ fun seekRows()
     {
         var mob = mobOf(zone.mobs[i])
 
-        if (mob.packSize > 1 and mobLevel(zone.id, mob) >= 1)
+        // What the place does not yet show him has no tile: the study tile says what comes next
+        if (mob.packSize > 1 and mobLevel(zone.id, mob) >= 1 and opened(zone, mob.id + "*pack"))
         {
             push(rows, seekRow(zone, mob, mob.packSize))
         }
 
-        push(rows, seekRow(zone, mob, 1))
+        if (opened(zone, mob.id))
+        {
+            push(rows, seekRow(zone, mob, 1))
+        }
     }
 
     return rows
@@ -1748,8 +1883,21 @@ fun workRows()
     for (var i = 0; i < len(zone.spots); i++)
     {
         var spot = zone.spots[i]
+
+        if (not opened(zone, spot.id))
+        {
+            continue
+        }
+
         var item = itemOf(spot.id)
-        var note = toString(spot.least) + "–" + toString(spot.most)
+        var note = toString(spot.least)
+
+        if (spot.most > spot.least)
+        {
+            note = note + "–" + toString(spot.most)
+        }
+
+        var amount = note
 
         if (item.kind == "town")
         {
@@ -1760,7 +1908,7 @@ fun workRows()
             note = note + " · TO SELL"
         }
 
-        var brings = toString(spot.least) + "–" + toString(spot.most) + " " + toLowerCase(item.name)
+        var brings = amount + " " + toLowerCase(item.name)
 
         if (item.kind == "town")
         {
@@ -1789,37 +1937,51 @@ fun workRows()
     if (level < 4)
     {
         studyGives = "Study " + toString(studies + 1) + " of " + toString(walkKnobs.studyLevels[level]) + " to knowledge " + toString(level + 1)
+
+        // And what that level opens: the next thing to do here, or the next place
+        var next = openingAt(zone, level + 1)
+
+        if (next != "")
+        {
+            studyGives = studyGives + ", which opens " + next
+        }
     }
 
     push(rows, workRow("study", "Study the place", studyNote, walkKnobs.studyAp, "", "know",
                        "He walks the place and learns its paths. What he learns, every life after his knows.",
                        daysText(walkKnobs.studyAp) + " of the stay", studyGives))
 
-    var heal = smaller(restHeals(), runOf("hpMax") - runOf("hp"))
-    var rations = held(walkKnobs.restItem)
-    var restShort = ""
+    // A camp, where the place has one and he knows it well enough: a rest, and what he learned
+    // as a boy and does in the field, a snare and the herbal's remedy
+    var camp = opened(zone, "camp")
 
-    if (rations < 1)
+    if (camp)
     {
-        restShort = "ASKS 1 RATION"
+        var heal = smaller(restHeals(), runOf("hpMax") - runOf("hp"))
+        var rations = held(walkKnobs.restItem)
+        var restShort = ""
+
+        if (rations < 1)
+        {
+            restShort = "ASKS 1 RATION"
+        }
+
+        push(rows, workRow("rest", "Rest", "+" + toString(heal) + " VITALITY · 1 RATION, " + toString(rations) + " HELD", walkKnobs.restAp, restShort, "",
+                           "Off his feet by a fire, and a ration eaten.",
+                           daysText(walkKnobs.restAp) + " of the stay, 1 ration of " + toString(rations),
+                           "+" + toString(heal) + " Vitality"))
     }
 
-    push(rows, workRow("rest", "Rest", "+" + toString(heal) + " VITALITY · 1 RATION, " + toString(rations) + " HELD", walkKnobs.restAp, restShort, "",
-                       "Off his feet by a fire, and a ration eaten.",
-                       daysText(walkKnobs.restAp) + " of the stay, 1 ration of " + toString(rations),
-                       "+" + toString(heal) + " Vitality"))
-
-    // What he learned as a boy and does in the field: a snare, and the herbal's remedy
-    if (mine("snare_set") > 0)
+    if (camp and mine("snare_set") > 0)
     {
-        var caught = toString(walkKnobs.snareMost) + " " + toLowerCase(itemOf(walkKnobs.snareItem).name)
+        var caught = itemText(walkKnobs.snareItem, walkKnobs.snareMost)
 
         push(rows, workRow("snare", "Set a snare", "+" + toUpperCase(caught), walkKnobs.snareAp, "", "",
                            "A loop of wire where the rabbits run, lifted the next morning.",
                            daysText(walkKnobs.snareAp) + " of the stay", caught))
     }
 
-    if (mine("herbal") > 0)
+    if (camp and mine("herbal") > 0)
     {
         var leaf = toLowerCase(itemOf(walkKnobs.brewItem).name)
         var brewShort = ""
@@ -1835,7 +1997,8 @@ fun workRows()
                            "1 remedy"))
     }
 
-    if (held("remedy") > 0)
+    // A remedy is no work of the place: its tile is there while he holds one and is hurt
+    if (held("remedy") > 0 and runOf("hp") < runOf("hpMax"))
     {
         var mend = smaller(share(runOf("hpMax"), itemOf("remedy").heals), runOf("hpMax") - runOf("hp"))
 
@@ -2006,18 +2169,36 @@ fun knowledgeNote(zone)
     }
 
     var note = "Study " + toString(studies) + " of " + toString(walkKnobs.studyLevels[level]) + " to knowledge " + toString(level + 1) + ": "
+    var more = []
+    var next = openingAt(zone, level + 1)
 
-    if (level < 2)
+    if (next != "")
     {
-        return note + "the rare beasts are listed, and every beast is found a day sooner."
+        push(more, next)
     }
 
-    if (level < 3)
+    if (level + 1 == 3)
     {
-        return note + "the stay is longer, and every beast is found a day sooner."
+        push(more, "a longer stay")
     }
 
-    return note + "the way there and back is shorter, and every beast is found a day sooner."
+    if (level + 1 == 4)
+    {
+        push(more, "a shorter way there and back")
+    }
+
+    // A day off the finding of every beast for each two levels (`seekCost`)
+    if (len(zone.mobs) > 0 and (level + 1) % 2 == 0)
+    {
+        push(more, "every beast found a day sooner")
+    }
+
+    if (len(more) == 0)
+    {
+        return note + "he knows it better."
+    }
+
+    return note + joined(more, ", ") + "."
 }
 
 // The head of the on-site screen, its strip of days, and what its buttons say

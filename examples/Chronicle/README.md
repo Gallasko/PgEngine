@@ -953,7 +953,8 @@ files of their own, `expeditionlib.pg` and `fightlib.pg`, imported first: a scri
   the Hedgerows (no beast), Mill Pond (one), the Hollow Woods (a pack, a boar, a rare stag) and
   the Quarry Road.
 - **Days.** A stay is `stay x apPerDay` action points. Seeking a beast costs
-  `max(1, base(rarity) - Guile/5 - zone knowledge - familiarity + pack or lone)`, a study 2, a
+  `max(1, base(rarity) - Guile/5 - zone knowledge/2 - familiarity + pack or lone)` (base 4, 6
+  and 10 for common, uncommon and rare), a study 2, a
   watch 1, a rest 2 and a ration (+40 % of his Vitality), a remedy nothing, leaving nothing (asked
   twice: the first press says what is lost). His Vitality on a walk is
   his own: one count, the points a blow takes, at home, on the site and in a fight (a boy has
@@ -1008,6 +1009,28 @@ files of their own, `expeditionlib.pg` and `fightlib.pg`, imported first: a scri
   knowledge its rarity asks; from 2 its vitality, its bite and what it does next are shown; from
   3 its weakness and its drops; at 4 a fight with it costs a day less. A zone known 3 is stayed
   in longer, known 4 it is nearer.
+- **A place opens a little at a time.** On the first visit a place offers three things (the
+  Hedgerows: berries, firewood, a study), and each level of its knowledge one more (its
+  `ladder` in `expeditiontable.pg`: a gathering by its item, a beast by its id,
+  `<beast>*pack` for its pack, `camp` for a rest and his snare and herbal; an entry with `says`
+  is what the level opens elsewhere); what is not open has no tile, and the study's gloss and the
+  head's note say what the next level opens (`openingAt`). Known 2 of 4, the Hedgerows open a task
+  of his life, *Explore the Nearby Pond* (`pond`, a month), that finds the pond for the world as
+  the market finds the town: its gain is world knowledge, `know.found.millpond`, which Mill Pond
+  asks, and no later life is offered it again (`whileNot`). Known 4 of 4, a place opens the next one:
+  the Hedgerows open the Hollow Woods, Mill Pond the Quarry Road. The Hedgerows have no
+  camp (home is a day away); the places with beasts have one from knowledge 2. A remedy has a
+  tile only while he holds one and is hurt.
+- **What a walk is worth.** A walk is months of his life like any work (the Hedgerows one, Mill
+  Pond and the Quarry Road two, the Hollow Woods three: the longer, the more days on site), and
+  is weighed against the work of his age for as long, in coin and its worth (a point of a part
+  about 5 coin, a thing for the town half a coin, 50 points of practice a point). Known 1 of 4 a
+  place brings about what his age's plain work does (a child's about 2.5 a month, a youth's 3);
+  known 4 of 4, worked at its best task, one and a half to twice that, or a quarter more than a
+  work that asks something of him (a child's about 3, a man's 4.5): about 4 a month at the
+  Hedgerows and Mill Pond, 5 to 6 in the Hollow Woods and on the Quarry Road. Sale prices (`lot`
+  for `coin`), gatherings and a beast's practice (`xp`, 2 to 8 a kill) are set for that, and were
+  measured by playing each place forty times a level with the rules themselves.
 - **The record.** Every step is `{n, kind, target, count, ap, hp, text, gave, used, figure, ...}`
   and has its `marks` (`{step, kind, id, n}`: `use`, `gain`, `loot`, `kill`, `learn`, `stat`,
   `grow`). A walk by the record is a fold over them (`replayTerm`): what it used is taken as he
@@ -1017,8 +1040,8 @@ files of their own, `expeditionlib.pg` and `fightlib.pg`, imported first: a scri
 - **A walk on the Life page.** `activitytable.pg` makes one activity a zone (`walk.<zone>`, the
   *Adventure* group, its field `zone`), its months `2 x travel + stay` in whole months
   (`lib.pg`'s `walkMonths`, the one figure both scripts read), and its `requires` what the zone
-  asks: the task that opens it (`hedges`, `bow`), a stat, a walk already made (`walked.<zone>`),
-  a place of the town (`town.lodge`), a study of another zone (`know.study.hollow`). It is
+  asks: the task that opens it (`bow`), a stat, a place of the town (`town.lodge`), the place
+  before it known 4 of 4 (`know.study.<zone>`, 10 studies) or what a task of a life found for the world (`know.found.millpond`). It is
   listed two years before he may go, locked. What is `sold` has a row at the market
   (`sell.<thing>`), wortleaf is brewed into remedies, and a new place of the town, the
   **Hunters' Lodge**, is built of firewood and ash wood: it opens the Hollow Woods to every

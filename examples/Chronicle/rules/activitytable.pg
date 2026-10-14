@@ -334,6 +334,15 @@ var activities = [
      gains: [{stat: "bargemen_tale"}],
      requires: [],
      costs: [{stat: "coin", amount: 2}]},
+    // The way to the pond above the mill, a month of his life once the Hedgerows are known 2 of 4
+    // (expeditiontable.pg's ladder says so on the walk). Found once for the world, as the town is
+    // explored once: Mill Pond asks it, and no later life is offered it again (`whileNot`). No
+    // row before then, and no age closes it
+    {id: "pond", group: "Work", name: "Explore the Nearby Pond", glyph: "adventure", months: 1, rank: "ONCE", each: "OPENS MILL POND", path: "", finishBy: anyAge, uses: 1, showFrom: 100,
+     whileNot: "know.found.millpond",
+     about: "A gap in the hedge, a path through the nettles, and still water at the end of it. The mill is just below.",
+     gains: [{stat: "know.found.millpond"}],
+     requires: [{stat: "know.study.hedgerows", label: "The Hedgerows known 2 of 4", needed: walkKnobs.studyLevels[1]}]},
     {id: "night", group: "Work", name: "Work the Night Market", glyph: "trade", months: 6, rank: "", each: "", path: "", fromAge: 13, finishBy: 18, uses: 2,
      gains: [{stat: "guile"}, {stat: "coin", amount: 12}],
      requires: [{stat: "guile"}],
@@ -472,7 +481,7 @@ var activities = [
     // The herbal: nothing for his stats, and a thing to do on every walk from then on (he brews
     // a remedy where he stands, expeditionlib.pg)
     {id: "herbal", group: "Study", name: "Learn the Herbal", glyph: "study", months: 2, rank: "", each: "BREW ON A WALK", path: "", fromAge: 10, uses: 1,
-     about: "Which leaf, which root, how long over the fire. On a walk, two wortleaf become a remedy on the spot.",
+     about: "Which leaf, which root, how long over the fire. On a walk where he can camp, two wortleaf become a remedy on the spot.",
      gains: [{stat: "herbal"}],
      requires: [{stat: "letters"}]},
     {id: "mara", group: "Study", name: "Lessons with Mara", glyph: "magic", months: 12, rank: "", each: "", path: "", fromAge: 15, finishBy: 17, uses: 1,
@@ -499,7 +508,7 @@ var activities = [
     // Boys ask for an oath or are turned in, one or the other: the oath shuts the Watch to him,
     // turning them in shuts the Hidden Hand
     {id: "snare", group: "The streets", name: "Snare Rabbits on the Common", glyph: "adventure", months: 2, rank: "", each: "SNARES ON A WALK", path: "", fromAge: 9, finishBy: 11, uses: 1,
-     about: "A loop of wire, a bent sapling, and two months of learning where rabbits will not go. On a walk, a snare is a day for two rations.",
+     about: "A loop of wire, a bent sapling, and two months of learning where rabbits will not go. On a walk where he can camp, a snare is a day for a ration.",
      gains: [{stat: "dex"}, {stat: "snare_set"}],
      requires: [{stat: "dex", needed: 6}]},
     {id: "tunnel", group: "The streets", name: "Find the Tunnel under the Wall", glyph: "gate", months: 1, rank: "", each: "A LEAD", path: "", fromAge: 10, uses: 1,
