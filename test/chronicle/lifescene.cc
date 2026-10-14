@@ -4477,9 +4477,9 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
-        // A later life has no guide: his sixth year whole on its first day, in whatever order he
-        // likes, and the first of its works chosen for him.
-        TEST(lifescene_test, a_second_life_has_no_guide_and_his_sixth_year_whole)
+        // A later life has no guide: his sixth year comes a work at a time, in the order a first
+        // life met it, and the first of its works is chosen for him.
+        TEST(lifescene_test, a_second_life_has_no_guide_and_his_sixth_year_in_order)
         {
             MockLogger logger;
             LifeFixture f;
@@ -4508,15 +4508,15 @@ namespace pg
             ASSERT_NE(ledger, nullptr);
             EXPECT_EQ(ledger->row("rations"), nullptr);
 
-            // The works of the year that a boy of six may begin, all of them, and the gleaning chosen
+            // The first work of the year alone, as a first life has it, and chosen for him
             auto list = life->piece<ActivityList>("activities");
             ASSERT_NE(list, nullptr);
 
-            for (const char* id : {"glean", "flour", "wheel", "scribe", "tome"})
-                EXPECT_NE(list->find(&f.ecs, id), nullptr) << id;
+            EXPECT_NE(list->find(&f.ecs, "glean"), nullptr);
 
-            // (the three wait for his fourth month, the market for his eighth, the town's work for seven)
-            for (const char* id : {"knots", "sacks", "sing", "tomarket", "harvest", "helping", "carters", "keep"})
+            // (the next ones come one at a time; the three wait for his fourth month, the market
+            // for his eighth, the town's work for seven)
+            for (const char* id : {"flour", "wheel", "scribe", "tome", "knots", "sacks", "sing", "tomarket", "harvest", "helping", "carters", "keep"})
                 EXPECT_EQ(list->find(&f.ecs, id), nullptr) << id;
 
             EXPECT_EQ(list->selected(), "glean");
@@ -4549,7 +4549,21 @@ namespace pg
             EXPECT_EQ(life->handOn, 0u);
             EXPECT_FALSE(f.pos(life->named("guide"))->visible);
 
-            // In whatever order he likes: the scribe before the flour, and the wheel is gone
+            // In the order of a first life: the flour, then one of the two, and the other is gone
+            EXPECT_NE(list->find(&f.ecs, "flour"), nullptr);
+            EXPECT_EQ(list->find(&f.ecs, "scribe"), nullptr);
+
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "flour"});
+            f.settle();
+
+            ASSERT_EQ(life->save.running, "flour");
+
+            life->onMonth();
+            f.settle();
+            f.frames(12);
+
+            EXPECT_NE(list->find(&f.ecs, "wheel"), nullptr);
+
             f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "scribe"});
             f.settle();
 
@@ -4560,7 +4574,7 @@ namespace pg
             f.frames(12);
 
             EXPECT_EQ(list->find(&f.ecs, "wheel"), nullptr);
-            EXPECT_NE(list->find(&f.ecs, "flour"), nullptr);
+            EXPECT_NE(list->find(&f.ecs, "tome"), nullptr);
 
             // Nothing of the guide for the work that costs him either
             EXPECT_FALSE(life->step.active);

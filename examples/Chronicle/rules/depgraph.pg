@@ -500,6 +500,23 @@ fun addTask(graph, a)
         }
     }
 
+    // What it comes after (its `follows`): no row until that task is behind him, so an arrow from
+    // it, as for a task it asks done
+    var befores = asList(lookup(a, "follows", []))
+
+    for (var b = 0; b < len(befores); b = b + 1)
+    {
+        var prior = "done." + befores[b]
+
+        addLink(graph, statNode(prior), node, prior, "asks", "after", 1)
+
+        if (not contain(graph.statLabels, prior))
+        {
+            graph.statLabels[prior] = byId(activities, befores[b]).name + ", done"
+            addLink(graph, taskNode(befores[b]), statNode(prior), prior, "brings", "done", 0)
+        }
+    }
+
     // What repetition brings that the first term does not
     for (var s = 0; s < len(a.after); s = s + 1)
     {

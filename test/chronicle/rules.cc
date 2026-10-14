@@ -37,8 +37,8 @@ namespace pg
                 {
                     EXPECT_TRUE(rules.load(&ecs, Root)) << (rules.errors.empty() ? "" : rules.errors.front());
 
-                    // A later life, whose list is whole from its first day: a first life is shown its
-                    // tasks one at a time, and the tests of that say so themselves
+                    // A later life: the town has what a second life brings it (the Inn). The tests of
+                    // a first life say so themselves
                     rules.lives = 2;
                 }
             };
@@ -477,13 +477,30 @@ namespace pg
 
             f.rules.done = {{"greenwood", ElementType{1}}};
 
-            for (const char* id : {"poach", "burners", "outlaws"})
+            for (const char* id : {"poach", "burners"})
             {
                 RuleActivity work = activityAt(f.rules, 21.0f, outlaw, id);
 
                 EXPECT_TRUE(flag(work.fields, "listed")) << id;
                 EXPECT_FALSE(flag(work.fields, "locked")) << id;
             }
+
+            // The works of a class come in an order: the outlaws once he has poached, the road
+            // once he has trained with them
+            EXPECT_FALSE(flag(activityAt(f.rules, 21.0f, outlaw, "outlaws").fields, "listed"));
+
+            f.rules.done = {{"greenwood", ElementType{1}}, {"poach", ElementType{1}}};
+
+            ElementMap poacher = outlaw;
+            poacher["arms"] = ElementType{2};
+            poacher["stealth"] = ElementType{3};
+
+            EXPECT_TRUE(flag(activityAt(f.rules, 21.0f, poacher, "outlaws").fields, "listed"));
+            EXPECT_FALSE(flag(activityAt(f.rules, 21.0f, poacher, "waylay").fields, "listed"));
+
+            f.rules.done["outlaws"] = ElementType{1};
+
+            EXPECT_TRUE(flag(activityAt(f.rules, 21.0f, poacher, "waylay").fields, "listed"));
 
             for (const char* id : {"greenwood", "keep", "serve", "study", "run"})
                 EXPECT_FALSE(flag(activityAt(f.rules, 21.0f, outlaw, id).fields, "listed")) << id;
@@ -1881,9 +1898,9 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
-        // A later life has the year's works from its first day, in whatever order it likes; the
-        // three still wait for his fourth month and are over by his ninth, and what he did not do
-        // by seven is closed to him.
+        // A later life is shown the year's first works one at a time, in the order a first life
+        // is: the three still wait for his fourth month and are over by his ninth, and what he did
+        // not do by seven is closed to him.
         TEST(rules_test, the_sixth_year_of_a_later_life)
         {
             MockLogger logger;
@@ -1910,11 +1927,18 @@ namespace pg
 
             f.rules.lives = 2;
 
-            EXPECT_EQ(listed(at(0), child()), (Ids{"glean", "flour", "wheel", "scribe", "tome"}));
+            // Nothing done: the gleaning alone, as in a first life
+            EXPECT_EQ(listed(at(0), child()), (Ids{"glean"}));
+
+            f.rules.done = {{"glean", ElementType{1}}};
+            EXPECT_EQ(listed(at(1), child()), (Ids{"flour"}));
+
+            f.rules.done = {{"glean", ElementType{1}}, {"flour", ElementType{1}}};
+            EXPECT_EQ(listed(at(2), child()), (Ids{"wheel", "scribe"}));
 
             // The scribe first: the wheel is gone, in a later life as in the first
-            f.rules.done = {{"scribe", ElementType{1}}};
-            EXPECT_EQ(listed(at(1), child()), (Ids{"glean", "flour", "tome"}));
+            f.rules.done = {{"glean", ElementType{1}}, {"flour", ElementType{1}}, {"scribe", ElementType{1}}};
+            EXPECT_EQ(listed(at(3), child()), (Ids{"tome"}));
 
             // Too young for the three, for the market and for the harvest: none has a row yet
             f.rules.done = {};
@@ -1927,11 +1951,12 @@ namespace pg
                 EXPECT_TRUE(flag(early.fields, "locked")) << id;
             }
 
-            EXPECT_EQ(listed(at(4), child()), (Ids{"glean", "flour", "wheel", "scribe", "tome", "knots", "sacks", "sing"}));
+            // Who let the months go by is still at the first of the four, with what the months bring
+            EXPECT_EQ(listed(at(4), child()), (Ids{"glean", "knots", "sacks", "sing"}));
 
             // The three are over by his ninth month, the market opens at his eighth and never closes
-            EXPECT_EQ(listed(at(8), child()), (Ids{"glean", "flour", "wheel", "scribe", "tome", "tomarket"}));
-            EXPECT_EQ(listed(at(9), child()), (Ids{"glean", "flour", "wheel", "scribe", "tome", "tomarket", "harvest"}));
+            EXPECT_EQ(listed(at(8), child()), (Ids{"glean", "tomarket"}));
+            EXPECT_EQ(listed(at(9), child()), (Ids{"glean", "tomarket", "harvest"}));
 
             // What a short work of the year has left to begin is only said near its end
             EXPECT_EQ(intOf(activityAt(f.rules, at(0), child(), "glean").fields, "closesIn"), -1);
@@ -1984,6 +2009,11 @@ namespace pg
             // A scholar of the Collegium has its offices to keep
             ElementMap scholar = boy();
             scholar["collegium"] = ElementType{1};
+
+            // (once he has studied and tried a first working: the Collegium's works come in an order)
+            EXPECT_FALSE(activityAt(f.rules, 18.5f, scholar, "vigil").fields.at("listed").get<bool>());
+
+            f.rules.done = {{"study", ElementType{1}}, {"workings", ElementType{1}}};
 
             RuleActivity vigil = activityAt(f.rules, 18.5f, scholar, "vigil");
 
@@ -2717,7 +2747,8 @@ namespace pg
 
             // Each says what it closes; the looting closes the keys besides
             EXPECT_EQ(textOf(activityAt(f.rules, 11.0f, character, "flood.sandbags").fields, "caution"),
-                      "One or the other: once this is done, Pull Folk from the Water and Salvage the Wreck are closed to him for this life.");
+                      "One or the other: once this is done, Pull Folk from the Water and Salvage the Wreck are closed to him for this life. "
+                      "Leave the Flood unanswered, and Carry for the Watch, Take the Sacristan's Keys and Run with the Bellmoor Boys are closed to him for this life.");
             EXPECT_NE(textOf(activityAt(f.rules, 11.0f, character, "flood.salvage").fields, "caution").find("Take the Sacristan's Keys"), std::string::npos);
 
             // The mill's wheel, before: twenty coin
@@ -2881,6 +2912,393 @@ namespace pg
             EXPECT_FALSE(listed(15.5f, hid, "greenwood"));
             EXPECT_TRUE(listed(16.0f, hid, "greenwood"));
             EXPECT_FALSE(flag(activityAt(f.rules, 16.0f, hid, "greenwood").fields, "locked"));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // An event left unanswered is paid for. The month it is settled, who holds none of its
+        // answers has stood by: he holds that, the log says so, and the rows the event names are
+        // shut to him. The second one of a life shuts every class, and leaves him the Greenwood.
+        TEST(rules_test, an_event_stood_by_shuts_what_follows)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            auto listed = [&](float age, const ElementMap& character, const char* id) {
+                return flag(activityAt(f.rules, age, character, id).fields, "listed");
+            };
+
+            auto barred = [&](float age, const ElementMap& character, const char* id) {
+                return textOf(activityAt(f.rules, age, character, id).fields, "barred");
+            };
+
+            auto wrote = [](const RuleMonth& month, const std::string& text) {
+                for (const auto& e : month.entries)
+                {
+                    if (textOf(e, "text").find(text) != std::string::npos and textOf(e, "kind") == "loss")
+                        return true;
+                }
+
+                return false;
+            };
+
+            const float month = 1.0f / 12.0f;
+            const float settled = 11.0f + 7.0f * month;
+
+            ElementMap character = townsman();
+            character["str"] = ElementType{9};
+            character["dex"] = ElementType{9};
+            character["letters"] = ElementType{2};
+
+            // The Flood is settled the month after its last answer could end: nothing held, he stood by
+            RuleMonth passed;
+            ASSERT_TRUE(f.rules.month(settled, character, false, passed)) << firstError(f.rules);
+
+            EXPECT_EQ(intOf(passed.after, "stood_flood"), 1);
+            EXPECT_EQ(intOf(passed.after, "stood_by"), 1);
+            EXPECT_TRUE(wrote(passed, "The Flood came and went, and he stood by"));
+            EXPECT_FALSE(wrote(passed, "no class will have him"));
+
+            // Not the month before, when an answer begun in the last month is still to end; not who
+            // answered; and a life that was never that month old has stood by at nothing
+            ASSERT_TRUE(f.rules.month(settled - month, character, false, passed)) << firstError(f.rules);
+            EXPECT_EQ(passed.after.count("stood_flood"), 0u);
+
+            ASSERT_TRUE(f.rules.month(settled + month, character, false, passed)) << firstError(f.rules);
+            EXPECT_EQ(passed.after.count("stood_flood"), 0u);
+            EXPECT_TRUE(passed.entries.empty());
+
+            ElementMap looter = character;
+            looter["flood_looted"] = ElementType{1};
+
+            ASSERT_TRUE(f.rules.month(settled, looter, false, passed)) << firstError(f.rules);
+            EXPECT_EQ(passed.after.count("stood_flood"), 0u);
+            EXPECT_TRUE(passed.entries.empty());
+
+            // What it shuts: one row each way a life may go, and their doors on the clock
+            ElementMap stood = character;
+            stood["stood_flood"] = ElementType{1};
+            stood["stood_by"] = ElementType{1};
+
+            for (const char* id : {"watch", "keys", "boys"})
+            {
+                EXPECT_TRUE(listed(settled, character, id)) << id;
+                EXPECT_EQ(barred(settled, character, id), "") << id;
+
+                EXPECT_FALSE(listed(settled, stood, id)) << id;
+                EXPECT_NE(barred(settled, stood, id).find("The Flood came and went"), std::string::npos) << id;
+            }
+
+            for (const char* id : {"carters", "letters", "roam", "keep", "collegium", "hand"})
+                EXPECT_TRUE(listed(settled, stood, id)) << id;
+
+            RecordList windows;
+            ASSERT_TRUE(f.rules.windows(12.0f, stood, windows)) << firstError(f.rules);
+
+            const ElementMap* watch = byId(windows, "watch");
+            ASSERT_NE(watch, nullptr);
+            EXPECT_EQ(textOf(*watch, "state"), "closed");
+            EXPECT_NE(textOf(*watch, "note").find("he stood by"), std::string::npos);
+
+            // Every answer of an event says what leaving it unanswered shuts; once he has stood by,
+            // what a second time would cost him
+            const std::string first = textOf(activityAt(f.rules, 15.0f, character, "levy.pay").fields, "caution");
+            const std::string second = textOf(activityAt(f.rules, 15.0f, stood, "levy.pay").fields, "caution");
+
+            EXPECT_NE(first.find("Leave the Levy unanswered, and Train under Sergeant Edric, Lessons with Mara and Work the Night Market are closed to him for this life."), std::string::npos) << first;
+            EXPECT_EQ(first.find("stood by once"), std::string::npos) << first;
+            EXPECT_NE(second.find("He has stood by once already: this time, no class would have him."), std::string::npos) << second;
+
+            // The Levy is settled at sixteen, once a march begun in its last month is over. Who
+            // marched has answered; who did nothing has stood by a second time
+            ElementMap marched = stood;
+            marched["levy_served"] = ElementType{1};
+
+            ASSERT_TRUE(f.rules.month(16.0f, marched, false, passed)) << firstError(f.rules);
+            EXPECT_EQ(passed.after.count("stood_levy"), 0u);
+            EXPECT_EQ(intOf(passed.after, "stood_by"), 1);
+
+            ASSERT_TRUE(f.rules.month(16.0f, stood, false, passed)) << firstError(f.rules);
+            EXPECT_EQ(intOf(passed.after, "stood_levy"), 1);
+            EXPECT_EQ(intOf(passed.after, "stood_by"), 2);
+            EXPECT_TRUE(wrote(passed, "The Levy mustered without him"));
+            EXPECT_TRUE(wrote(passed, "Twice Bellmoor called and he stood by: no class will have him"));
+
+            // Twice: no class will have him, and the Greenwood takes who is left, at sixteen
+            ElementMap twice = stood;
+            twice["stood_levy"] = ElementType{1};
+            twice["stood_by"] = ElementType{2};
+
+            for (const char* id : {"keep", "collegium", "hand"})
+            {
+                EXPECT_FALSE(listed(16.0f, twice, id)) << id;
+                EXPECT_EQ(barred(16.0f, twice, id), "Twice Bellmoor called and he stood by: no class will have him") << id;
+            }
+
+            for (const char* id : {"edric", "mara", "night"})
+                EXPECT_NE(barred(16.0f, twice, id).find("The Levy mustered without him"), std::string::npos) << id;
+
+            EXPECT_FALSE(listed(16.0f, stood, "greenwood"));
+            EXPECT_FALSE(listed(16.0f - month, twice, "greenwood"));
+            EXPECT_TRUE(listed(16.0f, twice, "greenwood"));
+            EXPECT_FALSE(flag(activityAt(f.rules, 16.0f, twice, "greenwood").fields, "locked"));
+
+            ASSERT_TRUE(f.rules.windows(16.0f, twice, windows)) << firstError(f.rules);
+
+            const ElementMap* keep = byId(windows, "keep");
+            ASSERT_NE(keep, nullptr);
+            EXPECT_EQ(textOf(*keep, "state"), "closed");
+            EXPECT_NE(textOf(*keep, "note").find("no class will have him"), std::string::npos);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A man of a class sees his two callings from the day he is of it, where the Inn stands, as
+        // a child sees the classes. Two events stood by shut them. The old Lord's death has an
+        // answer that asks nothing, so that standing by is his own doing.
+        TEST(rules_test, the_callings_show_ahead_and_two_events_stood_by_shut_them)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            auto listed = [&](float age, const ElementMap& character, const char* id) {
+                return flag(activityAt(f.rules, age, character, id).fields, "listed");
+            };
+
+            auto wrote = [](const RuleMonth& month, const std::string& text) {
+                for (const auto& e : month.entries)
+                {
+                    if (textOf(e, "text").find(text) != std::string::npos)
+                        return true;
+                }
+
+                return false;
+            };
+
+            f.rules.done = {{"keep", ElementType{1}}};
+
+            // No Inn, no calling to see
+            EXPECT_FALSE(listed(17.5f, sworn(), "castellan"));
+
+            ElementMap man = sworn();
+            man["town.inn"] = ElementType{1};
+            f.rules.inn = 1;
+
+            for (const char* id : {"castellan", "cross"})
+            {
+                RuleActivity calling = activityAt(f.rules, 17.5f, man, id);
+
+                EXPECT_TRUE(flag(calling.fields, "listed")) << id;
+                EXPECT_TRUE(flag(calling.fields, "locked")) << id;
+                EXPECT_EQ(textOf(calling.fields, "barred"), "") << id;
+            }
+
+            // (his own class's, and no other's)
+            EXPECT_FALSE(listed(17.5f, man, "chair"));
+            EXPECT_FALSE(listed(17.5f, man, "contract"));
+
+            // Every one of the four events has an answer he can always give
+            RuleActivity kneel = activityAt(f.rules, 27.0f, man, "lord.kneel");
+
+            EXPECT_TRUE(flag(kneel.fields, "listed"));
+            EXPECT_FALSE(flag(kneel.fields, "locked"));
+            EXPECT_EQ(intOf(kneel.fields, "months"), 0);
+            EXPECT_EQ(textOf(kneel.fields, "event"), "lord");
+
+            // The plague year settled on a man who stood by at the Flood: the second time
+            ElementMap once = man;
+            once["stood_flood"] = ElementType{1};
+            once["stood_by"] = ElementType{1};
+
+            RuleMonth passed;
+            ASSERT_TRUE(f.rules.month(23.75f, once, false, passed)) << firstError(f.rules);
+
+            EXPECT_EQ(intOf(passed.after, "stood_plague"), 1);
+            EXPECT_EQ(intOf(passed.after, "stood_by"), 2);
+            EXPECT_TRUE(wrote(passed, "The plague year went by"));
+            EXPECT_TRUE(wrote(passed, "no second calling is his"));
+
+            // (who shut his door has answered)
+            ElementMap shut = once;
+            shut["plague_shut"] = ElementType{1};
+
+            ASSERT_TRUE(f.rules.month(23.75f, shut, false, passed)) << firstError(f.rules);
+            EXPECT_EQ(passed.after.count("stood_plague"), 0u);
+
+            ElementMap twice = once;
+            twice["stood_plague"] = ElementType{1};
+            twice["stood_by"] = ElementType{2};
+
+            for (const char* id : {"castellan", "cross"})
+            {
+                EXPECT_FALSE(listed(29.0f, twice, id)) << id;
+                EXPECT_EQ(textOf(activityAt(f.rules, 29.0f, twice, id).fields, "barred"), "Twice Bellmoor called and he stood by: no second calling is his") << id;
+            }
+
+            EXPECT_NE(textOf(activityAt(f.rules, 24.0f, twice, "raid").fields, "barred").find("The plague year went by"), std::string::npos);
+
+            // Once is not twice: the callings are still his
+            EXPECT_TRUE(listed(29.0f, once, "castellan"));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The works of a class come a few at a time and in an order: its bread the day he is of it,
+        // each of the others once the one before is behind him. What he missed holds nothing up.
+        TEST(rules_test, the_works_of_a_class_come_in_an_order)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            auto shown = [&](float age, const ElementMap& character, std::initializer_list<const char*> ids) {
+                std::vector<std::string> out;
+
+                for (const char* id : ids)
+                {
+                    if (flag(activityAt(f.rules, age, character, id).fields, "listed"))
+                        out.push_back(id);
+                }
+
+                return out;
+            };
+
+            using Ids = std::vector<std::string>;
+
+            // The Keep: its service, then the patrols, then the tourney, and from the tourney the
+            // Master-at-Arms and the merchant road
+            ElementMap knight = sworn();
+            knight["discipline"] = ElementType{3};
+            knight["renown"] = ElementType{2};
+
+            const auto keep = {"serve", "patrol", "tourney", "master", "escort"};
+
+            f.rules.done = {{"keep", ElementType{1}}};
+            EXPECT_EQ(shown(20.0f, knight, keep), (Ids{"serve"}));
+
+            f.rules.done["serve"] = ElementType{1};
+            EXPECT_EQ(shown(20.0f, knight, keep), (Ids{"serve", "patrol"}));
+
+            f.rules.done["patrol"] = ElementType{1};
+            EXPECT_EQ(shown(20.0f, knight, keep), (Ids{"serve", "patrol", "tourney"}));
+
+            f.rules.done["tourney"] = ElementType{1};
+            EXPECT_EQ(shown(20.0f, knight, keep), (Ids{"serve", "patrol", "master", "escort"}));
+
+            // The tourney he never fought closes at twenty-three: what came after it does not wait
+            f.rules.done = {{"keep", ElementType{1}}, {"serve", ElementType{1}}, {"patrol", ElementType{1}}};
+            EXPECT_EQ(shown(22.5f, knight, keep), (Ids{"serve", "patrol", "tourney"}));
+            EXPECT_EQ(shown(22.5f + 1.0f / 12.0f, knight, keep), (Ids{"serve", "patrol", "master", "escort"}));
+
+            // The great step of his years shows from the first day, locked
+            f.rules.done = {{"keep", ElementType{1}}};
+            EXPECT_TRUE(flag(activityAt(f.rules, 17.5f, knight, "campaign").fields, "listed"));
+
+            // The Collegium: its study, then the workings and the treatise, then the offices and Orin
+            ElementMap scholar = boy();
+            scholar["collegium"] = ElementType{1};
+            scholar["int"] = ElementType{12};
+            scholar["letters"] = ElementType{4};
+            scholar["lore"] = ElementType{4};
+            scholar["arcana"] = ElementType{2};
+
+            const auto collegium = {"study", "workings", "treatise", "vigil", "orin", "fragments", "lecture"};
+
+            f.rules.done = {{"collegium", ElementType{1}}};
+            EXPECT_EQ(shown(21.0f, scholar, collegium), (Ids{"study"}));
+
+            f.rules.done["study"] = ElementType{1};
+            EXPECT_EQ(shown(21.0f, scholar, collegium), (Ids{"study", "workings", "treatise"}));
+
+            f.rules.done["workings"] = ElementType{1};
+            EXPECT_EQ(shown(21.0f, scholar, collegium), (Ids{"study", "workings", "treatise", "vigil", "orin"}));
+
+            scholar["lore"] = ElementType{5};
+            f.rules.done["treatise"] = ElementType{1};
+            EXPECT_EQ(shown(21.0f, scholar, collegium), (Ids{"study", "workings", "vigil", "orin", "fragments"}));
+
+            f.rules.done["fragments"] = ElementType{1};
+            EXPECT_EQ(shown(21.0f, scholar, collegium), (Ids{"study", "workings", "vigil", "orin", "lecture"}));
+
+            // The Hidden Hand: its errands, then the informants and the hidden ways, then Old Vey
+            ElementMap thief = boy();
+            thief["hidden_hand"] = ElementType{1};
+            thief["favors"] = ElementType{2};
+            thief["stealth"] = ElementType{4};
+            thief["guile"] = ElementType{4};
+
+            const auto hand = {"run", "network", "drill", "mark", "vey", "smuggle"};
+
+            f.rules.done = {{"hand", ElementType{1}}};
+            EXPECT_EQ(shown(19.0f, thief, hand), (Ids{"run"}));
+
+            f.rules.done["run"] = ElementType{1};
+            EXPECT_EQ(shown(19.0f, thief, hand), (Ids{"run", "network", "drill", "mark"}));
+
+            f.rules.done["network"] = ElementType{1};
+            EXPECT_EQ(shown(19.0f, thief, hand), (Ids{"run", "network", "drill", "mark", "vey"}));
+
+            f.rules.done["drill"] = ElementType{1};
+            EXPECT_EQ(shown(19.0f, thief, hand), (Ids{"run", "network", "drill", "mark", "vey", "smuggle"}));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The town's work a child never took is cleared from his page at ten or so; what he has
+        // done once stays his, and the carters take anyone at any age. The month at the forge
+        // closes when the tempering it leads to can no longer follow.
+        TEST(rules_test, a_work_never_taken_leaves_the_list)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            auto listed = [&](float age, const ElementMap& character, const char* id) {
+                return flag(activityAt(f.rules, age, character, id).fields, "listed");
+            };
+
+            const float month = 1.0f / 12.0f;
+
+            ElementMap character = boy();
+            character["str"] = ElementType{8};
+
+            for (const char* id : {"mill", "messages", "kitchen"})
+            {
+                EXPECT_TRUE(listed(10.0f - month, character, id)) << id;
+                EXPECT_FALSE(listed(10.0f, character, id)) << id;
+            }
+
+            EXPECT_TRUE(listed(11.0f - month, character, "market"));
+            EXPECT_FALSE(listed(11.0f, character, "market"));
+
+            EXPECT_TRUE(listed(13.0f - month, character, "smithy"));
+            EXPECT_FALSE(listed(13.0f, character, "smithy"));
+
+            EXPECT_TRUE(listed(10.0f, character, "carters"));
+            EXPECT_TRUE(listed(25.0f, character, "carters"));
+
+            // Nothing is said of it: no countdown to have him do it once
+            EXPECT_EQ(intOf(activityAt(f.rules, 10.0f - month, character, "mill").fields, "closesIn"), -1);
+            EXPECT_EQ(textOf(activityAt(f.rules, 10.0f - month, character, "mill").fields, "until"), "");
+
+            // Done once, it is his for good; and so is the one he is at for the first time
+            f.rules.done = {{"mill", ElementType{1}}, {"smithy", ElementType{1}}};
+
+            EXPECT_TRUE(listed(10.0f, character, "mill"));
+            EXPECT_TRUE(listed(25.0f, character, "mill"));
+            EXPECT_TRUE(listed(13.0f, character, "smithy"));
+            EXPECT_FALSE(listed(10.0f, character, "messages"));
+
+            f.rules.running = "kitchen";
+            EXPECT_TRUE(listed(10.0f, character, "kitchen"));
+            f.rules.running = "";
+            EXPECT_FALSE(listed(10.0f, character, "kitchen"));
+
+            // The forge: a month, and three of tempering that must be over by thirteen
+            EXPECT_TRUE(listed(12.0f + 8.0f * month, character, "forge"));
+            EXPECT_FALSE(listed(12.0f + 9.0f * month, character, "forge"));
         }
 
         // ----------------------------------------------------------------------------------------

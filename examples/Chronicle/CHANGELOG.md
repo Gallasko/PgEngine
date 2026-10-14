@@ -77,8 +77,18 @@ the `CHANGELOG.md` at the root of the repository.
   burners' shrine and the woodfolk; the Lord's pardon, which opens the Keep's service and
   closes the Greenwood's own.
 - **The Plague Year, at twenty-three, and the Old Lord's death, at twenty-seven.** Six months
-  to answer each, one answer. The succession asks what only a class gives: a man of none sees
-  its three answers and can take none.
+  to answer each, one answer. Three answers to the succession ask what only a class gives; the
+  fourth, *Kneel to the Heir*, asks nothing and brings nothing.
+- **An event left unanswered is paid for.** The Flood, the Levy, the Plague Year and the
+  succession each have an answer that asks nothing of you, so standing by is a choice, and the
+  worst one. Stand by at one and what it names is closed to you for this life: the Watch, the
+  sacristan's keys and the Bellmoor Boys after the Flood; Sergeant Edric, Mara and the night
+  market after the Levy; the raid, the Magister's examination, Vey's summons and the Lord's
+  pardon after the plague; the tales, the pupils and the moment of your calling after the
+  succession. Stand by at two and the next great step is shut: every class before you have
+  one (the Greenwood takes who is left, at sixteen), your second calling after. Each answer
+  says so in red before you choose, the log writes it the month it happens, and it is in your
+  Inventory from then on.
 - **A lead.** *Hear the Bargemen's Tale*, a month and 2 coin at nine: Mill Pond is yours to
   walk a year sooner.
 - **One or the other is said, in red.** A task that closes another when you take it (the mill
@@ -107,8 +117,26 @@ the `CHANGELOG.md` at the root of the repository.
   guide says a sentence for each: your food, your coin, the choice (both tiles lit), your stats,
   the stopwatch on tasks that close, the market and how to buy, the task that takes two months,
   your age, and the classes the day you are seven. Its sentences are shorter-lived, and none
-  asks you to wait for a task of three months any more. Later lives have no guide and the
-  whole year on the page from the first day.
+  asks you to wait for a task of three months any more. Later lives have no guide, and are
+  shown the first tasks of the year in the same order: the gleaning, the flour, the choice of
+  two, then the books.
+- **The work of a class comes in an order.** The day you are of a class you see its first
+  work and the great step of your years, locked; each of the others comes once the one before
+  is behind you (done, or closed to you: nothing waits on what you missed). The Keep: service,
+  the patrols, the tourney, then the Master-at-Arms, the merchant road and the duel. The
+  Collegium: study, then the workings and the Black Treatise, then the night offices and
+  Magister Orin, the Harrow fragments after the treatise, the lecture and the apothecary
+  after the fragments. The Hidden Hand: its errands, then the informants, the hidden ways and
+  the mark or your own name, Old Vey after the informants, the gate and the clerk after the
+  hidden ways. The Greenwood: the outlaws once you have poached, the road once you have
+  trained with them.
+- **Your second calling shows from the day you take a class**, where the Inn stands: its two
+  ways, locked, with what they ask, as a child sees the classes from seven.
+- **The work you never took as a child is cleared away.** *Help at the Mill*, *Run Messages*
+  and *Help in the Kitchen* leave the list at ten if you have never done them, *Help at the
+  Market* at eleven, *Work the Smithy* at thirteen. What you did once stays yours, and *Carry
+  for the Carters* is always there. *Watch the Master Temper a Blade* closes at twelve and
+  nine months, when the tempering it leads to can no longer follow it.
 - **The town's work comes all at once at seven** in a first life too, counted in one toast
   ("New: 9 tasks") where each used to be named.
 - **The places to walk to are tiles**, like the places of the town: its mark and its name, a

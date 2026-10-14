@@ -130,7 +130,8 @@ var ties = ["watch_known", "street_known", "choir", "edric_support", "library_ac
             "other_account", "glyphs_read", "mill_engine", "magister", "hand_marked", "freelance",
             "reagent_run", "collegium_thief", "tourney_fixed", "vey_heir", "peoples_outlaw", "feared",
             "forest_shrine", "woodfolk_guest", "barn_burned", "pardoned", "plague_stayed", "plague_shut",
-            "plague_profiteer", "kingmaker", "church_candidate", "interregnum", "castellan", "crusader",
+            "plague_profiteer", "kingmaker", "church_candidate", "interregnum", "heir_sworn",
+            "stood_flood", "stood_levy", "stood_plague", "stood_lord", "castellan", "crusader",
             "curse_breaker", "spellwright", "assassin", "adventurer", "walls_raised", "bellmoor_shield",
             "shut_gate", "wall_held", "zealot", "doubts", "relic_bearer", "crusader_king",
             "whole_story", "working_marked", "first_seal", "stoneskin_bound", "galestep_bound", "firebolt2_bound",
@@ -369,6 +370,35 @@ for (var o = 0; o < len(aging); o++)
         if (after[old.stat] > most)
         {
             shiftIn(after, change, old.stat, most - after[old.stat])
+        }
+    }
+}
+
+// The events of a life (lib.pg's `lifeEvents`): the month one is settled, who holds none of its
+// answers has stood by. He holds that from then on, the count of them goes up, and the log says
+// what it shut. At the count that shuts the next great step, the log says that too: the
+// classes for who is young enough to have none, the second callings for who could have had one
+for (var e = 0; e < len(lifeEvents); e++)
+{
+    var ev = lifeEvents[e]
+
+    if (lived == ev.settledAt * 12 + ev.settledMonths and statOf(character, ev.stood) <= 0 and not holdsAny(character, ev.answered))
+    {
+        after[ev.stood] = 1
+        after[stoodBy] = statOf(after, stoodBy) + 1
+
+        push(entries, {text: ev.said, kind: "loss", figure: "", glyph: ""})
+
+        if (after[stoodBy] == standByShuts)
+        {
+            if (lived <= 16 * 12)
+            {
+                push(entries, {text: shutClasses, kind: "loss", figure: "", glyph: ""})
+            }
+            else if (holdsAny(character, callingFlags) and statOf(character, "town." + callingPlace) >= 1)
+            {
+                push(entries, {text: shutCallings, kind: "loss", figure: "", glyph: ""})
+            }
         }
     }
 }

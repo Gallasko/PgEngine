@@ -10,8 +10,9 @@
 //         the activity's path is open to him (activitytable.pg's `pathOpen`), and once he has
 //         been through it: the way into his own path stays on his clock.
 //         state: "upcoming" before `from`, "open" while one term still fits before `to`,
-//         "closed" after, or once he has been through it (its activity spent): a closed door
-//         stays listed for the rest of the life. The note says
+//         "closed" after, once he has been through it (its activity spent) or once an event he
+//         stood by has shut it (its activity `barred`): a closed door stays listed for the rest
+//         of the life. The note says
 //         what still fits, in attempts of the window's activity, never in percentages; before
 //         the door opens it names what the door asks.
 
@@ -64,7 +65,13 @@ for (var i = 0; i < len(windowTable); i++)
         var attempts = 0
         var last = a.finishBy * 12
 
-        if (lived < a.fromAge * 12)
+        if (a.barred != "" and not a.spent)
+        {
+            // Shut by an event he stood by, before its age or in it: the door says which
+            state = "closed"
+            note = a.barred + "."
+        }
+        else if (lived < a.fromAge * 12)
         {
             state = "upcoming"
             note = w.asks

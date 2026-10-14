@@ -384,6 +384,65 @@ fun closedBy(row, id)
     return false
 }
 
+// Whether a character holds any of a list of stats.
+fun holdsAny(character, stats)
+{
+    for (var i = 0; i < len(stats); i++)
+    {
+        if (statOf(character, stats[i]) > 0)
+        {
+            return true
+        }
+    }
+
+    return false
+}
+
+// Whether a row of the activity table can no longer be begun by who has lived `lived` months: its
+// term would fall after its `finishBy` (`last` when it gives none), to the month.
+fun tooLate(row, lived, last)
+{
+    return (lived + row.months) > (lookup(row, "finishBy", last) * 12 + lookup(row, "finishMonths", 0))
+}
+
+// Whether an activity of the table is behind him: done once in this life, or closed to him for
+// good (too late for it, or one of its `unless` done). What a row's `follows` waits for: nothing
+// waits forever on what he missed. An id the table does not have is behind no one.
+fun behindHim(rows, id, done, lived, last)
+{
+    if (lookup(done, id, 0) > 0)
+    {
+        return true
+    }
+
+    var row = byId(rows, id)
+
+    if (row.id == "")
+    {
+        return false
+    }
+
+    if (tooLate(row, lived, last))
+    {
+        return true
+    }
+
+    if (contain(row, "unless"))
+    {
+        var closers = asList(row.unless)
+
+        for (var i = 0; i < len(closers); i++)
+        {
+            if (lookup(done, closers[i], 0) > 0)
+            {
+                return true
+            }
+        }
+    }
+
+    return false
+}
+
 // "A", "A and B", "A, B and C"
 fun namesText(names)
 {
@@ -558,6 +617,45 @@ var callingPlace = "inn"
 // The `finishBy` of what an old man may still do: no age closes it.
 var anyAge = 200
 
+// The events of a life: each comes in every life, at its age, with six months to answer it. Its
+// answers are the rows of activitytable.pg whose `event` names it, and each brings one of the
+// flags of `answered`. The month it is settled (`settledAt` years and `settledMonths`: the month
+// after the last of its answers could end), who holds none of them has stood by, and that is
+// paid for: he holds `stood` from then on (resources.pg writes it, and `said` in the log), the
+// rows of `shuts` are shut to him for this life (one each way a life may go, and none of them
+// the only way to anything), and the glosses of its answers say so ahead (the names of what it
+// shuts, or its `loses` when they are too many to name). A life that was never that month old
+// has not stood by: one begun later, or a save from before the events.
+var lifeEvents = [
+    {id: "flood", name: "the Flood", settledAt: 11, settledMonths: 7, stood: "stood_flood",
+     answered: ["mill_saved", "flood_hero", "flood_looted"],
+     shuts: ["watch", "keys", "boys"],
+     said: "The Flood came and went, and he stood by: the Watch, Father Anselm and the Bellmoor Boys have no use for him"},
+    {id: "levy", name: "the Levy", settledAt: 16, settledMonths: 0, stood: "stood_levy",
+     answered: ["levy_served", "levy_paid", "deserter"],
+     shuts: ["edric", "mara", "night"],
+     said: "The Levy mustered without him, and without his coin: Sergeant Edric, Mara and the night market want no one the Lord's clerk is looking for"},
+    {id: "plague", name: "the Plague Year", settledAt: 23, settledMonths: 9, stood: "stood_plague",
+     answered: ["plague_stayed", "plague_shut", "plague_profiteer"],
+     shuts: ["raid", "exam", "summons", "pardon"],
+     said: "The plague year went by, and he chose nothing: the raid, the Magister's examination, Vey's summons and the Lord's pardon go to others"},
+    {id: "lord", name: "the succession", settledAt: 27, settledMonths: 9, stood: "stood_lord",
+     answered: ["kingmaker", "church_candidate", "interregnum", "heir_sworn"],
+     shuts: ["tales", "teach", "gates.open", "gates.close", "relicfront", "selftest", "spell.sell", "spell.keep", "refuse", "porters"],
+     loses: "the inn wants no tale of his, no pupil is sent to him, and the moment of his calling passes him by",
+     said: "The old Lord died and he took no side, not even a knee: the inn wants no tale of his, no pupil is sent to him, and the moment of his calling goes to another"}
+]
+
+// The events he has stood by are counted (the stat `stoodBy`). At `standByShuts` of them the
+// next great step is shut to him (activitytable.pg's `shutAfter`): every way into a class
+// before he has one, the second callings after. What the log writes that month, for each; a
+// second calling is for the classes of `callingFlags`.
+var stoodBy = "stood_by"
+var standByShuts = 2
+var shutClasses = "Twice Bellmoor called and he stood by: no class will have him"
+var shutCallings = "Twice Bellmoor called and he stood by: no second calling is his"
+var callingFlags = ["keep_oath", "collegium", "hidden_hand"]
+
 // A no-break space (U+00A0, between the quotes): what joins an amount to its stat in a log figure
 // ("+1 str"), so a figure that wraps breaks between two gains and never inside one.
 var noBreak = " "
@@ -662,6 +760,12 @@ var statNames = {
     kingmaker: "Kingmaker",
     church_candidate: "The Church's candidate",
     interregnum: "Took the chance",
+    heir_sworn: "Knelt to the heir",
+    stood_flood: "Stood by at the Flood",
+    stood_levy: "Stood by at the Levy",
+    stood_plague: "Stood by in the plague",
+    stood_lord: "Stood by at the succession",
+    stood_by: "Events stood by",
     castellan: "Castellan",
     crusader: "Crusader",
     curse_breaker: "Curse-breaker",
@@ -821,6 +925,12 @@ var statShort = {
     kingmaker: "KINGMAKER",
     church_candidate: "CANDIDATE",
     interregnum: "CHANCE",
+    heir_sworn: "KNELT",
+    stood_flood: "STOOD BY",
+    stood_levy: "STOOD BY",
+    stood_plague: "STOOD BY",
+    stood_lord: "STOOD BY",
+    stood_by: "STOOD BY",
     castellan: "CASTELLAN",
     crusader: "CRUSADER",
     curse_breaker: "CURSE-BREAKER",

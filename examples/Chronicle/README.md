@@ -696,7 +696,7 @@ arguments, compared by value. `Rules::nbRuns` counts the runs.
 | script | inputs | outputs |
 |---|---|---|
 | `lib.pg` | - | pure helpers: `clamp`, `ordinal` ("14th"), `monthOf` (whole months lived), `monthsBetween`, `monthsToAttempts`, `signed` ("+1" / "−2"), `fmtMonths` ("6 mo"), `numberWord`, `statName`, `statOf`, `lookup`, `raised` (a gain stopped at the stat's ceiling), `byId`, `pathFlagOf`, `asksOf`, `openNote`, `shiftIn` (a month's change to a stat); `lastAge` (30, where his prime ends), `anyAge` (the `finishBy` of what no age closes) |
-| `activitytable.pg` (through `windows.pg`) | `age`, `character`, `done`, `activityId` (`""`: all; `forecast.pg` shapes only its own), `world`, `lives` (1: a first life, shown its tasks one at a time), `running` | `activities`: `{id, group, name, glyph, months, rank, each, path, enters, board, fromAge, finishBy, gains[{stat, amount, label, name}], costs[{stat, amount, label, name}], requires[{stat, label, current, needed}], needs (the requirements as written, for `depgraph.pg`), locked, done, uses, left, spent, closed, pathOpen, listed, showAge, showFrom, tally ("DONE 2", "DONE 0 · 1 LEFT"), until ("" or "CLOSES IN 14 MO"), urgent, after[step]}` |
+| `activitytable.pg` (through `windows.pg`) | `age`, `character`, `done`, `activityId` (`""`: all; `forecast.pg` shapes only its own), `world`, `lives` (which life of the world this is: the places of the town read it), `running` | `activities`: `{id, group, name, glyph, months, rank, each, path, enters, board, fromAge, finishBy, gains[{stat, amount, label, name}], costs[{stat, amount, label, name}], requires[{stat, label, current, needed}], needs (the requirements as written, for `depgraph.pg`), locked, done, uses, left, spent, closed, pathOpen, listed, showAge, showFrom, tally ("DONE 2", "DONE 0 · 1 LEFT"), until ("" or "CLOSES IN 14 MO"), urgent, after[step]}` |
 | `milestones.pg` (`milestonetable.pg`) | `age`, `world`, `lives` | `milestones`: `{age, id, label, passed, entry, asks[{path, stat, label, needed}]}`; `next`: `{id, label, age, in}` (`in` = months to it; `"", "", -1, -1` past the last) |
 | `windows.pg` | `age`, `character`, `done`, `activityId` (`""`) | `windows`: `{id, name, from, to, state (upcoming / open / closed), note (in attempts), attempts}`, one per door of an activity whose path is open to him |
 | `forecast.pg` | `age`, `character`, `done`, `activityId`, `monthsIn` | `forecast`: `{atStart{stats}, atTerm{stats}, percent, toward (the percent a month on), months, caption ("MONTH 3 OF 6 · STRENGTH 14 → 16 AT TERM"), gaps[{stat, label, current, needed}], entries[{text, kind, figure, glyph}], error}` |
@@ -854,11 +854,22 @@ head of the table, with ages counted to the month and a few optional fields:
   the scribe name each other).
 - `closingShown: N`: its closing is said from N months before and not sooner (-1: never), so
   that the year's short works do not count down a whole year.
-- `showAfter: N`: in a first life (`Rules::lives` 1, the save's count of lives, which every
-  script gets as the `lives` input), listed once N terms in all are done in this life: the
-  gleaning, the flour, the choice and the tome come one at a time. With `lives` above 1 it is
-  ignored. The rest of the year is listed by age in every life, and the town's work has no
+- `showAfter: N`: listed once N terms in all are done in this life: the gleaning, the flour,
+  the choice and the tome come one at a time, in every life (a first one has the guide to walk
+  it through them). The rest of the year is listed by age, and the town's work has no
   `showAfter` any more: it is whole the day he is seven.
+- `follows: "id"`: listed once that activity is behind him: done once in this life, or closed to
+  him for good, so that nothing waits on what he missed. The works of a class come this way, a
+  few at a time (the Keep's patrols after its service, the tourney after a patrol).
+- `idleBy: N`: its row leaves the list the month he is N if he has never done it in this life,
+  and nothing is said of it: the town's work a child never took. What he did once stays.
+- `event: "id"` and `shutAfter: N`: the events of a life (`lifeEvents` in `lib.pg`: the Flood,
+  the Levy, the Plague Year, the succession). An answer brings one of the event's flags. The
+  month an event is settled, `resources.pg` gives who holds none of them its `stood` flag, one
+  more `stood_by`, and a line in the log: the rows the event names are shut (`barred` on the
+  row, and its door on the clock), and at `standByShuts` of them so is every row with a
+  `shutAfter` (the ways into a class, the second callings). Only the month itself counts: a
+  life begun later with `--age`, or a save from before the events, has stood by at nothing.
 
 What is done in town (a `place`, a `raises`) is his from six, so that the market sells to the
 boy who has just been taken there; every other activity asks 7 unless it says otherwise.
