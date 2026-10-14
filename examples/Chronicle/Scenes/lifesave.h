@@ -35,6 +35,7 @@ namespace chronicle
         float age = 7.0f;
         int world = 0;                 // Months since the world's Year 0. It runs on from life to life: a death does not rewind it
         int lives = 1;                 // The lives lived in this world, this one counted. A save from before the count reads 1
+        size_t savedAt = 0;            // The wall clock it was last written at, in seconds since 1970 (a size_t: the serializer's one wide integer on every platform): what was written while the chronicle stayed shut is counted from it. A life never written, or a save from before, reads 0
 
         // The town is the world's too: what a life gave Bellmoor is kept when it ends, and the next
         // one is born into it. A save from before the town reads an unknown town
@@ -116,7 +117,8 @@ namespace chronicle
         int termsDone() const;
 
         // What he holds for the first time: every holding of the rules (resources.pg's `rows`)
-        // he has any of and the ledger does not show yet. Added to `resources`, and returned.
+        // he has any of, or that they show from the first (`always`: held at 0 then), and the
+        // ledger does not show yet. Added to `resources`, and returned.
         std::vector<LifeResource> holdEarned(const pg::RecordList& rows);
 
         // Where the life stands, in one short line of JSON for the analytics: his age, the world's

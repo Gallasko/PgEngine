@@ -13,9 +13,11 @@
 //         once it is gone. The screen says it once each time it changes.
 //         `caps`, the most each capped stat of the character can be: [{stat, most}].
 //         `rows`, one table per holding the ledger can show, in the order it lists them:
-//           {id, group, groupLabel, glyph, name, tone, rate, limit, title}
+//           {id, group, groupLabel, glyph, name, tone, rate, limit, title, haste, always}
 //           tone: 0 none, 1 coin, 2 guild, 3 relic; rate: "" or "+2 / mo", what the coming
-//           month does to it as things stand; limit: the most he can hold, 0 for none.
+//           month does to it as things stand; limit: the most he can hold, 0 for none;
+//           haste: 0, or how many times as fast it can run the months (`haste` below);
+//           always: true for a row the ledger shows from the first, at 0 too.
 //         `glosses`, one table per holding, what hovering its row says:
 //           {id, title, text, footnote, rows [{label, value, tone}]}
 //           rows: what he holds (over its limit when it has one: "3/60"), what the month does to it and where that comes
@@ -43,6 +45,12 @@
 //   title: true                       he has it or he has not: a standing, a tie, a title. Its
 //                                     row shows no figure, and its gloss says neither how many he
 //                                     holds nor a limit.
+//   haste: N                          it is time, counted in seconds, and the player's rather than
+//                                     his: the seconds the chronicle stayed shut, up to its limit,
+//                                     kept from life to life. The screen spends it to run the months
+//                                     faster, up to N times as fast (a press goes ×1, ×2 ... ×N):
+//                                     a second played at ×N takes N − 1 of them. Its row is in
+//                                     the ledger from the first, held or not ("0/3600").
 // The most he can hold of a stat is lib.pg's `statLimits`: what a month produces stops at it,
 // and what he already holds past it (an activity may carry him there) is left alone.
 //
@@ -68,6 +76,9 @@ var holdings = [
      empty: {effects: [{stat: "vit", amount: -5}], entry: "The rations ran out",
              low: "Rations are running low: buy some at the market, or take work with meals",
              gone: "No rations left: his Vitality pays. Buy some at the market, or take work with meals"}},
+    // Not his: the player's. The seconds the chronicle stayed shut, spent to run the months faster
+    {id: "written", group: "purse", groupLabel: "PURSE", glyph: "time", name: "Written time", tone: 0, haste: 3,
+     about: "What was written while the chronicle was shut, an hour at most. Spent, it runs the months twice or three times as fast. It is kept from life to life."},
     {id: "reagents", group: "purse", groupLabel: "PURSE", glyph: "magic", name: "Reagents", tone: 0,
      about: "What a working burns. Bought at the Collegium, spent when a working begins."},
     {id: "favors", group: "standing", groupLabel: "STANDING", glyph: "guild", name: "Favors", tone: 2,
@@ -430,7 +441,7 @@ for (var j = 0; j < len(holdings); j++)
 
     if (lookup(h, "ledger", true))
     {
-        push(rows, {id: h.id, group: h.group, groupLabel: h.groupLabel, glyph: h.glyph, name: h.name, tone: h.tone, rate: rate, limit: limitOf(h.id), title: lookup(h, "title", false)})
+        push(rows, {id: h.id, group: h.group, groupLabel: h.groupLabel, glyph: h.glyph, name: h.name, tone: h.tone, rate: rate, limit: limitOf(h.id), title: lookup(h, "title", false), haste: lookup(h, "haste", 0), always: lookup(h, "haste", 0) > 0})
     }
 }
 
@@ -454,7 +465,14 @@ for (var g = 0; g < len(holdings); g++)
         holds = holds + "/" + toString(limit)
     }
 
+    var haste = lookup(h, "haste", 0)
     var notes = [{label: "Held", value: holds, tone: ""}]
+
+    // Time, in seconds: how long it lasts at each speed
+    for (var x = 2; x <= haste; x++)
+    {
+        push(notes, {label: "At ×" + toString(x) + ", lasts", value: toString(held / (x - 1)) + " s", tone: "time"})
+    }
 
     if (delta != 0)
     {
@@ -547,6 +565,11 @@ for (var g = 0; g < len(holdings); g++)
     if (limit > 0 and held >= limit)
     {
         footnote = "FULL: WHAT BRINGS MORE IS CLOSED TO HIM"
+
+        if (haste > 0)
+        {
+            footnote = "FULL: NO MORE IS WRITTEN UNTIL SOME IS SPENT"
+        }
     }
 
     // A title is had or not: nothing to count, no limit to state

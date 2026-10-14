@@ -95,6 +95,25 @@ children:
         glyph: quill
         months: 3
         tag: life.begin
+      # The room of the button that spends written time (`haste`, after the panel) under a running
+      # row: it has the line of Go on, Begin or Pass a month when one of them stands
+      - kind: Layout:Horizontal
+        name: hasteRow
+        width: 1
+        height: 36
+
+  # Written time, spent to run the months faster: a press goes ×1, ×2, ×3 and back. Shown while
+  # any is held (in his Inventory), at the right of "At work now", on the line of its last button
+  - kind: Button
+    name: haste
+    variant: quiet
+    label: "Months ×1"
+    glyph: time
+    tag: life.haste
+    z: 20
+    anchors:
+      - {side: right, target: working, targetSide: right, margin: 16}
+      - {side: bottom, target: working, targetSide: bottom, margin: 16}
 
   # -- One row of tabs for everything under it. Short names, no glyph: seven of them hold in the
   #    column of a narrow phone. The town's and the walks' are the last: neither is shown until a

@@ -979,7 +979,9 @@ var statShort = {
 // what would bring more (activitytable.pg) and stops what a month produces (resources.pg); an
 // activity begun with room left may still carry him past it.
 var statLimits = {
-    rations: 60
+    rations: 60,
+    // Written time is counted in seconds: an hour of it, however long the chronicle stayed shut
+    written: 3600
 }
 
 // The most a stat can ever be: what a term brings stops there (forecast.pg). Unlike a limit it

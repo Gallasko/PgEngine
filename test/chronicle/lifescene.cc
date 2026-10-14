@@ -1415,6 +1415,304 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // Written time runs the months two or three times as fast: a button at the right of "At
+        // work now", on the line of its last button, goes through the speeds while any is held; a
+        // second played at xN takes N - 1 of it, and the months are back at their own pace the
+        // frame it runs out.
+        TEST(lifescene_test, written_time_runs_the_months_faster)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = f.life();
+            ASSERT_NE(life, nullptr);
+
+            const float whole = life->opt.monthMs;
+            const std::string months = "Months \xC3\x97";
+
+            // None held: its row is in the Inventory all the same, and there is no button
+            EXPECT_EQ(life->written(), 0);
+            EXPECT_EQ(life->haste, 1);
+            EXPECT_FALSE(f.pos(life->named("haste"))->visible);
+
+            auto ledger = life->piece<ResourceLedger>("ledger");
+            ASSERT_NE(ledger, nullptr);
+            ASSERT_NE(ledger->row("written"), nullptr);
+            EXPECT_EQ(ledger->row("written")->figure.spec.text, "0/3600");
+
+            const float height = f.pos(life->named("working"))->height;
+
+            // A press with none does nothing
+            life->pressHaste();
+            EXPECT_EQ(life->haste, 1);
+
+            life->save.stats["rations"] = 24;
+            life->save.stats["written"] = 3;
+            life->setHaste(1);
+            f.frames(12);
+
+            auto fast = life->piece<Button>("haste");
+            ASSERT_NE(fast, nullptr);
+            EXPECT_TRUE(f.pos(life->named("haste"))->visible);
+            EXPECT_EQ(fast->spec.label, months + "1");
+            EXPECT_FALSE(fast->spec.disabled);
+
+            // At nothing it shares the line of Pass a month, at the panel's right: the panel is as tall as it was
+            auto working = [&]() { return f.pos(life->named("working")); };
+            auto onLine = [&](const char* name) {
+                auto button = f.pos(life->named("haste"));
+                auto other = f.pos(life->named(name));
+                EXPECT_NEAR(button->y + button->height, other->y + other->height, 0.5f) << name;
+                EXPECT_NEAR(button->x + button->width, working()->x + working()->width - 16.0f, 0.5f) << name;
+            };
+
+            EXPECT_NEAR(working()->height, height, 0.5f);
+            onLine("skip");
+
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "yard"});
+            f.settle();
+
+            ASSERT_EQ(life->save.running, "yard");
+            EXPECT_FLOAT_EQ(f.fact<float>("activity.running.glideMs"), whole);
+
+            // Under a running row the panel keeps it a line of its own
+            f.frames(12);
+            EXPECT_TRUE(f.pos(life->named("hasteRow"))->visible);
+            onLine("hasteRow");
+
+            // Twice as fast: the month under way ends in half the time, and its length is the same
+            f.ecs.sendEvent(ButtonActivatedEvent{fast->face.id, "life.haste"});
+            f.settle();
+
+            EXPECT_EQ(life->haste, 2);
+            EXPECT_EQ(fast->spec.label, months + "2");
+            EXPECT_FLOAT_EQ(life->monthMs(), whole);
+            EXPECT_FLOAT_EQ(f.fact<float>("activity.running.glideMs"), whole / 2.0f);
+
+            f.ecs.sendEvent(TickEvent{whole / 2.0f - 1.0f});
+            f.settle();
+
+            EXPECT_EQ(life->save.monthsIn, 0);
+
+            f.ecs.sendEvent(TickEvent{1.0f});
+            f.settle();
+
+            // A month of his in a second of the clock, and a second of written time for it
+            EXPECT_EQ(life->save.monthsIn, 1);
+            EXPECT_EQ(life->written(), 2);
+
+            // Held with his coin, in seconds, and its row says how fast it goes
+            EXPECT_EQ(ledger->row("written")->figure.spec.text, "2/3600");
+            EXPECT_EQ(ledger->row("written")->spec.rate, "\xC3\x97" "2");
+
+            // Stopped, nothing of it is spent
+            f.ecs.sendEvent(OnSDLScanCode{SDL_SCANCODE_SPACE, 0});
+            f.ecs.sendEvent(TickEvent{whole * 3.0f});
+            f.settle();
+
+            EXPECT_EQ(life->save.monthsIn, 1);
+            EXPECT_EQ(life->written(), 2);
+
+            // Go on stands on its line: the room kept for it goes
+            f.frames(12);
+            EXPECT_FALSE(f.pos(life->named("hasteRow"))->visible);
+            onLine("begin");
+
+            f.ecs.sendEvent(OnSDLScanCode{SDL_SCANCODE_SPACE, 0});
+            f.settle();
+
+            // Three times as fast: a second of the clock takes the two that are left. It ran a
+            // month and a half; the months are back at their own pace, with half a month to run
+            f.ecs.sendEvent(ButtonActivatedEvent{fast->face.id, "life.haste"});
+            f.settle();
+
+            EXPECT_EQ(life->haste, 3);
+            EXPECT_EQ(fast->spec.label, months + "3");
+
+            f.ecs.sendEvent(TickEvent{whole / 2.0f});
+            f.settle();
+
+            EXPECT_EQ(life->save.monthsIn, 2);
+            EXPECT_EQ(life->written(), 0);
+            EXPECT_EQ(life->haste, 1);
+            EXPECT_EQ(fast->spec.label, months + "1");
+            EXPECT_FALSE(f.pos(life->named("haste"))->visible);
+            EXPECT_EQ(ledger->row("written")->figure.spec.text, "0/3600");
+            EXPECT_FLOAT_EQ(f.fact<float>("activity.running.glideMs"), whole / 2.0f);
+
+            // And a month is a month again
+            f.ecs.sendEvent(TickEvent{whole / 2.0f});
+            f.settle();
+
+            EXPECT_EQ(life->save.monthsIn, 3);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Written time multiplies the pace of his age: it does not replace it.
+        TEST(lifescene_test, written_time_multiplies_a_childs_pace)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = f.life(LifeFixture::first());
+            ASSERT_NE(life, nullptr);
+
+            f.frames(12);
+
+            const float whole = life->opt.monthMs;
+
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "glean"});
+            f.settle();
+
+            ASSERT_EQ(life->save.running, "glean");
+
+            life->save.stats["written"] = 10;
+            life->setHaste(2);
+            f.settle();
+
+            // A first life has its guide under "At work now", not this button: the speed is his all the same
+            EXPECT_FALSE(f.pos(life->named("haste"))->visible);
+            EXPECT_EQ(life->haste, 2);
+            EXPECT_FLOAT_EQ(life->monthMs(), whole * 0.5f);
+            EXPECT_FLOAT_EQ(f.fact<float>("activity.running.glideMs"), whole * 0.25f);
+
+            f.ecs.sendEvent(TickEvent{whole * 0.25f - 1.0f});
+            f.settle();
+
+            EXPECT_EQ(life->save.running, "glean");
+
+            f.ecs.sendEvent(TickEvent{1.0f});
+            f.settle();
+
+            EXPECT_TRUE(life->save.running.empty());
+            EXPECT_EQ(life->save.done["glean"], 1);
+
+            // Asked for more than there is: the fastest it goes
+            life->setHaste(9);
+            EXPECT_EQ(life->haste, 3);
+
+            life->setHaste(1);
+            EXPECT_FLOAT_EQ(life->monthMs(), whole * 0.5f);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The time the chronicle stays shut is written time: a second for a second from the hour
+        // the save was written, an hour of it at most, and none for a page loaded again. It is
+        // the player's: a new life has what the last one held.
+        TEST(lifescene_test, time_away_is_written)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            const std::string path = "save/test_life_written.sz";
+            std::remove(path.c_str());
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.noSave = false;
+            opt.savePath = path;
+            opt.now = 1000000;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            EXPECT_EQ(life->written(), 0);
+            ASSERT_TRUE(life->saveNow());
+            EXPECT_EQ(life->save.savedAt, 1000000u);
+
+            f.load<EmptyScene>();
+
+            // Half a minute: a page loaded again
+            opt.now += 30;
+
+            LifeScene* soon = f.life(opt);
+            ASSERT_NE(soon, nullptr);
+
+            EXPECT_EQ(soon->written(), 0);
+            EXPECT_FALSE(f.pos(soon->named("haste"))->visible);
+            ASSERT_TRUE(soon->saveNow());
+
+            f.load<EmptyScene>();
+
+            // Ten minutes
+            opt.now += 600;
+
+            LifeScene* later = f.life(opt);
+            ASSERT_NE(later, nullptr);
+
+            f.frames(12);
+
+            EXPECT_EQ(later->written(), 600);
+            EXPECT_EQ(f.fact<int>("stat.written"), 600);
+
+            auto ledger = later->piece<ResourceLedger>("ledger");
+            ASSERT_NE(ledger, nullptr);
+            ASSERT_NE(ledger->row("written"), nullptr);
+            EXPECT_EQ(ledger->row("written")->figure.spec.text, "600/3600");
+            EXPECT_EQ(ledger->row("written")->name.spec.text, "Written time");
+
+            ASSERT_NE(later->piece<Button>("haste"), nullptr);
+            EXPECT_TRUE(f.pos(later->named("haste"))->visible);
+            EXPECT_FALSE(later->piece<Button>("haste")->spec.disabled);
+            EXPECT_EQ(later->haste, 1);
+
+            bool said = false;
+
+            for (const auto& entry : later->save.log)
+                said = said or entry.text.rfind("600 seconds were written", 0) == 0;
+
+            EXPECT_TRUE(said);
+
+            // Its gloss says what it stops at, and how long it lasts
+            auto registry = f.ecs.getSystem<GlossRegistry>();
+            ASSERT_NE(registry, nullptr);
+
+            const GlossSpec* gloss = registry->find("resource/written");
+            ASSERT_NE(gloss, nullptr);
+            ASSERT_GE(gloss->rows.size(), 3u);
+            EXPECT_EQ(gloss->rows[0].value, "600/3600");
+            EXPECT_EQ(gloss->rows[2].value, "300 s");
+
+            ASSERT_TRUE(later->saveNow());
+
+            f.load<EmptyScene>();
+
+            // A day: an hour is all that is held
+            opt.now += 86400;
+
+            LifeScene* last = f.life(opt);
+            ASSERT_NE(last, nullptr);
+
+            EXPECT_EQ(last->written(), 3600);
+
+            // Opened once more at the same hour: counted once
+            ASSERT_TRUE(last->saveNow());
+
+            last->save.savedAt = static_cast<size_t>(opt.now);
+            last->creditAway();
+
+            EXPECT_EQ(last->written(), 3600);
+
+            // The next life is born with nothing of his, and with this
+            last->newLife();
+            f.frames(12);
+
+            EXPECT_FLOAT_EQ(last->save.age, 6.0f);
+            EXPECT_EQ(last->save.lives, 2);
+            EXPECT_EQ(last->save.stats["coin"], 0);
+            EXPECT_EQ(last->written(), 3600);
+            ASSERT_NE(last->piece<ResourceLedger>("ledger")->row("written"), nullptr);
+            EXPECT_EQ(last->piece<ResourceLedger>("ledger")->row("written")->figure.spec.text, "3600/3600");
+
+            std::remove(path.c_str());
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // The work he is at keeps its tile, even once it could no longer be begun: it leaves the
         // list when its term ends, not under him.
         TEST(lifescene_test, the_work_he_is_at_keeps_its_tile)

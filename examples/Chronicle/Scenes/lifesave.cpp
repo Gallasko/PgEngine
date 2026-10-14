@@ -209,6 +209,7 @@ namespace pg
         serialize(archive, "age", value.age);
         serialize(archive, "world", value.world);
         serialize(archive, "lives", value.lives);
+        serialize(archive, "savedAt", value.savedAt);
         serialize(archive, "townKnown", value.townKnown);
         serialize(archive, "town", value.town);
         serialize(archive, "raisedBy", value.raisedBy);
@@ -268,6 +269,7 @@ namespace pg
         defaultDeserialize(serialized, "age", data.age);
         defaultDeserialize(serialized, "world", data.world);
         defaultDeserialize(serialized, "lives", data.lives);
+        defaultDeserialize(serialized, "savedAt", data.savedAt);
         defaultDeserialize(serialized, "townKnown", data.townKnown);
         defaultDeserialize(serialized, "town", data.town);
         defaultDeserialize(serialized, "raisedBy", data.raisedBy);
@@ -449,8 +451,12 @@ namespace chronicle
         {
             const std::string id = textOf(row, "id");
             auto stat = stats.find(id);
+            auto always = row.find("always");
 
-            if (stat == stats.end() or stat->second <= 0)
+            // A row the rules show from the first (written time) is held at 0 too
+            if (always != row.end() and always->second.type == UnionType::BOOL and always->second.get<bool>())
+                stats.emplace(id, 0);
+            else if (stat == stats.end() or stat->second <= 0)
                 continue;
 
             const bool held = std::any_of(resources.begin(), resources.end(), [&id](const LifeResource& r) { return r.id == id; });

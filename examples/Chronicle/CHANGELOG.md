@@ -17,6 +17,11 @@ the `CHANGELOG.md` at the root of the repository.
   Renown). Then the market, the harvest (a point of everything), and a month at the mill that
   ends the day you are seven. A whole year takes about a quarter of a minute, and no two need
   be alike.
+- **Written time.** While the game is closed the chronicle goes on being written: every
+  second away is kept, up to an hour (3600 seconds), and waits in your Inventory beside your
+  coin. While you have some, the button *Months ×1* in *At work now* spends it: press it for
+  ×2, again for ×3, again to stop. The months run that fast until it is used up, then go back to their own pace by
+  themselves. It is yours, not his: a new life keeps it.
 - **A keepsake.** *Carry Books for Father Anselm* pays in coin and in a small tome he tells you
   to keep. It is in your Inventory. Nothing asks for it yet.
 - **The wooden blade is bought, then learned, then chosen.** From your eighth year the market

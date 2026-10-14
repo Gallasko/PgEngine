@@ -1386,6 +1386,26 @@ namespace pg
             EXPECT_EQ(intOf(*byId(month.rows, "rations"), "limit"), 60);
             EXPECT_EQ(intOf(*byId(month.rows, "coin"), "limit"), 0);
 
+            // Written time: held with his coin, in seconds, an hour of it at most. It is the one
+            // holding that runs the months faster, and a month takes none of it
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{5}}, {"written", ElementType{754}}}, false, month));
+
+            const ElementMap* written = byId(month.rows, "written");
+            ASSERT_NE(written, nullptr);
+            EXPECT_EQ(textOf(*written, "group"), "purse");
+            EXPECT_EQ(intOf(*written, "limit"), 3600);
+            EXPECT_EQ(intOf(*written, "haste"), 3);
+            EXPECT_EQ(textOf(*written, "rate"), "");
+            EXPECT_EQ(intOf(*byId(month.rows, "coin"), "haste"), 0);
+            EXPECT_EQ(intOf(month.after, "written"), 754);
+
+            ASSERT_NE(glossOf(month, "written"), nullptr);
+            EXPECT_TRUE(flag(*written, "always"));
+            EXPECT_FALSE(flag(*byId(month.rows, "coin"), "always"));
+            EXPECT_EQ(rowOf(*glossOf(month, "written"), "Held"), "754/3600");
+            EXPECT_EQ(rowOf(*glossOf(month, "written"), "At \xC3\x97" "2, lasts"), "754 s");
+            EXPECT_EQ(rowOf(*glossOf(month, "written"), "At \xC3\x97" "3, lasts"), "377 s");
+
             // Fed by his work, the month uses none, and the gloss says so
             ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{5}}}, true, month));
             EXPECT_NE(textOf(glossOf(month, "rations")->fields, "footnote").find("MEALS PROVIDED"), std::string::npos);

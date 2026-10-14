@@ -11,6 +11,7 @@
 #endif
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <string>
@@ -100,6 +101,9 @@ namespace chronicle
         constexpr float SkipButton = 48.0f;        // "At work now" idle: the button to pass a month (36) and the body's gap (12)
         constexpr float GuideLine = 32.0f;         // And, over it, the line that says what to do in a life that has done nothing yet (20) and the gap (12)
         constexpr const char * const SkipTag = "life.skip";
+        constexpr const char * const HasteTag = "life.haste";   // The button that spends written time
+        constexpr float MsASecond = 1000.0f;       // Written time is held in seconds and spent in ms
+        constexpr unsigned long long AwayLeast = 60;   // A chronicle shut for less than a minute has written nothing: a page loaded again is not time away
         constexpr const char * const BeginTag = "life.begin";
         constexpr const char * const AgainTag = "life.again";
 
@@ -703,6 +707,8 @@ namespace chronicle
 
                 onMonth();
             }
+            else if (e.tag == HasteTag)
+                pressHaste();
             else if (e.tag == BeginTag and resumes())
                 pause(false);
             else if (e.tag == BeginTag and not chosen.empty())
@@ -721,7 +727,16 @@ namespace chronicle
         listenToEvent<TickEvent>([this](const TickEvent& e) {
             // What lasts a moment runs its course whether the months run or not
             if (quiet > 0.0f)
+            {
                 quiet -= e.tick;
+
+                // What was written while the chronicle stayed shut is said once the page is there
+                if (quiet <= 0.0f and not awayLine.empty())
+                {
+                    toast(awayLine);
+                    awayLine.clear();
+                }
+            }
 
             // The guide's hand moves whether the months run or not, and a step said for a time
             // runs it out
@@ -747,7 +762,17 @@ namespace chronicle
             if (paused)
                 return;
 
+            // Written time runs the months so many times as fast: what it adds to the frame is
+            // taken from it, and the frame it runs out the months are back at their own pace
             sinceMonth += e.tick;
+
+            if (haste > 1)
+            {
+                sinceMonth += spendWritten(e.tick * static_cast<float>(haste - 1));
+
+                if (written() <= 0)
+                    setHaste(1);
+            }
 
             // Asked again after each month: the one that makes him seven, or ten, slows the next
             for (float ms = monthMs(); sinceMonth >= ms; ms = monthMs())
@@ -773,6 +798,12 @@ namespace chronicle
             case SDL_SCANCODE_M:
                 if (not onWalk())
                     onMonth();
+                break;
+
+            // Written time, as its button spends it
+            case SDL_SCANCODE_F:
+                if (hastens())
+                    pressHaste();
                 break;
 
             case SDL_SCANCODE_T:
@@ -862,8 +893,10 @@ namespace chronicle
         // The page is arriving: what a save was already short of is not news to say
         quiet = QuietMs;
 
-        // A save from before the ledger followed the stats
+        // A save from before the ledger followed the stats. What was written while it stayed shut
+        // is held with them
         refreshHoldings();
+        creditAway();
         save.holdEarned(holdings);
 
         // The page to the window as it is now, before the rows: they are built at the widths it
@@ -936,7 +969,7 @@ namespace chronicle
             background->get<PositionComponent>()->setHeight(height);
         }
 
-        guideFitted = guideRoom() + resumeRoom();
+        guideFitted = guideRoom() + resumeRoom() + hasteRoom();
 
         if (phone)
             fitPhone(width, height);
@@ -1171,6 +1204,20 @@ namespace chronicle
         show("skip", idle and not begins and not leads);
         show("begin", begins or waits or stopped);
 
+        // At their right, on their line, the button that spends written time, while any is held.
+        // It stands outside the panel's stack: where none of them is shown (a running row, the
+        // line of a life that has done nothing yet) the panel keeps it the room of one
+        show("hasteRow", hastens() and not ((idle and not begins and not leads) or begins or waits or stopped));
+
+        if (EntityRef fast = named("haste"); not fast.empty())
+            fast->get<PositionComponent>()->setVisibility(hastens());
+
+        if (auto fast = piece<Button>("haste"))
+        {
+            fast->setLabel(ecsRef, "Months \xC3\x97" + std::to_string(haste));
+            fast->setDisabled(ecsRef, not hastens());
+        }
+
         if (stopped)
         {
             if (auto begin = piece<Button>("begin"))
@@ -1257,7 +1304,7 @@ namespace chronicle
 
     float LifeScene::workingHeight() const
     {
-        return (save.running.empty() ? PanelChrome + SkipButton : RunningPanel) + guideRoom() + resumeRoom();
+        return (save.running.empty() ? PanelChrome + SkipButton : RunningPanel) + guideRoom() + resumeRoom() + hasteRoom();
     }
 
     bool LifeScene::guiding() const
@@ -1285,6 +1332,19 @@ namespace chronicle
     float LifeScene::resumeRoom() const
     {
         return resumes() ? SkipButton : 0.0f;
+    }
+
+    bool LifeScene::hastens() const
+    {
+        // A first life is walked through its first works before anything else is put under them
+        return written() > 0 and not ended and not guiding();
+    }
+
+    float LifeScene::hasteRoom() const
+    {
+        // At nothing the panel counts a button's line already (Pass a month, Begin), and a
+        // stopped work has Go on's: only a running row leaves it none
+        return hastens() and not save.running.empty() and not resumes() ? SkipButton : 0.0f;
     }
 
     bool LifeScene::led() const
@@ -1755,7 +1815,7 @@ namespace chronicle
         }
 
         // The line of a life led with no guide came or went: what stands under "At work now" follows
-        if (std::abs(guideRoom() + resumeRoom() - guideFitted) > 0.5f)
+        if (std::abs(guideRoom() + resumeRoom() + hasteRoom() - guideFitted) > 0.5f)
             fit(windowWidth, windowHeight);
 
         // Found again every time: a page built again has other tiles, a list that scrolled other
@@ -3160,6 +3220,23 @@ namespace chronicle
 
             for (const auto& cap : month.caps)
                 caps[textOf(cap, "stat")] = intOf(cap, "most");
+
+            // Written time is the holding the rules give a `haste`: how fast it runs the months,
+            // and how much of it can be held
+            writtenStat.clear();
+            writtenMost = 0;
+            hasteMost = 1;
+
+            for (const auto& h : holdings)
+            {
+                if (intOf(h, "haste") <= 1)
+                    continue;
+
+                writtenStat = textOf(h, "id");
+                writtenMost = intOf(h, "limit");
+                hasteMost = intOf(h, "haste");
+            }
+
             return;
         }
 
@@ -3783,6 +3860,10 @@ namespace chronicle
                     rate = textOf(h, "rate");
             }
 
+            // Written time has no month's rate: its row says how fast it is being spent
+            if (r.id == writtenStat and haste > 1)
+                rate = "\xC3\x97" + std::to_string(haste);
+
             // A title is had or not: its row shows no figure
             setFact("resources." + r.id + ".value", titled(r.id) ? std::string() : stat != save.stats.end() ? holdingText(r.id, stat->second) : r.value);
             setFact("resources." + r.id + ".rate", rate);
@@ -3871,8 +3952,9 @@ namespace chronicle
 
         setFact("activity.running.pace", std::string(paused ? "paused" : "running"));
 
-        // The rule reaches next month's figure as the month ends, and holds while the months stop
-        setFact("activity.running.glideMs", paused ? 0.0f : std::max(0.0f, monthMs() - sinceMonth));
+        // The rule reaches next month's figure as the month ends, and holds while the months stop.
+        // Sooner on written time, by as much as it runs the months faster
+        setFact("activity.running.glideMs", paused ? 0.0f : std::max(0.0f, monthMs() - sinceMonth) / static_cast<float>(haste));
     }
 
     float LifeScene::monthMs() const
@@ -3885,6 +3967,109 @@ namespace chronicle
             return opt.monthMs * ChildPace;
 
         return opt.monthMs;
+    }
+
+    int LifeScene::written() const
+    {
+        const auto held = save.stats.find(writtenStat);
+
+        return writtenStat.empty() or held == save.stats.end() ? 0 : std::max(0, held->second);
+    }
+
+    unsigned long long LifeScene::wallClock() const
+    {
+        if (opt.now > 0)
+            return opt.now;
+
+        return static_cast<unsigned long long>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+    }
+
+    void LifeScene::creditAway()
+    {
+        const unsigned long long since = save.savedAt;
+
+        // A life never written has not stayed shut, and the rules may hold no such thing
+        if (writtenStat.empty() or writtenMost <= 0 or since == 0)
+            return;
+
+        const unsigned long long now = wallClock();
+
+        // Counted once: the next time away runs from here. A clock set back has written nothing
+        save.savedAt = static_cast<size_t>(now);
+
+        if (now < since + AwayLeast)
+            return;
+
+        // A second away is a second written, up to what can be held
+        const int held = written();
+        const int room = std::max(0, writtenMost - held);
+        const int away = static_cast<int>(std::min<unsigned long long>(now - since, static_cast<unsigned long long>(room)));
+
+        save.stats[writtenStat] = held + away;
+
+        if (away <= 0)
+            return;
+
+        // Before the page is built: the log's line is one of its own, the toast waits for it
+        awayLine = std::to_string(away) + " seconds were written while the chronicle was shut: they run the months faster";
+
+        save.log.push_back({save.age, awayLine, LogKind::Note, "", ""});
+    }
+
+    float LifeScene::spendWritten(float ms)
+    {
+        auto held = save.stats.find(writtenStat);
+
+        if (writtenStat.empty() or held == save.stats.end() or held->second <= 0)
+            return 0.0f;
+
+        // Held in seconds, spent in ms: the part of a second spent waits for the rest of it
+        const float left = static_cast<float>(held->second) * MsASecond - writtenSpent;
+        const float spent = std::min(ms, left);
+
+        writtenSpent += spent;
+
+        const int seconds = static_cast<int>(writtenSpent / MsASecond);
+
+        held->second -= seconds;
+        writtenSpent -= static_cast<float>(seconds) * MsASecond;
+
+        // The last of it: nothing of a second is left over
+        if (spent >= left or held->second <= 0)
+        {
+            held->second = 0;
+            writtenSpent = 0.0f;
+        }
+
+        if (seconds > 0 or held->second <= 0)
+            publishWritten();
+
+        return spent;
+    }
+
+    void LifeScene::setHaste(int times)
+    {
+        haste = written() > 0 ? std::max(1, std::min(times, hasteMost)) : 1;
+
+        // The running row's rule ends its month sooner or later, its ledger row and its button say how fast
+        publishWritten();
+        publishPace();
+        showWorkButtons();
+    }
+
+    void LifeScene::pressHaste()
+    {
+        setHaste(haste < hasteMost ? haste + 1 : 1);
+    }
+
+    void LifeScene::publishWritten()
+    {
+        if (writtenStat.empty() or save.stats.count(writtenStat) == 0)
+            return;
+
+        setFact("resources." + writtenStat + ".value", holdingText(writtenStat, written()));
+        setFact("resources." + writtenStat + ".rate", haste > 1 ? "\xC3\x97" + std::to_string(haste) : std::string());
+        setFact("stat." + writtenStat, written());
     }
 
     void LifeScene::pause(bool on)
@@ -5285,7 +5470,7 @@ namespace chronicle
             return false;
         }
 
-        const bool ok = save.save(opt.savePath);
+        const bool ok = writeSave();
 
         if (ok)
             appendLog({save.age, "The chronicle is written up to here", LogKind::Note, "", ""});
@@ -5345,8 +5530,16 @@ namespace chronicle
         if (opt.noSave)
             return;
 
-        if (not save.save(opt.savePath))
+        if (not writeSave())
             LOG_ERROR(DOM, "Could not save to " << opt.savePath);
+    }
+
+    bool LifeScene::writeSave()
+    {
+        // The hour it is written at: what the chronicle writes while it stays shut runs from it
+        save.savedAt = static_cast<size_t>(wallClock());
+
+        return save.save(opt.savePath);
     }
 
     void LifeScene::newLife()
@@ -5382,6 +5575,10 @@ namespace chronicle
         // And so is what its walks have taught. The records are the one who walked them's, and
         // so is what they brought him: a new life has neither
         save.knowledge = last.knowledge;
+
+        // Written time is the player's, not his: the one thing held that a death does not take
+        if (auto held = last.stats.find(writtenStat); not writtenStat.empty() and held != last.stats.end())
+            save.stats[writtenStat] = held->second;
 
         closeWalk();
         walk = RuleWalk{};

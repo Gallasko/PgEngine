@@ -107,6 +107,21 @@ walked them's. The on-site screen is laid as the Life page is: how he stands (hi
 well the place is known), what he carries and the way home at the left, what he may do in the
 middle as tiles, what he has taken and the record at the right.
 
+**Written time.** The time the chronicle stays shut is kept: a second for a second from the
+hour the save was last written (`LifeSave::savedAt`), an hour of it at most, and none for less
+than a minute away. It is a holding of the rules (`resources.pg`, the one with a `haste`; its
+limit is `lib.pg`'s `statLimits`), so it stands in the Inventory with his coin and his rations,
+in seconds and from the first ("0/3600": `always` on its row), but it is the player's: a new
+life has what the last one held. The button *Months ×1* (or `F`) spends it: a press goes ×1, ×2, ×3 and back, and the
+months run that many times as fast. The speed multiplies the pace of his age
+(`LifeScene::monthMs` is not changed by it: the month under way runs faster through the same
+length), a second played at ×N takes N − 1 seconds of it, and the frame it runs out the months
+are back at their own pace. Nothing of it is spent while the months are stopped. The button is
+shown while any is held (a first life's, once its guide is over), at the right of *At work
+now* on the line of its last button (*Pass a month*, *Begin*, *Go on*): it is a page node
+anchored to the panel's bottom right, and under a running row the panel keeps it a line
+(`hasteRow`).
+
 With no `--dev` the game opens on the **Life scene** (`--dev LifeScene` names it too).
 `--dev <Scene>` picks a dev gallery instead; an unknown name exits with code 2 before a
 window opens. On the Life scene, confirming an activity starts the months (one every 2 s,
@@ -119,7 +134,7 @@ under way (a paused month keeps what it ran), and the head of *At work now* says
 the key, or by a part that fails) has a *Go on* button under its row (`LifeScene::resumes`): a
 phone has no key. At nothing no key runs the
 months: *Pass a month*, the button standing in *At work now* in the running row's place, passes
-one. `M` passes one month at any time (a dev key), `T` switches the theme, `R` reduced motion, `S` saves, `N` starts
+one. `M` passes one month at any time (a dev key), `T` switches the theme, `R` reduced motion, `S` saves, `F` spends written time (as its button does), `N` starts
 a new life. The life is also saved on its own, with no line in the log: after every month, every choice, every thing done
 at once and every new life (never with `--no-save`); `S` writes it and says so. A life whose Vitality reaches 0 is lost: its **ending** comes up over the page, a leaf
 saying who he was, how it ended and what the chronicle keeps of him, and nothing passes until

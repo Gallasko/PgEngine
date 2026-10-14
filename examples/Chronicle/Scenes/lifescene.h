@@ -44,6 +44,7 @@ namespace chronicle
         std::string walk;              // --walk <zone>: a later life, never written, opened on a walk to that zone with what the zone asks
         float autoTurnMs = 600.0f;     // A fight handed to his stance plays a turn every so many ms
         float monthMs = 2000.0f;       // One month every so many ms while the loop runs (--month-ms); a child's months are a part of it (`LifeScene::monthMs`)
+        unsigned long long now = 0;    // The wall clock, in seconds since 1970: 0 reads the system's, a test gives its own
     };
 
     // A step of the guide (achievements.pg, kind "guide") as the scene holds it
@@ -82,6 +83,10 @@ namespace chronicle
         // Public for the tests and the dev keys
         void onMonth();                // One month passes; a life with nothing left to live on ends
         float monthMs() const;         // How long a month lasts at his age: opt.monthMs from ten, shorter before, to bring a new player in
+        int written() const;           // The written time held, in seconds: what the chronicle wrote while it stayed shut
+        void setHaste(int times);      // The months run so many times as fast, on written time: 1 is their own pace, and all there is with none left
+        void pressHaste();             // The button's press: the next speed, and back to 1 after the last
+        void creditAway();             // The time since the save was written is written time, up to what can be held: once, when a save is opened
         bool saveNow();                // Writes the save (not with --no-save)
         void autoSave();               // The same with no line in the log: after a month, a choice, a thing done at once, a new life
         void tellAnalytics(const std::string& event = "");   // Where the life stands, kept by the analytics for its next row; with an event, a row now
@@ -104,6 +109,7 @@ namespace chronicle
 
         LifeSceneOptions opt;
         LifeSave save;
+        int haste = 1;                 // How many times as fast the months run now, on written time: 1 is their own pace
         Rules rules;
         pg::EntityRef page;
         pg::EntityRef ending;          // The veil and the leaf over the page, while `ended`
@@ -293,6 +299,12 @@ namespace chronicle
         void publishRunning();         // forecast for the activity at work -> activity.running.*
         void publishPace();            // -> activity.running.pace (idle, running, paused) and .glideMs: the rule follows the month's clock
         void pause(bool on);           // The months stop or run, and the page says which
+        unsigned long long wallClock() const;   // The hour it is, in seconds since 1970 (opt.now for a test)
+        bool writeSave();              // The save to its file, with the hour it is written at
+        float spendWritten(float ms);  // So many ms of written time are spent, or what is left of it: what was, in ms
+        void publishWritten();         // -> resources.<written time>.value and .rate, stat.<written time>
+        bool hastens() const;          // Whether "At work now" has the button that spends it: while any is held, in a life past its guide
+        float hasteRoom() const;       // And the room it takes there: a line under a running row, none where a button's line stands
 
         void onSelect(const ActivitySelectedEvent& event);
         void onConfirm(const ActivityActivatedEvent& event);
@@ -436,7 +448,12 @@ namespace chronicle
         pg::ElementMap next;                      // The last next milestone
         pg::RecordList nextAsks;                  // What it asks of the path he is headed for
         std::unordered_map<std::string, pg::EntityRef> handles;
-        float sinceMonth = 0.0f;
+        float sinceMonth = 0.0f;                  // How far the month under way has run, in ms of its own length (monthMs()): written time runs it faster
+        std::string writtenStat;                  // The stat written time is held in, as the rules name it (their holding with a `haste`); "" when they have none
+        int writtenMost = 0;                      // The most of it that can be held, in seconds
+        int hasteMost = 1;                        // How many times as fast it can run the months
+        float writtenSpent = 0.0f;                // The part of its next second already spent, in ms
+        std::string awayLine;                     // What was written while the chronicle stayed shut, to be said once the page has arrived
         std::vector<std::string> alerted;         // The parts in red
         float alertLeft = 0.0f;                   // Milliseconds of red left
         bool endangered = false;                  // The last month took from what the life hangs on
