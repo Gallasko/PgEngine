@@ -1427,6 +1427,9 @@ namespace pg
             LifeScene* life = f.life();
             ASSERT_NE(life, nullptr);
 
+            // A later life: a first one is walked through its guide with nothing else under its works
+            life->save.lives = 2;
+
             const float whole = life->opt.monthMs;
             const std::string months = "Months \xC3\x97";
 
@@ -1678,6 +1681,9 @@ namespace pg
             LifeScene* life = f.life(opt);
             ASSERT_NE(life, nullptr);
 
+            // A later life, kept by the save: a first one shows no button while its guide is said
+            life->save.lives = 2;
+
             EXPECT_EQ(life->written(), 0);
             ASSERT_TRUE(life->saveNow());
             EXPECT_EQ(life->save.savedAt, 1000000u);
@@ -1760,7 +1766,7 @@ namespace pg
             f.frames(12);
 
             EXPECT_FLOAT_EQ(last->save.age, 6.0f);
-            EXPECT_EQ(last->save.lives, 2);
+            EXPECT_EQ(last->save.lives, 3);
             EXPECT_EQ(last->save.stats["coin"], 0);
             EXPECT_EQ(last->written(), 3600);
             ASSERT_NE(last->piece<ResourceLedger>("ledger")->row("written"), nullptr);
@@ -4012,7 +4018,8 @@ namespace pg
             EXPECT_FALSE(life->ended);
             EXPECT_TRUE(life->ending.empty());
 
-            // The mockup's life (23 terms, the carters' most of all, sworn to the Keep, three deeds),
+            // The mockup's life (24 terms, the wooden blade's practice one of them, the carters' most
+            // of all, sworn to the Keep, three deeds),
             // with nothing left to eat
             life->save.stats["rations"] = 0;
             life->save.stats["vit"] = 1;
@@ -4043,7 +4050,7 @@ namespace pg
             EXPECT_NE(said("endStory").find("Carry for the Carters"), std::string::npos) << said("endStory");
             EXPECT_NE(said("endStory").find("The carters' road"), std::string::npos) << said("endStory");
             EXPECT_EQ(said("endTally"), life->epitaph.tally);
-            EXPECT_EQ(said("endTally").rfind("AGE 17 \xC2\xB7 WORKS 23 \xC2\xB7 COIN ", 0), 0u) << said("endTally");
+            EXPECT_EQ(said("endTally").rfind("AGE 17 \xC2\xB7 WORKS 24 \xC2\xB7 COIN ", 0), 0u) << said("endTally");
 
             // He did not live his life out: nothing is asked of who played it
             ASSERT_FALSE(part("endAsk").empty());
@@ -4221,10 +4228,13 @@ namespace pg
             EXPECT_EQ(life->piece<LifeClock>("clock")->age.spec.text, "6");
             EXPECT_EQ(f.fact<std::string>("life.headline.ageUnit"), "YEARS OLD");
 
-            // Nothing held: no rations to eat, no row for them
+            // Nothing held: no rations to eat, no row for them. Written time alone has its row
+            // from the first, at nothing
             auto ledger = life->piece<ResourceLedger>("ledger");
             ASSERT_NE(ledger, nullptr);
-            EXPECT_TRUE(ledger->groups.empty());
+            ASSERT_EQ(ledger->groups.size(), 1u);
+            ASSERT_EQ(ledger->groups[0].rows.size(), 1u);
+            EXPECT_NE(ledger->row("written"), nullptr);
             EXPECT_EQ(life->save.stats.count("rations"), 0u);
             EXPECT_FALSE(f.facts->hasFact("stat.rations"));
 
@@ -7034,7 +7044,7 @@ namespace pg
             EXPECT_TRUE(f.pos(life->named("recordsNote"))->visible);
             EXPECT_FALSE(f.pos(life->named("records"))->visible);
             EXPECT_FALSE(f.pos(life->named("queuePanel"))->visible);
-            EXPECT_EQ(life->piece<Button>("walkNew")->label.spec.text, "Set out for Mill Pond \xC2\xB7 1 mo");
+            EXPECT_EQ(life->piece<Button>("walkNew")->label.spec.text, "Set out for Mill Pond \xC2\xB7 2 mo");
 
             // Back to the place he has walked: its records are on the page again, lines and all
             f.ecs.sendEvent(PlaceSelectedEvent{"walk.hedgerows"});
@@ -7432,12 +7442,22 @@ namespace pg
             ASSERT_NE(list, nullptr);
             EXPECT_EQ(list->find(&f.ecs, "pond"), nullptr);
 
+            std::vector<RuleActivity> activities;
+            ASSERT_TRUE(life->rules.activities(life->save.age, life->save.character(), activities));
+
             bool open = false;
 
-            for (const auto& a : life->activities)
+            for (const auto& a : activities)
             {
-                if (textOf(a.fields, "id") == "walk.millpond")
-                    open = intOf(a.fields, "locked") == 0;
+                auto id = a.fields.find("id");
+
+                if (id == a.fields.end() or id->second.toString() != "walk.millpond")
+                    continue;
+
+                auto locked = a.fields.find("locked");
+
+                open = locked == a.fields.end()
+                    or (locked->second.type == UnionType::BOOL ? not locked->second.get<bool>() : locked->second.get<int>() == 0);
             }
 
             EXPECT_TRUE(open);

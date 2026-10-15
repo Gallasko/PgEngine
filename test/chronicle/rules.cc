@@ -1685,7 +1685,8 @@ namespace pg
 
             for (const auto& id : listed)
             {
-                const bool old = id == "buy.rations" or id == "tales" or id == "garden" or id == "teach";
+                // The wooden blade too: no age closes it, a man who never held one may begin there
+                const bool old = id == "buy.rations" or id == "buy.blade" or id == "tales" or id == "garden" or id == "teach";
 
                 EXPECT_TRUE(old or id.rfind("raise.", 0) == 0) << id;
             }
