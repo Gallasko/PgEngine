@@ -19,6 +19,7 @@ namespace chronicle
         int of = 3;                    // The seals in all
         std::string line;              // What the place gives now, in caps; "NOT YET BUILT" at level 0
         bool selected = false;
+        bool ready = false;            // Something waits on a click: its next level can be begun now. Lit in gold, under the selection
         std::string glossKey;          // "" = none; else attachGloss(root, key)
         float width = 148.0f;
         int z = 20;                    // Root and ground; the edge z+2; the marks z+3, the texts z+4
@@ -37,8 +38,8 @@ namespace chronicle
     struct PlaceTile
     {
         pg::EntityRef root;            // PositionComponent + UiAnchor + Prefab: anchor this. spec.width wide, height() tall
-        pg::EntityRef ground;          // Simple2DObject, place.ground (.selected): it takes the click
-        pg::EntityRef edge;            // Simple2DObject 3 px at the left, place.edge (.selected)
+        pg::EntityRef ground;          // Simple2DObject, place.ground (.selected / .ready): it takes the click
+        pg::EntityRef edge;            // Simple2DObject 3 px at the left, place.edge (.selected / .ready)
         Mark mark;
         Label name;                    // Two lines at most
         std::vector<Mark> seals;       // spec.of of them: place.seal.earned, then place.seal.empty
@@ -48,6 +49,7 @@ namespace chronicle
         void setLevel(pg::EntitySystem*, int level, int of);   // The seals: made again when `of` changes
         void setLine(pg::EntitySystem*, const std::string&);
         void setSelected(pg::EntitySystem*, bool);
+        void setReady(pg::EntitySystem*, bool);
         void setWidth(pg::EntitySystem*, float);                // The ground and the texts follow
         float height(pg::EntitySystem*) const;
     };

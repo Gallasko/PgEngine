@@ -235,6 +235,26 @@ namespace pg
             PlaceTile chosen = makePlaceTile(&f.ecs, spec);
 
             EXPECT_EQ(f.element(chosen.ground), "place.ground.selected");
+
+            // Ready to be raised: lit in gold, under the selection
+            tile.setReady(&f.ecs, true);
+
+            EXPECT_EQ(f.element(tile.ground), "place.ground.ready");
+            EXPECT_EQ(f.element(tile.edge), "place.edge.ready");
+            EXPECT_TRUE(tile.spec.ready);
+
+            tile.setSelected(&f.ecs, true);
+
+            EXPECT_EQ(f.element(tile.edge), "place.edge.selected");
+
+            tile.setSelected(&f.ecs, false);
+
+            EXPECT_EQ(f.element(tile.edge), "place.edge.ready");
+
+            tile.setReady(&f.ecs, false);
+
+            EXPECT_EQ(f.element(tile.ground), "place.ground");
+            EXPECT_EQ(f.element(tile.edge), "place.edge");
         }
 
         // ----------------------------------------------------------------------------------------

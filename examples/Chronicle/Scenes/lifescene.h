@@ -312,9 +312,10 @@ namespace chronicle
 
         void onSelect(const ActivitySelectedEvent& event);
         void onConfirm(const ActivityActivatedEvent& event);
+        void beginWork(const std::string& id);   // An activity begun: the choice's Begin, a row confirmed, a place's tile clicked
         void doAtOnce(const std::string& id, const RuleForecast& forecast);   // An activity that takes no time
         void onTab(const TabSelectedEvent& event);
-        void onPlace(const PlaceSelectedEvent& event);   // A place's tile clicked: lit, and the work that raises it chosen with it
+        void onPlace(const PlaceSelectedEvent& event);   // A place's tile clicked: the work that raises it begun, or said why not
 
         // The walks (lifewalk.cpp)
         bool askWalk(const std::string& ask, const WalkAct& act, const std::string& replay, RuleWalk& out);   // expedition.pg, asked with what the save holds

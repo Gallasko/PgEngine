@@ -162,14 +162,6 @@ children:
             name: places
             width: 334
             tileWidth: 148
-          - {kind: Label, name: worksHead, style: gloss-title, overflow: ellipsis, width: 334, text: "Works for the town"}
-          - kind: ActivityList
-            name: townWorks
-            id: town.works
-            width: 334
-            stripes: false
-            compact: true
-            tileWidth: 148
           - {kind: Label, name: marketHead, style: gloss-title, overflow: ellipsis, width: 334, text: "The Market"}
           - kind: ActivityList
             name: marketRows

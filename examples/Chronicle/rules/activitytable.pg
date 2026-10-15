@@ -151,7 +151,8 @@
 //                    town is for who does not know it).
 //   place: "id"      it is done at a place of the town: once the town is known its row stands on
 //                    the Town page, at that place (the market), and no longer on the Life page.
-//                    So does a work that raises a place (`raises`): it stands under the places.
+//                    A work that raises a place (`raises`) has no row: a click on the
+//                    place's tile begins it.
 //   goto: "page"     confirming it opens that page ("town") and does nothing else: no term, no
 //                    month, no line.
 //   raises: "id", level: N

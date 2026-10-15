@@ -1028,7 +1028,7 @@ namespace chronicle
         ElementType fundLine;
         ElementType foundLine;
 
-        if (not s.run() or not s.get("places", {"gaps", "given", "leaves"}, records) or not s.get("start", out.start))
+        if (not s.run() or not s.get("places", {"gaps", "given", "leaves", "tiers"}, records) or not s.get("start", out.start))
             return fail(s);
 
         if (not s.get("opened", opened) or not s.get("raisedLine", raisedLine) or not s.get("epitaphLine", epitaphLine) or not s.get("fundLine", fundLine) or not s.get("foundLine", foundLine))
@@ -1042,6 +1042,7 @@ namespace chronicle
             place.gaps = std::move(record.lists[0]);
             place.given = std::move(record.lists[1]);
             place.leaves = std::move(record.lists[2]);
+            place.tiers = std::move(record.lists[3]);
 
             out.places.push_back(std::move(place));
         }

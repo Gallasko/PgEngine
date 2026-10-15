@@ -61,7 +61,6 @@ namespace chronicle
 
         constexpr const char * const ActivitiesList = "life.activities";
         constexpr const char * const MarketList = "town.market";   // The market's rows, on the Town page
-        constexpr const char * const WorksList = "town.works";     // And the works that raise a place, under the places
 
         // The page's pieces the town is made of (life.yaml, life-compact.yaml): the choice and the
         // Town page take each other's place in the middle column
@@ -70,7 +69,6 @@ namespace chronicle
         constexpr const char * const AdventureName = "adventure";   // The Adventure page: the records of his walks (lifewalk.cpp)
         constexpr const char * const PlacesName = "places";
         constexpr const char * const MarketName = "marketRows";
-        constexpr const char * const WorksName = "townWorks";
         constexpr const char * const RaisedName = "raised";
         constexpr const char * const GiftTag = "life.gift.";   // Followed by the place's id: the ending's buttons
         constexpr float GiftGap = 6.0f;            // Between two of them
@@ -368,7 +366,7 @@ namespace chronicle
 
             if (NodeSpec* may = childNamed(page, "may"))
             {
-                for (const char* name : {"town", "places", "worksHead", "townWorks", "marketHead", "marketRows", "raised",
+                for (const char* name : {"town", "places", "marketHead", "marketRows", "raised",
                                          "adventure", "recordsHead", "records", "recordsNote", "queueHead", "queueTitle", "queueCount", "queueTake", "queueUse",
                                          "queueBring", "queueTeach", "queueWarn", "queueGo", "atWalk"})
                     setProp(childNamed(*may, name), "width", inner);
@@ -434,6 +432,16 @@ namespace chronicle
             auto it = map.find(key);
 
             return it != map.end() and it->second.type == UnionType::BOOL and it->second.get<bool>();
+        }
+
+        // A place whose next level a click on its tile would begin now: he can pay for it, and is
+        // not at another work (one that takes no months is done whatever he is at)
+        bool readyToRaise(const RulePlace& place, const std::string& running)
+        {
+            const std::string work = textOf(place.fields, "nextWork");
+
+            return not work.empty() and work != running and not boolOf(place.fields, "nextLocked")
+                and (running.empty() or intOf(place.fields, "nextMonths") <= 0);
         }
 
         LogKind kindOf(const std::string& kind)
@@ -683,8 +691,7 @@ namespace chronicle
         listenToEvent<ActivityActivatedEvent>([this](const ActivityActivatedEvent& e) { onConfirm(e); onWalkConfirm(e); });
         listenToEvent<TabSelectedEvent>([this](const TabSelectedEvent& e) { onTab(e); });
 
-        // A place's tile clicked: it is the one lit, and the work that raises it is chosen with it,
-        // under the places; clicked again it is let go of
+        // A place's tile clicked: the work that raises it to its next level begins
         listenToEvent<PlaceSelectedEvent>([this](const PlaceSelectedEvent& e) { onPlace(e); });
 
         // At nothing, a month passes when he says so; at work the months run on their own. The
@@ -3065,9 +3072,9 @@ namespace chronicle
         std::vector<ActivityGroup> groups;
 
         // What is done at a place of the town stands on the Town page, never on this one: the
-        // market's rows, what is bought and sold on the spot, and the works that raise a place
+        // market's rows, what is bought and sold on the spot. The works that raise a place have no
+        // row: a click on the place begins its next one (onPlace)
         std::vector<ActivityRowSpec> stalls;
-        std::vector<ActivityRowSpec> works;
 
         listedRows.clear();
 
@@ -3080,10 +3087,14 @@ namespace chronicle
             listedRows += textOf(a.fields, "id") + ":" + std::to_string(a.requires.size()) + ";";
 
             const std::string group = textOf(a.fields, "group");
-            const bool raising = not textOf(a.fields, "raises").empty();
-            const bool inTown = raising or not textOf(a.fields, "place").empty();
 
-            // What is done at a place of the town (its market, its works) is on the Town page and
+            // A work that raises a place is begun from its tile: no row
+            if (not textOf(a.fields, "raises").empty())
+                continue;
+
+            const bool inTown = not textOf(a.fields, "place").empty();
+
+            // What is done at a place of the town (its market) is on the Town page and
             // nowhere else: while he does not know the town, it has no row at all
             if (inTown and not save.townKnown and textOf(a.fields, "id") != save.running)
                 continue;
@@ -3140,7 +3151,7 @@ namespace chronicle
             }
 
             if (inTown)
-                (raising ? works : stalls).push_back(row);
+                stalls.push_back(row);
             else
                 groups.back().rows.push_back(row);
         }
@@ -3151,9 +3162,6 @@ namespace chronicle
         if (auto market = piece<ActivityList>(MarketName))
             market->setRows(ecsRef, stalls.empty() ? std::vector<ActivityGroup>{} : std::vector<ActivityGroup>{{"", stalls}});
 
-        if (auto raise = piece<ActivityList>(WorksName))
-            raise->setRows(ecsRef, works.empty() ? std::vector<ActivityGroup>{} : std::vector<ActivityGroup>{{"", works}});
-
         // A walk that has come into the list brings the Adventure page's tab with it
         markAdventure();
 
@@ -3162,12 +3170,12 @@ namespace chronicle
 
     bool LifeScene::fromLists(const std::string& list) const
     {
-        return list == ActivitiesList or list == MarketList or list == WorksList;
+        return list == ActivitiesList or list == MarketList;
     }
 
     ActivityList* LifeScene::listHolding(const std::string& id) const
     {
-        for (const char* name : {ChoiceName, MarketName, WorksName})
+        for (const char* name : {ChoiceName, MarketName})
         {
             auto list = piece<ActivityList>(name);
 
@@ -3189,7 +3197,7 @@ namespace chronicle
 
     void LifeScene::clearChoice()
     {
-        for (const char* name : {ChoiceName, MarketName, WorksName})
+        for (const char* name : {ChoiceName, MarketName})
         {
             if (auto list = piece<ActivityList>(name); list and not list->selected().empty())
                 list->select(ecsRef, "");
@@ -4260,21 +4268,11 @@ namespace chronicle
         // One choice on the page: the other list lets go of its own
         if (not chosen.empty())
         {
-            for (const char* name : {ChoiceName, MarketName, WorksName})
+            for (const char* name : {ChoiceName, MarketName})
             {
                 if (auto list = piece<ActivityList>(name); list and list->spec.id != event.list and not list->selected().empty())
                     list->select(ecsRef, "");
             }
-        }
-
-        // The place whose work is chosen is the one lit, and no other
-        if (auto grid = piece<PlaceGrid>(PlacesName))
-        {
-            const RuleActivity* picked = chosen.empty() ? nullptr : activityOf(chosen);
-            const std::string place = picked ? textOf(picked->fields, "raises") : std::string();
-
-            if (grid->selected() != place)
-                grid->select(ecsRef, place);
         }
 
         showWorkButtons();
@@ -4290,39 +4288,46 @@ namespace chronicle
             return;
         }
 
-        auto grid = piece<PlaceGrid>(PlacesName);
-        auto works = piece<ActivityList>(WorksName);
-
-        if (not grid)
+        // Over: the ending, or a walk's screen, is over the page
+        if (ended or onWalk())
             return;
 
-        // Clicked again: let go of, and its work with it
-        if (grid->selected() == event.id)
-        {
-            grid->select(ecsRef, "");
-
-            if (works and not works->selected().empty())
-                works->select(ecsRef, "");
-
-            return;
-        }
-
-        grid->select(ecsRef, event.id);
-
-        // The work that raises it, chosen when he can begin it: Begin is then one press away. One
-        // he cannot begin yet leaves the tile lit, and its gloss to say what it asks
+        // A place of the town: a click begins the work that raises it to its next level. The tile
+        // is that work's only button, and its gloss says what it asks and what it will give
         for (const auto& place : town.places)
         {
             if (textOf(place.fields, "id") != event.id)
                 continue;
 
+            const std::string name = textOf(place.fields, "name");
             const std::string work = textOf(place.fields, "nextWork");
-            ActivityRow* row = works and not work.empty() ? works->find(ecsRef, work) : nullptr;
+            const RuleActivity* raise = work.empty() ? nullptr : activityOf(work);
 
-            if (row and row->spec.state == ActivityState::Idle)
-                works->select(ecsRef, work);
-            else if (works and not works->selected().empty())
-                works->select(ecsRef, "");
+            if (work.empty())
+            {
+                toast(name + " is raised as high as it goes");
+                return;
+            }
+
+            // Already at it: the running row says so
+            if (work == save.running)
+                return;
+
+            if (not raise or boolOf(raise->fields, "locked") or not boolOf(raise->fields, "listed"))
+            {
+                toast("Not yet: " + textOf(place.fields, "nextName") + " asks " + textOf(place.fields, "nextCosts"));
+                return;
+            }
+
+            // What takes months waits for what he is at; what takes none is done at once
+            if (not save.running.empty() and intOf(raise->fields, "months") > 0)
+            {
+                toast("Already at work: " + activityName(save.running));
+                return;
+            }
+
+            beginWork(work);
+            return;
         }
     }
 
@@ -4415,8 +4420,13 @@ namespace chronicle
         if (not fromLists(event.list) or ended or onWalk())
             return;
 
+        beginWork(event.id);
+    }
+
+    void LifeScene::beginWork(const std::string& id)
+    {
         // A row that only goes to a page: no term, no month, no line
-        if (const RuleActivity* asked = activityOf(event.id); asked and not textOf(asked->fields, "goto").empty())
+        if (const RuleActivity* asked = activityOf(id); asked and not textOf(asked->fields, "goto").empty())
         {
             if (boolOf(asked->fields, "listed") and not boolOf(asked->fields, "locked"))
             {
@@ -4431,9 +4441,9 @@ namespace chronicle
         // What takes no time is done now, whatever else he is at
         RuleForecast forecast;
 
-        if (rules.forecast(save.age, save.character(), event.id, 0, forecast) and forecast.months <= 0)
+        if (rules.forecast(save.age, save.character(), id, 0, forecast) and forecast.months <= 0)
         {
-            doAtOnce(event.id, forecast);
+            doAtOnce(id, forecast);
             return;
         }
 
@@ -4444,7 +4454,7 @@ namespace chronicle
         }
 
         // The list refuses a locked row, a key or a script may not
-        const RuleActivity* chosen = activityOf(event.id);
+        const RuleActivity* chosen = activityOf(id);
 
         if (not chosen or boolOf(chosen->fields, "locked") or not boolOf(chosen->fields, "listed"))
             return;
@@ -4452,11 +4462,11 @@ namespace chronicle
         // A walk outside the town: he is there first, and its months run once he turns for home
         if (not textOf(chosen->fields, "zone").empty())
         {
-            beginWalk(event.id);
+            beginWalk(id);
             return;
         }
 
-        save.running = event.id;
+        save.running = id;
         save.monthsIn = 0;
         ++save.begun;
         rules.running = save.running;
@@ -4470,7 +4480,7 @@ namespace chronicle
         clearChoice();
         leadDue = false;
 
-        setFact("activity." + event.id + ".state", std::string("running"));
+        setFact("activity." + id + ".state", std::string("running"));
 
         // The months run on their own while he works, from the start of a month
         paused = false;
@@ -4717,13 +4727,10 @@ namespace chronicle
         if (auto grid = piece<PlaceGrid>(PlacesName))
             grid->setWidth(ecsRef, width);
 
-        for (const char* name : {MarketName, WorksName})
-        {
-            if (auto list = piece<ActivityList>(name))
-                list->setSize(ecsRef, width, 0.0f);
-        }
+        if (auto market = piece<ActivityList>(MarketName))
+            market->setSize(ecsRef, width, 0.0f);
 
-        for (const char* name : {"worksHead", "marketHead", RaisedName})
+        for (const char* name : {"marketHead", RaisedName})
         {
             if (auto label = piece<Label>(name))
                 label->setWidth(ecsRef, width);
@@ -4770,6 +4777,7 @@ namespace chronicle
             tile.level = intOf(place.fields, "level");
             tile.of = intOf(place.fields, "most");
             tile.line = textOf(place.fields, "line");
+            tile.ready = readyToRaise(place, save.running);
             tile.glossKey = PlaceGloss + tile.id;
 
             places.push_back(tile);
@@ -4878,6 +4886,10 @@ namespace chronicle
 
                 if (tile->spec.line != textOf(place.fields, "line"))
                     tile->setLine(ecsRef, textOf(place.fields, "line"));
+
+                // Lit while a click on it would raise it
+                if (const bool ready = readyToRaise(place, save.running); tile->spec.ready != ready)
+                    tile->setReady(ecsRef, ready);
             }
 
             // Who raised it, and when: under the grid for every place, and in its own gloss
@@ -4889,20 +4901,27 @@ namespace chronicle
             if (not registry)
                 continue;
 
-            // The gloss: what it is and all it gives, then its next level: what it asks of him against
-            // what he has, what it will give, and the work that raises it
+            // The gloss: what it is and every upgrade it has with what each gives, then its next one:
+            // what it asks of him against what he has, and that a click on the place begins it
             GlossSpec gloss;
             gloss.inlineValues = true;
             gloss.title = textOf(place.fields, "name");
             gloss.aside = std::to_string(level) + "/" + std::to_string(most);
             gloss.text = textOf(place.fields, "about");
 
-            // Every level reached, not the last alone: a level adds to what the ones before it give
-            if (not place.given.empty())
-                gloss.rows.push_back({"IT GIVES", "", "", true});
+            // Every upgrade it has and what each gives: a level adds to what the ones before it give.
+            // What he has raised stands in bold, what is still to raise in the faint ink
+            if (not place.tiers.empty())
+                gloss.rows.push_back({"UPGRADES", "", "", true});
 
-            for (const auto& given : place.given)
-                gloss.rows.push_back({textOf(given, "gives"), "", "gain"});
+            for (const auto& tier : place.tiers)
+            {
+                GlossRow row{std::to_string(intOf(tier, "level")) + " - " + textOf(tier, "built") + ": " + textOf(tier, "gives"), "", "gain"};
+                row.strong = boolOf(tier, "reached");
+                row.faint = not row.strong;
+
+                gloss.rows.push_back(row);
+            }
 
             if (by != save.raisedBy.end())
                 gloss.rows.push_back({"Raised by", by->second, "muted"});
@@ -4911,7 +4930,7 @@ namespace chronicle
 
             if (not work.empty())
             {
-                gloss.rows.push_back({"THE NEXT LEVEL", "", "", true});
+                gloss.rows.push_back({"NEXT UPGRADE", "", "", true});
                 gloss.rows.push_back({"It takes", textOf(place.fields, "nextCosts"), "time"});
 
                 for (const auto& gap : place.gaps)
@@ -4920,8 +4939,7 @@ namespace chronicle
                 if (intOf(place.fields, "fund") > 0)
                     gloss.rows.push_back({town.fundLine, std::to_string(intOf(place.fields, "fund")), "gain"});
 
-                gloss.rows.push_back({"It will give", textOf(place.fields, "nextGives"), ""});
-                gloss.footnote = upper("Raised by \"" + work + "\", under the places");
+                gloss.footnote = upper(std::string(phone ? "Tap" : "Click") + " the place to begin \"" + work + "\"");
             }
 
             registry->set(PlaceGloss + id, gloss);

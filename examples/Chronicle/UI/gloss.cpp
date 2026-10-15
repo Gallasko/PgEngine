@@ -267,14 +267,19 @@ namespace chronicle
             // on its line wraps in its share instead of running past the edge: the label keeps at
             // least half (all of it with no value), the value whatever the label leaves
             const float room = inner - GAP2;
-            const float lw = lineWidth(ecs, "body-sm", row.label);
+            // A strong label is set in the figures' weight and full ink, a faint one in the faint ink
+            const std::string labelStyle = row.strong ? "figure-sm" : "body-sm";
+            const std::string labelColor = row.strong ? "ink" : row.faint ? "ink-faint" : "ink-muted";
+
+            const float lw = lineWidth(ecs, labelStyle, row.label);
             const float vw = lineWidth(ecs, "figure-sm", row.value);
             const float labelFit = row.value.empty() ? inner : std::max(room - vw, room * 0.5f);
             const bool labelWraps = lw > labelFit;
             const float valueFit = room - (labelWraps ? labelFit : lw);
-            const bool valueWraps = vw > valueFit;
+            // With no value there is nothing to wrap: a label that took the whole width leaves it none
+            const bool valueWraps = not row.value.empty() and vw > valueFit;
 
-            Label lbl = stack("body-sm", row.label, "ink-muted", labelWraps ? Overflow::Wrap : Overflow::Grow, labelWraps ? labelFit : 0.0f, false);
+            Label lbl = stack(labelStyle, row.label, labelColor, labelWraps ? Overflow::Wrap : Overflow::Grow, labelWraps ? labelFit : 0.0f, false);
             Label val = stack("figure-sm", row.value, toneColor(row.tone), valueWraps ? Overflow::Wrap : Overflow::Grow, valueWraps ? valueFit : 0.0f, not spec.inlineValues);
 
             // Inline, the value follows its label on the line instead of standing in the column

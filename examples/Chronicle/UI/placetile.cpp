@@ -33,14 +33,15 @@ namespace chronicle
         constexpr float LineLines = 3.0f;
         constexpr float TileGap = 8.0f;          // space-2 between two tiles, on a line and from line to line
 
-        std::string groundElement(bool selected)
+        // Chosen, ready to be raised, or neither: the choice first
+        std::string groundElement(bool selected, bool ready)
         {
-            return selected ? "place.ground.selected" : "place.ground";
+            return selected ? "place.ground.selected" : ready ? "place.ground.ready" : "place.ground";
         }
 
-        std::string edgeElement(bool selected)
+        std::string edgeElement(bool selected, bool ready)
         {
-            return selected ? "place.edge.selected" : "place.edge";
+            return selected ? "place.edge.selected" : ready ? "place.edge.ready" : "place.edge";
         }
 
         std::string sealElement(bool earned)
@@ -122,7 +123,7 @@ namespace chronicle
         ground.get<PositionComponent>()->setZ(static_cast<float>(spec.z));
         ground.get<UiAnchor>()->setTopAnchor(PosAnchor{tile.root.id, AnchorType::Top});
         ground.get<UiAnchor>()->setLeftAnchor(PosAnchor{tile.root.id, AnchorType::Left});
-        ecs->attach<ThemeComponent>(ground.entity, groundElement(spec.selected));
+        ecs->attach<ThemeComponent>(ground.entity, groundElement(spec.selected, spec.ready));
         ecs->attach<MouseLeftClickComponent>(ground.entity, makeCallable<PlaceSelectedEvent>(PlaceSelectedEvent{spec.id}));
         prefab->addToPrefab(ground.entity, "ground");
 
@@ -133,7 +134,7 @@ namespace chronicle
         edge.get<PositionComponent>()->setZ(static_cast<float>(spec.z + 2));
         edge.get<UiAnchor>()->setTopAnchor(PosAnchor{tile.root.id, AnchorType::Top});
         edge.get<UiAnchor>()->setLeftAnchor(PosAnchor{tile.root.id, AnchorType::Left});
-        ecs->attach<ThemeComponent>(edge.entity, edgeElement(spec.selected));
+        ecs->attach<ThemeComponent>(edge.entity, edgeElement(spec.selected, spec.ready));
         prefab->addToPrefab(edge.entity, "edge");
 
         tile.edge = edge.entity;
@@ -222,8 +223,16 @@ namespace chronicle
     {
         spec.selected = selected;
 
-        ground->get<ThemeComponent>()->setElement(groundElement(selected));
-        edge->get<ThemeComponent>()->setElement(edgeElement(selected));
+        ground->get<ThemeComponent>()->setElement(groundElement(selected, spec.ready));
+        edge->get<ThemeComponent>()->setElement(edgeElement(selected, spec.ready));
+    }
+
+    void PlaceTile::setReady(EntitySystem*, bool ready)
+    {
+        spec.ready = ready;
+
+        ground->get<ThemeComponent>()->setElement(groundElement(spec.selected, ready));
+        edge->get<ThemeComponent>()->setElement(edgeElement(spec.selected, ready));
     }
 
     void PlaceTile::setWidth(EntitySystem* ecs, float width)

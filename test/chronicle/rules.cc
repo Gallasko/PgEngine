@@ -2374,6 +2374,16 @@ namespace pg
             ASSERT_EQ(market.given.size(), 1u);
             EXPECT_EQ(textOf(market.given[0], "gives"), textOf(market.fields, "gives"));
             EXPECT_TRUE(yard.given.empty());
+
+            // Every level it has, reached or not: the market's first, and its two still to raise
+            ASSERT_EQ(market.tiers.size(), 3u);
+            EXPECT_TRUE(flag(market.tiers[0], "reached"));
+            EXPECT_FALSE(flag(market.tiers[1], "reached"));
+            EXPECT_FALSE(flag(market.tiers[2], "reached"));
+            EXPECT_EQ(textOf(market.tiers[1], "built"), "The market hall");
+            EXPECT_EQ(textOf(market.tiers[1], "gives"), textOf(market.fields, "nextGives"));
+            ASSERT_EQ(yard.tiers.size(), 3u);
+            EXPECT_FALSE(flag(yard.tiers[0], "reached"));
             EXPECT_EQ(textOf(market.fields, "nextWork"), "raise.market.2");
             EXPECT_TRUE(flag(market.fields, "nextLocked"));
 

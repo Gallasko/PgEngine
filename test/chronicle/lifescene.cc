@@ -336,12 +336,45 @@ namespace pg
                 return market ? market->find(&f.ecs, id) : nullptr;
             }
 
-            // A work that raises a place: under the places, on the Town page
-            ActivityRow* work(LifeFixture& f, LifeScene* life, const std::string& id)
+            // A field of what the rules answered: a number as an int, a flag as true or false
+            int fieldInt(const ElementMap& map, const std::string& key)
             {
-                auto works = life->piece<ActivityList>("townWorks");
+                auto it = map.find(key);
 
-                return works ? works->find(&f.ecs, id) : nullptr;
+                if (it == map.end())
+                    return 0;
+
+                switch (it->second.type)
+                {
+                case UnionType::INT:    return it->second.get<int>();
+                case UnionType::FLOAT:  return static_cast<int>(it->second.get<float>());
+                case UnionType::DOUBLE: return static_cast<int>(it->second.get<double>());
+                case UnionType::BOOL:   return it->second.get<bool>() ? 1 : 0;
+                default:                return 0;
+                }
+            }
+
+            bool fieldFlag(const ElementMap& map, const std::string& key)
+            {
+                return fieldInt(map, key) != 0;
+            }
+
+            // A work that raises a place has no row: it is the next level of a place on the Town
+            // page, begun by a click on its tile. That place, or nullptr while the work is no place's next
+            const RulePlace* work(LifeFixture&, LifeScene* life, const std::string& id)
+            {
+                if (not life->save.townKnown)
+                    return nullptr;
+
+                for (const auto& place : life->town.places)
+                {
+                    auto next = place.fields.find("nextWork");
+
+                    if (fieldFlag(place.fields, "shown") and next != place.fields.end() and next->second.toString() == id)
+                        return &place;
+                }
+
+                return nullptr;
             }
 
             bool reached(const LifeScene* life, const std::string& id)
@@ -5476,19 +5509,39 @@ namespace pg
             life->onMonth();
             f.frames(12);
 
-            for (ActivityRow* tile : {work(f, life, "raise.market.1"), work(f, life, "raise.mill.1"), stall(f, life, "buy.rations")})
+            ActivityRow* rations = stall(f, life, "buy.rations");
+            ASSERT_NE(rations, nullptr);
+            EXPECT_EQ(rations->spec.state, ActivityState::Locked);
+            EXPECT_EQ(rations->spec.until, "");
+            EXPECT_FALSE(rations->until.has_value());
+
+            // A work for the town has no tile of its own: its place's tile begins it, and does not
+            // while he cannot pay for it
+            for (const char* id : {"raise.market.1", "raise.mill.1"})
             {
-                ASSERT_NE(tile, nullptr);
-                EXPECT_EQ(tile->spec.state, ActivityState::Locked) << tile->spec.id;
-                EXPECT_EQ(tile->spec.until, "") << tile->spec.id;
-                EXPECT_FALSE(tile->until.has_value()) << tile->spec.id;
+                ASSERT_NE(work(f, life, id), nullptr) << id;
+                EXPECT_TRUE(fieldFlag(work(f, life, id)->fields, "nextLocked")) << id;
             }
 
-            // The gloss keeps it: the coin it asks against the coin he has, in the loss's colour
+            f.ecs.sendEvent(PlaceSelectedEvent{"market"});
+            f.settle();
+            EXPECT_TRUE(life->save.running.empty());
+            EXPECT_EQ(life->save.stats["coin"], 0);
+
+            // Nor is its tile lit
+            ASSERT_NE(life->piece<PlaceGrid>("places"), nullptr);
+
+            for (const char* id : {"market", "mill"})
+            {
+                ASSERT_NE(life->piece<PlaceGrid>("places")->tile(id), nullptr) << id;
+                EXPECT_FALSE(life->piece<PlaceGrid>("places")->tile(id)->spec.ready) << id;
+            }
+
+            // The place's gloss keeps it: the coin it asks against the coin he has, in the loss's colour
             auto registry = f.ecs.getSystem<GlossRegistry>();
             ASSERT_NE(registry, nullptr);
 
-            const GlossSpec* gloss = registry->find("activity/raise.market.1");
+            const GlossSpec* gloss = registry->find("place/market");
             ASSERT_NE(gloss, nullptr);
 
             bool asked = false;
@@ -5717,8 +5770,8 @@ namespace pg
                     EXPECT_FALSE(f.pos(seal.entity)->isRenderable()) << tile.spec.id;
             }
 
-            // A work of the town is given a line it did not have
-            ActivityRow* raise = work(f, life, "raise.market.1");
+            // A row of the market is given a line it did not have
+            ActivityRow* raise = stall(f, life, "buy.rations");
             ASSERT_NE(raise, nullptr);
 
             raise->setUntil(&f.ecs, "");
@@ -5837,43 +5890,63 @@ namespace pg
             EXPECT_EQ(registry->find("place/market")->aside, "0/3");
             EXPECT_NE(registry->find("place/market")->footnote.find("ENDOW THE MARKET STALL"), std::string::npos);
 
+            // And every level it has, what each gives, none of them raised yet: all in the faint ink
+            std::vector<const GlossRow*> tiers;
+            bool listing = false;
+
+            for (const auto& row : registry->find("place/market")->rows)
+            {
+                if (row.heading)
+                    listing = row.label == "UPGRADES";
+                else if (listing)
+                    tiers.push_back(&row);
+            }
+
+            ASSERT_EQ(tiers.size(), 3u);
+            EXPECT_EQ(tiers[0]->label, "1 - The market stall: Buy rations brings 8 rations, not 6");
+            EXPECT_EQ(tiers[2]->label, "3 - The market charter: A sword and a horse are sold at the market");
+
+            for (const GlossRow* tier : tiers)
+            {
+                EXPECT_FALSE(tier->strong) << tier->label;
+                EXPECT_TRUE(tier->faint) << tier->label;
+            }
+
             // What is bought on the spot is here, and no longer in the choice
             EXPECT_NE(stall(f, life, "buy.rations"), nullptr);
             EXPECT_EQ(life->piece<ActivityList>("activities")->find(&f.ecs, "buy.rations"), nullptr);
 
-            // The works that raise a place stand under the places, one a place, and not in the choice
-            auto works = life->piece<ActivityList>("townWorks");
-            ASSERT_NE(works, nullptr);
-            ASSERT_EQ(works->spec.groups.size(), 1u);
-            EXPECT_EQ(works->spec.groups[0].rows.size(), 2u);
+            // The works that raise a place have no row, on this page or in the choice: the next
+            // level of each place is begun from its tile
             EXPECT_NE(work(f, life, "raise.market.1"), nullptr);
+            EXPECT_NE(work(f, life, "raise.mill.1"), nullptr);
             EXPECT_EQ(life->piece<ActivityList>("activities")->find(&f.ecs, "raise.market.1"), nullptr);
-            EXPECT_GE(f.pos(works->root)->y, f.pos(grid->root)->y + f.pos(grid->root)->height);
+            EXPECT_EQ(life->piece<ActivityList>("marketRows")->find(&f.ecs, "raise.market.1"), nullptr);
 
-            // A place clicked is lit, and its work chosen with it: Begin is one press away
+            // A place clicked begins it: its coin taken, its months running
+            ASSERT_TRUE(life->save.running.empty());
+
+            const int coin = life->save.stats["coin"];
+            ASSERT_GE(coin, 20);
+
+            // While a click would raise it, its tile is lit
+            EXPECT_TRUE(grid->tile("market")->spec.ready);
+
             f.ecs.sendEvent(PlaceSelectedEvent{"market"});
             f.settle();
-            EXPECT_EQ(grid->selected(), "market");
-            EXPECT_TRUE(grid->tile("market")->spec.selected);
-            EXPECT_EQ(works->selected(), "raise.market.1");
-            EXPECT_TRUE(f.pos(life->named("begin"))->visible);
-            EXPECT_EQ(life->piece<Button>("begin")->spec.months, 6);
-
-            // Clicked again, both are let go of
-            f.ecs.sendEvent(PlaceSelectedEvent{"market"});
-            f.settle();
+            EXPECT_EQ(life->save.running, "raise.market.1");
+            EXPECT_EQ(life->save.stats["coin"], coin - 20);
             EXPECT_EQ(grid->selected(), "");
-            EXPECT_EQ(works->selected(), "");
-            EXPECT_FALSE(f.pos(life->named("begin"))->visible);
 
-            // And a work chosen in the list lights its place
-            f.ecs.sendEvent(ActivitySelectedEvent{"town.works", "raise.mill.1"});
-            f.settle();
-            EXPECT_EQ(grid->selected(), "mill");
+            // At work, no tile is: a click would begin nothing
+            for (const auto& tile : grid->tiles)
+                EXPECT_FALSE(tile.spec.ready) << tile.spec.id;
 
-            f.ecs.sendEvent(ActivitySelectedEvent{"town.works", ""});
+            // Another clicked while he is at it begins nothing
+            f.ecs.sendEvent(PlaceSelectedEvent{"mill"});
             f.settle();
-            EXPECT_EQ(grid->selected(), "");
+            EXPECT_EQ(life->save.running, "raise.market.1");
+            EXPECT_EQ(life->save.stats["coin"], coin - 20);
 
             // The two other columns have not moved, nor has the middle one's panel
             EXPECT_FLOAT_EQ(f.pos(life->named("holds"))->x, holdsX);
@@ -5973,7 +6046,7 @@ namespace pg
 
             ASSERT_GE(coin, 20);
 
-            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "raise.market.1"});
+            f.ecs.sendEvent(PlaceSelectedEvent{"market"});
             f.settle();
 
             ASSERT_EQ(life->save.running, "raise.market.1");
@@ -6070,15 +6143,15 @@ namespace pg
             auto list = life->piece<ActivityList>("activities");
             ASSERT_NE(list, nullptr);
 
-            ActivityRow* almshouse = work(f, life, "raise.chapel.3");
+            const RulePlace* almshouse = work(f, life, "raise.chapel.3");
             ASSERT_NE(almshouse, nullptr);
-            EXPECT_EQ(almshouse->spec.each, "COSTS 2 YEARS");
-            EXPECT_EQ(almshouse->spec.months, 0);
+            EXPECT_EQ(fieldInt(almshouse->fields, "nextYears"), 2);
+            EXPECT_EQ(fieldInt(almshouse->fields, "nextMonths"), 0);
 
             const float age = life->save.age;
             const int world = life->save.world;
 
-            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "raise.chapel.3"});
+            f.ecs.sendEvent(PlaceSelectedEvent{"chapel"});
             f.frames(12);
 
             // Done at once, and two years older for it
@@ -6092,7 +6165,7 @@ namespace pg
             EXPECT_NEAR(f.fact<float>("life.age"), age + 2.0f, 0.001f);
             EXPECT_EQ(work(f, life, "raise.chapel.3"), nullptr);
 
-            // Its gloss says all the chapel gives, its three levels and not the last alone
+            // Its gloss says all the chapel gives, its three levels and not the last alone, all in bold
             auto registry = f.ecs.getSystem<GlossRegistry>();
             ASSERT_NE(registry, nullptr);
 
@@ -6106,15 +6179,15 @@ namespace pg
             for (const auto& row : chapel->rows)
             {
                 if (row.heading)
-                    giving = row.label == "IT GIVES";
-                else if (giving and row.tone == "gain")
+                    giving = row.label == "UPGRADES";
+                else if (giving and row.strong)
                     gives.push_back(row.label);
             }
 
             ASSERT_EQ(gives.size(), 3u);
-            EXPECT_EQ(gives[0], "Learn Your Letters takes 4 months, not 6");
-            EXPECT_EQ(gives[1], "A new life starts with Letters 1");
-            EXPECT_EQ(gives[2], "Teach the Young pays 4 more coin");
+            EXPECT_EQ(gives[0], "1 - The chapel windows: Learn Your Letters takes 4 months, not 6");
+            EXPECT_EQ(gives[1], "2 - The chapel primer: A new life starts with Letters 1");
+            EXPECT_EQ(gives[2], "3 - The almshouse: Teach the Young pays 4 more coin");
         }
 
         // ----------------------------------------------------------------------------------------
@@ -6331,12 +6404,12 @@ namespace pg
             life->onMonth();
             f.frames(12);
 
-            ActivityRow* glaze = work(f, life, "raise.chapel.1");
+            const RulePlace* glaze = work(f, life, "raise.chapel.1");
             ASSERT_NE(glaze, nullptr);
-            EXPECT_EQ(glaze->spec.state, ActivityState::Idle);
+            EXPECT_FALSE(fieldFlag(glaze->fields, "nextLocked"));
 
             // Raised, the fund is spent
-            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "raise.chapel.1"});
+            f.ecs.sendEvent(PlaceSelectedEvent{"chapel"});
             f.settle();
 
             ASSERT_EQ(life->save.running, "raise.chapel.1");
@@ -6398,19 +6471,19 @@ namespace pg
                 return lines;
             };
 
+            // The works for the town: a place on the page with a next level to raise
             auto works = [&]() {
-                size_t rows = 0;
+                size_t next = 0;
 
-                for (const auto& group : life->piece<ActivityList>("townWorks")->spec.groups)
+                for (const auto& place : life->town.places)
                 {
-                    for (const auto& row : group.rows)
-                    {
-                        if (row.id.rfind("raise.", 0) == 0)
-                            ++rows;
-                    }
+                    auto id = place.fields.find("nextWork");
+
+                    if (fieldFlag(place.fields, "shown") and id != place.fields.end() and not id->second.toString().empty())
+                        ++next;
                 }
 
-                return rows;
+                return next;
             };
 
             ASSERT_FALSE(life->town.foundLine.empty());

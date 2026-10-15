@@ -18,12 +18,16 @@ namespace chronicle
     // "Time", "6 mo" - value set in figure-sm, in the colour its tone names: "" ink, "gain", "loss",
     // "time", "muted". A heading opens a section: a hair rule across the gloss, then its label
     // alone, in caps and in the figures' weight; with no label it is the rule alone.
+    // A row's label is body-sm in ink-muted; `strong`, in the figures' weight and full ink (what he
+    // has); `faint`, in ink-faint (what he has not yet).
     struct GlossRow
     {
         std::string label;
         std::string value;
         std::string tone = "";
         bool heading = false;
+        bool strong = false;
+        bool faint = false;
     };
 
     struct GlossSpec

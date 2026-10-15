@@ -13,6 +13,8 @@
 //            gives   "" at level 0, else what its level gives, in one line
 //            given [{level, built, gives}]: every level reached, the first first. A level
 //                    adds to the ones before it: the gloss lists them all, the tile says the last
+//            tiers [{level, built, gives, reached}]: every level the place has, reached or not, the
+//                    first first: the gloss lists them all, what he has raised and what is still to raise
 //            line    what its tile says: that, or "NOT YET BUILT"
 //            tale    "" or the line the log writes when its level is reached (the level's `lore`)
 //            built   "" or what stands there at its level, as the log names it
@@ -81,12 +83,18 @@ for (var t = 0; t < len(townPlaces); t++)
                  shown: placeShown(place, character, monthOf(age), done, lives),
                  gives: "", line: "NOT YET BUILT", tale: "", built: "", fund: fund,
                  nextWork: "", nextName: "", nextMonths: 0, nextCoin: 0, nextYears: 0, nextCosts: "", nextGives: "", nextLocked: false,
-                 gaps: [], given: [], leaves: [], leaveLine: ""}
+                 gaps: [], given: [], tiers: [], leaves: [], leaveLine: ""}
 
     // What it gives is what every level reached gives: none takes the place of the one before
     for (var l = 0; l < level; l++)
     {
         push(shown.given, {level: l + 1, built: place.levels[l].built, gives: place.levels[l].gives})
+    }
+
+    // And every level it has, the ones still to raise with them
+    for (var l = 0; l < most; l++)
+    {
+        push(shown.tiers, {level: l + 1, built: place.levels[l].built, gives: place.levels[l].gives, reached: l < level})
     }
 
     if (level > 0)

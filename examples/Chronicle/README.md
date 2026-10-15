@@ -924,13 +924,14 @@ left to it) and `seen.<place>` (1 once a life has had the place on its page). Wh
   it for the page (`town.pg`'s `shown`) and for the works (a place not on his page has none
   listed), and a place raised, left coin or seen by a life before is always shown.
 - `town.pg` (`Rules::town`) is what the Town page shows: each place's level, what it gives
-  (`gives`, the last level's, for its tile; `given`, every level reached, for its gloss),
+  (`gives`, the last level's, for its tile; `given`, every level reached; `tiers`, every level
+  reached or not, for its gloss),
   and its next level flattened (`nextWork`, `nextCosts`, `nextCoin` less the fund, `nextGives`,
   `nextLocked`, `gaps`), plus `start` (what a new life is born with, every level reached),
   and the words the scene says (`opened`, `raisedLine`, `epitaphLine`, `fundLine`, `gift`).
 - `activitytable.pg` makes the 30 works from the same table (`raise.<place>.<level>`): listed
-  only to who knows the town and while the place is one level below. The scene puts them on
-  the Town page, under the places (the list `townWorks`), not in the choice.
+  only to who knows the town and while the place is one level below. They have no row: a click
+  on a place's tile on the Town page begins its next one (`LifeScene::onPlace`).
   New optional fields of an activity: `place` (it stands on the Town page, at that place, once
   the town is known), `goto` (confirming it opens a page and does nothing else), `raises` and
   `level` (its term raises that place), `years` (years of his life taken at once when it
