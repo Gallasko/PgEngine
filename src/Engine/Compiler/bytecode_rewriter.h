@@ -151,7 +151,17 @@ namespace pg
         std::vector<RewriteRule> rules;
         std::vector<AdvancedRewriteRule> advancedRules;
 
-        std::set<size_t> jumpTargets;
+        // The jumps of the chunk being rewritten, kept up to date edit by edit rather than found
+        // again by a walk of the whole chunk after each one (that walk made a pass quadratic in
+        // the chunk's size). `jumpSites` is where the jumps are, in order; `jumpTargets` is where
+        // they land, sorted, one entry a jump (two jumps to one place are there twice).
+        std::vector<size_t> jumpSites;
+        std::vector<size_t> jumpTargets;
+
+        // The chunk the two lists describe, and its size when they were last brought up to date:
+        // a raw edit to another chunk, or to one changed since, collects them again
+        const Chunk* trackedChunk = nullptr;
+        size_t trackedSize = 0;
 
         VM *vm = nullptr;
 
@@ -182,14 +192,28 @@ namespace pg
 
         size_t getActualInstructionSize(const Chunk& chunk, size_t offset) const;
 
-        // Prime the internal jumpTargets set from the current chunk. Passes
-        // that call rewriteAtRaw/removeInstructions directly (instead of going
-        // through rewrite()) need this so the backward-jump-lands-on-rewrite
-        // special case in adjustJumpOffsetsBeforeRewrite fires correctly.
+        // Collect the jumps of the chunk again. rewriteAtRaw/removeInstructions
+        // keep them up to date across their own edits; a pass that changed the
+        // chunk some other way in between calls this before its next edit.
         void refreshJumpTargets(const Chunk& chunk) { collectJumpTargets(chunk); }
 
     private:
         void collectJumpTargets(const Chunk& chunk);
+
+        // Collects the jumps again unless the lists already describe this chunk as it is
+        void trackJumps(const Chunk& chunk);
+
+        bool isJumpTarget(size_t offset) const;
+
+        // Before a region's bytes change: its own jumps, and where they land, leave the lists
+        void forgetJumpsIn(const Chunk& chunk, size_t index, size_t size);
+
+        // After they changed: what lies beyond moved by the difference, and the jumps the new
+        // bytes hold join the lists
+        void followRewrite(const Chunk& chunk, size_t index, size_t oldSize, size_t newSize);
+
+        // The bytes and their lines of [offset, offset + size) replaced by `replacement`
+        void spliceCode(Chunk& chunk, size_t offset, size_t size, const std::vector<uint8_t>& replacement);
 
         bool findAndApplyRewrites(Chunk& chunk);
 

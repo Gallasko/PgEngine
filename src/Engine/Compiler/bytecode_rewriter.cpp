@@ -97,37 +97,20 @@ namespace pg
 
         int sizeDelta = static_cast<int>(replacement.size()) - static_cast<int>(size);
 
+        // The jumps as they are now: a raw edit can come from any pass, on any chunk
+        trackJumps(chunk);
+
         // Adjust jump offsets BEFORE modifying bytecode (with stable offsets)
         if (sizeDelta != 0)
         {
             adjustJumpOffsetsBeforeRewrite(chunk, index, size, sizeDelta);
         }
 
-        // Store original lines for replacement
-        std::vector<int> originalLines;
-        if (index < chunk.lines.size())
-        {
-            size_t linesToCopy = std::min(size, chunk.lines.size() - index);
-            originalLines.assign(chunk.lines.begin() + index, chunk.lines.begin() + index + linesToCopy);
-        }
+        forgetJumpsIn(chunk, index, size);
 
-        // Remove original bytes and lines
-        chunk.code.erase(chunk.code.begin() + index, chunk.code.begin() + index + size);
-        if (index < chunk.lines.size())
-        {
-            size_t linesToRemove = std::min(size, chunk.lines.size() - index);
-            chunk.lines.erase(chunk.lines.begin() + index, chunk.lines.begin() + index + linesToRemove);
-        }
+        spliceCode(chunk, index, size, replacement);
 
-        // Insert replacement bytes directly
-        chunk.code.insert(chunk.code.begin() + index, replacement.begin(), replacement.end());
-
-        // Insert corresponding line numbers
-        int line = originalLines.empty() ? 0 : originalLines[0];
-        for (size_t i = 0; i < replacement.size(); ++i)
-        {
-            chunk.lines.insert(chunk.lines.begin() + index + i, line);
-        }
+        followRewrite(chunk, index, size, replacement.size());
 
         // Jump offsets were already adjusted BEFORE the rewrite
         LOG_MILE("BytecodeRewriter", "Raw rewrite completed successfully");
@@ -237,10 +220,12 @@ namespace pg
                         adjustJumpOffsetsBeforeRewrite(chunk, i, patternByteSize, sizeDelta);
                     }
 
+                    forgetJumpsIn(chunk, i, patternByteSize);
+
                     applyAdvancedRewrite(chunk, i, patternByteSize, replacement);
 
-                    // Recollect jump targets after rewrite since bytecode has shifted
-                    collectJumpTargets(chunk);
+                    // The bytecode has shifted: the jumps follow it
+                    followRewrite(chunk, i, patternByteSize, replacement.size());
 
                     foundMatch = true;
                     anyChanges = true;
@@ -265,6 +250,7 @@ namespace pg
 
     void BytecodeRewriter::collectJumpTargets(const Chunk& chunk)
     {
+        jumpSites.clear();
         jumpTargets.clear();
 
         for (size_t i = 0; i < chunk.code.size();)
@@ -273,12 +259,122 @@ namespace pg
 
             if (isJumpInstruction(opcode))
             {
-                auto target = calculateJumpTarget(chunk, i, opcode);
-
-                jumpTargets.insert(target);
+                jumpSites.push_back(i);
+                jumpTargets.push_back(calculateJumpTarget(chunk, i, opcode));
             }
 
-            i += getActualInstructionSize(chunk, i);
+            // Never 0 inside the chunk: a walk always moves on
+            i += std::max<size_t>(1, getActualInstructionSize(chunk, i));
+        }
+
+        std::sort(jumpTargets.begin(), jumpTargets.end());
+
+        trackedChunk = &chunk;
+        trackedSize = chunk.code.size();
+    }
+
+    void BytecodeRewriter::trackJumps(const Chunk& chunk)
+    {
+        if (trackedChunk != &chunk or trackedSize != chunk.code.size())
+            collectJumpTargets(chunk);
+    }
+
+    bool BytecodeRewriter::isJumpTarget(size_t offset) const
+    {
+        return std::binary_search(jumpTargets.begin(), jumpTargets.end(), offset);
+    }
+
+    void BytecodeRewriter::forgetJumpsIn(const Chunk& chunk, size_t index, size_t size)
+    {
+        auto first = std::lower_bound(jumpSites.begin(), jumpSites.end(), index);
+        auto last = std::lower_bound(first, jumpSites.end(), index + size);
+
+        // Their bytes are as they were: adjustJumpOffsetsBeforeRewrite leaves the region's jumps alone
+        for (auto site = first; site != last; ++site)
+        {
+            const size_t target = calculateJumpTarget(chunk, *site, static_cast<OpCode>(chunk.code[*site]));
+
+            auto it = std::lower_bound(jumpTargets.begin(), jumpTargets.end(), target);
+
+            if (it != jumpTargets.end() and *it == target)
+                jumpTargets.erase(it);
+        }
+
+        jumpSites.erase(first, last);
+    }
+
+    void BytecodeRewriter::followRewrite(const Chunk& chunk, size_t index, size_t oldSize, size_t newSize)
+    {
+        const long long delta = static_cast<long long>(newSize) - static_cast<long long>(oldSize);
+
+        if (delta != 0)
+        {
+            // What lay past the region moved with it (the region's own jumps are already gone)
+            for (auto it = std::lower_bound(jumpSites.begin(), jumpSites.end(), index); it != jumpSites.end(); ++it)
+                *it = static_cast<size_t>(static_cast<long long>(*it) + delta);
+
+            // A landing past the start of the region moved too: adjustJumpOffsetsBeforeRewrite
+            // rewrote every jump so that it still lands on the same instruction, and one at the
+            // start stays where the new bytes begin
+            for (auto it = std::upper_bound(jumpTargets.begin(), jumpTargets.end(), index); it != jumpTargets.end(); ++it)
+                *it = static_cast<size_t>(std::max(0LL, static_cast<long long>(*it) + delta));
+
+            // Only a landing inside the region shrunk away can fall behind its start
+            if (delta < 0 and not std::is_sorted(jumpTargets.begin(), jumpTargets.end()))
+                std::sort(jumpTargets.begin(), jumpTargets.end());
+        }
+
+        // The jumps the new bytes hold
+        for (size_t i = index; i < index + newSize and i < chunk.code.size();)
+        {
+            OpCode opcode = static_cast<OpCode>(chunk.code[i]);
+
+            if (isJumpInstruction(opcode))
+            {
+                const size_t target = calculateJumpTarget(chunk, i, opcode);
+
+                jumpSites.insert(std::lower_bound(jumpSites.begin(), jumpSites.end(), i), i);
+                jumpTargets.insert(std::lower_bound(jumpTargets.begin(), jumpTargets.end(), target), target);
+            }
+
+            i += std::max<size_t>(1, getActualInstructionSize(chunk, i));
+        }
+
+        trackedChunk = &chunk;
+        trackedSize = chunk.code.size();
+    }
+
+    void BytecodeRewriter::spliceCode(Chunk& chunk, size_t offset, size_t size, const std::vector<uint8_t>& replacement)
+    {
+        // The replacement takes the line of the first instruction it replaces
+        const bool hasLines = offset < chunk.lines.size();
+        const int line = hasLines ? chunk.lines[offset] : 0;
+
+        // The bytes both have in common are written over; only the difference moves the rest
+        const size_t common = std::min(size, replacement.size());
+
+        std::copy(replacement.begin(), replacement.begin() + common, chunk.code.begin() + offset);
+
+        if (replacement.size() < size)
+            chunk.code.erase(chunk.code.begin() + offset + common, chunk.code.begin() + offset + size);
+        else
+            chunk.code.insert(chunk.code.begin() + offset + common, replacement.begin() + common, replacement.end());
+
+        if (hasLines)
+        {
+            const size_t lineCommon = std::min(common, chunk.lines.size() - offset);
+            const size_t linesReplaced = std::min(size, chunk.lines.size() - offset);
+
+            std::fill(chunk.lines.begin() + offset, chunk.lines.begin() + offset + lineCommon, line);
+
+            if (replacement.size() < linesReplaced)
+                chunk.lines.erase(chunk.lines.begin() + offset + replacement.size(), chunk.lines.begin() + offset + linesReplaced);
+            else
+                chunk.lines.insert(chunk.lines.begin() + offset + lineCommon, replacement.size() - lineCommon, line);
+        }
+        else
+        {
+            chunk.lines.insert(chunk.lines.begin() + std::min(offset, chunk.lines.size()), replacement.size(), line);
         }
     }
 
@@ -306,10 +402,12 @@ namespace pg
                         adjustJumpOffsetsBeforeRewrite(chunk, i, patternSize, sizeDelta);
                     }
 
+                    forgetJumpsIn(chunk, i, patternSize);
+
                     applyRewrite(chunk, i, rule);
 
-                    // Recollect jump targets after rewrite since bytecode has shifted
-                    collectJumpTargets(chunk);
+                    // The bytecode has shifted: the jumps follow it
+                    followRewrite(chunk, i, patternSize, replacementSize);
 
                     LOG_MILE("BytecodeRewriter", "Applied rewrite at offset " << i <<
                              " (size change: " << sizeDelta << ")");
@@ -359,7 +457,7 @@ namespace pg
             // will run the fused replacement, which is semantically equivalent.
             // But a jump landing INSIDE the pattern (between elements 2..N)
             // would skip into the middle of a fused op — unsafe, must reject.
-            if (not firstElement and jumpTargets.find(currentOffset) != jumpTargets.end())
+            if (not firstElement and isJumpTarget(currentOffset))
             {
                 return std::nullopt;
             }
@@ -425,7 +523,7 @@ namespace pg
             // See matchesAdvancedPattern: only reject if the jump target is
             // INSIDE the pattern (would land mid-fused-op). A target AT the
             // pattern start is safe — equivalent execution.
-            if (not firstElement and jumpTargets.find(currentOffset) != jumpTargets.end())
+            if (not firstElement and isJumpTarget(currentOffset))
             {
                 return false;
             }
@@ -482,31 +580,7 @@ namespace pg
     }
 
     void BytecodeRewriter::applyAdvancedRewrite(Chunk& chunk, size_t offset, size_t patternSize, const std::vector<uint8_t>& replacement) {
-        // Store original lines for replacement
-        std::vector<int> originalLines;
-        if (offset < chunk.lines.size())
-        {
-            size_t linesToCopy = std::min(patternSize, chunk.lines.size() - offset);
-            originalLines.assign(chunk.lines.begin() + offset, chunk.lines.begin() + offset + linesToCopy);
-        }
-
-        // Remove original pattern bytes and lines
-        chunk.code.erase(chunk.code.begin() + offset, chunk.code.begin() + offset + patternSize);
-        if (offset < chunk.lines.size())
-        {
-            size_t linesToRemove = std::min(patternSize, chunk.lines.size() - offset);
-            chunk.lines.erase(chunk.lines.begin() + offset, chunk.lines.begin() + offset + linesToRemove);
-        }
-
-        // Insert replacement bytes directly
-        chunk.code.insert(chunk.code.begin() + offset, replacement.begin(), replacement.end());
-
-        // Insert corresponding line numbers
-        int line = originalLines.empty() ? 0 : originalLines[0];
-        for (size_t i = 0; i < replacement.size(); ++i)
-        {
-            chunk.lines.insert(chunk.lines.begin() + offset + i, line);
-        }
+        spliceCode(chunk, offset, patternSize, replacement);
 
         LOG_MILE("BytecodeRewriter", "Applied advanced rewrite: " << patternSize << " bytes -> " << replacement.size() << " bytes");
     }
@@ -637,22 +711,25 @@ namespace pg
         // is the landing point of a backward jump. In that narrow case the
         // target offset stays at rewriteIndex (the fused op starts there) but
         // the jump position moved by sizeDelta, so we still need to adjust
-        // the encoded distance. Unrelated backward jumps that happen to land
-        // at rewriteIndex without the rewriter intentionally matching at a
-        // jump target are not adjusted here.
-        const bool rewriteIsAtJumpTarget = (jumpTargets.find(rewriteIndex) != jumpTargets.end());
+        // the encoded distance. The jump lists are exact for every edit, raw
+        // ones included, so this holds whenever some jump lands there.
+        const bool rewriteIsAtJumpTarget = isJumpTarget(rewriteIndex);
 
-        for (size_t i = 0; i < chunk.code.size();)
+        // Only the jumps are visited, not every instruction of the chunk
+        for (size_t i : jumpSites)
         {
             OpCode opcode = static_cast<OpCode>(chunk.code[i]);
 
-            if (isJumpInstruction(opcode))
+            if (not isJumpInstruction(opcode))
+            {
+                LOG_ERROR("BytecodeRewriter", "No jump at " << i << " where one was tracked: the chunk changed outside the rewriter");
+            }
+            else
             {
                 // Exclude jumps that are within the rewrite region (they will be replaced)
                 if (i >= rewriteIndex and i < rewriteIndex + rewriteSize)
                 {
                     LOG_MILE("BytecodeRewriter", "Skipping jump at " << i << " (in rewrite region)");
-                    i += pg::getInstructionSize(opcode);
                     continue;
                 }
 
@@ -747,11 +824,10 @@ namespace pg
                              << ", currentTarget=" << currentTarget << ", rewriteIndex=" << rewriteIndex << ", sizeDelta=" << sizeDelta << ")");
                 }
             }
-
-            i += getActualInstructionSize(chunk, i);
         }
 
-        collectJumpTargets(chunk);
+        // The jump lists are brought up to date by the caller, once the bytes have changed
+        // (forgetJumpsIn, followRewrite): collected here they would mix old and new offsets
 
         LOG_MILE("BytecodeRewriter", "Jump offset adjustment completed");
     }

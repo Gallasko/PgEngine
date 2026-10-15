@@ -52,8 +52,11 @@ namespace pg
         bool requiresMultiplePasses() const override { return true; }
 
     private:
-        // Find all long jump candidates that can be optimized to short jumps
-        std::optional<JumpInfo> findFirstOptimizableJumps(const Chunk& chunk, BytecodeRewriter* rewriter);
+        // The first jump at or after `from` (an instruction's start) whose pops can go into it
+        std::optional<JumpInfo> findFirstOptimizableJumps(const Chunk& chunk, BytecodeRewriter* rewriter, size_t from = 0);
+
+        // That jump made popping, the rest of the chunk following it
+        bool optimize(Chunk& chunk, BytecodeRewriter* rewriter, const JumpInfo& jump);
 
         // Helper methods
         uint32_t extractLongJumpOffset(const Chunk& chunk, size_t offset);

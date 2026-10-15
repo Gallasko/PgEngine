@@ -21,18 +21,37 @@ namespace pg
 
         LOG_MILE("LongJumpOptimization", "Starting long jump optimization pass");
 
-        // Find optimizable jumps in the current state of the chunk
-        auto candidate = findFirstOptimizableJumps(chunk, rewriter);
+        // Every candidate in one walk, each found in the chunk as the ones before it left it: the
+        // rewriter moved the jumps still ahead. A walk from the start for each one made the pass
+        // quadratic in a chunk with many jumps. One that only fits once others shrank is found by
+        // the next run of the pass
+        bool changed = false;
 
-        if (not candidate.has_value())
+        for (auto candidate = findFirstOptimizableJumps(chunk, rewriter); candidate.has_value();)
         {
-            LOG_MILE("LongJumpOptimization", "No more long jumps can be optimized");
-            return false;
+            const JumpInfo jump = candidate.value();
+
+            if (optimize(chunk, rewriter, jump))
+            {
+                changed = true;
+                candidate = findFirstOptimizableJumps(chunk, rewriter, jump.instructionOffset + 3);
+            }
+            else
+            {
+                candidate = findFirstOptimizableJumps(chunk, rewriter, jump.instructionOffset + 5);
+            }
         }
 
-        // Optimize the first candidate (this maintains simpler logic)
-        const auto& jump = candidate.value();
+        if (not changed)
+        {
+            LOG_MILE("LongJumpOptimization", "No more long jumps can be optimized");
+        }
 
+        return changed;
+    }
+
+    bool LongJumpOptimizationPass::optimize(Chunk& chunk, BytecodeRewriter* rewriter, const JumpInfo& jump)
+    {
         // Get the short jump equivalent
         OpCode shortOpcode = getShortJumpEquivalent(jump.opcode);
 
@@ -74,9 +93,9 @@ namespace pg
         return false;
     }
 
-    std::optional<LongJumpOptimizationPass::JumpInfo> LongJumpOptimizationPass::findFirstOptimizableJumps(const Chunk& chunk, BytecodeRewriter* rewriter)
+    std::optional<LongJumpOptimizationPass::JumpInfo> LongJumpOptimizationPass::findFirstOptimizableJumps(const Chunk& chunk, BytecodeRewriter* rewriter, size_t from)
     {
-        for (size_t i = 0; i < chunk.code.size();)
+        for (size_t i = from; i < chunk.code.size();)
         {
             OpCode opcode = static_cast<OpCode>(chunk.code[i]);
 

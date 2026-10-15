@@ -23,18 +23,31 @@ namespace pg
 
         LOG_MILE("PoppingJumpPass", "Starting popping jump optimization pass");
 
-        // Find optimizable jumps in the current state of the chunk
-        auto candidate = findFirstOptimizableJumps(chunk, rewriter);
+        // Every candidate in one walk, in the order a walk from the start for each one found them
+        // (that walk made the pass quadratic in a chunk with many conditions): the rewriter moved
+        // what lies ahead, and a jump turned popping is not found again
+        bool changed = false;
 
-        if (not candidate.has_value())
+        for (auto candidate = findFirstOptimizableJumps(chunk, rewriter); candidate.has_value();)
         {
-            LOG_MILE("PoppingJumpPass", "No more popping jumps can be optimized");
-            return false;
+            const JumpInfo jump = candidate.value();
+
+            changed |= optimize(chunk, rewriter, jump);
+
+            // The jump keeps its size and its offset, whether it was made popping or not
+            candidate = findFirstOptimizableJumps(chunk, rewriter, jump.instructionOffset + pg::getInstructionSize(jump.opcode));
         }
 
-        // Optimize the first candidate (this maintains simpler logic)
-        const auto& jump = candidate.value();
+        if (not changed)
+        {
+            LOG_MILE("PoppingJumpPass", "No more popping jumps can be optimized");
+        }
 
+        return changed;
+    }
+
+    bool PoppingJumpPass::optimize(Chunk& chunk, BytecodeRewriter* rewriter, const JumpInfo& jump)
+    {
         // Get the short jump equivalent
         OpCode poppingOpcode = getPoppingJumpReplacement(jump.opcode);
 
@@ -76,9 +89,9 @@ namespace pg
         return false;
     }
 
-    std::optional<PoppingJumpPass::JumpInfo> PoppingJumpPass::findFirstOptimizableJumps(const Chunk& chunk, BytecodeRewriter* rewriter)
+    std::optional<PoppingJumpPass::JumpInfo> PoppingJumpPass::findFirstOptimizableJumps(const Chunk& chunk, BytecodeRewriter* rewriter, size_t from)
     {
-        for (size_t i = 0; i < chunk.code.size();)
+        for (size_t i = from; i < chunk.code.size();)
         {
             OpCode opcode = static_cast<OpCode>(chunk.code[i]);
 
