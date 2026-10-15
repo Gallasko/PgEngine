@@ -5437,6 +5437,10 @@ namespace chronicle
             for (const auto& g : a.gains)
                 gloss.rows.push_back({textOf(g, "name"), signedText(intOf(g, "amount")), intOf(g, "amount") < 0 ? "loss" : "gain"});
 
+            // A walk's place: what each level of knowing it brings, as the Adventure page last read it
+            if (auto ladder = walkLadders.find(textOf(a.fields, "zone")); ladder != walkLadders.end() and not textOf(a.fields, "zone").empty())
+                gloss.rows.insert(gloss.rows.end(), ladder->second.begin(), ladder->second.end());
+
             // A footnote only for the work he is at: what a locked one still asks is in red above
             if (textOf(a.fields, "id") == save.running)
                 gloss.footnote = "AT WORK NOW";

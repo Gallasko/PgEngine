@@ -840,14 +840,21 @@ namespace pg
             }
 
             EXPECT_EQ(textOf(work("gather.berries"), "costs"), "1 day of the stay");
-            EXPECT_EQ(textOf(work("gather.berries"), "gives"), "1\xE2\x80\x93" "2 berries, to sell");
+            EXPECT_EQ(textOf(work("gather.berries"), "gives"), "1\xE2\x80\x93" "3 berries, to sell");
             EXPECT_EQ(textOf(work("gather.firewood"), "costs"), "2 days of the stay");
-            EXPECT_EQ(textOf(work("gather.firewood"), "gives"), "1\xE2\x80\x93" "3 firewood, for the town");
+            EXPECT_EQ(textOf(work("gather.firewood"), "gives"), "1\xE2\x80\x93" "4 firewood, for the town");
 
-            // A study says what the next level opens
-            EXPECT_NE(textOf(work("study"), "gives").find("to knowledge 2"), std::string::npos);
-            EXPECT_NE(textOf(work("study"), "gives").find("which opens exploring the nearby pond"), std::string::npos);
+            // A study says what it gives, alone; what the next level opens is the head's note's to say
+            EXPECT_EQ(textOf(work("study"), "gives"), "+1 zone knowledge");
             EXPECT_NE(textOf(w.last.site, "knowledgeNote").find("exploring the nearby pond"), std::string::npos);
+
+            // The site's head carries the place's ladder, for the gloss of his panel: what each
+            // level brings, the studies it asks in all, and none made yet toward the second
+            EXPECT_EQ(textOf(w.last.site, "brings2"), "Exploring the nearby pond, a task of his life");
+            EXPECT_EQ(textOf(w.last.site, "brings3"), "Gathering wortleaf, a longer stay");
+            EXPECT_EQ(intOf(w.last.site, "needs2"), 3);
+            EXPECT_EQ(intOf(w.last.site, "needs4"), 10);
+            EXPECT_EQ(intOf(w.last.site, "studyPercent"), 0);
 
             // And so does a rest, where he can camp
             Walker camper(knowing(gatherer(), "millpond", 3));
@@ -1166,6 +1173,11 @@ namespace pg
 
             EXPECT_EQ(textOf(w.last.site, "knowledge"), "ZONE KNOWLEDGE 2 OF 4");
             EXPECT_NE(byId(w.last.works, "rest"), nullptr);
+
+            // Its rule fills with the studies toward the third level, 3 of 6, not with the level
+            EXPECT_EQ(intOf(w.last.site, "studies"), 3);
+            EXPECT_EQ(intOf(w.last.site, "studyPercent"), 50);
+            EXPECT_NE(textOf(w.last.site, "brings4").find("the white stag"), std::string::npos);
             EXPECT_EQ(byId(w.last.seeks, "stag"), nullptr);
             EXPECT_LT(intOf(*byId(w.last.seeks, "wolf"), "cost"), unknown);
 

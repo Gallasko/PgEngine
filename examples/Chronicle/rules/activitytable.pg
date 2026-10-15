@@ -1165,6 +1165,15 @@ push(activities, {id: "brew.remedy", group: "Market", name: "Brew a remedy", gly
                   requires: [{stat: "wortleaf", label: "Wortleaf to brew"}],
                   costs: [{stat: "wortleaf", amount: 2}]})
 
+// And berries dried keep as rations: three to a ration, a little more than they would buy sold
+// (three berries sell for 0.6 coin, a ration costs about 0.8)
+push(activities, {id: "dry.berries", group: "Market", name: "Dry berries", glyph: "trade", months: 0, rank: "", each: "INTO RATIONS", path: "",
+                  finishBy: anyAge, showFrom: 100, place: "market",
+                  about: "Spread on a cloth in the sun for a week, they keep through the winter.",
+                  gains: [{stat: "rations", amount: 1}],
+                  requires: [{stat: "berries", label: "Berries to dry"}],
+                  costs: [{stat: "berries", amount: 3}]})
+
 // The works that raise a place of the town, one a level, made from towntable.pg: the scene lists
 // them on the Town page, under the places. Their months and their costs are what a life gives the town: the coin a
 // level asks, less what earlier lives left to the place (its fund), and what else it takes

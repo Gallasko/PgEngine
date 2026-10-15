@@ -15,6 +15,7 @@
 #include "UI/placetile.h"     // PlaceSelectedEvent
 #include "UI/resourceledger.h" // LedgerRowSpec
 #include "UI/eventlog.h"      // LogEntry
+#include "UI/gloss.h"         // GlossRow
 #include "UI/tabs.h"          // TabSelectedEvent
 #include "lifesave.h"
 
@@ -383,7 +384,7 @@ namespace chronicle
         std::unordered_map<std::string, std::vector<pg::_unique_id>> moveRows;   // The rows they stand on, by the layout that holds them
         int moveHoverStale = 0;        // Frames left in which the hover is asked for again: buttons made again under a mouse that stays still
         std::unordered_map<std::string, std::pair<float, float>> moveFlow;   // By layout: the widths between which its buttons stand on their lines as they do (at least, under)
-        bool walkGlossed = false;      // The glosses of the beasts' panels hang on them
+        bool walkGlossed = false;      // The glosses of the screen hang on what they speak of: the beasts' panels, his own on site
         float accountFitted = 0.0f;    // The height the account of a fight was last given, under the order of the turn
         float walkCooling = 0.0f;      // Milliseconds before the walk's screen may be built again for another width
         bool walkRefitDue = false;     // A width came meanwhile: the screen is built for the window as it stands once that has passed
@@ -410,6 +411,8 @@ namespace chronicle
 
         std::vector<RuleActivity> activities;    // The last answer of Rules::activities
         std::string listedRows;                   // What the list was built from: each listed row and how much it asks
+        std::unordered_map<std::string, std::vector<GlossRow>> walkLadders;   // A place he may walk to: what each level of knowing it brings, under its activity's gloss
+        std::string laddersSaid;                  // What they were made from, to make the glosses again when it changes
         pg::RecordList holdings;                  // The last resources.pg rows
         std::vector<RuleGloss> holdingGlosses;    // And what hovering each says
         std::string death;                        // "" or why the character as he is cannot go on

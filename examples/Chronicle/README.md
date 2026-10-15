@@ -1022,8 +1022,12 @@ files of their own, `expeditionlib.pg` and `fightlib.pg`, imported first: a scri
   Hedgerows: berries, firewood, a study), and each level of its knowledge one more (its
   `ladder` in `expeditiontable.pg`: a gathering by its item, a beast by its id,
   `<beast>*pack` for its pack, `camp` for a rest and his snare and herbal; an entry with `says`
-  is what the level opens elsewhere); what is not open has no tile, and the study's gloss and the
-  head's note say what the next level opens (`openingAt`). Known 2 of 4, the Hedgerows open a task
+  is what the level opens elsewhere); what is not open has no tile, and the
+  head's note says what the next level opens (`openingAt`); the study's gloss says only what it
+  gives, `+1 zone knowledge`. The whole ladder, every level with
+  what it brings and the studies it asks (`levelBrings`, `addLadder`), is said under the gloss of
+  the place's tile on the Adventure page and in the gloss of his panel on site, whose rule fills
+  with the studies toward the next level (`studyPercent`), not with the level he has. Known 2 of 4, the Hedgerows open a task
   of his life, *Explore the Nearby Pond* (`pond`, a month), that finds the pond for the world as
   the market finds the town: its gain is world knowledge, `know.found.millpond`, which Mill Pond
   asks, and no later life is offered it again (`whileNot`). Known 4 of 4, a place opens the next one:
@@ -1039,7 +1043,9 @@ files of their own, `expeditionlib.pg` and `fightlib.pg`, imported first: a scri
   work that asks something of him (a child's about 3, a man's 4.5): about 4 a month at the
   Hedgerows and Mill Pond, 5 to 6 in the Hollow Woods and on the Quarry Road. Sale prices (`lot`
   for `coin`), gatherings and a beast's practice (`xp`, 2 to 8 a kill) are set for that, and were
-  measured by playing each place forty times a level with the rules themselves.
+  measured by playing each place forty times a level with the rules themselves. Gatherings and
+  the smaller beasts' spoils were then raised by about a third, by hand and not measured again:
+  a walk also spends its days on study, for the knowledge that opens the rest.
 - **The record.** Every step is `{n, kind, target, count, ap, hp, text, gave, used, figure, ...}`
   and has its `marks` (`{step, kind, id, n}`: `use`, `gain`, `loot`, `kill`, `learn`, `stat`,
   `grow`). A walk by the record is a fold over them (`replayTerm`): what it used is taken as he

@@ -6840,6 +6840,22 @@ namespace pg
             EXPECT_EQ(zones->selected(), "walk.hedgerows");
             EXPECT_TRUE(f.pos(hedgerows->root)->visible);
 
+            // Its gloss says, under the rest, what each level of knowing the place brings: the
+            // first visit made it known 1 of 4, the rest is still to learn
+            {
+                const GlossSpec* gloss = f.ecs.getSystem<GlossRegistry>()->find(hedgerows->spec.glossKey);
+                ASSERT_NE(gloss, nullptr);
+
+                auto heading = std::find_if(gloss->rows.begin(), gloss->rows.end(), [](const GlossRow& r) { return r.heading and r.label == "ZONE KNOWLEDGE 1 OF 4"; });
+                ASSERT_NE(heading, gloss->rows.end());
+                ASSERT_EQ(gloss->rows.end() - heading, 4);
+                EXPECT_EQ((heading + 1)->label, "Level 2 \xC2\xB7 3 studies");
+                EXPECT_EQ((heading + 1)->value, "Exploring the nearby pond, a task of his life");
+                EXPECT_EQ((heading + 1)->tone, "");
+                EXPECT_EQ((heading + 3)->label, "Level 4 \xC2\xB7 10 studies");
+                EXPECT_NE((heading + 3)->value.find("the way to the Hollow Woods"), std::string::npos);
+            }
+
             // As wide as its panel leaves it, and a tile is the town's own
             EXPECT_NEAR(zones->spec.width, life->piece<Panel>("zonePanel")->innerWidth(), 0.5f);
             EXPECT_NEAR(f.pos(hedgerows->root)->height, placeTileHeight(&f.ecs), 0.5f);
@@ -7590,6 +7606,21 @@ namespace pg
             EXPECT_EQ(walkPart(life, "vitality")->get<Label>()->spec.text, "VITALITY 40 OF 40");
             EXPECT_EQ(walkPart(life, "knowledge")->get<Label>()->spec.text, "ZONE KNOWLEDGE 1 OF 4");
             EXPECT_LT(f.pos(walkPart(life, "statePanel"))->y, f.pos(walkPart(life, "bagPanel"))->y);
+
+            // His panel's gloss says what knowing the place means and what each level brings
+            {
+                const GlossSpec* known = f.ecs.getSystem<GlossRegistry>()->find("walk/knowledge");
+
+                ASSERT_NE(known, nullptr);
+                EXPECT_EQ(known->title, "Zone knowledge");
+                ASSERT_EQ(known->rows.size(), 4u);
+                EXPECT_EQ(known->rows[0].label, "ZONE KNOWLEDGE 1 OF 4");
+                EXPECT_EQ(known->rows[1].value, "Exploring the nearby pond, a task of his life");
+                EXPECT_EQ(known->footnote, "STUDY 0 OF 3 TO KNOWLEDGE 2");
+
+                for (const char* part : {"knowledge", "knowledgeBar", "knowledgeNote"})
+                    EXPECT_TRUE(walkPart(life, part)->has<TooltipComponent>()) << part;
+            }
             EXPECT_LT(f.pos(walkPart(life, "bagPanel"))->y, f.pos(walkPart(life, "homePanel"))->y);
 
             // And what he may do is tiles, as the choice is on the Life page
@@ -8019,6 +8050,7 @@ namespace pg
                     EXPECT_NE(row.id.rfind("sell.", 0), 0u) << row.id;
                     EXPECT_NE(row.id.rfind("buy.", 0), 0u) << row.id;
                     EXPECT_NE(row.id, "brew.remedy");
+                    EXPECT_NE(row.id, "dry.berries");
                 }
             }
 
@@ -8032,6 +8064,7 @@ namespace pg
 
             EXPECT_NE(stall(f, life, "sell.berries"), nullptr);
             EXPECT_NE(stall(f, life, "brew.remedy"), nullptr);
+            EXPECT_NE(stall(f, life, "dry.berries"), nullptr);
 
             for (const auto& group : list->spec.groups)
             {

@@ -99,6 +99,7 @@ namespace chronicle
         const std::string FoeMoveGloss = "walk/foemove/";  // And the move it means to make
         const std::string MoveGloss = "walk/move/";        // Followed by a move's id: what it would do, before it is done
         const std::string WorkGloss = "walk/work/";        // Followed by a field work's id: a line on it, what it costs, what it gives
+        const std::string KnowledgeGloss = "walk/knowledge";   // His panel on site: what knowing the place means, and what each level brings
         constexpr float MoveGap = 8.0f;                    // Between two buttons of his turn
         constexpr int HoverFrames = 12;                    // After they are made again: the frames in which the hover is worked out again
         constexpr float HurtMs = 320.0f;                   // A rule that was just taken from stays in the loss's colour that long
@@ -453,6 +454,28 @@ namespace chronicle
             req.met = 0;
 
             row.requirements.push_back(req);
+        }
+
+        // The ladder of a place, as the rules wrote it into a row (expeditionlib.pg's `addLadder`):
+        // a heading with how well it is known, then what each level brings and the studies it
+        // asks in all, in the gain's colour once he knows the place that well
+        std::vector<GlossRow> ladderRows(const ElementMap& row)
+        {
+            const int level = intOf(row, "level");
+            std::vector<GlossRow> rows;
+
+            rows.push_back({"ZONE KNOWLEDGE " + std::to_string(level) + " OF 4", "", "", true});
+
+            for (int l = 2; l <= 4; ++l)
+            {
+                const std::string n = std::to_string(l);
+                const std::string brings = textOf(row, "brings" + n);
+
+                rows.push_back({"Level " + n + " \xC2\xB7 " + std::to_string(intOf(row, "needs" + n)) + " studies", brings.empty() ? std::string("He knows it better") : brings,
+                                level >= l ? "gain" : ""});
+            }
+
+            return rows;
         }
 
         std::string ledgerSignature(const std::vector<LedgerRowSpec>& rows)
@@ -1289,10 +1312,55 @@ namespace chronicle
         walkSay("knowledge", textOf(site, "knowledge"));
         walkSay("knowledgeNote", textOf(site, "knowledgeNote"));
 
-        for (auto [name, key] : {std::pair<const char*, const char*>{"vitalityBar", "vitalityPercent"}, {"knowledgeBar", "knowledgePercent"}})
+        // The knowledge's rule fills with the studies toward the next level, not with the level
+        // he has: what is left to learn is what he can do something about here
+        for (auto [name, key] : {std::pair<const char*, const char*>{"vitalityBar", "vitalityPercent"}, {"knowledgeBar", "studyPercent"}})
         {
             if (auto bar = walkPiece<ProgressRule>(name))
                 bar->setPercent(ecs, static_cast<float>(intOf(site, key)), not walkFresh);
+        }
+
+        // His panel's gloss: what knowing a place is, what each level of it brings, and how far
+        // he is from the next
+        if (auto registry = ecs->getSystem<GlossRegistry>())
+        {
+            const int level = intOf(site, "level");
+
+            GlossSpec gloss;
+            gloss.inlineValues = true;
+            gloss.title = "Zone knowledge";
+            gloss.aside = std::to_string(level) + "/4";
+            gloss.text = "How well " + textOf(site, "title") + " is known. The first visit makes it known 1 of 4, and every study of the place adds to it. "
+                         "It is the world's: what he learns here, every life after his knows.";
+            gloss.rows = ladderRows(site);
+
+            if (level >= 4)
+                gloss.footnote = "KNOWN 4 OF 4";
+            else if (level > 0)
+                gloss.footnote = "STUDY " + std::to_string(intOf(site, "studies")) + " OF " + std::to_string(intOf(site, "needs" + std::to_string(level + 1))) + " TO KNOWLEDGE " + std::to_string(level + 1);
+
+            registry->set(KnowledgeGloss, gloss);
+        }
+
+        // Hung once a screen on his panel: its ground and heading, and how well the place is known
+        if (not walkGlossed)
+        {
+            walkGlossed = true;
+
+            if (auto panel = walkPiece<Panel>("statePanel"))
+            {
+                for (EntityRef part : {panel->ground, panel->title ? panel->title->entity : EntityRef{}})
+                {
+                    if (not part.empty())
+                        attachGloss(ecs, part, KnowledgeGloss);
+                }
+            }
+
+            for (const char* part : {"knowledge", "knowledgeBar", "knowledgeNote"})
+            {
+                if (EntityRef piece = inWalk(part); not piece.empty())
+                    attachGloss(ecs, piece, KnowledgeGloss);
+            }
         }
 
         // The strip of days: what is spent solid, what is left of the stay hatched after it
@@ -2783,6 +2851,7 @@ namespace chronicle
         std::vector<PlaceTileSpec> open;
         std::vector<PlaceTileSpec> closed;
         std::string placeSignature;
+        std::string ladders;
 
         for (const RuleActivity* a : places)
         {
@@ -2797,6 +2866,15 @@ namespace chronicle
             tile.level = said ? intOf(*said, "level") : 0;
             tile.of = said and intOf(*said, "levels") > 0 ? intOf(*said, "levels") : 4;
             tile.glossKey = "activity/" + textOf(a->fields, "id");
+
+            // Its gloss, the activity's, says under the rest what each level of knowing it brings
+            if (said)
+            {
+                walkLadders[zone] = ladderRows(*said);
+
+                for (const auto& r : walkLadders[zone])
+                    ladders += zone + "|" + r.label + "|" + r.value + "|" + r.tone + ";";
+            }
 
             if (locked)
             {
@@ -2824,6 +2902,12 @@ namespace chronicle
             placeSignature += tile.id + "|" + tile.name + "|" + tile.line + "|" + std::to_string(tile.level) + "/" + std::to_string(tile.of) + ";";
 
             (locked ? closed : open).push_back(tile);
+        }
+
+        if (ladders != laddersSaid)
+        {
+            laddersSaid = ladders;
+            glossActivities();
         }
 
         const size_t opened = open.size();

@@ -151,8 +151,8 @@ var walkZones = [
              {until: 99, text: "The same hedge. The children picking at it are not the ones he remembers."}],
      travel: 1, stayMin: 7, stayMax: 9,
      mobs: [],
-     spots: [{id: "berries", ap: 1, least: 1, most: 2}, {id: "firewood", ap: 2, least: 1, most: 3}, {id: "wortleaf", ap: 2, least: 1, most: 2},
-             {id: "hazel", ap: 1, least: 1, most: 2}],
+     spots: [{id: "berries", ap: 1, least: 1, most: 3}, {id: "firewood", ap: 2, least: 1, most: 4}, {id: "wortleaf", ap: 2, least: 1, most: 3},
+             {id: "hazel", ap: 1, least: 1, most: 3}],
      ladder: [{task: "pond", level: 2, says: "exploring the nearby pond, a task of his life"}, {task: "wortleaf", level: 3}, {task: "hazel", level: 4}],
      events: ["hedge.nest", "hedge.keeper"],
      fromAge: 7, showAge: 7,
@@ -166,7 +166,7 @@ var walkZones = [
              {until: 99, text: "He has stood at this pond in more years than he can name without counting."}],
      travel: 4, stayMin: 24, stayMax: 30,   // Two months
      mobs: ["rat"],
-     spots: [{id: "reeds", ap: 1, least: 1, most: 1}, {id: "fish", ap: 2, least: 1, most: 3}, {id: "clay", ap: 3, least: 1, most: 2}],
+     spots: [{id: "reeds", ap: 1, least: 1, most: 2}, {id: "fish", ap: 2, least: 1, most: 4}, {id: "clay", ap: 3, least: 1, most: 3}],
      ladder: [{task: "camp", level: 2}, {task: "fish", level: 3}, {task: "clay", level: 4}],
      events: ["pond.heron"],
      fromAge: 10, showFrom: 100,   // No row until he has explored the pond (activitytable.pg's `pond`): one place at a time
@@ -181,7 +181,7 @@ var walkZones = [
              {until: 99, text: "The wood has not changed. He walks it slower, and sees more."}],
      travel: 15, stayMin: 45, stayMax: 60,   // Three months
      mobs: ["wolf", "boar", "stag"],
-     spots: [{id: "ashwood", ap: 3, least: 1, most: 2}],
+     spots: [{id: "ashwood", ap: 3, least: 1, most: 3}],
      ladder: [{task: "camp", level: 2}, {task: "boar", level: 3}, {task: "wolf*pack", level: 4}, {task: "stag", level: 4}],
      events: ["hollow.hunter", "hollow.tracks"],
      fromAge: 14,
@@ -196,7 +196,7 @@ var walkZones = [
              {until: 99, text: "He could walk the cut road blind. The adders would rather he did not."}],
      travel: 5, stayMin: 24, stayMax: 30,   // Two months
      mobs: ["adder"],
-     spots: [{id: "stone", ap: 3, least: 1, most: 1}, {id: "wortleaf", ap: 2, least: 1, most: 1}],
+     spots: [{id: "stone", ap: 3, least: 1, most: 2}, {id: "wortleaf", ap: 2, least: 1, most: 2}],
      ladder: [{task: "camp", level: 2}, {task: "wortleaf", level: 3}],
      events: ["quarry.cart"],
      fromAge: 14,
@@ -212,7 +212,7 @@ var walkMobs = [
              circle: {name: "Skitter", line: "It backs off and looks for a way round."}},
      script: ["bite", "circle"], weak: "",
      trains: "dex", xp: 3,
-     loot: [{id: "hides", chance: 50, least: 1, most: 1}]},
+     loot: [{id: "hides", chance: 75, least: 1, most: 1}]},
 
     {id: "wolf", name: "Wolf", many: "wolves", pack: "Wolf pack", lone: "A lone wolf", rarity: "common", packSize: 3, holdsBack: 2,
      about: "Lean and grey. It never comes alone for long.",
@@ -222,7 +222,7 @@ var walkMobs = [
              hold: {name: "Hang back", line: "It waits behind the others, for one of them to fall."}},
      script: ["bite", "circle", "bite"], weak: "sweep",
      trains: "str", xp: 2,
-     loot: [{id: "pelts", chance: 100, least: 1, most: 1}, {id: "fangs", chance: 25, least: 1, most: 1}]},
+     loot: [{id: "pelts", chance: 100, least: 1, most: 1}, {id: "fangs", chance: 40, least: 1, most: 1}]},
 
     {id: "boar", name: "Boar", many: "boars", pack: "", lone: "", rarity: "uncommon", packSize: 1, holdsBack: 0,
      about: "Old, heavy, and of the opinion that the wood is his.",
@@ -250,7 +250,7 @@ var walkMobs = [
              circle: {name: "Coil", line: "It draws back on itself."}},
      script: ["circle", "bite"], weak: "feint",
      trains: "dex", xp: 4,
-     loot: [{id: "fangs", chance: 100, least: 1, most: 2}]}
+     loot: [{id: "fangs", chance: 100, least: 1, most: 3}]}
 ]
 
 var walkEvents = [

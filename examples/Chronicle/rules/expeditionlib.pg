@@ -1932,19 +1932,12 @@ fun workRows()
         studyNote = "STUDY " + toString(studies) + " OF " + toString(walkKnobs.studyLevels[level]) + " TO KNOWLEDGE " + toString(level + 1)
     }
 
+    // What a study gives, and nothing more: what the levels bring is the place's gloss's to say
     var studyGives = "Nothing more: the place is known"
 
     if (level < 4)
     {
-        studyGives = "Study " + toString(studies + 1) + " of " + toString(walkKnobs.studyLevels[level]) + " to knowledge " + toString(level + 1)
-
-        // And what that level opens: the next thing to do here, or the next place
-        var next = openingAt(zone, level + 1)
-
-        if (next != "")
-        {
-            studyGives = studyGives + ", which opens " + next
-        }
+        studyGives = "+1 zone knowledge"
     }
 
     push(rows, workRow("study", "Study the place", studyNote, walkKnobs.studyAp, "", "know",
@@ -2157,6 +2150,66 @@ fun weeksText(daysOf)
     return daysText(daysOf)
 }
 
+// What knowing the place to `level` brings, a thing a part: what it opens (`openingAt`), a
+// longer stay at 3, a shorter way there and back at 4, and every beast found a day sooner at
+// each two levels (`seekCost`)
+fun levelBrings(zone, level)
+{
+    var more = []
+    var opens = openingAt(zone, level)
+
+    if (opens != "")
+    {
+        push(more, opens)
+    }
+
+    if (level == 3)
+    {
+        push(more, "a longer stay")
+    }
+
+    if (level == 4)
+    {
+        push(more, "a shorter way there and back")
+    }
+
+    if (len(zone.mobs) > 0 and level % 2 == 0)
+    {
+        push(more, "every beast found a day sooner")
+    }
+
+    return more
+}
+
+// The place's ladder, written into a row: for each level 2 to 4, what it brings (`brings2`...) and
+// the studies it asks in all (`needs2`...), with the studies made (`studies`) and the level
+// reached (`level`). And the study toward the next level, for its bar: `studyPercent`, the
+// studies made of those the next level asks (100 once it is known 4 of 4)
+fun addLadder(row, zone)
+{
+    var level = zoneLevel(zone.id)
+    var studies = mine("know.study." + zone.id)
+
+    for (var l = 2; l <= 4; l++)
+    {
+        row["brings" + toString(l)] = capitalised(joined(levelBrings(zone, l), ", "))
+        row["needs" + toString(l)] = walkKnobs.studyLevels[l - 1]
+    }
+
+    row.studies = studies
+    row.level = level
+    row.studyPercent = 100
+
+    if (level < 1)
+    {
+        row.studyPercent = 0
+    }
+    else if (level < 4)
+    {
+        row.studyPercent = smaller(100, wholeOf(studies * 100, walkKnobs.studyLevels[level]))
+    }
+}
+
 // What knowing the place one better would bring, said under how well it is known
 fun knowledgeNote(zone)
 {
@@ -2169,29 +2222,7 @@ fun knowledgeNote(zone)
     }
 
     var note = "Study " + toString(studies) + " of " + toString(walkKnobs.studyLevels[level]) + " to knowledge " + toString(level + 1) + ": "
-    var more = []
-    var next = openingAt(zone, level + 1)
-
-    if (next != "")
-    {
-        push(more, next)
-    }
-
-    if (level + 1 == 3)
-    {
-        push(more, "a longer stay")
-    }
-
-    if (level + 1 == 4)
-    {
-        push(more, "a shorter way there and back")
-    }
-
-    // A day off the finding of every beast for each two levels (`seekCost`)
-    if (len(zone.mobs) > 0 and (level + 1) % 2 == 0)
-    {
-        push(more, "every beast found a day sooner")
-    }
+    var more = levelBrings(zone, level + 1)
 
     if (len(more) == 0)
     {
@@ -2233,13 +2264,13 @@ fun siteHead()
         percent = wholeOf(runOf("spent") * 100, runOf("apTotal"))
     }
 
-    return {zone: zone.id, mode: run.mode,
+    var head = {zone: zone.id, mode: run.mode,
             kicker: toUpperCase(zone.kind) + " · ON SITE · " + how,
             title: zone.name, line: zone.line,
             daysLeft: toString(runOf("ap")), daysNote: "DAYS LEFT ON SITE",
             vitality: "VITALITY " + toString(runOf("hp")) + " OF " + toString(runOf("hpMax")),
             knowledge: "ZONE KNOWLEDGE " + toString(zoneLevel(zone.id)) + " OF 4",
-            vitalityPercent: wholeOf(runOf("hp") * 100, larger(1, runOf("hpMax"))), knowledgePercent: zoneLevel(zone.id) * 25,
+            vitalityPercent: wholeOf(runOf("hp") * 100, larger(1, runOf("hpMax"))),
             knowledgeNote: knowledgeNote(zone),
             home: "HOME AT " + ageMark(runOf("startMonth") + runOf("months")),
             percent: smaller(100, percent),
@@ -2248,6 +2279,12 @@ fun siteHead()
             summary: toString(len(record)) + " steps so far. Every one of them is walked again by the record.",
             scribe: "Each day is chosen when it comes; the record remembers all of them.",
             refused: pick(run, "refused", "")}
+
+    // The ladder of the place, for the gloss of his panel, and the study toward the next level,
+    // for the rule under how well it is known (`studyPercent`)
+    addLadder(head, zone)
+
+    return head
 }
 
 fun eventCard()
@@ -2486,10 +2523,14 @@ fun placeRows()
                 }
             }
 
-            push(rows, {id: zone.id, name: zone.name, kind: kind, months: walk.months, ap: stayOf(zone) * walkKnobs.apPerDay,
-                        cost: counted(walk.months, "mo", "mo") + " · " + apText(stayOf(zone) * walkKnobs.apPerDay),
-                        gives: zone.opens, known: "known " + toString(zoneLevel(zone.id)) + " of 4", level: zoneLevel(zone.id), levels: 4,
-                        locked: walk.locked, kept: kept, foot: said})
+            var row = {id: zone.id, name: zone.name, kind: kind, months: walk.months, ap: stayOf(zone) * walkKnobs.apPerDay,
+                       cost: counted(walk.months, "mo", "mo") + " · " + apText(stayOf(zone) * walkKnobs.apPerDay),
+                       gives: zone.opens, known: "known " + toString(zoneLevel(zone.id)) + " of 4", level: zoneLevel(zone.id), levels: 4,
+                       locked: walk.locked, kept: kept, foot: said}
+
+            // What each level of knowledge brings, for the gloss of its tile
+            addLadder(row, zone)
+            push(rows, row)
         }
     }
 
