@@ -390,8 +390,8 @@ namespace chronicle
             setElement(entityOf(ecs, st.name), nameElement(st));
             setElement(entityOf(ecs, st.cost), costElement(st));
 
-            // No time, no time mark: a tile done at once leaves that line empty
-            setVisible(entityOf(ecs, st.costMark), not (st.tile and st.instant));
+            // No time, no time mark: a tile done at once leaves that line empty, or writes its price there
+            setVisible(entityOf(ecs, st.costMark), not (st.tile and st.instant and not st.priced));
             setVisible(entityOf(ecs, st.rule), not st.last and not st.tile);
             setVisible(entityOf(ecs, st.ring), st.keyboardFocus and not locked);
         }
@@ -416,7 +416,7 @@ namespace chronicle
             // A tile's time at the left of its last line, when it has one to say; its word of state at the right
             const bool timed = not row.cost.spec.text.empty();
 
-            setVisible(row.costMark.entity, not st.table and not (st.tile and (st.instant or not timed)));
+            setVisible(row.costMark.entity, not st.table and not (st.tile and ((st.instant and not st.priced) or not timed)));
 
             // And at the right its closing, after a stopwatch, when it has one
             if (row.status)
@@ -610,6 +610,7 @@ namespace chronicle
         state->stripe = spec.stripe;
         state->compact = spec.compact;
         state->instant = spec.months <= 0;
+        state->priced = not spec.cost.empty();
         state->featured = spec.featured;
         state->major = spec.major and spec.tile;
         state->tile = spec.tile;

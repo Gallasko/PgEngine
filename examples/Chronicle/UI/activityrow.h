@@ -115,6 +115,7 @@ namespace chronicle
         bool last = false;             // The last row of its list hides its rule
         bool compact = false;          // Its ground says its kind
         bool instant = false;          // Done at once (months 0): a transaction, not work
+        bool priced = false;           // It writes a price in the place of its time: the mark beside it shows on a tile done at once
         bool featured = false;         // The page wants it seen: its ground says so, in the place of its kind
         bool major = false;            // It turns his life: framed, and its mark shown, whatever its state
         bool tile = false;             // One of several on a line: no rule under it

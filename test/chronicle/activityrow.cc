@@ -253,13 +253,19 @@ namespace pg
             ActivityRowSpec bought = idleSpec("e", "Buy");
             bought.months = 0;
 
+            // And one done at once that writes its price where the others write their months
+            ActivityRowSpec paid = idleSpec("f", "Pay");
+            paid.months = 0;
+            paid.cost = "20 coin";
+            paid.costGlyph = "gold";
+
             ActivityListSpec spec;
             spec.id = "choice";
             spec.width = 464.0f;
             spec.tileWidth = 148.0f;
             spec.groups = {
                 {"Work", {idleSpec("a", "Carry"), idleSpec("b", "Practice with Wooden Blades and with Shields"), idleSpec("c", "Mill"), idleSpec("d", "Yard")}},
-                {"Market", {bought}},
+                {"Market", {bought, paid}},
             };
             ActivityList list = s.placeList(spec);
             s.pump();
@@ -371,6 +377,12 @@ namespace pg
             EXPECT_TRUE(s.pos(a->costMark.entity)->isVisible());
             EXPECT_EQ(e->cost.spec.text, "");
             EXPECT_FALSE(s.pos(e->costMark.entity)->isVisible());
+
+            ActivityRow* f = list.row(&s.ecs, "f");
+            ASSERT_NE(f, nullptr);
+            EXPECT_EQ(s.element(f->ground), "activity.kind.instant");
+            EXPECT_EQ(f->cost.spec.text, "20 coin");
+            EXPECT_TRUE(s.pos(f->costMark.entity)->isVisible());
             EXPECT_NEAR(e->natural, a->natural, 0.5f);
 
             // A closing on one tile: its line grows with it, and what is under moves down

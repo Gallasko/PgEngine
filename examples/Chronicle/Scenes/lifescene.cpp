@@ -10,6 +10,7 @@
 #include <SDL.h>
 #endif
 
+#include <cctype>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -3236,6 +3237,24 @@ namespace chronicle
             // What it takes when it begins, beside what it brings
             for (const auto& c : a.costs)
                 row.gains.push_back({textOf(c, "label"), -intOf(c, "amount")});
+
+            // A thing done at once has no months to write: its tile writes its price there
+            // instead, beside the mark the ledger gives what it takes
+            if (row.months <= 0 and not a.costs.empty())
+            {
+                const auto& price = a.costs.front();
+                const std::string stat = textOf(price, "stat");
+
+                // In the hand of the months it stands for: "20 coin", as "3 mo"
+                std::string name = textOf(price, "name");
+                std::transform(name.begin(), name.end(), name.begin(), [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+
+                row.cost = std::to_string(intOf(price, "amount")) + " " + name;
+
+                for (const auto& h : holdings)
+                    if (textOf(h, "id") == stat and not textOf(h, "glyph").empty())
+                        row.costGlyph = textOf(h, "glyph");
+            }
 
             for (const auto& r : a.requires)
             {
