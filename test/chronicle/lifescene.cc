@@ -1483,7 +1483,7 @@ namespace pg
             EXPECT_EQ(life->haste, 1);
 
             life->save.stats["rations"] = 24;
-            life->save.stats["written"] = 3;
+            life->save.stats["written"] = 14;
             life->setHaste(1);
             f.frames(12);
 
@@ -1533,12 +1533,12 @@ namespace pg
             f.ecs.sendEvent(TickEvent{1.0f});
             f.settle();
 
-            // A month of his in a second of the clock, and a second of written time for it
+            // A month of his in a second of the clock, and a week of written time for it: seven seconds
             EXPECT_EQ(life->save.monthsIn, 1);
-            EXPECT_EQ(life->written(), 2);
+            EXPECT_EQ(life->written(), 7);
 
             // Held with his coin, in seconds, and its row says how fast it goes
-            EXPECT_EQ(ledger->row("written")->figure.spec.text, "2/3600");
+            EXPECT_EQ(ledger->row("written")->figure.spec.text, "7/3600");
             EXPECT_EQ(ledger->row("written")->spec.rate, "\xC3\x97" "2");
 
             // Stopped, nothing of it is spent
@@ -1547,7 +1547,7 @@ namespace pg
             f.settle();
 
             EXPECT_EQ(life->save.monthsIn, 1);
-            EXPECT_EQ(life->written(), 2);
+            EXPECT_EQ(life->written(), 7);
 
             // Go on stands on its line: the room kept for it goes
             f.frames(12);
@@ -1557,15 +1557,16 @@ namespace pg
             f.ecs.sendEvent(OnSDLScanCode{SDL_SCANCODE_SPACE, 0});
             f.settle();
 
-            // Three times as fast: a second of the clock takes the two that are left. It ran a
-            // month and a half; the months are back at their own pace, with half a month to run
+            // Three times as fast, and a month costs the same week: two months' worth of the clock
+            // would take fourteen, and the seven left pay for half of what it adds. It ran a month
+            // and a third; the months are back at their own pace, with two thirds of a month to run
             f.ecs.sendEvent(ButtonActivatedEvent{fast->face.id, "life.haste"});
             f.settle();
 
             EXPECT_EQ(life->haste, 3);
             EXPECT_EQ(fast->spec.label, months + "3");
 
-            f.ecs.sendEvent(TickEvent{whole / 2.0f});
+            f.ecs.sendEvent(TickEvent{whole * 2.0f / 3.0f});
             f.settle();
 
             EXPECT_EQ(life->save.monthsIn, 2);
@@ -1574,10 +1575,15 @@ namespace pg
             EXPECT_EQ(fast->spec.label, months + "1");
             EXPECT_FALSE(f.pos(life->named("haste"))->visible);
             EXPECT_EQ(ledger->row("written")->figure.spec.text, "0/3600");
-            EXPECT_FLOAT_EQ(f.fact<float>("activity.running.glideMs"), whole / 2.0f);
+            EXPECT_NEAR(f.fact<float>("activity.running.glideMs"), whole * 2.0f / 3.0f, 0.5f);
 
             // And a month is a month again
-            f.ecs.sendEvent(TickEvent{whole / 2.0f});
+            f.ecs.sendEvent(TickEvent{whole * 2.0f / 3.0f - 1.0f});
+            f.settle();
+
+            EXPECT_EQ(life->save.monthsIn, 2);
+
+            f.ecs.sendEvent(TickEvent{2.0f});
             f.settle();
 
             EXPECT_EQ(life->save.monthsIn, 3);

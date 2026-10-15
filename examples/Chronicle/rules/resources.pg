@@ -13,10 +13,11 @@
 //         once it is gone. The screen says it once each time it changes.
 //         `caps`, the most each capped stat of the character can be: [{stat, most}].
 //         `rows`, one table per holding the ledger can show, in the order it lists them:
-//           {id, group, groupLabel, glyph, name, tone, rate, limit, title, haste, always}
+//           {id, group, groupLabel, glyph, name, tone, rate, limit, title, haste, aMonth, always}
 //           tone: 0 none, 1 coin, 2 guild, 3 relic; rate: "" or "+2 / mo", what the coming
 //           month does to it as things stand; limit: the most he can hold, 0 for none;
 //           haste: 0, or how many times as fast it can run the months (`haste` below);
+//           aMonth: what a month run faster takes of it, 0 for none (`aMonth` below);
 //           always: true for a row the ledger shows from the first, at 0 too.
 //         `glosses`, one table per holding, what hovering its row says:
 //           {id, title, text, footnote, rows [{label, value, tone}]}
@@ -48,9 +49,11 @@
 //   haste: N                          it is time, counted in seconds, and the player's rather than
 //                                     his: the seconds the chronicle stayed shut, up to its limit,
 //                                     kept from life to life. The screen spends it to run the months
-//                                     faster, up to N times as fast (a press goes ×1, ×2 ... ×N):
-//                                     a second played at ×N takes N − 1 of them. Its row is in
-//                                     the ledger from the first, held or not ("0/3600").
+//                                     faster, up to N times as fast (a press goes ×1, ×2 ... ×N).
+//                                     Its row is in the ledger from the first, held or not ("0/3600").
+//   aMonth: N                         with `haste`: a month run faster takes N of it, at ×2 as at
+//                                     ×N, whatever the pace of his age: seven seconds, a week of
+//                                     the player's for a month of his.
 // The most he can hold of a stat is lib.pg's `statLimits`: what a month produces stops at it,
 // and what he already holds past it (an activity may carry him there) is left alone.
 //
@@ -77,8 +80,8 @@ var holdings = [
              low: "Rations are running low: buy some at the market, or take work with meals",
              gone: "No rations left: his Vitality pays. Buy some at the market, or take work with meals"}},
     // Not his: the player's. The seconds the chronicle stayed shut, spent to run the months faster
-    {id: "written", group: "purse", groupLabel: "PURSE", glyph: "time", name: "Written time", tone: 0, haste: 3,
-     about: "What was written while the chronicle was shut, an hour at most. Spent, it runs the months twice or three times as fast. It is kept from life to life."},
+    {id: "written", group: "purse", groupLabel: "PURSE", glyph: "time", name: "Written time", tone: 0, haste: 3, aMonth: 7,
+     about: "What was written while the chronicle was shut, an hour at most. Spent, it runs the months twice or three times as fast, a week of it for each month. It is kept from life to life."},
     {id: "reagents", group: "purse", groupLabel: "PURSE", glyph: "magic", name: "Reagents", tone: 0,
      about: "What a working burns. Bought at the Collegium, spent when a working begins."},
     {id: "favors", group: "standing", groupLabel: "STANDING", glyph: "guild", name: "Favors", tone: 2,
@@ -441,7 +444,7 @@ for (var j = 0; j < len(holdings); j++)
 
     if (lookup(h, "ledger", true))
     {
-        push(rows, {id: h.id, group: h.group, groupLabel: h.groupLabel, glyph: h.glyph, name: h.name, tone: h.tone, rate: rate, limit: limitOf(h.id), title: lookup(h, "title", false), haste: lookup(h, "haste", 0), always: lookup(h, "haste", 0) > 0})
+        push(rows, {id: h.id, group: h.group, groupLabel: h.groupLabel, glyph: h.glyph, name: h.name, tone: h.tone, rate: rate, limit: limitOf(h.id), title: lookup(h, "title", false), haste: lookup(h, "haste", 0), aMonth: lookup(h, "aMonth", 0), always: lookup(h, "haste", 0) > 0})
     }
 }
 
@@ -468,10 +471,13 @@ for (var g = 0; g < len(holdings); g++)
     var haste = lookup(h, "haste", 0)
     var notes = [{label: "Held", value: holds, tone: ""}]
 
-    // Time, in seconds: how long it lasts at each speed
-    for (var x = 2; x <= haste; x++)
+    // Time, in seconds: how many months it runs faster, at whatever speed
+    var aMonth = lookup(h, "aMonth", 0)
+
+    if (haste > 0 and aMonth > 0)
     {
-        push(notes, {label: "At ×" + toString(x) + ", lasts", value: toString(held / (x - 1)) + " s", tone: "time"})
+        push(notes, {label: "A month takes", value: toString(aMonth) + " s", tone: "time"})
+        push(notes, {label: "Runs faster", value: toString(held / aMonth) + " mo", tone: "time"})
     }
 
     if (delta != 0)

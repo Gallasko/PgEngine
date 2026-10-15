@@ -117,7 +117,8 @@ in seconds and from the first ("0/3600": `always` on its row), but it is the pla
 life has what the last one held. The button *Months ×1* (or `F`) spends it: a press goes ×1, ×2, ×3 and back, and the
 months run that many times as fast. The speed multiplies the pace of his age
 (`LifeScene::monthMs` is not changed by it: the month under way runs faster through the same
-length), a second played at ×N takes N − 1 seconds of it, and the frame it runs out the months
+length), a month run so takes the row's `aMonth` of it, 7 seconds at ×2 as at ×3 (a week of the
+player's for a month of his), and the frame it runs out the months
 are back at their own pace. Nothing of it is spent while the months are stopped. The button is
 shown while any is held (a first life's, once its guide is over), at the right of *At work
 now* on the line of its last button (*Pass a month*, *Begin*, *Go on*): it is a page node

@@ -796,13 +796,27 @@ namespace chronicle
             if (paused)
                 return;
 
-            // Written time runs the months so many times as fast: what it adds to the frame is
-            // taken from it, and the frame it runs out the months are back at their own pace
+            // Written time runs the months so many times as fast. A month run so takes its
+            // `aMonth` of it, at ×2 as at ×3 (a week of the player's for a month of his): what it
+            // adds to the frame is what it pays for, and the frame it runs out the months are back
+            // at their own pace
             sinceMonth += e.tick;
 
             if (haste > 1)
             {
-                sinceMonth += spendWritten(e.tick * static_cast<float>(haste - 1));
+                const float extra = e.tick * static_cast<float>(haste - 1);
+
+                if (writtenAMonth > 0)
+                {
+                    const float wanted = (e.tick + extra) * static_cast<float>(writtenAMonth) * MsASecond / monthMs();
+
+                    if (wanted > 0.0f)
+                        sinceMonth += extra * spendWritten(wanted) / wanted;
+                }
+                else
+                {
+                    sinceMonth += spendWritten(extra);
+                }
 
                 if (written() <= 0)
                     setHaste(1);
@@ -3360,6 +3374,7 @@ namespace chronicle
             writtenStat.clear();
             writtenMost = 0;
             hasteMost = 1;
+            writtenAMonth = 0;
 
             for (const auto& h : holdings)
             {
@@ -3369,6 +3384,7 @@ namespace chronicle
                 writtenStat = textOf(h, "id");
                 writtenMost = intOf(h, "limit");
                 hasteMost = intOf(h, "haste");
+                writtenAMonth = intOf(h, "aMonth");
             }
 
             return;

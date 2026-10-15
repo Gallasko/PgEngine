@@ -1404,8 +1404,9 @@ namespace pg
             EXPECT_TRUE(flag(*written, "always"));
             EXPECT_FALSE(flag(*byId(month.rows, "coin"), "always"));
             EXPECT_EQ(rowOf(*glossOf(month, "written"), "Held"), "754/3600");
-            EXPECT_EQ(rowOf(*glossOf(month, "written"), "At \xC3\x97" "2, lasts"), "754 s");
-            EXPECT_EQ(rowOf(*glossOf(month, "written"), "At \xC3\x97" "3, lasts"), "377 s");
+            EXPECT_EQ(intOf(*written, "aMonth"), 7);
+            EXPECT_EQ(rowOf(*glossOf(month, "written"), "A month takes"), "7 s");
+            EXPECT_EQ(rowOf(*glossOf(month, "written"), "Runs faster"), "107 mo");
 
             // Fed by his work, the month uses none, and the gloss says so
             ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{5}}}, true, month));

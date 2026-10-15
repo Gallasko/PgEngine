@@ -476,6 +476,7 @@ namespace chronicle
         std::string writtenStat;                  // The stat written time is held in, as the rules name it (their holding with a `haste`); "" when they have none
         int writtenMost = 0;                      // The most of it that can be held, in seconds
         int hasteMost = 1;                        // How many times as fast it can run the months
+        int writtenAMonth = 0;                    // What a month run faster takes of it, in seconds, whatever the speed; 0: a second played at ×N takes N − 1
         float writtenSpent = 0.0f;                // The part of its next second already spent, in ms
         std::string awayLine;                     // What was written while the chronicle stayed shut, to be said once the page has arrived
         float stillMs = 0.0f;                     // How long the months have stood still with no input from the player, in ms
