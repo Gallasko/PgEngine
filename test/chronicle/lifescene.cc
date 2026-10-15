@@ -5333,8 +5333,6 @@ namespace pg
             EXPECT_EQ(glosses->find("activity/tomarket")->text.find("Opens the Town page"), 0u);
             EXPECT_EQ(glosses->find("activity/carters")->text, "Work");
 
-            const int toasts = life->toastsUp();
-
             auto grid = life->piece<PlaceGrid>("places");
             ASSERT_NE(grid, nullptr);
 
@@ -5354,7 +5352,7 @@ namespace pg
             EXPECT_EQ(life->save.stats.count("town_known"), 0u);
             EXPECT_EQ(f.fact<int>("stat.town_known"), 1);
             EXPECT_TRUE(tabs->enabled(1));
-            EXPECT_GT(life->toastsUp(), toasts);
+            EXPECT_TRUE(life->toastUp(life->town.opened));
 
             bool said = false;
 
@@ -5961,6 +5959,84 @@ namespace pg
             EXPECT_FALSE(life->townShown);
             EXPECT_TRUE(f.pos(life->named("activities"))->visible);
             EXPECT_FALSE(f.pos(life->named("town"))->visible);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Toasts in a crowd: four up at most, the oldest pushed out; a line said again kept once;
+        // one over another, with no room left where one has gone; a line wider than the window
+        // wrapped inside it.
+        TEST(lifescene_test, toasts_in_a_crowd)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = f.life(LifeFixture::first());
+            ASSERT_NE(life, nullptr);
+
+            f.frames(12);
+
+            // Past the page's arrival, when nothing is toasted, and what it toasted gone
+            f.pass(5000.0f);
+
+            for (const char* line : {"One", "Two", "Three"})
+                life->toast(line, 60000.0f);
+
+            life->toast("Four", 500.0f);
+            life->toast("Five", 60000.0f);
+            life->toast("Six", 60000.0f);
+            f.frames(6);
+
+            EXPECT_EQ(life->toastsUp(), 4);
+            EXPECT_FALSE(life->toastUp("One"));
+            EXPECT_FALSE(life->toastUp("Two"));
+            EXPECT_TRUE(life->toastUp("Three"));
+            EXPECT_TRUE(life->toastUp("Four"));
+            EXPECT_TRUE(life->toastUp("Six"));
+
+            life->toast("Five");
+            EXPECT_EQ(life->toastsUp(), 4);
+
+            // Each over the one under it, 8 apart, none over another
+            auto stacked = [&]() {
+                for (size_t i = 1; i < life->shownToasts.size(); ++i)
+                {
+                    auto lower = f.ecs.getEntity(life->shownToasts[i - 1].groundId)->get<PositionComponent>();
+                    auto upper = f.ecs.getEntity(life->shownToasts[i].groundId)->get<PositionComponent>();
+
+                    EXPECT_NEAR(upper->y + upper->height + 8.0f, lower->y, 1.0f) << life->shownToasts[i].text;
+                }
+            };
+
+            stacked();
+
+            // The short one goes, and the ones over it come down into its room
+            f.pass(1000.0f);
+
+            EXPECT_FALSE(life->toastUp("Four"));
+            EXPECT_TRUE(life->toastUp("Six"));
+            stacked();
+
+            // A line wider than the window wraps inside it, its slip as tall as its lines
+            std::string longLine;
+
+            for (int i = 0; i < 40; ++i)
+                longLine += "No rations left, buy some at the market ";
+
+            life->toast(longLine);
+            f.frames(6);
+
+            ASSERT_FALSE(life->shownToasts.empty());
+            ASSERT_EQ(life->shownToasts.back().text, longLine);
+
+            auto window = f.ecs.getEntity("__MainWindow")->get<PositionComponent>();
+            auto slip = f.ecs.getEntity(life->shownToasts.back().groundId)->get<PositionComponent>();
+
+            EXPECT_GE(slip->x, window->x);
+            EXPECT_LE(slip->x + slip->width, window->x + window->width);
+            EXPECT_GT(slip->height, 36.0f);
+            stacked();
         }
 
         // ----------------------------------------------------------------------------------------

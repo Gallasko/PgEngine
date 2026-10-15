@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <deque>
 #include <string>
 #include <unordered_map>
@@ -203,7 +204,22 @@ namespace chronicle
         bool adventureWas = false;     // The Adventure page was there the last time the list was filled: the day it comes is news
 
         bool guiding() const;          // A first life whose guide has not said its last step
-        int toastsUp() const { return toasts; }   // The toasts at the foot of the window now
+        // A slip at the foot of the window, for a few seconds (its own time when given one). A few at
+        // most are up, one over another; the same line again keeps the one up instead
+        struct Toast
+        {
+            std::string text;
+            pg::_unique_id textId = 0;
+            pg::_unique_id groundId = 0;
+            float height = 0.0f;       // Its ground's: a line, or more when its text wraps
+            float left = 0.0f;         // Milliseconds until it goes
+        };
+
+        void toast(const std::string& text, float ms = 0.0f);
+        std::vector<Toast> shownToasts;   // The toasts up: the lowest, the oldest, first
+
+        int toastsUp() const { return static_cast<int>(shownToasts.size()); }   // The toasts at the foot of the window now
+        bool toastUp(const std::string& text) const { return std::any_of(shownToasts.begin(), shownToasts.end(), [&text](const Toast& t) { return t.text == text; }); }   // And whether one says that
 
         void markAdventure();          // The Adventure page's tab on the page or not, as he has been on a walk or never
 
@@ -264,7 +280,9 @@ namespace chronicle
         void endPassing();             // All of it ended at once: the scene leaves
         int roseOf(const std::string& key, const std::string& text);   // By how much a figure rose since it was last written, 0 if it did not
         void showGain(pg::EntityRef over, int amount);   // "+2" lifting off the figure that rose
-        void toast(const std::string& text, float ms = 0.0f);   // A slip at the foot of the window, for a few seconds (its own time when given one)
+        void runToasts(float ms);      // The toasts a tick older: the ones whose time is up go, and the rest come down
+        void dropToast(size_t index);  // One toast gone at once
+        void stackToasts();            // Each toast over the ones under it
         void endLife();                // The life is lost: the months stop and its ending comes up
         bool showEnding();             // The ending from its file, over the page, saying what epitaph.pg says
         void closeEnding();            // The ending leaves
@@ -445,7 +463,6 @@ namespace chronicle
         std::vector<Passing> passing;
         float quiet = 0.0f;                       // Milliseconds left of a page arriving: nothing is shown as a gain meanwhile
         std::unordered_map<std::string, int> figures;   // The figure each skill and holding last had on the page, to see it rise
-        int toasts = 0;                           // The toasts up, one over another
         std::string endedLine;                    // The line the next life opens with: how this one ended
         std::string endedAge;                     // And the age it ended at, as the head wrote it
         std::unordered_map<std::string, int> caps;   // The most each capped stat can be

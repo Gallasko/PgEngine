@@ -33,6 +33,7 @@
 #include "UI/prefabbuilder.h"
 #include "UI/themesystem.h"
 #include "UI/tooltip.h"
+#include "UI/ttftext.h"
 #include "Systems/coresystems.h"
 #include "Systems/gamefacts.h"
 #include "Systems/achievement.h"
@@ -188,7 +189,9 @@ namespace chronicle
         constexpr float ToastZ = 170.0f;
         constexpr float ToastHeight = 36.0f;
         constexpr float ToastPad = 18.0f;          // Left and right of its text
-        constexpr float ToastStep = 44.0f;         // One toast over another
+        constexpr float ToastGap = 8.0f;           // Between one toast and the one over it
+        constexpr float ToastSide = 16.0f;         // The least room between a toast and the window's side
+        constexpr size_t ToastMost = 4;            // Up at once: one more pushes out the oldest
         constexpr float ToastBottom = 26.0f;       // The lowest one, from the window's bottom
         const std::string Arrow = " \xE2\x86\x92 ";  // U+2192 between spaces: what a figure would become
 
@@ -432,6 +435,24 @@ namespace chronicle
             auto it = map.find(key);
 
             return it != map.end() and it->second.type == UnionType::BOOL and it->second.get<bool>();
+        }
+
+        // How wide a text stands on one line in a style, unwrapped
+        float lineWidthOf(EntitySystem* ecs, const std::string& style, const std::string& text)
+        {
+            auto* theme = ecs->getSystem<ThemeSystem>();
+            auto* ttf = ecs->getSystem<TTFTextSystem>();
+
+            if (text.empty() or not theme or not ttf)
+                return 0.0f;
+
+            const TextStyle& s = theme->style(style);
+
+            TextLayoutParams params;
+            params.spacing = s.lineSpacingPx;
+            params.letterSpacing = s.letterSpacingPx;
+
+            return ttf->measureText(s.fontAlias, text, params).width;
         }
 
         // A place whose next level a click on its tile would begin now: he can pay for it, and is
@@ -754,6 +775,7 @@ namespace chronicle
                 step.left -= e.tick;
 
             runPassing(e.tick);
+            runToasts(e.tick);
 
             // A fight handed to his stance plays on, months or no months
             runWalk(e.tick);
@@ -1068,6 +1090,10 @@ namespace chronicle
 
     void LifeScene::endPassing()
     {
+        // The toasts with the rest
+        while (not shownToasts.empty())
+            dropToast(shownToasts.size() - 1);
+
         std::vector<Passing> ending;
         ending.swap(passing);
 
@@ -1141,22 +1167,50 @@ namespace chronicle
         if (text.empty() or quiet > 0.0f or not window)
             return;
 
-        // A dark slip at the foot of the window, its text in the paper's colour: one over another
-        // when two come together
+        const float lasts = ms > 0.0f ? ms : ToastMs;
+
+        // The same line again while it is up is not said twice: the one up stays longer
+        for (auto& up : shownToasts)
+        {
+            if (up.text == text)
+            {
+                up.left = std::max(up.left, lasts);
+                return;
+            }
+        }
+
+        // A few at most: what comes in a crowd pushes the oldest out
+        while (shownToasts.size() >= ToastMost)
+            dropToast(0);
+
+        // A dark slip at the foot of the window, its text in the paper's colour, one over another
+        // when several come together. A line wider than the window wraps inside it
+        const float room = std::max(1.0f, window->get<PositionComponent>()->width - 2.0f * (ToastSide + ToastPad));
+
         LabelSpec spec;
         spec.style = "control";
         spec.color = "folio";
         spec.text = text;
         spec.z = static_cast<int>(ToastZ) + 1;
 
+        if (lineWidthOf(ecsRef, spec.style, text) > room)
+        {
+            spec.overflow = Overflow::Wrap;
+            spec.width = room;
+        }
+
         Label label = makeLabel(ecsRef, spec);
 
         auto anchor = label.entity.get<UiAnchor>();
         anchor->setHorizontalCenter(PosAnchor{window->id, AnchorType::HorizontalCenter});
         anchor->setBottomAnchor(PosAnchor{window->id, AnchorType::Bottom});
-        anchor->setBottomMargin(ToastBottom + static_cast<float>(toasts) * ToastStep);
 
-        auto ground = makeUiSimple2DShape(ecsRef, Shape2D::Square, 1.0f, ToastHeight);
+        // A line's slip is ToastHeight tall: one of more lines keeps the same room around its text
+        auto theme = ecsRef->getSystem<ThemeSystem>();
+        const float line = theme ? static_cast<float>(theme->style(spec.style).lineHeightPx) : 0.0f;
+        const float height = std::max(ToastHeight, label.entity->get<PositionComponent>()->height + ToastHeight - line);
+
+        auto ground = makeUiSimple2DShape(ecsRef, Shape2D::Square, 1.0f, height);
         ground.get<PositionComponent>()->setZ(ToastZ);
         ecsRef->attach<ThemeComponent>(ground.entity, "toast.ground");
 
@@ -1165,20 +1219,62 @@ namespace chronicle
         under->setVerticalCenter(PosAnchor{label.entity.id, AnchorType::VerticalCenter});
         under->setWidthConstrain(PosConstrain{label.entity.id, AnchorType::Width, PosOpType::Add, 2.0f * ToastPad});
 
-        ++toasts;
+        shownToasts.push_back({text, label.entity.id, ground.entity.id, height, lasts});
 
-        const _unique_id textId = label.entity.id;
-        const _unique_id groundId = ground.entity.id;
+        stackToasts();
+    }
 
-        passing.push_back({ms > 0.0f ? ms : ToastMs, nullptr, [this, textId, groundId]() {
-            for (auto id : {textId, groundId})
+    void LifeScene::runToasts(float ms)
+    {
+        bool gone = false;
+
+        for (size_t i = 0; i < shownToasts.size();)
+        {
+            shownToasts[i].left -= ms;
+
+            if (shownToasts[i].left > 0.0f)
             {
-                if (ecsRef->getEntity(id))
-                    ecsRef->removeEntity(id);
+                ++i;
+
+                continue;
             }
 
-            --toasts;
-        }});
+            dropToast(i);
+            gone = true;
+        }
+
+        // The ones over a toast that went come down into its room
+        if (gone)
+            stackToasts();
+    }
+
+    void LifeScene::dropToast(size_t index)
+    {
+        if (index >= shownToasts.size())
+            return;
+
+        for (auto id : {shownToasts[index].textId, shownToasts[index].groundId})
+        {
+            if (ecsRef->getEntity(id))
+                ecsRef->removeEntity(id);
+        }
+
+        shownToasts.erase(shownToasts.begin() + static_cast<std::ptrdiff_t>(index));
+    }
+
+    void LifeScene::stackToasts()
+    {
+        // The lowest at the foot of the window, each of the others over the ones under it. The room
+        // under a slip's text is the same whatever its lines: its text stands where a line's would
+        float below = ToastBottom;
+
+        for (const auto& up : shownToasts)
+        {
+            if (auto text = ecsRef->getEntity(up.textId); text and text->has<UiAnchor>())
+                text->get<UiAnchor>()->setBottomMargin(below);
+
+            below += up.height + ToastGap;
+        }
     }
 
     void LifeScene::showWorkButtons()
