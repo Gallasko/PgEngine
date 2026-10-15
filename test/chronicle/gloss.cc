@@ -209,9 +209,9 @@ namespace pg
             GlossSpec spec; spec.kind = GlossKind::Tooltip; spec.title = "Train at the Yard";
             spec.rows = {
                 {"Time", "6 mo", "time"},
-                {"IT BRINGS", "", "", true},
+                {"REWARD", "", "", true},
                 {"STR at term", "+1", "gain"},
-                {"IT TAKES", "", "", true},
+                {"COST", "", "", true},
                 {"COIN to begin", "\xE2\x88\x92" "2", "loss"},
                 {"Done", "3"},
                 {"Left", "0", "muted"},
@@ -262,6 +262,46 @@ namespace pg
             EXPECT_NEAR(top(g.rules[1]), bottom(g.rows[2].first.entity) + 8.0f, 0.5f);
             EXPECT_NEAR(top(g.rows[6].first.entity), bottom(g.rows[5].first.entity) + 4.0f, 0.5f);
             EXPECT_NEAR(s.pos(g.root)->height, bottom(g.rows[7].first.entity) + 12.0f - s.pos(g.root)->y, 0.5f);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A value too long for its line wraps in the room its label leaves, inline or in the
+        // column, and the row is as tall as its lines: nothing runs past the gloss's edge.
+        TEST(gloss_test, tooltip_long_rows_wrap_inside)
+        {
+            MockLogger logger;
+            GlossFixture s;
+
+            const std::string longValue = "1 month, 2 rations, 3 coin, a whetstone, a lantern and a good rope";
+
+            for (bool inlineValues : {true, false})
+            {
+                GlossSpec spec; spec.kind = GlossKind::Tooltip; spec.title = "Cut reeds";
+                spec.inlineValues = inlineValues;
+                spec.rows = {
+                    {"Costs", longValue, "time"},
+                    {"Gives", "2", "gain"},
+                };
+                Gloss g = makeGloss(&s.ecs, spec);
+                s.settle();
+
+                auto right = [&](EntityRef e) { return s.pos(e)->x + s.pos(e)->width; };
+                auto bottom = [&](EntityRef e) { return s.pos(e)->y + s.pos(e)->height; };
+                const float edge = s.pos(g.root)->x + s.pos(g.root)->width - 12.0f;
+
+                ASSERT_EQ(g.rows.size(), 2u);
+
+                const Label& value = g.rows[0].second;
+                EXPECT_EQ(value.spec.overflow, Overflow::Wrap) << inlineValues;
+                EXPECT_LE(right(value.entity), edge + 0.5f) << inlineValues;
+                EXPECT_GT(s.pos(value.entity)->height, s.pos(g.rows[0].first.entity)->height) << inlineValues;
+
+                // The short row keeps its one line, under the whole of the long one
+                EXPECT_EQ(g.rows[1].second.spec.overflow, Overflow::Grow) << inlineValues;
+                EXPECT_NEAR(s.pos(g.rows[1].first.entity)->y, bottom(value.entity) + 4.0f, 0.5f) << inlineValues;
+            }
         }
 
         // ----------------------------------------------------------------------------------------

@@ -5403,23 +5403,9 @@ namespace chronicle
             if (intOf(a.fields, "months") > 0)
                 gloss.rows.push_back({"Meals", boolOf(a.fields, "board") ? std::string("Provided") : std::string("His own rations"), boolOf(a.fields, "board") ? "gain" : ""});
 
-            // In sections, a rule between two, each figure in the colour of the way it goes and
-            // under the stat's full name: the section says whether it is brought or taken
-            if (not a.gains.empty())
-                gloss.rows.push_back({"IT BRINGS", "", "", true});
-
-            for (const auto& g : a.gains)
-                gloss.rows.push_back({textOf(g, "name"), signedText(intOf(g, "amount")), intOf(g, "amount") < 0 ? "loss" : "gain"});
-
-            if (not a.costs.empty())
-                gloss.rows.push_back({"IT TAKES", "", "", true});
-
-            for (const auto& c : a.costs)
-                gloss.rows.push_back({textOf(c, "name"), signedText(-intOf(c, "amount")), "loss"});
-
-            // What he has of it against what it asks: met in the gain's colour, short in the loss's.
-            // The room a thing he holds still has is not said while there is some (its ledger
-            // line says how full it is): only once there is none, and that is what stops him
+            // What he has of it against what it asks, first: met in the gain's colour, short in
+            // the loss's. The room a thing he holds still has is not said while there is some (its
+            // ledger line says how full it is): only once there is none, and that is what stops him
             std::vector<GlossRow> asked;
 
             for (const auto& r : a.requires)
@@ -5433,9 +5419,23 @@ namespace chronicle
             }
 
             if (not asked.empty())
-                gloss.rows.push_back({"IT ASKS", "", "", true});
+                gloss.rows.push_back({"REQUIREMENTS", "", "", true});
 
             gloss.rows.insert(gloss.rows.end(), asked.begin(), asked.end());
+
+            // Then in sections, a rule between two, each figure in the colour of the way it goes and
+            // under the stat's full name: the section says whether it is taken or brought
+            if (not a.costs.empty())
+                gloss.rows.push_back({"COST", "", "", true});
+
+            for (const auto& c : a.costs)
+                gloss.rows.push_back({textOf(c, "name"), signedText(-intOf(c, "amount")), "loss"});
+
+            if (not a.gains.empty())
+                gloss.rows.push_back({"REWARD", "", "", true});
+
+            for (const auto& g : a.gains)
+                gloss.rows.push_back({textOf(g, "name"), signedText(intOf(g, "amount")), intOf(g, "amount") < 0 ? "loss" : "gain"});
 
             // A footnote only for the work he is at: what a locked one still asks is in red above
             if (textOf(a.fields, "id") == save.running)

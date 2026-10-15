@@ -2565,7 +2565,7 @@ namespace pg
             const GlossSpec* smithy = registry->find("activity/smithy");
             ASSERT_NE(smithy, nullptr);
 
-            // Under IT ASKS: the smithy brings Strength too, under the same name in its own section
+            // Under REQUIREMENTS: the smithy brings Strength too, under the same name in its own section
             bool asking = false;
             bool asked = false;
 
@@ -2573,7 +2573,7 @@ namespace pg
             {
                 if (r.heading)
                 {
-                    asking = r.label == "IT ASKS";
+                    asking = r.label == "REQUIREMENTS";
                 }
                 else if (asking and r.label == "Strength")
                 {

@@ -1609,7 +1609,7 @@ namespace chronicle
                     gloss.rows.push_back({label, value, tone});
             }
 
-            // A row of a gloss is not wrapped: what is said in a sentence is its text's
+            // What is said in a sentence is its text's, not a row's
             if (const std::string odds = textOf(m, "odds"); not odds.empty())
                 gloss.text += (gloss.text.empty() ? "" : " ") + odds;
 
@@ -2981,13 +2981,13 @@ namespace chronicle
             gloss.aside = textOf(r, "kind");
             gloss.text = textOf(r, "title") + " \xC2\xB7 " + lower(textOf(r, "note"));
 
-            gloss.rows.push_back({"IT TAKES", "", "", true});
+            gloss.rows.push_back({"COST", "", "", true});
             gloss.rows.push_back({"Time", textOf(r, "time"), "time"});
             gloss.rows.push_back({"Vitality", textOf(r, "vitality"), intOf(r, "locked") > 0 ? "muted" : "loss"});
             gloss.rows.push_back({"From the bag", textOf(r, "takes"), "loss"});
-            gloss.rows.push_back({"IT BRINGS", "", "", true});
+            gloss.rows.push_back({"REWARD", "", "", true});
 
-            // A thing a line: a row of a gloss is not wrapped, and a list of them runs past its edge
+            // A thing a line: a list of them in one row would wrap into a block
             for (const auto& [text, tone] : {std::pair<std::string, const char*>{textOf(r, "brings"), "gain"}, {textOf(r, "learns"), "muted"}})
             {
                 for (const auto& thing : listed(text))

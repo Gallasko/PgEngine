@@ -398,10 +398,10 @@ come from `rules/*.pg` through the scene, never from the component.
   from it: the Life screen's glosses are inline. The Life screen's activity gloss carries everything its row does not: the
   name with how often it was done beside it (the number alone: `3`, or `0/2` for one that
   can be done twice), its group under it, a rule,
-  the time and the meals, then a ruled section for each of IT BRINGS, IT TAKES and IT ASKS,
+  the time and the meals, then a ruled section for each of REQUIREMENTS, COST and REWARD,
   each row under the stat's full name (`Strength  +1`), a requirement green when he has it and
   red when he is short. Its only footnote is `AT WORK NOW`, on the work he is at: what a locked
-  one still asks is in red under IT ASKS, and when it closes is the tile's to say. The tooltip form is registered under a **key** on
+  one still asks is in red under REQUIREMENTS, and when it closes is the tile's to say. The tooltip form is registered under a **key** on
   `GlossRegistry` and shown through the engine's `TooltipSystem`
   (`attachGloss(entity, key)`), so delay, placement, flipping and click-to-hide are
   inherited; a missing key shows a `vermilion` fallback, like a missing mark.
@@ -1262,8 +1262,8 @@ it in `lifescene.cpp` over the widgets as they are:
 - A tile counts down the months he still has to begin it (`closesOf`, the rules' `closesIn`:
   all along for what a door of its own closes, in its last two years for what only his prime
   closes), and says nothing else. What it asks (an age, a stat, a cost in coin) is not written
-  on the tile: its ground says he cannot do it yet, and its gloss says why, under IT TAKES and
-  IT ASKS. The room a store still has is not listed there while there is some.
+  on the tile: its ground says he cannot do it yet, and its gloss says why, under COST and
+  REQUIREMENTS. The room a store still has is not listed there while there is some.
 - What is done at a place of the town (the market's stalls, the works that raise a place) is on
   the Town page and nowhere else: while the town is not known it has no tile at all.
 - The Adventure page's tab comes with his first walk (`adventureKnown`); a tab not shown leaves
