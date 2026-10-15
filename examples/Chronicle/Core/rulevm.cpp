@@ -1,6 +1,7 @@
 #include "rulevm.h"
 
 #include <cstdlib>
+#include <filesystem>
 #include <sstream>
 
 #include "logger.h"
@@ -9,6 +10,7 @@
 #include "Compiler/vmreaders.h"
 #include "ECS/entitysystem.h"
 #include "ECS/scriptregistry.h"
+#include "Files/filemanager.h"
 
 using namespace pg;
 
@@ -600,7 +602,13 @@ namespace chronicle
                                     {&townScript, "town.pg"},
                                     {&walkScript, "expedition.pg"}})
         {
-            if (not script->load(ecs, root + "/" + file))
+            // A build that ships the rules compiled has the .pgc alone (`precompileRules`)
+            std::string path = root + "/" + file;
+
+            if (not UniversalFileAccessor::exists(path) and UniversalFileAccessor::exists(path + "c"))
+                path += "c";
+
+            if (not script->load(ecs, path))
             {
                 errors.insert(errors.end(), script->errors().begin(), script->errors().end());
                 ok = false;
@@ -608,6 +616,92 @@ namespace chronicle
         }
 
         return ok;
+    }
+
+    bool precompileRules(EntitySystem* ecs, const std::string& rulesDir, const std::string& outDir, std::vector<std::string>& errors)
+    {
+        namespace fs = std::filesystem;
+
+        errors.clear();
+
+        std::string outName = outDir;
+
+        while (outName.size() > 1 and (outName.back() == '/' or outName.back() == '\\'))
+            outName.pop_back();
+
+        const fs::path out(outName);
+        const fs::path work(outName + "-src");
+
+        std::error_code ec;
+
+        auto failed = [&errors, &ec](const std::string& what) {
+            errors.push_back(what + ": " + ec.message());
+            LOG_ERROR(DOM, errors.back());
+            return false;
+        };
+
+        // The sources alone, in a folder of their own: an import takes a module's .pgc over its
+        // source wherever there is one, and one left by an earlier compile may be stale
+        fs::remove_all(work, ec);
+
+        if (ec)
+            return failed("Cannot clear " + work.string());
+
+        fs::create_directories(work, ec);
+
+        if (ec)
+            return failed("Cannot make " + work.string());
+
+        for (const auto& entry : fs::directory_iterator(rulesDir, ec))
+        {
+            if (entry.is_regular_file() and entry.path().extension() == ".pg")
+            {
+                fs::copy_file(entry.path(), work / entry.path().filename(), fs::copy_options::overwrite_existing, ec);
+
+                if (ec)
+                    return failed("Cannot copy " + entry.path().string());
+            }
+        }
+
+        if (ec)
+            return failed("Cannot read " + rulesDir);
+
+        // Compiled as the game compiles them: a .pgc beside each script it loads, its imports in it
+        Rules rules;
+
+        if (not rules.load(ecs, work.string()))
+        {
+            errors = rules.errors;
+            return false;
+        }
+
+        // What the build ships: those .pgc and nothing else, none left from scripts gone since
+        fs::create_directories(out, ec);
+
+        if (ec)
+            return failed("Cannot make " + out.string());
+
+        for (const auto& entry : fs::directory_iterator(out, ec))
+        {
+            if (entry.path().extension() == ".pgc")
+                fs::remove(entry.path(), ec);
+        }
+
+        for (const auto& entry : fs::directory_iterator(work, ec))
+        {
+            if (entry.is_regular_file() and entry.path().extension() == ".pgc")
+            {
+                fs::copy_file(entry.path(), out / entry.path().filename(), fs::copy_options::overwrite_existing, ec);
+
+                if (ec)
+                    return failed("Cannot copy " + entry.path().string());
+            }
+        }
+
+        if (ec)
+            return failed("Cannot write " + out.string());
+
+        return true;
     }
 
     bool Rules::shape(float age, const ElementMap& character)

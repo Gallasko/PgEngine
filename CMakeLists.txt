@@ -1183,17 +1183,56 @@ if(NOT BUILD_STATIC_LIB AND BUILD_EXAMPLES)
             res/chronicle/manifest.json
             res/chronicle/tokens.json
             res/chronicle/ui
-            examples/Chronicle/rules
         )
 
-        # No compiled script is packed, the browser compiles them from their source
-        target_link_options(Chronicle PRIVATE "--exclude-file=*.pgc")
+        # The rules are shipped compiled when the native ChronicleRules tool is given (make it in a
+        # native tree first): the browser loads their .pgc and compiles nothing at start, and the
+        # tool compiles them again whenever a script changes. Without it their sources are packed,
+        # and the browser compiles them at every start.
+        set(CHRONICLE_RULES_COMPILER "" CACHE FILEPATH "The native ChronicleRules tool, to ship Chronicle's rules compiled")
 
-        # Nor the tool that stands with the rules: the game never loads it
-        target_link_options(Chronicle PRIVATE "--exclude-file=*depgraph.pg")
+        if(CHRONICLE_RULES_COMPILER AND NOT EXISTS ${CHRONICLE_RULES_COMPILER})
+            message(WARNING "Chronicle: CHRONICLE_RULES_COMPILER is ${CHRONICLE_RULES_COMPILER}, which is not built yet: "
+                            "the rules are packed as sources. Build it (make ChronicleRules in its native tree), then run cmake here again.")
+        endif()
+
+        if(CHRONICLE_RULES_COMPILER AND EXISTS ${CHRONICLE_RULES_COMPILER})
+            file(GLOB CHRONICLE_RULE_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/examples/Chronicle/rules/*.pg)
+
+            set(CHRONICLE_RULES_OUT ${CMAKE_CURRENT_BINARY_DIR}/chronicle-rules)
+            set(CHRONICLE_RULES_STAMP ${CMAKE_CURRENT_BINARY_DIR}/chronicle-rules.stamp)
+
+            add_custom_command(
+                OUTPUT ${CHRONICLE_RULES_STAMP}
+                COMMAND ${CHRONICLE_RULES_COMPILER} ${CMAKE_SOURCE_DIR}/examples/Chronicle/rules ${CHRONICLE_RULES_OUT}
+                COMMAND ${CMAKE_COMMAND} -E touch ${CHRONICLE_RULES_STAMP}
+                DEPENDS ${CHRONICLE_RULE_SOURCES} ${CHRONICLE_RULES_COMPILER}
+                WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+                COMMENT "Compiling the Chronicle rules to ship them"
+                VERBATIM
+            )
+            add_custom_target(chronicle_web_rules DEPENDS ${CHRONICLE_RULES_STAMP})
+            add_dependencies(Chronicle chronicle_web_rules)
+
+            target_link_options(Chronicle PRIVATE "--preload-file=${CHRONICLE_RULES_OUT}@examples/Chronicle/rules")
+            set_property(TARGET Chronicle APPEND PROPERTY LINK_DEPENDS ${CHRONICLE_RULES_STAMP})
+
+            message(STATUS "Chronicle: the web build ships its rules compiled by ${CHRONICLE_RULES_COMPILER}")
+        else()
+            list(APPEND CHRONICLE_WEB_FILES examples/Chronicle/rules)
+
+            # Nor the tool that stands with the rules: the game never loads it
+            target_link_options(Chronicle PRIVATE "--exclude-file=*depgraph.pg")
+
+            message(STATUS "Chronicle: the web build compiles its rules in the browser (no CHRONICLE_RULES_COMPILER)")
+        endif()
 
         foreach(WEB_FILE ${CHRONICLE_WEB_FILES})
             target_link_options(Chronicle PRIVATE "--preload-file=${CMAKE_SOURCE_DIR}/${WEB_FILE}@${WEB_FILE}")
+
+            # No compiled script is packed from the source tree, where one may be stale: what has a
+            # source is compiled from it in the browser (the shipped rules come from the build tree)
+            target_link_options(Chronicle PRIVATE "--exclude-file=${CMAKE_SOURCE_DIR}/${WEB_FILE}/*.pgc")
 
             # The pack is made at link time: link again when one of its files changes
             if(IS_DIRECTORY ${CMAKE_SOURCE_DIR}/${WEB_FILE})
@@ -1716,6 +1755,16 @@ if(NOT BUILD_STATIC_LIB AND BUILD_EXAMPLES)
         gtest_discover_tests(test_chronicle
             WORKING_DIRECTORY $<TARGET_FILE_DIR:test_chronicle>
             PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
+
+        # The rules compiled as the game compiles them, for the web build to ship the .pgc
+        # instead of compiling them at every start: its CHRONICLE_RULES_COMPILER is this tool
+        add_executable(ChronicleRules examples/Chronicle/precompile.cpp)
+        target_include_directories(ChronicleRules PUBLIC examples/Chronicle examples/Chronicle/Core examples/Chronicle/Scenes ${CHRONICLE_GENERATED_DIR})
+        target_sources(ChronicleRules PRIVATE
+            ${CHRONICLE_GENERATED_SOURCES}
+            ${CHRONICLE_CORE}
+        )
+        target_link_libraries(ChronicleRules PRIVATE ColumbaEngine)
 
         add_executable(bench benchmark/mainbenchmark.cc)
 

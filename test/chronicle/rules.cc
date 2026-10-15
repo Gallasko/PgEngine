@@ -3,6 +3,7 @@
 #include <sstream>
 #include <algorithm>
 #include <chrono>
+#include <fstream>
 #include <functional>
 #include <iostream>
 #include <string>
@@ -4104,6 +4105,55 @@ namespace pg
             timed("milestones", [&](float age) { return f.rules.milestones(age, milestones, next); });
 
             EXPECT_EQ(f.rules.nbRuns, static_cast<size_t>(4 * runs));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The rules as a web build ships them: compiled once, the .pgc alone where they are read,
+        // and they answer as their sources do.
+        TEST(rules_test, shipped_compiled)
+        {
+            MockLogger logger;
+
+            {
+                EntitySystem ecs;
+                std::vector<std::string> errors;
+
+                ASSERT_TRUE(precompileRules(&ecs, Root, "rules-shipped", errors)) << (errors.empty() ? "" : errors.front());
+            }
+
+            std::ifstream source("rules-shipped/windows.pg");
+            EXPECT_FALSE(source.good()) << "a source was shipped with the compiled rules";
+
+            std::ifstream compiled("rules-shipped/windows.pgc");
+            EXPECT_TRUE(compiled.good());
+
+            RulesFixture fromSource;
+
+            EntitySystem ecs;
+            Rules shipped;
+            ASSERT_TRUE(shipped.load(&ecs, "rules-shipped")) << firstError(shipped);
+            shipped.lives = fromSource.rules.lives;
+
+            std::vector<RuleActivity> expected, got;
+            ASSERT_TRUE(fromSource.rules.activities(7.0f, boy(), expected)) << firstError(fromSource.rules);
+            ASSERT_TRUE(shipped.activities(7.0f, boy(), got)) << firstError(shipped);
+
+            ASSERT_EQ(got.size(), expected.size());
+
+            for (size_t i = 0; i < got.size(); ++i)
+            {
+                EXPECT_EQ(textOf(got[i].fields, "id"), textOf(expected[i].fields, "id"));
+                EXPECT_EQ(intOf(got[i].fields, "months"), intOf(expected[i].fields, "months"));
+                EXPECT_EQ(got[i].gains.size(), expected[i].gains.size());
+            }
+
+            std::vector<RuleMilestone> expectedSteps, gotSteps;
+            ElementMap expectedNext, gotNext;
+            ASSERT_TRUE(fromSource.rules.milestones(12.0f, expectedSteps, expectedNext)) << firstError(fromSource.rules);
+            ASSERT_TRUE(shipped.milestones(12.0f, gotSteps, gotNext)) << firstError(shipped);
+            EXPECT_EQ(gotSteps.size(), expectedSteps.size());
         }
     }
 }

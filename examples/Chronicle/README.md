@@ -183,7 +183,16 @@ frame options.
   the icon sets, `res/chronicle/` (tokens, manifest, pages) and `rules/`. The list is
   `CHRONICLE_WEB_FILES` in `CMakeLists.txt`; a file read from a new place has to be added
   there. Nothing comes from the `res/` and `shader/` copied into the build directory.
-- **Rules** are packed as `.pg` only and compile in the browser, never from a `.pgc`.
+- **Rules** ship compiled when the tree knows the native `ChronicleRules` tool: built in a native
+  tree (`make ChronicleRules`) and given once with
+  `cmake -DCHRONICLE_RULES_COMPILER=<native tree>/ChronicleRules .`. The tool compiles them as
+  the game does (`precompileRules` in `Core/rulevm.cpp`) into `chronicle-rules/` of the web tree,
+  again whenever a script or the tool changes, and the pack holds those `.pgc` alone at
+  `examples/Chronicle/rules`: `Rules::load` takes a `.pgc` where its `.pg` is missing, and the
+  browser compiles none at start. The tool has to be built from the same engine as the web
+  build (a bytecode of another revision may not mean the same). Without the tool, the rules are
+  packed as `.pg` and compile in the browser at every start. No other `.pgc` is packed from the
+  source tree, where one may be stale.
 - **Relinking**: the pack is made at link time, and editing a packed file relinks the target.
 - **Threads**: the build uses pthreads, so the page must be cross-origin isolated
   (`Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`).

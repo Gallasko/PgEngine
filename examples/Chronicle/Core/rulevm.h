@@ -377,4 +377,11 @@ namespace chronicle
         Asked townFor;
         RuleTown keptTown;
     };
+
+    // The rules of `rulesDir` compiled as the game compiles them, for a build that ships them so
+    // instead of compiling at every start: one .pgc a script `Rules::load` loads, each with its
+    // imports in it, written to `outDir` and nothing else there (`Rules::load` takes a .pgc where
+    // its .pg is missing). They are compiled in `<outDir>-src`, a copy of the sources made anew.
+    // False with `errors` filled when a script does not compile or a file cannot be written.
+    bool precompileRules(pg::EntitySystem* ecs, const std::string& rulesDir, const std::string& outDir, std::vector<std::string>& errors);
 }
