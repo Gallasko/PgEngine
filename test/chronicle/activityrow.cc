@@ -242,8 +242,8 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
-        // A list with a tile width lays its rows as tiles, as many to a line as fit, 8 apart: the name
-        // (two lines at most) over the time, no mark. The tiles of a line are as tall as the
+        // A list with a tile width lays its rows as tiles, as many to a line as fit, 8 apart: framed,
+        // the mark and the name (two lines at most) over the time and a word of its state. The tiles of a line are as tall as the
         // tallest, a group starts a line of its own, and another width lays them again.
         TEST(activityrow_test, tiles_on_lines)
         {
@@ -281,8 +281,9 @@ namespace pg
                 EXPECT_TRUE(row->spec.compact);
                 EXPECT_NEAR(s.pos(row->root)->width, list.tileSize(), 0.5f);
 
-                // A tile: no mark, no rank, no gains, its name in the control face
-                EXPECT_TRUE(row->mark.entity.empty());
+                // A tile: framed, its mark before its name, no rank, no gains, its name in the control face
+                EXPECT_FALSE(row->frame.empty());
+                EXPECT_FALSE(row->mark.entity.empty());
                 EXPECT_FALSE(row->rank.has_value());
                 EXPECT_FALSE(row->gains.has_value());
                 EXPECT_EQ(row->name.spec.style, "control");
@@ -306,55 +307,57 @@ namespace pg
             EXPECT_NEAR(s.pos(d->root)->y, s.pos(a->root)->y + b->natural + 8.0f, 0.5f);
             EXPECT_NEAR(s.pos(d->root)->height, d->natural, 0.5f);
 
-            // The name from the tile's left edge; its time in a box in the top right corner, the
-            // hourglass before the figure, and the name ends before the box
-            EXPECT_NEAR(s.pos(a->name.entity)->x, s.pos(a->root)->x + 8.0f, 0.5f);
+            // Its mark at the tile's left edge, its name after it; under them its last line: the
+            // hourglass and its time at the left, its word of state at the right
+            EXPECT_NEAR(s.pos(a->mark.entity)->x, s.pos(a->root)->x + 8.0f, 0.5f);
+            EXPECT_NEAR(s.pos(a->name.entity)->x, s.pos(a->root)->x + 8.0f + 16.0f + 6.0f, 0.5f);
             EXPECT_NEAR(s.pos(a->name.entity)->y, s.pos(a->root)->y + 8.0f, 0.5f);
+            EXPECT_LE(s.pos(a->name.entity)->x + a->name.spec.width, s.pos(a->root)->x + s.pos(a->root)->width - 7.5f);
+            EXPECT_EQ(s.element(a->frame), "activity.tile.frame");
 
-            ASSERT_FALSE(a->inset.empty());
-            EXPECT_TRUE(s.pos(a->inset)->visible);
-            EXPECT_NEAR(s.pos(a->inset)->y, s.pos(a->root)->y + 8.0f, 0.5f);
-            EXPECT_NEAR(s.pos(a->inset)->x + s.pos(a->inset)->width, s.pos(a->root)->x + s.pos(a->root)->width - 8.0f, 0.5f);
+            EXPECT_NEAR(s.pos(a->costMark.entity)->x, s.pos(a->root)->x + 8.0f, 0.5f);
             EXPECT_GT(s.pos(a->cost.entity)->x, s.pos(a->costMark.entity)->x);
-            EXPECT_GE(s.pos(a->costMark.entity)->x, s.pos(a->inset)->x + 4.0f);
-            EXPECT_LE(s.pos(a->cost.entity)->x + s.pos(a->cost.entity)->width, s.pos(a->inset)->x + s.pos(a->inset)->width - 4.0f);
-            EXPECT_GE(s.pos(a->cost.entity)->y, s.pos(a->inset)->y);
-            EXPECT_LE(s.pos(a->cost.entity)->y + s.pos(a->cost.entity)->height, s.pos(a->inset)->y + s.pos(a->inset)->height + 0.5f);
-            EXPECT_LE(s.pos(a->name.entity)->x + a->name.spec.width, s.pos(a->inset)->x - 5.5f);
+            EXPECT_GE(s.pos(a->cost.entity)->y, s.pos(a->name.entity)->y + s.pos(a->name.entity)->height);
+            EXPECT_LE(s.pos(a->cost.entity)->y + s.pos(a->cost.entity)->height, s.pos(a->root)->y + s.pos(a->root)->height);
+            EXPECT_EQ(s.element(a->cost.entity), "activity.tile.cost");
 
-            // Nothing closes it: the line under the name says nothing, and is there all the same
-            ASSERT_TRUE(a->closing.has_value());
-            EXPECT_FALSE(s.pos(a->closing->entity)->visible);
-            EXPECT_FALSE(s.pos(a->closeMark.entity)->visible);
+            // Nothing closes it: nothing is said at the right of that line, and no stopwatch
+            ASSERT_TRUE(a->status.has_value());
+            EXPECT_EQ(a->status->spec.text, "");
+            EXPECT_FALSE(s.pos(a->statusMark.entity)->isVisible());
 
             // Fourteen months to begin it: a stopwatch and the figure, at the right of that line
             a->setCloses(&s.ecs, 14);
             s.pump();
 
-            EXPECT_TRUE(s.pos(a->closing->entity)->visible);
-            EXPECT_TRUE(s.pos(a->closeMark.entity)->visible);
-            EXPECT_EQ(a->closing->spec.text, "14 mo");
-            EXPECT_EQ(a->closeMark.spec.name, "chrono");
-            EXPECT_EQ(s.element(a->closing->entity), "activity.closes");
-            EXPECT_NEAR(s.pos(a->closing->entity)->x + s.pos(a->closing->entity)->width, s.pos(a->root)->x + s.pos(a->root)->width - 8.0f, 0.5f);
-            EXPECT_GE(s.pos(a->closing->entity)->y, s.pos(a->name.entity)->y + s.pos(a->name.entity)->height);
-            EXPECT_GE(s.pos(a->closing->entity)->y, s.pos(a->inset)->y + s.pos(a->inset)->height);
-            EXPECT_LT(s.pos(a->closeMark.entity)->x, s.pos(a->closing->entity)->x);
-            EXPECT_LE(s.pos(a->closing->entity)->y + s.pos(a->closing->entity)->height, s.pos(a->root)->y + s.pos(a->root)->height);
+            EXPECT_EQ(a->status->spec.text, "14 mo");
+            EXPECT_NEAR(s.pos(a->status->entity)->x + s.pos(a->status->entity)->width, s.pos(a->root)->x + s.pos(a->root)->width - 8.0f, 0.5f);
+            EXPECT_GE(s.pos(a->status->entity)->x, s.pos(a->cost.entity)->x + s.pos(a->cost.entity)->width);
+            EXPECT_GE(s.pos(a->status->entity)->y, s.pos(a->name.entity)->y + s.pos(a->name.entity)->height);
+            EXPECT_EQ(s.element(a->status->entity), "activity.tile.status");
+            EXPECT_TRUE(s.pos(a->statusMark.entity)->isVisible());
+            EXPECT_EQ(a->statusMark.spec.name, "chrono");
+            EXPECT_EQ(s.element(a->statusMark.entity), "activity.tile.chrono");
+            EXPECT_LT(s.pos(a->statusMark.entity)->x, s.pos(a->status->entity)->x);
+            EXPECT_EQ(s.element(a->frame), "activity.tile.frame");
 
-            // Its last months, and its last one
+            // Its last months, in the loss's colour and framed in it, and its last one
             a->setCloses(&s.ecs, 3, true);
             s.pump();
-            EXPECT_EQ(a->closing->spec.text, "3 mo");
-            EXPECT_EQ(s.element(a->closing->entity), "activity.closes.urgent");
+            EXPECT_EQ(a->status->spec.text, "3 mo");
+            EXPECT_EQ(s.element(a->status->entity), "activity.tile.status.loss");
+            EXPECT_EQ(s.element(a->statusMark.entity), "activity.tile.chrono.loss");
+            EXPECT_EQ(s.element(a->frame), "activity.tile.frame.urgent");
 
             a->setCloses(&s.ecs, 0, true);
             s.pump();
-            EXPECT_EQ(a->closing->spec.text, "last mo");
+            EXPECT_EQ(a->status->spec.text, "last mo");
 
             a->setCloses(&s.ecs, -1);
             s.pump();
-            EXPECT_FALSE(s.pos(a->closing->entity)->visible);
+            EXPECT_EQ(a->status->spec.text, "");
+            EXPECT_FALSE(s.pos(a->statusMark.entity)->isVisible());
+            EXPECT_EQ(s.element(a->frame), "activity.tile.frame");
 
             // Another group, another line, under its heading; its kind on its ground
             EXPECT_NEAR(s.pos(e->root)->x, s.pos(a->root)->x, 0.5f);
@@ -412,6 +415,64 @@ namespace pg
             EXPECT_EQ(rows.columns(), 0);
             EXPECT_FALSE(rows.row(&s.ecs, "x")->spec.tile);
             EXPECT_NEAR(s.pos(rows.row(&s.ecs, "y")->root)->y, s.pos(rows.row(&s.ecs, "x")->root)->y + 68.0f, 0.5f);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A tile he cannot take yet does not say what it lacks (its gloss does): its closing alone,
+        // in the locked colour, on the ground of what he cannot do yet. The tile chosen is on the
+        // tinted ground, its edge with it.
+        TEST(activityrow_test, a_locked_tile_and_the_tile_chosen)
+        {
+            MockLogger logger;
+            ActivityFixture s;
+
+            ActivityRowSpec closing = lockedSpec("closing");
+            closing.closes = 5;
+
+            ActivityListSpec spec;
+            spec.id = "choice";
+            spec.width = 464.0f;
+            spec.tileWidth = 148.0f;
+            spec.groups = {{"Work", {lockedSpec("shut"), closing, idleSpec("open", "Carry")}}};
+
+            ActivityList list = s.placeList(spec);
+            s.pump();
+            s.pump();
+
+            ActivityRow* a = list.row(&s.ecs, "shut");
+            ActivityRow* b = list.row(&s.ecs, "closing");
+            ASSERT_NE(a, nullptr);
+            ASSERT_NE(b, nullptr);
+            ASSERT_TRUE(a->status.has_value());
+            ASSERT_TRUE(b->status.has_value());
+
+            EXPECT_EQ(a->status->spec.text, "");
+            EXPECT_EQ(s.element(a->status->entity), "activity.tile.status.locked");
+            EXPECT_EQ(s.element(a->ground), "activity.kind.locked");
+            EXPECT_EQ(s.element(a->frame), "activity.tile.frame.locked");
+            EXPECT_EQ(s.element(a->cost.entity), "activity.tile.cost.locked");
+
+            EXPECT_EQ(b->status->spec.text, "5 mo");
+            EXPECT_TRUE(s.pos(b->statusMark.entity)->isVisible());
+            EXPECT_EQ(s.element(b->statusMark.entity), "activity.tile.chrono.locked");
+
+            // Opened, it is painted as the others
+            a->setState(&s.ecs, ActivityState::Idle);
+            s.pump();
+
+            EXPECT_EQ(s.element(a->status->entity), "activity.tile.status");
+            EXPECT_EQ(s.element(a->frame), "activity.tile.frame");
+
+            // Chosen: the tinted ground and the edge
+            list.select(&s.ecs, "open");
+            s.pump();
+
+            ActivityRow* open = list.row(&s.ecs, "open");
+            ASSERT_NE(open, nullptr);
+            EXPECT_EQ(s.element(open->ground), "activity.kind.selected");
+            EXPECT_EQ(s.element(open->edge), "activity.row.edge.selected");
         }
 
         // ----------------------------------------------------------------------------------------
@@ -750,15 +811,15 @@ namespace pg
             EXPECT_EQ(s.element(major->frame), "activity.major.frame");
             EXPECT_EQ(s.element(major->ground), "activity.kind.major");
 
-            // Its mark, at the left of the line under its name (its time has the corner), inside the tile
+            // Its mark before its name, in gold, as every tile has its own
             ASSERT_FALSE(major->mark.entity.empty());
             EXPECT_EQ(major->mark.spec.name, "seal");
             EXPECT_EQ(s.element(major->mark.entity), "activity.major.mark");
             EXPECT_NEAR(s.pos(major->mark.entity)->x, s.pos(major->root)->x + 8.0f, 0.5f);
-            EXPECT_GE(s.pos(major->mark.entity)->y, s.pos(major->name.entity)->y + s.pos(major->name.entity)->height);
-            EXPECT_LE(s.pos(major->mark.entity)->y + s.pos(major->mark.entity)->height, s.pos(major->root)->y + s.pos(major->root)->height - 7.5f);
+            EXPECT_LT(s.pos(major->mark.entity)->x, s.pos(major->name.entity)->x);
+            EXPECT_LE(s.pos(major->mark.entity)->y + s.pos(major->mark.entity)->height, s.pos(major->name.entity)->y + 20.5f);
             EXPECT_NEAR(major->name.spec.width, plain->name.spec.width, 0.5f);
-            EXPECT_TRUE(plain->mark.entity.empty());
+            EXPECT_EQ(s.element(plain->mark.entity), "activity.mark");
 
             // Locked: framed and marked all the same, on the ground of what he cannot do yet
             ASSERT_FALSE(locked->frame.empty());
@@ -773,9 +834,9 @@ namespace pg
             EXPECT_EQ(s.element(locked->frame), "activity.major.frame");
             EXPECT_EQ(s.element(locked->mark.entity), "activity.major.mark");
 
-            // A tile like any other has neither
-            EXPECT_TRUE(plain->frame.empty());
-            EXPECT_TRUE(plain->mark.entity.empty());
+            // A tile like any other has the plain rule and its mark in ink
+            ASSERT_FALSE(plain->frame.empty());
+            EXPECT_EQ(s.element(plain->frame), "activity.tile.frame");
             EXPECT_EQ(s.element(plain->ground), "activity.kind.timed");
         }
 

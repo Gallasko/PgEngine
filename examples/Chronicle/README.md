@@ -28,8 +28,8 @@ or *Sit with the Old Scribe* for his mind, Intelligence and 5 of Vitality: the o
 has no tile any more), *Carry Books for Father Anselm* (a keepsake tome, kept in the Inventory;
 nothing asks for it yet), then **two of three** works of two months that open at 6 years 4
 months and are over by 6 years 9 months (*Learn Knots from the Bargemen*, *Haul Sacks at the
-Mill*, which takes 5 of his Vitality, *Sing at the Chapel Door*: there is time for two, the
-stopwatch on each counts down, and the third closes), *Go to the Market* at 6 years 8 months
+Mill*, which takes 5 of his Vitality, *Sing at the Chapel Door*: there is time for two, each
+says how many months are left to begin it, and the third closes), *Go to the Market* at 6 years 8 months
 (the Town page, where his coin buys the rations he is short of by then), *Bring in the
 Harvest* (two months, a point of each part) and *Start Helping Out* at 6 years 11 months,
 which ends the day he is seven. From there the town's work is his, the whole list at once.
@@ -511,18 +511,23 @@ come from `rules/*.pg` through the scene, never from the component.
   is its name, its time and its closing, and nothing else: no rank or count, no `each`, no gains,
   no rule and no list of what it asks, in any state (48 px, 66 with a closing). Its gloss says
   the rest, and its ground says what kind of thing it is, three at rest: `activity.kind.timed`
-  (work that takes months, a lapis wash), `activity.kind.instant` (a thing done at once, a
-  transaction: ochre) and `activity.kind.locked` (what he cannot do yet: ink, faint), with
-  `activity.kind.running` for the work he is at. Hover deepens the kind's own ground (`.hover`).
+  (work that takes months, the leaf's own folio), `activity.kind.instant` (a thing done at once, a
+  transaction: ochre) and `activity.kind.locked` (what he cannot do yet: vellum-tint), with
+  `activity.kind.running` for the work he is at, and `activity.kind.selected` for the tile chosen
+  (vellum-tint, with the focus-ink edge). Hover deepens the kind's own ground (`.hover`).
   The setters still keep what a compact row does not show (`setCount`, `setPercent`,
   `setRequirement`), for whoever says it. A **tile** (`tile`, a compact row stacked for a grid)
-  has no mark: its name is set in `control` (`activity.tile.name`) at its left edge, wrapped in
-  its width over two lines at most, then elided, beside a box in its top right corner where its
-  time stands (`inset`: a task that takes time is told from one that takes none at a glance).
-  Under the name a line for what closes it, at the right: a stopwatch (`chrono`) and the months
-  left to begin it (`closes`, `setCloses`; -1 says nothing, `urgent` puts it in the loss's
-  colour). A tile that shows its mark (a `major` one, or an `adventure` one, which takes him out
-  of the town and has a ground and a frame of its own) shows it at the left of that line. `natural` is the height its content
+  is framed (`activity.tile.frame`; `.urgent`, the loss's colour, while its closing is near and
+  it is not locked). Its mark (S16, `activity.mark`, or its kind's colour) stands before its
+  name, set in `control` (`activity.tile.name`), wrapped in the width left over two lines at
+  most, then elided. Under them its last line: at the left an hourglass and its time
+  (`activity.tile.cost`, in `tick`; nothing for a thing done at once), at the right the months
+  left to begin it after a stopwatch (`status` and `statusMark`, `activity.tile.status` and
+  `activity.tile.chrono`, in `tick`; `setCloses`: "14 mo", "last mo"; `.loss` when `urgent`),
+  and nothing for what does not close; `.locked` while he cannot take it. What a locked tile lacks is its gloss's to say. The work he is at says nothing there. The
+  single frames are 2 in the theme: the frame's shader draws a 1 px rule faint, and on a tile
+  whose width is not a whole number of pixels its right edge would not show. A `major` tile is framed in gold and an
+  `adventure` one, which takes him out of the town, in red, each on a ground of its own. `natural` is the height its content
   asks and `minHeight` what its list asks of it: `setMinHeight` keeps a line's tiles level.
 
 - **Tiles in a list** (`ActivityListSpec::tileWidth`, `tileWidth:` in a file) - with a tile
@@ -656,8 +661,8 @@ come from `rules/*.pg` through the scene, never from the component.
   `activity.kind.featured` in the place of its kind's, while it can be chosen. The rules set it
   with `featured: true` on an activity (Go to the Market).
 - **A major tile**: `ActivityRowSpec::major` frames a tile with two gold rules
-  (`activity.major.frame`, `.locked`), shows its mark in its top right corner
-  (`activity.major.mark`, `.locked`; the name wraps short of it) and gives it the ground
+  (`activity.major.frame`, `.locked`), shows its mark in gold before its name
+  (`activity.major.mark`, `.locked`) and gives it the ground
   `activity.kind.major`. It holds in every state. The rules set it with `major: true` on what
   turns a life: the four ways into a class and Go to the Market. Such an activity also carries
   `about`, a sentence on what it does and a word of the town's, which its gloss says under its

@@ -84,14 +84,13 @@ namespace chronicle
         constexpr float EachGap = 2.0f;
         constexpr float UntilGap = 2.0f;         // Above the line saying when it closes
         constexpr float TilePad = 8.0f;          // space-2 padding of a tile
-        constexpr float TileLineGap = 2.0f;      // Between a tile's name and its time
+        constexpr float TileLineGap = 6.0f;      // Between a tile's name and its last line
+        constexpr float TileMarkGap = 6.0f;      // Between a tile's mark and its name
+        constexpr float TileStatusGap = 8.0f;    // Between a tile's time and its word of state
         constexpr float TileGap = 8.0f;          // space-2 between two tiles, on a line and from line to line
         constexpr int TileNameLines = 2;         // A tile's name wraps to that many lines, then elides
         constexpr float ActionWidth = 56.0f;     // The room of a table line's button, at its right end
         constexpr float CellGap = 12.0f;         // Between two cells of a table line
-        constexpr float InsetPadX = 5.0f;        // A tile's time in its box: beside it,
-        constexpr float InsetPadY = 2.0f;        // over and under it,
-        constexpr float InsetGap = 6.0f;         // and between the box and the name
         constexpr float MajorFrameGap = 2.0f;    // Between the two rules of a major tile's frame
         constexpr float MaxRequirementWidth = 300.0f;
         constexpr float DoubleReleaseMs = 400.0f;
@@ -127,13 +126,31 @@ namespace chronicle
             return monthsText(spec.months);
         }
 
-        // The months he still has to begin a thing that closes; its last month says so
-        std::string closesText(const ActivityRowSpec& spec)
+        // At the right of a tile's last line: the months he still has to begin a thing that closes,
+        // after a stopwatch, its last month said so. What does not close says nothing there, nor
+        // the work he is at; what a locked one lacks is its gloss's to say
+        std::string statusText(const ActivityRowSpec& spec)
         {
-            if (spec.closes < 0)
+            if (spec.state == ActivityState::Running)
                 return "";
 
-            return spec.closes == 0 ? std::string("last mo") : std::to_string(spec.closes) + " mo";
+            if (spec.closes == 0)
+                return "last mo";
+
+            if (spec.closes > 0)
+                return std::to_string(spec.closes) + " mo";
+
+            return "";
+        }
+
+        // A closing in the time's colour, the loss's when it is near, the locked colour while he
+        // cannot take it
+        std::string statusElement(const ActivityRowSpec& spec, const std::string& element = "activity.tile.status")
+        {
+            if (spec.state == ActivityState::Locked)
+                return element + ".locked";
+
+            return spec.urgent ? element + ".loss" : element;
         }
 
         // "RANK 2 \xC2\xB7 DONE 3": the rank, then how often it was done, on one label
@@ -270,6 +287,10 @@ namespace chronicle
                 if (st.state == ActivityState::Running)
                     return "activity.kind.running";
 
+                // The tile chosen is on the ground the page gives what is picked, its edge with it
+                if (st.tile and st.selected)
+                    return "activity.kind.selected";
+
                 if (st.state == ActivityState::Locked)
                     return "activity.kind.locked";
 
@@ -326,11 +347,23 @@ namespace chronicle
             }
         }
 
+        // Every tile is framed: two gold rules for a major one, a red rule for a walk, and the
+        // plain rule of the others, in the loss's colour while its closing is near
         std::string frameElement(const ActivityRowState& st)
         {
-            const std::string frame = st.major ? "activity.major.frame" : "activity.adventure.frame";
+            const bool locked = st.state == ActivityState::Locked;
+            const std::string frame = st.major ? "activity.major.frame" : st.adventure ? "activity.adventure.frame"
+                                    : st.urgent and not locked ? "activity.tile.frame.urgent" : "activity.tile.frame";
 
-            return st.state == ActivityState::Locked ? frame + ".locked" : frame;
+            return locked ? frame + ".locked" : frame;
+        }
+
+        // A tile's time is set smaller than a row's
+        std::string costElement(const ActivityRowState& st)
+        {
+            const std::string cost = st.tile ? "activity.tile.cost" : "activity.cost";
+
+            return st.state == ActivityState::Locked ? cost + ".locked" : cost;
         }
 
         // A tile's name is set in the control face, a row's in the display one
@@ -355,7 +388,7 @@ namespace chronicle
             setElement(entityOf(ecs, st.frame), frameElement(st));
             setElement(entityOf(ecs, st.mark), markElement(st));
             setElement(entityOf(ecs, st.name), nameElement(st));
-            setElement(entityOf(ecs, st.cost), locked ? "activity.cost.locked" : "activity.cost");
+            setElement(entityOf(ecs, st.cost), costElement(st));
 
             // No time, no time mark: a tile done at once leaves that line empty
             setVisible(entityOf(ecs, st.costMark), not (st.tile and st.instant));
@@ -378,24 +411,19 @@ namespace chronicle
             setElement(row.frame, frameElement(st));
             setElement(row.mark.entity, markElement(st));
             setElement(row.name.entity, nameElement(st));
-            setElement(row.cost.entity, locked ? "activity.cost.locked" : "activity.cost");
+            setElement(row.cost.entity, costElement(st));
 
-            // A tile's time stands in its box, when it has one to say; what closes it at the right of the line under
+            // A tile's time at the left of its last line, when it has one to say; its word of state at the right
             const bool timed = not row.cost.spec.text.empty();
 
             setVisible(row.costMark.entity, not st.table and not (st.tile and (st.instant or not timed)));
-            setVisible(row.inset, st.tile and timed);
-            setVisible(row.insetFrame, st.tile and timed);
-            setElement(row.inset, locked ? "activity.tile.time.locked" : "activity.tile.time");
 
-            if (row.closing)
+            // And at the right its closing, after a stopwatch, when it has one
+            if (row.status)
             {
-                const bool closes = row.spec.closes >= 0;
-
-                setVisible(row.closing->entity, closes);
-                setVisible(row.closeMark.entity, closes);
-                setElement(row.closing->entity, locked ? "activity.closes.locked" : row.spec.urgent ? "activity.closes.urgent" : "activity.closes");
-                setElement(row.closeMark.entity, locked ? "activity.closes.mark.locked" : row.spec.urgent ? "activity.closes.mark.urgent" : "activity.closes.mark");
+                setElement(row.status->entity, statusElement(row.spec));
+                setElement(row.statusMark.entity, statusElement(row.spec, "activity.tile.chrono"));
+                setVisible(row.statusMark.entity, row.spec.closes >= 0 and st.state != ActivityState::Running);
             }
 
             setVisible(row.rule, not st.last and not st.tile);
@@ -586,6 +614,7 @@ namespace chronicle
         state->major = spec.major and spec.tile;
         state->tile = spec.tile;
         state->adventure = spec.adventure and spec.tile;
+        state->urgent = spec.tile and spec.closes >= 0 and spec.urgent;
         state->table = not spec.tile and not spec.compact and spec.glyph.empty();
 
         ecs->attach<FocusableComponent>(root.entity);
@@ -660,68 +689,43 @@ namespace chronicle
         row.ring = ring.entity;
         state->ring = ring.entity.id;
 
-        // A major tile is framed like an illuminated leaf, two gold rules around it: what turns a
-        // life is not one more tile of the grid. One that takes him out of the town has a frame
-        // of its own, a single rule
-        if (spec.tile and (spec.major or spec.adventure))
+        // Every tile is framed. A major one like an illuminated leaf, two gold rules around it:
+        // what turns a life is not one more tile of the grid. The others a single rule, red for
+        // one that takes him out of the town (frameElement)
+        if (spec.tile)
         {
             auto frame = spec.major ? makeStrokeRect2DShape(ecs, 1.0f, 1.0f, {255.0f, 255.0f, 255.0f, 255.0f}, 1.0f, MajorFrameGap, true)
                                     : makeStrokeRect2DShape(ecs, 1.0f, 1.0f, {255.0f, 255.0f, 255.0f, 255.0f}, 1.0f);
             offstage(frame.entity);
             frame.get<UiAnchor>()->fillIn(root.get<UiAnchor>());
             frame.get<UiAnchor>()->setZConstrain(PosConstrain{rootId, AnchorType::Z, PosOpType::Add, 1.0f});
-            ecs->attach<ThemeComponent>(frame.entity, spec.major ? "activity.major.frame" : "activity.adventure.frame");
+            ecs->attach<ThemeComponent>(frame.entity, frameElement(*state.component));
             prefab->addToPrefab(frame.entity);
             row.frame = frame.entity;
             state->frame = frame.entity.id;
 
-            // And it shows its mark, at the left of the line under its name: its time has the
-            // corner (resize sets how far down)
-            row.mark = makeMark(ecs, {spec.glyph, MarkSize::S24, "ink-muted", z + 3});
-            offstage(row.mark.entity);
+            // Its mark before its name, on the name's first line (resize sets how far down), in the
+            // colour of its kind (markElement)
+            if (not spec.glyph.empty())
             {
-                auto anchor = row.mark.entity->get<UiAnchor>();
+                row.mark = makeMark(ecs, {spec.glyph, MarkSize::S16, "ink-muted", z + 3});
+                offstage(row.mark.entity);
+                {
+                    auto anchor = row.mark.entity->get<UiAnchor>();
 
-                anchor->setLeftAnchor(PosAnchor{rootId, AnchorType::Left});
-                anchor->setLeftMargin(TilePad);
-                anchor->setTopAnchor(PosAnchor{rootId, AnchorType::Top});
-                anchor->setZConstrain(PosConstrain{rootId, AnchorType::Z, PosOpType::Add, 3.0f});
+                    anchor->setLeftAnchor(PosAnchor{rootId, AnchorType::Left});
+                    anchor->setLeftMargin(TilePad);
+                    anchor->setTopAnchor(PosAnchor{rootId, AnchorType::Top});
+                    anchor->setZConstrain(PosConstrain{rootId, AnchorType::Z, PosOpType::Add, 3.0f});
+                }
+                row.mark.entity->get<ThemeComponent>()->setElement(markElement(*state.component));
+                prefab->addToPrefab(row.mark.entity);
+                state->mark = row.mark.entity.id;
             }
-            row.mark.entity->get<ThemeComponent>()->setElement(spec.major ? "activity.major.mark" : "activity.adventure.mark");
-            prefab->addToPrefab(row.mark.entity);
-            state->mark = row.mark.entity.id;
-        }
-
-        // A tile's time stands in a box in its top right corner, where a tile that takes time
-        // is told at a glance from one that takes none: the box is sized to what it says (fitInset)
-        if (spec.tile)
-        {
-            auto inset = makeUiSimple2DShape(ecs, Shape2D::Square, 1.0f, 1.0f);
-            offstage(inset.entity);
-            {
-                auto anchor = inset.get<UiAnchor>();
-
-                anchor->setRightAnchor(PosAnchor{rootId, AnchorType::Right});
-                anchor->setRightMargin(TilePad);
-                anchor->setTopAnchor(PosAnchor{rootId, AnchorType::Top});
-                anchor->setTopMargin(TilePad);
-                anchor->setZConstrain(PosConstrain{rootId, AnchorType::Z, PosOpType::Add, 1.0f});
-            }
-            ecs->attach<ThemeComponent>(inset.entity, "activity.tile.time");
-            prefab->addToPrefab(inset.entity);
-            row.inset = inset.entity;
-
-            auto insetFrame = makeStrokeRect2DShape(ecs, 1.0f, 1.0f, {255.0f, 255.0f, 255.0f, 255.0f}, 1.0f);
-            offstage(insetFrame.entity);
-            insetFrame.get<UiAnchor>()->fillIn(inset.get<UiAnchor>());
-            insetFrame.get<UiAnchor>()->setZConstrain(PosConstrain{rootId, AnchorType::Z, PosOpType::Add, 2.0f});
-            ecs->attach<ThemeComponent>(insetFrame.entity, "activity.tile.time.frame");
-            prefab->addToPrefab(insetFrame.entity);
-            row.insetFrame = insetFrame.entity;
         }
 
         // Mark: S24 (the design system draws 22; the kit registers 18 and 24), centred in its column.
-        // A tile has none, but a major one: its width is the name's
+        // A tile has its own, before its name
         if (not spec.tile and not spec.glyph.empty())
         {
             row.mark = makeMark(ecs, {spec.glyph, MarkSize::S24, "ink-muted", z + 3});
@@ -740,8 +744,8 @@ namespace chronicle
         }
 
         // The cost and its time mark. On a row: the right column, on the title line's baseline, `each`
-        // under it. On a tile: in the box of its top right corner
-        row.cost = makeActivityText(ecs, "control", "activity.cost", costText(spec), z + 4);
+        // under it. On a tile: at the left of its last line, set smaller (resize sets how far down)
+        row.cost = makeActivityText(ecs, spec.tile ? "tick" : "control", costElement(*state.component), costText(spec), z + 4);
         row.costMark = makeMark(ecs, {spec.costGlyph.empty() ? std::string("time") : spec.costGlyph, MarkSize::S14, "status-time", z + 3});
         offstage(row.costMark.entity);
 
@@ -757,12 +761,11 @@ namespace chronicle
 
             if (spec.tile)
             {
-                anchor->setRightAnchor(PosAnchor{rootId, AnchorType::Right});
-                anchor->setRightMargin(TilePad + InsetPadX);
-                anchor->setTopMargin(TilePad + InsetPadY);
+                markAnchor->setLeftAnchor(PosAnchor{rootId, AnchorType::Left});
+                markAnchor->setLeftMargin(TilePad);
 
-                markAnchor->setRightAnchor(PosAnchor{row.cost.entity.id, AnchorType::Left});
-                markAnchor->setRightMargin(CostMarkGap);
+                anchor->setLeftAnchor(PosAnchor{row.costMark.entity.id, AnchorType::Right});
+                anchor->setLeftMargin(CostMarkGap);
             }
             else
             {
@@ -808,8 +811,8 @@ namespace chronicle
             prefab->addToPrefab(row.each->entity);
         }
 
-        // Title line: the name, then the rank on its baseline. A tile's name is set smaller, at the
-        // tile's left edge, and wraps in its width
+        // Title line: the name, then the rank on its baseline. A tile's name is set smaller, after
+        // its mark, and wraps in its width
         if (spec.tile)
         {
             LabelSpec ls;
@@ -823,33 +826,33 @@ namespace chronicle
             row.name = makeLabel(ecs, ls);
             offstage(row.name.entity);
             row.name.entity->get<ThemeComponent>()->setElement("activity.tile.name");
-            placeIn(row.name.entity, rootId, TilePad, TilePad, 4.0f);
+            placeIn(row.name.entity, rootId, row.mark.entity.empty() ? TilePad : TilePad + px(MarkSize::S16) + TileMarkGap, TilePad, 4.0f);
 
-            // What closes it: a stopwatch and the months he still has to begin it, at the right of
-            // the line under the name, there or not as the spec says (paintRow)
-            row.closing = makeActivityText(ecs, "control", "activity.closes", closesText(spec), z + 4);
+            // At the right of its last line: the months he still has to begin it after a stopwatch,
+            // when it closes (statusText), set as its time is
+            row.status = makeActivityText(ecs, "tick", statusElement(spec), statusText(spec), z + 4);
             {
-                auto anchor = row.closing->entity->get<UiAnchor>();
+                auto anchor = row.status->entity->get<UiAnchor>();
 
                 anchor->setRightAnchor(PosAnchor{rootId, AnchorType::Right});
                 anchor->setRightMargin(TilePad);
                 anchor->setTopAnchor(PosAnchor{rootId, AnchorType::Top});
                 anchor->setZConstrain(PosConstrain{rootId, AnchorType::Z, PosOpType::Add, 4.0f});
             }
-            prefab->addToPrefab(row.closing->entity);
+            prefab->addToPrefab(row.status->entity);
 
-            row.closeMark = makeMark(ecs, {"chrono", MarkSize::S14, "status-time", z + 3});
-            offstage(row.closeMark.entity);
+            row.statusMark = makeMark(ecs, {"chrono", MarkSize::S14, "status-time", z + 3});
+            offstage(row.statusMark.entity);
             {
-                auto anchor = row.closeMark.entity->get<UiAnchor>();
+                auto anchor = row.statusMark.entity->get<UiAnchor>();
 
-                anchor->setRightAnchor(PosAnchor{row.closing->entity.id, AnchorType::Left});
+                anchor->setRightAnchor(PosAnchor{row.status->entity.id, AnchorType::Left});
                 anchor->setRightMargin(CostMarkGap);
-                anchor->setVerticalCenter(PosAnchor{row.closing->entity.id, AnchorType::VerticalCenter});
+                anchor->setVerticalCenter(PosAnchor{row.status->entity.id, AnchorType::VerticalCenter});
                 anchor->setZConstrain(PosConstrain{rootId, AnchorType::Z, PosOpType::Add, 3.0f});
             }
-            row.closeMark.entity->get<ThemeComponent>()->setElement("activity.closes.mark");
-            prefab->addToPrefab(row.closeMark.entity);
+            row.statusMark.entity->get<ThemeComponent>()->setElement(statusElement(spec, "activity.tile.chrono"));
+            prefab->addToPrefab(row.statusMark.entity);
         }
         else
         {
@@ -1101,25 +1104,24 @@ namespace chronicle
 
         if (spec.tile)
         {
-            fitInset();
-
-            // The name, beside the box of its time; under them a line for what closes it, at its
-            // right, and for the mark of a tile that shows one, at its left
-            const float nameHeight = std::max(static_cast<float>(name.lineHeightPx), name.entity.get<PositionComponent>()->height);
-            const float boxHeight = inset.empty() ? 0.0f : inset->get<PositionComponent>()->height;
-            const float lineTop = TilePad + std::max(nameHeight, boxHeight) + TileLineGap;
+            // Its mark and its name, on as many lines as the name takes; under them its last line,
+            // its time at the left and its word of state at the right, each in the middle of it
+            const float nameLine = static_cast<float>(name.lineHeightPx);
+            const float nameHeight = std::max(nameLine, name.entity.get<PositionComponent>()->height);
+            const float lineTop = TilePad + nameHeight + TileLineGap;
 
             // The line is kept when it says nothing: every tile of the grid is as tall as the others
-            float line = static_cast<float>(cost.lineHeightPx);
+            const float costLine = static_cast<float>(cost.lineHeightPx);
+            const float statusLine = status ? static_cast<float>(status->lineHeightPx) : 0.0f;
+            const float line = std::max({costLine, statusLine, px(MarkSize::S14)});
 
-            if (closing)
-                closing->entity->get<UiAnchor>()->setTopMargin(lineTop);
+            cost.entity->get<UiAnchor>()->setTopMargin(lineTop + (line - costLine) / 2.0f);
+
+            if (status)
+                status->entity->get<UiAnchor>()->setTopMargin(lineTop + (line - statusLine) / 2.0f);
 
             if (not mark.entity.empty())
-            {
-                mark.entity->get<UiAnchor>()->setTopMargin(lineTop);
-                line = std::max(line, px(MarkSize::S24));
-            }
+                mark.entity->get<UiAnchor>()->setTopMargin(TilePad + (nameLine - px(MarkSize::S16)) / 2.0f);
 
             content = lineTop + line;
             pad = TilePad;
@@ -1156,28 +1158,24 @@ namespace chronicle
 
     float ActivityRow::tileNameWidth() const
     {
-        // The tile's width, less the box its time stands in when it has one to say
-        const float box = cost.spec.text.empty() ? 0.0f
-                        : 2.0f * InsetPadX + px(MarkSize::S14) + CostMarkGap + cost.entity.get<PositionComponent>()->width + InsetGap;
+        // The tile's width, less its mark when it has one
+        const float mark = this->mark.entity.empty() ? 0.0f : px(MarkSize::S16) + TileMarkGap;
 
-        return std::max(1.0f, spec.width - 2.0f * TilePad - box);
+        return std::max(1.0f, spec.width - 2.0f * TilePad - mark);
     }
 
-    void ActivityRow::fitInset()
+    void ActivityRow::sayStatus(EntitySystem* ecs)
     {
-        if (inset.empty())
+        if (not status)
             return;
 
-        const float width = 2.0f * InsetPadX + px(MarkSize::S14) + CostMarkGap + cost.entity.get<PositionComponent>()->width;
-        const float height = 2.0f * InsetPadY + std::max(static_cast<float>(cost.lineHeightPx), px(MarkSize::S14));
+        const std::string text = statusText(spec);
 
-        auto pos = inset->get<PositionComponent>();
+        if (status->spec.text != text)
+            status->setText(ecs, text);
 
-        if (std::abs(pos->width - width) > 0.01f)
-            pos->setWidth(width);
-
-        if (std::abs(pos->height - height) > 0.01f)
-            pos->setHeight(height);
+        setElement(status->entity, statusElement(spec));
+        setElement(statusMark.entity, statusElement(spec, "activity.tile.chrono"));
     }
 
     void ActivityRow::fitName(EntitySystem* ecs)
@@ -1185,7 +1183,6 @@ namespace chronicle
         // A tile's name has the tile's width, and wraps in it; its closing too
         if (spec.tile)
         {
-            fitInset();
             name.setWidth(ecs, tileNameWidth());
 
             if (until)
@@ -1237,6 +1234,9 @@ namespace chronicle
             r.clearMiddle(ecs);
             r.buildMiddle(ecs);
             r.resize(ecs);
+
+            // A tile says its closing in its state's colour, and nothing of it while he is at it
+            r.sayStatus(ecs);
 
             paintRow(r);
         });
@@ -1300,6 +1300,8 @@ namespace chronicle
                 r.reqs->setItems(ecs, items);
                 r.resize(ecs);
             }
+
+            r.sayStatus(ecs);
         });
     }
 
@@ -1317,6 +1319,8 @@ namespace chronicle
 
             if (r.reqs)
                 r.reqs->setItem(ecs, index, current, needed);
+
+            r.sayStatus(ecs);
         });
     }
 
@@ -1338,7 +1342,7 @@ namespace chronicle
         onLive(this, [ecs, &glyph](ActivityRow& r) {
             r.spec.glyph = glyph;
 
-            // A tile keeps the glyph and draws no mark
+            // A row or a tile built with a mark draws the new one; one built without keeps the glyph
             if (not r.mark.entity.empty())
                 r.mark.setName(ecs, glyph);
         });
@@ -1355,7 +1359,7 @@ namespace chronicle
             r.root.get<ActivityRowState>()->instant = r.spec.months <= 0;
             paintRow(r);
 
-            // A tile's name wraps beside the box of its time, which is another width now
+            // A tile's word of state takes the room its time leaves, which is another width now
             if (r.spec.tile)
                 r.resize(ecs);
         });
@@ -1434,10 +1438,9 @@ namespace chronicle
 
             r.spec.closes = months;
             r.spec.urgent = urgent;
+            r.root.get<ActivityRowState>()->urgent = r.spec.tile and months >= 0 and urgent;
 
-            if (r.closing)
-                r.closing->setText(ecs, closesText(r.spec));
-
+            r.sayStatus(ecs);
             paintRow(r);
         });
     }

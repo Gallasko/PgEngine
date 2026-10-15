@@ -49,7 +49,7 @@ namespace chronicle
         bool compact = false;          // The name, the time and the closing only: no rank, no `each`, no middle block (its gloss says the rest), on a ground that says its kind
         bool featured = false;         // A compact row the page wants seen: a gold ground in the place of its kind's, while it can be chosen
         bool major = false;            // A tile that turns his life (a class, the town): a doubled gold frame around it and its mark in its corner, in every state
-        bool tile = false;             // A compact row stacked for a grid: the name over the time (two lines of name at most), no mark. A list with a tileWidth makes its rows tiles
+        bool tile = false;             // A compact row stacked for a grid, framed: its mark and its name (two lines of name at most), under them its time and its closing. A list with a tileWidth makes its rows tiles
         float minHeight = 0.0f;        // The row is at least that tall: a list keeps the tiles of one line level
         float percent = 0.0f;          // Running
         float glideTo = 0.0f;          // Running: where the fill is moving to, from percent
@@ -62,7 +62,7 @@ namespace chronicle
         int z = 20;                    // Root and ground z; rule z+1; edge and ring z+2; marks z+3, texts z+4; the embedded rule or list root z+3
         std::string cost;              // "" or what the cost reads in the place of the months: "2 AP", for what is not counted in months
         std::string costGlyph = "time";   // The mark beside the cost: the hourglass of what takes time, or another's ("vitality") for a figure that is not a time
-        int closes = -1;               // A tile's: the months left to begin it, counted down at the right of its second line under a stopwatch; -1 = it does not close (or not soon). `urgent` puts it in the loss's colour
+        int closes = -1;               // A tile's: the months left to begin it, counted down at the right of its last line under a stopwatch; -1 = it does not close, or not soon (nothing said). `urgent` puts it and the frame in the loss's colour
         bool adventure = false;        // A tile that takes him out of the town (a walk): a ground and a frame of its own, and its mark shown
 
         // A row as a line of a table (not a tile, not compact): the Adventure page's places and walks
@@ -120,6 +120,7 @@ namespace chronicle
         bool tile = false;             // One of several on a line: no rule under it
         bool table = false;            // A line of a table: no mark, its name in the text's face, its ground tinted when it is the one chosen
         bool adventure = false;        // It takes him out of the town: its ground and its frame say so
+        bool urgent = false;           // A tile whose closing is near: its frame says so
 
         pg::_unique_id list = 0;       // The list root, once a list adopts the row
 
@@ -127,7 +128,7 @@ namespace chronicle
         pg::_unique_id rule = 0;
         pg::_unique_id edge = 0;
         pg::_unique_id ring = 0;
-        pg::_unique_id frame = 0;      // A major tile's alone
+        pg::_unique_id frame = 0;      // A tile's
         pg::_unique_id mark = 0;
         pg::_unique_id name = 0;
         pg::_unique_id cost = 0;
@@ -148,7 +149,7 @@ namespace chronicle
         pg::EntityRef rule;
         pg::EntityRef edge;
         pg::EntityRef ring;
-        pg::EntityRef frame;           // A major tile's alone
+        pg::EntityRef frame;           // A tile's: a rule around it (two gold ones for a major tile)
         Mark mark;
         Label name;
         std::optional<Label> rank;
@@ -161,9 +162,8 @@ namespace chronicle
         std::optional<Label> until;                  // When it closes, while it has something to say
         std::optional<Label> asideTop, asideBottom;  // A table line's: the cell between its cost and its right end
         std::optional<Button> action;                // and the small button at that end
-        pg::EntityRef inset, insetFrame;             // A tile's: the box in its top right corner its time stands in
-        Mark closeMark;                              // A tile's: the stopwatch of what closes,
-        std::optional<Label> closing;                // and the months left, at the right of its second line
+        std::optional<Label> status;                 // A tile's: at the right of its last line, the months left to begin it ("14 mo", "last mo"), "" for none,
+        Mark statusMark;                             // after a stopwatch when it closes
         ActivityRowSpec spec;
         float natural = 0.0f;                        // The height its content asks, before spec.minHeight
 
@@ -191,10 +191,10 @@ namespace chronicle
         void clearMiddle(pg::EntitySystem*);
         void buildUntil(pg::EntitySystem*);          // The closing line as the spec says: made, rewritten or removed
         void fitName(pg::EntitySystem*);             // Grows to its text, or elides in the room left
-        float tileNameWidth() const;                 // A tile's name has the tile's width, less the box of its time
+        float tileNameWidth() const;                 // A tile's name has the tile's width, less its mark
         float bodyLeft() const;                      // Where the name and what is under it begin: past the mark's column, when it has a mark
         float rightInset() const;                    // The room the cell and the button take at the right of the cost
-        void fitInset();                             // The box of a tile's time, around what it says
+        void sayStatus(pg::EntitySystem*);           // A tile's word of state, from its spec
         void resize(pg::EntitySystem*);
     };
 

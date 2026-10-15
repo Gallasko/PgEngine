@@ -1997,8 +1997,8 @@ namespace pg
             // At 17 his prime is far from its end: the carters say nothing
             ASSERT_NE(list->find(&f.ecs, "carters"), nullptr);
             EXPECT_EQ(list->find(&f.ecs, "carters")->spec.closes, -1);
-            ASSERT_TRUE(list->find(&f.ecs, "carters")->closing.has_value());
-            EXPECT_FALSE(f.pos(list->find(&f.ecs, "carters")->closing->entity)->visible);
+            ASSERT_TRUE(list->find(&f.ecs, "carters")->status.has_value());
+            EXPECT_EQ(list->find(&f.ecs, "carters")->status->spec.text, "");
 
             // A year and a half from 30, a month at a time: three months of work, begun by 29.75
             life->save.age = 28.5f;
@@ -2010,12 +2010,12 @@ namespace pg
             ActivityRow* carters = list->find(&f.ecs, "carters");
             ASSERT_NE(carters, nullptr);
 
-            // Fourteen months to begin it, counted on its tile under a stopwatch
+            // Fourteen months to begin it, counted on its tile
             EXPECT_EQ(carters->spec.closes, 14);
             EXPECT_FALSE(carters->spec.urgent);
-            ASSERT_TRUE(carters->closing.has_value());
-            EXPECT_EQ(carters->closing->spec.text, "14 mo");
-            EXPECT_TRUE(f.pos(carters->closing->entity)->visible);
+            ASSERT_TRUE(carters->status.has_value());
+            EXPECT_EQ(carters->status->spec.text, "14 mo");
+            EXPECT_TRUE(f.pos(carters->status->entity)->visible);
             EXPECT_FALSE(carters->until.has_value());
 
             life->onMonth();
@@ -2025,7 +2025,7 @@ namespace pg
             ASSERT_NE(carters, nullptr);
             // A month on, a month fewer
             EXPECT_EQ(carters->spec.closes, 13);
-            EXPECT_EQ(carters->closing->spec.text, "13 mo");
+            EXPECT_EQ(carters->status->spec.text, "13 mo");
 
             // Half a year left: urgent
             life->save.age = 29.25f - 1.0f / 12.0f;
@@ -2037,7 +2037,8 @@ namespace pg
             ASSERT_NE(carters, nullptr);
             EXPECT_EQ(carters->spec.closes, 6);
             EXPECT_TRUE(carters->spec.urgent);
-            EXPECT_EQ(f.pos(carters->closing->entity)->visible, true);
+            EXPECT_EQ(carters->status->spec.text, "6 mo");
+            EXPECT_EQ(f.ecs.getEntity(carters->frame.id)->get<ThemeComponent>()->element, "activity.tile.frame.urgent");
 
             // An old man's work is listed by now, and is never closed
             ActivityRow* tales = list->find(&f.ecs, "tales");
@@ -5318,14 +5319,14 @@ namespace pg
             EXPECT_EQ(f.ecs.getEntity(list->find(&f.ecs, "tomarket")->root->get<ActivityRowState>()->ground)->get<ThemeComponent>()->element.find("activity.kind.featured"), 0u);
             EXPECT_FALSE(list->find(&f.ecs, "carters")->spec.featured);
 
-            // And it is one of the tiles that turn a life: framed in gold, its mark in its corner,
+            // And it is one of the tiles that turn a life: framed in gold, its mark in gold,
             // and its gloss says what it does in the place of its group
             EXPECT_TRUE(list->find(&f.ecs, "tomarket")->spec.major);
             EXPECT_FALSE(list->find(&f.ecs, "tomarket")->frame.empty());
             EXPECT_FALSE(list->find(&f.ecs, "tomarket")->mark.entity.empty());
             EXPECT_FALSE(list->find(&f.ecs, "carters")->spec.major);
-            EXPECT_TRUE(list->find(&f.ecs, "carters")->frame.empty());
-            EXPECT_TRUE(list->find(&f.ecs, "carters")->mark.entity.empty());
+            EXPECT_EQ(f.ecs.getEntity(list->find(&f.ecs, "carters")->frame.id)->get<ThemeComponent>()->element, "activity.tile.frame");
+            EXPECT_EQ(f.ecs.getEntity(list->find(&f.ecs, "tomarket")->frame.id)->get<ThemeComponent>()->element, "activity.major.frame");
 
             auto glosses = f.ecs.getSystem<GlossRegistry>();
             ASSERT_NE(glosses, nullptr);

@@ -154,6 +154,10 @@ the `CHANGELOG.md` at the root of the repository.
 - *Start Helping Out* is the last month before seven now, and brings 6 rations.
 - The anonymous play statistics now say which build they are from and which tasks of the sixth
   year were done (which of the two, which two of the three).
+- **The task tiles are drawn anew.** Each is framed, its mark before its name, and under them
+  its months at the left and at the right the months left to begin it under a stopwatch (in
+  red, and its frame with it, when little time is left). One you cannot take yet
+  stands on a darker ground, and the one you picked is tinted, with a blue edge.
 
 ### Fixed
 
