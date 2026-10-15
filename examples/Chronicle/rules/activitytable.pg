@@ -134,7 +134,8 @@
 //                             asks `needed` instead. A list of them: the least of those that hold.
 //                             Its `needed` is always written: it is what the entry is eased to.
 //     raised: {flag, needed}  the other way: with the flag held it asks `needed` when that is more.
-//     anyOf: [flag]           one of the flags is enough: current is 1 when he holds any.
+//     anyOf: [flag]           one of the flags is enough: current is 1 when he holds any. A
+//                             "done.<activity id>" among them is that activity done in this life.
 //   bonus: [step]    what changes with a stat he holds, or with the town. A step is
 //                    {stat, needed, ...}: with the stat at `needed` or more (1 when the step
 //                    gives none) it replaces the activity's own gains, costs, months, rank, each, uses,
@@ -292,13 +293,13 @@ var activities = [
      requires: [],
      after: [{uses: 2, months: 9, gains: [{stat: "coin", amount: 6}]}],
      bonus: [{stat: "town.mill", more: [{stat: "coin", amount: 4}]}]},
-    {id: "messages", group: "Work", name: "Run Messages", glyph: "town", months: 3, rank: "", each: "", path: "", idleBy: 10,
+    {id: "messages", group: "Work", name: "Run Messages", glyph: "town", months: 3, rank: "", each: "", path: "", fromAge: 7, fromMonths: 4, idleBy: 10,
      gains: [{stat: "dex"}, {stat: "coin", amount: 3}],
      requires: [],
      after: [{uses: 2, gains: [{stat: "coin", amount: 5}]}]},
     // What feeds him until the market is his to buy at: meals while he is at it, and rations to
     // take away
-    {id: "kitchen", group: "Work", name: "Help in the Kitchen", glyph: "trade", months: 3, rank: "", each: "MEALS PROVIDED", path: "", board: true, idleBy: 10,
+    {id: "kitchen", group: "Work", name: "Help in the Kitchen", glyph: "trade", months: 3, rank: "", each: "MEALS PROVIDED", path: "", board: true, fromAge: 7, fromMonths: 8, idleBy: 10,
      gains: [{stat: "rations", amount: 6}],
      requires: []},
     {id: "market", group: "Work", name: "Help at the Market", glyph: "trade", months: 6, rank: "", each: "", path: "", fromAge: 8, idleBy: 11,
@@ -330,7 +331,7 @@ var activities = [
     // A lead: a month and a little coin for something worth knowing, and no more. The bargemen
     // know the pond above the mill: with their tale it is his to walk at nine, a year sooner
     // (expeditiontable.pg's `sooner`). It is not sold to who is ten already
-    {id: "bargemen", group: "Work", name: "Hear the Bargemen's Tale", glyph: "adventure", months: 1, rank: "", each: "MILL POND A YEAR SOONER", path: "", fromAge: 9, finishBy: 10, closingShown: 3, uses: 1,
+    {id: "bargemen", group: "Work", name: "Hear the Bargemen's Tale", glyph: "adventure", months: 1, rank: "", each: "MILL POND A YEAR SOONER", path: "", fromAge: 9, fromMonths: 4, finishBy: 10, closingShown: 3, uses: 1,
      about: "The bargemen tie up below the mill and talk for anyone who brings ale. What lives in the reeds above the weir is their favourite story.",
      gains: [{stat: "bargemen_tale"}],
      requires: [],
@@ -344,7 +345,7 @@ var activities = [
      about: "A gap in the hedge, a path through the nettles, and still water at the end of it. The mill is just below.",
      gains: [{stat: "know.found.millpond"}],
      requires: [{stat: "know.study.hedgerows", label: "The Hedgerows known 2 of 4", needed: walkKnobs.studyLevels[1]}]},
-    {id: "night", group: "Work", name: "Work the Night Market", glyph: "trade", months: 6, rank: "", each: "", path: "", fromAge: 13, finishBy: 18, uses: 2,
+    {id: "night", group: "Work", name: "Work the Night Market", glyph: "trade", months: 6, rank: "", each: "", path: "", fromAge: 13, fromMonths: 9, finishBy: 18, uses: 2,
      gains: [{stat: "guile"}, {stat: "coin", amount: 12}],
      requires: [{stat: "guile"}],
      after: [{uses: 2, effects: [{stat: "night_contacts"}], entry: "The night market knows his face"}]},
@@ -363,16 +364,32 @@ var activities = [
      requires: [],
      costs: [{stat: "coin", amount: 6}],
      bonus: [{stat: "town.collegium", path: ""}]},
-    // A boy's first blade is bought, not handed to him: the market sells one from his eighth
-    // year, once, and the practice with it comes into his training the day he holds it (below).
+    // A boy's first blade is bought, not handed to him: the market sells one from two months
+    // past his seventh birthday, once (the first step toward the Keep a boy of seven can take), and the practice with it comes into his training the day he holds it (below).
     // No age closes it: a man who never held one may still begin there. Where the yard has
     // stocked its racks nobody buys one: the yard lends it (`whileNot`)
-    {id: "buy.blade", group: "Market", name: "Buy a Wooden Blade", glyph: "swordsmanship", months: 0, rank: "", each: "AT THE MARKET", path: "", fromAge: 8, finishBy: anyAge, showFrom: 100, uses: 1,
+    {id: "buy.blade", group: "Market", name: "Buy a Wooden Blade", glyph: "swordsmanship", months: 0, rank: "", each: "AT THE MARKET", path: "", fromAge: 7, fromMonths: 2, finishBy: anyAge, showFrom: 100, uses: 1,
      place: "market", whileNot: "town.yard",
      about: "A blade of ash, blunt, and a hand too long for him. With it he can practice: the work comes into his training the day he holds one.",
      gains: [{stat: "wooden_blade"}],
      requires: [{stat: "town_known", label: "The town"}],
      costs: [{stat: "coin", amount: 8}]},
+    // Two small things a boy buys that each open one task: the work of a childhood comes a few
+    // at a time, and some of it is found at the market. A snare wire before the rabbits on the
+    // common (they close at eleven, so the wire is sold until there is time for them)...
+    {id: "buy.wire", group: "Market", name: "Buy a Snare Wire", glyph: "adventure", months: 0, rank: "", each: "AT THE MARKET", path: "", fromAge: 9, fromMonths: 8, finishBy: 10, finishMonths: 10, showFrom: 100, uses: 1,
+     place: "market",
+     about: "A coil of brass wire, enough for a few loops. With it he can learn to snare rabbits on the common: the work comes into his streets the day he holds it.",
+     gains: [{stat: "snare_wire"}],
+     requires: [{stat: "town_known", label: "The town"}],
+     costs: [{stat: "coin", amount: 2}]},
+    // ...and a primer of the herbal before the herbal itself
+    {id: "buy.primer", group: "Market", name: "Buy a Herbal Primer", glyph: "study", months: 0, rank: "", each: "AT THE MARKET", path: "", fromAge: 10, fromMonths: 6, finishBy: anyAge, showFrom: 100, uses: 1,
+     place: "market",
+     about: "A few pages of leaves and roots, copied badly and sold dear. With it, and his letters, he can learn the herbal: the work comes into his study the day he holds it.",
+     gains: [{stat: "herbal_primer"}],
+     requires: [{stat: "town_known", label: "The town"}],
+     costs: [{stat: "coin", amount: 4}]},
     {id: "buy.sword", group: "Market", name: "Buy a Sword", glyph: "swordsmanship", months: 0, rank: "", each: "AT THE MARKET", path: "", finishBy: anyAge, showFrom: 100, uses: 1,
      place: "market",
      gains: [{stat: "arms"}],
@@ -396,7 +413,7 @@ var activities = [
     // him which end to hold, and open a choice, the edge or the point (the group after this one).
     // It closes at no age of its own. Who has the basics already (the yard gives them too) has
     // the point of Arms and no more
-    {id: "blades", group: "Training", name: "Practice with the Wooden Blade", glyph: "swordsmanship", months: 2, rank: "", each: "OPENS THE EDGE OR THE POINT", path: "", fromAge: 8, uses: 1,
+    {id: "blades", group: "Training", name: "Practice with the Wooden Blade", glyph: "swordsmanship", months: 2, rank: "", each: "OPENS THE EDGE OR THE POINT", path: "", fromAge: 7, fromMonths: 2, uses: 1,
      about: "Two months of a post in the ground and a blade that stings his own shins. Once he has the basics there is an edge to learn, or a point: not both.",
      gains: [{stat: "arms"}, {stat: "blade_basics"}],
      requires: [{stat: "wooden_blade", label: "A wooden blade, or a yard that lends one", anyOf: ["wooden_blade", "town.yard"]}],
@@ -407,7 +424,7 @@ var activities = [
     // has the basics (`whileNot`). The enthusiasm is a thing he holds, in his ledger: his first
     // term at the yard takes it (a cost of the yard, while he holds any: its `bonus`), and gives
     // him the basics if he came without them
-    {id: "spectate", group: "Training", name: "Watch the Tourney at the Yard", glyph: "training", months: 1, rank: "", each: "OPENS THE YARD", path: "", fromAge: 9, uses: 1,
+    {id: "spectate", group: "Training", name: "Watch the Tourney at the Yard", glyph: "training", months: 1, rank: "", each: "OPENS THE YARD", path: "", fromAge: 9, fromMonths: 2, uses: 1,
      whileNot: "blade_basics",
      about: "A day of blunt steel and a month of talking about it. He comes away wanting nothing else: with that the sergeants let a boy train at the yard.",
      gains: [{stat: "yard_enthusiasm"}],
@@ -423,7 +440,7 @@ var activities = [
      unless: "oath",
      gains: [{stat: "arms"}, {stat: "str"}, {stat: "watch_known"}],
      requires: [{stat: "str", needed: 8}]},
-    {id: "edric", group: "Training", name: "Train under Sergeant Edric", glyph: "training", months: 12, rank: "", each: "", path: "", fromAge: 13, finishBy: 18, uses: 2,
+    {id: "edric", group: "Training", name: "Train under Sergeant Edric", glyph: "training", months: 12, rank: "", each: "", path: "", fromAge: 13, fromMonths: 3, finishBy: 18, uses: 2,
      gains: [{stat: "arms"}, {stat: "discipline"}, {stat: "str"}],
      requires: [{stat: "str", needed: 10}, {stat: "arms", needed: 2, eased: {flag: "watch_known", needed: 1}}],
      after: [{uses: 2, effects: [{stat: "edric_support"}], entry: "Sergeant Edric will speak for him at the Keep"}],
@@ -441,11 +458,11 @@ var activities = [
     // One or the other (`unless`), once he has the basics: each is a stat, a point of Arms and
     // something to do in a fight besides striking (expeditiontable.pg's `walkTechniques`). The
     // one he leaves is gone for this life
-    {id: "slashes", group: "The edge or the point", name: "Practice Slashes", glyph: "strength", months: 3, rank: "", each: "TEACHES THE SLASH", path: "", fromAge: 8, uses: 1, unless: "stabs",
+    {id: "slashes", group: "The edge or the point", name: "Practice Slashes", glyph: "strength", months: 3, rank: "", each: "TEACHES THE SLASH", path: "", fromAge: 7, fromMonths: 2, uses: 1, unless: "stabs",
      about: "The whole arm, and the shoulder behind it. In a fight, a Slash bites deeper than a strike and misses more.",
      gains: [{stat: "str"}, {stat: "arms"}, {stat: "slash_learned"}],
      requires: [{stat: "blade_basics", label: "The basics of the blade"}]},
-    {id: "stabs", group: "The edge or the point", name: "Practice Thrusts", glyph: "dexterity", months: 3, rank: "", each: "TEACHES THE THRUST", path: "", fromAge: 8, uses: 1, unless: "slashes",
+    {id: "stabs", group: "The edge or the point", name: "Practice Thrusts", glyph: "dexterity", months: 3, rank: "", each: "TEACHES THE THRUST", path: "", fromAge: 7, fromMonths: 2, uses: 1, unless: "slashes",
      about: "The feet first, then the point, straight. In a fight, a Thrust seldom misses and bites a little less than a strike.",
      gains: [{stat: "dex"}, {stat: "arms"}, {stat: "thrust_learned"}],
      requires: [{stat: "blade_basics", label: "The basics of the blade"}]},
@@ -455,51 +472,59 @@ var activities = [
      requires: [],
      after: [{uses: 3, gains: [{stat: "letters"}]}],
      bonus: [{stat: "town.chapel", months: 4}]},
-    {id: "chapel", group: "Study", name: "Serve at the Chapel", glyph: "study", months: 9, rank: "", each: "", path: "", fromAge: 9, finishBy: 15, uses: 2,
+    {id: "chapel", group: "Study", name: "Serve at the Chapel", glyph: "study", months: 9, rank: "", each: "", path: "", fromAge: 9, fromMonths: 6, finishBy: 15, uses: 2,
      gains: [{stat: "letters"}, {stat: "discipline"}],
      requires: [{stat: "letters"}]},
-    {id: "choir", group: "Study", name: "Choir of Saint Orun", glyph: "study", months: 12, rank: "", each: "", path: "", fromAge: 9, finishBy: 12, uses: 1,
+    {id: "choir", group: "Study", name: "Choir of Saint Orun", glyph: "study", months: 12, rank: "", each: "", path: "", fromAge: 9, fromMonths: 10, finishBy: 12, uses: 1,
      gains: [{stat: "letters"}, {stat: "discipline"}, {stat: "choir"}],
      requires: [{stat: "letters"}]},
-    {id: "chronicle", group: "Study", name: "Read the Old Chronicle", glyph: "study", months: 9, rank: "", each: "", path: "", fromAge: 10, finishBy: 16, uses: 2,
+    {id: "chronicle", group: "Study", name: "Read the Old Chronicle", glyph: "study", months: 9, rank: "", each: "", path: "", fromAge: 10, fromMonths: 4, finishBy: 16, uses: 2,
      gains: [{stat: "lore"}, {stat: "int", amount: 2}],
      requires: [{stat: "letters"}]},
-    {id: "copy", group: "Study", name: "Copy for Father Anselm", glyph: "quill", months: 9, rank: "", each: "", path: "", fromAge: 13, finishBy: 18, uses: 2,
+    {id: "copy", group: "Study", name: "Copy for Father Anselm", glyph: "quill", months: 9, rank: "", each: "", path: "", fromAge: 13, fromMonths: 6, finishBy: 18, uses: 2,
      gains: [{stat: "letters"}, {stat: "lore"}, {stat: "coin", amount: 8}],
      requires: [{stat: "letters", needed: 2}],
      after: [{uses: 2, effects: [{stat: "library_access"}], entry: "Father Anselm opens the chapel library to him"}]},
     // The Church or what it forbids: one or the other, and the first fork a later life is built
     // on. The keys are Father Anselm's trust, which the Collegium counts; the shelf is read by
     // who will go after Harrow. Whoever looted the flood is not given the keys
-    {id: "keys", group: "Study", name: "Take the Sacristan's Keys", glyph: "study", months: 3, rank: "", each: "", path: "", fromAge: 11, finishBy: 13, uses: 1, unless: ["shelf", "flood.salvage"],
+    {id: "keys", group: "Study", name: "Take the Sacristan's Keys", glyph: "study", months: 3, rank: "", each: "", path: "", fromAge: 11, fromMonths: 7, finishBy: 13, uses: 1, unless: ["shelf", "flood.salvage"],
      about: "The chapel at five in the morning, the candles, the offices said aloud to nobody. Father Anselm gives his keys to very few.",
      gains: [{stat: "discipline"}, {stat: "anselm_trust"}],
      requires: [{stat: "letters", needed: 2}]},
-    {id: "shelf", group: "Study", name: "Read the Forbidden Shelf", glyph: "magic", months: 3, rank: "", each: "", path: "", fromAge: 11, finishBy: 13, uses: 1, unless: "keys",
+    {id: "shelf", group: "Study", name: "Read the Forbidden Shelf", glyph: "magic", months: 3, rank: "", each: "", path: "", fromAge: 11, fromMonths: 7, finishBy: 13, uses: 1, unless: "keys",
      about: "The top shelf of the chapel library has a lock, and the lock has been broken for years. Nobody will thank him for what he reads there.",
      gains: [{stat: "lore"}, {stat: "forbidden_read"}],
      requires: [{stat: "letters", needed: 2}]},
     // The herbal: nothing for his stats, and a thing to do on every walk from then on (he brews
     // a remedy where he stands, expeditionlib.pg)
-    {id: "herbal", group: "Study", name: "Learn the Herbal", glyph: "study", months: 2, rank: "", each: "BREW ON A WALK", path: "", fromAge: 10, uses: 1,
+    {id: "herbal", group: "Study", name: "Learn the Herbal", glyph: "study", months: 2, rank: "", each: "BREW ON A WALK", path: "", fromAge: 10, fromMonths: 6, uses: 1,
      about: "Which leaf, which root, how long over the fire. On a walk where he can camp, two wortleaf become a remedy on the spot.",
      gains: [{stat: "herbal"}],
-     requires: [{stat: "letters"}]},
-    {id: "mara", group: "Study", name: "Lessons with Mara", glyph: "magic", months: 12, rank: "", each: "", path: "", fromAge: 15, finishBy: 17, uses: 1,
+     requires: [{stat: "letters"}, {stat: "herbal_primer", label: "A herbal primer, from the market"}]},
+    {id: "mara", group: "Study", name: "Lessons with Mara", glyph: "magic", months: 12, rank: "", each: "", path: "", fromAge: 15, fromMonths: 4, finishBy: 17, uses: 1,
      gains: [{stat: "lore", amount: 2}, {stat: "discipline"}, {stat: "mara_student"}],
      requires: [{stat: "lore"}, {stat: "letters"}]},
+
+    // The first step toward the Hidden Hand a boy of seven can take, as the blade is toward the
+    // Keep and his letters toward the Collegium: a month at the fair watching who lifts what. It
+    // brings a point of Stealth, and the Boys know him for it as well as for roaming the town
+    {id: "cutpurse", group: "The streets", name: "Watch the Cutpurses at the Fair", glyph: "guild", months: 1, rank: "", each: "A LEAD", path: "", fromAge: 7, fromMonths: 6, finishBy: 10, uses: 1,
+     about: "A month at the autumn fair, watching the quick hands work the crowd. He learns to stand where nobody looks, and the Bellmoor Boys learn his face.",
+     gains: [{stat: "stealth"}, {stat: "cutpurses_seen"}],
+     requires: []},
 
     {id: "roam", group: "The streets", name: "Roam Bellmoor", glyph: "adventure", months: 6, rank: "", each: "", path: "", fromAge: 8, finishBy: 14, uses: 2,
      gains: [{stat: "dex"}, {stat: "lore"}],
      requires: []},
-    {id: "hunters", group: "The streets", name: "Follow the Hunters", glyph: "adventure", months: 9, rank: "", each: "", path: "", fromAge: 10, finishBy: 15, uses: 2,
+    {id: "hunters", group: "The streets", name: "Follow the Hunters", glyph: "adventure", months: 9, rank: "", each: "", path: "", fromAge: 10, fromMonths: 2, finishBy: 15, uses: 2,
      gains: [{stat: "stealth"}, {stat: "vit", amount: 5}, {stat: "dex"}],
      requires: [{stat: "dex", needed: 8, eased: {flag: "snare_set", needed: 7}}]},
-    {id: "boys", group: "The streets", name: "Run with the Bellmoor Boys", glyph: "town", months: 12, rank: "", each: "", path: "", fromAge: 10, finishBy: 14, uses: 1,
+    {id: "boys", group: "The streets", name: "Run with the Bellmoor Boys", glyph: "town", months: 12, rank: "", each: "", path: "", fromAge: 10, fromMonths: 8, finishBy: 14, uses: 1,
      gains: [{stat: "stealth"}, {stat: "guile"}, {stat: "street_known"}],
-     requires: [{stat: "dex", needed: 8}]},
+     requires: [{stat: "dex", needed: 8}, {stat: "done.roam", label: "Roamed Bellmoor, or watched its cutpurses", anyOf: ["done.roam", "cutpurses_seen"]}]},
     // For who means to live by quick hands: the roofs make them quicker, and the town talks of it
-    {id: "rooftops", group: "The streets", name: "Race the Rooftops", glyph: "dexterity", months: 6, rank: "", each: "", path: "", fromAge: 11, finishBy: 18, uses: 3,
+    {id: "rooftops", group: "The streets", name: "Race the Rooftops", glyph: "dexterity", months: 6, rank: "", each: "", path: "", fromAge: 11, fromMonths: 10, finishBy: 18, uses: 3,
      about: "From the tanners' sheds to the chapel roof and back, against whoever dares. The town watches from below, and remembers who won.",
      gains: [{stat: "dex"}, {stat: "renown"}],
      requires: [{stat: "dex", needed: 7}]},
@@ -511,8 +536,8 @@ var activities = [
     {id: "snare", group: "The streets", name: "Snare Rabbits on the Common", glyph: "adventure", months: 2, rank: "", each: "SNARES ON A WALK", path: "", fromAge: 9, finishBy: 11, uses: 1,
      about: "A loop of wire, a bent sapling, and two months of learning where rabbits will not go. On a walk where he can camp, a snare is a day for a ration.",
      gains: [{stat: "dex"}, {stat: "snare_set"}],
-     requires: [{stat: "dex", needed: 6}]},
-    {id: "tunnel", group: "The streets", name: "Find the Tunnel under the Wall", glyph: "gate", months: 1, rank: "", each: "A LEAD", path: "", fromAge: 10, uses: 1,
+     requires: [{stat: "dex", needed: 6}, {stat: "snare_wire", label: "A snare wire, from the market"}]},
+    {id: "tunnel", group: "The streets", name: "Find the Tunnel under the Wall", glyph: "gate", months: 1, rank: "", each: "A LEAD", path: "", fromAge: 10, fromMonths: 10, uses: 1,
      about: "Every boy in Bellmoor has heard there is one. He has walked the town twice over and knows which cellar it must be.",
      gains: [{stat: "tunnel_found"}],
      requires: [{stat: "done.roam", label: "Roamed Bellmoor, twice", needed: 2}]},
@@ -612,7 +637,8 @@ var activities = [
     // The works of a class come a few at a time and in an order (`follows`): its bread the day
     // he is of it, with the great step of his years locked ahead of him, and each of the others
     // once the one before it is behind him. The Keep: its service, then the patrols, then the
-    // tourney, and from the tourney the Master-at-Arms, the merchant road and the duel
+    // tourney, and from the tourney the Master-at-Arms and the duel, the merchant road after the
+    // duel: no work opens more than two
 
     {id: "serve", group: "The Keep", name: "Serve at the Keep", glyph: "swordsmanship", months: 12, rank: "", each: "MEALS PROVIDED", path: "warrior", board: true, fromAge: 18,
      gains: [{stat: "arms"}, {stat: "discipline"}, {stat: "coin", amount: 12}],
@@ -627,7 +653,7 @@ var activities = [
      gains: [{stat: "renown"}, {stat: "coin", amount: 20}],
      requires: [{stat: "arms", needed: 5}],
      bonus: [{stat: "arms", needed: 7, gains: [{stat: "renown", amount: 2}, {stat: "coin", amount: 20}, {stat: "tourney_victor"}]}]},
-    {id: "escort", group: "The Keep", name: "Escort the Merchant Road", glyph: "adventure", months: 12, rank: "", each: "", path: "warrior", follows: "tourney", fromAge: 20, finishBy: 27, uses: 2,
+    {id: "escort", group: "The Keep", name: "Escort the Merchant Road", glyph: "adventure", months: 12, rank: "", each: "", path: "warrior", follows: "duel", fromAge: 20, finishBy: 27, uses: 2,
      gains: [{stat: "coin", amount: 35}, {stat: "renown"}],
      requires: [{stat: "arms", needed: 5}, {stat: "discipline", needed: 3}]},
     {id: "master", group: "The Keep", name: "Train with the Master-at-Arms", glyph: "training", months: 18, rank: "", each: "MEALS PROVIDED", path: "warrior", follows: "tourney", board: true, fromAge: 19, uses: 1,
@@ -750,9 +776,9 @@ var activities = [
      requires: [{stat: "lore", needed: 6}, {stat: "arcana", needed: 3}, {stat: "discipline", needed: 3}],
      costs: [{stat: "coin", amount: 10}]},
 
-    // The Hidden Hand: its errands, then the informants, the hidden ways and what kind of thief
-    // he is once he has run one; Old Vey after the informants; the gate and the clerk after
-    // the hidden ways
+    // The Hidden Hand: its errands, then the informants and the hidden ways; Old Vey and what kind
+    // of thief he is after the informants; the gate and the clerk after the hidden ways: no work
+    // opens more than two (and a choice)
     {id: "run", group: "The Hidden Hand", name: "Run for the Hand", glyph: "work", months: 6, rank: "", each: "", path: "thief", fromAge: 18,
      gains: [{stat: "favors"}, {stat: "coin", amount: 18}],
      requires: [],
@@ -806,12 +832,12 @@ var activities = [
     // mark makes every favor one more and silence free; his own name pays better and earns no
     // favor but the informants'. Then a chain that steals from the Collegium, two jobs that
     // compete for the same years, and Old Vey's last summons
-    {id: "mark", group: "The Hidden Hand", name: "Take the Hand's Mark", glyph: "guild", months: 3, rank: "", each: "", path: "thief", follows: "run", fromAge: 19, finishBy: 21, uses: 1, unless: "ownname",
+    {id: "mark", group: "The Hidden Hand", name: "Take the Hand's Mark", glyph: "guild", months: 3, rank: "", each: "", path: "thief", follows: "network", fromAge: 19, finishBy: 21, uses: 1, unless: "ownname",
      about: "A small scar where a sleeve covers it. From then on the Hand pays its debts to him first: every favor is one more, and silence costs him nothing.",
      gains: [{stat: "guile"}, {stat: "hand_marked"}],
      requires: [{stat: "favors", needed: 2}],
      costs: [{stat: "favors", amount: 2}]},
-    {id: "ownname", group: "The Hidden Hand", name: "Keep Your Own Name", glyph: "adventure", months: 3, rank: "", each: "", path: "thief", follows: "run", fromAge: 19, finishBy: 21, uses: 1, unless: "mark",
+    {id: "ownname", group: "The Hidden Hand", name: "Keep Your Own Name", glyph: "adventure", months: 3, rank: "", each: "", path: "thief", follows: "network", fromAge: 19, finishBy: 21, uses: 1, unless: "mark",
      about: "No mark, no master, and a larger share of every job. The Hand owes nothing to a man who is not its own: only his informants still do.",
      gains: [{stat: "stealth"}, {stat: "freelance"}],
      requires: [{stat: "guile", needed: 3}]},
@@ -1041,11 +1067,11 @@ var activities = [
      gains: [{stat: "coin", amount: 80}, {stat: "kills"}],
      requires: [{stat: "assassin"}, {stat: "stealth", needed: 7}, {stat: "marks_studied", label: "A mark studied"}],
      costs: [{stat: "favors", amount: 1}]},
-    {id: "kill.captain", group: "Assassin", name: "Kill the Captain", glyph: "skull", months: 9, rank: "", each: "", path: "thief", fromAge: 32, uses: 1,
+    {id: "kill.captain", group: "Assassin", name: "Kill the Captain", glyph: "skull", months: 9, rank: "", each: "", path: "thief", fromAge: 32, fromMonths: 4, uses: 1,
      gains: [{stat: "coin", amount: 80}, {stat: "kills"}],
      requires: [{stat: "assassin"}, {stat: "stealth", needed: 7}, {stat: "marks_studied", label: "Marks studied", needed: 2}],
      costs: [{stat: "favors", amount: 1}]},
-    {id: "kill.magister", group: "Assassin", name: "Kill the Magister", glyph: "skull", months: 9, rank: "", each: "", path: "thief", fromAge: 32, uses: 1,
+    {id: "kill.magister", group: "Assassin", name: "Kill the Magister", glyph: "skull", months: 9, rank: "", each: "", path: "thief", fromAge: 32, fromMonths: 8, uses: 1,
      gains: [{stat: "coin", amount: 80}, {stat: "kills"}],
      requires: [{stat: "assassin"}, {stat: "stealth", needed: 7}, {stat: "marks_studied", label: "Marks studied", needed: 3}],
      costs: [{stat: "favors", amount: 1}]},
@@ -1080,10 +1106,10 @@ var activities = [
      gains: [{stat: "coin", amount: 2}],
      requires: [],
      bonus: [{stat: "town.inn", fromAge: 26}]},
-    {id: "garden", group: "Old age", name: "Tend a Garden", glyph: "work", months: 3, rank: "", each: "", path: "", fromAge: lastAge - 1, finishBy: anyAge,
+    {id: "garden", group: "Old age", name: "Tend a Garden", glyph: "work", months: 3, rank: "", each: "", path: "", fromAge: lastAge - 1, fromMonths: 4, finishBy: anyAge,
      gains: [{stat: "rations", amount: 4}],
      requires: []},
-    {id: "teach", group: "Old age", name: "Teach the Young", glyph: "academy", months: 4, rank: "", each: "", path: "", fromAge: lastAge - 1, finishBy: anyAge,
+    {id: "teach", group: "Old age", name: "Teach the Young", glyph: "academy", months: 4, rank: "", each: "", path: "", fromAge: lastAge - 1, fromMonths: 8, finishBy: anyAge,
      gains: [{stat: "coin", amount: 6}],
      requires: [],
      bonus: [{stat: "town.chapel", needed: 3, more: [{stat: "coin", amount: 4}]}]}
@@ -1779,7 +1805,15 @@ for (var i = 0; i < len(activities); i++)
 
             for (var f = 0; f < len(req.anyOf); f++)
             {
-                if (statOf(character, req.anyOf[f]) > 0)
+                // A stat or flag he holds, or "done.<activity id>": that activity done in this life
+                var held = statOf(character, req.anyOf[f])
+
+                if (startsWith(req.anyOf[f], "done."))
+                {
+                    held = lookup(done, substring(req.anyOf[f], 5, strlen(req.anyOf[f])), 0)
+                }
+
+                if (held > 0)
                 {
                     req.current = 1
                 }

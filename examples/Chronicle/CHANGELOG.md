@@ -25,8 +25,8 @@ the `CHANGELOG.md` at the root of the repository.
   themselves. It is yours, not his: a new life keeps it.
 - **A keepsake.** *Carry Books for Father Anselm* pays in coin and in a small tome he tells you
   to keep. It is in your Inventory. Nothing asks for it yet.
-- **The wooden blade is bought, then learned, then chosen.** From your eighth year the market
-  sells a wooden blade, once, for 8 coin. Holding one brings *Practice with the Wooden Blade*
+- **The wooden blade is bought, then learned, then chosen.** From two months past seven the
+  market sells a wooden blade, once, for 8 coin. Holding one brings *Practice with the Wooden Blade*
   into your training: two months, a point of Arms and the basics of the blade. Then **one of
   two**, three months each: *Practice Slashes* (Strength and Arms) or *Practice Thrusts*
   (Dexterity and Arms); the one you leave is gone. No age closes any of it.
@@ -129,13 +129,13 @@ the `CHANGELOG.md` at the root of the repository.
 - **The work of a class comes in an order.** The day you are of a class you see its first
   work and the great step of your years, locked; each of the others comes once the one before
   is behind you (done, or closed to you: nothing waits on what you missed). The Keep: service,
-  the patrols, the tourney, then the Master-at-Arms, the merchant road and the duel. The
-  Collegium: study, then the workings and the Black Treatise, then the night offices and
-  Magister Orin, the Harrow fragments after the treatise, the lecture and the apothecary
-  after the fragments. The Hidden Hand: its errands, then the informants, the hidden ways and
-  the mark or your own name, Old Vey after the informants, the gate and the clerk after the
-  hidden ways. The Greenwood: the outlaws once you have poached, the road once you have
-  trained with them.
+  the patrols, the tourney, then the Master-at-Arms and the duel, the merchant road after the
+  duel. The Collegium: study, then the workings and the Black Treatise, then the night offices
+  and Magister Orin, the Harrow fragments after the treatise, the lecture and the apothecary
+  after the fragments. The Hidden Hand: its errands, then the informants and the hidden ways,
+  Old Vey and the mark or your own name after the informants, the gate and the clerk after the
+  hidden ways. The Greenwood: the outlaws once you have poached, the road once you have trained
+  with them. No work opens more than two others.
 - **Your second calling shows from the day you take a class**, where the Inn stands: its two
   ways, locked, with what they ask, as a child sees the classes from seven.
 - **The work you never took as a child is cleared away.** *Help at the Mill*, *Run Messages*
@@ -143,8 +143,22 @@ the `CHANGELOG.md` at the root of the repository.
   Market* at eleven, *Work the Smithy* at thirteen. What you did once stays yours, and *Carry
   for the Carters* is always there. *Watch the Master Temper a Blade* closes at twelve and
   nine months, when the tempering it leads to can no longer follow it.
-- **The town's work comes all at once at seven** in a first life too, counted in one toast
-  ("New: 9 tasks") where each used to be named.
+- **A child's work comes over the year, not all on a birthday.** At seven the carters, the
+  mill and your letters, with the three classes ahead of you; *Run Messages* a few months later,
+  *Help in the Kitchen* later still. At nine the smithy, then the tourney at the yard, the
+  bargemen's tale, the chapel and the choir, a couple of months apart; at ten the Watch, then the
+  hunters, the Old Chronicle, the Boys and the tunnel; the same at eleven, thirteen and fifteen,
+  and in old age. Each still closes when it did. In the Assassin's calling the three contracts
+  come four months apart.
+- **Two things to buy at the market that each open a task.** A *snare wire* (2 coin, from nine
+  and eight months) before *Snare Rabbits on the Common*, and a *herbal primer* (4 coin, from ten
+  and a half) before *Learn the Herbal*. Both are kept in your Inventory. *Run with the Bellmoor
+  Boys* now waits until you have roamed the town once, or watched its cutpurses.
+- **A first step toward each class at seven.** The day you are seven the three classes stand
+  locked ahead of you, and within that year each has a short task that gives what it asks: the
+  wooden blade for the Keep (its practice gives Arms), your letters for the Collegium, and
+  *Watch the Cutpurses at the Fair* for the Hidden Hand, a month from seven and a half, for a
+  point of Stealth and a way to the Boys.
 - **The places to walk to are tiles**, like the places of the town: its mark and its name, a
   seal for each level you know it to, and a line with what kind of walk it is and what it
   costs, or what it asks. A closed place can be chosen too: the button says what it asks.

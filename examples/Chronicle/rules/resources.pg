@@ -123,6 +123,11 @@ var holdings = [
     // And what he bought as one: the blade his practice asks for
     {id: "wooden_blade", group: "keepsakes", groupLabel: "KEEPSAKES", glyph: "swordsmanship", name: "A wooden blade", tone: 0, title: true,
      about: "A blade of ash from the market, blunt, and a hand too long for him. His practice with it is among his training."},
+    // And the two small things that each open a task of his streets and of his study
+    {id: "snare_wire", group: "keepsakes", groupLabel: "KEEPSAKES", glyph: "adventure", name: "A snare wire", tone: 0, title: true,
+     about: "A coil of brass wire from the market. Snaring rabbits on the common is among his streets while he is young enough for it."},
+    {id: "herbal_primer", group: "keepsakes", groupLabel: "KEEPSAKES", glyph: "study", name: "A herbal primer", tone: 0, title: true,
+     about: "A few pages of leaves and roots from the market. Learning the herbal is among his study."},
     // The market hall (towntable.pg, the market's second level) sends a ration every three
     // months: a help, not his bread. One a month was all a month eats, and rations no longer counted
     {id: "town.market", group: "town", groupLabel: "TOWN", glyph: "trade", name: "the market hall", tone: 0, ledger: false,
@@ -138,7 +143,7 @@ var ties = ["watch_known", "street_known", "choir", "edric_support", "library_ac
             "guild_clerk", "guild_ledgers", "guild_enemy", "heat_reduced", "great_job_planned", "crew_ready",
             "band", "hedges_known", "bow_learned", "yard_enthusiasm", "yard_breathing", "slash_learned", "thrust_learned",
             "forge_seen", "smith_apprentice", "roads_known", "anselm_trust", "forbidden_read", "herbal", "snare_set",
-            "tunnel_found", "smuggler_runner", "boys_sworn", "mill_saved", "flood_hero", "flood_looted",
+            "cutpurses_seen", "tunnel_found", "smuggler_runner", "boys_sworn", "mill_saved", "flood_hero", "flood_looted",
             "levy_served", "levy_paid", "deserter", "bargemen_tale",
             "bandit_trail", "band_broken", "captain_favour", "ordained", "demon_spoken", "engines_seen",
             "other_account", "glyphs_read", "mill_engine", "magister", "hand_marked", "freelance",

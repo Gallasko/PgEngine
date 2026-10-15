@@ -546,12 +546,12 @@ namespace pg
             EXPECT_FALSE(flag(activityAt(f.rules, 9.0f, weak, "smithy").fields, "listed"));
 
             // The chapel comes with his letters
-            EXPECT_FALSE(flag(activityAt(f.rules, 9.0f, boy(), "chapel").fields, "listed"));
+            EXPECT_FALSE(flag(activityAt(f.rules, 9.5f, boy(), "chapel").fields, "listed"));
 
             ElementMap lettered = boy();
             lettered["letters"] = ElementType{1};
 
-            EXPECT_TRUE(flag(activityAt(f.rules, 9.0f, lettered, "chapel").fields, "listed"));
+            EXPECT_TRUE(flag(activityAt(f.rules, 9.5f, lettered, "chapel").fields, "listed"));
 
             // A strong boy at 16 sees the Keep, though he cannot pay its coin yet
             const ElementMap squire = {{"str", ElementType{12}}, {"arms", ElementType{3}}, {"discipline", ElementType{2}}, {"int", ElementType{6}}};
@@ -586,14 +586,14 @@ namespace pg
 
             ElementMap boy13 = {{"str", ElementType{10}}, {"arms", ElementType{1}}};
 
-            RuleActivity edric = activityAt(f.rules, 13.0f, boy13, "edric");
+            RuleActivity edric = activityAt(f.rules, 13.25f, boy13, "edric");
 
             ASSERT_EQ(edric.requires.size(), 2u);
             EXPECT_EQ(intOf(edric.requires[1], "needed"), 2);
             EXPECT_TRUE(flag(edric.fields, "locked"));
 
             boy13["watch_known"] = ElementType{1};
-            edric = activityAt(f.rules, 13.0f, boy13, "edric");
+            edric = activityAt(f.rules, 13.25f, boy13, "edric");
 
             EXPECT_EQ(intOf(edric.requires[1], "needed"), 1);
             EXPECT_FALSE(flag(edric.fields, "locked"));
@@ -1907,7 +1907,8 @@ namespace pg
             EXPECT_TRUE(flag(buy.fields, "listed"));
             EXPECT_EQ(intOf(buy.fields, "fromAge"), 6);
 
-            // Seven: the town's work, all of it at once. The year has taught him the page
+            // Seven: the town's work, the first of it (the rest comes over the year). The year has
+            // taught him the page
             f.rules.done["helping"] = ElementType{1};
 
             ElementMap seven = boy();
@@ -1915,7 +1916,7 @@ namespace pg
 
             // (the first walk outside the town is among them, right under his work)
             // (and, the town being known, what its market sells and the works that raise its places)
-            EXPECT_EQ(listed(7.0f, seven), (Ids{"carters", "mill", "messages", "kitchen", "walk.hedgerows", "buy.rations", "letters", "keep", "collegium", "hand", "raise.market.1", "raise.mill.1"}));
+            EXPECT_EQ(listed(7.0f, seven), (Ids{"carters", "mill", "walk.hedgerows", "buy.rations", "letters", "keep", "collegium", "hand", "raise.market.1", "raise.mill.1"}));
         }
 
         // ----------------------------------------------------------------------------------------
@@ -1992,7 +1993,7 @@ namespace pg
             for (const char* id : {"glean", "flour", "wheel", "scribe", "tome", "knots", "sacks", "sing", "harvest", "helping"})
                 EXPECT_TRUE(std::find(seven.begin(), seven.end(), id) == seven.end()) << id;
 
-            EXPECT_EQ(seven, (Ids{"tomarket", "carters", "mill", "messages", "kitchen", "walk.hedgerows", "letters", "keep", "collegium", "hand"}));
+            EXPECT_EQ(seven, (Ids{"tomarket", "carters", "mill", "walk.hedgerows", "letters", "keep", "collegium", "hand"}));
         }
 
         // ----------------------------------------------------------------------------------------
@@ -2086,7 +2087,8 @@ namespace pg
             MockLogger logger;
             RulesFixture f;
 
-            RuleActivity kitchen = activityAt(f.rules, 7.0f, boy(), "kitchen");
+            // The kitchen takes boys from seven and eight months
+            RuleActivity kitchen = activityAt(f.rules, 7.75f, boy(), "kitchen");
 
             EXPECT_TRUE(flag(kitchen.fields, "listed"));
             EXPECT_FALSE(flag(kitchen.fields, "locked"));
@@ -2105,14 +2107,14 @@ namespace pg
             ElementMap full = boy();
             full["rations"] = ElementType{60};
 
-            kitchen = activityAt(f.rules, 7.0f, full, "kitchen");
+            kitchen = activityAt(f.rules, 7.75f, full, "kitchen");
 
             EXPECT_TRUE(flag(kitchen.fields, "locked"));
             EXPECT_EQ(intOf(kitchen.requires[0], "current"), 0);
 
             // The term brings them
             RuleForecast forecast;
-            ASSERT_TRUE(f.rules.forecast(7.0f, boy(), "kitchen", 0, forecast)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.forecast(7.75f, boy(), "kitchen", 0, forecast)) << firstError(f.rules);
             EXPECT_EQ(intOf(forecast.atTerm, "rations"), 18);
         }
 
@@ -2607,9 +2609,9 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
-        // The wooden blade is three short steps: bought at the market in his eighth year, then two
-        // months of practice that has no row before he holds one, then the edge or the point, one
-        // of the two. A yard that has its racks lends the blade, and none is sold.
+        // The wooden blade is three short steps: bought at the market from seven and two months,
+        // then two months of practice that has no row before he holds one, then the edge or the
+        // point, one of the two. A yard that has its racks lends the blade, and none is sold.
         TEST(rules_test, the_wooden_blade_is_bought_practiced_then_chosen)
         {
             MockLogger logger;
@@ -2622,8 +2624,10 @@ namespace pg
             ElementMap character = townsman();
             character["coin"] = ElementType{8};
 
-            // Too young for the stall to show it; at eight it is there, and nothing of the rest
-            EXPECT_FALSE(listed(7.5f, character, "buy.blade"));
+            // Too young for the stall to show it; two months past seven it is there, and nothing of
+            // the rest
+            EXPECT_FALSE(listed(7.0f, character, "buy.blade"));
+            EXPECT_TRUE(listed(7.25f, character, "buy.blade"));
 
             RuleActivity buy = activityAt(f.rules, 8.0f, character, "buy.blade");
 
@@ -2802,13 +2806,13 @@ namespace pg
             EXPECT_FALSE(listed(11.0f + month, saved, "flood.rescue"));
             EXPECT_FALSE(listed(11.0f + month, saved, "flood.salvage"));
             EXPECT_EQ(intOf(activityAt(f.rules, 11.5f, saved, "raise.mill.1").costs[0], "amount"), 10);
-            EXPECT_TRUE(listed(11.5f, saved, "keys"));
+            EXPECT_TRUE(listed(11.75f, saved, "keys"));
 
             // The looting: the keys are not his, the forbidden shelf is
             f.rules.done = {{"flood.salvage", ElementType{1}}};
 
-            EXPECT_FALSE(listed(11.5f, character, "keys"));
-            EXPECT_TRUE(listed(11.5f, character, "shelf"));
+            EXPECT_FALSE(listed(11.75f, character, "keys"));
+            EXPECT_TRUE(listed(11.75f, character, "shelf"));
         }
 
         // ----------------------------------------------------------------------------------------
@@ -2832,18 +2836,18 @@ namespace pg
 
             // Nothing leads to them yet
             EXPECT_FALSE(listed(10.0f, character, "forge"));
-            EXPECT_FALSE(listed(10.0f, character, "tunnel"));
+            EXPECT_FALSE(listed(11.0f, character, "tunnel"));
             EXPECT_FALSE(listed(10.5f, character, "temper"));
             EXPECT_TRUE(listed(10.5f, character, "drive"));
 
             f.rules.done = {{"smithy", ElementType{1}}, {"roam", ElementType{1}}};
 
             EXPECT_TRUE(listed(10.0f, character, "forge"));
-            EXPECT_FALSE(listed(10.0f, character, "tunnel"));
+            EXPECT_FALSE(listed(11.0f, character, "tunnel"));
 
             f.rules.done = {{"smithy", ElementType{1}}, {"roam", ElementType{2}}};
 
-            EXPECT_TRUE(listed(10.0f, character, "tunnel"));
+            EXPECT_TRUE(listed(11.0f, character, "tunnel"));
 
             // The forge seen: the tempering, or the carters' reins
             RuleForecast forecast;
@@ -3013,6 +3017,9 @@ namespace pg
             ElementMap stood = character;
             stood["stood_flood"] = ElementType{1};
             stood["stood_by"] = ElementType{1};
+
+            // (the Boys are for who has roamed the town)
+            f.rules.done = {{"roam", ElementType{1}}};
 
             for (const char* id : {"watch", "keys", "boys"})
             {
@@ -3201,12 +3208,12 @@ namespace pg
             using Ids = std::vector<std::string>;
 
             // The Keep: its service, then the patrols, then the tourney, and from the tourney the
-            // Master-at-Arms and the merchant road
+            // Master-at-Arms and the duel; the merchant road after the duel
             ElementMap knight = sworn();
             knight["discipline"] = ElementType{3};
             knight["renown"] = ElementType{2};
 
-            const auto keep = {"serve", "patrol", "tourney", "master", "escort"};
+            const auto keep = {"serve", "patrol", "tourney", "master", "duel", "escort"};
 
             f.rules.done = {{"keep", ElementType{1}}};
             EXPECT_EQ(shown(20.0f, knight, keep), (Ids{"serve"}));
@@ -3218,12 +3225,16 @@ namespace pg
             EXPECT_EQ(shown(20.0f, knight, keep), (Ids{"serve", "patrol", "tourney"}));
 
             f.rules.done["tourney"] = ElementType{1};
-            EXPECT_EQ(shown(20.0f, knight, keep), (Ids{"serve", "patrol", "master", "escort"}));
+            EXPECT_EQ(shown(20.0f, knight, keep), (Ids{"serve", "patrol", "master"}));
+            EXPECT_EQ(shown(22.0f, knight, keep), (Ids{"serve", "patrol", "master", "duel"}));
+
+            f.rules.done["duel"] = ElementType{1};
+            EXPECT_EQ(shown(22.0f, knight, keep), (Ids{"serve", "patrol", "master", "escort"}));
 
             // The tourney he never fought closes at twenty-three: what came after it does not wait
             f.rules.done = {{"keep", ElementType{1}}, {"serve", ElementType{1}}, {"patrol", ElementType{1}}};
             EXPECT_EQ(shown(22.5f, knight, keep), (Ids{"serve", "patrol", "tourney"}));
-            EXPECT_EQ(shown(22.5f + 1.0f / 12.0f, knight, keep), (Ids{"serve", "patrol", "master", "escort"}));
+            EXPECT_EQ(shown(22.5f + 1.0f / 12.0f, knight, keep), (Ids{"serve", "patrol", "master", "duel"}));
 
             // The great step of his years shows from the first day, locked
             f.rules.done = {{"keep", ElementType{1}}};
@@ -3255,7 +3266,8 @@ namespace pg
             f.rules.done["fragments"] = ElementType{1};
             EXPECT_EQ(shown(21.0f, scholar, collegium), (Ids{"study", "workings", "vigil", "orin", "lecture"}));
 
-            // The Hidden Hand: its errands, then the informants and the hidden ways, then Old Vey
+            // The Hidden Hand: its errands, then the informants and the hidden ways, then Old Vey and
+            // the mark, then the gate
             ElementMap thief = boy();
             thief["hidden_hand"] = ElementType{1};
             thief["favors"] = ElementType{2};
@@ -3268,7 +3280,7 @@ namespace pg
             EXPECT_EQ(shown(19.0f, thief, hand), (Ids{"run"}));
 
             f.rules.done["run"] = ElementType{1};
-            EXPECT_EQ(shown(19.0f, thief, hand), (Ids{"run", "network", "drill", "mark"}));
+            EXPECT_EQ(shown(19.0f, thief, hand), (Ids{"run", "network", "drill"}));
 
             f.rules.done["network"] = ElementType{1};
             EXPECT_EQ(shown(19.0f, thief, hand), (Ids{"run", "network", "drill", "mark", "vey"}));
@@ -3373,7 +3385,7 @@ namespace pg
 
             // No Inn: old at thirty, the old man's works at twenty-nine, and no calling
             EXPECT_EQ(ages().back(), "old 30");
-            EXPECT_TRUE(listed(29.0f, veteran, "garden"));
+            EXPECT_TRUE(listed(29.5f, veteran, "garden"));
             EXPECT_FALSE(listed(29.0f, veteran, "castellan"));
             EXPECT_FALSE(listed(29.0f, veteran, "cross"));
 
@@ -3387,8 +3399,8 @@ namespace pg
             EXPECT_EQ(long_[long_.size() - 2], "calling 30");
             EXPECT_EQ(long_.back(), "old 50");
 
-            EXPECT_FALSE(listed(29.0f, veteran, "garden"));
-            EXPECT_TRUE(listed(49.0f, veteran, "garden"));
+            EXPECT_FALSE(listed(29.5f, veteran, "garden"));
+            EXPECT_TRUE(listed(49.5f, veteran, "garden"));
 
             // What no age of its own closes is his past thirty
             EXPECT_TRUE(listed(35.0f, veteran, "serve"));
@@ -3528,15 +3540,15 @@ namespace pg
 
             // Strong enough and of age, and no row: he has never been near the yard
             EXPECT_FALSE(listed(8.5f, character, "spectate"));
-            EXPECT_TRUE(listed(9.0f, character, "spectate"));
-            EXPECT_FALSE(flag(activityAt(f.rules, 9.0f, character, "spectate").fields, "locked"));
-            EXPECT_EQ(intOf(activityAt(f.rules, 9.0f, character, "spectate").fields, "months"), 1);
+            EXPECT_TRUE(listed(9.25f, character, "spectate"));
+            EXPECT_FALSE(flag(activityAt(f.rules, 9.25f, character, "spectate").fields, "locked"));
+            EXPECT_EQ(intOf(activityAt(f.rules, 9.25f, character, "spectate").fields, "months"), 1);
             EXPECT_FALSE(listed(10.0f, character, "yard"));
             EXPECT_TRUE(flag(activityAt(f.rules, 10.0f, character, "yard").fields, "locked"));
 
             // The tourney watched: an enthusiasm he holds, and the yard has its row at nine, his at ten
             RuleForecast forecast;
-            ASSERT_TRUE(f.rules.forecast(9.0f, character, "spectate", 0, forecast)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.forecast(9.25f, character, "spectate", 0, forecast)) << firstError(f.rules);
             EXPECT_EQ(intOf(forecast.atTerm, "yard_enthusiasm"), 1);
 
             ElementMap watched = character;

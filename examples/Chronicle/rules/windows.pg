@@ -65,17 +65,20 @@ for (var i = 0; i < len(windowTable); i++)
         var attempts = 0
         var last = a.finishBy * 12
 
+        // It opens the month its row does: some birthdays' work comes a few months into the year
+        var opens = a.fromAge * 12 + lookup(a, "fromMonths", 0)
+
         if (a.barred != "" and not a.spent)
         {
             // Shut by an event he stood by, before its age or in it: the door says which
             state = "closed"
             note = a.barred + "."
         }
-        else if (lived < a.fromAge * 12)
+        else if (lived < opens)
         {
             state = "upcoming"
             note = w.asks
-            attempts = monthsToAttempts(last - a.fromAge * 12, a.months)
+            attempts = monthsToAttempts(last - opens, a.months)
         }
         else if (a.spent)
         {
