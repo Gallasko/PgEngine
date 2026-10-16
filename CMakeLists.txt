@@ -212,6 +212,7 @@ set(MINIMAL_ENGINESOURCE
     src/Engine/Compiler/ast/pass/static_loop_evaluation.cpp
     src/Engine/Compiler/ast/pass/entity_loop_lowering.cpp
     src/Engine/Compiler/ast/pass/ast_survey.cpp
+    src/Engine/Compiler/ast/pass/function_inlining.cpp
     src/Engine/Compiler/componentattach.cpp
     src/Engine/Compiler/componentproxy.cpp
     src/Engine/Compiler/ecsserialization.cpp
@@ -301,6 +302,7 @@ set(ENGINESOURCE
     src/Engine/Compiler/ast/pass/static_loop_evaluation.cpp
     src/Engine/Compiler/ast/pass/entity_loop_lowering.cpp
     src/Engine/Compiler/ast/pass/ast_survey.cpp
+    src/Engine/Compiler/ast/pass/function_inlining.cpp
     src/Engine/ECS/commanddispatcher.cpp
     src/Engine/ECS/componentregistry.cpp
     src/Engine/ECS/entity.cpp

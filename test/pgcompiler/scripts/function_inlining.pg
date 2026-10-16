@@ -1,0 +1,141 @@
+// Calls to functions that are one `return <expression>`, folded by the AST inlining pass under O3:
+// the results must be those of the calls
+
+fun twice(x)
+{
+    return x * 2
+}
+
+fun square(v)
+{
+    return v * v
+}
+
+fun quad(x)
+{
+    return twice(twice(x))
+}
+
+var k = 100
+
+fun addK(x)
+{
+    return x + k
+}
+
+// Arguments: a constant, a local, a global, a field read twice
+var g = 7
+var p = {x: 3}
+
+fun arguments()
+{
+    var local = 5
+    __dprint(twice(4))
+    __dprint(twice(local))
+    __dprint(twice(g))
+    __dprint(square(p.x))
+    __dprint(quad(local))
+}
+
+arguments()
+
+// A local named like a free name of the expression: the expression reads the global
+fun shadowsFree()
+{
+    var k = 1
+    return addK(k)
+}
+
+__dprint(shadowsFree())
+
+// A local named like the function: the call is the local's
+fun shadowsCallee(twice)
+{
+    return twice + 1
+}
+
+__dprint(shadowsCallee(40))
+
+// Defined twice: the second one is called
+fun dup(x)
+{
+    return x + 1
+}
+
+fun dup(x)
+{
+    return x + 2
+}
+
+__dprint(dup(1))
+
+// A script call before the parameter is read: the argument is read before the call runs
+var counter = 0
+
+fun bump()
+{
+    counter = counter + 1
+    return counter
+}
+
+fun bumpThen(a)
+{
+    return bump() * 10 + a
+}
+
+__dprint(bumpThen(counter))
+
+// Explicit keys stay names
+fun pair(x, y)
+{
+    return {x: y, y: x}
+}
+
+var pr = pair(1, 2)
+__dprint(pr.x)
+__dprint(pr.y)
+
+// Calling each other: inlined a few levels deep, then called
+fun even(n)
+{
+    return n == 0 or odd(n - 1)
+}
+
+fun odd(n)
+{
+    return n != 0 and even(n - 1)
+}
+
+__dprint(even(10))
+__dprint(odd(7))
+
+// A loop variable named like a free name
+var items = [1, 2, 3]
+var total = 0
+
+for (var k : items)
+{
+    total = total + addK(1)
+}
+
+__dprint(total)
+
+// A free name brought in by a function the expression calls: still the global where it is called
+fun inner(x)
+{
+    return x + k
+}
+
+fun outer(x)
+{
+    return 1 + inner(x)
+}
+
+fun shadowsInner()
+{
+    var k = 5
+    return outer(k)
+}
+
+__dprint(outer(2))
+__dprint(shadowsInner())

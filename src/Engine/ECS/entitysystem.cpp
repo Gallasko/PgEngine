@@ -89,6 +89,7 @@ namespace
 #include "Compiler/ast/pass/static_loop_evaluation.h"
 #include "Compiler/ast/pass/entity_loop_lowering.h"
 #include "Compiler/ast/pass/ast_survey.h"
+#include "Compiler/ast/pass/function_inlining.h"
 #include "Compiler/pass/comparison_local_indexing.h"
 #include "Compiler/pass/remove_def_get_global_redunduncy.h"
 #include "Compiler/pass/constant_var_access.h"
@@ -1132,7 +1133,10 @@ namespace pg
             // ForIn(getEntities(...)) shape; its call-containing output is
             // skipped by the other passes anyway), then static evaluation so
             // fully-folded loops disappear before hoisting sees the leftovers.
+            // Inlining comes second: the calls it folds away are calls those
+            // two would otherwise refuse.
             vm.addAstPass(std::make_unique<EntityLoopLoweringPass>());
+            vm.addAstPass(std::make_unique<FunctionInliningPass>());
             vm.addAstPass(std::make_unique<StaticLoopEvaluationPass>());
             vm.addAstPass(std::make_unique<LoopInvariantHoistingPass>());
 

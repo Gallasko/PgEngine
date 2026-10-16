@@ -394,6 +394,11 @@ TEST_F(ScriptTestBench, TableShapeCaches)
     testScript("table_shape_caches");
 }
 
+TEST_F(ScriptTestBench, FunctionInlining)
+{
+    testScript("function_inlining");
+}
+
 TEST_F(ScriptTestBench, NoneLookup)
 {
     testScript("none_lookup");

@@ -780,6 +780,10 @@ namespace pg
         // between parsing and emission; see ast/ast_pass.h)
         std::unique_ptr<AstPassManager> astPassManager;
 
+        // How many AstCompiler::compile calls are running: 1 for a script, more for the modules it
+        // imports (compiled while it is). A pass that reads the whole program reads it at depth 1
+        int astCompileDepth = 0;
+
         // Decode-time superinstruction fusion (see decoded_fusion.h). On by
         // default — part of decoding, applies to compiled AND deserialized
         // bytecode. Cleared together with optimizations for O0 / --no-opt.

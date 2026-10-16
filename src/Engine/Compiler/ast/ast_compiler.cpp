@@ -25,6 +25,13 @@ namespace pg
 
     Value AstCompiler::compile(std::queue<Token> tokens)
     {
+        struct Depth
+        {
+            VM* vm;
+            explicit Depth(VM* vm) : vm(vm) { ++vm->astCompileDepth; }
+            ~Depth() { --vm->astCompileDepth; }
+        } depth(vm);
+
         Parser parser(tokens);
 
         auto statements = parser.parse();
