@@ -13,6 +13,101 @@ namespace pg
         upvalues.resize(func->upvalueCount);
     }
 
+    void Shape::build()
+    {
+        names.assign(depth, std::string());
+        index.reserve(depth);
+
+        for (Shape* s = this; s->depth > 0; s = s->parent)
+            names[s->depth - 1] = s->lastName;
+
+        // A shape never holds a name twice (a table that would goes off the shapes)
+        for (uint32_t slot = 0; slot < depth; ++slot)
+            index.emplace(names[slot], slot);
+
+        built = true;
+    }
+
+    Shape* ShapeTree::next(Shape* from, const std::string& name)
+    {
+        auto it = from->next.find(name);
+
+        if (it != from->next.end())
+            return it->second;
+
+        const size_t wide = from == &root ? maxNextAtRoot : maxNext;
+
+        if (from->depth >= maxDepth or from->next.size() >= wide or owned.size() >= maxShapes)
+            return nullptr;
+
+        auto shape = std::make_unique<Shape>();
+        shape->parent = from;
+        shape->lastName = name;
+        shape->depth = from->depth + 1;
+
+        Shape* made = shape.get();
+        owned.push_back(std::move(shape));
+        from->next.emplace(name, made);
+
+        return made;
+    }
+
+    void ObjInstance::toDictionary()
+    {
+        auto dict = std::make_unique<Dictionary>();
+
+        if (shape)
+        {
+            dict->names.reserve(shape->depth);
+            dict->index.reserve(shape->depth);
+
+            for (size_t slot = 0; slot < shape->depth; ++slot)
+            {
+                dict->names.push_back(shape->nameAt(slot));
+                dict->index[dict->names.back()] = slot;
+            }
+        }
+
+        dictionary = std::move(dict);
+        shape = nullptr;
+    }
+
+    size_t ObjInstance::appendNewField(const std::string& name, Value value)
+    {
+        const size_t slot = fieldValueList.size();
+
+        if (shape)
+        {
+            if (Shape* next = shapes->next(shape, name))
+            {
+                shape = next;
+                fieldValueList.push_back(value);
+
+                return slot;
+            }
+
+            toDictionary();
+        }
+
+        if (not dictionary)
+            dictionary = std::make_unique<Dictionary>();
+
+        fieldValueList.push_back(value);
+        dictionary->index[name] = slot;
+        dictionary->names.push_back(name);
+
+        return slot;
+    }
+
+    size_t ObjInstance::appendField(const std::string& name, Value value)
+    {
+        // A name written twice keeps both slots: off the shapes, whose names are each once
+        if (shape and shape->slotOf(name) != npos)
+            toDictionary();
+
+        return appendNewField(name, value);
+    }
+
     void ObjInstance::setField(const std::string& name, Value value, VM *vm, bool deleteOld)
     {
         const size_t slot = findField(name);
@@ -34,7 +129,7 @@ namespace pg
         }
         else
         {
-            appendField(name, value);
+            appendNewField(name, value);
         }
     }
 }

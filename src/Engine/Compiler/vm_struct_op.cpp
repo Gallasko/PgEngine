@@ -387,7 +387,7 @@ namespace pg
         }
         else
         {
-            instance->appendField(nameStr, vm->retainValue(value));
+            instance->appendNewField(nameStr, vm->retainValue(value));
         }
 
         vm->push(value);
@@ -798,7 +798,7 @@ namespace pg
             }
             else
             {
-                inst->appendField(key, vm->retainValue(value));
+                inst->appendNewField(key, vm->retainValue(value));
             }
 
             vm->releaseAndDelete(value);

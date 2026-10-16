@@ -711,6 +711,10 @@ namespace pg
         // Pool-based memory management (replaces old pointer-based refCounts)
         VMPools pools;
 
+        // The shapes of this VM's tables (object.h): declared after the pools, so freed before them
+        // (an instance being destroyed never looks at its shape)
+        ShapeTree shapeTree;
+
         // Test output buffer for __dprint (used in tests)
         std::string testOutput;
 

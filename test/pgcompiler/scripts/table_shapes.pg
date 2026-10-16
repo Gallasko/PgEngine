@@ -1,0 +1,122 @@
+// Tables laid out by shapes: what must not change, whether a table shares its layout with others,
+// keeps a dictionary of its own (past the depth limit, filled in too many orders, a key written
+// twice), or changes from one to the other while it is being filled
+import "algorithm"
+import "string"
+
+fun keysOf(t)
+{
+    var out = ""
+
+    for (var k : t)
+    {
+        out = out + k + " "
+    }
+
+    return out
+}
+
+// Built alike: the same layout, each its own values
+var a = {x: 1, y: 2, z: 3}
+var b = {x: 10, y: 20, z: 30}
+__dprint(keysOf(a))
+__dprint(a.y + b.y)
+b.y = 21
+__dprint(a.y)
+__dprint(b.y)
+
+// Filled field by field, and two tables leaving one layout two ways
+var c = {}
+c.first = 1
+c.second = 2
+var d = {first: 5, second: 6}
+c.third = 3
+d.other = 7
+__dprint(keysOf(c))
+__dprint(keysOf(d))
+__dprint(c.third)
+__dprint(d.other)
+__dprint(c.other)
+__dprint(contain(d, "third"))
+__dprint(lookup(c, "third", 0))
+__dprint(lookup(d, "third", 0))
+
+// A key written twice in a literal: both slots, the last value
+var twice = {k: 1, j: 2, k: 3}
+__dprint(twice.k)
+__dprint(keysOf(twice))
+twice.k = 4
+__dprint(twice.k)
+twice.after = 5
+__dprint(twice.after)
+
+// Past the depth limit: a hundred and twenty fields, then more
+var deep = {}
+
+for (var i = 0; i < 120; i = i + 1)
+{
+    deep["f" + toString(i)] = i
+}
+
+__dprint(deep.f0 + deep.f95 + deep.f96 + deep.f119)
+var count = 0
+
+for (var k : deep)
+{
+    count = count + 1
+}
+
+__dprint(count)
+deep.f50 = 500
+__dprint(deep.f50)
+__dprint(lookup(deep, "f119", -1))
+__dprint(lookup(deep, "f120", -1))
+
+// Filled in many orders (a key per id, the first one always different): past the fan-out limit
+var total = 0
+
+for (var n = 0; n < 200; n = n + 1)
+{
+    var t = {}
+    t["id" + toString(n)] = n
+    t.common = 1
+    total = total + t["id" + toString(n)] + t.common
+}
+
+__dprint(total)
+
+// One reading of a field, tables of different layouts in turn
+var rows = [{name: "a", v: 1}, {v: 2, name: "b"}, {other: 0, name: "c", v: 3}, deep]
+var names = ""
+
+for (var r : rows)
+{
+    if (contain(r, "name"))
+    {
+        names = names + r.name + toString(r.v) + " "
+    }
+}
+
+__dprint(names)
+
+// Class instances are tables too
+class Point
+{
+    init(x, y)
+    {
+        this.x = x
+        this.y = y
+    }
+
+    sum()
+    {
+        return this.x + this.y
+    }
+}
+
+var p = Point(2, 3)
+var q = Point(4, 5)
+q.z = 6
+__dprint(p.sum() + q.sum())
+__dprint(q.z)
+__dprint(p.z)

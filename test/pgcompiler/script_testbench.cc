@@ -380,6 +380,13 @@ TEST_F(ScriptTestBench, NoneReturn)
     testScript("none_return");
 }
 
+TEST_F(ScriptTestBench, TableShapes)
+{
+    MockLogger<TerminalSink> logger;
+
+    testScript("table_shapes");
+}
+
 TEST_F(ScriptTestBench, NoneLookup)
 {
     testScript("none_lookup");

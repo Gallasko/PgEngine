@@ -539,6 +539,7 @@ namespace pg
     Value VM::createInstance(Klass* klass)
     {
         auto [ptr, index] = pools.instancePool.allocateWithIndex(klass);
+        ptr->useShapes(&shapeTree);
         Value val = makeInstanceValue(static_cast<uint32_t>(index));
         return trackNewValue(val);
     }
