@@ -728,7 +728,7 @@ namespace pg
             Shape* next = nullptr;
         };
 
-        static constexpr size_t fieldStubCount = 4096;
+        static constexpr size_t fieldStubCount = 32768;
 
         std::vector<FieldStub> slotStubs = std::vector<FieldStub>(fieldStubCount);
         std::vector<FieldStub> addStubs = std::vector<FieldStub>(fieldStubCount);
