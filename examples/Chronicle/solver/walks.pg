@@ -118,6 +118,12 @@ fun wantsStudy(st, goals, zone, answer)
         }
     }
 
+    // Known 4 of 4: studying opens nothing more
+    if (answer.site.level != none and answer.site.level >= 4)
+    {
+        return false
+    }
+
     // A thing of this place it wants that its ladder has not opened yet
     for (var item : goals.items)
     {
@@ -140,6 +146,18 @@ fun wantsStudy(st, goals, zone, answer)
                 if (w.id == "gather." + item)
                 {
                     open = true
+                }
+            }
+
+            // (or a beast that leaves it can be sought: antlers are the stag's, no spot's)
+            for (var sk : answer.seeks)
+            {
+                for (var m : asListOf(mobsOfItem[item]))
+                {
+                    if (sk.mob == m)
+                    {
+                        open = true
+                    }
                 }
             }
 

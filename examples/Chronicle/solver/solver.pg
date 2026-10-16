@@ -14,7 +14,7 @@
 //                   every world, month after month, the best `width` worlds kept
 //   hybrid          the beam until it stops finding tasks (stall=240 months, stallFinds=3), then
 //                   the planner on each task it did not reach (from the beam's best world, a world
-//                   of its own, then `tries` more)
+//                   of its own, then `tries` more); only=<id,id,...> keeps the planner to those
 //   merge <part>... the `.part` files of a run split over processes, as one report
 //
 //   lives=5         the lives a search may take
@@ -397,14 +397,120 @@ fun nextLife(st, ids, shared, path)
     newLife(st, gift, town)
 }
 
-// Lives of one world toward `ids`, `cap` of them at most: true once all are reached
+// What a life must do for the world before the targets can be reached in any: a level of the town
+// they need, of a place not on the page yet, that only a flag of another class than theirs brings
+// onto it (the Harrow Road, shown by the truth of Harrow, for a warrior's Crusade). Then that life
+// aims at the work bringing the flag, in its class, and at the levels of the place: none when no
+// target needs it
+fun worldPrepFor(st, ids)
+{
+    for (var id : ids)
+    {
+        var row = tableById[id]
+
+        if (row != none)
+        {
+            var req = minReqOf(id, 0)
+
+            for (var k : req)
+            {
+                if (startsWith(k, "town.") and charValue(st, k) < req[k])
+                {
+                    var place = substring(k, 5, strlen(k))
+                    var shows = placeShows[place]
+
+                    if (st.seen[place] == none and typeOf(shows) == "table" and typeOf(shows.flag) == "string" and charValue(st, shows.flag) < 1)
+                    {
+                        var maker = firstProducer(shows.flag, "")
+                        var makerRow = tableById[maker]
+
+                        if (makerRow != none and makerRow.path != "" and makerRow.path != row.path)
+                        {
+                            var prep = [maker]
+
+                            for (var l = asInt(st.town[place]) + 1; l <= req[k]; l = l + 1)
+                            {
+                                push(prep, "raise." + place + "." + toString(l))
+                            }
+
+                            return {ids: prep, flag: shows.flag, place: place}
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return none
+}
+
+// A life lived for the world (worldPrepFor): tried as it is, then with chance in the choosing, each
+// time from the world as the life began, and the try that did most for it kept (the place onto the
+// page, then the most of its levels): `prepTries` at most, fewer once the levels stand
+fun prepareWorld(st, prep)
+{
+    var best = none
+    var bestScore = -1
+    var needed = len(prep.ids) - 1 + asInt(st.town[prep.place])
+
+    for (var attempt = 0; attempt < prepTries; attempt = attempt + 1)
+    {
+        var w = clone(st)
+
+        if (attempt > 0)
+        {
+            noise = 400.0
+            noiseSeed = 104729 * attempt + 7
+        }
+
+        note(w, "this life prepares the world (try " + toString(attempt + 1) + "): " + prep.flag + " to bring " + prep.place + " onto the page, then its levels")
+        liveLife(w, prep.ids, false, "", false)
+        noise = 0.0
+
+        var score = 100 * asInt(w.town[prep.place])
+
+        if (w.seen[prep.place] != none)
+        {
+            score = score + 1000
+        }
+
+        if (score > bestScore)
+        {
+            best = w
+            bestScore = score
+        }
+
+        if (asInt(w.town[prep.place]) >= needed)
+        {
+            attempt = prepTries
+        }
+    }
+
+    // The world goes on from the try kept (in place: the caller holds this table)
+    for (var k : best)
+    {
+        st[k] = best[k]
+    }
+}
+
+// Lives of one world toward `ids`, `cap` of them at most: true once all are reached. A life the
+// world must be prepared in first (worldPrepFor) aims at that, to its end
 fun search(st, ids, cap)
 {
     var first = st.lives
 
     while (st.lives < first + cap)
     {
-        liveLife(st, ids, false, "", true)
+        var prep = worldPrepFor(st, ids)
+
+        if (prep != none)
+        {
+            prepareWorld(st, prep)
+        }
+        else
+        {
+            liveLife(st, ids, false, "", true)
+        }
 
         if (allReached(st, ids))
         {
@@ -638,6 +744,7 @@ var shard = toInt(shardParts[0])
 var shards = toInt(shardParts[1])
 
 var misses = {}
+var prepTries = toInt(option("prepTries", "6"))
 var lastWorld = none
 
 var info = rule("windows", {age: 6.0, character: freshStats(), done: {}, world: 0, lives: 1, running: "", activityId: ""},
@@ -824,9 +931,21 @@ else if (mode == "hybrid")
     var base = beamBest
     var index = 0
 
+    // only=<id,id,...>: the planner's share kept to those tasks
+    var onlyIds = {}
+    var onlyText = option("only", "")
+
+    if (onlyText != "")
+    {
+        for (var oid : split(onlyText, ","))
+        {
+            onlyIds[oid] = 1
+        }
+    }
+
     for (var id2 : allIds)
     {
-        if (found[id2] == none)
+        if (found[id2] == none and (onlyText == "" or onlyIds[id2] != none))
         {
             if (index - (index / shards) * shards == shard)
             {
