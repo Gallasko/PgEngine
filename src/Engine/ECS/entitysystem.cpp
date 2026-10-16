@@ -90,6 +90,7 @@ namespace
 #include "Compiler/ast/pass/entity_loop_lowering.h"
 #include "Compiler/ast/pass/ast_survey.h"
 #include "Compiler/ast/pass/function_inlining.h"
+#include "Compiler/ast/pass/length_hoisting.h"
 #include "Compiler/pass/comparison_local_indexing.h"
 #include "Compiler/pass/remove_def_get_global_redunduncy.h"
 #include "Compiler/pass/constant_var_access.h"
@@ -1139,6 +1140,7 @@ namespace pg
             vm.addAstPass(std::make_unique<FunctionInliningPass>());
             vm.addAstPass(std::make_unique<StaticLoopEvaluationPass>());
             vm.addAstPass(std::make_unique<LoopInvariantHoistingPass>());
+            vm.addAstPass(std::make_unique<LengthHoistingPass>());
 
             // A report of what other passes could do, changing nothing: PG_AST_SURVEY=<file>
             if (const char* survey = std::getenv("PG_AST_SURVEY"))

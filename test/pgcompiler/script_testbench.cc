@@ -399,6 +399,11 @@ TEST_F(ScriptTestBench, FunctionInlining)
     testScript("function_inlining");
 }
 
+TEST_F(ScriptTestBench, LengthHoisting)
+{
+    testScript("length_hoisting");
+}
+
 TEST_F(ScriptTestBench, NoneLookup)
 {
     testScript("none_lookup");

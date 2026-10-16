@@ -1,0 +1,193 @@
+// len(x) in a loop's condition, read once by the AST pass under O3 when nothing in the loop can
+// change x: the loops must turn as often as they would reading it every time
+import "algorithm"
+
+// Nothing changes the list
+fun sum(list)
+{
+    var total = 0
+
+    for (var i = 0; i < len(list); i++)
+    {
+        total = total + list[i]
+    }
+
+    return total
+}
+
+__dprint(sum([1, 2, 3, 4]))
+
+// The list grows while the loop turns
+fun grows(list)
+{
+    var i = 0
+
+    while (i < len(list) and i < 10)
+    {
+        if (i < 3)
+        {
+            push(list, i)
+        }
+
+        i++
+    }
+
+    return i
+}
+
+__dprint(grows([7, 8]))
+
+// Grown through another name for it
+fun throughAlias(list)
+{
+    var other = list
+    var i = 0
+
+    while (i < len(list) and i < 10)
+    {
+        if (i < 2)
+        {
+            push(other, i)
+        }
+
+        i++
+    }
+
+    return i
+}
+
+__dprint(throughAlias([7]))
+
+// A list of its own, filled while another is read
+fun evens(list)
+{
+    var out = []
+
+    for (var i = 0; i < len(list); i++)
+    {
+        if (list[i] % 2 == 0)
+        {
+            push(out, list[i])
+        }
+    }
+
+    return out
+}
+
+var e = evens([1, 2, 3, 4, 6])
+__dprint(len(e))
+
+// A list of its own, but the list read is that one under another name
+fun ownEscapes()
+{
+    var out = [0]
+    var same = out
+    var i = 0
+
+    while (i < len(same) and i < 10)
+    {
+        if (i < 4)
+        {
+            push(out, i)
+        }
+
+        i++
+    }
+
+    return i
+}
+
+__dprint(ownEscapes())
+
+// A script function grows it
+var shared = [1]
+
+fun grow()
+{
+    push(shared, 1)
+}
+
+fun byCall()
+{
+    var list = shared
+    var i = 0
+
+    while (i < len(list) and i < 10)
+    {
+        if (i < 3)
+        {
+            grow()
+        }
+
+        i++
+    }
+
+    return i
+}
+
+__dprint(byCall())
+
+// Read only when what comes first holds
+fun guarded(list)
+{
+    var i = 0
+
+    while (list != none and i < len(list))
+    {
+        i++
+    }
+
+    return i
+}
+
+__dprint(guarded(none))
+__dprint(guarded([1, 2]))
+
+// Given another list in the loop
+fun replaced()
+{
+    var list = [1, 2, 3]
+    var i = 0
+
+    while (i < len(list))
+    {
+        if (i == 1)
+        {
+            list = [1, 2, 3, 4, 5, 6]
+        }
+
+        i++
+    }
+
+    return i
+}
+
+__dprint(replaced())
+
+// Loops in loops, a string, the script's own loop over a global
+fun pairs(a, b)
+{
+    var n = 0
+
+    for (var i = 0; i < len(a); i++)
+    {
+        for (var j = 0; j < len(b); j++)
+        {
+            n = n + 1
+        }
+    }
+
+    return n
+}
+
+__dprint(pairs([1, 2, 3], [1, 2]))
+
+var word = "pigeon"
+var letters = 0
+
+for (var i = 0; i < len(word); i++)
+{
+    letters = letters + 1
+}
+
+__dprint(letters)

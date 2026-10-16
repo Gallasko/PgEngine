@@ -20,11 +20,11 @@ namespace pg
         using ast::LoopFacts;
         using ast::analyzeExpr;
         using ast::analyzeStmt;
+        using ast::countLocalSlots;
 
-        // Local slots are addressed with a single byte; leave headroom under
-        // the 255 limit so hidden hoist vars can never exhaust a function's
+        // Hidden hoist vars must never exhaust a function's byte-addressed
         // slots (the emitter would silently truncate the operand otherwise)
-        constexpr int kMaxLocalSlots = 240;
+        using ast::kMaxLocalSlots;
 
         struct Ctx
         {
@@ -36,65 +36,6 @@ namespace pg
             // the budget is reached
             int slotsUsed = 0;
         };
-
-        /**
-         * Conservative upper bound of the local slots a function body can
-         * create: every declaration counts, sibling blocks are summed even
-         * though their slots are reused, for-in adds its three hidden
-         * iteration locals plus the key variable. Nested function/class
-         * bodies have their own slot space and are excluded.
-         */
-        int countLocalSlots(const StatementPtr& s)
-        {
-            if (not s)
-                return 0;
-
-            const auto& type = s->getType();
-
-            if (type == "VariableStatement")
-                return 1;
-
-            if (type == "BlockStatement")
-            {
-                int count = 0;
-
-                auto statements = std::static_pointer_cast<BlockStatement>(s)->statements;
-                while (not statements.empty())
-                {
-                    count += countLocalSlots(statements.front());
-                    statements.pop();
-                }
-
-                return count;
-            }
-
-            if (type == "IfStatement")
-            {
-                auto i = std::static_pointer_cast<IfStatement>(s);
-                return countLocalSlots(i->thenBranch) + countLocalSlots(i->elseBranch);
-            }
-
-            if (type == "WhileStatement")
-                return countLocalSlots(std::static_pointer_cast<WhileStatement>(s)->body);
-
-            if (type == "ForStatement")
-            {
-                auto fs = std::static_pointer_cast<ForStatement>(s);
-                return countLocalSlots(fs->initializer) + countLocalSlots(fs->body);
-            }
-
-            if (type == "ForInStatement")
-            {
-                // __table, __size, __i + the key variable
-                return 4 + countLocalSlots(std::static_pointer_cast<ForInStatement>(s)->body);
-            }
-
-            // Local function/class declarations occupy one slot themselves
-            if (type == "FunctionStatement" or type == "ClassStatement")
-                return 1;
-
-            return 0;
-        }
 
         // ------------------------------------------------------------------
         // Invariance and candidate collection

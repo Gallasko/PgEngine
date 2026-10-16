@@ -35,5 +35,16 @@ namespace pg
 
         void analyzeExpr(const ExprPtr& e, LoopFacts& f);
         void analyzeStmt(const StatementPtr& s, LoopFacts& f);
+
+        /**
+         * Conservative upper bound of the local slots a function body can create: every
+         * declaration counts, sibling blocks are summed even though their slots are reused, for-in
+         * adds its three hidden iteration locals plus the key variable. Nested function/class
+         * bodies have their own slot space and are excluded.
+         */
+        int countLocalSlots(const StatementPtr& s);
+
+        // Local slots are addressed with a single byte; passes adding hidden locals stay under this
+        constexpr int kMaxLocalSlots = 240;
     }
 }
