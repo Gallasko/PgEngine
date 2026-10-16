@@ -1213,7 +1213,8 @@ namespace pg
     {
         uint8_t pairCount = instr.operands.byte;
 
-        Value tableClassVal = vm->findGlobal("__Table");
+        // The class by its slot, found once (not a name looked up for every table)
+        Value tableClassVal = vm->tableClassValue();
         if (IS_UNDEFINED(tableClassVal))
         {
             vm->runtimeError("Table class not found - was initializeTableClass() called?");
@@ -1228,55 +1229,54 @@ namespace pg
             return nullptr;
         }
 
+        // The pairs lie on the stack in the order they were written, each value under its key:
+        // they are read where they are, the keys checked first so that a bad one leaves nothing
+        // half built
+        const size_t base = vm->stack.size() - 2 * static_cast<size_t>(pairCount);
+
+        for (size_t i = 0; i < pairCount; i++)
+        {
+            const Value key = vm->stack[base + 2 * i + 1];
+
+            if (not IS_STRING(key) and not IS_INT(key))
+            {
+                for (size_t j = base; j < vm->stack.size(); j++)
+                    vm->releaseAndDelete(vm->stack[j]);
+
+                vm->stack.truncateTo(base);
+                vm->runtimeError("Table key must be string or integer");
+                vm->vm_return(InterpretResult::RUNTIME_ERROR);
+                return nullptr;
+            }
+        }
+
         Klass* tableClass = vm->asClass(tableClassVal);
 
         Value instanceVal = vm->createInstance(tableClass);
         ObjInstance* table = vm->asInstance(instanceVal);
 
         table->fieldValues.reserve(pairCount);
+        table->fieldNames.reserve(pairCount);
         table->internedFields.reserve(pairCount);
 
-        std::vector<std::string> keys;
-        std::vector<Value> values;
-        keys.reserve(pairCount);
-        values.reserve(pairCount);
-
-        for (int i = 0; i < pairCount; i++)
+        for (size_t i = 0; i < pairCount; i++)
         {
-            Value key = vm->pop();
-            Value value = vm->pop();
+            const Value value = vm->stack[base + 2 * i];
+            const Value key = vm->stack[base + 2 * i + 1];
 
-            std::string keyStr;
-            if (IS_STRING(key))
-            {
-                keyStr = vm->asString(key);
-            }
-            else if (IS_INT(key))
-            {
-                keyStr = std::to_string(AS_INT(key));
-            }
-            else
-            {
-                vm->releaseAndDelete(key);
-                vm->releaseAndDelete(value);
-                vm->runtimeError("Table key must be string or integer");
-                vm->vm_return(InterpretResult::RUNTIME_ERROR);
-                return nullptr;
-            }
+            std::string keyStr = IS_STRING(key) ? vm->asString(key) : std::to_string(AS_INT(key));
+
+            // A key written twice keeps both slots, the map pointing at the last (as before)
+            table->internedFields[keyStr] = table->fieldValues.size();
+            table->fieldNames.push_back(std::move(keyStr));
+
+            // The stack's reference to the value is the table's now: no retain, no release
+            table->fieldValues.push_back(value);
 
             vm->releaseAndDelete(key);
-            keys.push_back(keyStr);
-            values.push_back(value);
         }
 
-        for (int i = pairCount - 1; i >= 0; i--)
-        {
-            size_t valueIndex = table->fieldValues.size();
-            table->fieldValues.push_back(vm->retainValue(values[i]));
-            table->fieldNames.push_back(keys[i]);
-            table->internedFields[keys[i]] = valueIndex;
-            vm->releaseAndDelete(values[i]);
-        }
+        vm->stack.truncateTo(base);
 
         vm->push(instanceVal);
         return &instr + 1;

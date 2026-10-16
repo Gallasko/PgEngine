@@ -559,7 +559,8 @@ namespace pg
 
     Value VM::createTable()
     {
-        auto tableClass = findGlobalClass("__Table");
+        const Value tableClassVal = tableClassValue();
+        Klass* tableClass = IS_CLASS(tableClassVal) ? asClass(tableClassVal) : nullptr;
 
         if (tableClass == nullptr)
             throw std::runtime_error("Table class not found in VM globals");

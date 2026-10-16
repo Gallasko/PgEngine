@@ -264,6 +264,7 @@ namespace pg
 
             globalCells.clear();
             globalSlots.clear();
+            tableClassSlot = UINT32_MAX;
 
             // Clean up any remaining Values on the stack
             while (not stack.empty())
@@ -602,6 +603,18 @@ namespace pg
         // set to none is a defined global).
         std::vector<Value>                        globalCells;
         std::unordered_map<std::string, uint32_t> globalSlots;
+
+        // The slot of the built-in __Table class, found once: every table built asks for it
+        uint32_t tableClassSlot = UINT32_MAX;
+
+        // The __Table class's cell (UndefinedValue before the built-in classes are set up)
+        inline Value tableClassValue()
+        {
+            if (tableClassSlot == UINT32_MAX)
+                tableClassSlot = globalSlot("__Table");
+
+            return globalCells[tableClassSlot];
+        }
 
         // Get-or-create the slot for `name`. Slots are append-only, so a
         // returned index is stable for the VM's lifetime.
