@@ -72,6 +72,10 @@ namespace chronicle
         const std::string& path() const { return scriptPath; }
         bool loaded() const { return fn != nullptr; }
 
+        // The VM the script runs in: for a tool that defines its inputs and reads its outputs as
+        // VM values (the solver's), not through set() and get()
+        pg::VM* machine() const { return vm.get(); }
+
         void clearErrors() { errorList.clear(); }
         void error(const std::string& message);                  // Logged, with the script's path
 

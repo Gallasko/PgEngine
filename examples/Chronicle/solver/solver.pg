@@ -1,0 +1,883 @@
+// solver.pg - can every task of Chronicle be done? The game's rules played, life after life, to
+// find out.
+//
+// Run by ChronicleSolver, which lends it the game's rule scripts (examples/Chronicle/solver/main.cpp):
+//
+//   ChronicleSolver examples/Chronicle/rules examples/Chronicle/solver/solver.pg <mode> [words] [key=value...]
+//
+//   all             (the default) one shared world played first, every task aimed at, a class a life;
+//                   then each task it did not reach is aimed at alone: in that world's next lives,
+//                   in a world of its own, then `tries` times more with chance in the choosing
+//   shared          the shared world only
+//   task <id>       one task alone (and its tries): the plan that reaches it, life by life
+//   beam            a search that tries every task, no aim and no plan (beam.pg): every choice of
+//                   every world, month after month, the best `width` worlds kept
+//   merge <part>... the `.part` files of a run split over processes, as one report
+//
+//   lives=5         the lives a search may take
+//   tries=20        the searches more, with chance in the choosing, for a task not reached
+//   report=<file>   where the report goes (chronicle-solver.txt), with a `.part` beside it
+//   shard=i/n       this process takes every n-th of the tasks left, from the i-th (0/1: all)
+//   trace=<id>      at every choice: that row, and the four best choices
+//   width=8         beam: the worlds kept each month (the wider, the longer and the more found)
+//   minutes=0       beam: stop after so many minutes, whatever is left (0: when every world is over)
+//   seed=1          beam: the dice, and a little chance in which worlds are kept (another seed, another search)
+//
+// solve.sh runs `all` or `beam` over several processes and merges them.
+//
+// A task is reached when its term is: its months gone by, or what it does done at once. The
+// lives are played with the game's numbers (life.pg) and a plain way of choosing (plan.pg,
+// walks.pg): reached is proof that it can be done; not reached is a lead, with the closest the
+// search came to it.
+
+import "algorithm"
+import "string"
+import "file"
+import "math"
+import "life"
+import "walks"
+import "plan"
+import "beam"
+
+fun targetsOf(ids)
+{
+    var out = []
+
+    for (var id : ids)
+    {
+        push(out, {id: id, weight: 1.0})
+    }
+
+    return out
+}
+
+// The class a life of the shared world aims at: the one with the most of its works still unreached
+fun pathForLife(st)
+{
+    var best = ""
+    var bestCount = 0
+
+    for (var p : pathIds)
+    {
+        var count = 0
+
+        for (var row : shapeOf(st))
+        {
+            if (row.path == p and st.reached[row.id] == none)
+            {
+                count = count + 1
+            }
+        }
+
+        if (count > bestCount)
+        {
+            best = p
+            bestCount = count
+        }
+    }
+
+    return best
+}
+
+// What the shared world aims at this month: what it has not reached, of no class or of the life's
+// class, and not shut to him; the nearer in years, the more
+fun sharedTargets(st, path)
+{
+    var out = []
+    var years = st.month / 12
+
+    // Until he is of the life's class, its door comes first: the rest is only what is on the way
+    var spread = 0.5
+
+    if (charValue(st, pathFlag[path]) < 1)
+    {
+        spread = 0.1
+    }
+
+    // The way into the life's class, all childhood long: what it asks takes years to grow
+    for (var e : asListOf(entersOf[path]))
+    {
+        if (st.reached[e] == none or charValue(st, pathFlag[path]) < 1)
+        {
+            push(out, {id: e, weight: 3.0})
+        }
+    }
+
+    for (var row : shapeOf(st))
+    {
+        var mine = row.path == "" or row.path == path
+
+        if (mine and st.reached[row.id] == none and row.closed != true and row.spent != true and row.barred == "" and row.goto == "")
+        {
+            var fromYear = row.fromAge
+
+            if (fromYear == none)
+            {
+                fromYear = 7
+            }
+
+            if (fromYear <= years + 3)
+            {
+                var ahead = larger(0, fromYear - years)
+                push(out, {id: row.id, weight: spread / toFloat(1 + ahead)})
+            }
+        }
+    }
+
+    return out
+}
+
+fun allReached(st, ids)
+{
+    for (var id : ids)
+    {
+        if (st.reached[id] == none)
+        {
+            return false
+        }
+    }
+
+    return true
+}
+
+// The closest a search came to a task: the row's reach, and what it was short of then
+fun watchMiss(st, id)
+{
+    var row = rowOf(st, id)
+
+    if (row == none or st.reached[id] != none)
+    {
+        return
+    }
+
+    var reach = row.reach
+
+    if (reach == none)
+    {
+        reach = 0
+    }
+
+    var miss = misses[id]
+
+    if (miss != none and miss.reach >= reach)
+    {
+        return
+    }
+
+    var short = []
+
+    for (var r : asListOf(row.requires))
+    {
+        if (r.current < r.needed)
+        {
+            push(short, r.label + " " + toString(r.current) + "/" + toString(r.needed))
+        }
+    }
+
+    if (row.closed == true)
+    {
+        push(short, "closed")
+    }
+
+    if (row.barred != "")
+    {
+        push(short, "barred: " + row.barred)
+    }
+
+    if (row.listed != true)
+    {
+        push(short, "not listed")
+    }
+
+    misses[id] = {reach: reach, at: "life " + toString(st.lives) + ", " + ageText(st.month), short: join(short, "; ")}
+}
+
+// Can anything still be done toward the targets in this life, or for the next one?
+fun worthLiving(st, goals, ids)
+{
+    for (var id : ids)
+    {
+        var row = rowOf(st, id)
+
+        if (row != none and st.reached[id] == none and row.closed != true and row.spent != true and row.barred == "")
+        {
+            return true
+        }
+    }
+
+    // A level of the town the next life will stand on
+    for (var a : goals.acts)
+    {
+        if (startsWith(a, "raise."))
+        {
+            return true
+        }
+    }
+
+    return false
+}
+
+// The trace of one row at every choice (the fifth argument): why it was not begun
+fun traceRow(st, goals)
+{
+    var row = rowOf(st, traceId)
+
+    if (row == none)
+    {
+        return
+    }
+
+    var asks = []
+
+    for (var r : asListOf(row.requires))
+    {
+        push(asks, r.stat + " " + toString(r.current) + "/" + toString(r.needed))
+    }
+
+    var w = goals.acts[traceId]
+
+    if (w == none)
+    {
+        w = 0
+    }
+
+    var top = []
+
+    for (var cand : shapeOf(st))
+    {
+        if (cand.months > 0 and isOpen(cand))
+        {
+            push(top, {id: cand.id, s: scoreOf(st, goals, cand, false)})
+        }
+    }
+
+    var shown = []
+
+    for (var k = 0; k < 4 and len(top) > 0; k = k + 1)
+    {
+        var bi = 0
+
+        for (var j = 1; j < len(top); j = j + 1)
+        {
+            if (top[j].s > top[bi].s)
+            {
+                bi = j
+            }
+        }
+
+        var b = top[bi]
+        push(shown, b.id + "=" + toString(toInt(b.s)))
+        removeAt(top, bi)
+    }
+
+    log("  TOP " + join(shown, " "))
+
+    log("TRACE L" + toString(st.lives) + " " + ageText(st.month) + " " + traceId + " listed " + toString(row.listed) + " locked " +
+        toString(row.locked) + " closed " + toString(row.closed) + " want " + toString(w) + " path " + goals.path + " score " +
+        toString(scoreOf(st, goals, row, false)) + " | " + join(asks, ", "))
+}
+
+// One life, to its end (or until the targets are reached, when `stop`)
+fun liveLife(st, ids, shared, path, stop)
+{
+    var idle = false
+
+    while (not st.dead and st.month < 12 * 90)
+    {
+        if (st.running == "" and not idle)
+        {
+            seeTown(st)
+
+            var targets = []
+
+            if (shared)
+            {
+                targets = sharedTargets(st, path)
+            }
+            else
+            {
+                targets = targetsOf(ids)
+
+                for (var id : ids)
+                {
+                    watchMiss(st, id)
+                }
+            }
+
+            var goals = goalsFor(st, targets, shared, path)
+
+            if (traceId != "")
+            {
+                traceRow(st, goals)
+            }
+
+            if (not shared and not worthLiving(st, goals, ids))
+            {
+                // Nothing left for this life to do toward them: the months run on to its end
+                idle = true
+                note(st, "nothing more toward the targets in this life")
+            }
+            else
+            {
+                chooseWork(st, goals, shared)
+            }
+
+            if (st.dead)
+            {
+                return
+            }
+
+            if (stop and allReached(st, ids))
+            {
+                return
+            }
+        }
+
+        monthPass(st)
+
+        if (stop and allReached(st, ids))
+        {
+            return
+        }
+    }
+}
+
+// The place his coin goes to at his death: one the targets need raised, else the lowest
+fun chooseGift(st, goals)
+{
+    if (not st.townKnown)
+    {
+        return ""
+    }
+
+    var town = seeTown(st)
+    var best = ""
+    var bestLevel = 1000
+
+    for (var place : town.places)
+    {
+        if (place.shown == true and place.level < place.most and (statOf(st, "coin") > 0 or len(place.leaves) > 0))
+        {
+            for (var a : goals.acts)
+            {
+                if (startsWith(a, "raise." + place.id + "."))
+                {
+                    return place.id
+                }
+            }
+
+            if (place.level < bestLevel)
+            {
+                best = place.id
+                bestLevel = place.level
+            }
+        }
+    }
+
+    return best
+}
+
+fun nextLife(st, ids, shared, path)
+{
+    var targets = targetsOf(ids)
+
+    if (shared)
+    {
+        targets = sharedTargets(st, path)
+    }
+
+    var goals = goalsFor(st, targets, shared, path)
+    var gift = chooseGift(st, goals)
+    var town = townOf(st)
+
+    newLife(st, gift, town)
+}
+
+// Lives of one world toward `ids`, `cap` of them at most: true once all are reached
+fun search(st, ids, cap)
+{
+    var first = st.lives
+
+    while (st.lives < first + cap)
+    {
+        liveLife(st, ids, false, "", true)
+
+        if (allReached(st, ids))
+        {
+            return true
+        }
+
+        if (st.lives + 1 >= first + cap)
+        {
+            return false
+        }
+
+        // Still alive with nothing to do (the safety stop): the life is over all the same
+        nextLife(st, ids, false, "")
+    }
+
+    return false
+}
+
+fun playShared(cap)
+{
+    var st = newWorld(1000)
+
+    for (var life = 0; life < cap; life = life + 1)
+    {
+        var path = pathForLife(st)
+        var t0 = clockMs()
+
+        note(st, "the shared world aims at " + path)
+        liveLife(st, [], true, path, false)
+
+        var count = 0
+
+        for (var k : st.reached)
+        {
+            count = count + 1
+        }
+
+        log("shared world: life " + toString(st.lives) + " (" + path + ") ended at " + ageText(st.month) + ", " +
+            toString(count) + " tasks reached so far, " + toString((clockMs() - t0) / 1000) + " s")
+
+        if (life + 1 < cap)
+        {
+            nextLife(st, [], true, path)
+        }
+    }
+
+    return st
+}
+
+// A search that failed, tried again `tries` times with chance in the choosing (three levels of it,
+// in turn), from the shared world's last state and from worlds of their own, one after the
+// other: none, or how it was reached. The world that reached it is `lastWorld`
+fun retried(id, cap, base)
+{
+    var levels = [200.0, 500.0, 1000.0]
+
+    for (var attempt = 1; attempt <= tries; attempt = attempt + 1)
+    {
+        noise = levels[attempt - (attempt / 3) * 3]
+        noiseSeed = 7919 * attempt + 13
+
+        var w = none
+        var whence = "a world of its own"
+
+        if (base != none and attempt - (attempt / 2) * 2 == 1)
+        {
+            w = clone(base)
+            whence = "the shared world's next lives"
+        }
+        else
+        {
+            w = newWorld(4000 + attempt)
+        }
+
+        var ok = search(w, [id], cap)
+        noise = 0.0
+
+        if (ok)
+        {
+            lastWorld = w
+            return "alone in " + whence + ", try " + toString(attempt) + " of " + toString(tries) + ", " + w.reached[id]
+        }
+    }
+
+    return none
+}
+
+fun planText(st)
+{
+    return join(planLines(st.planHead), "\n")
+}
+
+fun option(key, fallback)
+{
+    var v = options[key]
+
+    if (v == none)
+    {
+        return fallback
+    }
+
+    return v
+}
+
+fun missText(id)
+{
+    var m = misses[id]
+
+    if (m == none)
+    {
+        return ""
+    }
+
+    return "closest at " + m.at + " (reach " + toString(m.reach) + "): " + m.short
+}
+
+// The report, from {id: how it was reached} and {id: the closest miss}
+fun reportText(found, missed, header, world)
+{
+    var lines = []
+    var unreached = []
+    var reachedCount = 0
+
+    for (var id : allIds)
+    {
+        if (found[id] != none)
+        {
+            reachedCount = reachedCount + 1
+        }
+        else
+        {
+            push(unreached, id)
+        }
+    }
+
+    push(lines, "CHRONICLE SOLVER - " + toString(reachedCount) + " of " + toString(len(allIds)) + " tasks reached (" + header + ")")
+    push(lines, "")
+
+    if (len(unreached) > 0)
+    {
+        push(lines, "NOT REACHED")
+
+        for (var u : unreached)
+        {
+            var m = missed[u]
+
+            if (m == none)
+            {
+                m = ""
+            }
+
+            push(lines, "  " + u + " [" + groupOf[u] + "]  " + m)
+        }
+
+        push(lines, "")
+    }
+
+    push(lines, "REACHED")
+
+    for (var r : allIds)
+    {
+        if (found[r] != none)
+        {
+            push(lines, "  " + r + "  " + found[r])
+        }
+    }
+
+    if (world != none)
+    {
+        push(lines, "")
+        push(lines, "THE SHARED WORLD, LIFE BY LIFE")
+        push(lines, planText(world))
+    }
+
+    return join(lines, "\n")
+}
+
+// ---- the run ---------------------------------------------------------------------------------------
+
+// The arguments: the mode, then key=value options, and the words left (the task, the files)
+var mode = getArg(2)
+var options = {}
+var words = []
+
+for (var ai = 3; ai < getArgCount(); ai = ai + 1)
+{
+    var arg = getArg(ai)
+
+    if (contains(arg, "="))
+    {
+        var kv = split(arg, "=")
+        options[kv[0]] = kv[1]
+    }
+    else
+    {
+        push(words, arg)
+    }
+}
+
+if (mode == "")
+{
+    mode = "all"
+}
+
+
+var cap = toInt(option("lives", "5"))
+var tries = toInt(option("tries", "20"))
+var traceId = option("trace", "")
+var reportPath = option("report", "chronicle-solver.txt")
+var shardText = option("shard", "0/1")
+var shardParts = split(shardText, "/")
+var shard = toInt(shardParts[0])
+var shards = toInt(shardParts[1])
+
+var misses = {}
+var lastWorld = none
+
+var info = rule("windows", {age: 6.0, character: freshStats(), done: {}, world: 0, lives: 1, running: "", activityId: ""},
+                ["activities", "walkZones", "walkMobs", "walkItems", "lifeEvents", "paths", "townPlaces"])
+checked(info, "windows (the tables)")
+learnTables(info)
+
+var pathIds = []
+
+for (var p : info.paths)
+{
+    push(pathIds, p.id)
+}
+
+var allIds = []
+var groupOf = {}
+
+for (var row : info.activities)
+{
+    if (row.goto == "")
+    {
+        push(allIds, row.id)
+        groupOf[row.id] = row.group
+    }
+}
+
+var started = clockMs()
+
+
+
+if (mode == "task")
+{
+    var id = words[0]
+    var st = newWorld(2000)
+    var ok = search(st, [id], cap)
+
+    if (not ok)
+    {
+        var again = retried(id, cap, none)
+
+        if (again != none)
+        {
+            st = lastWorld
+            ok = true
+        }
+    }
+
+    log(planText(st))
+    log("")
+
+    if (ok)
+    {
+        log("REACHED " + id + ": " + st.reached[id])
+    }
+    else
+    {
+        log("NOT REACHED " + id + " in " + toString(cap) + " lives, " + toString(tries + 1) + " searches; " + missText(id))
+    }
+}
+else if (mode == "beam")
+{
+    var width = toInt(option("width", "8"))
+    var minutes = toInt(option("minutes", "0"))
+    var seed = toInt(option("seed", "1"))
+
+    noiseSeed = 7919 * seed + 1
+
+    if (seed > 1)
+    {
+        beamNoise = 300.0
+    }
+
+    beamRun(width, cap, minutes, seed)
+
+    var found = {}
+
+    for (var k : everReached)
+    {
+        found[k] = "beam (seed " + toString(seed) + "), " + everReached[k].how
+    }
+
+    var header = "beam, width " + toString(width) + ", " + toString(cap) + " lives, seed " + toString(seed) + ", " + toString((clockMs() - started) / 1000) + " s"
+    var text = reportText(found, {}, header, none)
+
+    // How each task was first reached: the life it was reached in, to that month
+    var plans = []
+
+    for (var id5 : allIds)
+    {
+        var e = everReached[id5]
+
+        if (e != none)
+        {
+            push(plans, "== " + id5 + "  (" + e.how + ")")
+
+            var lines = planLines(e.head)
+            var howParts = split(substring(e.how, 5, strlen(e.how)), ",")
+            var lifeNo = howParts[0]
+
+            for (var line : lines)
+            {
+                if (startsWith(line, "L" + lifeNo + " "))
+                {
+                    push(plans, "   " + line)
+                }
+            }
+        }
+    }
+
+    log(text)
+    writeFile(reportPath, text)
+    writeFile(reportPath + ".plans", join(plans, "\n"))
+
+    var rows = []
+
+    for (var id6 : allIds)
+    {
+        var how = found[id6]
+
+        if (how == none)
+        {
+            how = "-"
+        }
+
+        push(rows, id6 + "|" + how + "|-")
+    }
+
+    writeFile(reportPath + ".part", join(rows, "\n"))
+    log("")
+    log("written to " + reportPath + " (" + reportPath + ".plans: how each was reached)")
+}
+else if (mode == "merge")
+{
+    // The parts of a sharded run: one line a task, "id|how it was reached|the closest miss"
+    var found = {}
+    var missed = {}
+
+    for (var part : words)
+    {
+        for (var line : splitLines(readFile(part)))
+        {
+            var cols = split(line, "|")
+
+            if (len(cols) >= 3)
+            {
+                if (cols[1] != "-")
+                {
+                    found[cols[0]] = cols[1]
+                }
+                else if (cols[2] != "-")
+                {
+                    missed[cols[0]] = cols[2]
+                }
+            }
+        }
+    }
+
+    var text = reportText(found, missed, toString(len(words)) + " parts merged", none)
+
+    log(text)
+    writeFile(reportPath, text)
+    log("")
+    log("written to " + reportPath)
+}
+else
+{
+    var world = playShared(cap)
+    var found = {}
+    var missed = {}
+
+    for (var k : world.reached)
+    {
+        found[k] = "shared world, " + world.reached[k]
+    }
+
+    if (mode == "all")
+    {
+        var index = 0
+
+        for (var id2 : allIds)
+        {
+            if (found[id2] == none)
+            {
+                if (index - (index / shards) * shards == shard)
+                {
+                    var t0 = clockMs()
+                    var later = clone(world)
+
+                    if (search(later, [id2], cap))
+                    {
+                        found[id2] = "alone after the shared world, " + later.reached[id2]
+                    }
+                    else
+                    {
+                        var fresh = newWorld(3000)
+
+                        if (search(fresh, [id2], cap))
+                        {
+                            found[id2] = "alone in a world of its own, " + fresh.reached[id2]
+                        }
+                        else
+                        {
+                            found[id2] = retried(id2, cap, world)
+                        }
+                    }
+
+                    var said = ""
+
+                    if (found[id2] == none)
+                    {
+                        said = "NOT reached; " + missText(id2)
+                        missed[id2] = missText(id2)
+                    }
+                    else
+                    {
+                        said = "reached: " + found[id2]
+                    }
+
+                    log("  " + id2 + ": " + said + " (" + toString((clockMs() - t0) / 1000) + " s)")
+                }
+
+                index = index + 1
+            }
+        }
+    }
+
+    var header = mode + ", " + toString(cap) + " lives a search, " + toString(tries) + " tries more for a hard one, " + toString((clockMs() - started) / 1000) + " s"
+
+    if (shards > 1)
+    {
+        header = header + ", part " + toString(shard + 1) + " of " + toString(shards)
+    }
+
+    var text = reportText(found, missed, header, world)
+
+    log(text)
+    writeFile(reportPath, text)
+
+    // The part's lines, for merge
+    var rows = []
+
+    for (var id3 : allIds)
+    {
+        // ("-" for nothing: a split drops what is empty between two bars)
+        var how = found[id3]
+
+        if (how == none)
+        {
+            how = "-"
+        }
+
+        var m3 = missed[id3]
+
+        if (m3 == none or m3 == "")
+        {
+            m3 = "-"
+        }
+
+        push(rows, id3 + "|" + how + "|" + m3)
+    }
+
+    writeFile(reportPath + ".part", join(rows, "\n"))
+    log("")
+    log("written to " + reportPath + " and " + reportPath + ".part")
+}

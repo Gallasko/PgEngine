@@ -1,0 +1,368 @@
+// walks.pg - a walk outside the town, played day by day through expedition.pg as the walk's
+// screen plays it (Scenes/lifewalk.cpp: beginWalk, walkDo, endWalk), with a plain way of choosing:
+//
+//   an event's card   the first answer he can give
+//   a fight           the fight's own choice, turn after turn (`step`), then back to the site
+//   on site           rest (or a remedy) when hurt; study while the place is worth knowing better;
+//                     gather what the goals ask for; seek a lone beast while whole; gather anything;
+//                     turn for home when nothing more can be done
+//
+// The dice are cast when a walk begins, from the moment and the world's own (askWalk).
+// Imported by solver.pg, after life.pg.
+
+import "algorithm"
+import "string"
+
+// What the C++ hands a script of a walk's tables: their scalars only
+fun walkFlat(t)
+{
+    var out = {}
+
+    if (typeOf(t) != "table")
+    {
+        return out
+    }
+
+    for (var k : t)
+    {
+        var tk = typeOf(t[k])
+
+        if (tk == "int" or tk == "double" or tk == "float" or tk == "bool" or tk == "string")
+        {
+            out[k] = t[k]
+        }
+    }
+
+    return out
+}
+
+fun walkFlatList(list)
+{
+    var out = []
+
+    if (typeOf(list) != "array")
+    {
+        return out
+    }
+
+    for (var t : list)
+    {
+        push(out, walkFlat(t))
+    }
+
+    return out
+}
+
+// LifeScene::walkRows: the Adventure rows of the Life page
+fun walkRowsOf(st)
+{
+    var rows = []
+
+    for (var a : shapeOf(st))
+    {
+        if (a.zone != "")
+        {
+            var listed = 0
+            var locked = 0
+
+            if (a.listed == true)
+            {
+                listed = 1
+            }
+
+            if (a.locked == true)
+            {
+                locked = 1
+            }
+
+            push(rows, {zone: a.zone, listed: listed, locked: locked, months: a.months, until: a.until})
+        }
+    }
+
+    return rows
+}
+
+fun askWalk(st, ws, ask, act, rows)
+{
+    // The dice of a walk are cast when it begins, from the moment (the life, the month, the place)
+    // and the world's own (`dice`): a walk the same state begins the same month is the same walk,
+    // and the solver's cache knows it. The script reads them at the start only: the other steps
+    // send the same 0, so that their inputs repeat too
+    var seed = 0
+
+    if (ask == "enter")
+    {
+        var place = zoneIndex[act.target]
+
+        if (place == none)
+        {
+            place = 0
+        }
+
+        seed = (st.dice * 7919 + st.lives * 1543 + st.month * 131 + place * 17) % 60013
+    }
+
+    var fight = walkFlat(ws.fight)
+
+    if (fight.mob == none)
+    {
+        fight = {over: "", mob: ""}
+    }
+
+    var inputs = {age: ageOf(st), character: character(st), done: st.done, world: st.world, lives: st.lives,
+                  who: "Aldren of Bellmoor", ask: ask, seed: seed,
+                  run: walkFlat(ws.run), record: walkFlatList(ws.record), marks: walkFlatList(ws.marks),
+                  fight: fight, foes: walkFlatList(ws.foes), account: walkFlatList(ws.account), act: act,
+                  recipes: [], recipeSteps: [], recipeMarks: [], walks: rows,
+                  queue: {recipe: "", count: 1, stop: "never", value: 0, item: ""}, replay: ""}
+
+    var answer = rule("expedition", inputs,
+                      ["run", "record", "marks", "fight", "foes", "account", "after", "site", "seeks", "works", "options", "recipe"])
+    checked(answer, "expedition " + ask + " " + act.kind + " " + act.target)
+
+    return answer
+}
+
+fun walkStateOf(answer)
+{
+    return {run: answer.run, record: answer.record, marks: answer.marks, fight: answer.fight, foes: answer.foes, account: answer.account}
+}
+
+fun isLocked(row)
+{
+    return row.locked == true or row.locked == 1
+}
+
+// What the goals want of a place: its study (a knowledge they ask for, or the whole of it)
+fun wantsStudy(st, goals, zone, answer)
+{
+    if (goals.studyAll)
+    {
+        return answer.site.level != none and answer.site.level < 4
+    }
+
+    for (var k : goals.need)
+    {
+        if (startsWith(k, "know.") and contains(k, zone))
+        {
+            var held = st.know[substring(k, 5, strlen(k))]
+
+            if (held == none or held < goals.need[k])
+            {
+                return true
+            }
+        }
+    }
+
+    // A thing of this place it wants that its ladder has not opened yet
+    for (var item : goals.items)
+    {
+        if (statOf(st, item) < goals.items[item] and zonesOfItem[item] != none)
+        {
+            var here = false
+
+            for (var z : zonesOfItem[item])
+            {
+                if (z == zone)
+                {
+                    here = true
+                }
+            }
+
+            var open = false
+
+            for (var w : answer.works)
+            {
+                if (w.id == "gather." + item)
+                {
+                    open = true
+                }
+            }
+
+            if (here and not open)
+            {
+                return true
+            }
+        }
+    }
+
+    return false
+}
+
+fun walkChoice(st, answer, goals, zone, fights)
+{
+    var screen = answer.site.screen
+
+    if (screen == "event")
+    {
+        for (var o : answer.options)
+        {
+            if (not isLocked(o))
+            {
+                return {kind: "option", target: o.id, count: 0}
+            }
+        }
+
+        if (len(answer.options) > 0)
+        {
+            var first = answer.options[0]
+
+            return {kind: "option", target: first.id, count: 0}
+        }
+    }
+
+    if (screen == "fight")
+    {
+        var over = answer.fight.over
+
+        if (over != none and over != "")
+        {
+            return {kind: "back", target: "", count: 0}
+        }
+
+        return {kind: "step", target: "", count: 0}
+    }
+
+    var works = {}
+
+    for (var w : answer.works)
+    {
+        works[w.id] = w
+    }
+
+    var hp = answer.site.vitalityPercent
+
+    if (hp == none)
+    {
+        hp = 100
+    }
+
+    if (hp < 40)
+    {
+        if (works["rest"] != none and not isLocked(works["rest"]))
+        {
+            return {kind: "rest", target: "", count: 0}
+        }
+
+        if (works["remedy"] != none and not isLocked(works["remedy"]))
+        {
+            return {kind: "remedy", target: "", count: 0}
+        }
+
+        return {kind: "leave", target: "", count: 0}
+    }
+
+    // A walk to hunt: whatever beast it may seek, a pack too, while he is whole
+    if (goals.hunt == true and hp >= 60 and fights < 4)
+    {
+        for (var h : answer.seeks)
+        {
+            if (not isLocked(h))
+            {
+                var count = h.count
+
+                if (count == none or count < 1)
+                {
+                    count = 1
+                }
+
+                return {kind: "seek", target: h.mob, count: count}
+            }
+        }
+    }
+
+    if (works["study"] != none and not isLocked(works["study"]) and wantsStudy(st, goals, zone, answer))
+    {
+        return {kind: "study", target: "", count: 0}
+    }
+
+    for (var item : goals.items)
+    {
+        var spot = works["gather." + item]
+
+        if (spot != none and not isLocked(spot) and statOf(st, item) < goals.items[item])
+        {
+            return {kind: "gather", target: item, count: 0}
+        }
+    }
+
+    // A beast: one the goals want (a thing it leaves, a knowledge of it), or any lone one while
+    // the goals ask for every walk's worth
+    if (hp >= 70 and fights < 3)
+    {
+        for (var s : answer.seeks)
+        {
+            if (not isLocked(s) and s.count != none and s.count <= 1)
+            {
+                if (goals.studyAll or goals.mobs[s.mob] != none)
+                {
+                    return {kind: "seek", target: s.mob, count: 1}
+                }
+            }
+        }
+    }
+
+    for (var w2 : answer.works)
+    {
+        if (startsWith(w2.id, "gather.") and not isLocked(w2))
+        {
+            return {kind: "gather", target: substring(w2.id, 7, strlen(w2.id)), count: 0}
+        }
+    }
+
+    return {kind: "leave", target: "", count: 0}
+}
+
+// beginWalk, the days chosen one by one, then endWalk: its months run as any work's do
+fun walkBy(st, row, goals)
+{
+    var ws = {run: {}, record: [], marks: [], fight: {over: "", mob: ""}, foes: [], account: []}
+    var rows = walkRowsOf(st)
+    var answer = askWalk(st, ws, "enter", {kind: "", target: row.zone, count: 0}, rows)
+
+    if (answer.run.zone == none or answer.run.zone == "")
+    {
+        return "the walk would not begin"
+    }
+
+    takeStats(st, answer.after)
+    ws = walkStateOf(answer)
+
+    var fights = 0
+    var steps = 0
+    var told = []
+
+    while (steps < 300 and answer.site.screen != "done")
+    {
+        var act = walkChoice(st, answer, goals, row.zone, fights)
+
+        if (act.kind == "seek")
+        {
+            fights = fights + 1
+        }
+
+        if (act.kind != "step" and act.kind != "back")
+        {
+            push(told, act.kind + " " + act.target)
+        }
+
+        answer = askWalk(st, ws, "act", act, rows)
+        takeStats(st, answer.after)
+        ws = walkStateOf(answer)
+        steps = steps + 1
+    }
+
+    var f = forecastOf(st, row.id, 0)
+
+    st.running = row.id
+    st.monthsIn = 0
+    st.months = f.months
+    st.board = row.board == true
+    st.raises = ""
+    st.raiseLevel = 0
+    touch(st)
+
+    note(st, "walk " + row.zone + " (" + toString(f.months) + " mo): " + join(told, ", "))
+
+    return ""
+}

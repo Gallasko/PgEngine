@@ -1,0 +1,640 @@
+// life.pg - a world of Chronicle played month by month, as the Life screen plays it.
+//
+// Imported by solver.pg; run by ChronicleSolver, which lends the rule scripts (`rule`) and `clone`.
+//
+// Every number comes from the game's rules: this file only does what the C++ of the Life screen
+// does between two runs of them (Scenes/lifescene.cpp), and must follow it when it changes:
+//   onMonth      the month: age and world, resources.pg, death, the term of the work under way
+//   beginWork    a work begun (its costs, the years it takes), or done at once when it takes no time
+//   doAtOnce     what takes no month: a buy, a sale, a work for the town that takes none
+//   raisePlace   a level of the town reached, the fund left to it spent
+//   seeTown      the places that come onto the Town page stay seen
+//   newLife      a death, the gift to a place, and the next life of the same world
+//   takeStats    what a script hands back becomes the character's; the town keys are the world's
+// Left out: the deeds (none of achievements.pg gives anything), the log, the written time.
+//
+// A state is one table, cloned to try something without losing what was:
+//   {world, lives, town {place: level}, fund {key: coin}, seen {place: 1}, know {key: n},
+//    month (his age in months), stats, done {id: terms}, running, monthsIn, months, board,
+//    townKnown, dead, death, planHead (its last line in `planLog`), reached {id: "life 2, 14y3m"},
+//    reachedCount, raises/raiseLevel (what the work under way raises), dice, stamp}
+//
+// What a state did is a line of `planLog` pointing at the line before it: a clone shares its past
+// instead of copying it. Every task any state reaches is kept in `everReached`, with the line it
+// was reached at, whatever becomes of that state.
+
+import "algorithm"
+import "string"
+import "math"
+
+fun smaller(a, b)
+{
+    if (a < b)
+    {
+        return a
+    }
+
+    return b
+}
+
+fun larger(a, b)
+{
+    if (a > b)
+    {
+        return a
+    }
+
+    return b
+}
+
+// What the Life screen makes of a number a script hands back: a whole number, cut toward zero
+fun asInt(v)
+{
+    var t = typeOf(v)
+
+    if (t == "int")
+    {
+        return v
+    }
+
+    if (t == "double" or t == "float")
+    {
+        return toInt(v)
+    }
+
+    if (t == "bool")
+    {
+        if (v)
+        {
+            return 1
+        }
+
+        return 0
+    }
+
+    return 0
+}
+
+fun statOf(st, stat)
+{
+    var v = st.stats[stat]
+
+    if (v == none)
+    {
+        return 0
+    }
+
+    return v
+}
+
+fun doneOf(st, id)
+{
+    var v = st.done[id]
+
+    if (v == none)
+    {
+        return 0
+    }
+
+    return v
+}
+
+fun ageOf(st)
+{
+    return toFloat(st.month) / 12.0
+}
+
+// "14y3m"
+fun ageText(month)
+{
+    return toString(month / 12) + "y" + toString(month - (month / 12) * 12) + "m"
+}
+
+// A state that changed is stamped anew: what was asked of the rules for the one before is asked again
+fun touch(st)
+{
+    stampNext = stampNext + 1
+    st.stamp = stampNext
+}
+
+fun freshStats()
+{
+    return {str: 4, dex: 4, int: 4, vit: 35, vitmax: 35, arms: 0, discipline: 0, letters: 0, lore: 0,
+            arcana: 0, stealth: 0, guile: 0, renown: 0, coin: 0}
+}
+
+// The first life of a new world: LifeSave's freshLife
+fun newWorld(seed)
+{
+    var st = {world: 0, lives: 1, town: {}, fund: {}, seen: {}, know: {},
+              month: 72, stats: freshStats(), done: {}, running: "", monthsIn: 0, months: 0, board: false,
+              townKnown: false, dead: false, death: "", planHead: -1, reached: {}, reachedCount: 0, raises: "", raiseLevel: 0, aim: "",
+              dice: seed, stamp: 0, terms: 0}
+    touch(st)
+
+    return st
+}
+
+// LifeSave::character: his stats, then the town and what the world knows
+fun character(st)
+{
+    var c = {}
+
+    for (var k : st.stats)
+    {
+        c[k] = st.stats[k]
+    }
+
+    if (st.townKnown)
+    {
+        c["town_known"] = 1
+    }
+    else
+    {
+        c["town_known"] = 0
+    }
+
+    for (var p : st.town)
+    {
+        c["town." + p] = st.town[p]
+    }
+
+    for (var f : st.fund)
+    {
+        c["fund." + f] = st.fund[f]
+    }
+
+    for (var s : st.seen)
+    {
+        c["seen." + s] = 1
+    }
+
+    for (var n : st.know)
+    {
+        c["know." + n] = st.know[n]
+    }
+
+    return c
+}
+
+fun note(st, text)
+{
+    push(planLog, {up: st.planHead, text: "L" + toString(st.lives) + " " + ageText(st.month) + "  " + text})
+    st.planHead = len(planLog) - 1
+}
+
+// The lines of a state's past, the first first: from `head` back
+fun planLines(head)
+{
+    var back = []
+    var at = head
+
+    while (at >= 0)
+    {
+        var line = planLog[at]
+        push(back, line.text)
+        at = line.up
+    }
+
+    var out = []
+
+    for (var i = len(back) - 1; i >= 0; i = i - 1)
+    {
+        push(out, back[i])
+    }
+
+    return out
+}
+
+// A rule run that failed stops the solver: an answer it cannot trust is worse than none
+fun checked(answer, what)
+{
+    if (not answer.ok)
+    {
+        log("RULES FAILED: " + what)
+
+        for (var e : answer.errors)
+        {
+            log("  " + e)
+        }
+    }
+
+    return answer
+}
+
+// windows.pg: every activity, shaped for him as he is. Kept while the state is the same
+fun shapeOf(st)
+{
+    if (shapeStamp == st.stamp)
+    {
+        return shapeRows
+    }
+
+    var answer = rule("windows", {age: ageOf(st), character: character(st), done: st.done, world: st.world,
+                                  lives: st.lives, running: st.running, activityId: ""}, ["activities"])
+    checked(answer, "windows")
+
+    shapeRows = answer.activities
+    shapeStamp = st.stamp
+
+    var byId = {}
+
+    for (var row : shapeRows)
+    {
+        byId[row.id] = row
+    }
+
+    shapeById = byId
+
+    return shapeRows
+}
+
+fun rowOf(st, id)
+{
+    shapeOf(st)
+
+    return shapeById[id]
+}
+
+fun forecastOf(st, id, monthsIn)
+{
+    var answer = rule("forecast", {age: ageOf(st), character: character(st), done: st.done, world: st.world,
+                                   lives: st.lives, running: st.running, activityId: id, monthsIn: monthsIn}, ["forecast"])
+    checked(answer, "forecast " + id)
+
+    var f = answer.forecast
+
+    return f
+}
+
+// LifeScene::takeStats and LifeSave::takeTown
+fun takeStats(st, after)
+{
+    for (var k : after)
+    {
+        var v = asInt(after[k])
+
+        if (k == "town_known")
+        {
+            if (v > 0)
+            {
+                st.townKnown = true
+            }
+        }
+        else if (startsWith(k, "know."))
+        {
+            st.know[substring(k, 5, strlen(k))] = v
+        }
+        else if (not (startsWith(k, "town.") or startsWith(k, "fund.") or startsWith(k, "seen.")))
+        {
+            // (the town's levels, funds and places seen are the world's: the solver keeps them, as the C++ does)
+            st.stats[k] = v
+        }
+    }
+
+    touch(st)
+}
+
+// LifeScene::giveYears: a year of his life for each twelve months begun, and the world's months
+fun giveYears(st, months)
+{
+    for (var given = 0; given < months; given = given + 12)
+    {
+        st.month = st.month + 12
+    }
+
+    st.world = st.world + months
+    touch(st)
+}
+
+// LifeScene::raisePlace: the level, and the fund that went into it
+fun raisePlace(st, place, level)
+{
+    st.town[place] = level
+
+    var kept = {}
+
+    for (var k : st.fund)
+    {
+        if (k != place and not startsWith(k, place + "."))
+        {
+            kept[k] = st.fund[k]
+        }
+    }
+
+    st.fund = kept
+    note(st, "RAISED " + place + " to " + toString(level))
+    touch(st)
+}
+
+// town.pg, and LifeScene::seeTown: a place shown once stays shown
+fun townOf(st)
+{
+    var answer = rule("town", {age: ageOf(st), character: character(st), done: st.done, world: st.world, lives: st.lives},
+                      ["places", "start", "gift"])
+    checked(answer, "town")
+
+    return answer
+}
+
+fun seeTown(st)
+{
+    var town = townOf(st)
+    var changed = false
+
+    for (var place : town.places)
+    {
+        if (place.shown == true and st.seen[place.id] == none)
+        {
+            st.seen[place.id] = 1
+            changed = true
+        }
+    }
+
+    if (changed)
+    {
+        touch(st)
+    }
+
+    return town
+}
+
+// How his life ends, "" while it goes on: resources.pg's `death`, the first of its `mortal` stats
+// he holds with none of it left. The list is read from the rules once; the check is made here,
+// sparing a run of the script a month
+fun deathOf(st)
+{
+    if (mortalStats == none)
+    {
+        var answer = rule("resources", {age: ageOf(st), character: character(st), board: false}, ["death", "mortal", "shortAge", "longAge", "callingPlace"])
+        checked(answer, "resources (death)")
+        mortalStats = answer.mortal
+        primeAges = {short: answer.shortAge, long: answer.longAge, place: answer.callingPlace}
+    }
+
+    for (var m : mortalStats)
+    {
+        var held = st.stats[m.stat]
+
+        if (held != none and held <= 0)
+        {
+            // lib.pg's primeEnd: his prime is longer in a town whose calling place stands
+            var prime = primeAges.short
+
+            if (charValue(st, "town." + primeAges.place) >= 1)
+            {
+                prime = primeAges.long
+            }
+
+            if (st.month >= prime * 12)
+            {
+                return m.aged
+            }
+
+            return m.entry
+        }
+    }
+
+    return ""
+}
+
+fun die(st, line)
+{
+    st.dead = true
+    st.death = line
+    note(st, "DIED: " + line)
+}
+
+// A term reached, for the work under way or for one done at once
+fun reach(st, id)
+{
+    st.done[id] = doneOf(st, id) + 1
+    st.terms = st.terms + 1
+
+    if (st.reached[id] == none)
+    {
+        st.reached[id] = "life " + toString(st.lives) + ", " + ageText(st.month)
+        st.reachedCount = st.reachedCount + 1
+        note(st, "REACHED " + id)
+
+        if (everReached[id] == none)
+        {
+            everReached[id] = {how: st.reached[id], head: st.planHead}
+        }
+    }
+
+    touch(st)
+}
+
+// LifeScene::onMonth
+fun monthPass(st)
+{
+    if (st.dead)
+    {
+        return
+    }
+
+    st.month = st.month + 1
+    st.world = st.world + 1
+    touch(st)
+
+    var board = false
+
+    if (st.running != "")
+    {
+        board = st.board
+    }
+
+    var answer = rule("resources", {age: ageOf(st), character: character(st), board: board}, ["month"])
+    checked(answer, "resources")
+
+    var month = answer.month
+    takeStats(st, month.after)
+
+    var line = deathOf(st)
+
+    if (line != "")
+    {
+        die(st, line)
+        return
+    }
+
+    if (st.running == "")
+    {
+        return
+    }
+
+    st.monthsIn = st.monthsIn + 1
+
+    if (st.monthsIn < st.months)
+    {
+        return
+    }
+
+    var id = st.running
+    var f = forecastOf(st, id, st.monthsIn)
+
+    if (st.monthsIn < f.months)
+    {
+        // It grew longer on the way (a bonus that holds now): its term is the forecast's
+        st.months = f.months
+        return
+    }
+
+    var raises = st.raises
+    var level = st.raiseLevel
+
+    takeStats(st, f.atTerm)
+    reach(st, id)
+
+    st.running = ""
+    st.monthsIn = 0
+    st.months = 0
+    st.board = false
+    touch(st)
+
+    st.raises = ""
+    st.raiseLevel = 0
+    note(st, "done " + id)
+
+    if (raises != "")
+    {
+        raisePlace(st, raises, level)
+    }
+}
+
+// LifeScene::doAtOnce
+fun doAtOnce(st, row, f)
+{
+    giveYears(st, row.yearMonths)
+    takeStats(st, f.atTerm)
+    reach(st, row.id)
+    note(st, "at once " + row.id)
+
+    if (row.raises != "")
+    {
+        raisePlace(st, row.raises, row.level)
+    }
+
+    var line = deathOf(st)
+
+    if (line != "")
+    {
+        die(st, line)
+    }
+}
+
+// LifeScene::beginWork: "" when it was begun (or done), else why not
+fun beginWork(st, id, goals)
+{
+    var row = rowOf(st, id)
+
+    if (row == none)
+    {
+        return "no such activity"
+    }
+
+    if (row.goto != "")
+    {
+        return "only opens a page"
+    }
+
+    if (row.listed != true or row.locked == true)
+    {
+        return "not open to him"
+    }
+
+    var f = forecastOf(st, id, 0)
+
+    if (f.months <= 0)
+    {
+        doAtOnce(st, row, f)
+        return ""
+    }
+
+    if (st.running != "")
+    {
+        return "already at work"
+    }
+
+    if (row.zone != "")
+    {
+        return walkBy(st, row, goals)
+    }
+
+    st.running = id
+    st.monthsIn = 0
+    st.months = f.months
+    st.board = row.board == true
+    st.raises = row.raises
+    st.raiseLevel = row.level
+
+    giveYears(st, row.yearMonths)
+    takeStats(st, f.atStart)
+
+    note(st, "begin " + id + " (" + toString(f.months) + " mo)")
+
+    return ""
+}
+
+// LifeScene::beginAgain and newLife: what he held left to a place, and the next life of the world
+fun newLife(st, gift, town)
+{
+    if (gift != "")
+    {
+        var coin = statOf(st, town.gift.stat)
+
+        if (coin > 0)
+        {
+            st.fund[gift] = larger(0, asInt(st.fund[gift])) + coin
+        }
+
+        for (var place : town.places)
+        {
+            if (place.id == gift)
+            {
+                for (var left : place.leaves)
+                {
+                    var key = gift + "." + left.stat
+                    st.fund[key] = larger(0, asInt(st.fund[key])) + left.amount
+                }
+            }
+        }
+
+        note(st, "left " + toString(coin) + " coin to " + gift)
+    }
+
+    st.lives = st.lives + 1
+    st.month = 72
+    st.stats = freshStats()
+    st.done = {}
+    st.running = ""
+    st.monthsIn = 0
+    st.months = 0
+    st.board = false
+    st.townKnown = false
+    st.dead = false
+    st.death = ""
+    st.terms = 0
+    touch(st)
+
+    // What the town gives a life at its birth
+    var born = townOf(st)
+
+    for (var given : born.start)
+    {
+        st.stats[given.stat] = statOf(st, given.stat) + given.amount
+    }
+
+    touch(st)
+    note(st, "a new life begins")
+}
+
+var stampNext = 0
+var shapeStamp = -1
+var shapeRows = []
+var shapeById = {}
+var planLog = []
+var mortalStats = none
+var primeAges = none
+var everReached = {}

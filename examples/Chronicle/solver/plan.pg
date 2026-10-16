@@ -1,0 +1,1308 @@
+// plan.pg - what a task asks of a life, and which work to begin next toward it.
+//
+// The tables are the game's, read once (learnTables): who brings each stat (the gains of a work,
+// of its later terms and bonuses, a level of the town, a walk's spots and beasts), what closes a
+// work (`unless`), what an event shuts, which work makes him one of a class.
+//
+// The goals of a moment (goalsFor), from the tasks aimed at, through what each asks as he is now:
+//   acts    {id: weight}   works worth doing for themselves: the targets, the works that bring a
+//                          flag one asks for, a level of the town, a walk, what a row follows
+//   need    {stat: n}      the figures they ask for (a part, coin, a skill, a flag, what the world knows)
+//   avoid   {id: weight}   works that would close one of the acts for this life
+//   events  {id: weight}   events to answer: standing by would shut an act
+//   path    ""             the class the acts belong to: no other is entered
+//   items, mobs            what the walks should bring home and seek
+//   studyAll               every walk studies its place to the end (the shared world)
+//
+// A work is scored (scoreOf) by being one of the acts, by what it brings toward the needs each
+// month it takes, and by what is new to the world (the shared world); what it would close or a
+// class it would wrongly enter weighs against it.
+// Imported by solver.pg, after life.pg and walks.pg.
+
+import "algorithm"
+import "string"
+import "math"
+
+fun asListOf(v)
+{
+    var t = typeOf(v)
+
+    if (t == "array")
+    {
+        return v
+    }
+
+    if (t == "string" and v != "")
+    {
+        return [v]
+    }
+
+    return []
+}
+
+fun pushTo(table, key, value)
+{
+    if (table[key] == none)
+    {
+        table[key] = []
+    }
+
+    push(table[key], value)
+}
+
+fun isBase(stat)
+{
+    for (var s : baseStats)
+    {
+        if (s == stat)
+        {
+            return true
+        }
+    }
+
+    return false
+}
+
+fun addProducer(stat, id, amount)
+{
+    if (typeOf(stat) != "string")
+    {
+        return
+    }
+
+    var a = amount
+
+    if (a == none)
+    {
+        a = 1
+    }
+
+    pushTo(producers, stat, {id: id, amount: a})
+}
+
+fun addGains(list, id)
+{
+    for (var g : asListOf(list))
+    {
+        addProducer(g.stat, id, g.amount)
+    }
+}
+
+// The game's tables, from one run of windows.pg (which imports the town's and the walks')
+fun learnTables(info)
+{
+    for (var row : info.activities)
+    {
+        addGains(row.gains, row.id)
+
+        for (var step : asListOf(row.after))
+        {
+            addGains(step.gains, row.id)
+            addGains(step.effects, row.id)
+        }
+
+        for (var b : asListOf(row.bonus))
+        {
+            addGains(b.more, row.id)
+            addGains(b.gains, row.id)
+        }
+
+        if (row.raises != "")
+        {
+            addProducer("town." + row.raises, row.id, row.level)
+        }
+
+        if (row.enters == true)
+        {
+            pushTo(entersOf, row.path, row.id)
+        }
+
+        closers[row.id] = asListOf(row.unless)
+
+        if (row.event != "")
+        {
+            pushTo(eventAnswers, row.event, row.id)
+        }
+
+        if (row.zone != "")
+        {
+            walkOfZone[row.zone] = row.id
+        }
+    }
+
+    var zi = 1
+
+    for (var zone : info.walkZones)
+    {
+        zoneIndex[zone.id] = zi
+        zi = zi + 1
+    }
+
+    for (var z : info.walkZones)
+    {
+        for (var spot : z.spots)
+        {
+            pushTo(zonesOfItem, spot.id, z.id)
+        }
+
+        for (var m : z.mobs)
+        {
+            pushTo(zonesOfMob, m, z.id)
+        }
+    }
+
+    for (var mob : info.walkMobs)
+    {
+        for (var loot : asListOf(mob.loot))
+        {
+            pushTo(mobsOfItem, loot.id, mob.id)
+
+            for (var zm : asListOf(zonesOfMob[mob.id]))
+            {
+                pushTo(zonesOfItem, loot.id, zm)
+            }
+        }
+    }
+
+    for (var item : info.walkItems)
+    {
+        itemKinds[item.id] = item.kind
+    }
+
+    for (var place : asListOf(info.townPlaces))
+    {
+        placeShows[place.id] = place.shows
+    }
+
+    for (var p : info.paths)
+    {
+        pathFlag[p.id] = p.flag
+        pathNames[p.id] = p.name
+    }
+
+    for (var ev : info.lifeEvents)
+    {
+        for (var s : ev.shuts)
+        {
+            eventOfShut[s] = ev.id
+        }
+    }
+}
+
+// A stat of the character as the rules read it: his, the town's, or the world's knowledge
+fun charValue(st, stat)
+{
+    var v = none
+
+    if (startsWith(stat, "town."))
+    {
+        v = st.town[substring(stat, 5, strlen(stat))]
+    }
+    else if (startsWith(stat, "know."))
+    {
+        v = st.know[substring(stat, 5, strlen(stat))]
+    }
+    else if (startsWith(stat, "done."))
+    {
+        v = st.done[substring(stat, 5, strlen(stat))]
+    }
+    else if (stat == "town_known")
+    {
+        if (st.townKnown)
+        {
+            v = 1
+        }
+    }
+    else
+    {
+        v = st.stats[stat]
+    }
+
+    if (v == none)
+    {
+        return 0
+    }
+
+    return v
+}
+
+fun newGoals(studyAll)
+{
+    return {sched: none, acts: {}, by: {}, need: {}, needW: {}, needBy: {}, keep: {}, keepW: {}, avoid: {}, events: {}, path: "", items: {}, mobs: {}, studyAll: studyAll}
+}
+
+fun raiseNeed(goals, stat, needed)
+{
+    var had = goals.need[stat]
+
+    if (had == none or had < needed)
+    {
+        goals.need[stat] = needed
+    }
+}
+
+fun raiseWeight(table, key, w)
+{
+    var had = table[key]
+
+    if (had == none or had < w)
+    {
+        table[key] = w
+    }
+}
+
+fun addWalksFor(goals, st, zones, w, depth, by)
+{
+    for (var z : asListOf(zones))
+    {
+        if (walkOfZone[z] != none)
+        {
+            addAct(goals, st, walkOfZone[z], w, depth + 1, by)
+        }
+    }
+}
+
+// What a requirement short of what it asks leads to
+fun addNeed(goals, st, stat, needed, w, depth, by)
+{
+    if (startsWith(stat, "done."))
+    {
+        addAct(goals, st, substring(stat, 5, strlen(stat)), w * 0.95, depth + 1, by)
+        return
+    }
+
+    if (startsWith(stat, "town."))
+    {
+        var place = substring(stat, 5, strlen(stat))
+        var level = charValue(st, stat)
+
+        for (var l = level + 1; l <= needed; l = l + 1)
+        {
+            addAct(goals, st, "raise." + place + "." + toString(l), w * 0.95, depth + 1, by)
+        }
+
+        return
+    }
+
+    if (startsWith(stat, "know."))
+    {
+        raiseNeed(goals, stat, needed)
+
+        var parts = split(stat, ".")
+        var kind = parts[1]
+        var key = parts[2]
+
+        if (kind == "visit" or kind == "study")
+        {
+            addWalksFor(goals, st, [key], w * 0.9, depth, by)
+        }
+        else if (kind == "observe" or kind == "fights" or kind == "drop")
+        {
+            goals.mobs[key] = 1
+            addWalksFor(goals, st, zonesOfMob[key], w * 0.9, depth, by)
+        }
+        else
+        {
+            for (var p : asListOf(producers[stat]))
+            {
+                addAct(goals, st, p.id, w * 0.9, depth + 1, by)
+            }
+        }
+
+        return
+    }
+
+    if (itemKinds[stat] != none)
+    {
+        raiseWeight(goals.items, stat, needed)
+
+        for (var m : asListOf(mobsOfItem[stat]))
+        {
+            goals.mobs[m] = 1
+        }
+
+        addWalksFor(goals, st, zonesOfItem[stat], w * 0.9, depth, by)
+
+        for (var pi : asListOf(producers[stat]))
+        {
+            addAct(goals, st, pi.id, w * 0.5, depth + 1, by)
+        }
+
+        return
+    }
+
+    raiseNeed(goals, stat, needed)
+    raiseWeight(goals.needW, stat, w)
+
+    var ps = asListOf(producers[stat])
+
+    if (not isBase(stat))
+    {
+        for (var pf : ps)
+        {
+            addAct(goals, st, pf.id, w * 0.9 / toFloat(larger(1, len(ps))), depth + 1, by)
+        }
+    }
+    else if (stat != "coin" and stat != "rations" and stat != "vit" and depth < 3)
+    {
+        // A part or a skill: the works that bring it best are aimed at lightly, so that what
+        // they ask (reagents for a working) is worth getting too. Best: the most a month, from
+        // what is nearest his reach; not one that asks for more of it than he has
+        var taken = {}
+        var have = charValue(st, stat)
+
+        for (var round = 0; round < 3; round = round + 1)
+        {
+            var best = none
+            var bestRank = -1.0
+
+            for (var pb : ps)
+            {
+                var row = shapeById[pb.id]
+
+                if (taken[pb.id] == none and row != none and row.spent != true and row.closed != true and row.months > 0 and (row.path == "" or goals.path == "" or row.path == goals.path))
+                {
+                    var circular = false
+
+                    for (var rq : asListOf(row.requires))
+                    {
+                        if (rq.stat == stat and rq.needed > have)
+                        {
+                            circular = true
+                        }
+                    }
+
+                    var reach = row.reach
+
+                    if (reach == none)
+                    {
+                        reach = 0
+                    }
+
+                    var rank = toFloat(pb.amount) / toFloat(row.months) * toFloat(reach + 10)
+
+                    if (not circular and rank > bestRank)
+                    {
+                        best = pb
+                        bestRank = rank
+                    }
+                }
+            }
+
+            if (best != none)
+            {
+                taken[best.id] = 1
+                addAct(goals, st, best.id, w * 0.3, depth + 1, by)
+            }
+        }
+    }
+}
+
+// A work worth doing for itself, and what it asks of him as he is now
+fun addAct(goals, st, id, w, depth, by)
+{
+    if (id == none or depth > 10)
+    {
+        return
+    }
+
+    var row = shapeById[id]
+
+    if (row == none)
+    {
+        return
+    }
+
+    // Used up for this life: nothing to aim at
+    if (depth > 0 and row.spent == true)
+    {
+        return
+    }
+
+    // The month it must be begun by: its own window, and the time left before what it leads to
+    var win = windowOf(row)
+    var last = smaller(win.last, by - larger(0, asInt(row.months)))
+
+    // A class's door, on the way to something: the sooner the better, its works come in a line
+    if (row.enters == true and depth > 0)
+    {
+        last = smaller(last, larger(win.first, by - larger(0, asInt(row.months)) - 6))
+    }
+    var before = goals.by[id]
+    var sooner = before == none or last < before
+
+    if (sooner)
+    {
+        goals.by[id] = last
+    }
+
+    var had = goals.acts[id]
+
+    if (had != none and had >= w and not sooner)
+    {
+        return
+    }
+
+    // A work of another class than the one aimed at is out of his reach: not a way to anything
+    if (depth > 0 and row.path != "" and goals.path != "" and row.path != goals.path)
+    {
+        return
+    }
+
+    if (had == none or had < w)
+    {
+        goals.acts[id] = w
+    }
+
+    if (row.path != "" and row.enters != true)
+    {
+        if (charValue(st, pathFlag[row.path]) < 1)
+        {
+            if (goals.path == "")
+            {
+                goals.path = row.path
+            }
+
+            for (var e : asListOf(entersOf[row.path]))
+            {
+                addAct(goals, st, e, w * 0.95, depth + 1, last)
+            }
+        }
+    }
+
+    if (row.enters == true and goals.path == "")
+    {
+        goals.path = row.path
+    }
+
+    // What it asks presses more as the month it must be begun by draws near
+    var slack = goals.by[id] - st.month
+    var wn = w
+
+    if (slack >= 0 and slack < 48 and depth == 0)
+    {
+        wn = w * (1.0 + 3.0 * toFloat(48 - slack) / 48.0)
+    }
+    else if (slack >= 0 and slack < 48)
+    {
+        // (pressed, but within bounds: weights multiplied down a chain run away)
+        wn = smaller(larger(w, 3.0), w * (1.0 + 3.0 * toFloat(48 - slack) / 48.0))
+    }
+
+    var needs = {}
+
+    for (var n : asListOf(row.needs))
+    {
+        needs[n.stat] = n
+    }
+
+    for (var r : asListOf(row.requires))
+    {
+        // Held or not, what a wanted work asks is not to be sold or spent from under it
+        if (r.room != true and r.stat != "age")
+        {
+            raiseWeight(goals.keep, r.stat, r.needed)
+            raiseWeight(goals.keepW, r.stat, w)
+        }
+
+        if (r.room != true and r.stat != "age" and r.current < r.needed)
+        {
+            var nb = goals.needBy[r.stat]
+
+            if (nb == none or goals.by[id] < nb)
+            {
+                goals.needBy[r.stat] = goals.by[id]
+            }
+
+            var asked = needs[r.stat]
+
+            if (asked != none and typeOf(asked.anyOf) == "array")
+            {
+                for (var alt : asked.anyOf)
+                {
+                    addNeed(goals, st, alt, r.needed, wn / toFloat(len(asked.anyOf)), depth, last)
+                }
+            }
+            else
+            {
+                addNeed(goals, st, r.stat, r.needed, wn, depth, last)
+            }
+        }
+    }
+
+    // A level of the town: listed only once the town is known, the place is on its page and the
+    // level before it stands
+    if (row.raises != "")
+    {
+        if (not st.townKnown)
+        {
+            addNeed(goals, st, "town_known", 1, w, depth, last)
+        }
+
+        if (row.level > 1 and charValue(st, "town." + row.raises) < row.level - 1)
+        {
+            addAct(goals, st, "raise." + row.raises + "." + toString(row.level - 1), w * 0.95, depth + 1, last)
+        }
+
+        var shows = placeShows[row.raises]
+
+        if (st.seen[row.raises] == none and typeOf(shows) == "table")
+        {
+            if (typeOf(shows.flag) == "string" and charValue(st, shows.flag) < 1)
+            {
+                addNeed(goals, st, shows.flag, 1, w, depth, last)
+            }
+
+            if (typeOf(shows.done) == "string" and doneOf(st, shows.done) < 1)
+            {
+                addAct(goals, st, shows.done, w * 0.95, depth + 1, last)
+            }
+        }
+    }
+
+    if (typeOf(row.onlyWith) == "string" and row.onlyWith != "" and charValue(st, row.onlyWith) < 1)
+    {
+        addNeed(goals, st, row.onlyWith, 1, w, depth, last)
+    }
+
+    for (var c : asListOf(closers[id]))
+    {
+        raiseWeight(goals.avoid, c, w)
+    }
+
+    if (eventOfShut[id] != none)
+    {
+        raiseWeight(goals.events, eventOfShut[id], w)
+    }
+
+    // Shut once he has stood by at so many events: every event is answered
+    if (row.shutAfter != none and row.shutAfter > 0)
+    {
+        for (var ev : eventAnswers)
+        {
+            raiseWeight(goals.events, ev, w * 0.8)
+        }
+    }
+
+    for (var f : asListOf(row.follows))
+    {
+        addAct(goals, st, f, w * 0.9, depth + 1, last)
+    }
+}
+
+// The goals of the moment: each target {id, weight}
+fun goalsFor(st, targets, studyAll, path)
+{
+    shapeOf(st)
+
+    var goals = newGoals(studyAll)
+
+    if (path != "")
+    {
+        goals.path = path
+    }
+
+    // The class he is of, whatever else is aimed at
+    for (var p : pathFlag)
+    {
+        if (charValue(st, pathFlag[p]) > 0)
+        {
+            goals.path = p
+        }
+    }
+
+    for (var t : targets)
+    {
+        addAct(goals, st, t.id, t.weight, 0, 100000)
+    }
+
+    return goals
+}
+
+// The coin a ration costs at the market, 0 while he cannot buy them there
+fun rationPrice(st)
+{
+    var buy = shapeById["buy.rations"]
+
+    if (buy == none or not isOpen(buy))
+    {
+        return 0.0
+    }
+
+    var coin = 0
+    var rations = 0
+
+    for (var c : asListOf(buy.costs))
+    {
+        if (c.stat == "coin")
+        {
+            coin = coin + c.amount
+        }
+    }
+
+    for (var g : asListOf(buy.gains))
+    {
+        if (g.stat == "rations")
+        {
+            rations = rations + g.amount
+        }
+    }
+
+    if (rations <= 0)
+    {
+        return 0.0
+    }
+
+    return toFloat(coin) / toFloat(rations)
+}
+
+// What a row would do toward the needs: each stat's gain less its cost (and, for coin, the rations
+// its months eat away from a table that feeds him), as a share of what is still missing of that
+// need, weighed as the work that asks for it is
+fun gainScore(st, goals, row)
+{
+    var net = {}
+
+    for (var g : asListOf(row.gains))
+    {
+        net[g.stat] = asInt(net[g.stat]) + g.amount
+    }
+
+    for (var c : asListOf(row.costs))
+    {
+        net[c.stat] = asInt(net[c.stat]) - c.amount
+    }
+
+    if (row.board != true and st.stats.rations != none and row.months > 0)
+    {
+        net["coin"] = asInt(net["coin"]) - toInt(toFloat(row.months) * rationPrice(st) + 0.5)
+    }
+
+    var s = 0.0
+
+    for (var stat : net)
+    {
+        var need = goals.need[stat]
+
+        if (need != none and need > 0)
+        {
+            var short = need - charValue(st, stat)
+
+            if (short > 0)
+            {
+                var w = goals.needW[stat]
+
+                if (w == none)
+                {
+                    w = 0.5
+                }
+
+                // How fast it must come: what is short over the months left to have it
+                var nb = goals.needBy[stat]
+
+                if (nb != none and nb > st.month and nb < 100000)
+                {
+                    var rate = toFloat(short) / toFloat(nb - st.month)
+
+                    if (stat != "coin")
+                    {
+                        rate = rate * 10.0
+                    }
+
+                    w = w * smaller(4.0, larger(1.0, rate))
+                }
+
+                var n = net[stat]
+
+                if (n > 0)
+                {
+                    s = s + 1000.0 * w * toFloat(smaller(n, short)) / toFloat(short)
+                }
+                else if (n < 0)
+                {
+                    s = s - 1000.0 * w * toFloat(0 - n) / toFloat(need)
+                }
+            }
+        }
+    }
+
+    return s
+}
+
+// A little of everything, for when nothing is asked: coin, parts and skills, a month at a time
+fun fillerScore(row)
+{
+    var s = 0.0
+
+    for (var g : asListOf(row.gains))
+    {
+        if (g.stat == "coin")
+        {
+            s = s + toFloat(g.amount) * 0.3
+        }
+        else if (g.stat == "rations")
+        {
+            s = s + toFloat(g.amount) * 0.2
+        }
+        else if (isBase(g.stat))
+        {
+            s = s + toFloat(g.amount) * 3.0
+        }
+    }
+
+    return s
+}
+
+// The months of his life a row may be begun in: [first, last], in months of age
+fun windowOf(row)
+{
+    var first = asInt(row.fromAge) * 12 + asInt(row.fromMonths)
+    var last = asInt(row.finishBy) * 12 + asInt(row.finishMonths) - larger(0, asInt(row.months))
+
+    return {first: first, last: last}
+}
+
+// What beginning `row` now would make him miss: a wanted work, or an event's answer, whose whole
+// window falls inside its months
+fun blockScore(st, goals, row)
+{
+    var ends = st.month + larger(0, row.months)
+    var s = 0.0
+
+    // Only what weighs more than the work itself is held against it
+    var own = goals.acts[row.id]
+
+    if (own == none)
+    {
+        own = 0.0
+    }
+
+    for (var id : goals.acts)
+    {
+        if (id != row.id)
+        {
+            var other = shapeById[id]
+
+            if (other != none and other.closed != true and other.spent != true and goals.acts[id] > own)
+            {
+                var win = windowOf(other)
+                var by = goals.by[id]
+
+                if (by != none)
+                {
+                    win.last = by
+                }
+
+                if (win.last >= st.month and win.last < ends and win.first < ends)
+                {
+                    s = s + 2000.0 * goals.acts[id]
+                }
+            }
+        }
+    }
+
+    for (var ev : goals.events)
+    {
+        for (var answer : asListOf(eventAnswers[ev]))
+        {
+            var a = shapeById[answer]
+
+            if (a != none and a.id != row.id and a.closed != true and a.spent != true and goals.events[ev] > own)
+            {
+                var w2 = windowOf(a)
+
+                if (w2.last >= st.month and w2.last < ends and w2.first < ends)
+                {
+                    s = s + 1500.0 * goals.events[ev]
+                }
+            }
+        }
+    }
+
+    return s
+}
+
+// The wanted works that have a month to be begun by, earliest first: what a life still has to fit in
+fun scheduleOf(st, goals)
+{
+    if (goals.sched != none)
+    {
+        return goals.sched
+    }
+
+    var left = []
+
+    for (var id : goals.acts)
+    {
+        var row = shapeById[id]
+        var by = goals.by[id]
+
+        if (row != none and by != none and by < 100000 and goals.acts[id] >= 0.5 and doneOf(st, id) == 0 and row.spent != true and row.closed != true and row.months > 0 and row.zone == "")
+        {
+            var win = windowOf(row)
+            push(left, {id: id, by: by, first: win.first, months: row.months})
+        }
+    }
+
+    var sorted = []
+
+    while (len(left) > 0)
+    {
+        var bi = 0
+
+        for (var j = 1; j < len(left); j = j + 1)
+        {
+            if (left[j].by < left[bi].by)
+            {
+                bi = j
+            }
+        }
+
+        push(sorted, left[bi])
+        removeAt(left, bi)
+    }
+
+    goals.sched = sorted
+
+    return sorted
+}
+
+// The months late the wanted works would be, done one after the other from `start` (`skip` is the
+// one begun now), counting only those that would be on time from now: what is already lost does
+// not weigh on the choice
+fun lateness(st, goals, start, skip)
+{
+    var t = start
+    var t0 = st.month
+    var late = 0
+
+    for (var a : scheduleOf(st, goals))
+    {
+        var begin0 = larger(t0, a.first)
+        t0 = begin0 + a.months
+
+        if (a.id != skip)
+        {
+            var begin = larger(t, a.first)
+
+            if (begin > a.by and begin0 <= a.by)
+            {
+                late = late + begin - a.by
+            }
+
+            t = begin + a.months
+        }
+    }
+
+    return late
+}
+
+// A little chance in the choosing, for a search tried again (`noise` 0: none)
+fun jitter()
+{
+    noiseSeed = (noiseSeed * 75 + 74) % 65537
+
+    return noise * (toFloat(noiseSeed) / 32768.0 - 1.0)
+}
+
+fun scoreOf(st, goals, row, novelty)
+{
+    var months = larger(1, row.months)
+    var s = gainScore(st, goals, row) / sqrt(toFloat(months)) + fillerScore(row) / toFloat(months)
+    var w = goals.acts[row.id]
+
+    if (w != none)
+    {
+        s = s + 1000.0 * w
+
+        // Little time left to begin it
+        var by = goals.by[row.id]
+
+        if (by != none and by >= st.month and by - st.month < 24)
+        {
+            s = s + 1000.0 * w * toFloat(24 - (by - st.month)) / 24.0
+        }
+    }
+
+    if (novelty and st.reached[row.id] == none)
+    {
+        s = s + 100.0
+
+        if (row.closesIn != none and row.closesIn >= 0 and row.closesIn < 12)
+        {
+            s = s + 200.0
+        }
+    }
+
+    if (row.event != "" and goals.events[row.event] != none)
+    {
+        s = s + 800.0 * goals.events[row.event]
+    }
+
+    // What it would close, when that weighs more than it does itself: of two that close each
+    // other and either will do (an `anyOf`), neither is held back
+    if (goals.avoid[row.id] != none)
+    {
+        var own = 0.0
+
+        if (w != none)
+        {
+            own = w
+        }
+
+        if (goals.avoid[row.id] > own)
+        {
+            s = s - 5000.0 * (goals.avoid[row.id] - own) - 1000.0 * own
+        }
+    }
+
+    s = s - blockScore(st, goals, row)
+    s = s - 150.0 * toFloat(lateness(st, goals, st.month + larger(0, row.months), row.id))
+
+    if (row.enters == true and row.path != goals.path)
+    {
+        s = s - 5000.0
+    }
+
+    // A cost he cannot live through
+    for (var c : asListOf(row.costs))
+    {
+        if (c.stat == "vit" and c.amount >= statOf(st, "vit"))
+        {
+            s = s - 10000.0
+        }
+    }
+
+    if (noise > 0.0)
+    {
+        s = s + jitter()
+    }
+
+    return s
+}
+
+fun isOpen(row)
+{
+    return row.listed == true and row.locked != true and row.goto == ""
+}
+
+// Rations enough for `months` away from a table that feeds him: bought at the market while they
+// are short and he can pay
+fun provision(st, months, goals)
+{
+    if (st.stats.rations == none)
+    {
+        return true
+    }
+
+    var tries = 0
+
+    while (statOf(st, "rations") < months + 1 and tries < 8)
+    {
+        var buy = rowOf(st, "buy.rations")
+
+        if (buy == none or not isOpen(buy))
+        {
+            return false
+        }
+
+        beginWork(st, "buy.rations", goals)
+        tries = tries + 1
+
+        if (st.dead)
+        {
+            return false
+        }
+    }
+
+    return statOf(st, "rations") >= months + 1
+}
+
+// What is done at once (a buy, a sale, an answer that takes no time): the ones worth it, one after
+// the other, before a work is chosen
+fun doAtOnceWorth(st, goals, novelty, reserve)
+{
+    var times = {}
+
+    for (var round = 0; round < 16; round = round + 1)
+    {
+        var best = none
+        var bestScore = 0.0
+
+        for (var row : shapeOf(st))
+        {
+            if (row.months == 0 and isOpen(row) and row.id != "buy.rations")
+            {
+                var n = times[row.id]
+
+                if (n == none)
+                {
+                    n = 0
+                }
+
+                var s = scoreOf(st, goals, row, novelty) - fillerScore(row)
+
+                // Sold for coin the goals are short of
+                if (startsWith(row.id, "sell.") and goals.need.coin != none and statOf(st, "coin") < goals.need.coin)
+                {
+                    s = s + 100.0
+                }
+
+                // Not with the coin a weightier goal is saving, nor what the work in view will cost
+                for (var c : asListOf(row.costs))
+                {
+                    if (c.stat == "coin" and statOf(st, "coin") - c.amount < reserve)
+                    {
+                        s = 0.0
+                    }
+
+                    // Nor what a goal needs: coin, a thing of the walks, any figure it asks for
+                    var keep = goals.need[c.stat]
+
+                    if (goals.items[c.stat] != none and (keep == none or goals.items[c.stat] > keep))
+                    {
+                        keep = goals.items[c.stat]
+                    }
+
+                    if (goals.keep[c.stat] != none and (keep == none or goals.keep[c.stat] > keep))
+                    {
+                        keep = goals.keep[c.stat]
+                    }
+
+                    if (keep != none and statOf(st, c.stat) - c.amount < keep)
+                    {
+                        var mine = goals.acts[row.id]
+                        var theirs = goals.keepW[c.stat]
+
+                        if (theirs == none)
+                        {
+                            theirs = 1.0
+                        }
+
+                        if (mine == none or mine < theirs)
+                        {
+                            s = 0.0
+                        }
+                    }
+                }
+
+                if (n < 3 and s > bestScore)
+                {
+                    best = row
+                    bestScore = s
+                }
+            }
+        }
+
+        if (best == none)
+        {
+            return
+        }
+
+        times[best.id] = asInt(times[best.id]) + 1
+
+        if (beginWork(st, best.id, goals) != "" or st.dead)
+        {
+            return
+        }
+    }
+}
+
+// The next work: "" when nothing could be begun, else its id. The best first; one that does not
+// feed him only with the rations for its months in hand (bought for it when he can pay)
+// What a locked row lacks that a buy open now brings: [{stat, short, buy}], or [] when anything else
+// is lacking too (or nothing is)
+fun buysFor(st, row)
+{
+    var out = []
+
+    for (var r : asListOf(row.requires))
+    {
+        if (r.room != true and r.current < r.needed)
+        {
+            var buy = none
+
+            for (var p : asListOf(producers[r.stat]))
+            {
+                var b = shapeById[p.id]
+
+                if (buy == none and b != none and b.months == 0 and isOpen(b) and b.id != row.id)
+                {
+                    buy = b.id
+                }
+            }
+
+            if (buy == none)
+            {
+                return []
+            }
+
+            push(out, {stat: r.stat, needed: r.needed, buy: buy})
+        }
+    }
+
+    return out
+}
+
+fun buyFor(st, row, prep, goals)
+{
+    for (var p : prep)
+    {
+        var tries = 0
+
+        while (charValue(st, p.stat) < p.needed and tries < 10 and not st.dead)
+        {
+            if (beginWork(st, p.buy, goals) != "")
+            {
+                return
+            }
+
+            tries = tries + 1
+        }
+    }
+}
+
+fun coinCost(row)
+{
+    var coin = 0
+
+    for (var c : asListOf(row.costs))
+    {
+        if (c.stat == "coin")
+        {
+            coin = coin + c.amount
+        }
+    }
+
+    return coin
+}
+
+fun chooseWork(st, goals, novelty)
+{
+    // What the work in view will cost is kept from what is done at once before it
+    var reserve = 0
+    var top = -1000000.0
+
+    for (var r : shapeOf(st))
+    {
+        if (r.months > 0 and isOpen(r))
+        {
+            var rs = scoreOf(st, goals, r, novelty)
+
+            if (rs > top)
+            {
+                top = rs
+                reserve = coinCost(r)
+            }
+        }
+    }
+
+    doAtOnceWorth(st, goals, novelty, reserve)
+
+    if (st.dead or st.running != "")
+    {
+        return ""
+    }
+
+    var choices = []
+
+    for (var row : shapeOf(st))
+    {
+        if (row.months > 0 and isOpen(row))
+        {
+            push(choices, {row: row, score: scoreOf(st, goals, row, novelty), tried: false, prep: []})
+        }
+        else if (row.months > 0 and row.listed == true and row.locked == true and row.goto == "" and goals.acts[row.id] != none)
+        {
+            // Locked only by what is bought at once (reagents at the market): bought first
+            var prep = buysFor(st, row)
+
+            if (len(prep) > 0)
+            {
+                push(choices, {row: row, score: scoreOf(st, goals, row, novelty), tried: false, prep: prep})
+            }
+        }
+    }
+
+    for (var round = 0; round < len(choices); round = round + 1)
+    {
+        var best = none
+
+        for (var c : choices)
+        {
+            if (not c.tried and (best == none or c.score > best.score))
+            {
+                best = c
+            }
+        }
+
+        if (best == none)
+        {
+            return ""
+        }
+
+        best.tried = true
+
+        var row = best.row
+
+        if (len(best.prep) > 0)
+        {
+            buyFor(st, row, best.prep, goals)
+
+            if (st.dead)
+            {
+                return ""
+            }
+
+            row = rowOf(st, row.id)
+
+            if (row == none or not isOpen(row))
+            {
+                continue
+            }
+        }
+
+        var fed = row.board == true or st.stats.rations == none or statOf(st, "rations") >= row.months + 1
+
+        if (not fed)
+        {
+            fed = provision(st, row.months, goals)
+
+            if (st.dead)
+            {
+                return ""
+            }
+        }
+
+        if (fed)
+        {
+            var id = row.id
+
+            if (beginWork(st, id, goals) == "")
+            {
+                return id
+            }
+        }
+    }
+
+    return ""
+}
+
+var baseStats = ["str", "dex", "int", "vit", "vitmax", "arms", "discipline", "letters", "lore", "arcana", "stealth",
+                 "guile", "renown", "coin", "rations", "reagents", "favors"]
+var producers = {}
+var entersOf = {}
+var closers = {}
+var eventAnswers = {}
+var eventOfShut = {}
+var walkOfZone = {}
+var zonesOfItem = {}
+var zonesOfMob = {}
+var mobsOfItem = {}
+var itemKinds = {}
+var pathFlag = {}
+var pathNames = {}
+var placeShows = {}
+var zoneIndex = {}
+var noise = 0.0
+var noiseSeed = 1

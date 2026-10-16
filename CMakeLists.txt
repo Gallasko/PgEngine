@@ -1766,6 +1766,16 @@ if(NOT BUILD_STATIC_LIB AND BUILD_EXAMPLES)
         )
         target_link_libraries(ChronicleRules PRIVATE ColumbaEngine)
 
+        # The solver: runs examples/Chronicle/solver/solver.pg, which plays the rules to find
+        # out whether every task can be done (the rule scripts are lent to it by this host)
+        add_executable(ChronicleSolver examples/Chronicle/solver/main.cpp)
+        target_include_directories(ChronicleSolver PUBLIC examples/Chronicle examples/Chronicle/Core examples/Chronicle/Scenes ${CHRONICLE_GENERATED_DIR})
+        target_sources(ChronicleSolver PRIVATE
+            ${CHRONICLE_GENERATED_SOURCES}
+            ${CHRONICLE_CORE}
+        )
+        target_link_libraries(ChronicleSolver PRIVATE ColumbaEngine)
+
         add_executable(bench benchmark/mainbenchmark.cc)
 
         target_sources(bench PRIVATE

@@ -1,0 +1,737 @@
+// beam.pg - a search that tries every task: no aim, no plan, only the game's rules.
+//
+// Every world of the search stands at the same month of its calendar. Each month, a world that is
+// free to choose is branched into every choice the Life screen offers it then:
+//   every work open to him (a walk twice: studied and gathered, or hunted),
+//   every thing done at once (a buy, a sale, an answer that takes no time; then he chooses again,
+//   twice at most in a month),
+//   waiting the month out.
+// A world whose life ends is branched into every place its coin may be left to (or none), and the
+// next life begins, with each aim; past `lives` lives it is over. Then the month passes for every
+// world, and the best are kept: the most tasks reached in the world, then the most grown (parts,
+// coin, the town's levels, what the world knows, how near it stands to what it has not reached).
+// A world has an aim, a class of the game's (or none): `width` is shared out among the aims, and
+// an aimed world counts how near it stands to its class's door, and being in it. A door takes
+// years to grow toward, which a month's look ahead would never see. Two worlds alike are kept once.
+//
+// A task reached by any world is reached, whatever becomes of that world: it was played month by
+// month with the game's numbers. `everReached` keeps where (life.pg), and the line of its past.
+//
+// What is not a choice: rations are bought before a work that does not feed him, when he can pay
+// (a boy who starves teaches nothing), and the days of a walk follow walks.pg's way.
+// Imported by solver.pg, after life.pg, walks.pg and plan.pg.
+
+import "algorithm"
+import "string"
+import "math"
+
+fun beamGoals(hunt)
+{
+    var g = newGoals(true)
+    g.hunt = hunt
+
+    return g
+}
+
+// A work begun: what beginWork does, its costs taken from the row (they are forecast.atStart, row
+// for row: checked over a life of choices) to spare a run of the rules a branch
+fun beginFast(st, row)
+{
+    st.running = row.id
+    st.monthsIn = 0
+    st.months = row.months
+    st.board = row.board == true
+    st.raises = row.raises
+    st.raiseLevel = row.level
+
+    giveYears(st, row.yearMonths)
+
+    for (var c : asListOf(row.costs))
+    {
+        st.stats[c.stat] = statOf(st, c.stat) - c.amount
+    }
+
+    touch(st)
+    note(st, "begin " + row.id + " (" + toString(row.months) + " mo)")
+}
+
+// Rations for `months` away from a table that feeds him, bought from the market row as it stands
+// (its price and what it brings, with the room he has for them)
+fun provisionFast(st, buy, months)
+{
+    if (st.stats.rations == none or buy == none or not isOpen(buy))
+    {
+        return
+    }
+
+    var coin = 0
+    var rations = 0
+    var room = 1000
+
+    for (var c : asListOf(buy.costs))
+    {
+        if (c.stat == "coin")
+        {
+            coin = coin + c.amount
+        }
+    }
+
+    for (var g : asListOf(buy.gains))
+    {
+        if (g.stat == "rations")
+        {
+            rations = rations + g.amount
+        }
+    }
+
+    for (var r : asListOf(buy.requires))
+    {
+        if (r.room == true)
+        {
+            room = r.current
+        }
+    }
+
+    var bought = 0
+
+    while (statOf(st, "rations") < months + 1 and statOf(st, "coin") >= coin and room > 0 and bought < 8 and rations > 0)
+    {
+        st.stats.coin = statOf(st, "coin") - coin
+        st.stats.rations = statOf(st, "rations") + rations
+        room = room - rations
+        bought = bought + 1
+        reach(st, buy.id)
+    }
+
+    if (bought > 0)
+    {
+        touch(st)
+        note(st, "bought rations x" + toString(bought))
+    }
+}
+
+// Every choice of a world that is free to choose, each as a world of its own
+fun expand(st, round)
+{
+    var children = []
+
+    // Nothing left in this life that the world has not reached: it only waits for its end
+    if (st.coasting == true)
+    {
+        var rest = clone(st)
+        rest.waiting = true
+        push(children, rest)
+
+        return children
+    }
+
+    seeTown(st)
+
+    var rows = shapeOf(st)
+    var buy = shapeById["buy.rations"]
+
+    var alive = false
+
+    for (var ar : rows)
+    {
+        // (the window in a var first: a field of a table a call has just built reads garbage)
+        var arWin = windowOf(ar)
+
+        if (not alive and st.reached[ar.id] == none and ar.closed != true and ar.spent != true and ar.barred == "" and ar.pathOpen == true and ar.goto == "" and arWin.last >= st.month)
+        {
+            alive = true
+        }
+    }
+
+    if (not alive)
+    {
+        st.coasting = true
+        note(st, "nothing new left in this life: it runs to its end")
+
+        var idle = clone(st)
+        idle.waiting = true
+        push(children, idle)
+
+        return children
+    }
+
+    // How near he stands to what the world has not reached yet: each row's reach, the nearer the
+    // more (squared), a class's door five times over. Kept with every branch until it chooses again
+    var prospect = 0.0
+
+    for (var pr : rows)
+    {
+        if (st.reached[pr.id] == none and pr.closed != true and pr.spent != true and pr.barred == "" and pr.reach != none)
+        {
+            var near = toFloat(pr.reach) / 100.0
+            var wt = 1.0
+
+            if (pr.enters == true)
+            {
+                wt = 5.0
+            }
+
+            prospect = prospect + 50.0 * wt * near * near
+        }
+    }
+
+    st.prospect = prospect
+
+    // How near he stands to the door of the class his world aims at
+    // (what the nearest of them asks, kept with every branch: its own choice moves it)
+    var aimNear = -1.0
+    var doorReq = []
+
+    if (st.aim != "" and classOf(st) == "")
+    {
+        for (var door : asListOf(entersOf[st.aim]))
+        {
+            var dr = shapeById[door]
+
+            if (dr != none and dr.reach != none and dr.closed != true and toFloat(dr.reach) / 100.0 > aimNear)
+            {
+                aimNear = toFloat(dr.reach) / 100.0
+                doorReq = []
+
+                for (var rq : asListOf(dr.requires))
+                {
+                    if (rq.room != true and rq.stat != "age" and rq.needed > 0)
+                    {
+                        push(doorReq, {stat: rq.stat, needed: rq.needed})
+                    }
+                }
+            }
+        }
+    }
+
+    st.doorReq = doorReq
+
+    var walks = []
+
+    for (var row : rows)
+    {
+        if (row.months > 0 and isOpen(row))
+        {
+            if (row.zone != "")
+            {
+                // Judged before it is played (a walk is a hundred runs of the rules): see below
+                push(walks, {row: row, hunt: false, est: walkEstimate(st, row, false)})
+
+                if (zoneHasBeasts[row.zone] != none)
+                {
+                    push(walks, {row: row, hunt: true, est: walkEstimate(st, row, true)})
+                }
+            }
+            else
+            {
+                var c = clone(st)
+
+                if (row.board != true)
+                {
+                    provisionFast(c, buy, row.months)
+                }
+
+                beginFast(c, row)
+                c.pending = row.gains
+                c.pendingNew = st.reached[row.id] == none
+                push(children, c)
+            }
+        }
+    }
+
+    if (round < 2)
+    {
+        for (var once : rows)
+        {
+            if (once.months == 0 and isOpen(once) and once.id != "buy.rations" and st.onceMonth[once.id] == none)
+            {
+                var d = clone(st)
+                d.onceMonth[once.id] = 1
+
+                if (beginWork(d, once.id, beamGoals(false)) == "")
+                {
+                    push(children, d)
+                }
+            }
+        }
+    }
+
+    // The walks worth playing: the best `walksPlayed` of them by what they could bring
+    for (var played = 0; played < walksPlayed and len(walks) > 0; played = played + 1)
+    {
+        var bi = 0
+
+        for (var j = 1; j < len(walks); j = j + 1)
+        {
+            if (walks[j].est > walks[bi].est)
+            {
+                bi = j
+            }
+        }
+
+        var pick = walks[bi]
+        removeAt(walks, bi)
+
+        var walked = clone(st)
+
+        if (walkBy(walked, pick.row, beamGoals(pick.hunt)) == "")
+        {
+            walked.pendingNew = st.reached[pick.row.id] == none
+            push(children, walked)
+        }
+    }
+
+    var waits = clone(st)
+    waits.waiting = true
+    push(children, waits)
+
+    // No more of them than could be kept for its aim
+    return prune(children, larger(3, (beamWidth + len(aims) - 1) / len(aims)) * len(aims))
+}
+
+// What a walk could bring, before it is played: new to the world, a place still to learn, beasts
+// not fought yet (for a hunt), or only what it gathers
+fun walkEstimate(st, row, hunt)
+{
+    var est = 50.0
+
+    if (st.reached[row.id] == none)
+    {
+        est = est + 900.0
+    }
+
+    var studies = st.know["study." + row.zone]
+
+    if (studies == none or studies < 10)
+    {
+        est = est + 300.0
+    }
+
+    if (hunt)
+    {
+        for (var m : zonesOfMob)
+        {
+            for (var z : zonesOfMob[m])
+            {
+                if (z == row.zone and st.know["fights." + m] == none)
+                {
+                    est = est + 200.0
+                }
+            }
+        }
+    }
+
+    return est
+}
+
+// A life over: the next one, for each place his coin may be left to, and for none
+fun afterDeath(st, cap)
+{
+    var out = []
+
+    if (st.lives >= cap)
+    {
+        return out
+    }
+
+    var town = townOf(st)
+    var gifts = [""]
+
+    if (st.townKnown)
+    {
+        for (var place : town.places)
+        {
+            if (place.shown == true and place.level < place.most and (statOf(st, "coin") > 0 or len(place.leaves) > 0))
+            {
+                push(gifts, place.id)
+            }
+        }
+    }
+
+    for (var gift : gifts)
+    {
+        for (var aim : aims)
+        {
+            var c = clone(st)
+            newLife(c, gift, town)
+            c.aim = aim
+            c.coasting = false
+            push(out, c)
+        }
+    }
+
+    return out
+}
+
+fun classOf(st)
+{
+    for (var p : pathFlag)
+    {
+        if (charValue(st, pathFlag[p]) > 0)
+        {
+            return p
+        }
+    }
+
+    return ""
+}
+
+// What the work under way will bring of a stat at its term (0 when nothing is under way)
+fun pendingOf(st, stat)
+{
+    if (st.running == "" or st.pending == none)
+    {
+        return 0
+    }
+
+    var n = 0
+
+    for (var g : asListOf(st.pending))
+    {
+        if (g.stat == stat)
+        {
+            n = n + g.amount
+        }
+    }
+
+    return n
+}
+
+// A stat as it will stand once the work under way is over
+fun projected(st, stat)
+{
+    return charValue(st, stat) + pendingOf(st, stat)
+}
+
+// How near the world stands to its aim's door, with what the work under way will bring
+fun doorNear(st)
+{
+    if (st.doorReq == none or len(st.doorReq) == 0)
+    {
+        return 0.0
+    }
+
+    var sum = 0.0
+
+    for (var r : st.doorReq)
+    {
+        sum = sum + smaller(1.0, toFloat(projected(st, r.stat)) / toFloat(r.needed))
+    }
+
+    return sum / toFloat(len(st.doorReq))
+}
+
+// How grown a world is, beyond the tasks it has reached
+fun grownOf(st)
+{
+    var g = 0
+
+    for (var s : grownStats)
+    {
+        g = g + 10 * projected(st, s)
+    }
+
+    g = g + smaller(projected(st, "coin"), 300) / 2 + smaller(statOf(st, "vit"), 60)
+
+    for (var t : st.town)
+    {
+        g = g + 40 * st.town[t]
+    }
+
+    for (var k : st.know)
+    {
+        g = g + 5 * smaller(st.know[k], 10)
+    }
+
+    if (classOf(st) != "")
+    {
+        g = g + 100
+    }
+
+    return g
+}
+
+fun beamScore(st)
+{
+    var s = toFloat(1000 * st.reachedCount + grownOf(st))
+
+    // Hunger ahead: the months of the work under way (or of waiting) he has no rations for cost
+    // Vitality, five a month (resources.pg); one he will not live through is no world at all
+    if (st.stats.rations != none and not st.board)
+    {
+        var ahead = 1
+
+        if (st.running != "")
+        {
+            ahead = st.months - st.monthsIn
+        }
+
+        var hungry = larger(0, ahead - statOf(st, "rations"))
+
+        if (hungry > 0)
+        {
+            if (statOf(st, "vit") - 5 * hungry <= 0)
+            {
+                s = s - 100000.0
+            }
+            else
+            {
+                s = s - 300.0 * toFloat(hungry)
+            }
+        }
+    }
+
+    // A task new to the world, under way: most of what reaching it is worth
+    if (st.running != "" and st.pendingNew == true)
+    {
+        s = s + 900.0
+    }
+
+    if (st.prospect != none)
+    {
+        s = s + st.prospect
+    }
+
+    // The world's aim: near its class's door, then in it
+    if (st.aim != "")
+    {
+        var cls = classOf(st)
+
+        if (cls == st.aim)
+        {
+            s = s + 5000.0
+        }
+        else if (cls == "")
+        {
+            var near = doorNear(st)
+            s = s + 3000.0 * near * near
+        }
+    }
+
+    if (beamNoise > 0.0)
+    {
+        noiseSeed = (noiseSeed * 75 + 74) % 65537
+        s = s + beamNoise * (toFloat(noiseSeed) / 32768.0 - 1.0)
+    }
+
+    return s
+}
+
+fun signatureOf(st)
+{
+    var s = st.aim + ":" + toString(st.lives) + ":" + st.running + ":" + toString(st.monthsIn) + ":" + toString(st.reachedCount) + ":" + toString(st.terms)
+
+    for (var k : sigStats)
+    {
+        s = s + ":" + toString(statOf(st, k))
+    }
+
+    for (var t : st.town)
+    {
+        s = s + ":" + t + toString(st.town[t])
+    }
+
+    return s
+}
+
+// The best of the worlds, `width` shared out among the aims (a class each, and none), none twice
+fun prune(list, width)
+{
+    if (len(list) <= 1)
+    {
+        return list
+    }
+
+    var scored = []
+
+    for (var st : list)
+    {
+        push(scored, {st: st, score: beamScore(st), sig: signatureOf(st), aim: st.aim, used: false})
+    }
+
+    var share = larger(1, (width + len(aims) - 1) / len(aims))
+    var perAim = {}
+    var seen = {}
+    var kept = []
+    var looking = true
+
+    while (looking)
+    {
+        var best = none
+
+        for (var e : scored)
+        {
+            if (not e.used and (best == none or e.score > best.score))
+            {
+                best = e
+            }
+        }
+
+        if (best == none)
+        {
+            looking = false
+        }
+        else
+        {
+            best.used = true
+
+            var n = perAim[best.aim]
+
+            if (n == none)
+            {
+                n = 0
+            }
+
+            if (seen[best.sig] == none and n < share)
+            {
+                seen[best.sig] = 1
+                perAim[best.aim] = n + 1
+                push(kept, best.st)
+            }
+        }
+    }
+
+    return kept
+}
+
+fun countReached()
+{
+    var n = 0
+
+    for (var k : everReached)
+    {
+        n = n + 1
+    }
+
+    return n
+}
+
+// The search: until every world has lived its lives, or `minutes` are spent (0: no limit)
+fun beamRun(width, cap, minutes, seed)
+{
+    beamWidth = width
+
+    for (var m : zonesOfMob)
+    {
+        for (var z : zonesOfMob[m])
+        {
+            zoneHasBeasts[z] = 1
+        }
+    }
+
+    aims = [""]
+
+    for (var p : pathFlag)
+    {
+        push(aims, p)
+    }
+
+    var pool = []
+
+    for (var aim : aims)
+    {
+        var first = newWorld(seed)
+        first.aim = aim
+        push(pool, first)
+    }
+    var began = clockMs()
+    var months = 0
+
+    while (len(pool) > 0)
+    {
+        if (minutes > 0 and clockMs() - began > minutes * 60000)
+        {
+            log("beam: the " + toString(minutes) + " minutes are spent, the search stops here")
+            return
+        }
+
+        var moving = []
+        var idle = []
+
+        for (var st : pool)
+        {
+            st.waiting = false
+            st.onceMonth = {}
+
+            if (st.running == "" and not st.dead)
+            {
+                push(idle, st)
+            }
+            else
+            {
+                push(moving, st)
+            }
+        }
+
+        for (var round = 0; round < 3 and len(idle) > 0; round = round + 1)
+        {
+            var nextIdle = []
+
+            for (var free : idle)
+            {
+                for (var c : expand(free, round))
+                {
+                    if (c.running == "" and not c.waiting and not c.dead and round < 2)
+                    {
+                        push(nextIdle, c)
+                    }
+                    else
+                    {
+                        push(moving, c)
+                    }
+                }
+            }
+
+            idle = prune(nextIdle, width)
+        }
+
+        for (var left : idle)
+        {
+            push(moving, left)
+        }
+
+        // The month is the same for all of them: the best few go on to live it
+        moving = prune(moving, width * 3)
+
+        var next = []
+
+        for (var w : moving)
+        {
+            if (not w.dead)
+            {
+                monthPass(w)
+            }
+
+            if (w.dead)
+            {
+                for (var born : afterDeath(w, cap))
+                {
+                    push(next, born)
+                }
+            }
+            else
+            {
+                push(next, w)
+            }
+        }
+
+        pool = prune(next, width)
+        months = months + 1
+
+        if (months - (months / 12) * 12 == 0 and len(pool) > 0)
+        {
+            var lead = pool[0]
+            var said = "beam: month " + toString(months) + ", life " + toString(lead.lives) + " at " + ageText(lead.month)
+            said = said + ", " + toString(len(pool)) + " worlds, the best reached " + toString(lead.reachedCount)
+            log(said + ", all of them " + toString(countReached()) + ", " + toString((clockMs() - began) / 1000) + " s")
+        }
+    }
+}
+
+var grownStats = ["str", "dex", "int", "arms", "discipline", "letters", "lore", "arcana", "stealth", "guile", "renown"]
+var sigStats = ["str", "dex", "int", "vit", "arms", "discipline", "letters", "lore", "arcana", "stealth", "guile", "renown", "coin", "rations", "reagents"]
+var beamNoise = 0.0
+var zoneHasBeasts = {}
+var aims = [""]
+var beamWidth = 8
+var walksPlayed = 2

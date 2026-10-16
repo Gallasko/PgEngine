@@ -1,0 +1,53 @@
+// smoke.pg - the solver's host is up: one run of the activities for a boy of six, and its cost.
+//
+// Usage:  ChronicleSolver examples/Chronicle/rules examples/Chronicle/solver/smoke.pg
+
+import "algorithm"
+
+var character = {str: 4, dex: 4, int: 4, vit: 35, vitmax: 35, arms: 0, discipline: 0, letters: 0, lore: 0,
+                 arcana: 0, stealth: 0, guile: 0, renown: 0, coin: 0}
+
+var inputs = {age: 6.0, character: character, done: {}, world: 0, lives: 1, running: "", activityId: ""}
+
+var t0 = clockMs()
+var answer = rule("windows", inputs, ["activities", "windows"])
+var t1 = clockMs()
+
+log("ok:", answer.ok, "errors:", len(answer.errors))
+
+for (var e : answer.errors)
+{
+    log("  ", e)
+}
+
+var listed = 0
+
+for (var a : answer.activities)
+{
+    if (a.listed)
+    {
+        listed = listed + 1
+        log("  listed:", a.id, a.months, "locked:", a.locked)
+    }
+}
+
+log("activities:", len(answer.activities), "listed:", listed, "ms:", t1 - t0)
+
+var t2 = clockMs()
+
+for (var i = 0; i < 20; i = i + 1)
+{
+    inputs.age = 6.0 + i / 12.0
+    rule("windows", inputs, ["activities"])
+}
+
+log("20 runs ms:", clockMs() - t2)
+
+var t3 = clockMs()
+
+for (var i = 0; i < 20; i = i + 1)
+{
+    rule("resources", {age: 6.0 + i / 12.0, character: character, board: false}, ["month", "death"])
+}
+
+log("20 months ms:", clockMs() - t3)
