@@ -13,46 +13,6 @@
 import "algorithm"
 import "string"
 
-// What the C++ hands a script of a walk's tables: their scalars only
-fun walkFlat(t)
-{
-    var out = {}
-
-    if (typeOf(t) != "table")
-    {
-        return out
-    }
-
-    for (var k : t)
-    {
-        var tk = typeOf(t[k])
-
-        if (tk == "int" or tk == "double" or tk == "float" or tk == "bool" or tk == "string")
-        {
-            out[k] = t[k]
-        }
-    }
-
-    return out
-}
-
-fun walkFlatList(list)
-{
-    var out = []
-
-    if (typeOf(list) != "array")
-    {
-        return out
-    }
-
-    for (var t : list)
-    {
-        push(out, walkFlat(t))
-    }
-
-    return out
-}
-
 // LifeScene::walkRows: the Adventure rows of the Life page
 fun walkRowsOf(st)
 {
@@ -102,7 +62,8 @@ fun askWalk(st, ws, ask, act, rows)
         seed = (st.dice * 7919 + st.lives * 1543 + st.month * 131 + place * 17) % 60013
     }
 
-    var fight = walkFlat(ws.fight)
+    // (the walk's state is kept as the C++ keeps it, its tables' scalars only: walkStateOf)
+    var fight = ws.fight
 
     if (fight.mob == none)
     {
@@ -111,8 +72,8 @@ fun askWalk(st, ws, ask, act, rows)
 
     var inputs = {age: ageOf(st), character: character(st), done: st.done, world: st.world, lives: st.lives,
                   who: "Aldren of Bellmoor", ask: ask, seed: seed,
-                  run: walkFlat(ws.run), record: walkFlatList(ws.record), marks: walkFlatList(ws.marks),
-                  fight: fight, foes: walkFlatList(ws.foes), account: walkFlatList(ws.account), act: act,
+                  run: ws.run, record: ws.record, marks: ws.marks,
+                  fight: fight, foes: ws.foes, account: ws.account, act: act,
                   recipes: [], recipeSteps: [], recipeMarks: [], walks: rows,
                   queue: {recipe: "", count: 1, stop: "never", value: 0, item: ""}, replay: ""}
 
@@ -123,9 +84,12 @@ fun askWalk(st, ws, ask, act, rows)
     return answer
 }
 
+// The walk as the C++ keeps it from one answer to the next: its tables' scalars only (WalkState's
+// ElementMaps and RecordLists), cut once as the answer comes rather than at every ask
 fun walkStateOf(answer)
 {
-    return {run: answer.run, record: answer.record, marks: answer.marks, fight: answer.fight, foes: answer.foes, account: answer.account}
+    return {run: scalarsOf(answer.run), record: scalarsOfEach(answer.record), marks: scalarsOfEach(answer.marks),
+            fight: scalarsOf(answer.fight), foes: scalarsOfEach(answer.foes), account: scalarsOfEach(answer.account)}
 }
 
 fun isLocked(row)

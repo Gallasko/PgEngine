@@ -41,6 +41,8 @@
 // and with a few helpers the CLI does not have:
 //
 //   clone(value)   a deep copy of a table or a list (a state of the search branches off from it)
+//   scalarsOf(table), scalarsOfEach(list)   a table's numbers, booleans and strings only, of one
+//                  table or of each of a list's (what the C++ hands a rule script of its tables)
 //   clockMs()      milliseconds since the host started
 //   getArg(i), getArgCount()   as the PgCompiler CLI's: 0 the host, 1 the script, 2... the user's
 //
@@ -101,6 +103,29 @@ namespace
     Value cloned(VM& vm, Value v)
     {
         return across(vm, v, vm);
+    }
+
+    // A table's numbers, booleans and strings, in a table of their own: what the C++ hands a rule
+    // script of a table (an ElementMap). Anything else is an empty table
+    Value scalarsOf(VM& vm, Value v)
+    {
+        Value out = vm.createTable();
+
+        if (not IS_INSTANCE(v))
+            return out;
+
+        ObjInstance* from = vm.asInstance(v);
+        ObjInstance* table = vm.asInstance(out);
+
+        for (size_t i = 0; i < from->fieldCount(); ++i)
+        {
+            const Value field = from->fieldValue(i);
+
+            if (IS_INT(field) or IS_DOUBLE(field) or IS_BOOL(field) or IS_STRING(field))
+                table->setField(from->fieldName(i), vm.retainValue(field));
+        }
+
+        return out;
     }
 
     // A value written out the same way whatever order its table was filled in: the key of a call
@@ -493,6 +518,32 @@ int main(int argc, char* argv[])
             throw std::runtime_error("clone expects one argument");
 
         return cloned(*v, args[0]);
+    });
+
+    // scalarsOf(table): its numbers, booleans and strings only; scalarsOfEach(list): the same of
+    // each of its tables (a walk's state, as the C++ hands it to expedition.pg)
+    vm->defineNative("scalarsOf", [](VM* v, int argCount, Value* args) -> Value {
+        if (argCount != 1)
+            throw std::runtime_error("scalarsOf expects one argument");
+
+        return scalarsOf(*v, args[0]);
+    });
+
+    vm->defineNative("scalarsOfEach", [](VM* v, int argCount, Value* args) -> Value {
+        if (argCount != 1)
+            throw std::runtime_error("scalarsOfEach expects one argument");
+
+        Value out = v->createVector();
+
+        if (IS_VECTOR(args[0]))
+        {
+            ObjVector* list = v->asVector(out);
+
+            for (Value item : v->asVector(args[0])->fields)
+                list->fields.push_back(scalarsOf(*v, item));
+        }
+
+        return out;
     });
 
     vm->defineNative("clockMs", [h](VM*, int, Value*) -> Value {

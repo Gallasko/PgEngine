@@ -135,8 +135,22 @@ fun newWorld(seed)
     return st
 }
 
-// LifeSave::character: his stats, then the town and what the world knows
+// LifeSave::character: his stats, then the town and what the world knows. Kept while the state
+// is the same (its stamp): every rule call asks for it, and the host copies what it is given
 fun character(st)
+{
+    if (characterStamp == st.stamp)
+    {
+        return characterTable
+    }
+
+    characterTable = characterOf(st)
+    characterStamp = st.stamp
+
+    return characterTable
+}
+
+fun characterOf(st)
 {
     var c = {}
 
@@ -272,7 +286,12 @@ fun takeStats(st, after)
 {
     for (var k : after)
     {
-        var v = asInt(after[k])
+        var v = after[k]
+
+        if (typeOf(v) != "int")
+        {
+            v = asInt(v)
+        }
 
         if (k == "town_known")
         {
@@ -280,6 +299,11 @@ fun takeStats(st, after)
             {
                 st.townKnown = true
             }
+        }
+        else if (not contains(k, "."))
+        {
+            // (a stat: what the world keeps all has a dot, "know.", "town.", "fund.", "seen.")
+            st.stats[k] = v
         }
         else if (startsWith(k, "know."))
         {
@@ -631,6 +655,8 @@ fun newLife(st, gift, town)
 }
 
 var stampNext = 0
+var characterStamp = -1
+var characterTable = {}
 var shapeStamp = -1
 var shapeRows = []
 var shapeById = {}
