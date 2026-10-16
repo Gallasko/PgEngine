@@ -117,7 +117,7 @@ namespace pg
             return vm->asVector(list)->fields;
 
         if (IS_INSTANCE(list))
-            return vm->asInstance(list)->fieldValues;
+            return vm->asInstance(list)->allFieldValues();
 
         return {};
     }

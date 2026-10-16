@@ -15,13 +15,14 @@ namespace pg
 
     void ObjInstance::setField(const std::string& name, Value value, VM *vm, bool deleteOld)
     {
-        auto it = internedFields.find(name);
-        if (it != internedFields.end())
+        const size_t slot = findField(name);
+
+        if (slot != npos)
         {
             if (deleteOld and vm)
             {
                 // Release old value if it requires ref counting
-                Value oldValue = fieldValues[it->second];
+                Value oldValue = fieldValueList[slot];
                 if (requiresRefCount(oldValue))
                 {
                     vm->releaseValue(oldValue);
@@ -29,15 +30,11 @@ namespace pg
             }
 
             // Update existing field
-            fieldValues[it->second] = value;
+            fieldValueList[slot] = value;
         }
         else
         {
-            // Add new field
-            size_t index = fieldValues.size();
-            fieldValues.push_back(value);
-            fieldNames.push_back(name);
-            internedFields[name] = index;
+            appendField(name, value);
         }
     }
 }

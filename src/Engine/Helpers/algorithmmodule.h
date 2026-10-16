@@ -105,11 +105,11 @@ namespace pg
             }
 
             ObjInstance* instance = vm->asInstance(args[0]);
-            auto it = instance->internedFields.find(vm->asString(args[1]));
+            const size_t slot = instance->findField(vm->asString(args[1]));
 
             // The arguments are released once the call is over: what is returned is retained
-            if (it != instance->internedFields.end())
-                return vm->retainValue(instance->fieldValues[it->second]);
+            if (slot != ObjInstance::npos)
+                return vm->retainValue(instance->fieldValue(slot));
 
             return vm->retainValue(args[2]);
         }

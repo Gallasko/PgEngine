@@ -949,9 +949,15 @@ namespace pg
             {
                 ObjInstance* table = vm->asInstance(args[0]);
                 LOG_INFO("Script", "Table contents:");
-                for (const auto& [key, v] : table->internedFields)
+                for (size_t v = 0; v < table->fieldCount(); ++v)
                 {
-                    auto value = table->fieldValues[v];
+                    const std::string& key = table->fieldName(v);
+
+                    // A name written twice is the field at its last slot, as a lookup by name finds it
+                    if (table->findField(key) != v)
+                        continue;
+
+                    auto value = table->fieldValue(v);
 
                     std::string valStr;
                     if (IS_STRING(value))

@@ -179,12 +179,18 @@ namespace pg
 
         void addTableFields(VM* vm, ObjInstance* table, UnserializedObject& object)
         {
-            for (const auto& [key, index] : table->internedFields)
+            for (size_t index = 0; index < table->fieldCount(); ++index)
             {
+                const std::string& key = table->fieldName(index);
+
+                // A name written twice is the field at its last slot, as a lookup by name finds it
+                if (table->findField(key) != index)
+                    continue;
+
                 if (key == "__className")
                     continue;
 
-                auto value = table->fieldValues[index];
+                auto value = table->fieldValue(index);
 
                 if (IS_INSTANCE(value))
                 {

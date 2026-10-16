@@ -81,14 +81,14 @@ namespace
             Value out = to.createTable();
             ObjInstance* table = to.asInstance(out);
 
-            for (size_t i = 0; i < instance->fieldValues.size(); ++i)
+            for (size_t i = 0; i < instance->fieldCount(); ++i)
             {
-                const std::string& key = instance->fieldNames[i];
+                const std::string& key = instance->fieldName(i);
 
                 if (key.empty() or key.rfind("__", 0) == 0)
                     continue;
 
-                table->setField(key, across(from, instance->fieldValues[i], to));
+                table->setField(key, across(from, instance->fieldValue(i), to));
             }
 
             return out;
@@ -146,21 +146,21 @@ namespace
             ObjInstance* instance = vm.asInstance(v);
             std::vector<size_t> order;
 
-            for (size_t i = 0; i < instance->fieldNames.size(); ++i)
+            for (size_t i = 0; i < instance->fieldCount(); ++i)
             {
-                if (not instance->fieldNames[i].empty() and instance->fieldNames[i].rfind("__", 0) != 0)
+                if (not instance->fieldName(i).empty() and instance->fieldName(i).rfind("__", 0) != 0)
                     order.push_back(i);
             }
 
-            std::sort(order.begin(), order.end(), [instance](size_t a, size_t b) { return instance->fieldNames[a] < instance->fieldNames[b]; });
+            std::sort(order.begin(), order.end(), [instance](size_t a, size_t b) { return instance->fieldName(a) < instance->fieldName(b); });
 
             out += '{';
 
             for (size_t i : order)
             {
-                out += instance->fieldNames[i];
+                out += instance->fieldName(i);
                 out += '=';
-                keyOf(vm, instance->fieldValues[i], out);
+                keyOf(vm, instance->fieldValue(i), out);
                 out += ';';
             }
 
@@ -365,14 +365,14 @@ namespace
 
             ObjInstance* inputs = vm->asInstance(args[1]);
 
-            for (size_t i = 0; i < inputs->fieldValues.size(); ++i)
+            for (size_t i = 0; i < inputs->fieldCount(); ++i)
             {
-                const std::string& key = inputs->fieldNames[i];
+                const std::string& key = inputs->fieldName(i);
 
                 if (key.empty() or key.rfind("__", 0) == 0)
                     continue;
 
-                rvm.defineGlobal(key, across(*vm, inputs->fieldValues[i], rvm));
+                rvm.defineGlobal(key, across(*vm, inputs->fieldValue(i), rvm));
             }
 
             cost.copyIn += since(t0);

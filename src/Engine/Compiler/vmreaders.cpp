@@ -46,14 +46,14 @@ namespace pg
 
             ObjInstance* instance = vm.asInstance(table);
 
-            for (size_t i = 0; i < instance->fieldValues.size(); ++i)
+            for (size_t i = 0; i < instance->fieldCount(); ++i)
             {
-                const std::string& key = instance->fieldNames[i];
+                const std::string& key = instance->fieldName(i);
 
                 if (key.empty() or key.rfind("__", 0) == 0)
                     continue;
 
-                const Value v = instance->fieldValues[i];
+                const Value v = instance->fieldValue(i);
 
                 if (not isScalar(v))
                 {

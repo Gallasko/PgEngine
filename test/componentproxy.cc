@@ -477,7 +477,7 @@ namespace pg
 
             auto list = vm->asInstance(table->getField("list"));
 
-            EXPECT_EQ(list->fieldValues.size(), 3);
+            EXPECT_EQ(list->fieldCount(), 3);
             EXPECT_EQ(AS_INT(list->getField("0")), 4);
             EXPECT_EQ(AS_INT(list->getField("1")), 5);
             EXPECT_EQ(AS_INT(list->getField("2")), 6);
@@ -486,7 +486,7 @@ namespace pg
 
             auto scores = vm->asInstance(table->getField("scores"));
 
-            EXPECT_EQ(scores->fieldValues.size(), 1);
+            EXPECT_EQ(scores->fieldCount(), 1);
             EXPECT_EQ(AS_INT(scores->getField("alpha")), 1);
         }
 

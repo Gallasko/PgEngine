@@ -332,11 +332,11 @@ namespace chronicle
                 ObjInstance* instance = vm->asInstance(v);
                 bool found = false;
 
-                for (size_t f = 0; f < instance->fieldNames.size(); ++f)
+                for (size_t f = 0; f < instance->fieldCount(); ++f)
                 {
-                    if (instance->fieldNames[f] == part)
+                    if (instance->fieldName(f) == part)
                     {
-                        v = instance->fieldValues[f];
+                        v = instance->fieldValue(f);
                         found = true;
                         break;
                     }
@@ -405,14 +405,14 @@ namespace chronicle
         // The table's scalars; what it nests (lists, tables) is read by its own path.
         ObjInstance* instance = vm->asInstance(v);
 
-        for (size_t i = 0; i < instance->fieldValues.size(); ++i)
+        for (size_t i = 0; i < instance->fieldCount(); ++i)
         {
-            const std::string& key = instance->fieldNames[i];
+            const std::string& key = instance->fieldName(i);
 
-            if (key.empty() or key.rfind("__", 0) == 0 or not vmread::isScalar(instance->fieldValues[i]))
+            if (key.empty() or key.rfind("__", 0) == 0 or not vmread::isScalar(instance->fieldValue(i)))
                 continue;
 
-            out[key] = vmread::scalar(*vm, instance->fieldValues[i]);
+            out[key] = vmread::scalar(*vm, instance->fieldValue(i));
         }
 
         return true;
@@ -486,16 +486,16 @@ namespace chronicle
 
             std::vector<bool> found(lists.size(), false);
 
-            for (size_t f = 0; f < instance->fieldValues.size(); ++f)
+            for (size_t f = 0; f < instance->fieldCount(); ++f)
             {
-                const std::string& key = instance->fieldNames[f];
+                const std::string& key = instance->fieldName(f);
 
                 if (key.empty() or key.rfind("__", 0) == 0)
                     continue;
 
-                if (vmread::isScalar(instance->fieldValues[f]))
+                if (vmread::isScalar(instance->fieldValue(f)))
                 {
-                    record.fields[key] = vmread::scalar(*vm, instance->fieldValues[f]);
+                    record.fields[key] = vmread::scalar(*vm, instance->fieldValue(f));
                     continue;
                 }
 
@@ -506,7 +506,7 @@ namespace chronicle
                         continue;
 
                     std::vector<std::string> problems;
-                    const bool ok = vmread::records(*vm, instance->fieldValues[f], record.lists[l], &problems, at + "." + key);
+                    const bool ok = vmread::records(*vm, instance->fieldValue(f), record.lists[l], &problems, at + "." + key);
 
                     for (const auto& problem : problems)
                         error(problem);

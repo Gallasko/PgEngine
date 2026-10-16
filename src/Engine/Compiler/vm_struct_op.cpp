@@ -27,10 +27,10 @@ namespace pg
         ObjInstance* instance = vm->asInstance(receiverValue);
 
         // Check for field
-        auto fieldIt = instance->internedFields.find(name);
-        if (fieldIt != instance->internedFields.end())
+        const size_t fieldSlot = instance->findField(name);
+        if (fieldSlot != ObjInstance::npos)
         {
-            Value fieldValue = instance->fieldValues[fieldIt->second];
+            Value fieldValue = instance->fieldValue(fieldSlot);
             vm->releaseAndDelete(vm->stack[vm->stack.size() - argCount - 1]); // Remove receiver
             vm->stack[vm->stack.size() - argCount - 1] = vm->retainValue(fieldValue); // Replace it with the field value
             return vm->callValue(fieldValue, argCount);
@@ -125,12 +125,12 @@ namespace pg
         }
 
         // Field-found branch (no frame change).
-        auto fieldIt = instance->internedFields.find(nameStr);
-        if (fieldIt != instance->internedFields.end())
+        const size_t fieldSlot = instance->findField(nameStr);
+        if (fieldSlot != ObjInstance::npos)
         {
             auto inst = vm->pop();
             vm->releaseAndDelete(inst);
-            vm->push(vm->retainValue(instance->fieldValues[fieldIt->second]));
+            vm->push(vm->retainValue(instance->fieldValue(fieldSlot)));
             return &instr + 1;
         }
 
@@ -147,10 +147,10 @@ namespace pg
         }
         else
         {
-            auto dynIt = instance->internedFields.find("__get");
-            if (dynIt != instance->internedFields.end())
+            const size_t dynSlot = instance->findField("__get");
+            if (dynSlot != ObjInstance::npos)
             {
-                getMethod = instance->fieldValues[dynIt->second];
+                getMethod = instance->fieldValue(dynSlot);
                 hasGetMethod = true;
                 isDynamicGet = true;
             }
@@ -296,10 +296,10 @@ namespace pg
             }
             else
             {
-                auto dynIt = instance->internedFields.find("__set");
-                if (dynIt != instance->internedFields.end())
+                const size_t dynSlot = instance->findField("__set");
+                if (dynSlot != ObjInstance::npos)
                 {
-                    setMethod = instance->fieldValues[dynIt->second];
+                    setMethod = instance->fieldValue(dynSlot);
                     hasSetMethod = true;
                     isDynamicSet = true;
                 }
@@ -379,19 +379,15 @@ namespace pg
         auto inst  = vm->pop();
         vm->releaseAndDelete(inst);
 
-        auto fieldIt = instance->internedFields.find(nameStr);
-        if (fieldIt != instance->internedFields.end())
+        const size_t fieldSlot = instance->findField(nameStr);
+        if (fieldSlot != ObjInstance::npos)
         {
-            size_t valueIndex = fieldIt->second;
-            vm->releaseAndDelete(instance->fieldValues[valueIndex]);
-            instance->fieldValues[valueIndex] = vm->retainValue(value);
+            vm->releaseAndDelete(instance->fieldValueRef(fieldSlot));
+            instance->fieldValueRef(fieldSlot) = vm->retainValue(value);
         }
         else
         {
-            size_t newIndex = instance->fieldValues.size();
-            instance->fieldValues.push_back(vm->retainValue(value));
-            instance->fieldNames.push_back(nameStr);
-            instance->internedFields[nameStr] = newIndex;
+            instance->appendField(nameStr, vm->retainValue(value));
         }
 
         vm->push(value);
@@ -499,12 +495,12 @@ namespace pg
             return nullptr;
         }
 
-        auto fieldIt = inst->internedFields.find(key);
-        if (fieldIt != inst->internedFields.end())
+        const size_t fieldSlot = inst->findField(key);
+        if (fieldSlot != ObjInstance::npos)
         {
             vm->releaseAndDelete(index);
             vm->releaseAndDelete(target);
-            vm->push(vm->retainValue(inst->fieldValues[fieldIt->second]));
+            vm->push(vm->retainValue(inst->fieldValue(fieldSlot)));
             return &instr + 1;
         }
 
@@ -523,10 +519,10 @@ namespace pg
             }
             else
             {
-                auto dynIt = inst->internedFields.find("__get");
-                if (dynIt != inst->internedFields.end())
+                const size_t dynSlot = inst->findField("__get");
+                if (dynSlot != ObjInstance::npos)
                 {
-                    getMethod = inst->fieldValues[dynIt->second];
+                    getMethod = inst->fieldValue(dynSlot);
                     hasGetMethod = true;
                     isDynamicGet = true;
                 }
@@ -794,19 +790,15 @@ namespace pg
             }
 
             // Plain field assignment.
-            auto fieldIt = inst->internedFields.find(key);
-            if (fieldIt != inst->internedFields.end())
+            const size_t fieldSlot = inst->findField(key);
+            if (fieldSlot != ObjInstance::npos)
             {
-                size_t valueIndex = fieldIt->second;
-                vm->releaseAndDelete(inst->fieldValues[valueIndex]);
-                inst->fieldValues[valueIndex] = vm->retainValue(value);
+                vm->releaseAndDelete(inst->fieldValueRef(fieldSlot));
+                inst->fieldValueRef(fieldSlot) = vm->retainValue(value);
             }
             else
             {
-                size_t newIndex = inst->fieldValues.size();
-                inst->fieldValues.push_back(vm->retainValue(value));
-                inst->fieldNames.push_back(key);
-                inst->internedFields[key] = newIndex;
+                inst->appendField(key, vm->retainValue(value));
             }
 
             vm->releaseAndDelete(value);
@@ -929,7 +921,7 @@ namespace pg
         int64_t index = AS_INT(iteratorState);
 
         // Determine total field count
-        size_t totalFields = table->fieldValues.size();
+        size_t totalFields = table->fieldCount();
 
         // Check if we've reached the end
         if (static_cast<size_t>(index) >= totalFields)
@@ -940,17 +932,8 @@ namespace pg
             return &instr + 1;
         }
 
-        // Get the key at the current index
-        // We need to find the key that maps to this index
-        std::string key;
-        for (const auto& pair : table->internedFields)
-        {
-            if (pair.second == static_cast<size_t>(index))
-            {
-                key = pair.first;  // pair.first is the string key
-                break;
-            }
-        }
+        // The key of the current slot (it was found by scanning the whole name index, every step)
+        const std::string key = table->fieldName(static_cast<size_t>(index));
 
         // Pop old iterator state
         vm->pop();  // Remove old iterator state
@@ -999,7 +982,7 @@ namespace pg
         vm->releaseAndDelete(tableVal);
 
         // Push the field count
-        size_t totalSize = table->fieldValues.size();
+        size_t totalSize = table->fieldCount();
         vm->push(makeIntValue(static_cast<int64_t>(totalSize)));
         return &instr + 1;
     }
@@ -1070,7 +1053,7 @@ namespace pg
         int64_t index = AS_INT(indexVal);
 
         // Determine total field count
-        size_t totalFields = table->fieldValues.size();
+        size_t totalFields = table->fieldCount();
 
         // Check bounds
         if (index < 0 || static_cast<size_t>(index) >= totalFields)
@@ -1082,11 +1065,9 @@ namespace pg
             return nullptr;
         }
 
-        // Get the key at the specified index: fieldNames is the slot->name
-        // mapping kept parallel to fieldValues, making this O(1) instead of
-        // scanning internedFields (which made every for-in over a table
-        // quadratic in the table size)
-        const std::string& key = table->fieldNames[index];
+        // The key of that slot, in O(1) (a scan of the name index made every for-in over a table
+        // quadratic in its size)
+        const std::string& key = table->fieldName(static_cast<size_t>(index));
 
         vm->releaseAndDelete(indexVal);
         vm->releaseAndDelete(tableVal);
@@ -1255,9 +1236,7 @@ namespace pg
         Value instanceVal = vm->createInstance(tableClass);
         ObjInstance* table = vm->asInstance(instanceVal);
 
-        table->fieldValues.reserve(pairCount);
-        table->fieldNames.reserve(pairCount);
-        table->internedFields.reserve(pairCount);
+        table->reserveFields(pairCount);
 
         for (size_t i = 0; i < pairCount; i++)
         {
@@ -1266,12 +1245,9 @@ namespace pg
 
             std::string keyStr = IS_STRING(key) ? vm->asString(key) : std::to_string(AS_INT(key));
 
-            // A key written twice keeps both slots, the map pointing at the last (as before)
-            table->internedFields[keyStr] = table->fieldValues.size();
-            table->fieldNames.push_back(std::move(keyStr));
-
-            // The stack's reference to the value is the table's now: no retain, no release
-            table->fieldValues.push_back(value);
+            // A key written twice keeps both slots, found at the last (as before). The stack's
+            // reference to the value is the table's now: no retain, no release
+            table->appendField(std::move(keyStr), value);
 
             vm->releaseAndDelete(key);
         }

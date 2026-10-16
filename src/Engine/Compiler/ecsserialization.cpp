@@ -255,12 +255,18 @@ namespace pg
         }
 
         // Every field holding a table is a component, named after the field
-        for (const auto& [key, index] : table->internedFields)
+        for (size_t index = 0; index < table->fieldCount(); ++index)
         {
+            const std::string& key = table->fieldName(index);
+
+            // A name written twice is the field at its last slot, as a lookup by name finds it
+            if (table->findField(key) != index)
+                continue;
+
             if (key == "__entityId" or key == "__className")
                 continue;
 
-            auto value = table->fieldValues[index];
+            auto value = table->fieldValue(index);
 
             if (IS_INSTANCE(value))
                 deserializeComponentFromTable(vm, ecsRef, entity, value, key);
@@ -278,13 +284,19 @@ namespace pg
 
         std::vector<EntityRef> entities;
 
-        for (const auto& [key, index] : table->internedFields)
+        for (size_t index = 0; index < table->fieldCount(); ++index)
         {
+            const std::string& key = table->fieldName(index);
+
+            // A name written twice is the field at its last slot, as a lookup by name finds it
+            if (table->findField(key) != index)
+                continue;
+
             // Entities are stored under numeric keys, anything else ("count", ...) is skipped
             if (key.empty() or key.find_first_not_of("0123456789") != std::string::npos)
                 continue;
 
-            auto value = table->fieldValues[index];
+            auto value = table->fieldValue(index);
 
             if (IS_INSTANCE(value))
                 entities.push_back(deserializeEntityFromTable(vm, ecsRef, value, createNew));

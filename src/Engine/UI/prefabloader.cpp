@@ -96,10 +96,10 @@ namespace
         {
             AnchorSpec a;
 
-            for (size_t i = 0; i < table->fieldValues.size(); ++i)
+            for (size_t i = 0; i < table->fieldCount(); ++i)
             {
-                const std::string& key = table->fieldNames[i];
-                Value v = table->fieldValues[i];
+                const std::string& key = table->fieldName(i);
+                Value v = table->fieldValue(i);
 
                 if (key == "side")
                     a.side = anchorSide(string(v, what + ".side"), what);
@@ -132,10 +132,10 @@ namespace
 
             ObjInstance* table = vm.asInstance(v);
 
-            for (size_t i = 0; i < table->fieldValues.size(); ++i)
+            for (size_t i = 0; i < table->fieldCount(); ++i)
             {
-                const std::string& key = table->fieldNames[i];
-                Value value = table->fieldValues[i];
+                const std::string& key = table->fieldName(i);
+                Value value = table->fieldValue(i);
 
                 if (key.empty() or key.rfind("__", 0) == 0)
                     continue;

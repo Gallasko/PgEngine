@@ -124,42 +124,78 @@ namespace pg
 
         Klass* klass;
 
-        // Interned field storage:
-        // - fieldValues: Values in insertion order
-        // - internedFields: Maps property name -> index in fieldValues
-        // - fieldNames: slot -> property name, parallel to fieldValues, so
-        //   positional access (OP_Table_At, the for-in protocol) is O(1)
-        //   instead of scanning internedFields. Fields are append-only, so
-        //   every fieldValues.push_back must push the name here too.
-        std::vector<Value> fieldValues;
-        std::unordered_map<std::string, size_t> internedFields;
-        std::vector<std::string> fieldNames;
-
         // Only set on component proxies (see componentproxy.h): the C++ component the instance forwards to and its property table
         void* proxyTarget = nullptr;
 
         const ComponentProxyMetadata* proxyMeta = nullptr;
 
-        // Helper to set a field value (creates or updates)
-        void setField(const std::string& name, Value value, VM *vm = nullptr, bool deleteOld = false);
+        // ---- The fields ----------------------------------------------------------------------
+        // In the order they were added: a slot is a field's place in that order, and stays its
+        // field's (a field is never removed). Everything outside goes through these, never the
+        // storage, so that the storage can change in one place.
+
+        static constexpr size_t npos = static_cast<size_t>(-1);
+
+        inline size_t fieldCount() const { return fieldValueList.size(); }
+
+        inline const std::string& fieldName(size_t slot) const { return fieldNameList[slot]; }
+
+        inline Value fieldValue(size_t slot) const { return fieldValueList[slot]; }
+
+        // The value in place, to replace it (the caller releases and retains)
+        inline Value& fieldValueRef(size_t slot) { return fieldValueList[slot]; }
+
+        // Every value, in slot order (releasing them all, handing them to C++ as a list)
+        inline std::vector<Value>& allFieldValues() { return fieldValueList; }
+
+        // The slot of a field, npos when the instance has none
+        inline size_t findField(const std::string& name) const
+        {
+            auto it = fieldIndex.find(name);
+
+            return it == fieldIndex.end() ? npos : it->second;
+        }
 
         // Helper to get a field value (none if not found)
         inline Value getField(const std::string& name) const
         {
-            auto it = internedFields.find(name);
+            const size_t slot = findField(name);
 
-            if (it != internedFields.end())
-            {
-                return fieldValues[it->second];
-            }
-
-            return makeNoneValue();
+            return slot == npos ? makeNoneValue() : fieldValueList[slot];
         }
 
         inline bool hasField(const std::string& name) const
         {
-            return internedFields.find(name) != internedFields.end();
+            return findField(name) != npos;
         }
+
+        // Helper to set a field value (creates or updates)
+        void setField(const std::string& name, Value value, VM *vm = nullptr, bool deleteOld = false);
+
+        // A field added after the others: its slot. A name already there gets a second slot, and is
+        // found at the new one from then on (what a table literal writing a key twice does)
+        inline size_t appendField(std::string name, Value value)
+        {
+            const size_t slot = fieldValueList.size();
+            fieldValueList.push_back(value);
+            fieldIndex[name] = slot;
+            fieldNameList.push_back(std::move(name));
+
+            return slot;
+        }
+
+        inline void reserveFields(size_t count)
+        {
+            fieldValueList.reserve(count);
+            fieldNameList.reserve(count);
+            fieldIndex.reserve(count);
+        }
+
+    private:
+        // Values in slot order, a name a slot beside them, and the name -> slot index
+        std::vector<Value> fieldValueList;
+        std::vector<std::string> fieldNameList;
+        std::unordered_map<std::string, size_t> fieldIndex;
     };
 
     struct ObjBoundMethod

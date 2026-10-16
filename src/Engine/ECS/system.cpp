@@ -69,9 +69,15 @@ namespace pg
 
             // Copy all fields from VM table back to C++ ElementMap
             // This overwrites existing keys and adds new ones
-            for (const auto& [key, v] : dataTable->internedFields)
+            for (size_t v = 0; v < dataTable->fieldCount(); ++v)
             {
-                auto vmValue = dataTable->fieldValues[v];
+                const std::string& key = dataTable->fieldName(v);
+
+                // A name written twice is the field at its last slot, as a lookup by name finds it
+                if (dataTable->findField(key) != v)
+                    continue;
+
+                auto vmValue = dataTable->fieldValue(v);
 
                 // Skip internal VM fields
                 if (key != "__className" and not key.empty())
