@@ -152,43 +152,7 @@ fun character(st)
 
 fun characterOf(st)
 {
-    var c = {}
-
-    for (var k : st.stats)
-    {
-        c[k] = st.stats[k]
-    }
-
-    if (st.townKnown)
-    {
-        c["town_known"] = 1
-    }
-    else
-    {
-        c["town_known"] = 0
-    }
-
-    for (var p : st.town)
-    {
-        c["town." + p] = st.town[p]
-    }
-
-    for (var f : st.fund)
-    {
-        c["fund." + f] = st.fund[f]
-    }
-
-    for (var s : st.seen)
-    {
-        c["seen." + s] = 1
-    }
-
-    for (var n : st.know)
-    {
-        c["know." + n] = st.know[n]
-    }
-
-    return c
+    return chronicleCharacter(st.stats, st.townKnown, st.town, st.fund, st.seen, st.know)
 }
 
 fun note(st, text)
@@ -281,39 +245,13 @@ fun forecastOf(st, id, monthsIn)
     return f
 }
 
-// LifeScene::takeStats and LifeSave::takeTown
+// LifeScene::takeStats and LifeSave::takeTown (the host's chronicleTakeStats: every value a whole
+// number, "know." the world's knowledge, the town's levels, funds and places seen left to the solver)
 fun takeStats(st, after)
 {
-    for (var k : after)
+    if (chronicleTakeStats(st.stats, st.know, after))
     {
-        var v = after[k]
-
-        if (typeOf(v) != "int")
-        {
-            v = asInt(v)
-        }
-
-        if (k == "town_known")
-        {
-            if (v > 0)
-            {
-                st.townKnown = true
-            }
-        }
-        else if (not contains(k, "."))
-        {
-            // (a stat: what the world keeps all has a dot, "know.", "town.", "fund.", "seen.")
-            st.stats[k] = v
-        }
-        else if (startsWith(k, "know."))
-        {
-            st.know[substring(k, 5, strlen(k))] = v
-        }
-        else if (not (startsWith(k, "town.") or startsWith(k, "fund.") or startsWith(k, "seen.")))
-        {
-            // (the town's levels, funds and places seen are the world's: the solver keeps them, as the C++ does)
-            st.stats[k] = v
-        }
+        st.townKnown = true
     }
 
     touch(st)
