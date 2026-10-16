@@ -130,6 +130,26 @@ namespace pg
             instructionIndex++;
         }
 
+        // Each field access and table literal its own cache, pointed at by the instruction (the name
+        // the decoder resolved moves into the field access's)
+        for (size_t i = 0; i < decoded->instructions.size(); ++i)
+        {
+            const auto op = static_cast<OpCode>(decoded->meta[i].originalOpcode);
+            DecodedInstruction& at = decoded->instructions[i];
+
+            if (op == OpCode::OP_Get_Property or op == OpCode::OP_Set_Property)
+            {
+                decoded->propertyCaches.emplace_back();
+                decoded->propertyCaches.back().name = at.propertyNamePtr;
+                at.propertyCache = &decoded->propertyCaches.back();
+            }
+            else if (op == OpCode::OP_Build_Table)
+            {
+                decoded->literalCaches.emplace_back();
+                at.literalCache = &decoded->literalCaches.back();
+            }
+        }
+
         // Guarantee the no-fall-through terminator the dispatch loop relies
         // on. Must happen BEFORE resolveJumpTargets: push_back can
         // reallocate the vector, which would dangle the resolved pointers.

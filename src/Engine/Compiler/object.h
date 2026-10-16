@@ -117,6 +117,26 @@ namespace pg
 
         std::string name;
         std::unordered_map<std::string, Value> methods;
+
+        // Whether it has a __set or a __get metamethod: looked for again only when its methods
+        // have changed (a method is only ever added: the count says it)
+        inline bool hasSetMeta() { checkMeta(); return setMeta; }
+        inline bool hasGetMeta() { checkMeta(); return getMeta; }
+
+    private:
+        inline void checkMeta()
+        {
+            if (metaCheckedAt == methods.size())
+                return;
+
+            setMeta = methods.find("__set") != methods.end();
+            getMeta = methods.find("__get") != methods.end();
+            metaCheckedAt = methods.size();
+        }
+
+        size_t metaCheckedAt = static_cast<size_t>(-1);
+        bool setMeta = false;
+        bool getMeta = false;
     };
 
     // ---- Shapes ---------------------------------------------------------------------------------
@@ -175,6 +195,18 @@ namespace pg
 
             return names[slot];
         }
+
+        // Whether its tables hold a __set field (a metamethod of their own): looked for once
+        inline bool hasSetField()
+        {
+            if (setField < 0)
+                setField = slotOf(setFieldName) != npos ? 1 : 0;
+
+            return setField == 1;
+        }
+
+        static const std::string setFieldName;
+        int8_t setField = -1;
     };
 
     // The shapes of one VM, freed with it
@@ -279,6 +311,25 @@ namespace pg
 
         // Its layout: nullptr when it keeps a dictionary of its own
         inline Shape* layout() const { return shape; }
+
+        // A field added by a step already known: `next` is its shape with the name added (a
+        // write's cache learned it). Only for an instance of that shape's parent
+        inline void appendAlong(Shape* next, Value value)
+        {
+            shape = next;
+            fieldValueList.push_back(value);
+        }
+
+        // An empty instance given a shape and its values at once (a table literal whose keys made
+        // that shape before): `count` values, `stride` apart
+        inline void fillShaped(Shape* filled, const Value* values, size_t count, size_t stride)
+        {
+            shape = filled;
+            fieldValueList.reserve(count);
+
+            for (size_t i = 0; i < count; ++i)
+                fieldValueList.push_back(values[i * stride]);
+        }
 
     private:
         // What an instance off the shapes keeps: its names in slot order and its name -> slot index

@@ -715,6 +715,53 @@ namespace pg
         // (an instance being destroyed never looks at its shape)
         ShapeTree shapeTree;
 
+        // What field accesses have learned, shared by all of them: (shape, name) -> slot, and
+        // (shape, name) -> the shape a write adding that name leads to. An instruction that sees
+        // tables of many shapes (rows of a table each with its own fields) finds its slot here
+        // without hashing a string. The name is the instruction's, by address: forgotten whenever
+        // a function is freed (its names may come back at the same address as others)
+        struct FieldStub
+        {
+            const Shape* shape = nullptr;
+            const std::string* name = nullptr;
+            uint32_t slot = 0;
+            Shape* next = nullptr;
+        };
+
+        static constexpr size_t fieldStubCount = 4096;
+
+        std::vector<FieldStub> slotStubs = std::vector<FieldStub>(fieldStubCount);
+        std::vector<FieldStub> addStubs = std::vector<FieldStub>(fieldStubCount);
+
+        // Bumped when a function is freed: what a table literal learned before is not trusted
+        uint32_t cacheEpoch = 1;
+
+        inline FieldStub& slotStub(const Shape* shape, const std::string* name)
+        {
+            return slotStubs[stubIndex(shape, name)];
+        }
+
+        inline FieldStub& addStub(const Shape* shape, const std::string* name)
+        {
+            return addStubs[stubIndex(shape, name)];
+        }
+
+        inline void forgetFieldCaches()
+        {
+            std::fill(slotStubs.begin(), slotStubs.end(), FieldStub{});
+            std::fill(addStubs.begin(), addStubs.end(), FieldStub{});
+            ++cacheEpoch;
+        }
+
+        static inline size_t stubIndex(const void* shape, const void* name)
+        {
+            uintptr_t h = (reinterpret_cast<uintptr_t>(shape) >> 4) * 0x9E3779B1u;
+            h ^= reinterpret_cast<uintptr_t>(name) >> 3;
+            h ^= h >> 15;
+
+            return h & (fieldStubCount - 1);
+        }
+
         // Test output buffer for __dprint (used in tests)
         std::string testOutput;
 

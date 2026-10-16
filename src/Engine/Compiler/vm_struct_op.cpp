@@ -108,9 +108,9 @@ namespace pg
 
         auto* instance = vm->asInstance(vm->peek(0));
 
-        // Property name pre-resolved at decode time — no chunk.constantStrings
-        // lookup, no *ip++.
-        const std::string& nameStr = *instr.propertyNamePtr;
+        // Property name pre-resolved at decode time, in the instruction's cache
+        PropertyCache* cache = instr.propertyCache;
+        const std::string& nameStr = *cache->name;
 
         // Component proxy: forward straight to the C++ component, a proxy holds no field and needs no metamethod call
         if (instance->proxyMeta != nullptr and not isInternalName(nameStr))
@@ -124,10 +124,54 @@ namespace pg
             return &instr + 1;
         }
 
+        // The shape this read saw last, or one any read saw: the field is at the slot learned
+        Shape* shape = instance->layout();
+
+        if (shape != nullptr)
+        {
+            size_t learned = ObjInstance::npos;
+
+            if (shape == cache->shape)
+            {
+                learned = cache->slot;
+            }
+            else
+            {
+                const VM::FieldStub& stub = vm->slotStub(shape, cache->name);
+
+                if (stub.shape == shape and stub.name == cache->name)
+                {
+                    learned = stub.slot;
+                    cache->shape = shape;
+                    cache->slot = stub.slot;
+                }
+            }
+
+            if (learned != ObjInstance::npos)
+            {
+                Value found = vm->retainValue(instance->fieldValue(learned));
+                auto inst = vm->pop();
+                vm->releaseAndDelete(inst);
+                vm->push(found);
+                return &instr + 1;
+            }
+        }
+
         // Field-found branch (no frame change).
         const size_t fieldSlot = instance->findField(nameStr);
         if (fieldSlot != ObjInstance::npos)
         {
+            if (shape != nullptr)
+            {
+                cache->shape = shape;
+                cache->slot = static_cast<uint32_t>(fieldSlot);
+
+                VM::FieldStub& stub = vm->slotStub(shape, cache->name);
+                stub.shape = shape;
+                stub.name = cache->name;
+                stub.slot = static_cast<uint32_t>(fieldSlot);
+            }
+
             auto inst = vm->pop();
             vm->releaseAndDelete(inst);
             vm->push(vm->retainValue(instance->fieldValue(fieldSlot)));
@@ -241,9 +285,9 @@ namespace pg
 
         auto* instance = vm->asInstance(vm->peek(1));
 
-        // Property name pre-resolved at decode time — no chunk.constantStrings
-        // lookup, no *ip++.
-        const std::string& nameStr = *instr.propertyNamePtr;
+        // Property name pre-resolved at decode time, in the instruction's cache
+        PropertyCache* cache = instr.propertyCache;
+        const std::string& nameStr = *cache->name;
 
         // Fields starting with '__' bypass metamethods to allow metamethod
         // implementations to write through to internal storage without
@@ -261,6 +305,90 @@ namespace pg
             Value value = vm->pop();
             auto inst = vm->pop();
             vm->releaseAndDelete(inst);
+
+            vm->push(value);
+            return &instr + 1;
+        }
+
+        // A table on the shapes whose class and shape have no __set: a plain write, at the slot
+        // this write (or any) learned for the shape, or by the step learned for adding the field
+        Shape* shape = instance->layout();
+
+        if (shape != nullptr and not instance->klass->hasSetMeta() and not shape->hasSetField())
+        {
+            auto value = vm->pop();
+            auto inst  = vm->pop();
+            vm->releaseAndDelete(inst);
+
+            size_t slot = ObjInstance::npos;
+
+            if (shape == cache->shape)
+            {
+                slot = cache->slot;
+            }
+            else if (shape == cache->addFrom)
+            {
+                instance->appendAlong(cache->addTo, vm->retainValue(value));
+                vm->push(value);
+                return &instr + 1;
+            }
+            else
+            {
+                const VM::FieldStub& stub = vm->slotStub(shape, cache->name);
+
+                if (stub.shape == shape and stub.name == cache->name)
+                {
+                    slot = stub.slot;
+                }
+                else
+                {
+                    const VM::FieldStub& added = vm->addStub(shape, cache->name);
+
+                    if (added.shape == shape and added.name == cache->name)
+                    {
+                        cache->addFrom = shape;
+                        cache->addTo = added.next;
+                        instance->appendAlong(added.next, vm->retainValue(value));
+                        vm->push(value);
+                        return &instr + 1;
+                    }
+
+                    slot = instance->findField(nameStr);
+                }
+
+                if (slot != ObjInstance::npos)
+                {
+                    cache->shape = shape;
+                    cache->slot = static_cast<uint32_t>(slot);
+
+                    VM::FieldStub& learned = vm->slotStub(shape, cache->name);
+                    learned.shape = shape;
+                    learned.name = cache->name;
+                    learned.slot = static_cast<uint32_t>(slot);
+                }
+            }
+
+            if (slot != ObjInstance::npos)
+            {
+                vm->releaseAndDelete(instance->fieldValueRef(slot));
+                instance->fieldValueRef(slot) = vm->retainValue(value);
+            }
+            else
+            {
+                instance->appendNewField(nameStr, vm->retainValue(value));
+
+                // The step it took, when it stayed on the shapes
+                if (Shape* next = instance->layout())
+                {
+                    cache->addFrom = shape;
+                    cache->addTo = next;
+
+                    VM::FieldStub& step = vm->addStub(shape, cache->name);
+                    step.shape = shape;
+                    step.name = cache->name;
+                    step.next = next;
+                }
+            }
 
             vm->push(value);
             return &instr + 1;
@@ -1236,6 +1364,30 @@ namespace pg
         Value instanceVal = vm->createInstance(tableClass);
         ObjInstance* table = vm->asInstance(instanceVal);
 
+        // The same keys as the last time: the shape they made then, and the values in place
+        LiteralCache* literal = instr.literalCache;
+
+        if (literal != nullptr and literal->shape != nullptr and literal->epoch == vm->cacheEpoch and literal->keys.size() == pairCount)
+        {
+            bool same = true;
+
+            for (size_t i = 0; i < pairCount and same; i++)
+                same = vm->stack[base + 2 * i + 1] == literal->keys[i];
+
+            if (same)
+            {
+                // The stack's references to the values are the table's now; the keys are released
+                table->fillShaped(literal->shape, &vm->stack[base], pairCount, 2);
+
+                for (size_t i = 0; i < pairCount; i++)
+                    vm->releaseAndDelete(vm->stack[base + 2 * i + 1]);
+
+                vm->stack.truncateTo(base);
+                vm->push(instanceVal);
+                return &instr + 1;
+            }
+        }
+
         table->reserveFields(pairCount);
 
         for (size_t i = 0; i < pairCount; i++)
@@ -1248,9 +1400,34 @@ namespace pg
             // A key written twice keeps both slots, found at the last (as before). The stack's
             // reference to the value is the table's now: no retain, no release
             table->appendField(std::move(keyStr), value);
-
-            vm->releaseAndDelete(key);
         }
+
+        // Learned for the next time, when the table is on the shapes and every key is a value whose
+        // meaning cannot change (an integer, an inline or interned string, a constant one): a string
+        // freed and made again could otherwise come back with the same bits and other words
+        if (literal != nullptr and table->layout() != nullptr)
+        {
+            bool stable = true;
+
+            for (size_t i = 0; i < pairCount and stable; i++)
+            {
+                const Value key = vm->stack[base + 2 * i + 1];
+                stable = IS_INT(key) or IS_SMALL_STRING(key) or IS_INTERNED_STRING(key) or (IS_STRING(key) and vm->pools.isConstant(key));
+            }
+
+            if (stable)
+            {
+                literal->shape = table->layout();
+                literal->epoch = vm->cacheEpoch;
+                literal->keys.assign(pairCount, Value{});
+
+                for (size_t i = 0; i < pairCount; i++)
+                    literal->keys[i] = vm->stack[base + 2 * i + 1];
+            }
+        }
+
+        for (size_t i = 0; i < pairCount; i++)
+            vm->releaseAndDelete(vm->stack[base + 2 * i + 1]);
 
         vm->stack.truncateTo(base);
 

@@ -13,6 +13,8 @@ namespace pg
         upvalues.resize(func->upvalueCount);
     }
 
+    const std::string Shape::setFieldName = "__set";
+
     void Shape::build()
     {
         names.assign(depth, std::string());

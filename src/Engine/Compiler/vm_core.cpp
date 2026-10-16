@@ -456,6 +456,9 @@ namespace pg
 
     void VM::cleanupFunction(ObjFunction* funcObj)
     {
+        // Its names and constants go: what the field caches learned by their addresses goes too
+        forgetFieldCaches();
+
         // Clean up: release the chunk constants before destroying the function
         // The constants array contains Values that point to heap objects (strings, etc.)
         // NOTE: We need to bypass the isConstant() check in releaseValue() because these

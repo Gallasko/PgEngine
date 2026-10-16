@@ -1,0 +1,101 @@
+// What field reads and writes learn as they run (a slot for a shape, the step that adds a field)
+// must never take a write past a __set metamethod, nor read a field from the wrong slot
+import "string"
+import "algorithm"
+
+// The same write instruction for every table it is given
+fun put(t, v)
+{
+    t.value = v
+}
+
+class Guarded
+{
+    init()
+    {
+        this.seen = 0
+    }
+
+    __set(name, value)
+    {
+        __dprint("guarded " + name + " = " + toString(value))
+        return value
+    }
+}
+
+// A plain table, then an instance whose class has a __set, then the plain table again
+var plain = {value: 0}
+put(plain, 1)
+put(plain, 2)
+__dprint(plain.value)
+var g = Guarded()
+put(g, 3)
+__dprint(contain(g, "value"))
+put(plain, 4)
+__dprint(plain.value)
+
+// A table that gains a __set field after the write learned its shape and its step
+var t = {a: 1}
+put(t, 5)
+put(t, 6)
+t.__set = fun(self, name, value)
+{
+    __dprint("dynamic " + name)
+    return value
+}
+put(t, 7)
+__dprint(t.value)
+
+// Another table of the shape t had before: still written plainly
+var u = {a: 1}
+put(u, 8)
+put(u, 9)
+__dprint(u.value)
+
+// One read, tables of fifty shapes, twice over
+fun valueOf(r)
+{
+    return r.value
+}
+
+var rows = []
+
+for (var i = 0; i < 50; i = i + 1)
+{
+    var row = {}
+    row["k" + toString(i)] = i
+    row.value = i * 2
+    push(rows, row)
+}
+
+for (var round = 0; round < 2; round = round + 1)
+{
+    var sum = 0
+
+    for (var r : rows)
+    {
+        sum = sum + valueOf(r)
+    }
+
+    __dprint(sum)
+}
+
+// Writes made inside a __set go to the table itself
+class Logged
+{
+    init()
+    {
+        this.log = ""
+    }
+
+    __set(name, value)
+    {
+        this.log = this.log + name + " "
+        return value
+    }
+}
+
+var l = Logged()
+l.x = 1
+l.y = 2
+__dprint(l.log)

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "chunk.h"
+#include <deque>
+#include <string>
 #include <vector>
 #include <unordered_map>
 
@@ -9,6 +11,29 @@ namespace pg
     // Forward declarations
     struct VM;
     struct DecodedInstruction;
+    struct Shape;
+    struct Klass;
+
+    // What a field read or write learned the last time it ran, for one shape (object.h): the next
+    // table of that shape is read or written at the slot, without looking the name up
+    struct PropertyCache
+    {
+        const std::string* name = nullptr;  // The field
+        Shape* shape = nullptr;             // A shape it found the field in...
+        uint32_t slot = 0;                  // ...at this slot
+        Shape* addFrom = nullptr;           // A write that added the field: from this shape...
+        Shape* addTo = nullptr;             // ...to this one
+    };
+
+    // What a table literal built the last time: the keys it was given (values whose meaning cannot
+    // change: constant strings, inline strings, integers) and the shape they made
+    struct LiteralCache
+    {
+        Shape* shape = nullptr;
+        std::vector<Value> keys;
+        uint32_t epoch = 0;                 // The VM's cacheEpoch when learned: a freed function's
+                                            // constants may come back as other strings
+    };
 
     // Decoded handlers return the next instruction to execute. The dispatch
     // loop is `while (instr) instr = instr->decodedHandler(vm, *instr);` so
@@ -52,6 +77,12 @@ namespace pg
             // Property name (OP_Get_Property, OP_Set_Property, OP_Invoke)
             // — eliminates the chunk.constantStrings[index] lookup.
             const std::string* propertyNamePtr;
+
+            // OP_Get_Property / OP_Set_Property: the name and what was learned of it
+            PropertyCache* propertyCache;
+
+            // OP_Build_Table
+            LiteralCache* literalCache;
         };
 
         // Operand storage (union to save space)
@@ -148,6 +179,11 @@ namespace pg
         // fuseInstructions' fixup step; consumed by fuseIndexedAccess's
         // jump-into-window safety check.
         std::vector<size_t> fusedBranchTargets;
+
+        // What the field accesses and the table literals learn as they run (a deque: the instructions
+        // point at its elements, which never move)
+        std::deque<PropertyCache> propertyCaches;
+        std::deque<LiteralCache> literalCaches;
 
         // Back-reference to original bytecode chunk
         const Chunk* originalChunk;

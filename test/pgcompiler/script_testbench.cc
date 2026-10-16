@@ -387,6 +387,13 @@ TEST_F(ScriptTestBench, TableShapes)
     testScript("table_shapes");
 }
 
+TEST_F(ScriptTestBench, TableShapeCaches)
+{
+    MockLogger<TerminalSink> logger;
+
+    testScript("table_shape_caches");
+}
+
 TEST_F(ScriptTestBench, NoneLookup)
 {
     testScript("none_lookup");
