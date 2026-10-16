@@ -137,7 +137,7 @@ fun expand(st, round)
         // (the window in a var first: a field of a table a call has just built reads garbage)
         var arWin = windowOf(ar)
 
-        if (not alive and st.reached[ar.id] == none and ar.closed != true and ar.spent != true and ar.barred == "" and ar.pathOpen == true and ar.goto == "" and arWin.last >= st.month)
+        if (not alive and unfound(st, ar.id) and ar.closed != true and ar.spent != true and ar.barred == "" and ar.pathOpen == true and ar.goto == "" and arWin.last >= st.month)
         {
             alive = true
         }
@@ -155,27 +155,16 @@ fun expand(st, round)
         return children
     }
 
-    // How near he stands to what the world has not reached yet: each row's reach, the nearer the
-    // more (squared), a class's door five times over. Kept with every branch until it chooses again
-    var prospect = 0.0
-
-    for (var pr : rows)
+    // How near he stands to the tasks no world has reached yet: by their minimums (reqs.pg), each
+    // branch adding what its own work will bring (prospectDelta); or by the rows' own reach
+    if (beamProspect == "reqs")
     {
-        if (st.reached[pr.id] == none and pr.closed != true and pr.spent != true and pr.barred == "" and pr.reach != none)
-        {
-            var near = toFloat(pr.reach) / 100.0
-            var wt = 1.0
-
-            if (pr.enters == true)
-            {
-                wt = 5.0
-            }
-
-            prospect = prospect + 50.0 * wt * near * near
-        }
+        st.prospect = prospectOf(st)
     }
-
-    st.prospect = prospect
+    else
+    {
+        st.prospect = prospectByReach(st, rows)
+    }
 
     // How near he stands to the door of the class his world aims at
     // (what the nearest of them asks, kept with every branch: its own choice moves it)
@@ -233,7 +222,7 @@ fun expand(st, round)
 
                 beginFast(c, row)
                 c.pending = row.gains
-                c.pendingNew = st.reached[row.id] == none
+                c.pendingNew = unfound(st, row.id)
                 push(children, c)
             }
         }
@@ -276,9 +265,15 @@ fun expand(st, round)
 
         if (walkBy(walked, pick.row, beamGoals(pick.hunt)) == "")
         {
-            walked.pendingNew = st.reached[pick.row.id] == none
+            walked.pendingNew = unfound(st, pick.row.id)
             push(children, walked)
         }
+    }
+
+    // Earning what the tasks it nearly meets are short of (reqs.pg), on its first choice of a month
+    if (round == 0 and beamEarn)
+    {
+        earnChildren(st, rows, children)
     }
 
     var waits = clone(st)
@@ -295,7 +290,7 @@ fun walkEstimate(st, row, hunt)
 {
     var est = 50.0
 
-    if (st.reached[row.id] == none)
+    if (unfound(st, row.id))
     {
         est = est + 900.0
     }
@@ -356,11 +351,48 @@ fun afterDeath(st, cap)
             newLife(c, gift, town)
             c.aim = aim
             c.coasting = false
+            c.earning = none
             push(out, c)
         }
     }
 
     return out
+}
+
+// How near he stands to what no world has reached: each row's own reach (the game's share of what it
+// asks), the nearer the more, a class's door five times over
+fun prospectByReach(st, rows)
+{
+    var prospect = 0.0
+
+    for (var pr : rows)
+    {
+        if (everReached[pr.id] == none and pr.closed != true and pr.spent != true and pr.barred == "" and pr.reach != none)
+        {
+            var near = toFloat(pr.reach) / 100.0
+            var wt = 1.0
+
+            if (pr.enters == true)
+            {
+                wt = 5.0
+            }
+
+            prospect = prospect + 50.0 * wt * near * near
+        }
+    }
+
+    return prospect
+}
+
+// Not reached yet: by any world (`scope` all), or by this one (world)
+fun unfound(st, id)
+{
+    if (beamScope == "world")
+    {
+        return st.reached[id] == none
+    }
+
+    return everReached[id] == none
 }
 
 fun classOf(st)
@@ -453,7 +485,24 @@ fun grownOf(st)
 
 fun beamScore(st)
 {
-    var s = toFloat(1000 * st.reachedCount + grownOf(st))
+    // A task is worth its points to the world that reached it first: once reached it leaves the
+    // search for every world
+    var s = toFloat(1000 * asInt(st.firsts) + grownOf(st))
+
+    // (and with `score` both, a share for every task the world reached itself; `old`, only that)
+    if (beamScoring == "both")
+    {
+        s = s + 500.0 * toFloat(st.reachedCount)
+    }
+    else if (beamScoring == "old")
+    {
+        s = toFloat(1000 * st.reachedCount + grownOf(st))
+    }
+
+    if (beamProspect == "reqs")
+    {
+        s = s + prospectDelta(st)
+    }
 
     // Hunger ahead: the months of the work under way (or of waiting) he has no rations for cost
     // Vitality, five a month (resources.pg); one he will not live through is no world at all
@@ -611,6 +660,11 @@ fun beamRun(width, cap, minutes, seed)
 {
     beamWidth = width
 
+    if (len(tasks) == 0)
+    {
+        buildTasks()
+    }
+
     for (var m : zonesOfMob)
     {
         for (var z : zonesOfMob[m])
@@ -655,7 +709,15 @@ fun beamRun(width, cap, minutes, seed)
 
             if (st.running == "" and not st.dead)
             {
-                push(idle, st)
+                // What it is earning, the next term, without a choice
+                if (continueRepeat(st))
+                {
+                    push(moving, st)
+                }
+                else
+                {
+                    push(idle, st)
+                }
             }
             else
             {
@@ -735,3 +797,7 @@ var zoneHasBeasts = {}
 var aims = [""]
 var beamWidth = 8
 var walksPlayed = 2
+var beamProspect = "reqs"
+var beamEarn = true
+var beamScoring = "old"
+var beamScope = "world"

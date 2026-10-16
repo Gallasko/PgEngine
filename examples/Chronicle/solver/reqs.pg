@@ -1,0 +1,575 @@
+// reqs.pg - what each task asks of a character at the least, how near a world stands to the
+// tasks no world has reached yet, and the best way to earn what they are short of.
+//
+// A task's minimum character (minReqOf), from the game's tables once: what its row asks (its
+// `needs`: a part, a skill, coin, a flag, a level of the town, what the world knows; the first of
+// an `anyOf`), what it takes when it begins (its `costs`), its class's flag and the door into it,
+// what it `follows`, its `onlyWith`, and for a level of the town the level before it and what
+// brings the place onto the page. A flag it asks for brings in what the work giving it asks, and so
+// down the chain (`done.<id>` the same). With its window (the months of his life it can be begun
+// in) and a weight (a class's door five times the others).
+//
+// The beam (beam.pg) asks:
+//   prospectOf(st)       how near a world stands to every task no world has reached, that is still
+//                        open to it in this life and not of another class than its own: the share
+//                        of each task's minimum it holds, summed
+//   prospectDelta(st)    what the work under way will add to that at its term (only the tasks that
+//                        need what it brings are looked at: `tasksByStat`)
+//   earnChildren(...)    for the coin, rations and things of the walks that the tasks it nearly
+//                        meets are short of, a branch earning them with the best earner, its terms
+//                        played one after the other (continueRepeat)
+// A task reached by any world (life.pg's `everReached`) leaves all of it.
+// Imported by solver.pg, after plan.pg.
+
+import "algorithm"
+import "string"
+import "math"
+
+fun reqRaise(req, stat, needed)
+{
+    if (typeOf(stat) != "string" or stat == "")
+    {
+        return
+    }
+
+    var had = req[stat]
+
+    if (had == none or had < needed)
+    {
+        req[stat] = needed
+    }
+}
+
+fun reqMerge(into, other)
+{
+    for (var k : other)
+    {
+        reqRaise(into, k, other[k])
+    }
+}
+
+// The work bringing a flag that a row of class `path` can count on: of no class, or of that one
+fun firstProducer(stat, path)
+{
+    for (var p : asListOf(producers[stat]))
+    {
+        var row = tableById[p.id]
+
+        if (row != none and (row.path == "" or path == "" or row.path == path))
+        {
+            return p.id
+        }
+    }
+
+    return none
+}
+
+fun minReqOf(id, depth)
+{
+    var known = taskReqMemo[id]
+
+    if (known != none)
+    {
+        return known
+    }
+
+    var row = tableById[id]
+
+    if (row == none or depth > 8)
+    {
+        return {}
+    }
+
+    // (a cycle finds an empty table here and stops)
+    taskReqMemo[id] = {}
+
+    var req = {}
+
+    for (var n : asListOf(row.needs))
+    {
+        var stat = n.stat
+        var needed = n.needed
+
+        if (needed == none)
+        {
+            needed = 1
+        }
+
+        if (typeOf(n.anyOf) == "array" and len(n.anyOf) > 0)
+        {
+            var alts = n.anyOf
+            stat = alts[0]
+        }
+
+        reqRaise(req, stat, needed)
+
+        if (startsWith(stat, "done."))
+        {
+            reqMerge(req, minReqOf(substring(stat, 5, strlen(stat)), depth + 1))
+        }
+        else if (not isBase(stat) and not startsWith(stat, "town.") and not startsWith(stat, "know.") and itemKinds[stat] == none)
+        {
+            var maker = firstProducer(stat, row.path)
+
+            if (maker != none and maker != id)
+            {
+                reqMerge(req, minReqOf(maker, depth + 1))
+            }
+        }
+    }
+
+    for (var c : asListOf(row.costs))
+    {
+        var amount = c.amount
+
+        if (amount == none)
+        {
+            amount = 1
+        }
+
+        reqRaise(req, c.stat, amount)
+    }
+
+    if (row.path != "" and row.enters != true)
+    {
+        reqRaise(req, pathFlag[row.path], 1)
+
+        var doors = asListOf(entersOf[row.path])
+
+        if (len(doors) > 0)
+        {
+            reqMerge(req, minReqOf(doors[0], depth + 1))
+        }
+    }
+
+    if (typeOf(row.onlyWith) == "string" and row.onlyWith != "")
+    {
+        reqRaise(req, row.onlyWith, 1)
+    }
+
+    for (var f : asListOf(row.follows))
+    {
+        reqRaise(req, "done." + f, 1)
+        reqMerge(req, minReqOf(f, depth + 1))
+    }
+
+    if (row.raises != "")
+    {
+        if (row.level > 1)
+        {
+            reqRaise(req, "town." + row.raises, row.level - 1)
+        }
+
+        var shows = placeShows[row.raises]
+
+        if (typeOf(shows) == "table")
+        {
+            if (typeOf(shows.flag) == "string")
+            {
+                reqRaise(req, shows.flag, 1)
+            }
+
+            if (typeOf(shows.done) == "string")
+            {
+                reqRaise(req, "done." + shows.done, 1)
+            }
+        }
+    }
+
+    taskReqMemo[id] = req
+
+    return req
+}
+
+// Every task's minimum and window, and the index of the tasks by what they need
+fun buildTasks()
+{
+    for (var row : tableRows)
+    {
+        if (row.goto == "")
+        {
+            var req = minReqOf(row.id, 0)
+            var entries = []
+
+            for (var k : req)
+            {
+                push(entries, {stat: k, needed: req[k]})
+            }
+
+            var win = windowOf(row)
+            var last = win.last
+
+            // What only his prime closes is open longer once the Inn stands: not closed by the 30
+            if (asInt(row.finishBy) == 30)
+            {
+                last = 200 * 12
+            }
+
+            var weight = 1.0
+
+            if (row.enters == true)
+            {
+                weight = 5.0
+            }
+
+            var task = {id: row.id, path: row.path, first: win.first, last: last, entries: entries, n: larger(1, len(entries)), weight: weight}
+            push(tasks, task)
+            taskIndex[row.id] = task
+
+            for (var e : entries)
+            {
+                pushTo(tasksByStat, e.stat, {task: task, needed: e.needed})
+            }
+        }
+    }
+}
+
+// Still to be reached by someone, still open to this world in this life, not of another class
+fun stillOpen(st, task, cls)
+{
+    if (everReached[task.id] != none or task.last < st.month)
+    {
+        return false
+    }
+
+    return task.path == "" or cls == "" or task.path == cls
+}
+
+fun share(have, needed)
+{
+    if (needed <= 0)
+    {
+        return 1.0
+    }
+
+    return smaller(1.0, toFloat(have) / toFloat(needed))
+}
+
+fun closeness(st, task)
+{
+    if (len(task.entries) == 0)
+    {
+        return 1.0
+    }
+
+    var sum = 0.0
+
+    for (var e : task.entries)
+    {
+        sum = sum + share(charValue(st, e.stat), e.needed)
+    }
+
+    return sum / toFloat(task.n)
+}
+
+fun prospectOf(st)
+{
+    var cls = classOf(st)
+    var p = 0.0
+
+    for (var t : tasks)
+    {
+        if (stillOpen(st, t, cls))
+        {
+            p = p + 50.0 * t.weight * closeness(st, t)
+        }
+    }
+
+    return p
+}
+
+fun prospectDelta(st)
+{
+    if (st.running == "" or st.pending == none)
+    {
+        return 0.0
+    }
+
+    var cls = classOf(st)
+    var d = 0.0
+
+    for (var g : asListOf(st.pending))
+    {
+        var cur = charValue(st, g.stat)
+
+        for (var tt : asListOf(tasksByStat[g.stat]))
+        {
+            var t = tt.task
+
+            if (stillOpen(st, t, cls))
+            {
+                d = d + 50.0 * t.weight * (share(cur + g.amount, tt.needed) - share(cur, tt.needed)) / toFloat(t.n)
+            }
+        }
+    }
+
+    return d
+}
+
+// ---- earning --------------------------------------------------------------------------------------
+
+// What a term of a row earns of `stat` a month: coin less the rations it eats away from a table
+// that feeds him, rations with the months it feeds him counted
+fun earnRate(st, row, stat)
+{
+    var got = 0
+
+    for (var g : asListOf(row.gains))
+    {
+        if (g.stat == stat)
+        {
+            got = got + g.amount
+        }
+    }
+
+    if (got <= 0)
+    {
+        return 0.0
+    }
+
+    var months = larger(1, row.months)
+    var rate = toFloat(got)
+
+    if (stat == "coin" and row.board != true)
+    {
+        rate = rate - toFloat(months) * rationPrice(st)
+    }
+
+    if (stat == "rations" and row.board == true)
+    {
+        rate = rate + toFloat(months)
+    }
+
+    return rate / toFloat(months)
+}
+
+// The earners of a stat, the best first: what they earn depends on the town's levels and on what
+// the world knows, so the ranking is kept for that town and that knowledge
+fun earnersOf(st, rows, stat)
+{
+    var key = stat + "|"
+
+    for (var p : st.town)
+    {
+        key = key + p + toString(st.town[p]) + ","
+    }
+
+    key = key + "|"
+
+    for (var k : st.know)
+    {
+        key = key + k + toString(st.know[k]) + ","
+    }
+
+    var kept = earnerCache[key]
+
+    if (kept != none)
+    {
+        return kept
+    }
+
+    var found = []
+
+    for (var row : rows)
+    {
+        if (row.months > 0 and row.zone == "" and row.enters != true and len(asListOf(row.unless)) == 0)
+        {
+            var rate = earnRate(st, row, stat)
+
+            if (rate > 0.0)
+            {
+                push(found, {id: row.id, rate: rate})
+            }
+        }
+    }
+
+    var ranked = []
+
+    while (len(found) > 0)
+    {
+        var bi = 0
+
+        for (var j = 1; j < len(found); j = j + 1)
+        {
+            if (found[j].rate > found[bi].rate)
+            {
+                bi = j
+            }
+        }
+
+        push(ranked, found[bi].id)
+        removeAt(found, bi)
+    }
+
+    earnerCache[key] = ranked
+
+    return ranked
+}
+
+// The best earner open to him now, or none
+fun bestEarner(st, rows, stat)
+{
+    for (var id : earnersOf(st, rows, stat))
+    {
+        var row = shapeById[id]
+
+        if (row != none and isOpen(row))
+        {
+            return row
+        }
+    }
+
+    return none
+}
+
+// What the tasks a world nearly meets (half of their minimum or more, open now or within two
+// years) are short of in coin, rations and things of the walks: the most each is short of
+fun shortfalls(st)
+{
+    var cls = classOf(st)
+    var shorts = {}
+
+    for (var t : tasks)
+    {
+        if (stillOpen(st, t, cls) and t.first <= st.month + 24 and closeness(st, t) >= 0.5)
+        {
+            for (var e : t.entries)
+            {
+                if (e.stat == "coin" or e.stat == "rations" or itemKinds[e.stat] != none)
+                {
+                    var missing = e.needed - charValue(st, e.stat)
+
+                    if (missing > 0 and (shorts[e.stat] == none or missing > shorts[e.stat]))
+                    {
+                        shorts[e.stat] = missing
+                    }
+                }
+            }
+        }
+    }
+
+    return shorts
+}
+
+// A branch for each shortfall: the best earner, its terms played until the shortfall is met (six
+// at most); a thing of the walks, the walk that brings it, three times at most
+fun earnChildren(st, rows, children)
+{
+    var shorts = shortfalls(st)
+    var buy = shapeById["buy.rations"]
+
+    for (var stat : shorts)
+    {
+        var missing = shorts[stat]
+        var upTo = charValue(st, stat) + missing
+
+        if (itemKinds[stat] != none)
+        {
+            var walked = false
+
+            for (var z : asListOf(zonesOfItem[stat]))
+            {
+                var wrow = shapeById[walkOfZone[z]]
+
+                if (not walked and wrow != none and isOpen(wrow))
+                {
+                    var w = clone(st)
+                    var goals = beamGoals(false)
+                    goals.items[stat] = upTo
+
+                    if (walkBy(w, wrow, goals) == "")
+                    {
+                        w.earning = {id: wrow.id, stat: stat, target: upTo, left: 2, walk: true}
+                        w.pendingNew = everReached[wrow.id] == none
+                        note(w, "earning " + stat + " to " + toString(upTo))
+                        push(children, w)
+                        walked = true
+                    }
+                }
+            }
+        }
+        else
+        {
+            var row = bestEarner(st, rows, stat)
+
+            if (row != none)
+            {
+                var per = toFloat(larger(1, row.months)) * earnRate(st, row, stat)
+                var terms = smaller(6, larger(1, toInt(ceil(toFloat(missing) / larger(0.5, per)))))
+                var c = clone(st)
+
+                if (row.board != true)
+                {
+                    provisionFast(c, buy, row.months)
+                }
+
+                beginFast(c, row)
+                c.pending = row.gains
+                c.pendingNew = everReached[row.id] == none
+                c.earning = {id: row.id, stat: stat, target: upTo, left: terms - 1, walk: false}
+                note(c, "earning " + stat + " to " + toString(upTo) + ", " + toString(terms) + " terms")
+                push(children, c)
+            }
+        }
+    }
+}
+
+// The next term of what a world is earning, when it is still short and the work still open to
+// him: true when it was begun (the world does not choose this month)
+fun continueRepeat(st)
+{
+    var r = st.earning
+
+    if (r == none)
+    {
+        return false
+    }
+
+    if (r.left <= 0 or charValue(st, r.stat) >= r.target)
+    {
+        st.earning = none
+        return false
+    }
+
+    var row = rowOf(st, r.id)
+
+    if (row == none or not isOpen(row))
+    {
+        st.earning = none
+        return false
+    }
+
+    r.left = r.left - 1
+
+    if (r.walk)
+    {
+        var goals = beamGoals(false)
+        goals.items[r.stat] = r.target
+
+        if (walkBy(st, row, goals) != "")
+        {
+            st.earning = none
+            return false
+        }
+
+        st.pendingNew = everReached[row.id] == none
+        return true
+    }
+
+    if (row.board != true)
+    {
+        provisionFast(st, shapeById["buy.rations"], row.months)
+    }
+
+    beginFast(st, row)
+    st.pending = row.gains
+    st.pendingNew = everReached[row.id] == none
+
+    return true
+}
+
+var tasks = []
+var taskIndex = {}
+var tasksByStat = {}
+var taskReqMemo = {}
+var earnerCache = {}

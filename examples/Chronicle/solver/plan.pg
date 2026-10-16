@@ -91,6 +91,13 @@ fun addGains(list, id)
 // The game's tables, from one run of windows.pg (which imports the town's and the walks')
 fun learnTables(info)
 {
+    tableRows = info.activities
+
+    for (var trow : info.activities)
+    {
+        tableById[trow.id] = trow
+    }
+
     for (var row : info.activities)
     {
         addGains(row.gains, row.id)
@@ -1303,6 +1310,8 @@ var itemKinds = {}
 var pathFlag = {}
 var pathNames = {}
 var placeShows = {}
+var tableRows = []
+var tableById = {}
 var zoneIndex = {}
 var noise = 0.0
 var noiseSeed = 1

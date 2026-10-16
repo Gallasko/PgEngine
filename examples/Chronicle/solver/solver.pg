@@ -37,6 +37,7 @@ import "math"
 import "life"
 import "walks"
 import "plan"
+import "reqs"
 import "beam"
 
 fun targetsOf(ids)
@@ -678,6 +679,10 @@ if (mode == "task")
 else if (mode == "beam")
 {
     var width = toInt(option("width", "8"))
+    beamProspect = option("prospect", "reqs")
+    beamEarn = option("earn", "1") == "1"
+    beamScoring = option("score", "old")
+    beamScope = option("scope", "world")
     var minutes = toInt(option("minutes", "0"))
     var seed = toInt(option("seed", "1"))
 

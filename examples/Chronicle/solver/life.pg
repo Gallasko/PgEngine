@@ -382,6 +382,7 @@ fun reach(st, id)
         if (everReached[id] == none)
         {
             everReached[id] = {how: st.reached[id], head: st.planHead}
+            st.firsts = asInt(st.firsts) + 1
         }
     }
 
