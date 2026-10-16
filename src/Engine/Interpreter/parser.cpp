@@ -576,6 +576,7 @@ namespace pg
         try
         {
             if (match(TokenType::TOK_VAR))   return varDeclaration();
+            if (match(TokenType::TOK_CONST)) return varDeclaration(true);
             if (match(TokenType::TOK_FUN))   return funDeclaration();
             if (match(TokenType::TOK_CLASS)) return classDeclaration();
 
@@ -661,7 +662,7 @@ namespace pg
         return std::make_shared<FunctionStatement>(name, parameters, body);
     }
 
-    StatementPtr Parser::varDeclaration()
+    StatementPtr Parser::varDeclaration(bool isConst)
     {
         LOG_THIS_MEMBER(DOM);
 
@@ -673,9 +674,17 @@ namespace pg
             skipEOL();
             initializer = expression();
         }
+        else if (isConst)
+        {
+            consume("Expected = and a value after a const name", TokenType::EQUAL);
+        }
 
         consume("Expected ; or end of line after a variable definition", TokenType::END, TokenType::EOL);
-        return std::make_shared<VariableStatement>(name, initializer);
+
+        auto statement = std::make_shared<VariableStatement>(name, initializer);
+        statement->isConst = isConst;
+
+        return statement;
     }
 
     StatementPtr Parser::funDeclaration(const std::string& kind)

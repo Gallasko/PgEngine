@@ -391,6 +391,7 @@ namespace pg
         // Global variables (default: no flags)
         register_operation(static_cast<uint8_t>(OpCode::OP_Get_Global), op_get_global_decoded, 0);
         register_operation(static_cast<uint8_t>(OpCode::OP_Define_Global), op_define_global_decoded, 0);
+        register_operation(static_cast<uint8_t>(OpCode::OP_Global_Missing), op_global_missing_decoded, 0);
         register_operation(static_cast<uint8_t>(OpCode::OP_Set_Global), op_set_global_decoded, 0);
         register_operation(static_cast<uint8_t>(OpCode::OP_Define_Global_Non_Popping), op_define_global_non_popping_decoded, 0);
         register_operation(static_cast<uint8_t>(OpCode::OP_Define_Constant_Global), op_define_constant_global_decoded);

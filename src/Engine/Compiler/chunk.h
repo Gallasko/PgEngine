@@ -136,6 +136,7 @@ namespace pg
         // Appended after the existing opcodes so that already compiled .pgc files keep their numbering
         OP_None,             // Push the none value
         OP_Get_Long_Constant_Global, // Get a global whose name is a long constant: <3-byte constant index> (ConstantVarAccess)
+        OP_Global_Missing,   // Pop a global's name, push true when no global of that name is defined yet (`const`)
 
         OP_Custom = 255, // Custom opcode for extensions (not used by core VM)
     };
@@ -353,6 +354,7 @@ namespace pg
             case OpCode::OP_True:
             case OpCode::OP_False:
             case OpCode::OP_None:
+            case OpCode::OP_Global_Missing:
             case OpCode::OP_Not:
             case OpCode::OP_And:
             case OpCode::OP_Or:

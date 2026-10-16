@@ -459,6 +459,9 @@ namespace pg
         // Its names and constants go: what the field caches learned by their addresses goes too
         forgetFieldCaches();
 
+        // What its `const`s kept: a script prepared anew on this VM makes them again
+        forgetKeptConsts();
+
         // Clean up: release the chunk constants before destroying the function
         // The constants array contains Values that point to heap objects (strings, etc.)
         // NOTE: We need to bypass the isConstant() check in releaseValue() because these
@@ -1485,6 +1488,27 @@ namespace pg
         vm->defineGlobal(name.toString(), vm->retainValue(value));
         vm->releaseAndDelete(nameValue);
         vm->releaseAndDelete(value);
+        return &instr + 1;
+    }
+
+    // `const name = ...` at the top of a script: whether its value is still to be made (the first
+    // run of the script on this VM) or kept from an earlier run
+    const DecodedInstruction* op_global_missing_decoded(VM* vm, const DecodedInstruction& instr)
+    {
+        auto nameValue = vm->pop();
+        auto name = vm->valueToElement(nameValue);
+        vm->releaseAndDelete(nameValue);
+
+        if (not name.isLitteral())
+            return vm->raiseError("Global variable name must be a litteral.");
+
+        const uint32_t slot = vm->globalSlot(name.toString());
+        const bool missing = IS_UNDEFINED(vm->globalCells[slot]);
+
+        if (missing and std::find(vm->keptConstSlots.begin(), vm->keptConstSlots.end(), slot) == vm->keptConstSlots.end())
+            vm->keptConstSlots.push_back(slot);
+
+        vm->push(BOOL_VAL(missing));
         return &instr + 1;
     }
 

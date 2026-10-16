@@ -518,6 +518,8 @@ namespace pg
                 return constantInstruction(vm, "OP_Get_Constant_Global", chunk, offset);
             case OpCode::OP_Get_Long_Constant_Global:
                 return longConstantInstruction("OP_Get_Long_Constant_Global", chunk, offset);
+            case OpCode::OP_Global_Missing:
+                return simpleInstruction("OP_Global_Missing", offset);
 
             case OpCode::OP_Build_Vector:
                 return byteInstruction("OP_Build_Vector", chunk, offset);
@@ -674,6 +676,7 @@ namespace pg
             case OpCode::OP_Define_Constant_Global: return "OP_Define_Constant_Global";
             case OpCode::OP_Get_Constant_Global: return "OP_Get_Constant_Global";
             case OpCode::OP_Get_Long_Constant_Global: return "OP_Get_Long_Constant_Global";
+            case OpCode::OP_Global_Missing: return "OP_Global_Missing";
             case OpCode::OP_Set_Constant_Global: return "OP_Set_Constant_Global";
             case OpCode::OP_Define_Global_Non_Popping: return "OP_Define_Global_Non_Popping";
             case OpCode::OP_AddLL: return "OP_AddLL";

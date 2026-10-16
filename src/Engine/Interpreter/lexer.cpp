@@ -33,6 +33,7 @@ namespace pg
             {"if",       TokenType::TOK_IF},
             {"else",     TokenType::TOK_ELSE},
             {"var",      TokenType::TOK_VAR},
+            {"const",    TokenType::TOK_CONST},
             {"while",    TokenType::TOK_WHILE},
             {"for",      TokenType::TOK_FOR},
             {"__dprint", TokenType::TOK_DPRINT},

@@ -674,6 +674,31 @@ namespace pg
     {
         setLine(stmt->name);
 
+        // `const name = value` at the top of a script: the value is made only while no global of
+        // that name is defined (the script's first run on this VM); later runs keep it
+        if (stmt->isConst and stmt->expr and Compiler::current->scopeDepth == 0)
+        {
+            root.parser.writeConstant(stmt->name.text);
+            root.parser.writeByte(OpCode::OP_Global_Missing);
+
+            int keptJump = root.parser.emitJump(OpCode::OP_Long_Jump_If_False);
+            root.parser.writeByte(OpCode::OP_Pop); // Pop the condition
+
+            stmt->expr->accept(this);
+
+            setLine(stmt->name);
+            root.parser.writeConstant(stmt->name.text);
+            root.parser.writeByte(OpCode::OP_Define_Global);
+
+            int endJump = root.parser.emitJump(OpCode::OP_Long_Jump);
+
+            root.parser.patchJump(keptJump);
+            root.parser.writeByte(OpCode::OP_Pop); // Pop the condition
+
+            root.parser.patchJump(endJump);
+            return;
+        }
+
         if (Compiler::current->scopeDepth > 0)
             Compiler::current->addLocal(stmt->name);
 

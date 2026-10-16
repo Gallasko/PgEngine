@@ -797,6 +797,10 @@ namespace pg
         {
             varDeclaration();
         }
+        else if (match(TokenType::TOK_CONST))
+        {
+            constDeclaration();
+        }
         else if (match(TokenType::TOK_FUN))
         {
             funDeclaration();
@@ -846,6 +850,42 @@ namespace pg
 
         writeConstant(varName.text);  // Push variable name onto stack
         writeByte(OpCode::OP_Define_Global);
+    }
+
+    // `const name = value`: in a scope, a `var`. At the top of a script, the value is made only
+    // while no global of that name is defined: on the script's first run on this VM, later runs
+    // keep it (see VariableStatement::isConst)
+    void CParser::constDeclaration()
+    {
+        if (Compiler::current->scopeDepth > 0)
+        {
+            varDeclaration();
+            return;
+        }
+
+        consume("Expect constant name.", TokenType::EXPRESSION);
+
+        Token varName = previousToken;
+
+        writeConstant(varName.text);
+        writeByte(OpCode::OP_Global_Missing);
+
+        int keptJump = emitJump(OpCode::OP_Long_Jump_If_False);
+        writeByte(OpCode::OP_Pop); // Pop the condition
+
+        consume("Expect = and a value after a const name.", TokenType::EQUAL);
+        expression();
+        consumeEnd("Expect end of constant declaration.");
+
+        writeConstant(varName.text);
+        writeByte(OpCode::OP_Define_Global);
+
+        int endJump = emitJump(OpCode::OP_Long_Jump);
+
+        patchJump(keptJump);
+        writeByte(OpCode::OP_Pop); // Pop the condition
+
+        patchJump(endJump);
     }
 
     void CParser::funDeclaration()
@@ -1892,6 +1932,7 @@ namespace pg
                 case TokenType::TOK_CLASS:
                 case TokenType::TOK_FUN:
                 case TokenType::TOK_VAR:
+                case TokenType::TOK_CONST:
                 case TokenType::TOK_FOR:
                 case TokenType::TOK_IF:
                 case TokenType::TOK_WHILE:

@@ -44,6 +44,11 @@ namespace pg
 
         Token name;
         ExprPtr expr;
+
+        // `const name = ...`: an optimization hint. At the top of a script, the value is made on the
+        // script's first run on a VM and kept by the later runs (the initializer is skipped); the
+        // script promises it would make the same value again and never changes it. Elsewhere it is a `var`
+        bool isConst = false;
     };
 
     struct FunctionStatement : public Statement

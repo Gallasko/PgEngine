@@ -16,6 +16,8 @@
 #include "Compiler/vm.h"
 #include "Compiler/value_nanbox.h"
 #include "Compiler/chunk.h"
+#include "Compiler/frontend.h"
+#include "ECS/entitysystem.h"
 
 #include <atomic>
 #include <cstdint>
@@ -283,6 +285,98 @@ TEST(VMPreparedTest, ReprepareAfterCleanupRunsNewBytecode)
     ASSERT_EQ(vm.runPreparedFunction(fnB, 0, "reloadB"), InterpretResult::OK);
     EXPECT_EQ(readIntGlobal(vm, "answer"), 60);
     vm.cleanupFunction(fnB);
+}
+
+// ---------------------------------------------------------------------------
+// `const name = value` at the top of a script: made on the first run, kept by
+// the later ones (its initializer skipped); inside a function, a plain local.
+// Both front-ends, with the optimization passes off and at O3.
+// ---------------------------------------------------------------------------
+namespace {
+
+const char* constScript = R"(
+const kept = bump()
+const table = {made: bump()}
+var fresh = bump()
+
+fun inner()
+{
+    const local = bump()
+    return local
+}
+
+var viaLocal = inner()
+var tableMade = table.made
+)";
+
+void checkConstRuns(ScriptFrontEnd frontEnd, bool optimized)
+{
+    EntitySystem ecs;
+
+    auto bytes = compileToBytecode(constScript, [&](VM& compiler) {
+        if (optimized)
+        {
+            ecs.setVMOptimizationLevel(VmOptimizationLevel::O3);
+            ecs.setupVm(compiler);
+        }
+
+        compiler.setFrontEnd(frontEnd);
+        compiler.registerNative("bump", [](VM*, int, Value*) -> Value { return makeIntValue(0); });
+    });
+
+    int calls = 0;
+
+    VM vm;
+    vm.registerNative("bump", [&calls](VM*, int, Value*) -> Value { return makeIntValue(++calls); });
+
+    ObjFunction* fn = vm.prepareCachedFunction(bytes, "const");
+    ASSERT_NE(fn, nullptr);
+
+    for (int run = 1; run <= 4; ++run)
+    {
+        ASSERT_EQ(vm.runPreparedFunction(fn, 0, "const"), InterpretResult::OK) << "run " << run;
+
+        // First run: kept 1, table.made 2, fresh 3, local 4. Then two calls a run: fresh, local
+        EXPECT_EQ(readIntGlobal(vm, "kept"), 1) << "run " << run;
+        EXPECT_EQ(readIntGlobal(vm, "tableMade"), 2) << "run " << run;
+        EXPECT_EQ(readIntGlobal(vm, "fresh"), 1 + 2 * run) << "run " << run;
+        EXPECT_EQ(readIntGlobal(vm, "viaLocal"), 2 + 2 * run) << "run " << run;
+        EXPECT_EQ(calls, 2 + 2 * run) << "run " << run;
+    }
+
+    // Prepared anew on the same VM (a reload): its consts are made again
+    vm.cleanupFunction(fn);
+    EXPECT_TRUE(IS_UNDEFINED(vm.findGlobal("kept")));
+
+    fn = vm.prepareCachedFunction(bytes, "const");
+    ASSERT_NE(fn, nullptr);
+    ASSERT_EQ(vm.runPreparedFunction(fn, 0, "const"), InterpretResult::OK);
+    EXPECT_EQ(readIntGlobal(vm, "kept"), 11);
+    EXPECT_EQ(readIntGlobal(vm, "tableMade"), 12);
+
+    vm.cleanupFunction(fn);
+}
+
+} // namespace
+
+TEST(VMPreparedTest, ConstKeptAcrossRunsAst)
+{
+    checkConstRuns(ScriptFrontEnd::Ast, false);
+}
+
+TEST(VMPreparedTest, ConstKeptAcrossRunsAstOptimized)
+{
+    checkConstRuns(ScriptFrontEnd::Ast, true);
+}
+
+TEST(VMPreparedTest, ConstKeptAcrossRunsPratt)
+{
+    checkConstRuns(ScriptFrontEnd::Pratt, false);
+}
+
+TEST(VMPreparedTest, ConstKeptAcrossRunsPrattOptimized)
+{
+    checkConstRuns(ScriptFrontEnd::Pratt, true);
 }
 
 } // namespace test

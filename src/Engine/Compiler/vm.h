@@ -241,6 +241,7 @@ namespace pg
     const DecodedInstruction* op_get_global_decoded(VM* vm, const DecodedInstruction& instr);
     const DecodedInstruction* op_set_global_decoded(VM* vm, const DecodedInstruction& instr);
     const DecodedInstruction* op_define_global_decoded(VM* vm, const DecodedInstruction& instr);
+    const DecodedInstruction* op_global_missing_decoded(VM* vm, const DecodedInstruction& instr);
     const DecodedInstruction* op_define_global_non_popping_decoded(VM* vm, const DecodedInstruction& instr);
     const DecodedInstruction* op_get_constant_global_decoded(VM* vm, const DecodedInstruction& instr);
     const DecodedInstruction* op_set_constant_global_decoded(VM* vm, const DecodedInstruction& instr);
@@ -644,6 +645,22 @@ namespace pg
             releaseAndDelete(cell);
 
             cell = v;
+        }
+
+        // The globals made by a `const` at the top of a script (OP_Global_Missing): kept from run to
+        // run, forgotten with the function (cleanupFunction), so that a script reloaded on this VM
+        // makes them anew
+        std::vector<uint32_t> keptConstSlots;
+
+        inline void forgetKeptConsts()
+        {
+            for (uint32_t slot : keptConstSlots)
+            {
+                releaseAndDelete(globalCells[slot]);
+                globalCells[slot] = UndefinedValue;
+            }
+
+            keptConstSlots.clear();
         }
 
         // Value of a global, UndefinedValue if it was never declared or not assigned yet.

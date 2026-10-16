@@ -146,7 +146,7 @@ namespace pg
 
         std::shared_ptr<FunctionStatement> makeFun(const std::string& kind = "function");
 
-        StatementPtr varDeclaration();
+        StatementPtr varDeclaration(bool isConst = false);
         StatementPtr funDeclaration(const std::string& kind = "function");
         StatementPtr classDeclaration();
         StatementPtr forStatement();

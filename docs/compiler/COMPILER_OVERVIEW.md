@@ -85,6 +85,19 @@ var x = 5
 x = x + 1  // 6
 ```
 
+### `const`: a value kept from run to run
+
+```javascript
+const statNames = {str: "Strength", dex: "Dexterity"}
+```
+
+An optimization hint for scripts run many times on one VM (a rule script, a system hook): at the
+top of a script, a `const` is made on the script's first run and kept by the later runs, its
+initializer skipped. The script promises the initializer would make the same value again and that
+nothing changes it: a value made from the run's inputs, or written into later, must stay a `var`.
+Inside a function or a block, `const` is a `var`. Nothing enforces the promise; a function
+prepared anew on the VM (`cleanupFunction`, a reload) makes its consts again.
+
 ### Data Types
 
 #### Primitives
