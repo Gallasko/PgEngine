@@ -1,6 +1,7 @@
 #include "stdafx.h"
 
 #include "cparser.h"
+#include "ast/ast_compiler.h"
 
 #include <unordered_map>
 
@@ -1623,6 +1624,38 @@ namespace pg
             Lexer lexer;
             lexer.readFromFile(fullPath);
             auto importTokens = lexer.getTokens();
+
+            // With the AST front-end (the default), the module is compiled as a script is: to its
+            // AST, through the AST passes, then emitted. Its functions are ours to keep, as the
+            // Pratt path below hands over its own
+            if (vm->frontEnd == ScriptFrontEnd::Ast)
+            {
+                AstCompiler importer(vm);
+                Value importedFunction = importer.compile(importTokens);
+
+                if (importedFunction == 0x0 or importer.hasError())
+                {
+                    error("Error compiling imported module '" + moduleName + "'.");
+                    return true; // File exists but compilation error - don't fallback to native module
+                }
+
+                for (auto func : importer.allocatedFunctions())
+                {
+                    allocatedFunction.push_back(func);
+                }
+
+                importer.allocatedFunctions().clear();
+
+                // Emit bytecode to call the imported script immediately (as below)
+                uint8_t constant = Compiler::current->getCurrentChunk().addConstantIndex(importedFunction);
+                writeByte(OpCode::OP_Closure);
+                writeByte(constant);
+                writeByte(OpCode::OP_Call);
+                writeByte(0);
+                writeByte(OpCode::OP_Pop);
+
+                return true;
+            }
 
             // Create a nested compiler for the imported module
             Compiler importCompiler(vm);
