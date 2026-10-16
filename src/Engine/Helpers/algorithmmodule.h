@@ -15,6 +15,7 @@ namespace pg
         {
             // Add utility functions
             addNativeFunction("contain", nativeContain);
+            addNativeFunction("lookup", nativeLookup);
             addNativeFunction("toInt", nativeToInt);
             addNativeFunction("toFloat", nativeToFloat);
             addNativeFunction("typeOf", nativeTypeOf);
@@ -77,6 +78,40 @@ namespace pg
             {
                 throw std::runtime_error("contain expects first argument to be a table instance or a string");
             }
+        }
+
+        /**
+         * The field of a table, or a fallback when it has none
+         * Usage: lookup(table, "keyName", fallback)
+         *
+         * What a script writes `if (contain(t, k)) return t[k]; return fallback` for, in one call:
+         * the key is looked up once, and no script function is called around the native one.
+         */
+        static Value nativeLookup(VM* vm, int argCount, Value* args)
+        {
+            if (argCount != 3)
+            {
+                throw std::runtime_error("lookup expects exactly 3 arguments (table, key, fallback)");
+            }
+
+            if (not IS_STRING(args[1]))
+            {
+                throw std::runtime_error("lookup expects second argument to be a string key");
+            }
+
+            if (not IS_INSTANCE(args[0]))
+            {
+                throw std::runtime_error("lookup expects first argument to be a table instance");
+            }
+
+            ObjInstance* instance = vm->asInstance(args[0]);
+            auto it = instance->internedFields.find(vm->asString(args[1]));
+
+            // The arguments are released once the call is over: what is returned is retained
+            if (it != instance->internedFields.end())
+                return vm->retainValue(instance->fieldValues[it->second]);
+
+            return vm->retainValue(args[2]);
         }
 
         static Value nativeToInt(VM* vm, int argCount, Value* args)
