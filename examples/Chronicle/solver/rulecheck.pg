@@ -1,0 +1,82 @@
+// rulecheck.pg - what the rules answer along one life, written out whole: to check that a change
+// meant to make them faster (in a rule script, a VM pass) changes nothing they say.
+//
+// The same life is played (the planner aiming at the Collegium and the Flood), and at each of its
+// first 25 choices every activity and window, three forecasts and a month's ledger are written.
+// Run it with the rules before the change and after, and compare the two files:
+//
+//   ChronicleSolver <old rules dir> examples/Chronicle/solver/rulecheck.pg old.txt
+//   ChronicleSolver <new rules dir> examples/Chronicle/solver/rulecheck.pg new.txt
+//   cmp old.txt new.txt
+//
+// (The rules dir of each run is a copy of its own: a .pgc is written beside every script loaded.)
+import "algorithm"
+import "string"
+import "math"
+import "file"
+import "life"
+import "walks"
+import "plan"
+
+fun show(v)
+{
+    var t = typeOf(v)
+    if (t == "table")
+    {
+        var s = "{"
+        for (var k : v)
+        {
+            s = s + k + ":" + show(v[k]) + ","
+        }
+        return s + "}"
+    }
+    if (t == "array")
+    {
+        var s = "["
+        for (var x : v)
+        {
+            s = s + show(x) + ","
+        }
+        return s + "]"
+    }
+    if (t == "string")
+    {
+        return "'" + v + "'"
+    }
+    return toString(v)
+}
+
+var info = rule("windows", {age: 6.0, character: freshStats(), done: {}, world: 0, lives: 1, running: "", activityId: ""}, ["activities", "walkZones", "walkMobs", "walkItems", "lifeEvents", "paths", "townPlaces"])
+learnTables(info)
+
+var out = []
+var st = newWorld(3)
+var checks = 0
+
+for (var step = 0; step < 600 and not st.dead and checks < 25; step = step + 1)
+{
+    if (st.running == "")
+    {
+        var answer = rule("windows", {age: ageOf(st), character: character(st), done: st.done, world: st.world, lives: st.lives, running: st.running, activityId: ""}, ["activities", "windows"])
+        push(out, "== " + ageText(st.month) + " " + show(answer.activities) + show(answer.windows))
+        var shown = 0
+        for (var row : answer.activities)
+        {
+            if (row.listed == true and shown < 3)
+            {
+                var f = rule("forecast", {age: ageOf(st), character: character(st), done: st.done, world: st.world, lives: st.lives, running: st.running, activityId: row.id, monthsIn: 0}, ["forecast"])
+                push(out, "-- forecast " + row.id + " " + show(f.forecast))
+                shown = shown + 1
+            }
+        }
+        var m = rule("resources", {age: ageOf(st), character: character(st), board: false}, ["month", "rows", "glosses", "death"])
+        push(out, "-- resources " + show(m.month) + show(m.rows) + show(m.glosses) + show(m.death))
+        checks = checks + 1
+        var goals = goalsFor(st, [{id: "collegium", weight: 1.0}, {id: "flood.rescue", weight: 1.0}], false, "")
+        chooseWork(st, goals, false)
+    }
+    monthPass(st)
+}
+
+writeFile(getArg(2), join(out, "\n"))
+log("checks " + toString(checks))

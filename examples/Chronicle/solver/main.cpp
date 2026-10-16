@@ -13,6 +13,7 @@
 
 #include "logger.h"
 
+#include "Compiler/chunk.h"
 #include "Compiler/vm.h"
 #include "ECS/entitysystem.h"
 #include "ECS/loggersystem.h"
@@ -219,6 +220,44 @@ namespace
 
         std::map<std::string, Spent> spent;
         bool profiling = std::getenv("CHRONICLE_SOLVER_PROFILE") != nullptr;
+        std::string vmProfileDir = []{ const char* d = std::getenv("CHRONICLE_SOLVER_VMPROFILE"); return d ? std::string(d) : std::string(); }();
+
+        // Every instruction the profiler saw in `vm`: function, offset, opcode, count, nanoseconds
+        static void dumpProfile(const VM& vm, const std::string& file)
+        {
+            FILE* out = std::fopen(file.c_str(), "w");
+
+            if (not out)
+                return;
+
+            std::fprintf(out, "function\toffset\tline\topcode\tcount\tns\n");
+
+            for (const auto& p : vm.profiler.getResultsSortedByTime())
+            {
+                // The source line of the instruction, from its chunk (alive while its script is)
+                const Chunk* chunk = static_cast<const Chunk*>(p.chunkPtr);
+                const int line = chunk and p.instructionOffset < chunk->lines.size() ? chunk->lines[p.instructionOffset] : -1;
+
+                std::fprintf(out, "%s\t%zu\t%d\t%s\t%llu\t%llu\n", p.functionName.c_str(), p.instructionOffset, line, p.opcodeName.c_str(),
+                             static_cast<unsigned long long>(p.executionCount), static_cast<unsigned long long>(p.totalNanoseconds));
+            }
+
+            std::fclose(out);
+        }
+
+        void dumpProfiles(const VM& solverVm) const
+        {
+            if (vmProfileDir.empty())
+                return;
+
+            std::filesystem::create_directories(vmProfileDir);
+
+            for (const auto& [name, rs] : scripts)
+                dumpProfile(*rs->machine(), vmProfileDir + "/" + name + ".tsv");
+
+            dumpProfile(solverVm, vmProfileDir + "/solver.tsv");
+            std::fprintf(stderr, "VM profiles written to %s\n", vmProfileDir.c_str());
+        }
 
         EntitySystem ecs;
         std::string rulesDir;
@@ -248,6 +287,10 @@ namespace
 
                 return nullptr;
             }
+
+            // The VM's own profiler, instruction by instruction (CHRONICLE_SOLVER_VMPROFILE=<dir>)
+            if (not vmProfileDir.empty())
+                loaded->machine()->enableProfiling();
 
             return (scripts[name] = std::move(loaded)).get();
         }
@@ -436,6 +479,9 @@ int main(int argc, char* argv[])
     auto vm = std::make_unique<VM>();
     host->ecs.setupVm(*vm);
 
+    if (not host->vmProfileDir.empty())
+        vm->enableProfiling();
+
     Host* h = host.get();
 
     vm->defineNative("rule", [h](VM* v, int argCount, Value* args) -> Value {
@@ -498,6 +544,8 @@ int main(int argc, char* argv[])
 
     if (std::getenv("CHRONICLE_SOLVER_PROFILE"))
         host->report();
+
+    host->dumpProfiles(*vm);
 
     return result == InterpretResult::OK ? 0 : 1;
 }
