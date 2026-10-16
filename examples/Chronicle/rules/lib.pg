@@ -407,15 +407,16 @@ fun tooLate(row, lived, last)
 
 // Whether an activity of the table is behind him: done once in this life, or closed to him for
 // good (too late for it, or one of its `unless` done). What a row's `follows` waits for: nothing
-// waits forever on what he missed. An id the table does not have is behind no one.
-fun behindHim(rows, id, done, lived, last)
+// waits forever on what he missed. An id the table does not have is behind no one. `rowsById` is
+// the table by id (activitytable.pg's `activityById`).
+fun behindHim(rowsById, id, done, lived, last)
 {
     if (lookup(done, id, 0) > 0)
     {
         return true
     }
 
-    var row = byId(rows, id)
+    var row = lookup(rowsById, id, {id: ""})
 
     if (row.id == "")
     {

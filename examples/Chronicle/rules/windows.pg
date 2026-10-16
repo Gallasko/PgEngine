@@ -52,7 +52,7 @@ var windows = []
 for (var i = 0; i < len(windowTable); i++)
 {
     var w = windowTable[i]
-    var a = byId(activities, w.activity)
+    var a = lookup(activityById, w.activity, {id: ""})
 
     if (a.id == "" or a.months <= 0)
     {
