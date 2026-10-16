@@ -180,17 +180,9 @@ fun startsWith(text, prefix)
     return substring(text, 0, strlen(prefix)) == prefix
 }
 
-// A missing key reads as false, not as an error: look names up explicitly. `contain` asks the
-// table itself, without walking its keys: the rules look names up thousands of times a run.
-fun lookup(table, key, fallback)
-{
-    if (contain(table, key))
-    {
-        return table[key]
-    }
-
-    return fallback
-}
+// `lookup(table, key, fallback)`, the field or the fallback when the table has none, is the
+// algorithm module's (a native): the rules look names up hundreds of thousands of times a run,
+// and a function of their own around `contain` was a fifth of the activities' run.
 
 // Whether a table holds a key at all.
 fun has(table, key)
