@@ -1398,6 +1398,39 @@ for (var w = 0; w < len(activities); w++)
 // written, stays in `tabledAll`: for what one activity says of another (its `unless`)
 var tabledAll = activities
 
+// What doing each activity closes, by its id: the names of the rows whose `unless` names it, in
+// the table's order. Read off once a run: asked of every row about every other, it was most of
+// the run (a `closedBy` for each pair)
+var shutNames = {}
+
+for (var cr = 0; cr < len(tabledAll); cr++)
+{
+    var closerRow = tabledAll[cr]
+
+    if (contain(closerRow, "unless"))
+    {
+        var closerIds = asList(closerRow.unless)
+        var closerSeen = {}
+
+        for (var cu = 0; cu < len(closerIds); cu++)
+        {
+            var closedId = closerIds[cu]
+
+            if (not contain(closerSeen, closedId))
+            {
+                closerSeen[closedId] = true
+
+                if (not contain(shutNames, closedId))
+                {
+                    shutNames[closedId] = []
+                }
+
+                push(shutNames[closedId], closerRow.name)
+            }
+        }
+    }
+}
+
 if (activityId != "")
 {
     var shaped = []
@@ -1579,15 +1612,7 @@ for (var i = 0; i < len(activities); i++)
     // What doing it closes for this life, said before he does it: the rows whose `unless` names it
     a.caution = ""
 
-    var shuts = []
-
-    for (var o = 0; o < len(tabledAll); o++)
-    {
-        if (closedBy(tabledAll[o], a.id))
-        {
-            push(shuts, tabledAll[o].name)
-        }
-    }
+    var shuts = lookup(shutNames, a.id, [])
 
     if (len(shuts) > 0)
     {
