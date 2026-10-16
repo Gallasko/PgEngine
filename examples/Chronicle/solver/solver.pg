@@ -12,6 +12,9 @@
 //   task <id>       one task alone (and its tries): the plan that reaches it, life by life
 //   beam            a search that tries every task, no aim and no plan (beam.pg): every choice of
 //                   every world, month after month, the best `width` worlds kept
+//   hybrid          the beam until it stops finding tasks (stall=240 months, stallFinds=3), then
+//                   the planner on each task it did not reach (from the beam's best world, a world
+//                   of its own, then `tries` more)
 //   merge <part>... the `.part` files of a run split over processes, as one report
 //
 //   lives=5         the lives a search may take
@@ -23,7 +26,7 @@
 //   minutes=0       beam: stop after so many minutes, whatever is left (0: when every world is over)
 //   seed=1          beam: the dice, and a little chance in which worlds are kept (another seed, another search)
 //
-// solve.sh runs `all` or `beam` over several processes and merges them.
+// solve.sh runs `all`, `beam` or `hybrid` over several processes and merges them.
 //
 // A task is reached when its term is: its months gone by, or what it does done at once. The
 // lives are played with the game's numbers (life.pg) and a plain way of choosing (plan.pg,
@@ -579,6 +582,24 @@ fun reportText(found, missed, header, world)
     return join(lines, "\n")
 }
 
+// The lines of the life a task was reached in, to that month (`how`: "life 2, 14y3m")
+fun lifePlan(head, how)
+{
+    var out = []
+    var howParts = split(substring(how, 5, strlen(how)), ",")
+    var prefix = "L" + howParts[0] + " "
+
+    for (var line : planLines(head))
+    {
+        if (startsWith(line, prefix))
+        {
+            push(out, "   " + line)
+        }
+    }
+
+    return out
+}
+
 // ---- the run ---------------------------------------------------------------------------------------
 
 // The arguments: the mode, then key=value options, and the words left (the task, the files)
@@ -748,6 +769,166 @@ else if (mode == "beam")
         push(rows, id6 + "|" + how + "|-")
     }
 
+    writeFile(reportPath + ".part", join(rows, "\n"))
+    log("")
+    log("written to " + reportPath + " (" + reportPath + ".plans: how each was reached)")
+}
+else if (mode == "hybrid")
+{
+    // The beam first, as far as it keeps finding tasks; then each task it did not reach, alone,
+    // by the planner: from the beam's best world, from a world of its own, then with chance in
+    // the choosing. Split over processes (shard=i/n), each runs the same beam (seed 1 unless
+    // given: the same tasks left) and takes its share of what is left
+    var width = toInt(option("width", "10"))
+    var minutes = toInt(option("minutes", "0"))
+    var seed = toInt(option("seed", "1"))
+    beamProspect = option("prospect", "reqs")
+    beamEarn = option("earn", "1") == "1"
+    beamScoring = option("score", "old")
+    beamScope = option("scope", "world")
+    beamStall = toInt(option("stall", "240"))
+    beamStallFinds = toInt(option("stallFinds", "3"))
+
+    noiseSeed = 7919 * seed + 1
+
+    if (seed > 1)
+    {
+        beamNoise = 300.0
+    }
+
+    beamRun(width, cap, minutes, seed)
+
+    var beamSeconds = (clockMs() - started) / 1000
+    var found = {}
+    var missed = {}
+    var plans = {}
+
+    for (var k : everReached)
+    {
+        found[k] = "beam, " + everReached[k].how
+        plans[k] = lifePlan(everReached[k].head, everReached[k].how)
+    }
+
+    var left = 0
+
+    for (var c : allIds)
+    {
+        if (found[c] == none)
+        {
+            left = left + 1
+        }
+    }
+
+    log("hybrid: the beam reached " + toString(len(allIds) - left) + " tasks in " + toString(beamSeconds) + " s; the planner takes the " + toString(left) + " left")
+
+    var base = beamBest
+    var index = 0
+
+    for (var id2 : allIds)
+    {
+        if (found[id2] == none)
+        {
+            if (index - (index / shards) * shards == shard)
+            {
+                var t0 = clockMs()
+                var won = none
+
+                if (base != none)
+                {
+                    var later = clone(base)
+
+                    if (search(later, [id2], cap))
+                    {
+                        won = later
+                        found[id2] = "planner after the beam, " + later.reached[id2]
+                    }
+                }
+
+                if (won == none)
+                {
+                    var fresh = newWorld(3000)
+
+                    if (search(fresh, [id2], cap))
+                    {
+                        won = fresh
+                        found[id2] = "planner, a world of its own, " + fresh.reached[id2]
+                    }
+                }
+
+                if (won == none)
+                {
+                    var again = retried(id2, cap, base)
+
+                    if (again != none)
+                    {
+                        won = lastWorld
+                        found[id2] = "planner, " + again
+                    }
+                }
+
+                var said = ""
+
+                if (won == none)
+                {
+                    missed[id2] = missText(id2)
+                    said = "NOT reached; " + missed[id2]
+                }
+                else
+                {
+                    plans[id2] = lifePlan(won.planHead, won.reached[id2])
+                    said = "reached: " + found[id2]
+                }
+
+                log("  " + id2 + ": " + said + " (" + toString((clockMs() - t0) / 1000) + " s)")
+            }
+
+            index = index + 1
+        }
+    }
+
+    var header = "hybrid, beam width " + toString(width) + " then the planner, " + toString(cap) + " lives a search, " + toString(tries) + " tries, " + toString((clockMs() - started) / 1000) + " s"
+
+    if (shards > 1)
+    {
+        header = header + ", part " + toString(shard + 1) + " of " + toString(shards)
+    }
+
+    var text = reportText(found, missed, header, none)
+    var planOut = []
+    var rows = []
+
+    for (var id3 : allIds)
+    {
+        if (plans[id3] != none)
+        {
+            push(planOut, "== " + id3 + "  (" + found[id3] + ")")
+
+            for (var line : plans[id3])
+            {
+                push(planOut, line)
+            }
+        }
+
+        var how = found[id3]
+
+        if (how == none)
+        {
+            how = "-"
+        }
+
+        var m3 = missed[id3]
+
+        if (m3 == none or m3 == "")
+        {
+            m3 = "-"
+        }
+
+        push(rows, id3 + "|" + how + "|" + m3)
+    }
+
+    log(text)
+    writeFile(reportPath, text)
+    writeFile(reportPath + ".plans", join(planOut, "\n"))
     writeFile(reportPath + ".part", join(rows, "\n"))
     log("")
     log("written to " + reportPath + " (" + reportPath + ".plans: how each was reached)")

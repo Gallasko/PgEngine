@@ -1,21 +1,24 @@
 #!/bin/bash
 # solve.sh - Chronicle's solver over several processes, merged into one report.
 #
-#   examples/Chronicle/solver/solve.sh [all|beam] [processes] [report] [key=value...]
+#   examples/Chronicle/solver/solve.sh [all|beam|hybrid] [processes] [report] [key=value...]
 #
 # From the repository's root, with ChronicleSolver built in release/.
 #   all   (the default) each process plays the same shared world, then takes its share of the
 #         tasks left (solver.pg's shard=i/n)
 #   beam  each process runs the search that tries every task with dice of its own (seed=1, 2...):
 #         more processes, more of the game seen in the same time
+#   hybrid  each process runs the same beam until it stops finding tasks, then takes its share of
+#         the tasks it left to the planner (shard=i/n)
 # The parts are merged into the report (chronicle-solver.txt by default). The options after the
-# report go to every process: lives=5, tries=20 for all; width=8, minutes=0 for beam.
+# report go to every process: lives=5, tries=20 for all; width=8, minutes=0 for beam; for hybrid
+# both, and stall=240, stallFinds=3.
 
 set -e
 
 mode=all
 
-if [[ "$1" == "all" || "$1" == "beam" ]]; then
+if [[ "$1" == "all" || "$1" == "beam" || "$1" == "hybrid" ]]; then
     mode=$1
     shift
 fi
@@ -42,6 +45,8 @@ for ((i = 0; i < jobs; i++)); do
     cp "$rules"/*.pg "$copies/$i/"
     if [[ $mode == beam ]]; then
         "$solver" "$copies/$i" "$script" beam "report=$part" "seed=$((i + 1))" "$@" > "$part.log" 2>&1 &
+    elif [[ $mode == hybrid ]]; then
+        "$solver" "$copies/$i" "$script" hybrid "report=$part" "shard=$i/$jobs" "$@" > "$part.log" 2>&1 &
     else
         "$solver" "$copies/$i" "$script" all "report=$part" "shard=$i/$jobs" "$@" > "$part.log" 2>&1 &
     fi

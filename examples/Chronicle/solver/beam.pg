@@ -691,6 +691,9 @@ fun beamRun(width, cap, minutes, seed)
     var began = clockMs()
     var months = 0
 
+    // How many tasks had been reached by each month: the rate the search still finds them at
+    var foundBy = [0]
+
     while (len(pool) > 0)
     {
         if (minutes > 0 and clockMs() - began > minutes * 60000)
@@ -780,6 +783,22 @@ fun beamRun(width, cap, minutes, seed)
         pool = prune(next, width)
         months = months + 1
 
+        if (len(pool) > 0)
+        {
+            beamBest = pool[0]
+        }
+
+        // Stalled: fewer than `beamStallFinds` tasks found over the last `beamStall` months of
+        // the calendar (long enough to span a new life's childhood, whose tasks are all known)
+        push(foundBy, countReached())
+
+        if (beamStall > 0 and months >= beamStall and foundBy[months] - foundBy[months - beamStall] < beamStallFinds)
+        {
+            var stalled = toString(foundBy[months] - foundBy[months - beamStall])
+            log("beam: " + stalled + " tasks found in the last " + toString(beamStall) + " months, the search stops here")
+            return
+        }
+
         if (months - (months / 12) * 12 == 0 and len(pool) > 0)
         {
             var lead = pool[0]
@@ -801,3 +820,6 @@ var beamProspect = "reqs"
 var beamEarn = true
 var beamScoring = "old"
 var beamScope = "world"
+var beamStall = 0
+var beamStallFinds = 3
+var beamBest = none
