@@ -395,6 +395,8 @@ namespace pg
         register_operation(static_cast<uint8_t>(OpCode::OP_Define_Global_Non_Popping), op_define_global_non_popping_decoded, 0);
         register_operation(static_cast<uint8_t>(OpCode::OP_Define_Constant_Global), op_define_constant_global_decoded);
         register_operation(static_cast<uint8_t>(OpCode::OP_Get_Constant_Global), op_get_constant_global_decoded, 0);
+        // (the slot is resolved at decode for both: the same handler)
+        register_operation(static_cast<uint8_t>(OpCode::OP_Get_Long_Constant_Global), op_get_constant_global_decoded, 0);
         register_operation(static_cast<uint8_t>(OpCode::OP_Set_Constant_Global), op_set_constant_global_decoded, 0);
 
         // Control flow (default: no flags)

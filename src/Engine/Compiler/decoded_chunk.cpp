@@ -1031,6 +1031,17 @@ namespace pg
                 const std::string name = vm->asString(chunk.constants[nameIdx], chunk);
                 instr.operands.dword = vm->globalSlot(name); // overwrites nameIdx
             }
+            else if (opcode == static_cast<uint8_t>(OpCode::OP_Get_Long_Constant_Global))
+            {
+                // Three index bytes, high first (OP_LongConstant's): read before the slot overwrites them
+                const uint32_t nameIdx = (static_cast<uint32_t>(instr.operands.indexed.byte1) << 16) |
+                                         (static_cast<uint32_t>(instr.operands.indexed.byte2) << 8) |
+                                          static_cast<uint32_t>(instr.operands.indexed.byte3);
+                if (nameIdx >= chunk.constants.size())
+                    continue;
+                const std::string name = vm->asString(chunk.constants[nameIdx], chunk);
+                instr.operands.dword = vm->globalSlot(name);
+            }
             else if (opcode == static_cast<uint8_t>(OpCode::OP_Set_Constant_Global)
                   or opcode == static_cast<uint8_t>(OpCode::OP_Define_Constant_Global))
             {

@@ -13,6 +13,8 @@
  *   OP_Constant 42
  *   OP_Set_Local 0
  *   OP_Constant 42
+ *   (and a global read by a constant name, short or long, becomes a slot read resolved at decode:
+ *   OP_Get_Constant_Global, OP_Get_Long_Constant_Global)
  * @benefits:
  *   - Eliminates variable loads for constants
  *   - Enables further constant folding
@@ -87,6 +89,24 @@ namespace pg
                 newBytecode.push_back(static_cast<uint8_t>(OpCode::OP_Get_Constant_Global));
 
                 newBytecode.push_back(captured[0].operands[0]);
+
+                return newBytecode;
+            });
+
+            // The same with the name past the 256th constant (a large chunk's names are): its three
+            // index bytes, as OP_LongConstant wrote them, high first
+            pattern = {
+                PatternElement::match(OpCode::OP_LongConstant, true),
+                PatternElement::match(OpCode::OP_Get_Global),
+            };
+
+            rewriter->addAdvancedRule(pattern, [](const std::vector<CapturedInstruction>& captured) -> std::vector<uint8_t> {
+                std::vector<uint8_t> newBytecode;
+                newBytecode.push_back(static_cast<uint8_t>(OpCode::OP_Get_Long_Constant_Global));
+
+                newBytecode.push_back(captured[0].operands[0]);
+                newBytecode.push_back(captured[0].operands[1]);
+                newBytecode.push_back(captured[0].operands[2]);
 
                 return newBytecode;
             });
