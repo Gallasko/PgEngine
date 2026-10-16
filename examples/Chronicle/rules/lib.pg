@@ -8,6 +8,10 @@
 // constant (the activity table alone holds more), it does not compile. An import is compiled into
 // the importing script, so a function after `import "activitytable"` is past it too. The
 // functions read the tables below by name, when they are called.
+//
+// The tables are `const`: a rule script's VM makes them on its first run and keeps them for the
+// next ones. Nothing writes into them: a row that is written into per run is a copy (activitytable.pg's
+// walk rows take their requirements through `entriesCopied`).
 
 import "string"
 import "math"
@@ -208,6 +212,27 @@ fun amountsOf(table, key)
     }
 
     return list
+}
+
+// A list of tables, each copied (one level deep): what a row may write into without touching the
+// table it was made from, such as the requirements of a zone a `const` keeps from run to run
+fun entriesCopied(list)
+{
+    var out = []
+
+    for (var i = 0; i < len(list); i++)
+    {
+        var copy = {}
+
+        for (var k : list[i])
+        {
+            copy[k] = list[i][k]
+        }
+
+        push(out, copy)
+    }
+
+    return out
 }
 
 fun statName(stat)
@@ -619,7 +644,7 @@ var anyAge = 200
 // the only way to anything), and the glosses of its answers say so ahead (the names of what it
 // shuts, or its `loses` when they are too many to name). A life that was never that month old
 // has not stood by: one begun later, or a save from before the events.
-var lifeEvents = [
+const lifeEvents = [
     {id: "flood", name: "the Flood", settledAt: 11, settledMonths: 7, stood: "stood_flood",
      answered: ["mill_saved", "flood_hero", "flood_looted"],
      shuts: ["watch", "keys", "boys"],
@@ -647,14 +672,14 @@ var stoodBy = "stood_by"
 var standByShuts = 2
 var shutClasses = "Twice Bellmoor called and he stood by: no class will have him"
 var shutCallings = "Twice Bellmoor called and he stood by: no second calling is his"
-var callingFlags = ["keep_oath", "collegium", "hidden_hand"]
+const callingFlags = ["keep_oath", "collegium", "hidden_hand"]
 
 // A no-break space (U+00A0, between the quotes): what joins an amount to its stat in a log figure
 // ("+1 str"), so a figure that wraps breaks between two gains and never inside one.
 var noBreak = " "
 
 // The names a stat or a flag is written with.
-var statNames = {
+const statNames = {
     str: "Strength",
     dex: "Dexterity",
     int: "Intelligence",
@@ -827,7 +852,7 @@ statNames["know.study.hedgerows"] = "Studies of the Hedgerows"
 statNames["know.study.millpond"] = "Studies of Mill Pond"
 statNames["know.study.hollow"] = "Studies of the Hollow Woods"
 
-var statShort = {
+const statShort = {
     str: "STR",
     dex: "DEX",
     int: "INT",
@@ -984,7 +1009,7 @@ statShort["know.found.millpond"] = "POND"
 // The most of a stat he can hold at once. A stat not listed has no limit. The limit closes
 // what would bring more (activitytable.pg) and stops what a month produces (resources.pg); an
 // activity begun with room left may still carry him past it.
-var statLimits = {
+const statLimits = {
     rations: 60,
     // Written time is counted in seconds: an hour of it, however long the chronicle stayed shut
     written: 3600
@@ -994,7 +1019,7 @@ var statLimits = {
 // closes nothing, the rest of what the term brings still comes. Parts stop at 30, skills at 10;
 // renown, favors and what he holds have none. Vitality is counted in the points a blow takes
 // (a boy has 40, a hurt is 5 of them), so it stops at 150.
-var statCeilings = {
+const statCeilings = {
     str: 30,
     dex: 30,
     int: 30,
@@ -1012,6 +1037,6 @@ var statCeilings = {
 // A stat that is spent and comes back has a cap: the stat holding the most it can be. What
 // takes from the stat leaves the cap alone, what raises the stat for good raises both
 // (forecast.pg), and it mends toward the cap with time (resources.pg's `mending`).
-var statCaps = {
+const statCaps = {
     vit: "vitmax"
 }

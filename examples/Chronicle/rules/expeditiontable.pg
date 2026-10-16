@@ -42,12 +42,16 @@
 //
 // The names and the numbers are placeholders for the game's balance and writing: change them
 // here, nothing in C++ moves.
+//
+// The tables are `const`: a rule script's VM makes them on its first run and keeps them for the
+// next ones. Nothing writes into them: a row that is written into per run is a copy (activitytable.pg's
+// walk rows take their requirements through `entriesCopied`).
 
 import "string"
 import "math"
 import "algorithm"
 
-var walkKnobs = {
+const walkKnobs = {
     daysAMonth: 30,         // A calendar month, in days: a walk blocks 2 x travel + stay, in whole months
     apPerDay: 1,            // Action points a day on site
     woundCost: 5,           // Brought down where no one dies: carried home, and the most his Vitality can be is that much less
@@ -104,7 +108,7 @@ var walkKnobs = {
 }
 
 // `gather`: a line on the gathering of it, for the gloss of its tile on the site
-var walkItems = [
+const walkItems = [
     {id: "rations", name: "Rations", one: "ration", glyph: "trade", kind: "food"},
     {id: "remedy", name: "Wortleaf remedies", one: "remedy", glyph: "vitality", kind: "remedy", heals: 30},
     {id: "berries", name: "Berries", one: "berries", glyph: "trade", kind: "sold", gather: "Brambles along the hedge, black with fruit by late summer.", lot: 5, coin: 1},
@@ -137,7 +141,7 @@ var walkItems = [
 // brings is weighed against the work of his age for as long. Known 1 of 4 it brings about what
 // his age's plain work does; known 4 of 4, worked well, one and a half to twice that, or a
 // quarter more than a work that asks something of him (README, *What a walk is worth*).
-var walkZones = [
+const walkZones = [
     // The first walk of a life: no beast, a week, three things to pick. It is there to teach the
     // days, the record and the walk again, and a queue of it is the first thing that runs alone
     // (it asks nothing: its tile on the Life page takes him there, once he has a few terms behind him).
@@ -204,7 +208,7 @@ var walkZones = [
      opens: "Stone for the town, and an adder or two under it; wortleaf as he learns the road."}
 ]
 
-var walkMobs = [
+const walkMobs = [
     {id: "rat", name: "Water rat", many: "water rats", pack: "", lone: "", rarity: "common", packSize: 1, holdsBack: 0,
      about: "Fat on the miller's grain, and not afraid of a boy.",
      hp: 14, least: 3, most: 5, guard: 0, quick: 5, verb: "bites",
@@ -253,7 +257,7 @@ var walkMobs = [
      loot: [{id: "fangs", chance: 100, least: 1, most: 3}]}
 ]
 
-var walkEvents = [
+const walkEvents = [
     {id: "hedge.nest", trigger: "gather", weight: 2, once: false,
      title: "A nest in the thorn",
      text: "A blackbird's nest sits deep in the hedge, right where the best berries hang. The bird watches him.",
@@ -328,7 +332,7 @@ var walkEvents = [
 // `breath: 0` costs nothing, and says nothing of breath: who has learned only that is not told of it.
 // `cool` is the turns before it can be used again; `all` strikes every beast standing; `holds`
 // deals nothing, and the beast aimed at loses its next move.
-var walkTechniques = [
+const walkTechniques = [
     // A boy's: what the wooden blade taught him, the edge or the point and never both
     // (activitytable.pg's `slashes` and `stabs`). A better way to strike, no more: it costs no
     // breath and waits for nothing (`breath: 0`, `cool: 0`), and is his every turn. A little of
@@ -357,20 +361,20 @@ var walkTechniques = [
 
     // Learned here and there: the streets teach it, and so does the Hidden Hand
     {id: "feint", name: "Feint and step", kind: "blow", breath: 1, cool: 1, power: 80, hit: 20, all: false, holds: false,
-     knows: ["street_known", "hidden_hand"], where: "THE STREETS", line: "A sure blow, and he is hard to bite after it"}
+     knows: ["street_known", "hidden_hand"], where: "THE STREETS", line: "A sure blow, and he is hard to bite after it"},
+
+    // A second calling's: what the Elemental Chair teaches, and the elements a Spellwright has
+    // bound that a fight can use (activitytable.pg's `bind`: its third and its fourth)
+    {id: "frostbind", name: "Frostbind", kind: "spell", breath: 0, cool: 3, power: 0, hit: 0, all: false, holds: true,
+     knows: ["spellwright"], where: "THE ELEMENTAL CHAIR", line: "The beast aimed at is held in frost, and loses its next move"},
+    {id: "firebolt2", name: "Firebolt II", kind: "spell", breath: 2, cool: 1, power: 150, hit: 15, all: false, holds: false,
+     knows: ["firebolt2_bound"], where: "THE BOUND ELEMENTS", line: "The first working, bound to him: it bites half again as deep"},
+    {id: "chain", name: "Chain lightning", kind: "spell", breath: 3, cool: 3, power: 90, hit: 0, all: true, holds: false,
+     knows: ["chain_bound"], where: "THE BOUND ELEMENTS", line: "One working through every beast standing"}
 ]
 
-// A second calling's: what the Elemental Chair teaches, and the elements a Spellwright has
-// bound that a fight can use (activitytable.pg's `bind`: its third and its fourth)
-push(walkTechniques, {id: "frostbind", name: "Frostbind", kind: "spell", breath: 0, cool: 3, power: 0, hit: 0, all: false, holds: true,
-                      knows: ["spellwright"], where: "THE ELEMENTAL CHAIR", line: "The beast aimed at is held in frost, and loses its next move"})
-push(walkTechniques, {id: "firebolt2", name: "Firebolt II", kind: "spell", breath: 2, cool: 1, power: 150, hit: 15, all: false, holds: false,
-                      knows: ["firebolt2_bound"], where: "THE BOUND ELEMENTS", line: "The first working, bound to him: it bites half again as deep"})
-push(walkTechniques, {id: "chain", name: "Chain lightning", kind: "spell", breath: 3, cool: 3, power: 90, hit: 0, all: true, holds: false,
-                      knows: ["chain_bound"], where: "THE BOUND ELEMENTS", line: "One working through every beast standing"})
-
 // `deals` and `takes` are percent of what he deals and of what he takes.
-var walkStances = [
+const walkStances = [
     {id: "balanced", name: "Balanced", deals: 100, takes: 100, line: "Neither more nor less"},
     {id: "aggressive", name: "Aggressive", deals: 125, takes: 125, line: "He hits harder and is hit harder"},
     {id: "cautious", name: "Cautious", deals: 80, takes: 70, line: "He hits less hard and is hit less"}

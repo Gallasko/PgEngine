@@ -1139,7 +1139,7 @@ for (var z = 0; z < len(walkZones); z++)
     push(walkRows, {id: "walk." + zone.id, group: "Adventure", name: zone.name, glyph: zone.glyph, months: walkMonths(zone, studies, statOf(character, "roads_known")), rank: "",
                     each: toUpperCase(zone.kind) + " · " + toString(walkStay(zone, studies)) + " DAYS ON SITE", path: "",
                     fromAge: zone.fromAge, showAge: lookup(zone, "showAge", zone.fromAge - 2), showFrom: lookup(zone, "showFrom", 0), showAfter: lookup(zone, "showAfter", 0), zone: zone.id, about: zone.opens,
-                    gains: [], requires: zone.requires, bonus: sooner})
+                    gains: [], requires: entriesCopied(zone.requires), bonus: sooner})
 }
 
 var tabled = activities
@@ -1287,6 +1287,25 @@ var eventsMissed = statOf(character, stoodBy)
 var barredBy = {}
 var warnsOf = {}
 
+// The answers of each event, by its id, in the table's order: gathered once rather than searched
+// for in the whole table by every event
+var answersOf = {}
+
+for (var w = 0; w < len(activities); w++)
+{
+    var answering = lookup(activities[w], "event", "")
+
+    if (answering != "")
+    {
+        if (not contain(answersOf, answering))
+        {
+            answersOf[answering] = []
+        }
+
+        push(answersOf[answering], activities[w])
+    }
+}
+
 for (var e = 0; e < len(lifeEvents); e++)
 {
     var ev = lifeEvents[e]
@@ -1294,36 +1313,35 @@ for (var e = 0; e < len(lifeEvents); e++)
 
     // Its answers: each brings one of the flags the event is answered by, and is over before
     // the month the event is settled
-    for (var w = 0; w < len(activities); w++)
+    var answerRows = lookup(answersOf, ev.id, [])
+
+    for (var w = 0; w < len(answerRows); w++)
     {
-        var answer = activities[w]
+        var answer = answerRows[w]
 
-        if (lookup(answer, "event", "") == ev.id)
+        answers = answers + 1
+
+        var brings = false
+
+        for (var g = 0; g < len(answer.gains); g++)
         {
-            answers = answers + 1
-
-            var brings = false
-
-            for (var g = 0; g < len(answer.gains); g++)
+            for (var f = 0; f < len(ev.answered); f++)
             {
-                for (var f = 0; f < len(ev.answered); f++)
+                if (answer.gains[g].stat == ev.answered[f])
                 {
-                    if (answer.gains[g].stat == ev.answered[f])
-                    {
-                        brings = true
-                    }
+                    brings = true
                 }
             }
+        }
 
-            if (not brings)
-            {
-                push(errors, "activity " + answer.id + ": brings none of the flags the event " + ev.id + " is answered by")
-            }
+        if (not brings)
+        {
+            push(errors, "activity " + answer.id + ": brings none of the flags the event " + ev.id + " is answered by")
+        }
 
-            if (lookup(answer, "finishBy", lastAge) * 12 + lookup(answer, "finishMonths", 0) >= ev.settledAt * 12 + ev.settledMonths)
-            {
-                push(errors, "activity " + answer.id + ": may end after the event " + ev.id + " is settled")
-            }
+        if (lookup(answer, "finishBy", lastAge) * 12 + lookup(answer, "finishMonths", 0) >= ev.settledAt * 12 + ev.settledMonths)
+        {
+            push(errors, "activity " + answer.id + ": may end after the event " + ev.id + " is settled")
         }
     }
 

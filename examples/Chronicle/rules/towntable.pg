@@ -43,13 +43,17 @@
 //
 // The numbers and the words are placeholders for the game's balance and writing: change them
 // here, nothing in C++ moves.
+//
+// The tables are `const`: a rule script's VM makes them on its first run and keeps them for the
+// next ones. Nothing writes into them: a row that is written into per run is a copy (activitytable.pg's
+// walk rows take their requirements through `entriesCopied`).
 
 import "string"
 import "math"
 import "algorithm"
 import "lib"
 
-var townPlaces = [
+const townPlaces = [
     // From the day the town is known: the two places a child of Bellmoor has grown up around
     {id: "market", name: "The Market", glyph: "trade", about: "Where coin becomes bread. What is bought on the spot is bought here.",
      levels: [
