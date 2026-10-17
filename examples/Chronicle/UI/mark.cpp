@@ -19,7 +19,7 @@ namespace chronicle
     {
         constexpr const char * const DOM = "Chronicle.Mark";
 
-        // The 29 marks, grouped as the design system lists them. This vector is the order
+        // The 30 marks, grouped as the design system lists them. This vector is the order
         // the gallery draws and the only place the set is enumerated.
         const std::vector<std::string> NAMES = {
             // Parts
@@ -33,7 +33,7 @@ namespace chronicle
             // Meta
             "time", "chrono", "age", "reputation", "seal", "skull", "manicule",
             // Status
-            "check", "cross",
+            "alert", "check", "cross",
         };
 
         const std::unordered_set<std::string> NAME_SET(NAMES.begin(), NAMES.end());

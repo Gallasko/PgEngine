@@ -237,6 +237,8 @@ namespace pg
         serialize(archive, "vitalityIn", value.vitalityIn);
         serialize(archive, "running", value.running);
         serialize(archive, "monthsIn", value.monthsIn);
+        serialize(archive, "setAside", value.setAside);
+        serialize(archive, "setAsideMonths", value.setAsideMonths);
         serialize(archive, "stats", value.stats);
         serialize(archive, "parts", value.parts);
         serialize(archive, "skills", value.skills);
@@ -296,6 +298,8 @@ namespace pg
         defaultDeserialize(serialized, "fightsAuto", data.fightsAuto);
         defaultDeserialize(serialized, "running", data.running);
         defaultDeserialize(serialized, "monthsIn", data.monthsIn);
+        defaultDeserialize(serialized, "setAside", data.setAside);
+        defaultDeserialize(serialized, "setAsideMonths", data.setAsideMonths);
         defaultDeserialize(serialized, "stats", data.stats);
 
         // A save of the first build of the walks kept what they brought for the town in a store of

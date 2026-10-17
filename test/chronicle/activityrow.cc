@@ -855,6 +855,61 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // A badge is worn on the tile's top-right corner, over its frame and half out of it, in the
+        // loss's colour: an answer to an event. A tile without one has none, and a badge given or
+        // taken away makes the tile again.
+        TEST(activityrow_test, a_badge_on_the_corner)
+        {
+            MockLogger logger;
+            ActivityFixture s;
+
+            ActivityRowSpec answer = idleSpec("answer", "Salvage the Wreck");
+            answer.badge = "alert";
+
+            ActivityListSpec spec;
+            spec.id = "choice";
+            spec.width = 464.0f;
+            spec.tileWidth = 148.0f;
+            spec.groups = {{"The Flood", {answer, idleSpec("plain", "Carry")}}};
+
+            ActivityList list = s.placeList(spec);
+            s.pump();
+            s.pump();
+
+            ActivityRow* worn = list.row(&s.ecs, "answer");
+            ActivityRow* plain = list.row(&s.ecs, "plain");
+
+            ASSERT_NE(worn, nullptr);
+            ASSERT_NE(plain, nullptr);
+
+            ASSERT_TRUE(worn->badge.has_value());
+            EXPECT_EQ(worn->badge->spec.name, "alert");
+            EXPECT_EQ(s.element(worn->badge->entity), "activity.badge");
+            EXPECT_FALSE(plain->badge.has_value());
+
+            // Its corner: eight pixels out of the tile to the right and above, over the frame
+            const auto tile = s.pos(worn->root);
+            const auto badge = s.pos(worn->badge->entity);
+
+            EXPECT_NEAR(badge->x + badge->width, tile->x + tile->width + 8.0f, 0.5f);
+            EXPECT_NEAR(badge->y, tile->y - 8.0f, 0.5f);
+            EXPECT_GT(badge->z, s.pos(worn->frame)->z);
+
+            // Taken away: the tile is made again, without it
+            answer.badge.clear();
+            spec.groups = {{"The Flood", {answer, idleSpec("plain", "Carry")}}};
+            list.setRows(&s.ecs, spec.groups);
+            s.pump();
+            s.pump();
+
+            worn = list.row(&s.ecs, "answer");
+            ASSERT_NE(worn, nullptr);
+            EXPECT_FALSE(worn->badge.has_value());
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // A compact row is its name, its time and its closing: no rank, no `each`, no gains, no rule
         // and no list of what it asks, whatever its state. Its ground says what kind of thing it is:
         // work that takes months, a thing done at once, what he cannot do yet, the work he is at.

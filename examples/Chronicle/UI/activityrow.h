@@ -48,6 +48,7 @@ namespace chronicle
         bool urgent = false;           // The closing is near: the line in the loss's colour
         bool compact = false;          // The name, the time and the closing only: no rank, no `each`, no middle block (its gloss says the rest), on a ground that says its kind
         bool featured = false;         // A compact row the page wants seen: a gold ground in the place of its kind's, while it can be chosen
+        std::string badge;             // "" or a mark worn on its top-right corner, over its frame, in the loss's colour: an answer to an event ("alert")
         bool major = false;            // A tile that turns his life (a class, the town): a doubled gold frame around it and its mark in its corner, in every state
         bool tile = false;             // A compact row stacked for a grid, framed: its mark and its name (two lines of name at most), under them its time and its closing. A list with a tileWidth makes its rows tiles
         float minHeight = 0.0f;        // The row is at least that tall: a list keeps the tiles of one line level
@@ -165,6 +166,7 @@ namespace chronicle
         std::optional<Button> action;                // and the small button at that end
         std::optional<Label> status;                 // A tile's: at the right of its last line, the months left to begin it ("14 mo", "last mo"), "" for none,
         Mark statusMark;                             // after a stopwatch when it closes
+        std::optional<Mark> badge;                   // On its top-right corner, when its spec has one
         ActivityRowSpec spec;
         float natural = 0.0f;                        // The height its content asks, before spec.minHeight
 

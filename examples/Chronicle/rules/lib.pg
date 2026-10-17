@@ -635,7 +635,7 @@ var callingPlace = "inn"
 // The `finishBy` of what an old man may still do: no age closes it.
 var anyAge = 200
 
-// The events of a life: each comes in every life, at its age, with six months to answer it. Its
+// The events of a life: each comes in every life, at its age, with most of a year to answer it. Its
 // answers are the rows of activitytable.pg whose `event` names it, and each brings one of the
 // flags of `answered`. The month it is settled (`settledAt` years and `settledMonths`: the month
 // after the last of its answers could end), who holds none of them has stood by, and that is
@@ -645,7 +645,7 @@ var anyAge = 200
 // shuts, or its `loses` when they are too many to name). A life that was never that month old
 // has not stood by: one begun later, or a save from before the events.
 const lifeEvents = [
-    {id: "flood", name: "the Flood", settledAt: 11, settledMonths: 7, stood: "stood_flood",
+    {id: "flood", name: "the Flood", settledAt: 12, settledMonths: 0, stood: "stood_flood",
      answered: ["mill_saved", "flood_hero", "flood_looted"],
      shuts: ["watch", "keys", "boys"],
      said: "The Flood came and went, and he stood by: the Watch, Father Anselm and the Bellmoor Boys have no use for him"},
@@ -653,26 +653,20 @@ const lifeEvents = [
      answered: ["levy_served", "levy_paid", "deserter"],
      shuts: ["edric", "mara", "night"],
      said: "The Levy mustered without him, and without his coin: Sergeant Edric, Mara and the night market want no one the Lord's clerk is looking for"},
-    {id: "plague", name: "the Plague Year", settledAt: 23, settledMonths: 9, stood: "stood_plague",
+    {id: "plague", name: "the Plague Year", settledAt: 24, settledMonths: 0, stood: "stood_plague",
      answered: ["plague_stayed", "plague_shut", "plague_profiteer"],
      shuts: ["raid", "exam", "summons", "pardon"],
      said: "The plague year went by, and he chose nothing: the raid, the Magister's examination, Vey's summons and the Lord's pardon go to others"},
-    {id: "lord", name: "the succession", settledAt: 27, settledMonths: 9, stood: "stood_lord",
+    {id: "lord", name: "the succession", settledAt: 28, settledMonths: 0, stood: "stood_lord",
      answered: ["kingmaker", "church_candidate", "interregnum", "heir_sworn"],
      shuts: ["tales", "teach", "gates.open", "gates.close", "relicfront", "selftest", "spell.sell", "spell.keep", "refuse", "porters"],
      loses: "the inn wants no tale of his, no pupil is sent to him, and the moment of his calling passes him by",
      said: "The old Lord died and he took no side, not even a knee: the inn wants no tale of his, no pupil is sent to him, and the moment of his calling goes to another"}
 ]
 
-// The events he has stood by are counted (the stat `stoodBy`). At `standByShuts` of them the
-// next great step is shut to him (activitytable.pg's `shutAfter`): every way into a class
-// before he has one, the second callings after. What the log writes that month, for each; a
-// second calling is for the classes of `callingFlags`.
+// The events he has stood by are counted (the stat `stoodBy`). The count shuts nothing: an event
+// stood by costs the rows it names and no more, never a class nor a second calling
 var stoodBy = "stood_by"
-var standByShuts = 2
-var shutClasses = "Twice Bellmoor called and he stood by: no class will have him"
-var shutCallings = "Twice Bellmoor called and he stood by: no second calling is his"
-const callingFlags = ["keep_oath", "collegium", "hidden_hand"]
 
 // A no-break space (U+00A0, between the quotes): what joins an amount to its stat in a log figure
 // ("+1 str"), so a figure that wraps breaks between two gains and never inside one.

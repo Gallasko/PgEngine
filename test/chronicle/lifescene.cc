@@ -1986,6 +1986,188 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // An event of his life does not go by under a long work. The month it comes the months stop
+        // and say so, its answers are in red with a mark before their names, and an answer may be
+        // begun at once: the work is set aside, and goes on where it stood once the answer is done.
+        TEST(lifescene_test, an_event_stops_the_months_and_sets_a_work_aside)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.fresh = true;
+            opt.lives = 2;
+            opt.age = 10.75f;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            auto said = [&](const std::string& text) {
+                for (const auto& entry : life->save.log)
+                {
+                    if (entry.text.find(text) != std::string::npos)
+                        return true;
+                }
+
+                return false;
+            };
+
+            life->save.stats["rations"] = 60;
+
+            // A year at the Watch, begun three months before the Flood
+            life->save.running = "watch";
+            life->save.monthsIn = 0;
+            life->rules.running = "watch";
+            life->paused = false;
+
+            life->onMonth();
+            life->onMonth();
+            f.settle();
+
+            EXPECT_FALSE(life->paused);
+            EXPECT_FALSE(said("The Flood!"));
+
+            // Eleven: the Flood, and the months stop on it
+            life->onMonth();
+            f.frames(12);
+
+            EXPECT_EQ(life->save.monthsIn, 3);
+            EXPECT_TRUE(life->paused);
+            EXPECT_EQ(life->save.running, "watch");
+            EXPECT_TRUE(said("The Flood! Bellmoor calls on him"));
+
+            auto list = life->piece<ActivityList>("activities");
+            ASSERT_NE(list, nullptr);
+
+            // On top of the list, framed in red, with the mark on its corner
+            ASSERT_FALSE(list->spec.groups.empty());
+            EXPECT_EQ(list->spec.groups[0].label, "The Flood");
+
+            ActivityRow* salvage = list->find(&f.ecs, "flood.salvage");
+            ASSERT_NE(salvage, nullptr);
+            EXPECT_EQ(salvage->spec.name, "Salvage the Wreck");
+            EXPECT_TRUE(salvage->spec.urgent);
+            EXPECT_EQ(salvage->spec.badge, "alert");
+            ASSERT_TRUE(salvage->badge.has_value());
+            EXPECT_EQ(salvage->badge->spec.name, "alert");
+
+            // (the works are under it)
+            ActivityRow* watch = list->find(&f.ecs, "watch");
+            ASSERT_NE(watch, nullptr);
+            EXPECT_TRUE(watch->spec.badge.empty());
+            EXPECT_FALSE(watch->badge.has_value());
+
+            // Chosen, the button under the stopped work answers it instead of going on
+            f.ecs.sendEvent(ActivitySelectedEvent{"life.activities", "flood.salvage"});
+            f.frames(12);
+
+            EXPECT_EQ(life->piece<Button>("begin")->spec.label, "Answer now");
+
+            f.ecs.sendEvent(ButtonActivatedEvent{life->piece<Button>("begin")->face.id, "life.begin"});
+            f.settle();
+
+            EXPECT_EQ(life->save.running, "flood.salvage");
+            EXPECT_EQ(life->save.setAside, "watch");
+            EXPECT_EQ(life->save.setAsideMonths, 3);
+            EXPECT_FALSE(life->paused);
+            EXPECT_TRUE(said("Carry for the Watch is set aside for Salvage the Wreck"));
+
+            // A month later the answer is given, and the Watch goes on from its third month
+            life->onMonth();
+            f.settle();
+
+            EXPECT_EQ(life->save.done["flood.salvage"], 1);
+            EXPECT_EQ(life->save.running, "watch");
+            EXPECT_EQ(life->save.monthsIn, 3);
+            EXPECT_TRUE(life->save.setAside.empty());
+            EXPECT_FALSE(life->paused);
+            EXPECT_TRUE(said("Back to Carry for the Watch"));
+
+            // Answered: the months do not stop for it again, and it is never stood by
+            for (int i = 0; i < 12 and not life->save.running.empty(); ++i)
+            {
+                life->onMonth();
+                EXPECT_FALSE(life->paused and not life->save.running.empty()) << i;
+            }
+
+            EXPECT_EQ(life->save.stats.count("stood_flood"), 0u);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Left unanswered, an event stops the months once more, the last month an answer can be
+        // begun. A new life has its events still to come.
+        TEST(lifescene_test, an_event_unanswered_stops_the_months_at_its_last_month)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.fresh = true;
+            opt.lives = 2;
+            opt.age = 11.0f - 1.0f / 12.0f;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            life->save.stats["rations"] = 60;
+
+            auto calls = [&]() {
+                int n = 0;
+
+                for (const auto& entry : life->save.log)
+                {
+                    if (entry.text.find("The Flood!") != std::string::npos)
+                        ++n;
+                }
+
+                return n;
+            };
+
+            auto work = [&]() {
+                life->save.running = "watch";
+                life->save.monthsIn = 0;
+                life->rules.running = "watch";
+                life->paused = false;
+            };
+
+            work();
+
+            // Eleven: the first stop
+            life->onMonth();
+            f.settle();
+
+            EXPECT_TRUE(life->paused);
+            EXPECT_EQ(calls(), 1);
+
+            // Gone on with: no stop until the last month to begin a one-month answer (11y10)
+            life->paused = false;
+
+            for (int i = 0; i < 9; ++i)
+            {
+                life->onMonth();
+                EXPECT_FALSE(life->paused) << i;
+            }
+
+            life->onMonth();
+            f.settle();
+
+            EXPECT_TRUE(life->paused);
+            EXPECT_EQ(calls(), 2);
+            EXPECT_NE(life->save.log.back().text.find("last month to answer it"), std::string::npos);
+
+            // A new life forgets what the last one was told
+            life->newLife();
+            f.settle();
+
+            EXPECT_TRUE(life->eventsCalled.empty());
+            EXPECT_TRUE(life->eventsLastCalled.empty());
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // A row says when it closes, as the world's date of the last month he may begin it: the date
         // stays as the months pass, and turns urgent. No work leaves the list without having said so.
         // What no age closes says nothing.

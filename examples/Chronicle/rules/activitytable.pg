@@ -87,8 +87,6 @@
 //                    Levy), and brings one of the flags that event is answered by. Who holds
 //                    none of them the month the event is settled has stood by (resources.pg
 //                    writes it): the rows the event names are shut, and it is counted.
-//   shutAfter: N     its row is shut once he has stood by at N events in this life: the ways
-//                    into a class, and the second callings (lib.pg's `standByShuts`).
 //   finishBy: N      its term must fall at that age or before (default lib.pg's `lastAge`): an
 //                    activity of 18 months with finishBy 25 is begun by 23.5 at the latest.
 //   finishMonths: N  and that many months past that birthday, as `fromMonths`.
@@ -488,11 +486,11 @@ var activities = [
     // The Church or what it forbids: one or the other, and the first fork a later life is built
     // on. The keys are Father Anselm's trust, which the Collegium counts; the shelf is read by
     // who will go after Harrow. Whoever looted the flood is not given the keys
-    {id: "keys", group: "Study", name: "Take the Sacristan's Keys", glyph: "study", months: 3, rank: "", each: "", path: "", fromAge: 11, fromMonths: 7, finishBy: 13, uses: 1, unless: ["shelf", "flood.salvage"],
+    {id: "keys", group: "Study", name: "Take the Sacristan's Keys", glyph: "study", months: 3, rank: "", each: "", path: "", fromAge: 12, finishBy: 13, uses: 1, unless: ["shelf", "flood.salvage"],
      about: "The chapel at five in the morning, the candles, the offices said aloud to nobody. Father Anselm gives his keys to very few.",
      gains: [{stat: "discipline"}, {stat: "anselm_trust"}],
      requires: [{stat: "letters", needed: 2}]},
-    {id: "shelf", group: "Study", name: "Read the Forbidden Shelf", glyph: "magic", months: 3, rank: "", each: "", path: "", fromAge: 11, fromMonths: 7, finishBy: 13, uses: 1, unless: "keys",
+    {id: "shelf", group: "Study", name: "Read the Forbidden Shelf", glyph: "magic", months: 3, rank: "", each: "", path: "", fromAge: 12, finishBy: 13, uses: 1, unless: "keys",
      about: "The top shelf of the chapel library has a lock, and the lock has been broken for years. Nobody will thank him for what he reads there.",
      gains: [{stat: "lore"}, {stat: "forbidden_read"}],
      requires: [{stat: "letters", needed: 2}]},
@@ -554,52 +552,53 @@ var activities = [
      gains: [{stat: "renown"}, {stat: "coin", amount: 8}, {stat: "watch_known"}],
      requires: [{stat: "done.boys", label: "Ran with the Bellmoor Boys"}]},
 
-    // The Flood, the month he is eleven, in every life: six months to answer it (an answer may
-    // be begun in any of them: `finishMonths` is five and its own months), and one answer (each
-    // `unless` the other two). Its rows show whatever he has (`showFrom: 0`): what he cannot do
-    // he sees he cannot. Doing nothing is an answer too, and the worst: an event that goes by
-    // unanswered shuts the rows lib.pg's `lifeEvents` names for it, and the second one of a
-    // life shuts the next great step (`shutAfter`). Every event has an answer that asks nothing
-    // of him, so that standing by is his own doing
-    {id: "flood.sandbags", group: "The Flood", name: "Haul Sandbags at the Mill", glyph: "work", months: 1, rank: "", each: "THE FLOOD", path: "", fromAge: 11, finishBy: 11, finishMonths: 6, showFrom: 0, uses: 1, event: "flood",
+    // The Flood, the month he is eleven, in every life: the year to answer it (an answer may be
+    // begun in any month but the last: `finishMonths` is ten and its own month), and one answer
+    // (each `unless` the other two). Its rows show whatever he has (`showFrom: 0`): what he
+    // cannot do he sees he cannot. Doing nothing is an answer too, and the worst: an event that
+    // goes by unanswered shuts the rows lib.pg's `lifeEvents` names for it, and only those: no
+    // class and no calling. Every event has an answer that asks nothing of him, so that
+    // standing by is his own doing
+    {id: "flood.sandbags", group: "The Flood", name: "Haul Sandbags at the Mill", glyph: "work", months: 1, rank: "", each: "THE FLOOD", path: "", fromAge: 11, finishBy: 11, finishMonths: 11, showFrom: 0, uses: 1, event: "flood",
      unless: ["flood.rescue", "flood.salvage"],
      about: "The Bell is over its banks and the wheel is under water. The miller remembers who stood in it with him: the mill's wheel costs half as much to mend, this life.",
      gains: [{stat: "str"}, {stat: "mill_saved"}],
      requires: [{stat: "str", needed: 7}]},
-    {id: "flood.rescue", group: "The Flood", name: "Pull Folk from the Water", glyph: "vitality", months: 1, rank: "", each: "THE FLOOD", path: "", fromAge: 11, finishBy: 11, finishMonths: 6, showFrom: 0, uses: 1, event: "flood",
+    {id: "flood.rescue", group: "The Flood", name: "Pull Folk from the Water", glyph: "vitality", months: 1, rank: "", each: "THE FLOOD", path: "", fromAge: 11, finishBy: 11, finishMonths: 11, showFrom: 0, uses: 1, event: "flood",
      unless: ["flood.sandbags", "flood.salvage"],
      about: "The low streets are a river, with people on the roofs. It is cold work and the town talks of it for years: the Master-at-Arms has heard.",
      gains: [{stat: "renown"}, {stat: "flood_hero"}],
      requires: [{stat: "dex", needed: 7}],
      costs: [{stat: "vit", amount: 5}]},
-    {id: "flood.salvage", group: "The Flood", name: "Salvage the Wreck", glyph: "gold", months: 1, rank: "", each: "THE FLOOD", path: "", fromAge: 11, finishBy: 11, finishMonths: 6, showFrom: 0, uses: 1, event: "flood",
+    {id: "flood.salvage", group: "The Flood", name: "Salvage the Wreck", glyph: "gold", months: 1, rank: "", each: "THE FLOOD", path: "", fromAge: 11, finishBy: 11, finishMonths: 11, showFrom: 0, uses: 1, event: "flood",
      unless: ["flood.sandbags", "flood.rescue"],
      about: "What the water took from the warehouses it left on the common, and nobody is counting. Father Anselm hears of it. So does the Hidden Hand.",
      gains: [{stat: "coin", amount: 15}, {stat: "guile"}, {stat: "flood_looted"}],
      requires: []},
 
-    // The Lord's Levy, the month he is fifteen, in every life, a year before the classes open:
-    // six months to answer it, and one answer. To march is six months and the Keep's good word;
-    // the scutage is paid at once and changes nothing; who hides is a deserter, the Keep is shut
-    // to him, and the Greenwood takes him at sixteen like any other class (its `firstWith`)
-    {id: "levy.march", group: "The Lord's Levy", name: "March with the Levy", glyph: "swordsmanship", months: 6, rank: "", each: "THE LEVY", path: "", fromAge: 15, finishBy: 15, finishMonths: 11, showFrom: 0, uses: 1, event: "levy",
+    // The Lord's Levy, called the spring before he is fifteen, in every life, settled the month
+    // the classes open: nine months to begin an answer, and one answer. To march is six months
+    // and the Keep's good word; the scutage is paid at once and changes nothing; who hides is a
+    // deserter, the Keep is shut to him, and the Greenwood takes him at sixteen like any other
+    // class (its `firstWith`)
+    {id: "levy.march", group: "The Lord's Levy", name: "March with the Levy", glyph: "swordsmanship", months: 6, rank: "", each: "THE LEVY", path: "", fromAge: 14, fromMonths: 9, finishBy: 15, finishMonths: 11, showFrom: 0, uses: 1, event: "levy",
      unless: ["levy.pay", "levy.hide"],
      about: "Six months behind the Lord's banner, with a spear too heavy for him. The Keep asks less Arms of who served, and the sergeants teach the levies one blow: the heavy cut.",
      gains: [{stat: "arms"}, {stat: "discipline"}, {stat: "coin", amount: 10}, {stat: "levy_served"}],
      requires: [{stat: "str", needed: 9}]},
-    {id: "levy.pay", group: "The Lord's Levy", name: "Pay the Scutage", glyph: "gold", months: 0, rank: "", each: "THE LEVY", path: "", fromAge: 15, finishBy: 15, finishMonths: 5, showFrom: 0, uses: 1, event: "levy",
+    {id: "levy.pay", group: "The Lord's Levy", name: "Pay the Scutage", glyph: "gold", months: 0, rank: "", each: "THE LEVY", path: "", fromAge: 14, fromMonths: 9, finishBy: 15, finishMonths: 5, showFrom: 0, uses: 1, event: "levy",
      unless: ["levy.march", "levy.hide"],
      about: "Twenty coin to the Lord's clerk, and another boy marches in his place. Nothing closes, and nothing opens.",
      gains: [{stat: "levy_paid"}],
      requires: [],
      costs: [{stat: "coin", amount: 20}]},
-    {id: "levy.hide", group: "The Lord's Levy", name: "Hide in the Greenwood", glyph: "adventure", months: 3, rank: "", each: "THE LEVY", path: "", fromAge: 15, finishBy: 15, finishMonths: 8, showFrom: 0, uses: 1, event: "levy",
+    {id: "levy.hide", group: "The Lord's Levy", name: "Hide in the Greenwood", glyph: "adventure", months: 3, rank: "", each: "THE LEVY", path: "", fromAge: 14, fromMonths: 9, finishBy: 15, finishMonths: 8, showFrom: 0, uses: 1, event: "levy",
      unless: ["levy.march", "levy.pay"],
      about: "Three months under the trees while the levy is counted without him. The Keep has no place for a deserter. The Greenwood does, at sixteen, with the other doors.",
      gains: [{stat: "stealth"}, {stat: "deserter"}],
      requires: []},
 
-    {id: "keep", group: "A class", name: "Swear Service to the Keep", glyph: "seal", months: 18, rank: "", each: "MEALS PROVIDED", path: "warrior", enters: true, board: true, fromAge: 16, showAge: 7, showFrom: 0, finishBy: 20, uses: 1, shutAfter: standByShuts,
+    {id: "keep", group: "A class", name: "Swear Service to the Keep", glyph: "seal", months: 18, rank: "", each: "MEALS PROVIDED", path: "warrior", enters: true, board: true, fromAge: 16, showAge: 7, showFrom: 0, finishBy: 20, uses: 1,
      major: true,
      about: "Makes him a man of the Keep, for life: it feeds him, its works open, and the other classes close. The oath is short. The sergeants say it is the last short thing about the Keep.",
      gains: [{stat: "keep_oath"}, {stat: "renown"}, {stat: "arms"}],
@@ -607,13 +606,13 @@ var activities = [
      requires: [{stat: "str", needed: 12, eased: [{flag: "edric_support", needed: 11}, {flag: "town.yard", at: 2, needed: 11}]},
                 {stat: "arms", needed: 3, eased: [{flag: "smith_apprentice", needed: 2}, {flag: "levy_served", needed: 2}]}, {stat: "discipline", needed: 2}],
      costs: [{stat: "coin", amount: 10}]},
-    {id: "collegium", group: "A class", name: "Enter the Collegium", glyph: "academy", months: 24, rank: "", each: "MEALS PROVIDED", path: "mage", enters: true, board: true, fromAge: 16, showAge: 7, showFrom: 0, finishBy: 20, uses: 1, shutAfter: standByShuts,
+    {id: "collegium", group: "A class", name: "Enter the Collegium", glyph: "academy", months: 24, rank: "", each: "MEALS PROVIDED", path: "mage", enters: true, board: true, fromAge: 16, showAge: 7, showFrom: 0, finishBy: 20, uses: 1,
      major: true,
      about: "Makes him a scholar of the Collegium, for life: it feeds him, its works open, and the other classes close. Nobody will say what the top floor is for. Whoever asks is given more reading.",
      gains: [{stat: "collegium"}, {stat: "arcana"}, {stat: "lore"}],
      requires: [{stat: "int", needed: 12, eased: [{flag: "town.collegium", at: 3, needed: 11}, {flag: "anselm_trust", needed: 11}]}, {stat: "letters", needed: 3}, {stat: "lore", needed: 2, eased: {flag: "mara_student", needed: 1}}],
      costs: [{stat: "coin", amount: 35}]},
-    {id: "hand", group: "A class", name: "Earn the Hidden Hand's Trust", glyph: "guild", months: 18, rank: "", each: "MEALS PROVIDED", path: "thief", enters: true, board: true, fromAge: 16, showAge: 7, showFrom: 0, finishBy: 21, uses: 1, shutAfter: standByShuts,
+    {id: "hand", group: "A class", name: "Earn the Hidden Hand's Trust", glyph: "guild", months: 18, rank: "", each: "MEALS PROVIDED", path: "thief", enters: true, board: true, fromAge: 16, showAge: 7, showFrom: 0, finishBy: 21, uses: 1,
      major: true,
      about: "Makes him one of the Hidden Hand, for life: it feeds him, its works open, and the other classes close. The Hand has no door, no sign and no members. Ask anyone.",
      gains: [{stat: "hidden_hand"}, {stat: "favors"}, {stat: "stealth"}],
@@ -623,8 +622,8 @@ var activities = [
                 {stat: "street_known", label: "Known on the street or at the night market", anyOf: ["street_known", "night_contacts", "boys_sworn"]}],
      costs: [{stat: "coin", amount: 15}]},
     // Past every door: the class of who took none of the three in time, and of no one else. It
-    // has no row until the last of the others has closed on a man of no class, by its age or
-    // because he stood by at two events (`shutAfter`); from that month it asks nothing of him
+    // has no row until the last of the others has closed on a man of no class, by its age;
+    // from that month it asks nothing of him
     // but to be sixteen, and it is open until old age
     {id: "greenwood", group: "A class", name: "Take to the Greenwood", glyph: "adventure", months: 12, rank: "", each: "MEALS PROVIDED", path: "renegade", enters: true, lastResort: true, board: true, fromAge: 16, uses: 1,
      firstWith: "deserter",
@@ -918,38 +917,38 @@ var activities = [
      requires: [{stat: "renown", needed: 3}],
      costs: [{stat: "renown", amount: 2}]},
 
-    // The Plague Year, the month he is twenty-three, in every life and for every class: six
-    // months to answer it, one answer
-    {id: "plague.tend", group: "The Plague Year", name: "Tend the Sick", glyph: "vitality", months: 3, rank: "", each: "THE PLAGUE", path: "", fromAge: 23, finishBy: 23, finishMonths: 8, showFrom: 0, uses: 1, event: "plague", unless: ["plague.shut", "plague.sell"],
+    // The Plague Year, the month he is twenty-three, in every life and for every class: nine
+    // months to begin an answer, one answer
+    {id: "plague.tend", group: "The Plague Year", name: "Tend the Sick", glyph: "vitality", months: 3, rank: "", each: "THE PLAGUE", path: "", fromAge: 23, finishBy: 23, finishMonths: 11, showFrom: 0, uses: 1, event: "plague", unless: ["plague.shut", "plague.sell"],
      about: "The chapel is a sickhouse and there are not enough hands. It costs him some of his own health, and the chapel's windows cost him nothing to glaze, this life.",
      gains: [{stat: "renown"}, {stat: "lore"}, {stat: "plague_stayed"}],
      requires: [{stat: "letters", label: "Letters, or Lore", anyOf: ["letters", "lore"]}],
      costs: [{stat: "vit", amount: 5}]},
-    {id: "plague.shut", group: "The Plague Year", name: "Shut Your Door", glyph: "town", months: 0, rank: "", each: "THE PLAGUE", path: "", fromAge: 23, finishBy: 23, finishMonths: 5, showFrom: 0, uses: 1, event: "plague", unless: ["plague.tend", "plague.sell"],
+    {id: "plague.shut", group: "The Plague Year", name: "Shut Your Door", glyph: "town", months: 0, rank: "", each: "THE PLAGUE", path: "", fromAge: 23, finishBy: 23, finishMonths: 8, showFrom: 0, uses: 1, event: "plague", unless: ["plague.tend", "plague.sell"],
      about: "A bar across the door and a year's flour in the cellar. Nothing is lost, and nothing is gained.",
      gains: [{stat: "plague_shut"}],
      requires: []},
-    {id: "plague.sell", group: "The Plague Year", name: "Sell Remedies Dear", glyph: "gold", months: 3, rank: "", each: "THE PLAGUE", path: "", fromAge: 23, finishBy: 23, finishMonths: 8, showFrom: 0, uses: 1, event: "plague", unless: ["plague.tend", "plague.shut"],
+    {id: "plague.sell", group: "The Plague Year", name: "Sell Remedies Dear", glyph: "gold", months: 3, rank: "", each: "THE PLAGUE", path: "", fromAge: 23, finishBy: 23, finishMonths: 11, showFrom: 0, uses: 1, event: "plague", unless: ["plague.tend", "plague.shut"],
      about: "Wortleaf is worth its weight this year. The Church will not ordain a man who sold it so, nor the Lord pardon him. A guild clerk finds him easier to believe.",
      gains: [{stat: "coin", amount: 40}, {stat: "plague_profiteer"}],
      requires: [],
      costs: [{stat: "wortleaf", amount: 6}]},
 
-    // The Old Lord Dies, the month he is twenty-seven: six months, one answer. Three of them ask
+    // The Old Lord Dies, the month he is twenty-seven: nine months, one answer. Three of them ask
     // what only a class gives: who holds none sees them and can do none, which shows what
     // another life could do here. The fourth asks nothing and brings nothing: he kneels with
     // the rest of the town, and has answered
-    {id: "lord.keep", group: "The Old Lord Dies", name: "Stand for the Keep at the Succession", glyph: "seal", months: 3, rank: "", each: "THE SUCCESSION", path: "", fromAge: 27, finishBy: 27, finishMonths: 8, showFrom: 0, uses: 1, event: "lord", unless: ["lord.church", "lord.seize", "lord.kneel"],
+    {id: "lord.keep", group: "The Old Lord Dies", name: "Stand for the Keep at the Succession", glyph: "seal", months: 3, rank: "", each: "THE SUCCESSION", path: "", fromAge: 27, finishBy: 27, finishMonths: 11, showFrom: 0, uses: 1, event: "lord", unless: ["lord.church", "lord.seize", "lord.kneel"],
      gains: [{stat: "renown", amount: 2}, {stat: "kingmaker"}],
      requires: [{stat: "veteran"}, {stat: "renown", needed: 5}]},
-    {id: "lord.church", group: "The Old Lord Dies", name: "Petition the Church to Hold the Keep", glyph: "study", months: 3, rank: "", each: "THE SUCCESSION", path: "", fromAge: 27, finishBy: 27, finishMonths: 8, showFrom: 0, uses: 1, event: "lord", unless: ["lord.keep", "lord.seize", "lord.kneel"],
+    {id: "lord.church", group: "The Old Lord Dies", name: "Petition the Church to Hold the Keep", glyph: "study", months: 3, rank: "", each: "THE SUCCESSION", path: "", fromAge: 27, finishBy: 27, finishMonths: 11, showFrom: 0, uses: 1, event: "lord", unless: ["lord.keep", "lord.seize", "lord.kneel"],
      gains: [{stat: "lore"}, {stat: "renown"}, {stat: "church_candidate"}],
      requires: [{stat: "ordained", label: "Ordained, or a Magister", anyOf: ["ordained", "magister"]}],
      costs: [{stat: "coin", amount: 20}]},
-    {id: "lord.seize", group: "The Old Lord Dies", name: "Seize the Interregnum", glyph: "gold", months: 3, rank: "", each: "THE SUCCESSION", path: "", fromAge: 27, finishBy: 27, finishMonths: 8, showFrom: 0, uses: 1, event: "lord", unless: ["lord.keep", "lord.church", "lord.kneel"],
+    {id: "lord.seize", group: "The Old Lord Dies", name: "Seize the Interregnum", glyph: "gold", months: 3, rank: "", each: "THE SUCCESSION", path: "", fromAge: 27, finishBy: 27, finishMonths: 11, showFrom: 0, uses: 1, event: "lord", unless: ["lord.keep", "lord.church", "lord.kneel"],
      gains: [{stat: "coin", amount: 60}, {stat: "interregnum"}],
      requires: [{stat: "band", label: "A band of his own, or the Bellmoor job planned", anyOf: ["band", "great_job_planned"]}]},
-    {id: "lord.kneel", group: "The Old Lord Dies", name: "Kneel to the Heir", glyph: "town", months: 0, rank: "", each: "THE SUCCESSION", path: "", fromAge: 27, finishBy: 27, finishMonths: 5, showFrom: 0, uses: 1, event: "lord", unless: ["lord.keep", "lord.church", "lord.seize"],
+    {id: "lord.kneel", group: "The Old Lord Dies", name: "Kneel to the Heir", glyph: "town", months: 0, rank: "", each: "THE SUCCESSION", path: "", fromAge: 27, finishBy: 27, finishMonths: 8, showFrom: 0, uses: 1, event: "lord", unless: ["lord.keep", "lord.church", "lord.seize"],
      about: "A knee in the mud of the Keep's yard, among everyone else's. Nothing closes, and nothing opens.",
      gains: [{stat: "heir_sworn"}],
      requires: []},
@@ -958,34 +957,34 @@ var activities = [
     // to fifty there, lib.pg's `primeEnd`): two ways for each class, one or the other, each a
     // year, each asking what the class's own years gave. Its path is the class's: he sees his
     // two, locked, from the day he is of the class (`showAge`), as a child sees the classes.
-    // Two events left unanswered shut them (`shutAfter`). Then five works a calling, in the
+    // No event left unanswered shuts them. Then five works a calling, in the
     // same shape: its bread, its choice, its moment, and a work of two years from forty-two.
     // The Greenwood has none yet
-    {id: "castellan", group: "A second calling", name: "Take the Castellan's Keys", glyph: "seal", months: 12, rank: "", each: "", path: "warrior", fromAge: 29, showAge: 16, finishBy: 33, showFrom: 0, uses: 1, onlyWith: "town.inn", shutAfter: standByShuts, unless: "cross", major: true,
+    {id: "castellan", group: "A second calling", name: "Take the Castellan's Keys", glyph: "seal", months: 12, rank: "", each: "", path: "warrior", fromAge: 29, showAge: 16, finishBy: 33, showFrom: 0, uses: 1, onlyWith: "town.inn", unless: "cross", major: true,
      about: "The warrior who stays. The keys of Bellmoor's walls, its militia and its gates are his, and everything he does from here feeds the town.",
      gains: [{stat: "discipline"}, {stat: "renown"}, {stat: "castellan"}],
      requires: [{stat: "veteran"}, {stat: "arms", needed: 6}, {stat: "discipline", needed: 4}],
      costs: [{stat: "coin", amount: 20}]},
-    {id: "cross", group: "A second calling", name: "Take the Cross", glyph: "swordsmanship", months: 12, rank: "", each: "", path: "warrior", fromAge: 29, showAge: 16, finishBy: 33, showFrom: 0, uses: 1, onlyWith: "town.inn", shutAfter: standByShuts, unless: "castellan", major: true,
+    {id: "cross", group: "A second calling", name: "Take the Cross", glyph: "swordsmanship", months: 12, rank: "", each: "", path: "warrior", fromAge: 29, showAge: 16, finishBy: 33, showFrom: 0, uses: 1, onlyWith: "town.inn", unless: "castellan", major: true,
      about: "The warrior who leaves. He is the Church's sword on the marches, and whatever the woodfolk are, he is sent against them.",
      gains: [{stat: "arms"}, {stat: "discipline"}, {stat: "crusader"}],
      requires: [{stat: "veteran"}, {stat: "arms", needed: 6}, {stat: "renown", needed: 3}]},
-    {id: "harrowstudy", group: "A second calling", name: "Found the Harrow Study", glyph: "relic", months: 12, rank: "", each: "", path: "mage", fromAge: 29, showAge: 16, finishBy: 33, showFrom: 0, uses: 1, onlyWith: "town.inn", shutAfter: standByShuts, unless: "chair", major: true,
+    {id: "harrowstudy", group: "A second calling", name: "Found the Harrow Study", glyph: "relic", months: 12, rank: "", each: "", path: "mage", fromAge: 29, showAge: 16, finishBy: 33, showFrom: 0, uses: 1, onlyWith: "town.inn", unless: "chair", major: true,
      about: "The mage who studies the curse itself: its relics, its two accounts, and at last its seals. The slowest calling, and the dearest.",
      gains: [{stat: "lore"}, {stat: "curse_breaker"}],
      requires: [{stat: "collegium"}, {stat: "lore", needed: 7}, {stat: "arcana", needed: 4}],
      costs: [{stat: "coin", amount: 40}]},
-    {id: "chair", group: "A second calling", name: "Take the Elemental Chair", glyph: "magic", months: 12, rank: "", each: "", path: "mage", fromAge: 29, showAge: 16, finishBy: 33, showFrom: 0, uses: 1, onlyWith: "town.inn", shutAfter: standByShuts, unless: "harrowstudy", major: true,
+    {id: "chair", group: "A second calling", name: "Take the Elemental Chair", glyph: "magic", months: 12, rank: "", each: "", path: "mage", fromAge: 29, showAge: 16, finishBy: 33, showFrom: 0, uses: 1, onlyWith: "town.inn", unless: "harrowstudy", major: true,
      about: "The mage who makes spells: he binds the elements one by one, and writes down what he bound. In a fight, Frostbind costs a beast its next move.",
      gains: [{stat: "arcana"}, {stat: "spellwright"}],
      requires: [{stat: "collegium"}, {stat: "arcana", needed: 5}],
      costs: [{stat: "coin", amount: 30}]},
-    {id: "contract", group: "A second calling", name: "Take the Black Contract", glyph: "skull", months: 12, rank: "", each: "", path: "thief", fromAge: 29, showAge: 16, finishBy: 33, showFrom: 0, uses: 1, onlyWith: "town.inn", shutAfter: standByShuts, unless: "seachart", major: true,
+    {id: "contract", group: "A second calling", name: "Take the Black Contract", glyph: "skull", months: 12, rank: "", each: "", path: "thief", fromAge: 29, showAge: 16, finishBy: 33, showFrom: 0, uses: 1, onlyWith: "town.inn", unless: "seachart", major: true,
      about: "Contracts against named people of the town. Each is paid in coin, and each is someone Bellmoor will miss.",
      gains: [{stat: "stealth"}, {stat: "assassin"}],
      requires: [{stat: "hidden_hand"}, {stat: "stealth", needed: 6}, {stat: "guile", needed: 5}],
      costs: [{stat: "favors", amount: 2}]},
-    {id: "seachart", group: "A second calling", name: "Buy the Sea Chart", glyph: "adventure", months: 12, rank: "", each: "", path: "thief", fromAge: 29, showAge: 16, finishBy: 33, showFrom: 0, uses: 1, onlyWith: "town.inn", shutAfter: standByShuts, unless: "contract", major: true,
+    {id: "seachart", group: "A second calling", name: "Buy the Sea Chart", glyph: "adventure", months: 12, rank: "", each: "", path: "thief", fromAge: 29, showAge: 16, finishBy: 33, showFrom: 0, uses: 1, onlyWith: "town.inn", unless: "contract", major: true,
      about: "Far roads, maps, and what lies at the end of them. On any walk, whoever scouts ahead finds a beast two days sooner.",
      gains: [{stat: "dex"}, {stat: "adventurer"}],
      requires: [{stat: "hidden_hand"}, {stat: "dex", needed: 9}],
@@ -1279,11 +1278,10 @@ for (var ai = 0; ai < len(activities); ai++)
     }
 }
 
-// The events he has stood by in this life (lib.pg's `lifeEvents`: he holds the flag of each,
-// and their count, since the month resources.pg settled it), and what each has shut: the id of
-// a row -> the line of its event. Read from the whole table, before the forecast narrows it to
-// its activity. `warnsOf` is what the answers of each event say ahead of it
-var eventsMissed = statOf(character, stoodBy)
+// The events he has stood by in this life (lib.pg's `lifeEvents`: he holds the flag of each
+// since the month resources.pg settled it), and what each has shut: the id of a row -> the line
+// of its event. Read from the whole table, before the forecast narrows it to its activity.
+// `warnsOf` is what the answers of each event say ahead of it
 var barredBy = {}
 var warnsOf = {}
 
@@ -1406,22 +1404,10 @@ for (var w = 0; w < len(activities); w++)
             entering = true
         }
 
-        if (not lookup(way, "lastResort", false) and (lived + way.months) <= (lookup(way, "finishBy", lastAge) * 12) and eventsMissed < lookup(way, "shutAfter", anyAge))
+        if (not lookup(way, "lastResort", false) and (lived + way.months) <= (lookup(way, "finishBy", lastAge) * 12))
         {
             waysLeft = true
         }
-    }
-}
-
-// Whether one more event stood by would shut something of its own (a `shutAfter` he is one
-// short of): the answers of an event say so
-var oneMoreShuts = false
-
-for (var w = 0; w < len(activities); w++)
-{
-    if (lookup(activities[w], "shutAfter", anyAge) == eventsMissed + 1)
-    {
-        oneMoreShuts = true
     }
 }
 
@@ -1681,17 +1667,6 @@ for (var i = 0; i < len(activities); i++)
             }
 
             a.caution = a.caution + warnsOf[a.event]
-
-            // (the classes for who is young enough to have none, the callings for who could
-            // have had one: as resources.pg writes it in the log)
-            if (oneMoreShuts and not committed and lived <= 16 * 12)
-            {
-                a.caution = a.caution + " He has stood by once already: this time, no class would have him."
-            }
-            else if (oneMoreShuts and holdsAny(character, callingFlags) and statOf(character, "town." + callingPlace) >= 1)
-            {
-                a.caution = a.caution + " He has stood by once already: this time, no second calling would be his."
-            }
         }
     }
 
@@ -1760,6 +1735,13 @@ for (var i = 0; i < len(activities); i++)
         {
             a.until = "CLOSES THIS MONTH"
         }
+    }
+
+    // An answer to an event of his life is said in red all the while it can be given: an event
+    // comes once, and goes
+    if (a.event != "")
+    {
+        a.urgent = true
     }
 
     // A path's activities are his once he is one of it; the way in, until he is one of any
@@ -1995,23 +1977,8 @@ for (var i = 0; i < len(activities); i++)
         }
     }
 
-    // What the events he stood by have shut: the rows of an event, and after the second one
-    // the great steps that were still his to take (not a class's door to who has a class, nor
-    // a calling to who could not have had it)
+    // What the events he stood by have shut: the rows each of them names
     a.barred = lookup(barredBy, a.id, "")
-
-    if (eventsMissed >= lookup(a, "shutAfter", anyAge) and a.pathOpen and not a.spent and not a.closed)
-    {
-        if (not has(a, "onlyWith") or statOf(character, lookup(a, "onlyWith", "")) > 0)
-        {
-            a.barred = shutCallings
-
-            if (a.enters)
-            {
-                a.barred = shutClasses
-            }
-        }
-    }
 
     if (a.barred != "")
     {

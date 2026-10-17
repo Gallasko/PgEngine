@@ -895,13 +895,13 @@ head of the table, with ages counted to the month and a few optional fields:
   few at a time (the Keep's patrols after its service, the tourney after a patrol).
 - `idleBy: N`: its row leaves the list the month he is N if he has never done it in this life,
   and nothing is said of it: the town's work a child never took. What he did once stays.
-- `event: "id"` and `shutAfter: N`: the events of a life (`lifeEvents` in `lib.pg`: the Flood,
-  the Levy, the Plague Year, the succession). An answer brings one of the event's flags. The
-  month an event is settled, `resources.pg` gives who holds none of them its `stood` flag, one
-  more `stood_by`, and a line in the log: the rows the event names are shut (`barred` on the
-  row, and its door on the clock), and at `standByShuts` of them so is every row with a
-  `shutAfter` (the ways into a class, the second callings). Only the month itself counts: a
-  life begun later with `--age`, or a save from before the events, has stood by at nothing.
+- `event: "id"`: the events of a life (`lifeEvents` in `lib.pg`: the Flood, the Levy, the
+  Plague Year, the succession), each with most of a year to begin an answer. An answer brings
+  one of the event's flags. The month an event is settled, `resources.pg` gives who holds none
+  of them its `stood` flag, one more `stood_by`, and a line in the log: the rows the event names
+  are shut (`barred` on the row, and its door on the clock), and nothing else: no number of
+  events stood by shuts a class or a second calling. Only the month itself counts: a life
+  begun later with `--age`, or a save from before the events, has stood by at nothing.
 
 What is done in town (a `place`, a `raises`) is his from six, so that the market sells to the
 boy who has just been taken there; every other activity asks 7 unless it says otherwise.

@@ -76,7 +76,7 @@ namespace pg
         {
             MockLogger logger;
 
-            EXPECT_EQ(markNames().size(), 29u);
+            EXPECT_EQ(markNames().size(), 30u);
             EXPECT_EQ(markNames().front(), "strength");
             EXPECT_EQ(markNames().back(), "cross");
             EXPECT_TRUE(isMarkName("time"));

@@ -84,6 +84,7 @@ namespace chronicle
         constexpr float EachGap = 2.0f;
         constexpr float UntilGap = 2.0f;         // Above the line saying when it closes
         constexpr float TilePad = 8.0f;          // space-2 padding of a tile
+        constexpr float BadgeOut = 8.0f;         // How far a badge stands out of the corner it is worn on, each way
         constexpr float TileLineGap = 6.0f;      // Between a tile's name and its last line
         constexpr float TileMarkGap = 6.0f;      // Between a tile's mark and its name
         constexpr float TileStatusGap = 8.0f;    // Between a tile's time and its word of state
@@ -723,6 +724,24 @@ namespace chronicle
                 prefab->addToPrefab(row.mark.entity);
                 state->mark = row.mark.entity.id;
             }
+        }
+
+        // A badge on its top-right corner, over the frame and half out of it, as a seal on a leaf
+        if (not spec.badge.empty())
+        {
+            row.badge = makeMark(ecs, {spec.badge, MarkSize::S18, "status-loss", z + 6});
+            offstage(row.badge->entity);
+            {
+                auto anchor = row.badge->entity->get<UiAnchor>();
+
+                anchor->setRightAnchor(PosAnchor{rootId, AnchorType::Right});
+                anchor->setRightMargin(-BadgeOut);
+                anchor->setTopAnchor(PosAnchor{rootId, AnchorType::Top});
+                anchor->setTopMargin(-BadgeOut);
+                anchor->setZConstrain(PosConstrain{rootId, AnchorType::Z, PosOpType::Add, 6.0f});
+            }
+            row.badge->entity->get<ThemeComponent>()->setElement("activity.badge");
+            prefab->addToPrefab(row.badge->entity);
         }
 
         // Mark: S24 (the design system draws 22; the kit registers 18 and 24), centred in its column.
@@ -1729,7 +1748,7 @@ namespace chronicle
             return held.id == wanted.id and held.name == wanted.name and held.glyph == wanted.glyph and held.rank == wanted.rank
                and held.count == wanted.count and held.months == wanted.months and held.each == wanted.each
                and held.until == wanted.until and held.urgent == wanted.urgent and held.compact == wanted.compact
-               and held.featured == wanted.featured and held.major == wanted.major and held.tile == wanted.tile
+               and held.featured == wanted.featured and held.major == wanted.major and held.tile == wanted.tile and held.badge == wanted.badge
                and held.state == wanted.state and held.caption == wanted.caption and held.glossKey == wanted.glossKey
                and held.cost == wanted.cost and held.costGlyph == wanted.costGlyph
                and held.closes == wanted.closes and held.adventure == wanted.adventure

@@ -739,6 +739,13 @@ namespace chronicle
             }
             else if (e.tag == HasteTag)
                 pressHaste();
+            else if (e.tag == BeginTag and resumes() and takenAtWork(activityOf(chosen)))
+            {
+                // Stopped at a work, with something chosen that may be taken while at it: that,
+                // and not the work, is what the button goes on with
+                onConfirm(ActivityActivatedEvent{ActivitiesList, chosen});
+                showWorkButtons();
+            }
             else if (e.tag == BeginTag and resumes())
                 pause(false);
             else if (e.tag == BeginTag and not chosen.empty())
@@ -970,6 +977,9 @@ namespace chronicle
         takeAsRead();
         publish();
         registerDeeds();
+
+        // An event already open in a save opened again has been said: the months do not stop for it twice
+        callEvents(false);
 
         tellAnalytics();
 
@@ -1305,8 +1315,13 @@ namespace chronicle
         // that says how
         const bool idle = save.running.empty();
         const RuleActivity* pick = chosen.empty() ? nullptr : activityOf(chosen);
-        const bool begins = idle and pick and not ended;
         const bool leads = led() and not firstWork().empty();
+
+        // A work that is stopped has the same button under its row, to go on: a key is not
+        // something every screen has. Unless what is chosen may be taken while at it (a thing
+        // done at once, an answer to an event): then the button takes that
+        const bool stopped = resumes();
+        const bool begins = pick and not ended and (idle or (stopped and takenAtWork(pick)));
 
         auto show = [this, &working](const char* name, bool shown) {
             if (EntityRef button = named(name); not button.empty())
@@ -1323,10 +1338,6 @@ namespace chronicle
         // tabs and the choice under it stay where they are when a task is tapped, and a second
         // tap finds the task where the first did. The button waits there, greyed
         const bool waits = phone and idle and not begins and leads and not ended;
-
-        // A work that is stopped has the same button under its row, to go on: a key is not
-        // something every screen has
-        const bool stopped = resumes();
 
         // A first life has its guide to say it, on a leaf of its own
         show("guide", leads and not guiding() and not waits);
@@ -1374,9 +1385,32 @@ namespace chronicle
             // What takes no time is done on the spot, and says so
             const int months = intOf(pick->fields, "months");
 
-            begin->setLabel(ecsRef, months > 0 ? "Begin" : "Do it now");
+            begin->setLabel(ecsRef, months <= 0 ? "Do it now" : idle ? "Begin" : "Answer now");
             begin->setMonths(ecsRef, months > 0 ? months : -1);
         }
+    }
+
+    bool LifeScene::answersEvent(const RuleActivity* activity) const
+    {
+        return activity and not textOf(activity->fields, "event").empty() and boolOf(activity->fields, "listed") and not boolOf(activity->fields, "locked");
+    }
+
+    bool LifeScene::takenAtWork(const RuleActivity* activity) const
+    {
+        if (not activity or ended or onWalk() or not boolOf(activity->fields, "listed") or boolOf(activity->fields, "locked"))
+            return false;
+
+        if (textOf(activity->fields, "id") == save.running)
+            return false;
+
+        // What takes no time is done whatever else he is at
+        if (intOf(activity->fields, "months") <= 0)
+            return true;
+
+        // An answer to an event sets the work aside, once at a time, and never a walk's months
+        const RuleActivity* at = activityOf(save.running);
+
+        return answersEvent(activity) and save.setAside.empty() and at and textOf(at->fields, "zone").empty();
     }
 
     int LifeScene::workRoom()
@@ -3181,6 +3215,7 @@ namespace chronicle
         // Grouped as the table orders them; what the rules do not list (spent, too late, another
         // path's) has no row
         std::vector<ActivityGroup> groups;
+        std::vector<ActivityGroup> calls;     // The groups of the events open now: over the others
 
         // What is done at a place of the town stands on the Town page, never on this one: the
         // market's rows, what is bought and sold on the spot. The works that raise a place have no
@@ -3215,8 +3250,13 @@ namespace chronicle
             if (not textOf(a.fields, "zone").empty() and adventureKnown())
                 continue;
 
-            if (not inTown and (groups.empty() or groups.back().label != group))
-                groups.push_back({group, {}});
+            // An answer to an event of his life is on top of the list, in its event's group: it
+            // comes once, and goes
+            const bool answer = not textOf(a.fields, "event").empty();
+            std::vector<ActivityGroup>& into = answer ? calls : groups;
+
+            if (not inTown and (into.empty() or into.back().label != group))
+                into.push_back({group, {}});
 
             ActivityRowSpec row;
             row.id = textOf(a.fields, "id");
@@ -3230,6 +3270,10 @@ namespace chronicle
             row.glossKey = "activity/" + row.id;
             row.featured = boolOf(a.fields, "featured");
             row.major = boolOf(a.fields, "major");
+
+            // And it wears a mark of its own on its corner, with its red frame (the rules' `urgent`)
+            if (answer)
+                row.badge = "alert";
 
             if (row.state == ActivityState::Running)
             {
@@ -3282,8 +3326,10 @@ namespace chronicle
             if (inTown)
                 stalls.push_back(row);
             else
-                groups.back().rows.push_back(row);
+                into.back().rows.push_back(row);
         }
+
+        groups.insert(groups.begin(), calls.begin(), calls.end());
 
         if (auto list = piece<ActivityList>("activities"))
             list->setRows(ecsRef, groups);
@@ -4580,8 +4626,23 @@ namespace chronicle
 
         if (not save.running.empty())
         {
-            appendLog({save.age, "Already at work: " + activityName(save.running), LogKind::Note, "", ""});
-            return;
+            if (not takenAtWork(activityOf(id)))
+            {
+                appendLog({save.age, "Already at work: " + activityName(save.running), LogKind::Note, "", ""});
+                return;
+            }
+
+            // An event of his life does not wait for his work: the work is set aside where it
+            // stands, and goes on once the answer is done
+            save.setAside = save.running;
+            save.setAsideMonths = save.monthsIn;
+
+            setFact("activity." + save.setAside + ".state", std::string("idle"));
+            appendLog({save.age, activityName(save.setAside) + " is set aside for " + activityName(id) + ": it goes on once that is done", LogKind::Note, "", ""});
+
+            save.running.clear();
+            save.monthsIn = 0;
+            rules.running.clear();
         }
 
         // The list refuses a locked row, a key or a script may not
@@ -4625,6 +4686,106 @@ namespace chronicle
             endStep();
 
         autoSave();
+    }
+
+    void LifeScene::takeUpSetAside()
+    {
+        const std::string id = save.setAside;
+        const int months = save.setAsideMonths;
+
+        save.setAside.clear();
+        save.setAsideMonths = 0;
+
+        // What the answer closed is not taken up again: its months are lost
+        if (const RuleActivity* left = activityOf(id); left and boolOf(left->fields, "closed"))
+        {
+            appendLog({save.age, activityName(id) + " is closed to him now, and is not taken up again", LogKind::Note, "", ""});
+            return;
+        }
+
+        save.running = id;
+        save.monthsIn = months;
+        rules.running = id;
+
+        setFact("activity." + id + ".state", std::string("running"));
+        appendLog({save.age, "Back to " + activityName(id), LogKind::Note, "", ""});
+
+        // The months go on as they did before the answer
+        paused = false;
+        sinceMonth = 0.0f;
+
+        fillActivities();
+    }
+
+    void LifeScene::callEvents(bool stop)
+    {
+        // The events whose answers are in the list, by their group ("The Flood"), with the fewest
+        // months left to begin one he can give. Not the one he is answering
+        std::vector<std::pair<std::string, std::string>> open;
+        std::unordered_map<std::string, int> left;
+        const RuleActivity* at = activityOf(save.running);
+        const std::string answering = at ? textOf(at->fields, "event") : std::string();
+
+        for (const auto& a : activities)
+        {
+            const std::string event = textOf(a.fields, "event");
+
+            if (event.empty() or event == answering or not boolOf(a.fields, "listed"))
+                continue;
+
+            if (left.count(event) == 0)
+            {
+                open.push_back({event, textOf(a.fields, "group")});
+                left[event] = -1;
+            }
+
+            const int closes = closesOf(a);
+
+            if (not boolOf(a.fields, "locked") and closes >= 0 and (left[event] < 0 or closes < left[event]))
+                left[event] = closes;
+        }
+
+        auto once = [](std::vector<std::string>& seen, const std::string& event) {
+            if (std::find(seen.begin(), seen.end(), event) != seen.end())
+                return false;
+
+            seen.push_back(event);
+            return true;
+        };
+
+        std::string said;
+
+        for (const auto& [event, group] : open)
+        {
+            const bool called = once(eventsCalled, event);
+            const bool last = left[event] == 0 and once(eventsLastCalled, event);
+
+            if (not stop)
+                continue;
+
+            if (called)
+                said = group + "! Bellmoor calls on him: its answers are in red, and leaving it unanswered closes what they name";
+            else if (last)
+                said = group + "! This is the last month to answer it";
+        }
+
+        if (said.empty())
+            return;
+
+        toast(said);
+
+        // At work the months stop on it, and the log says which key goes on; at nothing they
+        // are stopped already
+        if (not save.running.empty() and not paused)
+        {
+            appendLog({save.age, said + ". The months stop: answer it, or press Go on, or SPACE", LogKind::Note, "", ""});
+            sinceMonth = 0.0f;
+            pause(true);
+        }
+        else
+        {
+            appendLog({save.age, said, LogKind::Note, "", ""});
+        }
     }
 
     void LifeScene::doAtOnce(const std::string& id, const RuleForecast& forecast)
@@ -5436,6 +5597,10 @@ namespace chronicle
                     if (not save.running.empty())
                         fillActivities();
                 }
+
+                // An answer done: the work it set aside goes on
+                if (not save.setAside.empty() and save.running.empty())
+                    takeUpSetAside();
             }
 
             refreshHoldings();
@@ -5459,6 +5624,9 @@ namespace chronicle
                 toast(textOf(m.fields, "entry"));
             }
         }
+
+        // An event of his life come, or about to go: said, and the months stopped for it
+        callEvents(true);
 
         // The month took from what the life hangs on: he is in danger, and the page says so
         if (not month.hurt.empty())
@@ -5775,6 +5943,10 @@ namespace chronicle
         // Never a first life: it opens as every later one does, at 6 with the works of his sixth
         // year all in the list, and no guide
         clearGuide();
+
+        // His events are still to come
+        eventsCalled.clear();
+        eventsLastCalled.clear();
 
         save = freshLife();
 

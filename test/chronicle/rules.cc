@@ -2746,7 +2746,7 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
-        // The Flood comes the month he is eleven, in every life: six months to answer it, and one
+        // The Flood comes the month he is eleven, in every life: the year to answer it, and one
         // answer of three. What he answers is his for the life: who stood in the mill's water
         // mends its wheel for half, and who looted is not given the sacristan's keys.
         TEST(rules_test, the_flood_is_answered_once_at_eleven)
@@ -2766,13 +2766,13 @@ namespace pg
 
             const float month = 1.0f / 12.0f;
 
-            // Not before, and not after its six months: time enough for who was at a long work
+            // Not before, and not after its year: time enough for who was at a long work
             for (const char* id : {"flood.sandbags", "flood.rescue", "flood.salvage"})
             {
                 EXPECT_FALSE(listed(11.0f - month, character, id)) << id;
                 EXPECT_TRUE(listed(11.0f, character, id)) << id;
-                EXPECT_TRUE(listed(11.0f + 5.0f * month, character, id)) << id;
-                EXPECT_FALSE(listed(11.0f + 6.0f * month, character, id)) << id;
+                EXPECT_TRUE(listed(11.0f + 10.0f * month, character, id)) << id;
+                EXPECT_FALSE(listed(11.0f + 11.0f * month, character, id)) << id;
             }
 
             // A row whatever he has: what he cannot do he sees he cannot
@@ -2806,13 +2806,13 @@ namespace pg
             EXPECT_FALSE(listed(11.0f + month, saved, "flood.rescue"));
             EXPECT_FALSE(listed(11.0f + month, saved, "flood.salvage"));
             EXPECT_EQ(intOf(activityAt(f.rules, 11.5f, saved, "raise.mill.1").costs[0], "amount"), 10);
-            EXPECT_TRUE(listed(11.75f, saved, "keys"));
+            EXPECT_TRUE(listed(12.0f, saved, "keys"));
 
             // The looting: the keys are not his, the forbidden shelf is
             f.rules.done = {{"flood.salvage", ElementType{1}}};
 
-            EXPECT_FALSE(listed(11.75f, character, "keys"));
-            EXPECT_TRUE(listed(11.75f, character, "shelf"));
+            EXPECT_FALSE(listed(12.0f, character, "keys"));
+            EXPECT_TRUE(listed(12.0f, character, "shelf"));
         }
 
         // ----------------------------------------------------------------------------------------
@@ -2915,10 +2915,11 @@ namespace pg
 
             const float month = 1.0f / 12.0f;
 
+            // Called the spring before he is fifteen: nine months to begin an answer
             for (const char* id : {"levy.march", "levy.pay", "levy.hide"})
             {
-                EXPECT_FALSE(listed(15.0f - month, character, id)) << id;
-                EXPECT_TRUE(listed(15.0f, character, id)) << id;
+                EXPECT_FALSE(listed(14.75f - month, character, id)) << id;
+                EXPECT_TRUE(listed(14.75f, character, id)) << id;
                 EXPECT_TRUE(listed(15.0f + 5.0f * month, character, id)) << id;
                 EXPECT_FALSE(listed(15.0f + 6.0f * month, character, id)) << id;
             }
@@ -2956,7 +2957,7 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // An event left unanswered is paid for. The month it is settled, who holds none of its
         // answers has stood by: he holds that, the log says so, and the rows the event names are
-        // shut to him. The second one of a life shuts every class, and leaves him the Greenwood.
+        // shut to him. Nothing else is: a second one shuts its own rows, and no class.
         TEST(rules_test, an_event_stood_by_shuts_what_follows)
         {
             MockLogger logger;
@@ -2981,7 +2982,7 @@ namespace pg
             };
 
             const float month = 1.0f / 12.0f;
-            const float settled = 11.0f + 7.0f * month;
+            const float settled = 12.0f;
 
             ElementMap character = townsman();
             character["str"] = ElementType{9};
@@ -3041,14 +3042,13 @@ namespace pg
             EXPECT_EQ(textOf(*watch, "state"), "closed");
             EXPECT_NE(textOf(*watch, "note").find("he stood by"), std::string::npos);
 
-            // Every answer of an event says what leaving it unanswered shuts; once he has stood by,
-            // what a second time would cost him
+            // Every answer of an event says what leaving it unanswered shuts, and no more once he
+            // has stood by already
             const std::string first = textOf(activityAt(f.rules, 15.0f, character, "levy.pay").fields, "caution");
             const std::string second = textOf(activityAt(f.rules, 15.0f, stood, "levy.pay").fields, "caution");
 
             EXPECT_NE(first.find("Leave the Levy unanswered, and Train under Sergeant Edric, Lessons with Mara and Work the Night Market are closed to him for this life."), std::string::npos) << first;
-            EXPECT_EQ(first.find("stood by once"), std::string::npos) << first;
-            EXPECT_NE(second.find("He has stood by once already: this time, no class would have him."), std::string::npos) << second;
+            EXPECT_EQ(second, first);
 
             // The Levy is settled at sixteen, once a march begun in its last month is over. Who
             // marched has answered; who did nothing has stood by a second time
@@ -3063,42 +3063,39 @@ namespace pg
             EXPECT_EQ(intOf(passed.after, "stood_levy"), 1);
             EXPECT_EQ(intOf(passed.after, "stood_by"), 2);
             EXPECT_TRUE(wrote(passed, "The Levy mustered without him"));
-            EXPECT_TRUE(wrote(passed, "Twice Bellmoor called and he stood by: no class will have him"));
+            EXPECT_FALSE(wrote(passed, "no class will have him"));
 
-            // Twice: no class will have him, and the Greenwood takes who is left, at sixteen
+            // Twice: the Levy's rows are shut too, and the classes are still his, so the Greenwood
+            // waits for them to close by their age
             ElementMap twice = stood;
             twice["stood_levy"] = ElementType{1};
             twice["stood_by"] = ElementType{2};
 
             for (const char* id : {"keep", "collegium", "hand"})
             {
-                EXPECT_FALSE(listed(16.0f, twice, id)) << id;
-                EXPECT_EQ(barred(16.0f, twice, id), "Twice Bellmoor called and he stood by: no class will have him") << id;
+                EXPECT_TRUE(listed(16.0f, twice, id)) << id;
+                EXPECT_EQ(barred(16.0f, twice, id), "") << id;
             }
 
             for (const char* id : {"edric", "mara", "night"})
                 EXPECT_NE(barred(16.0f, twice, id).find("The Levy mustered without him"), std::string::npos) << id;
 
-            EXPECT_FALSE(listed(16.0f, stood, "greenwood"));
-            EXPECT_FALSE(listed(16.0f - month, twice, "greenwood"));
-            EXPECT_TRUE(listed(16.0f, twice, "greenwood"));
-            EXPECT_FALSE(flag(activityAt(f.rules, 16.0f, twice, "greenwood").fields, "locked"));
+            EXPECT_FALSE(listed(16.0f, twice, "greenwood"));
 
             ASSERT_TRUE(f.rules.windows(16.0f, twice, windows)) << firstError(f.rules);
 
             const ElementMap* keep = byId(windows, "keep");
             ASSERT_NE(keep, nullptr);
-            EXPECT_EQ(textOf(*keep, "state"), "closed");
-            EXPECT_NE(textOf(*keep, "note").find("no class will have him"), std::string::npos);
+            EXPECT_NE(textOf(*keep, "state"), "closed");
         }
 
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
         // A man of a class sees his two callings from the day he is of it, where the Inn stands, as
-        // a child sees the classes. Two events stood by shut them. The old Lord's death has an
-        // answer that asks nothing, so that standing by is his own doing.
-        TEST(rules_test, the_callings_show_ahead_and_two_events_stood_by_shut_them)
+        // a child sees the classes. No number of events stood by shuts them. The old Lord's death
+        // has an answer that asks nothing, so that standing by is his own doing.
+        TEST(rules_test, the_callings_show_ahead_and_events_stood_by_never_shut_them)
         {
             MockLogger logger;
             RulesFixture f;
@@ -3147,24 +3144,25 @@ namespace pg
             EXPECT_EQ(intOf(kneel.fields, "months"), 0);
             EXPECT_EQ(textOf(kneel.fields, "event"), "lord");
 
-            // The plague year settled on a man who stood by at the Flood: the second time
+            // The plague year settled at twenty-four on a man who stood by at the Flood: the
+            // second time, and its own rows are all it costs him
             ElementMap once = man;
             once["stood_flood"] = ElementType{1};
             once["stood_by"] = ElementType{1};
 
             RuleMonth passed;
-            ASSERT_TRUE(f.rules.month(23.75f, once, false, passed)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(24.0f, once, false, passed)) << firstError(f.rules);
 
             EXPECT_EQ(intOf(passed.after, "stood_plague"), 1);
             EXPECT_EQ(intOf(passed.after, "stood_by"), 2);
             EXPECT_TRUE(wrote(passed, "The plague year went by"));
-            EXPECT_TRUE(wrote(passed, "no second calling is his"));
+            EXPECT_FALSE(wrote(passed, "no second calling"));
 
             // (who shut his door has answered)
             ElementMap shut = once;
             shut["plague_shut"] = ElementType{1};
 
-            ASSERT_TRUE(f.rules.month(23.75f, shut, false, passed)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(24.0f, shut, false, passed)) << firstError(f.rules);
             EXPECT_EQ(passed.after.count("stood_plague"), 0u);
 
             ElementMap twice = once;
@@ -3173,14 +3171,11 @@ namespace pg
 
             for (const char* id : {"castellan", "cross"})
             {
-                EXPECT_FALSE(listed(29.0f, twice, id)) << id;
-                EXPECT_EQ(textOf(activityAt(f.rules, 29.0f, twice, id).fields, "barred"), "Twice Bellmoor called and he stood by: no second calling is his") << id;
+                EXPECT_TRUE(listed(29.0f, twice, id)) << id;
+                EXPECT_EQ(textOf(activityAt(f.rules, 29.0f, twice, id).fields, "barred"), "") << id;
             }
 
             EXPECT_NE(textOf(activityAt(f.rules, 24.0f, twice, "raid").fields, "barred").find("The plague year went by"), std::string::npos);
-
-            // Once is not twice: the callings are still his
-            EXPECT_TRUE(listed(29.0f, once, "castellan"));
         }
 
         // ----------------------------------------------------------------------------------------

@@ -120,6 +120,8 @@ namespace chronicle
         RuleEpitaph epitaph;           // What the ending says, from epitaph.pg
         std::vector<FactRouter::SubId> subs;
         bool paused = true;
+        std::vector<std::string> eventsCalled;       // The events of his life whose answers have come into the list: the months stopped for each, once
+        std::vector<std::string> eventsLastCalled;   // And those whose last month to begin an answer has come: the months stopped again
         bool ended = false;            // The life is over and its ending is up: nothing passes until the next begins
         bool compact = false;          // Which file the page is: opt.compactFile or opt.pageFile
         bool phone = false;            // The page is opt.phoneFile: compact, in one column, with one row of tabs
@@ -252,6 +254,10 @@ namespace chronicle
         bool guideSaid() const;        // The guide line is up: a life led to its first work, with no guide to say so
         float guideRoom() const;       // What the guide line takes of "At work now", 0 when it is not up
         bool resumes() const;          // His work is stopped: "At work now" has a button that goes on
+        bool answersEvent(const RuleActivity* activity) const;   // An answer to an event of his life, listed and his to give
+        bool takenAtWork(const RuleActivity* activity) const;    // Begun while he is at another work: done at once, or an answer that sets that work aside
+        void callEvents(bool stop);    // An event whose answers came into the list, or whose last month to answer has come: said, and the months stopped for it; false: only noted
+        void takeUpSetAside();         // The work an answer set aside goes on where it stopped
         float resumeRoom() const;      // What that button takes of the panel, 0 when it is not up
         bool led() const;              // A life that has done nothing yet and is at nothing: the page leads it to its first work
         std::string firstWork() const; // The first activity of the list he may begin that takes months, "" for none
