@@ -1,7 +1,9 @@
 // Chronicle solver: the work handed to the workers (the host's `parallel`, threads=N)
 // -----------------------------------------------------------------------------------
-// A job is one world's expansion (beam.pg's expand), one world's month (life.pg's monthPass), or one
-// task for the planner (solver.pg's planTask). Each runs alone in whichever worker takes it, from a
+// A job is one world's expansion (beam.pg's expand), one world's month (life.pg's monthPass), one
+// task for the planner (solver.pg's planTask), or one stage of the planner for a task (planStage:
+// a stage skipped when a lower one has reached the task already, settle / settled; a stage that
+// does not reach it asks for the next, claimUpTo). Each runs alone in whichever worker takes it, from a
 // copy of what the main script sends; the main script takes the answers back in the jobs' order:
 //
 // - the plan lines a job wrote: a worker numbers them from `workerBase` (life.pg's `planBase`); the
@@ -37,6 +39,7 @@ fun jobStart()
     planLog = []
     planBase = workerBase
     jobFirsts = {}
+    jobReaches = []
 }
 
 // What the host calls with a job, one function a kind (the host's report counts them apart)
@@ -55,15 +58,21 @@ fun planJob(job)
     workerJob(job)
 }
 
+fun stageJob(job)
+{
+    workerJob(job)
+}
+
 // The answer is left in `jobResult`
 fun workerJob(job)
 {
     jobStart()
 
     var out = none
+    var spawn = []
 
     // The chance in the beam's choosing (seed > 1), from the world itself: not from the jobs before
-    if (job.kind != "plan")
+    if (job.kind == "expand" or job.kind == "month")
     {
         noiseSeed = (7919 * (asInt(job.st.dice) + 31 * job.st.month) + 13) % 65537
     }
@@ -73,6 +82,7 @@ fun workerJob(job)
         touch(job.st)
         out = expand(job.st, job.round)
     }
+
     else if (job.kind == "month")
     {
         touch(job.st)
@@ -88,6 +98,52 @@ fun workerJob(job)
 
         out = planTask(job.id)
     }
+    else if (job.kind == "stage")
+    {
+        if (plannerBase != none)
+        {
+            touch(plannerBase)
+        }
+
+        // A lower stage has reached it already: nothing this one could change
+        var lower = settled(job.id)
+
+        if (lower >= 0 and lower < job.stage)
+        {
+            out = {id: job.id, stage: job.stage, ok: false, skipped: true, miss: none}
+        }
+        else
+        {
+            misses = {}
+
+            var done = planStage(job.id, job.stage)
+
+            if (done != none)
+            {
+                settle(job.id, job.stage)
+                out = {id: job.id, stage: job.stage, ok: true, how: done.how, head: done.w.planHead, reachedHow: done.w.reached[job.id], miss: none}
+            }
+            else
+            {
+                out = {id: job.id, stage: job.stage, ok: false, miss: misses[job.id]}
+
+                // The task's next stage; more of them at once when workers have nothing to take
+                // (the last tasks' tries side by side). Each stage is asked for once (claimUpTo)
+                var last = tries + 1
+
+                if (job.stage < last)
+                {
+                    var want = smaller(last, job.stage + 1 + idleWorkers())
+                    var claimed = claimUpTo(job.id, want)
+
+                    for (var nx = larger(claimed, job.stage) + 1; nx <= want; nx = nx + 1)
+                    {
+                        push(spawn, {kind: "stage", id: job.id, stage: nx})
+                    }
+                }
+            }
+        }
+    }
 
     var firsts = []
 
@@ -96,7 +152,13 @@ fun workerJob(job)
         push(firsts, {id: id, how: jobFirsts[id].how, head: jobFirsts[id].head})
     }
 
-    jobResult = {out: out, lines: planLog, firsts: firsts}
+    jobResult = {out: out, lines: planLog, firsts: firsts, reaches: jobReaches}
+
+    if (len(spawn) > 0)
+    {
+        jobResult.spawn = spawn
+        jobResult.spawnFunction = "stageJob"
+    }
 }
 
 // ---- in the main script ----------------------------------------------------------------------
@@ -167,6 +229,13 @@ fun mergeAnswer(answer)
         }
     }
 
+    for (var r : answer.reaches)
+    {
+        var at = r.at
+        at.head = fromWorker(at.head, base)
+        keepFastest(r.id, at)
+    }
+
     return base
 }
 
@@ -176,6 +245,20 @@ fun adopted(st, base)
     touch(st)
 
     return st
+}
+
+// An answer and those of the jobs it asked for, all of them, into `into`
+fun allAnswers(answer, into)
+{
+    push(into, answer)
+
+    if (answer.spawned != none)
+    {
+        for (var more : answer.spawned)
+        {
+            allAnswers(more, into)
+        }
+    }
 }
 
 fun runJobs(function, jobs)
@@ -190,7 +273,9 @@ fun runJobs(function, jobs)
     return parallel(function, jobs, setup, setupVersion)
 }
 
-// beam.pg's expand of each world, by the workers: the children of each, in order
+// beam.pg's expand of each world, by the workers, a job a world: the children of each, in order.
+// (Its walks as jobs of their own, asked for by the world's job, were tried: on four cores the
+// copying cost more than the walks side by side gained)
 fun expandAll(worlds, round)
 {
     var jobs = []

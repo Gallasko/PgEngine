@@ -604,57 +604,87 @@ fun retried(id, cap, base)
     return none
 }
 
-// One task the beam left, for the planner: from the beam's best world (`plannerBase`), from a world
-// of its own, then with chance in the choosing. What came of it: {id, found (how, or none), missed
-// (why, or none), head (the last line of its plan), how (when it was reached), seconds}
-fun planTask(id)
+// The planner's stages for one task the beam left: 0 from the beam's best world (`plannerBase`),
+// 1 from a world of its own, then 2... the tries with chance in the choosing (retried's, one a
+// stage). {how, w} when the stage reaches it, else none
+fun planStage(id, stage)
 {
-    var t0 = clockMs()
-    var base = plannerBase
-    var won = none
-    var foundHow = none
+    noise = 0.0
 
-    if (base != none)
+    if (stage == 0)
     {
-        var later = clone(base)
+        if (plannerBase == none)
+        {
+            return none
+        }
+
+        var later = clone(plannerBase)
 
         if (search(later, [id], cap))
         {
-            won = later
-            foundHow = "planner after the beam, " + later.reached[id]
+            return {how: "planner after the beam, " + later.reached[id], w: later}
         }
+
+        return none
     }
 
-    if (won == none)
+    if (stage == 1)
     {
         var fresh = newWorld(3000)
 
         if (search(fresh, [id], cap))
         {
-            won = fresh
-            foundHow = "planner, a world of its own, " + fresh.reached[id]
+            return {how: "planner, a world of its own, " + fresh.reached[id], w: fresh}
         }
+
+        return none
     }
 
-    if (won == none)
-    {
-        var again = retried(id, cap, base)
+    var attempt = stage - 1
+    var levels = [200.0, 500.0, 1000.0]
+    noise = levels[attempt - (attempt / 3) * 3]
+    noiseSeed = 7919 * attempt + 13
 
-        if (again != none)
+    var w = none
+    var whence = "a world of its own"
+
+    if (plannerBase != none and attempt - (attempt / 2) * 2 == 1)
+    {
+        w = clone(plannerBase)
+        whence = "the shared world's next lives"
+    }
+    else
+    {
+        w = newWorld(4000 + attempt)
+    }
+
+    var ok = search(w, [id], cap)
+    noise = 0.0
+
+    if (ok)
+    {
+        return {how: "planner, alone in " + whence + ", try " + toString(attempt) + " of " + toString(tries) + ", " + w.reached[id], w: w}
+    }
+
+    return none
+}
+
+// One task the beam left, its stages one after the other until one reaches it. What came of it:
+// {id, found (how, or none), missed (why, or none), head (the last line of its plan), how (when it
+// was reached), stage}
+fun planTask(id)
+{
+    for (var stage = 0; stage <= tries + 1; stage = stage + 1)
+    {
+        var done = planStage(id, stage)
+
+        if (done != none)
         {
-            won = lastWorld
-            foundHow = "planner, " + again
+            return {id: id, found: done.how, missed: none, head: done.w.planHead, how: done.w.reached[id], stage: stage}
         }
     }
 
-    var seconds = (clockMs() - t0) / 1000
-
-    if (won == none)
-    {
-        return {id: id, found: none, missed: missText(id), head: -1, how: "", seconds: seconds}
-    }
-
-    return {id: id, found: foundHow, missed: none, head: won.planHead, how: won.reached[id], seconds: seconds}
+    return {id: id, found: none, missed: missText(id), head: -1, how: "", stage: -1}
 }
 
 fun planText(st)
@@ -687,6 +717,202 @@ fun missText(id)
 }
 
 // The report, from {id: how it was reached} and {id: the closest miss}
+// ---- how soon, and the task graph ------------------------------------------------------------
+
+// The task graph's facts (the host's graphFacts: depgraph.pg --facts): each task's earliest months
+// by its age and its flags alone, {begin, end, by}; and the stats asked for that no task brings
+var graphEarliest = {}
+var graphMissing = []
+var graphThere = false
+var graphRead = false
+
+fun readGraph()
+{
+    if (graphRead)
+    {
+        return
+    }
+
+    graphRead = true
+
+    for (var line : splitLines(graphFacts()))
+    {
+        var cols = split(line, "|")
+
+        if (len(cols) >= 5 and cols[0] == "task")
+        {
+            graphEarliest[cols[1]] = {begin: toInt(cols[2]), end: toInt(cols[3]), by: toInt(cols[4])}
+            graphThere = true
+        }
+        else if (len(cols) >= 2 and cols[0] == "missing")
+        {
+            push(graphMissing, cols[1])
+        }
+    }
+}
+
+fun padTo(text, width)
+{
+    var out = text
+
+    while (strlen(out) < width)
+    {
+        out = out + " "
+    }
+
+    return out
+}
+
+// The months between two, "+1y3m", "-0y2m"
+fun gapText(months)
+{
+    if (months < 0)
+    {
+        return "-" + ageText(0 - months)
+    }
+
+    return "+" + ageText(months)
+}
+
+// The quickest columns of a task for a part file: "|soonest|how|youngest|how", "-" when unreached
+fun fastCols(id)
+{
+    var soon = fastestWorld[id]
+    var young = youngest[id]
+
+    if (soon == none or young == none)
+    {
+        return "|-|-|-|-"
+    }
+
+    return "|" + toString(soon.world) + "|" + soon.how + "|" + toString(young.month) + "|" + young.how
+}
+
+// A part file's quickest columns taken in: the soonest and the youngest of all the parts
+fun takeFastCols(cols)
+{
+    if (len(cols) < 7 or cols[3] == "-")
+    {
+        return
+    }
+
+    var id = cols[0]
+    var soonest = toInt(cols[3])
+    var young = toInt(cols[5])
+
+    if (fastestWorld[id] == none or soonest < fastestWorld[id].world)
+    {
+        fastestWorld[id] = {world: soonest, month: young, how: cols[4], head: -1}
+    }
+
+    if (youngest[id] == none or young < youngest[id].month)
+    {
+        youngest[id] = {world: soonest, month: young, how: cols[6], head: -1}
+    }
+}
+
+// Whether every task can be reached (the search's answer, and the graph's loose ends), and how
+// soon the search reached each: from a world's first month, and the youngest he did it at, beside
+// the graph's earliest (its age and its flags alone: what no way of playing goes under)
+fun speedLines(found, lines)
+{
+    readGraph()
+
+    var reachedCount = 0
+    var notReached = []
+    var lastId = ""
+    var lastAt = -1
+
+    for (var id : allIds)
+    {
+        if (found[id] != none)
+        {
+            reachedCount = reachedCount + 1
+        }
+        else
+        {
+            push(notReached, id)
+        }
+
+        var soon = fastestWorld[id]
+
+        if (soon != none and soon.world > lastAt)
+        {
+            lastAt = soon.world
+            lastId = id
+        }
+    }
+
+    push(lines, "ACCESSIBLE")
+
+    if (len(notReached) == 0)
+    {
+        push(lines, "  every task reached by the search: " + toString(reachedCount) + " of " + toString(len(allIds)))
+    }
+    else
+    {
+        push(lines, "  " + toString(reachedCount) + " of " + toString(len(allIds)) + " tasks reached by the search; not reached: " + join(notReached, ", "))
+    }
+
+    if (not graphThere)
+    {
+        push(lines, "  (no task graph: depgraph.pg is not beside the rules, or did not run)")
+    }
+    else if (len(graphMissing) == 0)
+    {
+        push(lines, "  the task graph: whatever a task asks for, a task brings")
+    }
+    else
+    {
+        push(lines, "  the task graph: asked for, brought by nothing: " + join(graphMissing, ", "))
+    }
+
+    if (lastId != "")
+    {
+        push(lines, "  the last to come, from a world's first month: " + lastId + ", " + ageText(lastAt) + " (" + fastestWorld[lastId].how + ")")
+    }
+
+    push(lines, "")
+    push(lines, "HOW FAST: the soonest the search reached each task from a world's first month (the life and")
+    push(lines, "his age then); the youngest he did it at; the task graph's earliest, by its age and its flags")
+    push(lines, "alone (the least it can be), and how much later than it the youngest was")
+    push(lines, "  " + padTo("task", 24) + padTo("soonest", 10) + padTo("", 22) + padTo("youngest", 22) + padTo("graph", 9) + "later")
+
+    for (var id2 : allIds)
+    {
+        var soon2 = fastestWorld[id2]
+        var young2 = youngest[id2]
+        var graph = graphEarliest[id2]
+        var row = "  " + padTo(id2, 24)
+
+        if (soon2 == none or young2 == none)
+        {
+            row = row + padTo("-", 10) + padTo("", 22) + padTo("-", 22)
+        }
+        else
+        {
+            row = row + padTo(ageText(soon2.world), 10) + padTo("(" + soon2.how + ")", 22) + padTo(young2.how, 22)
+        }
+
+        if (graph == none)
+        {
+            row = row + "-"
+        }
+        else if (young2 == none)
+        {
+            row = row + ageText(graph.end)
+        }
+        else
+        {
+            row = row + padTo(ageText(graph.end), 9) + gapText(young2.month - graph.end)
+        }
+
+        push(lines, row)
+    }
+
+    push(lines, "")
+}
+
 fun reportText(found, missed, header, world)
 {
     var lines = []
@@ -707,6 +933,7 @@ fun reportText(found, missed, header, world)
 
     push(lines, "CHRONICLE SOLVER - " + toString(reachedCount) + " of " + toString(len(allIds)) + " tasks reached (" + header + ")")
     push(lines, "")
+    speedLines(found, lines)
 
     if (len(unreached) > 0)
     {
@@ -940,7 +1167,7 @@ else if (mode == "beam")
             how = "-"
         }
 
-        push(rows, id6 + "|" + how + "|-")
+        push(rows, id6 + "|" + how + "|-" + fastCols(id6))
     }
 
     writeFile(reportPath + ".part", join(rows, "\n"))
@@ -1033,18 +1260,74 @@ else if (mode == "hybrid")
 
     if (threadCount() > 0)
     {
+        // Each task's first stage a job; a stage that does not reach its task asks for the next
+        // (and for more at once when workers are idle), a stage whose task a lower one has
+        // reached is skipped. Of those that reach it, the lowest stage is the answer (as one
+        // after the other); the closest misses are taken in the stages' order
         var jobs = []
 
         for (var id4 : mine)
         {
-            push(jobs, {kind: "plan", id: id4})
+            push(jobs, {kind: "stage", id: id4, stage: 0})
         }
 
-        for (var answer : runJobs("planJob", jobs))
+        var answers = []
+
+        for (var top : runJobs("stageJob", jobs))
         {
+            allAnswers(top, answers)
+        }
+
+        var best = {}
+        var missAt = {}
+
+        for (var answer : answers)
+        {
+            var base = mergeAnswer(answer)
             var r = answer.out
-            r.head = fromWorker(r.head, mergeAnswer(answer))
-            push(results, r)
+
+            if (r.ok == true and (best[r.id] == none or r.stage < best[r.id].stage))
+            {
+                best[r.id] = {id: r.id, found: r.how, missed: none, head: fromWorker(r.head, base), how: r.reachedHow, stage: r.stage}
+            }
+
+            if (r.miss != none)
+            {
+                if (missAt[r.id] == none)
+                {
+                    missAt[r.id] = {}
+                }
+
+                missAt[r.id][toString(r.stage)] = r.miss
+            }
+        }
+
+        var closest = {}
+
+        for (var mid : missAt)
+        {
+            for (var stage = 0; stage <= tries + 1; stage = stage + 1)
+            {
+                var miss = missAt[mid][toString(stage)]
+
+                if (miss != none and (closest[mid] == none or miss.reach > closest[mid].reach))
+                {
+                    closest[mid] = miss
+                }
+            }
+        }
+
+        for (var id6 : mine)
+        {
+            if (best[id6] != none)
+            {
+                push(results, best[id6])
+            }
+            else
+            {
+                misses[id6] = closest[id6]
+                push(results, {id: id6, found: none, missed: missText(id6), head: -1, how: "", stage: -1})
+            }
         }
     }
     else
@@ -1071,7 +1354,7 @@ else if (mode == "hybrid")
             said = "reached: " + r2.found
         }
 
-        log("  " + r2.id + ": " + said + " (" + toString(r2.seconds) + " s)")
+        log("  " + r2.id + ": " + said)
     }
 
     var header = "hybrid, beam width " + toString(width) + " then the planner, " + toString(cap) + " lives a search, " + toString(tries) + " tries, " + toString((clockMs() - started) / 1000) + " s"
@@ -1111,7 +1394,7 @@ else if (mode == "hybrid")
             m3 = "-"
         }
 
-        push(rows, id3 + "|" + how + "|" + m3)
+        push(rows, id3 + "|" + how + "|" + m3 + fastCols(id3))
     }
 
     log(text)
@@ -1128,7 +1411,8 @@ else if (mode == "worker")
 }
 else if (mode == "merge")
 {
-    // The parts of a sharded run: one line a task, "id|how it was reached|the closest miss"
+    // The parts of a sharded run: one line a task, "id|how it was reached|the closest miss", then
+    // how soon (fastCols)
     var found = {}
     var missed = {}
 
@@ -1137,6 +1421,7 @@ else if (mode == "merge")
         for (var line : splitLines(readFile(part)))
         {
             var cols = split(line, "|")
+            takeFastCols(cols)
 
             if (len(cols) >= 3)
             {
@@ -1253,7 +1538,7 @@ else
             m3 = "-"
         }
 
-        push(rows, id3 + "|" + how + "|" + m3)
+        push(rows, id3 + "|" + how + "|" + m3 + fastCols(id3))
     }
 
     writeFile(reportPath + ".part", join(rows, "\n"))

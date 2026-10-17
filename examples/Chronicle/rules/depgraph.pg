@@ -70,6 +70,9 @@
 //
 // Usage:  PgCompilerBootstrap examples/Chronicle/rules/depgraph.pg [out.svg]
 //         PgCompilerBootstrap examples/Chronicle/rules/depgraph.pg <out.dot> <focus>
+//         PgCompilerBootstrap examples/Chronicle/rules/depgraph.pg --facts <out.txt>
+//                 (the earliest months of every task and the loose ends, as lines: see writeFacts;
+//                 what the solver reads)
 //         dot -Tsvg out.dot -o out.svg
 //
 // The file is chronicle-graph.svg, or chronicle-graph.dot with a focus, where it is run from,
@@ -2690,7 +2693,9 @@ fun emitTimeline(graph)
 }
 
 // What is asked for and brought by nothing, and what is brought and read by no task
-fun printLooseEnds(graph)
+// What is asked for and brought by nothing, and what is brought and read by nothing: {missing,
+// unread}, the keys of stats
+fun looseEnds(graph)
 {
     var brought = {}
     var read = {}
@@ -2719,8 +2724,7 @@ fun printLooseEnds(graph)
         push(born, capOf(bornWith[b]))
     }
 
-    var missing = ""
-    var unread = ""
+    var ends = {missing: [], unread: []}
 
     for (var s = 0; s < len(graph.stats); s = s + 1)
     {
@@ -2729,13 +2733,32 @@ fun printLooseEnds(graph)
         // (a technique of a fight is taught by a flag, not brought by a task)
         if (contain(read, stat) and not contain(brought, stat) and not inList(born, stat) and not startsWith(stat, "fight."))
         {
-            missing = missing + "  " + stat + "\n"
+            push(ends.missing, stat)
         }
 
         if (contain(brought, stat) and not contain(read, stat) and not inList(born, stat))
         {
-            unread = unread + "  " + stat + "\n"
+            push(ends.unread, stat)
         }
+    }
+
+    return ends
+}
+
+fun printLooseEnds(graph)
+{
+    var ends = looseEnds(graph)
+    var missing = ""
+    var unread = ""
+
+    for (var m = 0; m < len(ends.missing); m = m + 1)
+    {
+        missing = missing + "  " + ends.missing[m] + "\n"
+    }
+
+    for (var u = 0; u < len(ends.unread); u = u + 1)
+    {
+        unread = unread + "  " + ends.unread[u] + "\n"
     }
 
     if (missing != "")
@@ -2749,6 +2772,54 @@ fun printLooseEnds(graph)
     }
 }
 
+// The graph's facts, for the solver (--facts <file>): a line a task, "task|id|begin|end|by", the
+// month of his age it can be begun at the earliest, the month it is over then (the timeline's
+// bars: its age, the flags it asks for once the first task that brings each is over; a work of
+// the town once its place is on the page, after the works before it), and the month it must be
+// over by. Then "missing|stat" a line for what is asked and brought by nothing, "unread|stat"
+// for what is brought and read by nothing
+fun writeFacts(graph, file)
+{
+    var starts = earliestMonths(graph, foldedStats(graph))
+    var lines = []
+
+    for (var i = 0; i < len(graph.tasks); i = i + 1)
+    {
+        var task = graph.tasks[i]
+        var begin = starts[task.node]
+
+        if (task.raises != "")
+        {
+            var place = byId(townPlaces, task.raises)
+            var parts = split(task.id, ".")
+            var level = toInt(parts[len(parts) - 1])
+
+            begin = starts[statNode("town." + task.raises)]
+
+            for (var l = 0; l < level - 1 and l < len(place.levels); l = l + 1)
+            {
+                begin = begin + place.levels[l].months + lookup(place.levels[l], "years", 0) * 12
+            }
+        }
+
+        push(lines, "task|" + task.id + "|" + toString(begin) + "|" + toString(begin + task.months) + "|" + toString(task.byMonth))
+    }
+
+    var ends = looseEnds(graph)
+
+    for (var m = 0; m < len(ends.missing); m = m + 1)
+    {
+        push(lines, "missing|" + ends.missing[m])
+    }
+
+    for (var u = 0; u < len(ends.unread); u = u + 1)
+    {
+        push(lines, "unread|" + ends.unread[u])
+    }
+
+    writeFile(file, join(lines, "\n"))
+}
+
 // ============================================================================
 // Main
 // ============================================================================
@@ -2759,6 +2830,22 @@ fun main()
     {
         print("Usage: PgCompilerBootstrap examples/Chronicle/rules/depgraph.pg [out.svg]")
         print("       PgCompilerBootstrap examples/Chronicle/rules/depgraph.pg <out.dot> <focus>")
+
+        return
+    }
+
+    if (len(errors) > 0)
+    {
+        print("The activity table refuses itself: " + errors[0])
+
+        return
+    }
+
+    // The facts alone, for the solver
+    if (getArgCount() == 4 and getArg(2) == "--facts")
+    {
+        writeFacts(buildGraph(), getArg(3))
+        print("Wrote the graph's facts to " + getArg(3))
 
         return
     }

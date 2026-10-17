@@ -1,6 +1,7 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <deque>
 #include <cstdio>
 #include <cstdlib>
 #include <algorithm>
@@ -8,6 +9,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <functional>
 #include <list>
 #include <map>
 #include <mutex>
@@ -70,6 +72,14 @@
 //   solverRole()   "main" or "worker"
 //   threadCount()  the workers there are, or will be (0: parallel cannot be called)
 //   startWorkers() the workers made and started now
+//   settle(key, stage), settled(key)   the lowest stage that has reached a thing, for every thread
+//                  alike (-1: none): a job of a higher stage skips it
+//   claimUpTo(key, stage)   the highest stage asked for before, `stage` the highest from now
+//   idleWorkers()  the workers of the running call with nothing to take
+// A job may ask for more jobs: its `jobResult` with `spawn` (a list of jobs) and `spawnFunction`;
+// they are taken at once, and its answer comes back with theirs (`spawned`, in its order).
+//   graphFacts()   the task graph's facts: the rules dir's depgraph.pg run with --facts, its lines
+//                  ("task|id|begin|end|by", "missing|stat", "unread|stat"), "" without it
 //
 // The rules' answers are kept for all of them alike: the same inputs bring the same answer.
 //
@@ -480,16 +490,29 @@ namespace
     };
 
     // One call of `parallel`: its jobs, taken by the workers one at a time, and their answers
-    struct Batch
+    // A job of a call of `parallel`: the main script's, or one a job asked for (its `spawn`)
+    struct Job
     {
         std::string function;
+        Tree job;
+        Tree answer;
+        std::string failure;
+        double ms = 0.0;
+        std::vector<size_t> spawned;   // The jobs it asked for, in its order
+    };
+
+    // One call of `parallel`: its jobs, taken by the workers one at a time, growing as jobs ask for
+    // more (a deque: a job stays where it is while others are added)
+    struct Batch
+    {
         std::shared_ptr<const Tree> setup;
         long setupVersion = 0;
-        std::vector<Tree> jobs;
-        std::vector<Tree> answers;
-        std::vector<std::string> failures;
-        std::vector<double> jobMs;
-        std::atomic<size_t> next{0};
+        std::deque<Job> jobs;
+        size_t first = 0;              // The main script's jobs: the first ones
+        size_t next = 0;
+        size_t running = 0;
+        std::mutex lock;
+        std::condition_variable more;
         size_t workersDone = 0;
     };
 
@@ -531,6 +554,12 @@ namespace
 
         Machine main;
         std::vector<std::unique_ptr<Machine>> workers;
+
+        // What the threads have settled: the lowest stage that reached a task (settle / settled);
+        // the highest stage asked for (claimUpTo)
+        std::map<std::string, int64_t> settledAt;
+        std::map<std::string, int64_t> claimedTo;
+        std::mutex settledLock;
 
         // ---- the workers' threads -------------------------------------------------------------
         std::vector<std::thread> threads;
@@ -820,22 +849,23 @@ namespace
 
         // ---- parallel ---------------------------------------------------------------------------
 
-        // One job in worker `w`: its function called with the job, its `jobResult` the answer
-        void runJob(Machine& w, Batch& b, size_t i)
+        // One job in worker `w`: its function called with the job, its `jobResult` the answer. The
+        // jobs it asks for (`spawn`, a list, each called with `spawnFunction`) are handed back
+        void runJob(Machine& w, Job& job, std::vector<Tree>& spawn, std::string& spawnFunction)
         {
             VM& vm = *w.vm;
-            const Value fn = vm.findGlobal(b.function);
+            const Value fn = vm.findGlobal(job.function);
 
             if (not IS_CLOSURE(fn))
             {
-                b.failures[i] = "no function `" + b.function + "` in the worker";
+                job.failure = "no function `" + job.function + "` in the worker";
                 return;
             }
 
             vm.defineGlobal("jobResult", makeNoneValue());
 
             vm.push(vm.retainValue(fn));
-            vm.push(valueOf(vm, b.jobs[i]));
+            vm.push(valueOf(vm, job.job));
 
             InterpretResult result = InterpretResult::RUNTIME_ERROR;
 
@@ -853,12 +883,31 @@ namespace
             if (result != InterpretResult::OK)
             {
                 vm.resetStack();
-                b.failures[i] = "job " + std::to_string(i) + " of `" + b.function + "` ended in an error (the VM's message is in the log above)";
+                job.failure = "a job of `" + job.function + "` ended in an error (the VM's message is in the log above)";
                 return;
             }
 
-            treeOf(vm, vm.findGlobal("jobResult"), b.answers[i]);
+            treeOf(vm, vm.findGlobal("jobResult"), job.answer);
             vm.defineGlobal("jobResult", makeNoneValue());
+
+            // What it asks for next: out of its answer, into the batch
+            Tree& answer = job.answer;
+
+            for (size_t k = 0; k < answer.keys.size(); )
+            {
+                if (answer.keys[k] == "spawn" and answer.items[k].kind == Tree::Kind::List)
+                    spawn = std::move(answer.items[k].items);
+                else if (answer.keys[k] == "spawnFunction" and answer.items[k].kind == Tree::Kind::String)
+                    spawnFunction = answer.items[k].text;
+                else
+                {
+                    ++k;
+                    continue;
+                }
+
+                answer.keys.erase(answer.keys.begin() + static_cast<long>(k));
+                answer.items.erase(answer.items.begin() + static_cast<long>(k));
+            }
         }
 
         void workerLoop(Machine& w)
@@ -896,19 +945,46 @@ namespace
 
                 while (true)
                 {
-                    const size_t i = b->next.fetch_add(1);
+                    Job* job = nullptr;
 
-                    if (i >= b->jobs.size())
-                        break;
+                    {
+                        // A job to take, or none left and none running (that could ask for more)
+                        std::unique_lock<std::mutex> lock(b->lock);
+                        b->more.wait(lock, [&] { return b->next < b->jobs.size() or b->running == 0; });
+
+                        if (b->next >= b->jobs.size())
+                            break;
+
+                        job = &b->jobs[b->next++];
+                        ++b->running;
+                    }
 
                     auto tj = std::chrono::steady_clock::now();
+                    std::vector<Tree> spawn;
+                    std::string spawnFunction;
 
                     if (not w.failure.empty())
-                        b->failures[i] = w.failure;
+                        job->failure = w.failure;
                     else
-                        runJob(w, *b, i);
+                        runJob(w, *job, spawn, spawnFunction);
 
-                    b->jobMs[i] = since(tj);
+                    job->ms = since(tj);
+
+                    {
+                        std::lock_guard<std::mutex> lock(b->lock);
+
+                        for (Tree& t : spawn)
+                        {
+                            job->spawned.push_back(b->jobs.size());
+                            b->jobs.emplace_back();
+                            b->jobs.back().function = spawnFunction;
+                            b->jobs.back().job = std::move(t);
+                        }
+
+                        --b->running;
+                    }
+
+                    b->more.notify_all();
                 }
 
                 {
@@ -937,7 +1013,7 @@ namespace
             auto t0 = std::chrono::steady_clock::now();
 
             Batch b;
-            b.function = vm->asString(args[0]);
+            const std::string function = vm->asString(args[0]);
             b.setupVersion = AS_INT(args[3]);
 
             if (b.setupVersion != lastSetupVersion or not lastSetup)
@@ -951,13 +1027,15 @@ namespace
             b.setup = lastSetup;
 
             const std::vector<Value>& jobs = vm->asVector(args[1])->fields;
-            b.jobs.resize(jobs.size());
-            b.answers.resize(jobs.size());
-            b.failures.resize(jobs.size());
-            b.jobMs.resize(jobs.size());
 
-            for (size_t i = 0; i < jobs.size(); ++i)
-                treeOf(*vm, jobs[i], b.jobs[i]);
+            for (Value v : jobs)
+            {
+                b.jobs.emplace_back();
+                b.jobs.back().function = function;
+                treeOf(*vm, v, b.jobs.back().job);
+            }
+
+            b.first = jobs.size();
 
             sending += since(t0);
             auto t1 = std::chrono::steady_clock::now();
@@ -974,36 +1052,61 @@ namespace
 
             working += since(t1);
 
-            Work& done = work[b.function];
-            ++done.calls;
-            done.jobs += static_cast<long>(b.jobMs.size());
-            done.waitedMs += since(t1);
+            // By job function: the calls, the jobs, their time, the slowest of each
+            std::map<std::string, double> slowest;
 
-            for (double ms : b.jobMs)
+            for (const Job& job : b.jobs)
             {
-                done.jobsMs += ms;
-                done.longestMs = std::max(done.longestMs, ms);
+                Work& done = work[job.function];
+                ++done.jobs;
+                done.jobsMs += job.ms;
+                done.longestMs = std::max(done.longestMs, job.ms);
+                slowest[job.function] = std::max(slowest[job.function], job.ms);
             }
 
-            if (not b.jobMs.empty())
-                done.slowestSum += *std::max_element(b.jobMs.begin(), b.jobMs.end());
+            for (const auto& [name, ms] : slowest)
+            {
+                ++work[name].calls;
+                work[name].slowestSum += ms;
+            }
+
+            work[function].waitedMs += since(t1);
+
             auto t2 = std::chrono::steady_clock::now();
 
             ++batches;
-            jobsRun += static_cast<long>(jobs.size());
+            jobsRun += static_cast<long>(b.jobs.size());
 
-            for (const std::string& failure : b.failures)
+            for (const Job& job : b.jobs)
             {
-                if (not failure.empty())
-                    throw std::runtime_error("parallel: " + failure);
+                if (not job.failure.empty())
+                    throw std::runtime_error("parallel: " + job.failure);
             }
+
+            // Each answer, with the answers of the jobs it asked for (`spawned`, in its order)
+            std::function<Value(size_t)> answerOf = [&](size_t i) -> Value {
+                Value v = valueOf(*vm, b.jobs[i].answer);
+
+                if (not b.jobs[i].spawned.empty() and IS_INSTANCE(v))
+                {
+                    Value list = vm->createVector();
+                    ObjVector* items = vm->asVector(list);
+
+                    for (size_t child : b.jobs[i].spawned)
+                        items->fields.push_back(answerOf(child));
+
+                    vm->asInstance(v)->setField("spawned", list);
+                }
+
+                return v;
+            };
 
             Value out = vm->createVector();
             ObjVector* list = vm->asVector(out);
-            list->fields.reserve(b.answers.size());
+            list->fields.reserve(b.first);
 
-            for (const Tree& answer : b.answers)
-                list->fields.push_back(valueOf(*vm, answer));
+            for (size_t i = 0; i < b.first; ++i)
+                list->fields.push_back(answerOf(i));
 
             taking += since(t2);
             waited += since(t0);
@@ -1042,6 +1145,68 @@ namespace
                 Machine* m = w.get();
                 threads.emplace_back([this, m] { workerLoop(*m); });
             }
+        }
+
+        // The task graph's facts (rules dir's depgraph.pg --facts): its text, "" when it is not there
+        // or does not run. In a VM of its own, as the CLI runs it
+        std::string graphFacts()
+        {
+            const std::string path = rulesDir + "/depgraph.pg";
+
+            if (not std::filesystem::exists(path))
+                return "";
+
+            const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
+            const std::filesystem::path out = std::filesystem::temp_directory_path() / ("chronicle-graph-" + std::to_string(stamp) + ".txt");
+            const std::vector<std::string> args = {"ChronicleSolver", path, "--facts", out.string()};
+
+            VM graph;
+            ecs.setupVm(graph);
+
+            graph.defineNative("getArg", [args](VM* v, int argCount, Value* a) -> Value {
+                if (argCount != 1 or not IS_INT(a[0]) or AS_INT(a[0]) < 0 or AS_INT(a[0]) >= static_cast<int64_t>(args.size()))
+                    return v->createString("");
+
+                return v->createString(args[AS_INT(a[0])]);
+            });
+
+            graph.defineNative("getArgCount", [args](VM*, int, Value*) -> Value {
+                return makeIntValue(static_cast<int64_t>(args.size()));
+            });
+
+            graph.defineNative("print", [](VM*, int, Value*) -> Value {
+                return makeNoneValue();
+            });
+
+            if (graph.interpretFromFile(path) != InterpretResult::OK)
+                return "";
+
+            std::ifstream in(out.string());
+            const std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+            in.close();
+
+            std::error_code ec;
+            std::filesystem::remove(out, ec);
+
+            return text;
+        }
+
+        int64_t idleWorkers()
+        {
+            Batch* b = nullptr;
+
+            {
+                std::lock_guard<std::mutex> lock(poolLock);
+                b = batch;
+            }
+
+            if (not b)
+                return 0;
+
+            std::lock_guard<std::mutex> lock(b->lock);
+            const int64_t busy = static_cast<int64_t>(b->running + (b->jobs.size() - b->next));
+
+            return std::max<int64_t>(0, static_cast<int64_t>(threads.size()) - busy);
         }
 
         void stopWorkers()
@@ -1192,6 +1357,63 @@ namespace
 
         vm.defineNative("threadCount", [h](VM*, int, Value*) -> Value {
             return makeIntValue(static_cast<int64_t>(h->wantedWorkers));
+        });
+
+        // settle(key, stage): `stage` reached it (the lowest is kept); settled(key): the lowest stage
+        // that did, -1 for none. For every thread alike: a job skips what a lower stage has done
+        vm.defineNative("settle", [h](VM* v, int argCount, Value* args) -> Value {
+            if (argCount != 2 or not IS_STRING(args[0]) or not IS_INT(args[1]))
+                throw std::runtime_error("settle expects (key, stage)");
+
+            const std::string key = v->asString(args[0]);
+            std::lock_guard<std::mutex> lock(h->settledLock);
+            auto it = h->settledAt.find(key);
+
+            if (it == h->settledAt.end() or AS_INT(args[1]) < it->second)
+                h->settledAt[key] = AS_INT(args[1]);
+
+            return makeNoneValue();
+        });
+
+        vm.defineNative("settled", [h](VM* v, int argCount, Value* args) -> Value {
+            if (argCount != 1 or not IS_STRING(args[0]))
+                throw std::runtime_error("settled expects (key)");
+
+            const std::string key = v->asString(args[0]);
+            std::lock_guard<std::mutex> lock(h->settledLock);
+            auto it = h->settledAt.find(key);
+
+            return makeIntValue(it == h->settledAt.end() ? -1 : it->second);
+        });
+
+        // claimUpTo(key, stage): the highest stage asked for before (-1: none), and `stage` the
+        // highest now if it is higher: a job asks for the stages after the claimed ones only
+        vm.defineNative("claimUpTo", [h](VM* v, int argCount, Value* args) -> Value {
+            if (argCount != 2 or not IS_STRING(args[0]) or not IS_INT(args[1]))
+                throw std::runtime_error("claimUpTo expects (key, stage)");
+
+            const std::string key = v->asString(args[0]);
+            std::lock_guard<std::mutex> lock(h->settledLock);
+            auto it = h->claimedTo.find(key);
+            const int64_t before = it == h->claimedTo.end() ? -1 : it->second;
+
+            if (AS_INT(args[1]) > before)
+                h->claimedTo[key] = AS_INT(args[1]);
+
+            return makeIntValue(before);
+        });
+
+        // idleWorkers(): the workers of the running call with nothing to take (0 outside one)
+        vm.defineNative("idleWorkers", [h](VM*, int, Value*) -> Value {
+            return makeIntValue(h->idleWorkers());
+        });
+
+        // graphFacts(): the task graph's facts, as lines (depgraph.pg --facts), "" without it
+        vm.defineNative("graphFacts", [h, m](VM* v, int, Value*) -> Value {
+            if (m->worker)
+                return v->createString("");
+
+            return v->createString(h->graphFacts());
         });
 
         // startWorkers(): the workers begin their script now, while the main one goes on

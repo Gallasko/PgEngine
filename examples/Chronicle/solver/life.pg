@@ -379,6 +379,18 @@ fun reach(st, id)
         st.reachedCount = st.reachedCount + 1
         note(st, "REACHED " + id)
 
+        // How soon: a worker's job keeps its reaches apart, the main script takes them in order
+        var at = {world: st.world, month: st.month, how: st.reached[id], head: st.planHead}
+
+        if (planBase > 0)
+        {
+            push(jobReaches, {id: id, at: at})
+        }
+        else
+        {
+            keepFastest(id, at)
+        }
+
         if (everReached[id] == none and jobFirsts[id] == none)
         {
             // A worker's job keeps its first finds apart: the main script takes them in order
@@ -396,6 +408,26 @@ fun reach(st, id)
     }
 
     touch(st)
+}
+
+// The quickest the search has seen of a task: the soonest from the world's first month
+// (`fastestWorld`, its months: `world`) and the youngest he was in the life he did it in
+// (`youngest`, his age in months: `month`); each with `how` ("life 2, 14y3m") and `head`
+fun keepFastest(id, at)
+{
+    var soonest = fastestWorld[id]
+
+    if (soonest == none or at.world < soonest.world)
+    {
+        fastestWorld[id] = at
+    }
+
+    var young = youngest[id]
+
+    if (young == none or at.month < young.month)
+    {
+        youngest[id] = at
+    }
 }
 
 // LifeScene::onMonth
@@ -617,3 +649,7 @@ var everReached = {}
 // reached first that no world had are in `jobFirsts`. The main script: 0 and empty
 var planBase = 0
 var jobFirsts = {}
+var jobReaches = []
+
+var fastestWorld = {}
+var youngest = {}

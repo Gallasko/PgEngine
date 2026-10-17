@@ -113,6 +113,25 @@ fun provisionFast(st, buy, months)
 // Every choice of a world that is free to choose, each as a world of its own
 fun expand(st, round)
 {
+    var grown = expandChildren(st, round)
+
+    if (grown.final)
+    {
+        return grown.children
+    }
+
+    return prune(grown.children, expandKeep())
+}
+
+// No more of a world's children than could be kept for its aim
+fun expandKeep()
+{
+    return larger(3, (beamWidth + len(aims) - 1) / len(aims)) * len(aims)
+}
+
+// A world's children, before they are pruned: {children, final (true: as they are, not pruned)}
+fun expandChildren(st, round)
+{
     var children = []
 
     // Nothing left in this life that the world has not reached: it only waits for its end
@@ -122,7 +141,7 @@ fun expand(st, round)
         rest.waiting = true
         push(children, rest)
 
-        return children
+        return {children: children, final: true}
     }
 
     seeTown(st)
@@ -152,7 +171,7 @@ fun expand(st, round)
         idle.waiting = true
         push(children, idle)
 
-        return children
+        return {children: children, final: true}
     }
 
     // How near he stands to the tasks no world has reached yet: by their minimums (reqs.pg), each
@@ -280,8 +299,7 @@ fun expand(st, round)
     waits.waiting = true
     push(children, waits)
 
-    // No more of them than could be kept for its aim
-    return prune(children, larger(3, (beamWidth + len(aims) - 1) / len(aims)) * len(aims))
+    return {children: children, final: false}
 }
 
 // What a walk could bring, before it is played: new to the world, a place still to learn, beasts
