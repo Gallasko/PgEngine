@@ -3,7 +3,36 @@
 What changed in the game, build by build, as a player sees it. The engine's own changes are in
 the `CHANGELOG.md` at the root of the repository.
 
-## 0.6 - Unreleased
+## 0.6.1 - 2026-10-17
+
+A hotfix for the events of a life (the Flood, the Levy, the Plague Year and the Old Lord's
+death), after the first comments on 0.6: missing two of them could leave twenty years with
+nothing to do, and a long task could run over the whole of one before you saw it.
+
+### Changed
+
+- **Standing by costs less.** An event you leave unanswered still closes what it names (the
+  Watch, the sacristan's keys and the Bellmoor Boys after the Flood, and so on), and that is all
+  it costs: however many you stand by, no class and no second calling is shut by it any more.
+- **More time to answer.** The Flood gives you the whole year you are eleven, and the Plague
+  Year and the Old Lord's death nine months each to begin an answer, where each gave six. The
+  Levy is called three months sooner, at fourteen and nine months, and still settled when the
+  classes open. *Take the Sacristan's Keys* and *Read the Forbidden Shelf* open at twelve, once
+  the Flood is behind you.
+
+### New
+
+- **An event stops the months.** The month an event comes, the months stop and the log says so;
+  if you have not answered, they stop once more on the last month you can. *Go on* (or Space)
+  goes on.
+- **Events on top.** While an event is open its answers stand at the top of your tasks, framed
+  in red, with a red **!** on their corner.
+- **Answer now.** With the months stopped, choose an answer and the button under your work
+  reads *Answer now*: the work is set aside where it stands, the answer is given, and the work
+  goes on from the month it was at. Before, a task of a year or two could not be left, and an
+  event that came during it went by.
+
+## 0.6 - 2026-10-16
 
 ### New
 
