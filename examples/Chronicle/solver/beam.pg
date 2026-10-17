@@ -656,7 +656,9 @@ fun countReached()
 }
 
 // The search: until every world has lived its lives, or `minutes` are spent (0: no limit)
-fun beamRun(width, cap, minutes, seed)
+// What the search reads before a world moves: the tasks, the zones with beasts, the aims (a
+// worker's too, before its first job)
+fun beamPrepare(width)
 {
     beamWidth = width
 
@@ -679,6 +681,14 @@ fun beamRun(width, cap, minutes, seed)
     {
         push(aims, p)
     }
+}
+
+fun beamRun(width, cap, minutes, seed)
+{
+    beamPrepare(width)
+
+    // With workers (threads=N): each month's expansions and months are theirs, a world each
+    var threaded = threadCount() > 0
 
     var pool = []
 
@@ -731,10 +741,23 @@ fun beamRun(width, cap, minutes, seed)
         for (var round = 0; round < 3 and len(idle) > 0; round = round + 1)
         {
             var nextIdle = []
+            var grown = []
 
-            for (var free : idle)
+            if (threaded)
             {
-                for (var c : expand(free, round))
+                grown = expandAll(idle, round)
+            }
+            else
+            {
+                for (var free : idle)
+                {
+                    push(grown, expand(free, round))
+                }
+            }
+
+            for (var children : grown)
+            {
+                for (var c : children)
                 {
                     if (c.running == "" and not c.waiting and not c.dead and round < 2)
                     {
@@ -760,9 +783,14 @@ fun beamRun(width, cap, minutes, seed)
 
         var next = []
 
+        if (threaded)
+        {
+            moving = monthAll(moving)
+        }
+
         for (var w : moving)
         {
-            if (not w.dead)
+            if (not threaded and not w.dead)
             {
                 monthPass(w)
             }

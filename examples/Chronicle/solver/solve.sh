@@ -13,6 +13,12 @@
 # The parts are merged into the report (chronicle-solver.txt by default). The options after the
 # report go to every process: lives=5, tries=20 for all; width=8, minutes=0 for beam; for hybrid
 # both, and stall=240, stallFinds=3.
+#
+# One process with threads does better than several for hybrid (and beam with one seed): the
+# beam is run once and the planner's tasks go to whichever thread is free:
+#   release/ChronicleSolver examples/Chronicle/rules examples/Chronicle/solver/solver.pg hybrid \
+#       report=chronicle-solver.txt width=10 lives=5 tries=6 threads=8
+# The processes here run without threads (threads=0) unless the options say otherwise.
 
 set -e
 
@@ -44,11 +50,11 @@ for ((i = 0; i < jobs; i++)); do
     mkdir -p "$copies/$i"
     cp "$rules"/*.pg "$copies/$i/"
     if [[ $mode == beam ]]; then
-        "$solver" "$copies/$i" "$script" beam "report=$part" "seed=$((i + 1))" "$@" > "$part.log" 2>&1 &
+        "$solver" "$copies/$i" "$script" beam "report=$part" "seed=$((i + 1))" threads=0 "$@" > "$part.log" 2>&1 &
     elif [[ $mode == hybrid ]]; then
-        "$solver" "$copies/$i" "$script" hybrid "report=$part" "shard=$i/$jobs" "$@" > "$part.log" 2>&1 &
+        "$solver" "$copies/$i" "$script" hybrid "report=$part" "shard=$i/$jobs" threads=0 "$@" > "$part.log" 2>&1 &
     else
-        "$solver" "$copies/$i" "$script" all "report=$part" "shard=$i/$jobs" "$@" > "$part.log" 2>&1 &
+        "$solver" "$copies/$i" "$script" all "report=$part" "shard=$i/$jobs" threads=0 "$@" > "$part.log" 2>&1 &
     fi
 done
 

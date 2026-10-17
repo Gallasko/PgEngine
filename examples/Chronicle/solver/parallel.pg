@@ -1,0 +1,254 @@
+// Chronicle solver: the work handed to the workers (the host's `parallel`, threads=N)
+// -----------------------------------------------------------------------------------
+// A job is one world's expansion (beam.pg's expand), one world's month (life.pg's monthPass), or one
+// task for the planner (solver.pg's planTask). Each runs alone in whichever worker takes it, from a
+// copy of what the main script sends; the main script takes the answers back in the jobs' order:
+//
+// - the plan lines a job wrote: a worker numbers them from `workerBase` (life.pg's `planBase`); the
+//   main script adds them to its own `planLog` and numbers the heads that point at them anew;
+// - the tasks a job reached that no world had (life.pg's `jobFirsts`): the first, in the jobs'
+//   order, is the one `everReached` keeps;
+// - the states, stamped anew (the stamps of a worker are not the main script's).
+//
+// So a run is the same whatever the number of threads. It is not quite the run without threads: a
+// job does not see what the others of its month found first (`st.firsts`).
+
+import "algorithm"
+import "life"
+import "beam"
+
+var workerBase = 1000000000
+
+// ---- in a worker -----------------------------------------------------------------------------
+
+var workerPrepared = false
+
+// A job alone: the caches keyed by a stamp forgotten, the plan lines and first finds its own
+fun jobStart()
+{
+    if (not workerPrepared)
+    {
+        beamPrepare(beamWidth)
+        workerPrepared = true
+    }
+
+    characterStamp = -1
+    shapeStamp = -1
+    planLog = []
+    planBase = workerBase
+    jobFirsts = {}
+}
+
+// What the host calls with a job, one function a kind (the host's report counts them apart)
+fun expandJob(job)
+{
+    workerJob(job)
+}
+
+fun monthJob(job)
+{
+    workerJob(job)
+}
+
+fun planJob(job)
+{
+    workerJob(job)
+}
+
+// The answer is left in `jobResult`
+fun workerJob(job)
+{
+    jobStart()
+
+    var out = none
+
+    // The chance in the beam's choosing (seed > 1), from the world itself: not from the jobs before
+    if (job.kind != "plan")
+    {
+        noiseSeed = (7919 * (asInt(job.st.dice) + 31 * job.st.month) + 13) % 65537
+    }
+
+    if (job.kind == "expand")
+    {
+        touch(job.st)
+        out = expand(job.st, job.round)
+    }
+    else if (job.kind == "month")
+    {
+        touch(job.st)
+        monthPass(job.st)
+        out = job.st
+    }
+    else if (job.kind == "plan")
+    {
+        if (plannerBase != none)
+        {
+            touch(plannerBase)
+        }
+
+        out = planTask(job.id)
+    }
+
+    var firsts = []
+
+    for (var id : jobFirsts)
+    {
+        push(firsts, {id: id, how: jobFirsts[id].how, head: jobFirsts[id].head})
+    }
+
+    jobResult = {out: out, lines: planLog, firsts: firsts}
+}
+
+// ---- in the main script ----------------------------------------------------------------------
+
+// What every worker holds before a call: what the search reads that the main script changes
+var setupVersion = 0
+var setupReached = -1
+var setupTable = {}
+var plannerBase = none
+
+fun workerSetup()
+{
+    var reached = countReached()
+
+    if (setupReached != reached)
+    {
+        var known = {}
+
+        for (var k : everReached)
+        {
+            known[k] = 1
+        }
+
+        setupTable = {everReached: known, beamWidth: beamWidth, beamProspect: beamProspect, beamEarn: beamEarn,
+                      beamScoring: beamScoring, beamScope: beamScope, beamNoise: beamNoise, walksPlayed: walksPlayed,
+                      plannerBase: plannerBase}
+        setupReached = reached
+        setupVersion = setupVersion + 1
+    }
+
+    return setupTable
+}
+
+// The planner's start, for the workers too (the next call sends it)
+fun setPlannerBase(st)
+{
+    plannerBase = st
+    setupReached = -1
+}
+
+// A head numbered in a worker, numbered in the main script's planLog (its lines added from `base`)
+fun fromWorker(head, base)
+{
+    if (head >= workerBase)
+    {
+        return base + head - workerBase
+    }
+
+    return head
+}
+
+// A job's answer taken in: its plan lines added, its first finds kept when no job before had them.
+// The place its lines start at in planLog
+fun mergeAnswer(answer)
+{
+    var base = len(planLog)
+
+    for (var line : answer.lines)
+    {
+        push(planLog, {up: fromWorker(line.up, base), text: line.text})
+    }
+
+    for (var f : answer.firsts)
+    {
+        if (everReached[f.id] == none)
+        {
+            everReached[f.id] = {how: f.how, head: fromWorker(f.head, base)}
+        }
+    }
+
+    return base
+}
+
+fun adopted(st, base)
+{
+    st.planHead = fromWorker(st.planHead, base)
+    touch(st)
+
+    return st
+}
+
+fun runJobs(function, jobs)
+{
+    if (len(jobs) == 0)
+    {
+        return []
+    }
+
+    var setup = workerSetup()
+
+    return parallel(function, jobs, setup, setupVersion)
+}
+
+// beam.pg's expand of each world, by the workers: the children of each, in order
+fun expandAll(worlds, round)
+{
+    var jobs = []
+
+    for (var w : worlds)
+    {
+        push(jobs, {kind: "expand", st: w, round: round})
+    }
+
+    var out = []
+
+    for (var answer : runJobs("expandJob", jobs))
+    {
+        var base = mergeAnswer(answer)
+        var children = []
+
+        for (var c : answer.out)
+        {
+            push(children, adopted(c, base))
+        }
+
+        push(out, children)
+    }
+
+    return out
+}
+
+// The month of each living world, by the workers; the dead as they are. In order
+fun monthAll(worlds)
+{
+    var jobs = []
+
+    for (var w : worlds)
+    {
+        if (not w.dead)
+        {
+            push(jobs, {kind: "month", st: w})
+        }
+    }
+
+    var answers = runJobs("monthJob", jobs)
+    var out = []
+    var at = 0
+
+    for (var w2 : worlds)
+    {
+        if (w2.dead)
+        {
+            push(out, w2)
+        }
+        else
+        {
+            var answer = answers[at]
+            at = at + 1
+
+            push(out, adopted(answer.out, mergeAnswer(answer)))
+        }
+    }
+
+    return out
+}

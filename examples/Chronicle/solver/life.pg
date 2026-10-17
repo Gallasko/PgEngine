@@ -158,7 +158,7 @@ fun characterOf(st)
 fun note(st, text)
 {
     push(planLog, {up: st.planHead, text: "L" + toString(st.lives) + " " + ageText(st.month) + "  " + text})
-    st.planHead = len(planLog) - 1
+    st.planHead = planBase + len(planLog) - 1
 }
 
 // The lines of a state's past, the first first: from `head` back
@@ -379,9 +379,18 @@ fun reach(st, id)
         st.reachedCount = st.reachedCount + 1
         note(st, "REACHED " + id)
 
-        if (everReached[id] == none)
+        if (everReached[id] == none and jobFirsts[id] == none)
         {
-            everReached[id] = {how: st.reached[id], head: st.planHead}
+            // A worker's job keeps its first finds apart: the main script takes them in order
+            if (planBase > 0)
+            {
+                jobFirsts[id] = {how: st.reached[id], head: st.planHead}
+            }
+            else
+            {
+                everReached[id] = {how: st.reached[id], head: st.planHead}
+            }
+
             st.firsts = asInt(st.firsts) + 1
         }
     }
@@ -603,3 +612,8 @@ var planLog = []
 var mortalStats = none
 var primeAges = none
 var everReached = {}
+
+// In a worker's job (parallel.pg): its plan lines are numbered from `planBase`, and the tasks it
+// reached first that no world had are in `jobFirsts`. The main script: 0 and empty
+var planBase = 0
+var jobFirsts = {}

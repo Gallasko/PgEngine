@@ -26,7 +26,12 @@
 //   minutes=0       beam: stop after so many minutes, whatever is left (0: when every world is over)
 //   seed=1          beam: the dice, and a little chance in which worlds are kept (another seed, another search)
 //
-// solve.sh runs `all`, `beam` or `hybrid` over several processes and merges them.
+//   threads=N       the host's workers (the cores by default; 0: none): beam and hybrid hand
+//                   them each month's worlds and the planner's tasks (parallel.pg). The same run
+//                   whatever N; not quite the run without threads
+//
+// solve.sh runs `all`, `beam` or `hybrid` over several processes and merges them. For hybrid, one
+// process with threads does better: the beam is run once, the planner's tasks shared out as they go.
 //
 // A task is reached when its term is: its months gone by, or what it does done at once. The
 // lives are played with the game's numbers (life.pg) and a plain way of choosing (plan.pg,
@@ -42,6 +47,7 @@ import "walks"
 import "plan"
 import "reqs"
 import "beam"
+import "parallel"
 
 fun targetsOf(ids)
 {
@@ -598,6 +604,59 @@ fun retried(id, cap, base)
     return none
 }
 
+// One task the beam left, for the planner: from the beam's best world (`plannerBase`), from a world
+// of its own, then with chance in the choosing. What came of it: {id, found (how, or none), missed
+// (why, or none), head (the last line of its plan), how (when it was reached), seconds}
+fun planTask(id)
+{
+    var t0 = clockMs()
+    var base = plannerBase
+    var won = none
+    var foundHow = none
+
+    if (base != none)
+    {
+        var later = clone(base)
+
+        if (search(later, [id], cap))
+        {
+            won = later
+            foundHow = "planner after the beam, " + later.reached[id]
+        }
+    }
+
+    if (won == none)
+    {
+        var fresh = newWorld(3000)
+
+        if (search(fresh, [id], cap))
+        {
+            won = fresh
+            foundHow = "planner, a world of its own, " + fresh.reached[id]
+        }
+    }
+
+    if (won == none)
+    {
+        var again = retried(id, cap, base)
+
+        if (again != none)
+        {
+            won = lastWorld
+            foundHow = "planner, " + again
+        }
+    }
+
+    var seconds = (clockMs() - t0) / 1000
+
+    if (won == none)
+    {
+        return {id: id, found: none, missed: missText(id), head: -1, how: "", seconds: seconds}
+    }
+
+    return {id: id, found: foundHow, missed: none, head: won.planHead, how: won.reached[id], seconds: seconds}
+}
+
 fun planText(st)
 {
     return join(planLines(st.planHead), "\n")
@@ -733,6 +792,12 @@ if (mode == "")
     mode = "all"
 }
 
+// A worker of the host's (threads=N): it reads the tables below, then waits for its jobs
+if (solverRole() == "worker")
+{
+    mode = "worker"
+}
+
 
 var cap = toInt(option("lives", "5"))
 var tries = toInt(option("tries", "20"))
@@ -821,6 +886,8 @@ else if (mode == "beam")
         beamNoise = 300.0
     }
 
+    // The workers start their script while this one starts the search
+    startWorkers()
     beamRun(width, cap, minutes, seed)
 
     var found = {}
@@ -903,6 +970,7 @@ else if (mode == "hybrid")
         beamNoise = 300.0
     }
 
+    startWorkers()
     beamRun(width, cap, minutes, seed)
 
     var beamSeconds = (clockMs() - started) / 1000
@@ -928,7 +996,7 @@ else if (mode == "hybrid")
 
     log("hybrid: the beam reached " + toString(len(allIds) - left) + " tasks in " + toString(beamSeconds) + " s; the planner takes the " + toString(left) + " left")
 
-    var base = beamBest
+    setPlannerBase(beamBest)
     var index = 0
 
     // only=<id,id,...>: the planner's share kept to those tasks
@@ -943,66 +1011,67 @@ else if (mode == "hybrid")
         }
     }
 
+    // This process's share of what is left (shard=i/n)
+    var mine = []
+
     for (var id2 : allIds)
     {
         if (found[id2] == none and (onlyText == "" or onlyIds[id2] != none))
         {
             if (index - (index / shards) * shards == shard)
             {
-                var t0 = clockMs()
-                var won = none
-
-                if (base != none)
-                {
-                    var later = clone(base)
-
-                    if (search(later, [id2], cap))
-                    {
-                        won = later
-                        found[id2] = "planner after the beam, " + later.reached[id2]
-                    }
-                }
-
-                if (won == none)
-                {
-                    var fresh = newWorld(3000)
-
-                    if (search(fresh, [id2], cap))
-                    {
-                        won = fresh
-                        found[id2] = "planner, a world of its own, " + fresh.reached[id2]
-                    }
-                }
-
-                if (won == none)
-                {
-                    var again = retried(id2, cap, base)
-
-                    if (again != none)
-                    {
-                        won = lastWorld
-                        found[id2] = "planner, " + again
-                    }
-                }
-
-                var said = ""
-
-                if (won == none)
-                {
-                    missed[id2] = missText(id2)
-                    said = "NOT reached; " + missed[id2]
-                }
-                else
-                {
-                    plans[id2] = lifePlan(won.planHead, won.reached[id2])
-                    said = "reached: " + found[id2]
-                }
-
-                log("  " + id2 + ": " + said + " (" + toString((clockMs() - t0) / 1000) + " s)")
+                push(mine, id2)
             }
 
             index = index + 1
         }
+    }
+
+    // A task each, by the workers when there are (whichever is free takes the next), else one
+    // after the other
+    var results = []
+
+    if (threadCount() > 0)
+    {
+        var jobs = []
+
+        for (var id4 : mine)
+        {
+            push(jobs, {kind: "plan", id: id4})
+        }
+
+        for (var answer : runJobs("planJob", jobs))
+        {
+            var r = answer.out
+            r.head = fromWorker(r.head, mergeAnswer(answer))
+            push(results, r)
+        }
+    }
+    else
+    {
+        for (var id5 : mine)
+        {
+            push(results, planTask(id5))
+        }
+    }
+
+    for (var r2 : results)
+    {
+        var said = ""
+
+        if (r2.found == none)
+        {
+            missed[r2.id] = r2.missed
+            said = "NOT reached; " + r2.missed
+        }
+        else
+        {
+            found[r2.id] = r2.found
+            plans[r2.id] = lifePlan(r2.head, r2.how)
+            said = "reached: " + r2.found
+        }
+
+        log("  " + r2.id + ": " + said + " (" + toString(r2.seconds) + " s)")
     }
 
     var header = "hybrid, beam width " + toString(width) + " then the planner, " + toString(cap) + " lives a search, " + toString(tries) + " tries, " + toString((clockMs() - started) / 1000) + " s"
@@ -1051,6 +1120,11 @@ else if (mode == "hybrid")
     writeFile(reportPath + ".part", join(rows, "\n"))
     log("")
     log("written to " + reportPath + " (" + reportPath + ".plans: how each was reached)")
+}
+else if (mode == "worker")
+{
+    // Nothing more: the host hands it jobs (parallel.pg's workerJob)
+    var waiting = true
 }
 else if (mode == "merge")
 {
