@@ -896,13 +896,15 @@ namespace pg
             EXPECT_EQ(works(6), (Ids{"gather.berries", "gather.firewood", "gather.wortleaf", "study"}));
             EXPECT_EQ(works(10), (Ids{"gather.berries", "gather.firewood", "gather.wortleaf", "gather.hazel", "study"}));
 
-            // Known 3 of 4, the study says the fourth opens the next place
+            // Known 3 of 4, the note under how well it is known says the fourth opens the next place
+            // (the study itself gives its point of knowledge, and nothing more)
             {
                 Walker w(knowing(gatherer(), "hedgerows", 6));
 
                 ASSERT_TRUE(w.ask("enter", WalkAct{"", "hedgerows", 0}));
                 ASSERT_NE(byId(w.last.works, "study"), nullptr);
-                EXPECT_NE(textOf(*byId(w.last.works, "study"), "gives").find("the way to the Hollow Woods"), std::string::npos);
+                EXPECT_EQ(textOf(*byId(w.last.works, "study"), "gives"), "+1 zone knowledge");
+                EXPECT_NE(textOf(w.last.site, "knowledgeNote").find("the way to the Hollow Woods"), std::string::npos);
             }
 
             // What is not open is refused, and nothing is written

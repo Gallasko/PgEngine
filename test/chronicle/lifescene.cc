@@ -1770,7 +1770,8 @@ namespace pg
 
             EXPECT_TRUE(said);
 
-            // Its gloss says what it stops at, and how long it lasts
+            // Its gloss says what it stops at, what a month takes of it, and how many months it runs
+            // faster: 600 seconds at 7 a month
             auto registry = f.ecs.getSystem<GlossRegistry>();
             ASSERT_NE(registry, nullptr);
 
@@ -1778,7 +1779,8 @@ namespace pg
             ASSERT_NE(gloss, nullptr);
             ASSERT_GE(gloss->rows.size(), 3u);
             EXPECT_EQ(gloss->rows[0].value, "600/3600");
-            EXPECT_EQ(gloss->rows[2].value, "300 s");
+            EXPECT_EQ(gloss->rows[1].value, "7 s");
+            EXPECT_EQ(gloss->rows[2].value, "85 mo");
 
             ASSERT_TRUE(later->saveNow());
 
@@ -3525,8 +3527,8 @@ namespace pg
             auto list = life->piece<ActivityList>("activities");
             ASSERT_NE(list, nullptr);
             ASSERT_NE(stall(f, life, "buy.rations"), nullptr);
-            // A tile done at once leaves its time line empty
-            EXPECT_EQ(stall(f, life, "buy.rations")->cost.spec.text, "");
+            // A tile done at once writes its price where the others write their months
+            EXPECT_EQ(stall(f, life, "buy.rations")->cost.spec.text, "5 coin");
 
             // It is the market's: the Life page has no tile for it, nor one that goes there
             EXPECT_EQ(list->find(&f.ecs, "buy.rations"), nullptr);
@@ -3877,7 +3879,7 @@ namespace pg
             EXPECT_EQ(rowOf(campaign, "Time"), "24 mo");
             EXPECT_EQ(rowOf(campaign, "Meals"), "Provided");
 
-            // Locked, and no footnote to say so: what it still asks is in red under IT ASKS
+            // Locked, and no footnote to say so: what it still asks is in red under REQUIREMENTS
             EXPECT_EQ(campaign->footnote, "");
 
             // In sections, under the stat's full name: a gain and a thing asked may share it, the
@@ -3908,19 +3910,19 @@ namespace pg
 
             EXPECT_EQ(toneOf(campaign, "Time"), "time");
             EXPECT_EQ(toneOf(campaign, "Meals"), "gain");
-            EXPECT_EQ(toneOf(campaign, "IT BRINGS"), "<heading>");
-            EXPECT_EQ(toneOf(campaign, "IT TAKES"), "<heading>");
-            EXPECT_EQ(toneOf(campaign, "IT ASKS"), "<heading>");
+            EXPECT_EQ(toneOf(campaign, "REWARD"), "<heading>");
+            EXPECT_EQ(toneOf(campaign, "COST"), "<heading>");
+            EXPECT_EQ(toneOf(campaign, "REQUIREMENTS"), "<heading>");
 
-            EXPECT_EQ(in(campaign, "IT BRINGS", "Coin").first, "+50");
-            EXPECT_EQ(in(campaign, "IT BRINGS", "Coin").second, "gain");
-            EXPECT_EQ(in(campaign, "IT TAKES", "Coin").first, "\xE2\x88\x92" "10");
-            EXPECT_EQ(in(campaign, "IT TAKES", "Coin").second, "loss");
-            EXPECT_EQ(in(campaign, "IT ASKS", "Age").first, "17 / 21");
-            EXPECT_EQ(in(campaign, "IT ASKS", "Age").second, "loss");
-            EXPECT_EQ(in(campaign, "IT ASKS", "Arms").first, "5 / 6");
-            EXPECT_EQ(in(campaign, "IT ASKS", "Arms").second, "loss");
-            EXPECT_EQ(in(campaign, "IT ASKS", "Discipline").second, "loss");
+            EXPECT_EQ(in(campaign, "REWARD", "Coin").first, "+50");
+            EXPECT_EQ(in(campaign, "REWARD", "Coin").second, "gain");
+            EXPECT_EQ(in(campaign, "COST", "Coin").first, "\xE2\x88\x92" "10");
+            EXPECT_EQ(in(campaign, "COST", "Coin").second, "loss");
+            EXPECT_EQ(in(campaign, "REQUIREMENTS", "Age").first, "17 / 21");
+            EXPECT_EQ(in(campaign, "REQUIREMENTS", "Age").second, "loss");
+            EXPECT_EQ(in(campaign, "REQUIREMENTS", "Arms").first, "5 / 6");
+            EXPECT_EQ(in(campaign, "REQUIREMENTS", "Arms").second, "loss");
+            EXPECT_EQ(in(campaign, "REQUIREMENTS", "Discipline").second, "loss");
 
             // No short name with "at term" any more, no age it is done by, and nothing said of how
             // to begin what he can begin
@@ -3933,7 +3935,7 @@ namespace pg
 
             ASSERT_NE(registry->find("activity/yard"), nullptr);
             EXPECT_EQ(registry->find("activity/yard")->footnote, "");
-            EXPECT_EQ(in(registry->find("activity/yard"), "IT BRINGS", "Strength").first, "+1");
+            EXPECT_EQ(in(registry->find("activity/yard"), "REWARD", "Strength").first, "+1");
 
             // Its head: how often it was done beside the name, the kind of thing it is under it,
             // and a rule before the first figures
@@ -5505,11 +5507,22 @@ namespace pg
             ASSERT_FALSE(tabs->enabled(1));
             ASSERT_FALSE(f.pos(tabs->tabs[1].face)->visible);
 
-            // The tile that goes there stands out from the others: the page wants it seen
+            // The tile that goes there stands out from the others: the page wants it seen. At seven
+            // it was the first work open to a life that had done nothing, so the page chose it for
+            // him, and it stands on the ground of what is chosen...
+            auto groundOf = [&](const char* id) { return f.ecs.getEntity(list->find(&f.ecs, id)->root->get<ActivityRowState>()->ground)->get<ThemeComponent>()->element; };
+
             EXPECT_TRUE(list->find(&f.ecs, "tomarket")->spec.featured);
             EXPECT_TRUE(list->find(&f.ecs, "tomarket")->root->get<ActivityRowState>()->featured);
-            EXPECT_EQ(f.ecs.getEntity(list->find(&f.ecs, "tomarket")->root->get<ActivityRowState>()->ground)->get<ThemeComponent>()->element.find("activity.kind.featured"), 0u);
+            EXPECT_TRUE(list->find(&f.ecs, "tomarket")->root->get<ActivityRowState>()->selected);
+            EXPECT_EQ(groundOf("tomarket"), "activity.kind.selected");
             EXPECT_FALSE(list->find(&f.ecs, "carters")->spec.featured);
+
+            // ...and once nothing is, on its own
+            list->select(&f.ecs, "");
+            f.settle();
+
+            EXPECT_EQ(groundOf("tomarket").find("activity.kind.featured"), 0u);
 
             // And it is one of the tiles that turn a life: framed in gold, its mark in gold,
             // and its gloss says what it does in the place of its group

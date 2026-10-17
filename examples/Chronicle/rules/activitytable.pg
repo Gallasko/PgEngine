@@ -381,8 +381,9 @@ var activities = [
      gains: [{stat: "snare_wire"}],
      requires: [{stat: "town_known", label: "The town"}],
      costs: [{stat: "coin", amount: 2}]},
-    // ...and a primer of the herbal before the herbal itself
-    {id: "buy.primer", group: "Market", name: "Buy a Herbal Primer", glyph: "study", months: 0, rank: "", each: "AT THE MARKET", path: "", fromAge: 10, fromMonths: 6, finishBy: anyAge, showFrom: 100, uses: 1,
+    // ...and a primer of the herbal before the herbal itself (sold until his prime ends, when the
+    // herbal closes)
+    {id: "buy.primer", group: "Market", name: "Buy a Herbal Primer", glyph: "study", months: 0, rank: "", each: "AT THE MARKET", path: "", fromAge: 10, fromMonths: 6, showFrom: 100, uses: 1,
      place: "market",
      about: "A few pages of leaves and roots, copied badly and sold dear. With it, and his letters, he can learn the herbal: the work comes into his study the day he holds it.",
      gains: [{stat: "herbal_primer"}],
