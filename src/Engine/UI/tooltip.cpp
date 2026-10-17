@@ -235,8 +235,11 @@ namespace pg
 
     void TooltipSystem::hide()
     {
+        // By the reference, not the id: a tooltip shown in the last pass is not made yet when the
+        // next pass's events hide it (they run before the commands), and an id finds nothing to
+        // remove. It would be made after, and stay on the screen with nothing to hide it
         if (not current.empty())
-            ecsRef->removeEntity(current.id);
+            ecsRef->removeEntity(current);
 
         current = EntityRef{};
         shownFor = 0;

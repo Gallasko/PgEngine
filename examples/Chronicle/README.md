@@ -937,7 +937,9 @@ left to it) and `seen.<place>` (1 once a life has had the place on its page). Wh
   and the words the scene says (`opened`, `raisedLine`, `epitaphLine`, `fundLine`, `gift`).
 - `activitytable.pg` makes the 30 works from the same table (`raise.<place>.<level>`): listed
   only to who knows the town and while the place is one level below. They have no row: a click
-  on a place's tile on the Town page begins its next one (`LifeScene::onPlace`).
+  on a place's tile on the Town page chooses its next one (`LifeScene::onPlace`), as a tile of
+  the lists is chosen, and the button under "At work now" begins it, or a second click within
+  400 ms, as on a row.
   New optional fields of an activity: `place` (it stands on the Town page, at that place, once
   the town is known), `goto` (confirming it opens a page and does nothing else), `raises` and
   `level` (its term raises that place), `years` (years of his life taken at once when it
@@ -1266,8 +1268,13 @@ the mockup's stands at month 126.
 **Feedback and feedforward.** What happens is shown and what would happen is said first, all of
 it in `lifescene.cpp` over the widgets as they are:
 
-- A tile chosen in the list puts a **Begin** button in "At work now" (`showWorkButtons`), in
-  the place of the one that passes a month; a second click or Enter still begins it.
+- A tile chosen in the list, or a place of the town, puts a **Begin** button in "At work now"
+  (`showWorkButtons`), in the place of the one that passes a month; a second click or Enter
+  still begins it. What may be done while at work (a thing done at once, an answer)
+  has it under the running row. A thing done at once stays chosen for the next press, and has
+  **All** beside it when it is made from what he holds (a sale: `repeats`, `doAll`, one log line
+  for them all); once it can be done no more its button stays where it was, greyed ("None left",
+  `spentChoice`), until a press anywhere else, so nothing else comes under a pressing mouse.
 - The mouse on a tile is a **preview** (`ActivityHoveredEvent`, `preview`): the ghosts on his
   parts, and "46 -> 52" ("6/60 -> 12/60") on the holdings it would add to (what it costs is said by its gloss, not
   on his purse). What is chosen says more than what the mouse is on.
@@ -1327,7 +1334,8 @@ phone is wide enough for the compact page. What a touch screen needs with it:
 
 - a tap is a click: the engine latches a press that is over before it is read (`Input::takePress`);
 - a tap on a thing shows its gloss, which stays until the next tap (`TooltipSystem::showOnPress`,
-  set on this page only): a finger has no hover, and a tile says little without its gloss;
+  set on this page, and on any page once a finger has touched the screen: `OnSDLFingerDown`):
+  a finger has no hover, and a tile says little without its gloss;
 - the town's page scrolls under a finger (`dragToScroll` on its layout), as the lists do;
 - the guide's hand goes to the tab that holds what a step speaks of when it is not the one open;
 - the ending's leaf and the guide's are no wider than the window;

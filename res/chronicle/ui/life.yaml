@@ -362,8 +362,8 @@ children:
         glyph: time
         months: 1
         tag: life.skip
-      # What is chosen in the list begins from here: in the place of the button above while a
-      # tile is chosen, so that nobody has to know that a second click or Enter begins it too
+      # What is chosen in the list, or a place of the town, begins from here: in the place of the
+      # button above while a tile is chosen; a second click or Enter begins it too
       - kind: Button
         name: begin
         variant: seal
@@ -390,6 +390,18 @@ children:
     anchors:
       - {side: right, target: working, targetSide: right, margin: 16}
       - {side: bottom, target: working, targetSide: bottom, margin: 16}
+
+  # At the right of Do it now, for what is done at once from what he holds (a sale, berries
+  # dried): the same as often as he can, in one press. Shown only with such a thing chosen
+  - kind: Button
+    name: all
+    variant: quiet
+    label: All
+    tag: life.all
+    z: 20
+    anchors:
+      - {side: left, target: begin, targetSide: right, margin: 8}
+      - {side: top, target: begin, targetSide: top}
 
   - kind: Panel
     name: happened

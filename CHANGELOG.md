@@ -7,6 +7,9 @@ All notable changes to ColumbaEngine are documented here. The project is in earl
 First tagged release. Everything below describes the state of the engine at the point of tagging rather than a delta.
 
 ### Added
+- `OnSDLFingerDown` (`Input/sdlevents.h`): the window sends it when a finger is put down on a touch
+  screen, beside the mouse press SDL makes of it, so a UI with no hover to wait on can know a press
+  was a finger's.
 - Dense screens, in a browser: the page was drawn at the canvas's CSS size and stretched by the browser,
   soft on a 4K monitor at 200 % or a phone. The window is now created with `SDL_WINDOW_ALLOW_HIGHDPI`
   on the web, `Window::resize` sets the viewport to the drawable's size, and a clip's scissor is counted
@@ -19,6 +22,11 @@ First tagged release. Everything below describes the state of the engine at the 
   (the ratio is 1).
 
 ### Fixed
+- Tooltips: one could stay on the screen for good, over the page, with nothing left to hide it. A
+  tooltip is built during a pass, so it is made by the next pass's commands, which run after that
+  pass's events; a mouse leaving or a click in those events hid it by its id, found nothing yet, and
+  the tooltip was made after. `TooltipSystem::hide` removes it by its reference, which the ECS hands
+  to the commands when it is not made yet.
 - Achievements: a prerequisite that held and then stopped holding was never looked at again.
   `AchievementSys` waited on a fact until the first time it passed and dropped it there, so an
   achievement asking "rations at 3 or fewer" and "age 7 or more" was lost for good when the store

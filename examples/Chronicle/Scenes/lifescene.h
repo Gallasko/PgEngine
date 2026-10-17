@@ -125,6 +125,7 @@ namespace chronicle
         bool ended = false;            // The life is over and its ending is up: nothing passes until the next begins
         bool compact = false;          // Which file the page is: opt.compactFile or opt.pageFile
         bool phone = false;            // The page is opt.phoneFile: compact, in one column, with one row of tabs
+        bool touched = false;          // A finger has been on the screen: a press shows a gloss, whatever the page
         float phoneWidth = 0.0f;       // The window's width the phone page was built at
         float phoneFitted = 0.0f;      // And the one its panels were last given: at another they are given theirs, where they stand
         int pageSettling = 0;          // Passes before a page just built holds its pieces: it is not sized before
@@ -248,7 +249,11 @@ namespace chronicle
         void chooseGift(const std::string& place);   // One of them chosen, or let go of
         bool fromLists(const std::string& list) const;      // An event of the choice's list or of the market's
         ActivityList* listHolding(const std::string& id) const;   // The one of them that has that row, nullptr for neither
-        void clearChoice();            // Nothing chosen in either list
+        void clearChoice();            // Nothing chosen in either list, nor in the town's places
+        bool spentChoice() const;      // What its button did is chosen still, and can be done no more (the last lot sold): the button greyed in its place
+        bool buttonAtWork() const;     // At work, a button's line under the running row: Go on, what is chosen that may be taken while at it, or that spent
+        bool repeats(const RuleActivity* activity) const;   // Done at once from what he holds, as often as he holds it (a sale): it has the All button
+        bool pressedOn(const char* name, pg::Point2D at) const;   // That button is shown, and the press is on it
         float workingHeight() const;   // "At work now": its chrome alone, or with a running row
         void showWorkButtons();        // At nothing: the button that begins what is chosen, or the one that passes a month
         bool guideSaid() const;        // The guide line is up: a life led to its first work, with no guide to say so
@@ -337,9 +342,10 @@ namespace chronicle
         void onSelect(const ActivitySelectedEvent& event);
         void onConfirm(const ActivityActivatedEvent& event);
         void beginWork(const std::string& id);   // An activity begun: the choice's Begin, a row confirmed, a place's tile clicked
-        void doAtOnce(const std::string& id, const RuleForecast& forecast);   // An activity that takes no time
+        bool doAtOnce(const std::string& id, const RuleForecast& forecast, bool batch = false);   // An activity that takes no time; batched, the log, the list, the page and the save are the caller's. True when the list changed
+        void doAll(const std::string& id);       // That one done as many times as he can: one line in the log for them all
         void onTab(const TabSelectedEvent& event);
-        void onPlace(const PlaceSelectedEvent& event);   // A place's tile clicked: the work that raises it begun, or said why not
+        void onPlace(const PlaceSelectedEvent& event);   // A place's tile clicked: the work that raises it chosen, or said why not
 
         // The walks (lifewalk.cpp)
         bool askWalk(const std::string& ask, const WalkAct& act, const std::string& replay, RuleWalk& out);   // expedition.pg, asked with what the save holds
@@ -446,7 +452,9 @@ namespace chronicle
         std::string warning;                      // What the rules say of the coming month ("RATIONS FOR 2 MONTHS"), "" for nothing
         std::string advice;                       // And what to do about it, as last said by a toast
         std::string chosen;                       // The activity chosen in the list, "" for none: what the Begin button begins
-        std::string chosenList;                   // And the list it was chosen in: the choice's, or the market's
+        std::string chosenList;                   // And the list it was chosen in: the choice's, the market's, or the town's places
+        float sincePlaceClick = 1.0e9f;           // Ms since a place's tile was last clicked: a second click on the chosen one soon after begins it, as on a row
+        std::string doneNow;                      // The last chosen thing its button did at once: chosen still once it can be done no more, its button stays greyed
         bool leadDue = false;                     // The page chose it for him: its tile is lit once the list holds its row
         pg::EntityRef noteEdge;                   // The leaf's edge, and its ground a pixel inside it
         pg::EntityRef noteGround;

@@ -70,6 +70,7 @@ namespace chronicle
         constexpr const char * const TownName = "town";
         constexpr const char * const AdventureName = "adventure";   // The Adventure page: the records of his walks (lifewalk.cpp)
         constexpr const char * const PlacesName = "places";
+        constexpr const char * const PlacesList = "town.places";   // What `chosenList` says of a place's work chosen by its tile
         constexpr const char * const MarketName = "marketRows";
         constexpr const char * const RaisedName = "raised";
         constexpr const char * const GiftTag = "life.gift.";   // Followed by the place's id: the ending's buttons
@@ -106,6 +107,9 @@ namespace chronicle
         constexpr float MsASecond = 1000.0f;       // Written time is held in seconds and spent in ms
         constexpr unsigned long long AwayLeast = 60;   // A chronicle shut for less than a minute has written nothing: a page loaded again is not time away
         constexpr const char * const BeginTag = "life.begin";
+        constexpr const char * const AllTag = "life.all";       // Beside it, for what is done at once from what he holds: all he can
+        constexpr int MostAtOnce = 200;            // The most times All does a thing in one press
+        constexpr float DoubleClickMs = 400.0f;    // A second click on a chosen place's tile within it begins its work, as a row's does
         constexpr const char * const AgainTag = "life.again";
 
         // What the ending's veil calls when the mouse enters or leaves it: nothing
@@ -671,10 +675,10 @@ namespace chronicle
         if (EntityRef townBody = named(TownName); not townBody.empty() and townBody->has<VerticalLayout>())
             townBody->get<VerticalLayout>()->dragToScroll = true;
 
-        // A finger has no hover: on the phone page a tap on a thing shows its gloss, which stays
-        // until the next tap
+        // A finger has no hover: on the phone page, or once a finger has been on the screen, a tap
+        // on a thing shows its gloss, which stays until the next tap
         if (auto tooltips = ecsRef->getSystem<TooltipSystem>())
-            tooltips->showOnPress = phone;
+            tooltips->showOnPress = phone or touched;
 
         // The page leaves with the scene; its pieces follow it as its prefab children.
         ecsRef->attach<SceneElement>(page);
@@ -739,17 +743,30 @@ namespace chronicle
             }
             else if (e.tag == HasteTag)
                 pressHaste();
+            else if (e.tag == AllTag and not chosen.empty())
+            {
+                doneNow = chosen;
+                doAll(chosen);
+                showWorkButtons();
+            }
             else if (e.tag == BeginTag and resumes() and takenAtWork(activityOf(chosen)))
             {
                 // Stopped at a work, with something chosen that may be taken while at it: that,
                 // and not the work, is what the button goes on with
+                doneNow = chosen;
                 onConfirm(ActivityActivatedEvent{ActivitiesList, chosen});
                 showWorkButtons();
             }
             else if (e.tag == BeginTag and resumes())
                 pause(false);
             else if (e.tag == BeginTag and not chosen.empty())
+            {
+                // What it did at once stays chosen for the next press; once it can be done no more,
+                // its button stays where it was, greyed (`spentChoice`)
+                doneNow = chosen;
                 onConfirm(ActivityActivatedEvent{ActivitiesList, chosen});
+                showWorkButtons();
+            }
         });
 
         // A deed reached: taken in execute(), never while the facts are being handed around
@@ -762,6 +779,8 @@ namespace chronicle
 
         // The month loop: one month every monthMs() while it runs
         listenToEvent<TickEvent>([this](const TickEvent& e) {
+            sincePlaceClick += e.tick;
+
             // What lasts a moment runs its course whether the months run or not
             if (quiet > 0.0f)
             {
@@ -838,7 +857,30 @@ namespace chronicle
         });
 
         // Somebody is at the game: the time the months stand still is play, not time away
-        listenToEvent<OnMouseClick>([this](const OnMouseClick&) { stirred(); });
+        listenToEvent<OnMouseClick>([this](const OnMouseClick& e) {
+            stirred();
+
+            // A spent choice's greyed button goes at a press anywhere else: a press on it, of a
+            // mouse still pressing where it did, finds it there and does nothing
+            if (spentChoice() and not pressedOn("begin", e.pos) and not pressedOn("all", e.pos))
+            {
+                clearChoice();
+                showWorkButtons();
+                preview();
+            }
+        });
+
+        // A finger has no hover: once one is on the screen, a press on a thing shows its gloss,
+        // whichever page the window's width has built
+        listenToEvent<OnSDLFingerDown>([this](const OnSDLFingerDown&) {
+            if (touched)
+                return;
+
+            touched = true;
+
+            if (auto tooltips = ecsRef->getSystem<TooltipSystem>())
+                tooltips->showOnPress = true;
+        });
         listenToEvent<OnMouseMove>([this](const OnMouseMove&) { stirred(); });
         listenToEvent<OnSDLMouseWheel>([this](const OnSDLMouseWheel&) { stirred(); });
 
@@ -1317,11 +1359,16 @@ namespace chronicle
         const RuleActivity* pick = chosen.empty() ? nullptr : activityOf(chosen);
         const bool leads = led() and not firstWork().empty();
 
+        // What its button did, chosen still and to be done no more (the last lot sold): the button
+        // stays where it was, greyed, and nothing comes into its place under a mouse still pressing
+        const bool spent = spentChoice();
+
         // A work that is stopped has the same button under its row, to go on: a key is not
-        // something every screen has. Unless what is chosen may be taken while at it (a thing
-        // done at once, an answer to an event): then the button takes that
+        // something every screen has. What is chosen that may be taken while at it (a thing done
+        // at once, an answer to an event) has it too, stopped or not: then the button takes that.
+        // A click on a tile only chooses it, here as in the town
         const bool stopped = resumes();
-        const bool begins = pick and not ended and (idle or (stopped and takenAtWork(pick)));
+        const bool begins = pick and not spent and not ended and (idle or takenAtWork(pick));
 
         auto show = [this, &working](const char* name, bool shown) {
             if (EntityRef button = named(name); not button.empty())
@@ -1341,13 +1388,23 @@ namespace chronicle
 
         // A first life has its guide to say it, on a leaf of its own
         show("guide", leads and not guiding() and not waits);
-        show("skip", idle and not begins and not leads);
-        show("begin", begins or waits or stopped);
+        show("skip", idle and not begins and not leads and not spent);
+        show("begin", begins or waits or stopped or spent);
+
+        // At its right, for what is done at once from what he holds, the button that does it as
+        // often as he can. Outside the panel's stack, as the one below
+        const bool all = begins and repeats(pick);
+
+        if (EntityRef button = named("all"); not button.empty())
+            button->get<PositionComponent>()->setVisibility(all);
+
+        if (auto button = piece<Button>("all"))
+            button->setDisabled(ecsRef, not all);
 
         // At their right, on their line, the button that spends written time, while any is held.
         // It stands outside the panel's stack: where none of them is shown (a running row, the
         // line of a life that has done nothing yet) the panel keeps it the room of one
-        show("hasteRow", hastens() and not ((idle and not begins and not leads) or begins or waits or stopped));
+        show("hasteRow", hastens() and not ((idle and not begins and not leads) or begins or waits or stopped or spent));
 
         if (EntityRef fast = named("haste"); not fast.empty())
             fast->get<PositionComponent>()->setVisibility(hastens());
@@ -1372,6 +1429,19 @@ namespace chronicle
             if (auto begin = piece<Button>("begin"))
             {
                 begin->setLabel(ecsRef, "Begin");
+                begin->setMonths(ecsRef, -1);
+                begin->setDisabled(ecsRef, true);
+            }
+        }
+
+        if (spent)
+        {
+            if (auto begin = piece<Button>("begin"))
+            {
+                // A sale with nothing left to sell, or a thing bought that is bought once
+                const RuleActivity* left = activityOf(chosen);
+
+                begin->setLabel(ecsRef, left and (boolOf(left->fields, "listed") or repeats(left)) ? "None left" : "Done");
                 begin->setMonths(ecsRef, -1);
                 begin->setDisabled(ecsRef, true);
             }
@@ -1494,7 +1564,62 @@ namespace chronicle
 
     float LifeScene::resumeRoom() const
     {
-        return resumes() ? SkipButton : 0.0f;
+        return buttonAtWork() ? SkipButton : 0.0f;
+    }
+
+    bool LifeScene::buttonAtWork() const
+    {
+        if (save.running.empty() or ended)
+            return false;
+
+        if (resumes() or spentChoice())
+            return true;
+
+        const RuleActivity* pick = chosen.empty() ? nullptr : activityOf(chosen);
+
+        return pick and takenAtWork(pick);
+    }
+
+    bool LifeScene::spentChoice() const
+    {
+        // Only what its button did: a work that left the list on its own is let go of as before
+        if (chosen.empty() or chosen != doneNow or ended)
+            return false;
+
+        const RuleActivity* pick = activityOf(chosen);
+
+        return not pick or boolOf(pick->fields, "locked") or not boolOf(pick->fields, "listed");
+    }
+
+    bool LifeScene::repeats(const RuleActivity* activity) const
+    {
+        // Done at once from what he holds, as often as he holds it: a sale, berries dried, a
+        // remedy brewed. Never what spends coin (a buy), nor what is done a set number of times
+        if (not activity or intOf(activity->fields, "months") > 0 or intOf(activity->fields, "uses") > 0 or activity->costs.empty())
+            return false;
+
+        if (not textOf(activity->fields, "event").empty() or not textOf(activity->fields, "goto").empty())
+            return false;
+
+        for (const auto& cost : activity->costs)
+        {
+            if (textOf(cost, "stat") == "coin")
+                return false;
+        }
+
+        return true;
+    }
+
+    bool LifeScene::pressedOn(const char* name, Point2D at) const
+    {
+        auto button = piece<Button>(name);
+
+        if (not button or button->face.empty() or not button->face->has<PositionComponent>())
+            return false;
+
+        auto pos = button->face->get<PositionComponent>();
+
+        return pos->isRenderable() and at.x >= pos->x and at.x <= pos->x + pos->width and at.y >= pos->y and at.y <= pos->y + pos->height;
     }
 
     bool LifeScene::hastens() const
@@ -1506,8 +1631,9 @@ namespace chronicle
     float LifeScene::hasteRoom() const
     {
         // At nothing the panel counts a button's line already (Pass a month, Begin), and a
-        // stopped work has Go on's: only a running row leaves it none
-        return hastens() and not save.running.empty() and not resumes() ? SkipButton : 0.0f;
+        // stopped work has Go on's, as what is chosen that may be taken while at it has Do it now's:
+        // only a running row alone leaves it none
+        return hastens() and not save.running.empty() and not buttonAtWork() ? SkipButton : 0.0f;
     }
 
     bool LifeScene::led() const
@@ -3378,6 +3504,9 @@ namespace chronicle
                 list->select(ecsRef, "");
         }
 
+        if (auto grid = piece<PlaceGrid>(PlacesName); grid and not grid->selected().empty())
+            grid->select(ecsRef, "");
+
         chosen.clear();
         chosenList.clear();
     }
@@ -4442,7 +4571,7 @@ namespace chronicle
         chosen = event.id;
         chosenList = event.id.empty() ? std::string() : event.list;
 
-        // One choice on the page: the other list lets go of its own
+        // One choice on the page: the other list lets go of its own, and the town of its place
         if (not chosen.empty())
         {
             for (const char* name : {ChoiceName, MarketName})
@@ -4450,6 +4579,9 @@ namespace chronicle
                 if (auto list = piece<ActivityList>(name); list and list->spec.id != event.list and not list->selected().empty())
                     list->select(ecsRef, "");
             }
+
+            if (auto grid = piece<PlaceGrid>(PlacesName); grid and not grid->selected().empty())
+                grid->select(ecsRef, "");
         }
 
         showWorkButtons();
@@ -4469,8 +4601,13 @@ namespace chronicle
         if (ended or onWalk())
             return;
 
-        // A place of the town: a click begins the work that raises it to its next level. The tile
-        // is that work's only button, and its gloss says what it asks and what it will give
+        // A place of the town: a click chooses the work that raises it to its next level, as a
+        // tile of the lists is chosen, and the button under "At work now" begins it, or a second
+        // click soon after, as on a row. Its gloss says what it asks and what it will give
+        const bool again = sincePlaceClick <= DoubleClickMs;
+
+        sincePlaceClick = 0.0f;
+
         for (const auto& place : town.places)
         {
             if (textOf(place.fields, "id") != event.id)
@@ -4496,14 +4633,41 @@ namespace chronicle
                 return;
             }
 
-            // What takes months waits for what he is at; what takes none is done at once
+            // What takes months waits for what he is at; what takes none may be done meanwhile
             if (not save.running.empty() and intOf(raise->fields, "months") > 0)
             {
                 toast("Already at work: " + activityName(save.running));
                 return;
             }
 
-            beginWork(work);
+            // Clicked twice, the one chosen: begun as its button would
+            if (again and work == chosen and chosenList == PlacesList)
+            {
+                doneNow = chosen;
+                onConfirm(ActivityActivatedEvent{ActivitiesList, chosen});
+                showWorkButtons();
+                return;
+            }
+
+            if (work != chosen)
+                ++save.picks;
+
+            // One choice on the page: the lists let go of theirs. Theirs say so by an event that
+            // may come after this: the choice is the town's by then, and stays
+            for (const char* name : {ChoiceName, MarketName})
+            {
+                if (auto list = piece<ActivityList>(name); list and not list->selected().empty())
+                    list->select(ecsRef, "");
+            }
+
+            chosen = work;
+            chosenList = PlacesList;
+
+            if (auto grid = piece<PlaceGrid>(PlacesName))
+                grid->select(ecsRef, event.id);
+
+            showWorkButtons();
+            preview();
             return;
         }
     }
@@ -4520,9 +4684,9 @@ namespace chronicle
 
     void LifeScene::preview()
     {
-        // What is chosen says more than what the mouse is on. Nothing of either: no ghosts on the
-        // parts but what mends, and what he holds as it is
-        const std::string id = chosen.empty() ? hovered : chosen;
+        // What is chosen says more than what the mouse is on, unless it can be done no more.
+        // Nothing of either: no ghosts on the parts but what mends, and what he holds as it is
+        const std::string id = chosen.empty() or spentChoice() ? hovered : chosen;
 
         RuleForecast forecast;
 
@@ -4596,6 +4760,10 @@ namespace chronicle
         // Over: the keyboard may still reach a row under the ending, or under a walk's screen
         if (not fromLists(event.list) or ended or onWalk())
             return;
+
+        // A row confirmed by a double click is what its button did: chosen still once it can be
+        // done no more, its button stays greyed
+        doneNow = event.id;
 
         beginWork(event.id);
     }
@@ -4788,7 +4956,7 @@ namespace chronicle
         }
     }
 
-    void LifeScene::doAtOnce(const std::string& id, const RuleForecast& forecast)
+    bool LifeScene::doAtOnce(const std::string& id, const RuleForecast& forecast, bool batch)
     {
         // The row as it stands, to see whether doing it changes the row itself
         std::string rank;
@@ -4804,7 +4972,7 @@ namespace chronicle
 
             // The list refuses a locked row, a key or a script may not
             if (boolOf(a.fields, "locked") or not boolOf(a.fields, "listed"))
-                return;
+                return false;
 
             rank = textOf(a.fields, "rank");
             raised = textOf(a.fields, "raises");
@@ -4819,7 +4987,9 @@ namespace chronicle
 
         giveYears(years);
         takeStats(forecast.atTerm);
-        writeEntries(forecast.entries);
+
+        if (not batch)
+            writeEntries(forecast.entries);
 
         ++save.done[id];
         ++save.atOnce;
@@ -4839,7 +5009,7 @@ namespace chronicle
         {
             tellAnalytics("life_end");
             endLife();
-            return;
+            return false;
         }
 
         for (const auto& r : save.holdEarned(holdings))
@@ -4860,6 +5030,90 @@ namespace chronicle
 
             changed = changed or not boolOf(a.fields, "listed") or textOf(a.fields, "rank") != rank or now != amounts;
         }
+
+        if (batch)
+            return changed;
+
+        if (changed)
+            fillActivities();
+
+        publishAll();
+
+        autoSave();
+
+        return changed;
+    }
+
+    namespace
+    {
+        // A log line's figure for a thing done `times` times: each number in it so many times
+        // over ("+1 coin −4 hazelnuts", twice: "+2 coin −8 hazelnuts")
+        std::string figureTimes(const std::string& figure, int times)
+        {
+            std::string out;
+            size_t i = 0;
+
+            while (i < figure.size())
+            {
+                if (std::isdigit(static_cast<unsigned char>(figure[i])))
+                {
+                    size_t end = i;
+
+                    while (end < figure.size() and std::isdigit(static_cast<unsigned char>(figure[end])))
+                        ++end;
+
+                    out += std::to_string(std::stoll(figure.substr(i, end - i)) * times);
+                    i = end;
+                }
+                else
+                    out += figure[i++];
+            }
+
+            return out;
+        }
+    }
+
+    void LifeScene::doAll(const std::string& id)
+    {
+        // As if its button were pressed while he can: then one line in the log for them all, and
+        // the list, the page and the save brought up to date once
+        RecordList entries;
+        bool changed = false;
+        int times = 0;
+
+        for (; times < MostAtOnce; ++times)
+        {
+            const RuleActivity* activity = activityOf(id);
+            RuleForecast forecast;
+
+            if (not repeats(activity) or boolOf(activity->fields, "locked") or not boolOf(activity->fields, "listed"))
+                break;
+
+            if (not rules.forecast(save.age, save.character(), id, 0, forecast) or forecast.months > 0)
+                break;
+
+            // The first line is the thing done; what a time reaches past it (a step, a closing) is said each time
+            for (size_t i = times == 0 ? 0 : 1; i < forecast.entries.size(); ++i)
+                entries.push_back(forecast.entries[i]);
+
+            changed = doAtOnce(id, forecast, true) or changed;
+
+            if (ended)
+                return;
+        }
+
+        if (times == 0)
+            return;
+
+        if (times > 1 and not entries.empty())
+        {
+            ElementMap& line = entries.front();
+
+            line["text"] = ElementType{textOf(line, "text") + " \xC3\x97" + std::to_string(times)};
+            line["figure"] = ElementType{figureTimes(textOf(line, "figure"), times)};
+        }
+
+        writeEntries(entries);
 
         if (changed)
             fillActivities();

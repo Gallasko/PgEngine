@@ -272,6 +272,56 @@ namespace pg
             EXPECT_EQ(ecs.getEntity(lastRoot), nullptr);
         }
 
+        namespace
+        {
+            // Presses the mouse from inside a pass, as the input does: the press is queued, and
+            // is answered at the start of the next pass, before the entities of this one are made
+            struct PressInPass : public System<>
+            {
+                virtual std::string getSystemName() const override { return "Press In Pass"; }
+
+                virtual void execute() override
+                {
+                    if (not press)
+                        return;
+
+                    press = false;
+                    ecsRef->sendEvent(OnMouseClick{Point2D{5, 5}, static_cast<MouseButton>(1)});
+                }
+
+                bool press = false;
+            };
+        }
+
+        // A tooltip shown in one pass and hidden by the next one's first events: it is not made
+        // yet when it is hidden, and must not be made after with nothing left to hide it
+        TEST(tooltip_test, hidden_before_it_is_made_does_not_stay)
+        {
+            MockLogger logger;
+            EntitySystem ecs;
+
+            _unique_id lastRoot = 0;
+            auto* tip = setupTooltip(ecs, &lastRoot);
+            auto* presser = ecs.createSystem<PressInPass>();
+
+            makeTooltipTarget(ecs, 0, 0, 50, 20);
+
+            move(ecs, 5, 5);
+            tick(ecs, 100);
+
+            // The pass that shows it, and a press from inside that same pass
+            presser->press = true;
+            ecs.sendEvent(TickEvent{100});
+            ecs.executeOnce();
+
+            ASSERT_NE(lastRoot, 0u);
+
+            pump(ecs);
+
+            EXPECT_FALSE(tip->isShowing());
+            EXPECT_EQ(ecs.getEntity(lastRoot), nullptr);
+        }
+
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------

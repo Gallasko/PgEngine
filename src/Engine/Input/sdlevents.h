@@ -37,6 +37,17 @@ namespace pg
         Sint32 yrel;
     };
 
+    /**
+     * A finger put down on a touch screen, at x/y in 0..1 of the window. SDL also sends a mouse
+     * press for it (its touch-mouse emulation): this only tells that the press was a finger, for a
+     * UI with no hover to wait on.
+     */
+    struct OnSDLFingerDown
+    {
+        float x;
+        float y;
+    };
+
     struct OnSDLTextInput
     {
         std::string text;

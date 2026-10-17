@@ -6128,7 +6128,8 @@ namespace pg
             EXPECT_EQ(life->piece<ActivityList>("activities")->find(&f.ecs, "raise.market.1"), nullptr);
             EXPECT_EQ(life->piece<ActivityList>("marketRows")->find(&f.ecs, "raise.market.1"), nullptr);
 
-            // A place clicked begins it: its coin taken, its months running
+            // A place clicked chooses it, as a tile of the lists; the button begins it: its coin
+            // taken, its months running
             ASSERT_TRUE(life->save.running.empty());
 
             const int coin = life->save.stats["coin"];
@@ -6138,6 +6139,20 @@ namespace pg
             EXPECT_TRUE(grid->tile("market")->spec.ready);
 
             f.ecs.sendEvent(PlaceSelectedEvent{"market"});
+            f.settle();
+            EXPECT_TRUE(life->save.running.empty());
+            EXPECT_EQ(life->save.stats["coin"], coin);
+            EXPECT_EQ(grid->selected(), "market");
+
+            // Clicked again, but not soon: chosen still, and nothing begun
+            f.ecs.sendEvent(TickEvent{500.0f});
+            f.settle();
+            f.ecs.sendEvent(PlaceSelectedEvent{"market"});
+            f.settle();
+            EXPECT_TRUE(life->save.running.empty());
+            EXPECT_EQ(grid->selected(), "market");
+
+            f.ecs.sendEvent(ButtonActivatedEvent{life->piece<Button>("begin")->face.id, "life.begin"});
             f.settle();
             EXPECT_EQ(life->save.running, "raise.market.1");
             EXPECT_EQ(life->save.stats["coin"], coin - 20);
@@ -6329,6 +6344,9 @@ namespace pg
 
             ASSERT_GE(coin, 20);
 
+            // A double click on the place begins it, as on a row
+            f.ecs.sendEvent(PlaceSelectedEvent{"market"});
+            f.settle();
             f.ecs.sendEvent(PlaceSelectedEvent{"market"});
             f.settle();
 
@@ -6435,6 +6453,8 @@ namespace pg
             const int world = life->save.world;
 
             f.ecs.sendEvent(PlaceSelectedEvent{"chapel"});
+            f.settle();
+            f.ecs.sendEvent(ButtonActivatedEvent{life->piece<Button>("begin")->face.id, "life.begin"});
             f.frames(12);
 
             // Done at once, and two years older for it
@@ -6693,6 +6713,8 @@ namespace pg
 
             // Raised, the fund is spent
             f.ecs.sendEvent(PlaceSelectedEvent{"chapel"});
+            f.settle();
+            f.ecs.sendEvent(ButtonActivatedEvent{life->piece<Button>("begin")->face.id, "life.begin"});
             f.settle();
 
             ASSERT_EQ(life->save.running, "raise.chapel.1");
@@ -8437,6 +8459,155 @@ namespace pg
 
             for (const auto& row : kitchen->rows)
                 EXPECT_EQ(row.label.find("Room for"), std::string::npos) << row.label;
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A thing sold at the market: a click chooses it and its button sells, and it stays chosen
+        // for the next press; All sells what is left in one press and one line of the log. Then
+        // its button stays where it was, greyed, and no Pass a month comes under the mouse until
+        // a press somewhere else. While at work it is sold the same, the work running on
+        TEST(lifescene_test, a_thing_sold_is_sold_by_its_button_all_of_it_by_all)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::first();
+            opt.lives = 2;
+            opt.age = 7.0f;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            life->save.townKnown = true;
+            life->save.stats["town_known"] = 1;
+            life->save.stats["berries"] = 15;
+            life->save.stats["coin"] = 0;
+            life->onMonth();
+            f.settle();
+
+            ASSERT_NE(stall(f, life, "sell.berries"), nullptr);
+            ASSERT_TRUE(life->save.running.empty());
+
+            auto begin = life->piece<Button>("begin");
+            auto all = life->piece<Button>("all");
+            ASSERT_NE(begin, nullptr);
+            ASSERT_NE(all, nullptr);
+
+            const int coinAtFirst = life->save.stats["coin"];
+
+            f.ecs.sendEvent(ActivitySelectedEvent{"town.market", "sell.berries"});
+            f.settle();
+
+            EXPECT_EQ(life->save.stats["berries"], 15);
+            EXPECT_TRUE(f.pos(life->named("begin"))->visible);
+            EXPECT_EQ(begin->spec.label, "Do it now");
+            EXPECT_TRUE(f.pos(life->named("all"))->visible);
+            EXPECT_FALSE(f.pos(life->named("skip"))->visible);
+
+            // One lot, and chosen still
+            f.ecs.sendEvent(ButtonActivatedEvent{begin->face.id, "life.begin"});
+            f.settle();
+
+            EXPECT_EQ(life->save.stats["berries"], 10);
+            EXPECT_EQ(life->save.stats["coin"], coinAtFirst + 1);
+            EXPECT_TRUE(f.pos(life->named("begin"))->visible);
+            EXPECT_EQ(begin->spec.label, "Do it now");
+            EXPECT_FALSE(begin->spec.disabled);
+
+            // The rest at once, said once
+            const size_t lines = life->save.log.size();
+
+            f.ecs.sendEvent(ButtonActivatedEvent{all->face.id, "life.all"});
+            f.settle();
+
+            EXPECT_EQ(life->save.stats["berries"], 0);
+            EXPECT_EQ(life->save.stats["coin"], coinAtFirst + 3);
+
+            int sold = 0;
+
+            for (size_t i = lines; i < life->save.log.size(); ++i)
+            {
+                const LogEntry& line = life->save.log[i];
+
+                if (line.text.find("Sell berries") == std::string::npos)
+                    continue;
+
+                ++sold;
+                EXPECT_NE(line.text.find("\xC3\x97" "2"), std::string::npos) << line.text;
+                EXPECT_NE(line.figure.find("+2"), std::string::npos) << line.figure;
+                EXPECT_NE(line.figure.find("10"), std::string::npos) << line.figure;
+            }
+
+            EXPECT_EQ(sold, 1);
+
+            // None left: the button where it was, greyed, and nothing in its place
+            EXPECT_TRUE(f.pos(life->named("begin"))->visible);
+            EXPECT_TRUE(begin->spec.disabled);
+            EXPECT_EQ(begin->spec.label, "None left");
+            EXPECT_FALSE(f.pos(life->named("skip"))->visible);
+            EXPECT_FALSE(f.pos(life->named("all"))->visible);
+
+            // A press on it does nothing; a press elsewhere lets it go
+            const auto face = f.pos(begin->face);
+            f.ecs.sendEvent(OnMouseClick{Point2D{face->x + 2.0f, face->y + 2.0f}, static_cast<MouseButton>(1)});
+            f.settle();
+
+            EXPECT_TRUE(f.pos(life->named("begin"))->visible);
+            EXPECT_FALSE(f.pos(life->named("skip"))->visible);
+
+            f.ecs.sendEvent(OnMouseClick{Point2D{1.0f, 1.0f}, static_cast<MouseButton>(1)});
+            f.settle();
+
+            EXPECT_TRUE(f.pos(life->named("skip"))->visible);
+            EXPECT_FALSE(f.pos(life->named("begin"))->visible);
+
+            // At work: a work of months begun, then berries sold under it, the work going on
+            auto list = life->piece<ActivityList>("activities");
+            ASSERT_NE(list, nullptr);
+
+            std::string work;
+
+            for (const auto& group : list->spec.groups)
+            {
+                for (const auto& row : group.rows)
+                {
+                    if (work.empty() and row.months >= 3 and row.state == ActivityState::Idle)
+                        work = row.id;
+                }
+            }
+
+            ASSERT_FALSE(work.empty());
+
+            f.ecs.sendEvent(ActivitySelectedEvent{"life.activities", work});
+            f.settle();
+            f.ecs.sendEvent(ButtonActivatedEvent{begin->face.id, "life.begin"});
+            f.settle();
+
+            ASSERT_EQ(life->save.running, work);
+            EXPECT_FALSE(f.pos(life->named("begin"))->visible);
+
+            life->save.stats["berries"] = 5;
+            life->onMonth();
+            f.settle();
+
+            ASSERT_EQ(life->save.running, work);
+
+            f.ecs.sendEvent(ActivitySelectedEvent{"town.market", "sell.berries"});
+            f.settle();
+
+            EXPECT_TRUE(f.pos(life->named("begin"))->visible);
+            EXPECT_EQ(begin->spec.label, "Do it now");
+
+            const int coin = life->save.stats["coin"];
+
+            f.ecs.sendEvent(ButtonActivatedEvent{begin->face.id, "life.begin"});
+            f.settle();
+
+            EXPECT_EQ(life->save.stats["berries"], 0);
+            EXPECT_EQ(life->save.stats["coin"], coin + 1);
+            EXPECT_EQ(life->save.running, work);
         }
 
         // ----------------------------------------------------------------------------------------

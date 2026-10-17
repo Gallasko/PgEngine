@@ -3,6 +3,35 @@
 What changed in the game, build by build, as a player sees it. The engine's own changes are in
 the `CHANGELOG.md` at the root of the repository.
 
+## Unreleased
+
+After comments on 0.6.1: a town that spent on one click, a tooltip stuck over the page, and
+hazelnuts sold one press at a time.
+
+### Changed
+
+- **The town works as the tasks do.** A click on a place of the town chooses its next work, as a
+  click on a task does: its tooltip and your parts say what it asks, and the button under *At
+  work now* begins it. A double click still starts it at once, on a place as on a task.
+- **Do it now while at work.** Something done at once (a sale, a buy) or an answer to an event
+  gets its button under your running work, months stopped or not.
+- **The button stays put.** What you did at once stays chosen for the next press. Once there is
+  none left, its button stays where it was, greyed (*None left*), until you click anywhere else:
+  *Pass a month* no longer comes up under a mouse still clicking.
+
+### New
+
+- **All.** Beside *Do it now*, for what you sell or make from what you hold (hides, berries,
+  hazelnuts, a remedy, rations): sells or makes as much as you can in one press, with one line in
+  the log.
+- **Tooltips on a touch screen.** Once a finger touches the screen, a tap on a task shows what it
+  asks, whatever the size of the screen, and it stays until the next tap.
+
+### Fixed
+
+- A tooltip could stay frozen over the page (one was seen for *Swear Service to the Keep*),
+  covering the tabs and buttons under it.
+
 ## 0.6.1 - 2026-10-17
 
 A hotfix for the events of a life (the Flood, the Levy, the Plague Year and the Old Lord's

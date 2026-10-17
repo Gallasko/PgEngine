@@ -446,6 +446,10 @@ namespace pg
                 inputHandler->registerMouseInput(event.button.button, Input::InputState::MOUSERELEASE);
                 break;
 
+            case SDL_FINGERDOWN:
+                ecs->sendEvent(OnSDLFingerDown{event.tfinger.x, event.tfinger.y});
+                break;
+
             case SDL_MOUSEMOTION:
             {
                 Point2D currentPos {static_cast<float>(event.motion.x), static_cast<float>(event.motion.y)};
