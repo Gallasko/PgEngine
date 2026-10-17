@@ -27,9 +27,11 @@
 //                         moves {move: {name, line}} (what each move of its script is called and
 //                         a line on it, for the gloss of what it means to do: "hold" is the move
 //                         of one that hangs back),
-//                         hp, least, most (its bite), guard, quick, verb ("bites"),
-//                         script [bite | circle | maul] (cycled), weak ("" or a technique's id),
-//                         trains (the part a kill teaches), xp, loot [{id, chance (percent), least, most}]}
+//                         hp, least, most (its bite), armour (taken off each blow of the body but a
+//                         pierce), ward (taken off each working), resist {type: percent} (negative:
+//                         weak to it; types cut, pierce, blunt, fire, frost, storm, holy), quick,
+//                         verb ("bites"), script [bite | circle | maul] (cycled),
+//                         lesson (what the first kill of it in a life teaches, a line for the log), loot [{id, chance (percent), least, most}]}
 //         `walkEvents` one table per event:
 //                        {id, trigger (seek | study | fight | rest | gather), weight, once (once per
 //                         life: a replay skips it), title, text,
@@ -54,7 +56,8 @@ import "algorithm"
 const walkKnobs = {
     daysAMonth: 30,         // A calendar month, in days: a walk blocks 2 x travel + stay, in whole months
     apPerDay: 1,            // Action points a day on site
-    woundCost: 5,           // Brought down where no one dies: carried home, and the most his Vitality can be is that much less
+    tickBase: 100,          // The timeline of a fight: an ordinary move holds one of speed s for 100 x tickBase / (speedFloor + s)
+    speedFloor: 10,         // so that who is twice as quick acts about twice as often
     turnsPerAp: 3,          // Turns of a fight to a day
     dexStep: 10,            // One more for every ten of Dexterity
     lowHp: 50,              // Under this share of his Vitality, in percent,
@@ -82,13 +85,47 @@ const walkKnobs = {
     hitMost: 95,
     critBase: 5,            // Percent, one more for each two of Guile
     critPower: 150,         // Percent of the blow
+    loreSees: 3,            // Lore from which a beast is known a level better than it has been seen
+    loreWeak: 5,            // And a weakness found deeper, percent a point of Lore
+    markTurns: 3,           // Turns of its own a mark, a wound or a broken armour lasts on a beast
+    burnShare: 6,           // Percent of its Vitality a burning beast loses at its turn
+    bleedShare: 5,          // And a bleeding one
+    chillWeight: 125,       // A chilled beast waits that much longer, percent
+    shockedTakes: 110,      // A shocked one takes every hit that much harder, percent
+    sunderResist: 25,       // A sundered one has no armour and resists that much less
+    poiseBlunt: 200,        // A blunt hit wears poise twice as fast,
+    finisherPoise: 300,     // a finisher thrice
+    staggerDelay: 100,      // A staggered beast's next turn is pushed back by an ordinary wait of its own
+    bossDelay: 50,          // A boss is held by a delay half as long
+    ambushBase: 50,         // Lying in wait: percent to strike first, at Stealth equal to the beasts' watch,
+    ambushStep: 5,          // and that much a point of Stealth over it (or under),
+    ambushLeast: 10,
+    ambushMost: 90,
+    ambushDelay: 50,        // and from cover the beasts are that late, percent of an ordinary wait
+    trapAp: 1,              // A trap set on the walk (who learned snares): days,
+    trapsMost: 2,           // how many he can watch,
+    trapDamage: 6,          // and what it does to the beast it holds, past any armour
+    leaderQuick: 3,         // While a leader stands, the beasts with it are that much quicker
+    fleeAt: 60,             // A beast that flees goes at its turn once under this share of its Vitality
+    flaskDamage: 10,        // A fire flask thrown: what it does to any beast, past its hide and what it resists
+    momentumMost: 3,        // The Keep's rhythm: blows landed to fill his momentum, which a finisher spends
+    braceCut: 75,           // Percent of what comes that a brace takes (a defend takes guardCut)
+    reactShatter: 200,      // The Collegium's rhythm: fire and frost shatter, percent of a working's roll,
+    reactFlare: 100,        // fire and storm flare on every beast standing,
+    freezeDelay: 150,       // frost and storm freeze: held, and its next turn pushed back that much
+    tempoPower: 15,         // The Hidden Hand's rhythm: percent more a hit for each of his on it since its last turn,
+    tempoCrit: 10,          // and percent more chance of a crit
+    stepDodge: 40,          // Step aside: percent more chance to step clear until his next action
+    windBreath: 2,          // Second wind: breath back,
+    windHeal: 10,           // and percent of his Vitality
     dodgeBase: 15,          // Percent: a bite from a beast as quick as he is
     dodgeStep: 2,           // For each point between his Dexterity and its quickness
     dodgeMost: 60,
     guardCut: 50,           // Percent a guard takes off what comes until his next turn
     potionAuto: 30,         // The stance drinks a remedy under this share of his Vitality
     sweepAuto: 3,           // And sweeps when this many stand
-    xpStep: 50,             // Points of practice to one point of the part: a kill is a little, never a month of work
+    rankUses: [10, 30, 60], // A technique used that often in fights rises a rank: a point of the part it trains,
+    rankPower: 10,          // and that much more power a rank
     eventChance: 35,        // Percent, after an action an event waits on
     replayHp: true,
     studyLevels: [0, 3, 6, 10],     // Studies of a zone, in all, to its knowledge 1 to 4: the first visit alone gives 1
@@ -111,6 +148,10 @@ const walkKnobs = {
 const walkItems = [
     {id: "rations", name: "Rations", one: "ration", glyph: "trade", kind: "food"},
     {id: "remedy", name: "Wortleaf remedies", one: "remedy", glyph: "vitality", kind: "remedy", heals: 30},
+    // What a fight spends, from the market: a flask thrown burns any beast the same, oil on his blade
+    // makes his blows holy for the fight (fightlib.pg's `itemActs`)
+    {id: "flask", name: "Fire flasks", one: "fire flask", glyph: "magic", kind: "fight"},
+    {id: "oil", name: "Blessed oil", one: "flask of blessed oil", glyph: "relic", kind: "fight"},
     {id: "berries", name: "Berries", one: "berries", glyph: "trade", kind: "sold", gather: "Brambles along the hedge, black with fruit by late summer.", lot: 5, coin: 1},
     {id: "wortleaf", name: "Wortleaf", one: "wortleaf", glyph: "study", kind: "sold", gather: "A low grey leaf the herbwives pay for. It hides at the foot of the hedge.", lot: 2, coin: 1},
     {id: "hazel", name: "Hazelnuts", one: "hazelnuts", glyph: "trade", kind: "sold", gather: "The hazels in the old part of the hedge, that only the hedge keeper's boys know of.", lot: 4, coin: 1},
@@ -120,6 +161,10 @@ const walkItems = [
     {id: "hides", name: "Hides", one: "hide", glyph: "adventure", kind: "sold", lot: 2, coin: 1},
     {id: "fangs", name: "Fangs", one: "fang", glyph: "relic", kind: "sold", lot: 2, coin: 1},
     {id: "antler", name: "White antlers", one: "white antler", glyph: "relic", kind: "sold", lot: 1, coin: 6},
+    {id: "beetle_shell", name: "Beetle shells", one: "beetle shell", glyph: "forge", kind: "sold", lot: 2, coin: 1},
+    {id: "pike_jaw", name: "The pike's jaw", one: "pike's jaw", glyph: "relic", kind: "sold", lot: 1, coin: 8},
+    {id: "grey_pelt", name: "The Old Grey's pelt", one: "grey pelt", glyph: "relic", kind: "sold", lot: 1, coin: 12},
+    {id: "shell_plate", name: "A plate of the Old Shell", one: "shell plate", glyph: "forge", kind: "sold", lot: 1, coin: 10},
     {id: "firewood", name: "Firewood", one: "firewood", glyph: "work", kind: "town", gather: "Deadfall and cuttings, bundled and carried home."},
     {id: "clay", name: "Clay", one: "clay", glyph: "work", kind: "town", gather: "Dug out of the bank, heavy and wet."},
     {id: "ashwood", name: "Ash wood", one: "ash wood", glyph: "work", kind: "town", gather: "Straight ash poles, felled and trimmed."},
@@ -169,10 +214,11 @@ const walkZones = [
              {until: 20, text: "The water is still, and it is never the water that moves first."},
              {until: 99, text: "He has stood at this pond in more years than he can name without counting."}],
      travel: 4, stayMin: 24, stayMax: 30,   // Two months
-     mobs: ["rat"],
+     mobs: ["rat", "nestrat"],
      spots: [{id: "reeds", ap: 1, least: 1, most: 2}, {id: "fish", ap: 2, least: 1, most: 4}, {id: "clay", ap: 3, least: 1, most: 3}],
-     ladder: [{task: "camp", level: 2}, {task: "fish", level: 3}, {task: "clay", level: 4}],
+     ladder: [{task: "camp", level: 2}, {task: "fish", level: 3}, {task: "nestrat*pack", level: 3}, {task: "clay", level: 4}],
      events: ["pond.heron"],
+     encounters: ["pike"],
      fromAge: 10, showFrom: 100,   // No row until he has explored the pond (activitytable.pg's `pond`): one place at a time
      sooner: {flag: "bargemen_tale", fromAge: 9},   // The bargemen's tale (activitytable.pg's `bargemen`)
      requires: [{stat: "know.found.millpond", label: "Explored the nearby pond"}],
@@ -188,6 +234,7 @@ const walkZones = [
      spots: [{id: "ashwood", ap: 3, least: 1, most: 3}],
      ladder: [{task: "camp", level: 2}, {task: "boar", level: 3}, {task: "wolf*pack", level: 4}, {task: "stag", level: 4}],
      events: ["hollow.hunter", "hollow.tracks"],
+     encounters: ["grey"],
      fromAge: 14,
      requires: [{stat: "know.study.hedgerows", label: "The Hedgerows known 4 of 4", needed: walkKnobs.studyLevels[3]},
                 {stat: "bow_learned", label: "Learned the bow, or a lodge in town", anyOf: ["bow_learned", "town.lodge"]}, {stat: "str", needed: 8}],
@@ -199,62 +246,138 @@ const walkZones = [
              {until: 22, text: "The stone is free to whoever carries it, which is why it is still here."},
              {until: 99, text: "He could walk the cut road blind. The adders would rather he did not."}],
      travel: 5, stayMin: 24, stayMax: 30,   // Two months
-     mobs: ["adder"],
+     mobs: ["adder", "beetle"],
      spots: [{id: "stone", ap: 3, least: 1, most: 2}, {id: "wortleaf", ap: 2, least: 1, most: 2}],
-     ladder: [{task: "camp", level: 2}, {task: "wortleaf", level: 3}],
+     ladder: [{task: "camp", level: 2}, {task: "wortleaf", level: 3}, {task: "beetle*pack", level: 3}],
      events: ["quarry.cart"],
+     encounters: ["shell"],
      fromAge: 14,
      requires: [{stat: "know.study.millpond", label: "Mill Pond known 4 of 4", needed: walkKnobs.studyLevels[3]}],
      opens: "Stone for the town, and an adder or two under it; wortleaf as he learns the road."}
 ]
 
 const walkMobs = [
+    // Mill Pond: where a boy learns to fight. One rat at a time, a nest of them, and the pike
     {id: "rat", name: "Water rat", many: "water rats", pack: "", lone: "", rarity: "common", packSize: 1, holdsBack: 0,
      about: "Fat on the miller's grain, and not afraid of a boy.",
-     hp: 14, least: 3, most: 5, guard: 0, quick: 5, verb: "bites",
+     hp: 14, least: 3, most: 5, armour: 0, ward: 0, quick: 5, awareness: 3, poise: 0, verb: "bites",
      moves: {bite: {name: "Bite", line: "A quick nip at whatever is nearest."},
              circle: {name: "Skitter", line: "It backs off and looks for a way round."}},
-     script: ["bite", "circle"], weak: "",
-     trains: "dex", xp: 3,
-     loot: [{id: "hides", chance: 75, least: 1, most: 1}]},
+     script: ["bite", "circle"],
+     lesson: "The water rat's lesson: it bites and backs off, and backs off again. Strike as it comes in.",
+     loot: [{id: "hides", chance: 75, least: 1, most: 2}]},
 
+    {id: "nestrat", name: "Nest rat", many: "nest rats", pack: "Rat nest", lone: "A nest rat", rarity: "common", packSize: 4, holdsBack: 0, roles: ["swarm"],
+     about: "Small and many, and all of them at once. One blow ends one of them; it is the count that hurts.",
+     hp: 6, least: 1, most: 3, armour: 0, ward: 0, quick: 6, awareness: 4, poise: 0, verb: "bites",
+     moves: {bite: {name: "Bite", line: "Small teeth, and more of them than he can watch."},
+             circle: {name: "Scatter", line: "They scatter and come back from every side."}},
+     script: ["bite", "bite", "circle"],
+     lesson: "The nest's lesson: a blow at every one of them is worth three at one.",
+     loot: [{id: "hides", chance: 25, least: 1, most: 1}]},
+
+    {id: "pike", name: "The Old Pike", many: "old pikes", pack: "", lone: "", rarity: "rare", packSize: 1, holdsBack: 0,
+     about: "Older than the mill, the millers say, and longer than a man. The water goes still before it comes.",
+     hp: 60, least: 6, most: 9, armour: 1, ward: 0, quick: 4, awareness: 6, poise: 20, verb: "bites", resist: {pierce: -25},
+     moves: {circle: {name: "Still water", line: "The water goes flat and quiet. What comes next comes fast."},
+             maul: {name: "Lunge", line: "All of it out of the water at once, jaws first."}},
+     script: ["circle", "maul"],
+     lesson: "The pike's lesson: when the water goes still, defend.",
+     loot: [{id: "fish", chance: 100, least: 3, most: 5}]},
+
+    // The Hollow Woods: packs and a brute, a rare stag, and the wolves' leader
     {id: "wolf", name: "Wolf", many: "wolves", pack: "Wolf pack", lone: "A lone wolf", rarity: "common", packSize: 3, holdsBack: 2,
      about: "Lean and grey. It never comes alone for long.",
-     hp: 16, least: 3, most: 5, guard: 1, quick: 9, verb: "bites",
+     hp: 16, least: 3, most: 5, armour: 1, ward: 0, quick: 9, awareness: 8, poise: 0, verb: "bites",
      moves: {bite: {name: "Bite", line: "It goes for the leg, to bring him down."},
              circle: {name: "Circle", line: "It keeps its distance and looks for an opening."},
              hold: {name: "Hang back", line: "It waits behind the others, for one of them to fall."}},
-     script: ["bite", "circle", "bite"], weak: "sweep",
-     trains: "str", xp: 2,
-     loot: [{id: "pelts", chance: 100, least: 1, most: 1}, {id: "fangs", chance: 40, least: 1, most: 1}]},
+     script: ["bite", "circle", "bite"],
+     lesson: "The wolf's lesson: a pack waits on its leader, and the ones behind wait for one in front to fall.",
+     loot: [{id: "pelts", chance: 100, least: 1, most: 2}, {id: "fangs", chance: 40, least: 1, most: 2}]},
 
-    {id: "boar", name: "Boar", many: "boars", pack: "", lone: "", rarity: "uncommon", packSize: 1, holdsBack: 0,
-     about: "Old, heavy, and of the opinion that the wood is his.",
-     hp: 32, least: 5, most: 8, guard: 2, quick: 5, verb: "gores",
+    {id: "oldgrey", name: "The Old Grey", many: "old greys", pack: "", lone: "", rarity: "rare", packSize: 1, holdsBack: 0, roles: ["leader"],
+     about: "Grey to the muzzle and bigger than any wolf has a right to be. The pack goes where he goes, and is quicker for it.",
+     hp: 55, least: 6, most: 9, armour: 1, ward: 0, quick: 11, awareness: 12, poise: 25, verb: "bites",
+     moves: {bite: {name: "Bite", line: "It goes for the throat, and holds."},
+             circle: {name: "Circle", line: "He watches, and his wolves move with him."},
+             maul: {name: "Spring", line: "His whole weight, from further than a wolf can leap."}},
+     script: ["bite", "circle", "maul"],
+     phases: [{at: 50, line: "The Old Grey howls. The wood answers.", quick: 13, calls: {mob: "wolf", count: 1}}],
+     lesson: "The Old Grey's lesson: while he stands, his wolves are quicker. Hurt him and the wood answers.",
+     loot: [{id: "pelts", chance: 100, least: 1, most: 2}]},
+
+    {id: "boar", name: "Boar", many: "boars", pack: "", lone: "", rarity: "uncommon", packSize: 1, holdsBack: 0, roles: ["brute"],
+     about: "Old, heavy, and of the opinion that the wood is his. An edge slides off its hide.",
+     hp: 32, least: 5, most: 8, armour: 2, ward: 0, quick: 5, awareness: 6, poise: 20, verb: "gores", resist: {cut: 50, blunt: -25},
      moves: {bite: {name: "Gore", line: "A sideways rip of the tusks."},
              maul: {name: "Charge", line: "Its whole weight, head down."},
              circle: {name: "Paw the ground", line: "It gathers itself. What comes next is worse."}},
-     script: ["circle", "bite", "maul"], weak: "feint",
-     trains: "str", xp: 5,
-     loot: [{id: "hides", chance: 100, least: 1, most: 2}, {id: "fangs", chance: 40, least: 1, most: 2}]},
+     script: ["circle", "bite", "maul"],
+     lesson: "The boar's lesson: an edge slides off its hide, but a hammer does not. When it paws the ground, the charge comes next.",
+     loot: [{id: "hides", chance: 100, least: 1, most: 3}, {id: "fangs", chance: 40, least: 1, most: 3}]},
 
-    {id: "stag", name: "White Stag", many: "white stags", pack: "", lone: "", rarity: "rare", packSize: 1, holdsBack: 0,
-     about: "White as a shroud. The Keep's hunters have followed it for years.",
-     hp: 30, least: 5, most: 8, guard: 1, quick: 14, verb: "strikes",
+    {id: "stag", name: "White Stag", many: "white stags", pack: "", lone: "", rarity: "rare", packSize: 1, holdsBack: 0, roles: ["flees"],
+     about: "White as a shroud. The Keep's hunters have followed it for years. Hurt, it does not stay.",
+     hp: 30, least: 5, most: 8, armour: 1, ward: 0, quick: 14, awareness: 14, poise: 0, verb: "strikes", resist: {pierce: -25},
      moves: {bite: {name: "Antlers", line: "A lowered head and a toss."},
              circle: {name: "Wheel away", line: "It is gone between the oaks, and back from another side."}},
-     script: ["circle", "circle", "bite"], weak: "heavy",
-     trains: "dex", xp: 8,
-     loot: [{id: "hides", chance: 100, least: 2, most: 2}, {id: "antler", chance: 50, least: 1, most: 1}]},
+     script: ["circle", "circle", "bite"],
+     lesson: "The White Stag's lesson: it does not stay to be killed. Hurt it, and it is gone at its next turn.",
+     loot: [{id: "hides", chance: 100, least: 2, most: 3}, {id: "antler", chance: 50, least: 1, most: 1}]},
 
-    {id: "adder", name: "Stone adder", many: "stone adders", pack: "", lone: "", rarity: "uncommon", packSize: 1, holdsBack: 0,
-     about: "The colour of the stone it sleeps on.",
-     hp: 12, least: 5, most: 9, guard: 0, quick: 12, verb: "strikes",
+    // The Quarry Road: quick adders, and shells an edge cannot open
+    {id: "adder", name: "Stone adder", many: "stone adders", pack: "", lone: "", rarity: "uncommon", packSize: 1, holdsBack: 0, roles: ["skirmisher"],
+     about: "The colour of the stone it sleeps on. Faster than the eye.",
+     hp: 12, least: 5, most: 9, armour: 0, ward: 0, quick: 12, awareness: 10, poise: 0, verb: "strikes", resist: {blunt: 25},
      moves: {bite: {name: "Strike", line: "Faster than the eye. The bite itself is small."},
              circle: {name: "Coil", line: "It draws back on itself."}},
-     script: ["circle", "bite"], weak: "feint",
-     trains: "dex", xp: 4,
-     loot: [{id: "fangs", chance: 100, least: 1, most: 3}]}
+     script: ["circle", "bite"],
+     lesson: "The adder's lesson: it coils before it strikes. Quick blows, before it strikes again.",
+     loot: [{id: "fangs", chance: 100, least: 1, most: 4}]},
+
+    {id: "beetle", name: "Shell beetle", many: "shell beetles", pack: "Shell beetles", lone: "A shell beetle", rarity: "common", packSize: 2, holdsBack: 0, roles: ["armoured"],
+     about: "As big as a dog, and plated like a knight. An edge skids off it; a hammer cracks it.",
+     hp: 18, least: 3, most: 6, armour: 4, ward: 0, quick: 4, awareness: 4, poise: 12, verb: "bites", resist: {cut: 50, blunt: -50},
+     moves: {bite: {name: "Mandibles", line: "A pinch that does not let go at once."},
+             circle: {name: "Hunker", line: "It draws in under its plates."}},
+     script: ["bite", "circle"],
+     lesson: "The beetle's lesson: the point goes between the plates, and the hammer through them.",
+     loot: [{id: "beetle_shell", chance: 80, least: 1, most: 2}]},
+
+    {id: "oldshell", name: "The Old Shell", many: "old shells", pack: "", lone: "", rarity: "rare", packSize: 1, holdsBack: 0, roles: ["brute", "armoured"],
+     about: "A beetle the size of a cart, its back grown over with lichen. Its stone shell turns an edge and a working alike.",
+     hp: 60, least: 10, most: 14, armour: 6, ward: 4, quick: 4, awareness: 5, poise: 40, verb: "crushes", resist: {cut: 75, blunt: -25, fire: -25},
+     moves: {circle: {name: "Settle", line: "It sinks onto its legs. The ground shakes when it rises."},
+             maul: {name: "Crush", line: "All of its weight, brought down."}},
+     script: ["circle", "maul"],
+     phases: [{at: 50, line: "The Old Shell's back cracks open.", armour: 1, ward: 0, quick: 6, resist: {cut: 0, blunt: -50, fire: -25}}],
+     lesson: "The Old Shell's lesson: hammer it until the shell cracks; after that, anything will do.",
+     loot: [{id: "beetle_shell", chance: 100, least: 2, most: 4}]}
+]
+
+// What a walk may meet besides one beast or a pack of it: beasts of several kinds in one fight
+// (encounterlib.pg). `foes` [{mob, count}] in the order they stand; listed once the place is
+// known `level` of 4, found as a beast of its `rarity` is; `boss` (bool), `gives` [{stat, amount}]
+// and `lore` (a line for the life's log) are a boss's
+const walkEncounters = [
+    // Mill Pond's: the pike under the weir, for a boy who has learned to defend
+    {id: "pike", name: "The Old Pike", line: "Under the weir, where the water is deepest. When the water goes still, it comes.",
+     foes: [{mob: "pike", count: 1}], boss: true, level: 4, rarity: "rare",
+     gives: [{stat: "pike_jaw", amount: 1}, {stat: "pike_slain", amount: 1}],
+     lore: "The Old Pike is dead. The millers will say it was older than the mill until there is no one left who saw it."},
+
+    // The Quarry Road's: the Old Shell, that a hammer opens
+    {id: "shell", name: "The Old Shell", line: "In the deepest cut of the quarry, a shell the size of a cart. It does not move for a boy.",
+     foes: [{mob: "oldshell", count: 1}], boss: true, level: 4, rarity: "rare",
+     gives: [{stat: "shell_plate", amount: 1}, {stat: "shell_slain", amount: 1}],
+     lore: "Under the Old Shell, where it had lain for years, the quarry stone is carved: marks no quarryman made."},
+
+    // The Hollow Woods': the wolves' leader, with his own
+    {id: "grey", name: "The Old Grey", line: "The pack's leader, with two of his wolves.",
+     foes: [{mob: "oldgrey", count: 1}, {mob: "wolf", count: 2}], boss: true, level: 4, rarity: "rare",
+     gives: [{stat: "grey_pelt", amount: 1}, {stat: "grey_slain", amount: 1}],
+     lore: "The Old Grey is dead. The Hollow is quiet for a season, and the Keep's hunters drink to a boy."}
 ]
 
 const walkEvents = [
@@ -324,53 +447,91 @@ const walkEvents = [
 ]
 
 // What a fight offers besides the four things anyone can do (strike, defend, take a remedy,
-// flee): what he has learned in his life, and nothing he has not. A blow is of the body and a
-// spell of the mind; both cost breath. `knows` is the flags that teach it (any one of them:
-// what a class gives, or a work here and there, activitytable.pg), `where` it is learned,
-// as its tile says. `power` and `hit` are against a strike's (percent of its blow, points of its
-// chance); a spell's blow is counted from his Intelligence, not from his Strength and Arms.
-// `breath: 0` costs nothing, and says nothing of breath: who has learned only that is not told of it.
-// `cool` is the turns before it can be used again; `all` strikes every beast standing; `holds`
-// deals nothing, and the beast aimed at loses its next move.
+// flee): what he has learned in his life, and nothing he has not, all of it in every fight.
+// `kind`: a "blow" of the body, a "spell" of the mind, a "way" (a trick or a stance that deals
+// nothing). `damage`: cut, pierce, blunt, fire, frost, storm, holy, or "" for what deals nothing.
+// `knows` is the flags that teach it (any one of them: what a class gives, or a work here and
+// there, activitytable.pg), `where` it is learned, as its tile says. `power` and `hit` are
+// against a strike's (percent of its blow, points of its chance); a spell's blow is counted from
+// his Intelligence and Arcana, not from his Strength and Arms. `weight`: the time it holds him
+// before his next action, percent of an ordinary move. `breath: 0` costs nothing, and says
+// nothing of breath: who has learned only that is not told of it. `cool` is his actions before it
+// can be used again; `all` strikes every beast standing; `holds` deals nothing, and the beast
+// aimed at loses its next move (`mark`: and the element it leaves). `finisher` asks his momentum
+// full and spends it (the Keep's rhythm); `opener` costs no time as the first thing he does in a
+// fight; `exposes` leaves the beast exposed; `effect`: "step" (dodge far up until his next
+// action), "read" (the beast known 3 of 4 for the fight), "wind" (breath back and a little
+// Vitality), "brace" (a defend that keeps his momentum). `trains` is the part a technique used
+// often raises (its ranks).
 const walkTechniques = [
     // A boy's: what the wooden blade taught him, the edge or the point and never both
-    // (activitytable.pg's `slashes` and `stabs`). A better way to strike, no more: it costs no
-    // breath and waits for nothing (`breath: 0`, `cool: 0`), and is his every turn. A little of
-    // each way: more blow for less aim, or more aim for less blow
-    {id: "slash", name: "Slash", kind: "blow", breath: 0, cool: 0, power: 130, hit: -10, all: false, holds: false,
+    // (activitytable.pg's `slashes` and `stabs`). A better way to strike: it costs no breath and
+    // waits for nothing, and every blow that lands builds momentum
+    {id: "slash", name: "Slash", kind: "blow", damage: "cut", breath: 0, cool: 0, power: 130, hit: -10, weight: 110, all: false, holds: false, trains: "str",
      knows: ["slash_learned"], where: "THE WOODEN BLADE", line: "The whole arm behind it: it bites deeper, and misses more"},
-    {id: "thrust", name: "Thrust", kind: "blow", breath: 0, cool: 0, power: 90, hit: 15, all: false, holds: false,
-     knows: ["thrust_learned"], where: "THE WOODEN BLADE", line: "The point, straight: it seldom misses"},
+    {id: "thrust", name: "Thrust", kind: "blow", damage: "pierce", breath: 0, cool: 0, power: 90, hit: 15, weight: 70, all: false, holds: false, trains: "dex",
+     knows: ["thrust_learned"], where: "THE WOODEN BLADE", line: "The point, straight and quick: it seldom misses, and goes through armour"},
 
-    // The Keep's: what its sworn men are drilled in, and what a campaign teaches
-    {id: "heavy", name: "Heavy cut", kind: "blow", breath: 2, cool: 2, power: 170, hit: -15, all: false, holds: false,
-     knows: ["keep_oath", "levy_served"], where: "THE KEEP", line: "A slow, full blow"},
-    {id: "sweep", name: "Sweep", kind: "blow", breath: 3, cool: 3, power: 70, hit: 0, all: true, holds: false,
-     knows: ["veteran"], where: "THE CAMPAIGN", line: "One blow at every beast standing"},
+    // The smithy's: who has learned to temper swings a hammer as he would at the anvil, and
+    // what turns an edge does not turn a hammer
+    {id: "hammer", name: "Hammer blow", kind: "blow", damage: "blunt", breath: 0, cool: 0, power: 110, hit: 0, weight: 120, all: false, holds: false, trains: "str",
+     knows: ["smith_apprentice"], where: "THE SMITHY", line: "A heavy blow that no hide turns"},
 
-    // The Collegium's: a first working, and what Magister Orin shows his assistant
-    {id: "firebolt", name: "Firebolt", kind: "spell", breath: 2, cool: 1, power: 100, hit: 15, all: false, holds: false,
-     knows: ["collegium"], where: "THE COLLEGIUM", line: "A working thrown like a stone: it seldom misses"},
-    {id: "binding", name: "Binding word", kind: "spell", breath: 2, cool: 3, power: 0, hit: 0, all: false, holds: true,
-     knows: ["orin_known"], where: "MAGISTER ORIN", line: "The beast aimed at is held, and loses its next move"},
+    // The yard's bow: a shot before the beast closes
+    {id: "bow", name: "Bow shot", kind: "blow", damage: "pierce", breath: 0, cool: 0, power: 90, hit: 10, weight: 100, all: false, holds: false, opener: true, trains: "dex",
+     knows: ["bow_learned"], where: "THE YARD", line: "An arrow loosed before it is on him: the first one costs no time"},
 
-    // The smuggler's one trick: a fistful of sand. It costs no breath, and he has to find more
-    // sand before the next (`cool`)
-    {id: "sand", name: "Sand in the eyes", kind: "blow", breath: 0, cool: 3, power: 0, hit: 0, all: false, holds: true,
-     knows: ["smuggler_runner"], where: "THE SMUGGLER", line: "The beast aimed at is blinded, and loses its next move"},
+    // The Bellmoor Boys' oath: a kick where it hurts, and the beast is open
+    {id: "kick", name: "Dirty kick", kind: "blow", damage: "blunt", breath: 0, cool: 2, power: 50, hit: 10, weight: 60, all: false, holds: false, exposes: 1, trains: "dex",
+     knows: ["boys_sworn"], where: "THE BELLMOOR BOYS", line: "Quick and low: it leaves the beast open to his next blow"},
+
+    // The Keep's: what its sworn men are drilled in, and what a campaign teaches. Finishers:
+    // they ask three blows landed first, and spend them
+    {id: "heavy", name: "Heavy cut", kind: "blow", damage: "cut", breath: 0, cool: 0, power: 200, hit: -5, weight: 150, all: false, holds: false, finisher: true, trains: "str",
+     knows: ["keep_oath", "levy_served"], where: "THE KEEP", line: "A slow, full blow that spends his momentum: half of what the beast resists is gone"},
+    {id: "sweep", name: "Sweep", kind: "blow", damage: "cut", breath: 0, cool: 0, power: 90, hit: 0, weight: 150, all: true, holds: false, finisher: true, trains: "str",
+     knows: ["veteran"], where: "THE CAMPAIGN", line: "One blow at every beast standing, that spends his momentum"},
 
     // Learned here and there: the streets teach it, and so does the Hidden Hand
-    {id: "feint", name: "Feint and step", kind: "blow", breath: 1, cool: 1, power: 80, hit: 20, all: false, holds: false,
+    {id: "feint", name: "Feint and step", kind: "blow", damage: "pierce", breath: 1, cool: 1, power: 80, hit: 20, weight: 60, all: false, holds: false, trains: "dex",
      knows: ["street_known", "hidden_hand"], where: "THE STREETS", line: "A sure blow, and he is hard to bite after it"},
+
+    // Ways: what deals nothing and changes the fight. The smuggler's fistful of sand (he has to
+    // find more sand before the next), the rooftops' quick feet, the Watch's way of taking a
+    // blow, and the yard's breathing
+    {id: "sand", name: "Sand in the eyes", kind: "way", damage: "", breath: 0, cool: 3, power: 0, hit: 0, weight: 60, all: false, holds: true,
+     knows: ["smuggler_runner"], where: "THE SMUGGLER", line: "The beast aimed at is blinded, and loses its next move"},
+    {id: "step", name: "Step aside", kind: "way", damage: "", breath: 0, cool: 2, power: 0, hit: 0, weight: 50, all: false, holds: false, effect: "step",
+     knows: ["rooftop_runner"], where: "THE ROOFTOPS", line: "Light on his feet: what comes before his next action seldom finds him"},
+    {id: "brace", name: "Brace", kind: "way", damage: "", breath: 0, cool: 0, power: 0, hit: 0, weight: 100, all: false, holds: false, effect: "brace", trains: "discipline",
+     knows: ["watch_known"], where: "THE WATCH", line: "Feet set, shield up: most of what comes is taken, and his momentum kept"},
+    {id: "wind", name: "Second wind", kind: "way", damage: "", breath: 0, cool: 4, power: 0, hit: 0, weight: 60, all: false, holds: false, effect: "wind",
+     knows: ["yard_breathing"], where: "THE YARD'S BREATHING", line: "In on the step, out on the blow: breath back, and a little strength"},
+
+    // A boy's first workings: reading a beast, a spark, a rime, and the chapel's blessing
+    {id: "read", name: "Read the beast", kind: "spell", damage: "", breath: 1, cool: 0, power: 0, hit: 0, weight: 60, all: false, holds: false, effect: "read",
+     knows: ["letters"], where: "HIS LETTERS", line: "He sees what it is and what it means to do: known 3 of 4 for this fight"},
+    {id: "spark", name: "Spark", kind: "spell", damage: "fire", breath: 1, cool: 0, power: 60, hit: 15, weight: 100, all: false, holds: false, trains: "int",
+     knows: ["forbidden_read"], where: "THE FORBIDDEN SHELF", line: "A small fire from nothing: it leaves the beast burning"},
+    {id: "rime", name: "Rime", kind: "spell", damage: "frost", breath: 1, cool: 0, power: 60, hit: 15, weight: 100, all: false, holds: false, trains: "int",
+     knows: ["mara_student"], where: "MARA", line: "A breath of frost: it leaves the beast chilled, and frost on a burning beast shatters"},
+    {id: "blessing", name: "Blessing", kind: "spell", damage: "holy", breath: 1, cool: 1, power: 80, hit: 15, weight: 100, all: false, holds: false, trains: "int",
+     knows: ["anselm_trust"], where: "FATHER ANSELM", line: "The office said aloud: what is not of this world cannot bear it"},
+
+    // The Collegium's: a first working, and what Magister Orin shows his assistant
+    {id: "firebolt", name: "Firebolt", kind: "spell", damage: "fire", breath: 2, cool: 1, power: 100, hit: 15, weight: 100, all: false, holds: false, trains: "arcana",
+     knows: ["collegium"], where: "THE COLLEGIUM", line: "A working thrown like a stone: it seldom misses, and leaves the beast burning"},
+    {id: "binding", name: "Binding word", kind: "spell", damage: "", breath: 2, cool: 3, power: 0, hit: 0, weight: 100, all: false, holds: true,
+     knows: ["orin_known"], where: "MAGISTER ORIN", line: "The beast aimed at is held, and loses its next move"},
 
     // A second calling's: what the Elemental Chair teaches, and the elements a Spellwright has
     // bound that a fight can use (activitytable.pg's `bind`: its third and its fourth)
-    {id: "frostbind", name: "Frostbind", kind: "spell", breath: 0, cool: 3, power: 0, hit: 0, all: false, holds: true,
+    {id: "frostbind", name: "Frostbind", kind: "spell", damage: "", breath: 0, cool: 3, power: 0, hit: 0, weight: 100, all: false, holds: true, mark: "frost",
      knows: ["spellwright"], where: "THE ELEMENTAL CHAIR", line: "The beast aimed at is held in frost, and loses its next move"},
-    {id: "firebolt2", name: "Firebolt II", kind: "spell", breath: 2, cool: 1, power: 150, hit: 15, all: false, holds: false,
+    {id: "firebolt2", name: "Firebolt II", kind: "spell", damage: "fire", breath: 2, cool: 1, power: 150, hit: 15, weight: 100, all: false, holds: false, trains: "arcana",
      knows: ["firebolt2_bound"], where: "THE BOUND ELEMENTS", line: "The first working, bound to him: it bites half again as deep"},
-    {id: "chain", name: "Chain lightning", kind: "spell", breath: 3, cool: 3, power: 90, hit: 0, all: true, holds: false,
-     knows: ["chain_bound"], where: "THE BOUND ELEMENTS", line: "One working through every beast standing"}
+    {id: "chain", name: "Chain lightning", kind: "spell", damage: "storm", breath: 3, cool: 3, power: 90, hit: 0, weight: 120, all: true, holds: false, trains: "arcana",
+     knows: ["chain_bound"], where: "THE BOUND ELEMENTS", line: "One working through every beast standing: it leaves them shocked"}
 ]
 
 // `deals` and `takes` are percent of what he deals and of what he takes.

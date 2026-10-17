@@ -3,6 +3,57 @@
 What changed in the game, build by build, as a player sees it. The engine's own changes are in
 the `CHANGELOG.md` at the root of the repository.
 
+## 0.7 - unreleased: the fight
+
+The walks become the heart of a life: a fight is now about how you fight, and what you learned
+growing up is what you bring.
+
+### New
+
+- **Who is quicker acts more often.** A fight is no longer rounds. The order of the turn shows
+  the next six actions, yours first; a quick move (a thrust, a step aside) brings your next
+  action sooner, a heavy one (a finisher) later.
+- **Kinds of blows, and beasts that resist them.** A blow cuts, pierces or crushes; a working
+  burns, freezes, shocks, or is holy. A boar's hide turns an edge but not a hammer; a beetle's
+  plates stop a cut but not a point. Armour stops blows (a pierce goes through), a ward stops
+  workings. Once you know a beast well, every move says *WEAK* or *RESISTED* against it, and a
+  beast's tooltip says what it is weak to and what it resists. Lore knows a beast a level better,
+  and finds its weakness deeper.
+- **What is on a beast.** Burning hurts it at its turn, chilled slows it, shocked makes every hit
+  bite harder, exposed means your next hit is a sure crit. A big beast has poise: wear it down
+  (a hammer twice as fast) and it staggers, its next turn far off and its guard open.
+- **Four ways to fight.** *The Keep*: every blow that lands builds momentum, and at three a
+  finisher (*Heavy cut*, *Sweep*) spends it and goes through half of what the beast resists;
+  defending costs a point, *Brace* keeps it. *The Collegium*: one element leaves its mark, a
+  second sets it off (fire and frost *Shatter*, fire and storm *Flare* on all of them, frost and
+  storm *Freeze*). *The Hidden Hand*: each hit before the beast's turn bites harder and crits more.
+  *The Greenwood*: traps set on the walk, and a *Bow shot* that costs no time as your first action.
+- **A boy's first tools.** *Learn to Temper* teaches a *Hammer blow*, the yard's bow a *Bow shot*,
+  its breathing a *Second wind*, the rooftops *Step aside*, the Boys' oath a *Dirty kick* and
+  turning them in *Brace*, your letters *Read the beast*, the forbidden shelf *Spark*, the
+  sacristan's keys a *Blessing*, Mara a *Rime*. Following the hunters finds beasts a day sooner
+  and skins them better. Everything you have learned is yours in every fight.
+- **How to meet it.** Who can hide, has set a trap or holds a ration for a pack chooses how to
+  meet a beast found: lie in wait, lead it into the snare, draw one off, or leave it be.
+- **A fire flask and blessed oil**, from the market: a flask burns any beast the same, past its
+  hide; oil makes your blows holy for the fight.
+- **New beasts.** A rat nest and the Old Pike at Mill Pond, shell beetles and the Old Shell on the
+  Quarry Road, and the Old Grey, who leads his wolves and calls the wood when hurt. The White Stag
+  bolts once hurt.
+- **Bosses.** The Old Pike, the Old Shell and the Old Grey are met by choice, from a place known
+  4 of 4, and beaten once a life, for a trophy and a page of the town's story. Fall to one and the
+  life ends there.
+
+### Changed
+
+- **A kill trains nothing in you.** The first kill of each kind of beast in a life is a lesson
+  about it (it is known 3 of 4 from then on), and beasts leave a little more. A technique used
+  often rises a rank: a little stronger, and a point of what it trains.
+- **Brought down, you lose the walk, not your health.** Carried home from an ordinary fight, you
+  lose what the walk had gathered, and no longer any of your most Vitality.
+- **Blows aim with Dexterity**, workings with Intelligence; a working is no longer stopped by
+  armour, and Arcana makes it stronger.
+
 ## Unreleased
 
 After comments on 0.6.1: a town that spent on one click, a tooltip stuck over the page, and

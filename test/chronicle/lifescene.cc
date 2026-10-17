@@ -7394,7 +7394,8 @@ namespace pg
 
             EXPECT_EQ(tabs->tabs[2].notice, 0);
             ASSERT_NE(zones->tile("walk.millpond"), nullptr);
-            EXPECT_EQ(zones->tile("walk.millpond")->spec.line.rfind("FORAGE \xC2\xB7 1 BEAST \xC2\xB7 ", 0), 0u);
+            // (its beasts: the rats and their nest)
+            EXPECT_EQ(zones->tile("walk.millpond")->spec.line.rfind("FORAGE \xC2\xB7 2 BEASTS \xC2\xB7 ", 0), 0u);
             EXPECT_EQ(zones->tile("walk.millpond")->spec.level, 0);
             EXPECT_EQ(zonePanel->aside->spec.text.rfind("2 OPEN", 0), 0u);
 
@@ -8667,13 +8668,21 @@ namespace pg
             EXPECT_NEAR(account->y + account->height, column->y + column->height, 24.0f);
             EXPECT_LE(account->y + account->height, column->y + column->height + 0.5f);
 
-            // He, the rat, he again: three places stand, the others are out of the stack
+            // The next six actions on the timeline, his first, the rat among them: all six places stand
             EXPECT_EQ(walkPart(life, "chip0")->get<Label>()->spec.text.rfind("1 \xC2\xB7 ALDREN", 0), 0u);
             EXPECT_NE(walkPart(life, "chip0")->get<Label>()->spec.text.find("NOW"), std::string::npos);
-            EXPECT_NE(walkPart(life, "chip1")->get<Label>()->spec.text.find("WATER RAT"), std::string::npos);
-            EXPECT_TRUE(f.pos(walkPart(life, "chip2"))->visible);
-            EXPECT_FALSE(f.pos(walkPart(life, "chip3"))->visible);
-            EXPECT_FALSE(f.pos(walkPart(life, "chip5"))->visible);
+
+            bool ratComes = false;
+
+            for (int c = 1; c < 6; ++c)
+            {
+                EXPECT_TRUE(f.pos(walkPart(life, "chip" + std::to_string(c)))->visible);
+
+                if (walkPart(life, "chip" + std::to_string(c))->get<Label>()->spec.text.find("WATER RAT") != std::string::npos)
+                    ratComes = true;
+            }
+
+            EXPECT_TRUE(ratComes);
 
             // A narrower window, in three columns still: the same screen and the same buttons,
             // his turn's panel narrower and the right column against the window's edge
@@ -8698,6 +8707,156 @@ namespace pg
             EXPECT_GT(f.pos(walkPart(life, "chip2"))->y, f.pos(walkPart(life, "chip1"))->y + 4.0f);
             EXPECT_GT(f.pos(walkPart(life, "quick"))->y, f.pos(walkPart(life, "chip2"))->y + 4.0f);
             EXPECT_LE(f.pos(walkPart(life, "quick"))->y + f.pos(walkPart(life, "quick"))->height, order->y + order->height + 0.5f);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The fight's page shows what the rules say of it: the next six actions, his first; what
+        // is on a beast on its panel; his blows on a line, his workings on the next.
+        TEST(lifescene_test, a_fight_shows_its_timeline_and_what_he_knows)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.fresh = true;
+            opt.lives = 2;
+            opt.age = 7.0f;
+            opt.walkSeed = 11;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            // A boy of ten whose world has found the pond, who has the edge and a spark
+            life->save.age = 10.0f;
+            life->save.stats["walked.hedgerows"] = 1;
+            life->save.stats["slash_learned"] = 1;
+            life->save.stats["forbidden_read"] = 1;
+            life->save.stats["int"] = 12;
+            life->save.knowledge["found.millpond"] = 1;
+            life->onMonth();
+            f.settle();
+
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "walk.millpond"});
+            f.frames(12);
+            ASSERT_TRUE(life->onWalk());
+
+            f.ecs.sendEvent(ActivitySelectedEvent{"walk.seeks", "rat"});
+            f.settle();
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.seek"});
+            f.frames(12);
+            answerEvents(f, life);
+            f.frames(12);
+
+            ASSERT_EQ(life->walkScreen, "fight");
+            f.pass(100.0f, 50.0f);
+
+            // The next six actions, his first
+            EXPECT_NE(walkPart(life, "chip0")->get<Label>()->spec.text.find("NOW"), std::string::npos);
+
+            for (int c = 0; c < 6; ++c)
+                EXPECT_TRUE(f.pos(walkPart(life, "chip" + std::to_string(c)))->visible) << c;
+
+            // His blows on a line under what anyone can do, his workings on the next
+            const Button* strike = nullptr;
+            const Button* slash = nullptr;
+            const Button* spark = nullptr;
+
+            for (const auto& [tag, button] : life->moves())
+            {
+                if (tag == "walk.move.strike")
+                    strike = &button;
+
+                if (tag == "walk.move.tech.slash")
+                    slash = &button;
+
+                if (tag == "walk.move.tech.spark")
+                    spark = &button;
+            }
+
+            ASSERT_NE(strike, nullptr);
+            ASSERT_NE(slash, nullptr);
+            ASSERT_NE(spark, nullptr);
+            EXPECT_GT(f.pos(slash->root)->y, f.pos(strike->root)->y + 0.5f);
+            EXPECT_GT(f.pos(spark->root)->y, f.pos(slash->root)->y + 0.5f);
+
+            // A spark that lands leaves the rat burning, and its panel says so
+            for (int i = 0; i < 3 and walkPart(life, "foeLife0")->get<Label>()->spec.text.find("BURNING") == std::string::npos; ++i)
+            {
+                f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.move.tech.spark"});
+                f.frames(4);
+                f.pass(3000.0f, 50.0f);
+            }
+
+            EXPECT_NE(walkPart(life, "foeLife0")->get<Label>()->spec.text.find("BURNING"), std::string::npos)
+                << walkPart(life, "foeLife0")->get<Label>()->spec.text;
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A boss fight lost is the end of the life: no record is kept, and the ending says how.
+        TEST(lifescene_test, a_boss_fight_lost_ends_the_life)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.fresh = true;
+            opt.lives = 2;
+            opt.age = 7.0f;
+            opt.walkSeed = 11;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            // A youth of fifteen whose world knows the Hollow through and through, with a Vitality of one
+            life->save.age = 15.0f;
+            life->save.stats["str"] = 9;
+            life->save.stats["bow_learned"] = 1;
+            life->save.stats["vit"] = 1;
+            life->save.knowledge["visit.hedgerows"] = 1;
+            life->save.knowledge["study.hedgerows"] = 10;
+            life->save.knowledge["visit.hollow"] = 1;
+            life->save.knowledge["study.hollow"] = 10;
+            life->onMonth();
+            f.settle();
+
+            ASSERT_FALSE(life->ended);
+
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "walk.hollow"});
+            f.frames(12);
+            ASSERT_TRUE(life->onWalk());
+
+            f.ecs.sendEvent(ActivitySelectedEvent{"walk.seeks", "enc.grey"});
+            f.settle();
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.seek"});
+            f.frames(12);
+            answerEvents(f, life);
+            f.frames(12);
+
+            auto over = [life]() {
+                auto it = life->walk.duel.find("over");
+
+                return it == life->walk.duel.end() ? std::string() : it->second.toString();
+            };
+
+            for (int i = 0; i < 30 and life->walkScreen == "fight" and over().empty(); ++i)
+            {
+                f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.move.guard"});
+                f.frames(4);
+                f.pass(3000.0f, 50.0f);
+            }
+
+            ASSERT_EQ(over(), "lost");
+
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.act"});
+            f.frames(12);
+
+            // (the line the next life opens with is the rules': rules_test.a_fall_on_a_walk_is_a_death)
+            EXPECT_TRUE(life->ended);
+            EXPECT_TRUE(life->save.recipes.empty());
         }
 
         // ----------------------------------------------------------------------------------------
@@ -8831,12 +8990,12 @@ namespace pg
             EXPECT_EQ(firebolt->spec.variant, ButtonVariant::Study);
             EXPECT_EQ(heavy->spec.variant, ButtonVariant::Quiet);
 
-            // On a line of their own, under what anyone can do, and inside his turn's panel
+            // On lines of their own, under what anyone can do, and inside his turn's panel: his
+            // blows on one line, his workings on the next
             auto menuBox = f.pos(walkPart(life, "menuPanel"));
 
             EXPECT_GT(f.pos(heavy->root)->y, f.pos(strike->root)->y + f.pos(strike->root)->height - 0.5f);
-            EXPECT_NEAR(f.pos(firebolt->root)->y, f.pos(heavy->root)->y, 0.5f);
-            EXPECT_GT(f.pos(firebolt->root)->x, f.pos(heavy->root)->x + f.pos(heavy->root)->width - 0.5f);
+            EXPECT_GT(f.pos(firebolt->root)->y, f.pos(heavy->root)->y + f.pos(heavy->root)->height - 0.5f);
             EXPECT_LE(f.pos(firebolt->root)->x + f.pos(firebolt->root)->width, menuBox->x + menuBox->width + 0.5f);
             EXPECT_LE(f.pos(firebolt->root)->y + f.pos(firebolt->root)->height, menuBox->y + menuBox->height + 0.5f);
 

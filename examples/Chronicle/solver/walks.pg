@@ -239,7 +239,8 @@ fun walkChoice(st, answer, goals, zone, fights)
     {
         for (var h : answer.seeks)
         {
-            if (not isLocked(h))
+            // (never a boss: a boss lost is a death, and a plan does not walk into one)
+            if (not isLocked(h) and not (h.boss == 1))
             {
                 var count = h.count
 
@@ -274,7 +275,7 @@ fun walkChoice(st, answer, goals, zone, fights)
     {
         for (var s : answer.seeks)
         {
-            if (not isLocked(s) and s.count != none and s.count <= 1)
+            if (not isLocked(s) and not (s.boss == 1) and s.count != none and s.count <= 1)
             {
                 if (goals.studyAll or goals.mobs[s.mob] != none)
                 {

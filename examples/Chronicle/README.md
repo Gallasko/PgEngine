@@ -107,6 +107,21 @@ walked them's. The on-site screen is laid as the Life page is: how he stands (hi
 well the place is known), what he carries and the way home at the left, what he may do in the
 middle as tiles, what he has taken and the record at the right.
 
+**The fight** (0.7). Who is quicker acts more often: the order of the turn shows the next six
+actions, his first, and a quick move holds him less than a heavy one. A blow has a type (cut,
+pierce, blunt) and a working an element (fire, frost, storm) or holiness; a beast resists some
+and is weak to others, has armour against blows and a ward against workings, and a big one has
+poise that his blows wear down until it staggers. Each class plays a rhythm: the Keep builds
+momentum blow by blow and spends it on a finisher, the Collegium sets one element on a beast and
+another off it, the Hidden Hand strikes many times before the beast's turn, the Greenwood sets
+traps on the walk and shoots first. A boy's tasks teach a first tool of each kind, and every
+tool he has learned is his in every fight. Who can hide, has set a trap or holds a ration
+chooses how to meet what he finds. Each place has its boss, met by choice, beaten once a life:
+the Old Pike, the Old Shell, the Old Grey. Lose to a boss and the life ends there; be brought
+down by any other beast and he comes home without what the walk had gathered. A kill trains
+nothing in him: the first of a kind in a life is a lesson about it, and a technique used often
+rises a rank.
+
 **Written time.** The time the chronicle stays shut is kept: a second for a second from the
 hour the save was last written (`LifeSave::savedAt`), an hour of it at most, and none for less
 than a minute away. So is the time the months stand still in the game with nobody at it
@@ -977,21 +992,55 @@ files of their own, `expeditionlib.pg` and `fightlib.pg`, imported first: a scri
   twice: the first press says what is lost). His Vitality on a walk is
   his own: one count, the points a blow takes, at home, on the site and in a fight (a boy has
   40; a month with nothing to eat takes 5, and 5 come back every two months).
-- **A fight** is turns: he acts once, every beast standing acts once (its `script`, cycled), the
-  quicker side first. Every `turnsPerAp` turns (3, one more for every 10 Dexterity, one fewer
-  under half his Vitality) a day is gone, and a day begun is a day spent. A pack that holds back
-  attacks with its first `holdsBack` members only. Where no one dies he is left with one point,
-  carried home, and the most his Vitality can be is five less. Handed over, the fight plays
-  itself (`autoChoice`: a remedy under 30 %, a beast one strike ends, a sweep at three, then a
-  technique he knows or a plain strike).
-- **What he can do in a fight** is short on purpose. Anyone strikes, defends, takes a remedy he
-  holds, or flees. `walkTechniques` is the rest, each learned by a flag of his life (`knows`, any
-  one of them) and absent from the menu until then: *Heavy cut* (`keep_oath`) and *Sweep*
-  (`veteran`) are the Keep's; *Firebolt* (`collegium`) and the *Binding word* (`orin_known`) are
-  the Collegium's, spells whose blow is counted from his Intelligence (`kind: "spell"`), the
-  second dealing nothing and costing the beast its next move (`holds`); *Feint and step*
-  (`street_known`, `hidden_hand`) is learned on the streets. All cost breath. The stances
-  (`walkStances`) are still in the rules and in the figures, but not on the page.
+- **A fight** is a timeline (`fightlib.pg`): everyone waits `waitFor(weight, speed)` between two
+  actions, `weight` percent of an ordinary move, his speed his Dexterity, a beast's its `quick`
+  (3 more while a `leader` of its fight stands). The one with the least wait acts, he first on a
+  tie; a quick move (a thrust, 70) holds him less, a heavy one (a finisher, 150) more. The order
+  of the turn shows the next six actions (`orderRows`). Every `turnsPerAp` of his actions (3, one
+  more for every 10 Dexterity, one fewer under half his Vitality) a day is gone, and a day begun
+  is a day spent. A pack that holds back attacks with its first `holdsBack` members of a kind
+  only. A fight may hold beasts of several kinds (`walkEncounters`, sought as `enc.<id>`). A delay
+  (`delayFoe`) pushes a beast's next turn back, less each time on the same beast and half on a
+  boss; no beast is held for good. Handed over, the fight plays itself (`fightauto.pg`'s
+  `autoChoice`: a remedy under 30 %; the leader, else the weakest; a brace or a defend on a big
+  blow coming when hurt; a full momentum spent; a working that sets off the mark on the target;
+  a sure kill; a first element; then the move worth most for its time).
+- **What a blow deals** (`fightcalc.pg`'s `hitRangeOf`): his roll (Strength and Arms for a blow,
+  Intelligence and Arcana for a working), his stance, the move's power (and its rank), his hits
+  on that beast since its last turn (+15 % each), what it resists of the move's type (`resist`,
+  percent, negative for a weakness, which Lore makes deeper; a finisher halves a resistance, a
+  crit ignores it), then its `armour` for a blow (a pierce goes through) or its `ward` for a
+  working. Seven types: cut, pierce, blunt, fire, frost, storm, holy. A blow aims with his
+  Dexterity, a working with his Intelligence. On a beast: one element's mark at a time (burning
+  hurts at its turn, chilled waits longer, shocked takes more), bleeding, sundered, exposed (his
+  next hit is a sure crit), and `poise`, worn down by his hits (blunt twice, a finisher thrice):
+  at nothing it staggers, its next turn pushed back and its guard open. A beast's `phases` change
+  its figures as it is hurt and may call more (never past four in a fight); a beast with the role
+  `flees` runs at its turn once under 60 %.
+- **What he can do in a fight**: anyone strikes, defends, takes a remedy he holds, or flees. The
+  rest (`walkTechniques`) is learned by a flag of his life (`knows`) and is all his in every
+  fight, grouped on the page as blows, ways and spells. The four rhythms: the Keep's momentum
+  (each blow that lands +1, at 3 a `finisher`, *Heavy cut* or *Sweep*, spends it; a defend costs
+  one, *Brace* keeps it); the Collegium's reactions (a second element on a marked beast: fire and
+  frost shatter, fire and storm flare on all, frost and storm freeze); the Hidden Hand's tempo
+  (quick moves, more hits before its turn); the Greenwood's preparation (traps set on the walk,
+  the *Bow shot* that costs no time as a fight's first action). The early tasks teach the first
+  tools: the blade's *Slash* or *Thrust*, the smithy's *Hammer blow*, the yard's *Bow shot* and
+  *Second wind*, the rooftops' *Step aside*, the Boys' *Dirty kick* or the Watch's *Brace*,
+  letters' *Read the beast*, the shelf's *Spark* or the keys' *Blessing*, Mara's *Rime*, the
+  smuggler's *Sand*, the levy's *Heavy cut*. A fire flask and blessed oil from the market are
+  fight moves while held. A technique used often rises a rank (10, 30, 60 uses): +10 % power
+  and a point of the part it `trains`. The stances (`walkStances`) are in the rules, not on the
+  page.
+- **Before a fight**: when he can do more than meet it in the open (Stealth, a trap set, a ration
+  for a pack), an approach card asks how (`approach`): lie in wait (Stealth against the beasts'
+  `awareness`), lead it into the snare, draw one off, or leave it be.
+- **Bosses** are encounters with `boss: true` (the Old Pike, the Old Shell, the Old Grey), listed
+  at knowledge 4 with a warning: beaten once a life (`beaten.<id>`), their `gives` and `lore`
+  given straight to him, their steps written `once` so a record walked again passes them by.
+  Lost, he dies (`fell`, read by `resources.pg`'s death line, and the life ends on the walk).
+  Fled, the walk ends and what it gathered is lost. Brought down by an ordinary beast, he is
+  carried home without what the walk had gathered (`loseHaul`), and nothing worse.
 - **What a beast means to do** this turn is said of each by the move's name alone (`targets`:
   `life`, `percent`, `intent`). Each beast names its moves (`walkMobs.<mob>.moves`: a `name` and
   a `line`), and the row carries the gloss of the one coming: `moveName`, `moveLine`, and
@@ -1046,18 +1095,19 @@ files of their own, `expeditionlib.pg` and `fightlib.pg`, imported first: a scri
 - **What a walk is worth.** A walk is months of his life like any work (the Hedgerows one, Mill
   Pond and the Quarry Road two, the Hollow Woods three: the longer, the more days on site), and
   is weighed against the work of his age for as long, in coin and its worth (a point of a part
-  about 5 coin, a thing for the town half a coin, 50 points of practice a point). Known 1 of 4 a
+  about 5 coin, a thing for the town half a coin). Known 1 of 4 a
   place brings about what his age's plain work does (a child's about 2.5 a month, a youth's 3);
   known 4 of 4, worked at its best task, one and a half to twice that, or a quarter more than a
   work that asks something of him (a child's about 3, a man's 4.5): about 4 a month at the
   Hedgerows and Mill Pond, 5 to 6 in the Hollow Woods and on the Quarry Road. Sale prices (`lot`
-  for `coin`), gatherings and a beast's practice (`xp`, 2 to 8 a kill) are set for that, and were
+  for `coin`) and gatherings are set for that, and were
   measured by playing each place forty times a level with the rules themselves. Gatherings and
   the smaller beasts' spoils were then raised by about a third, by hand and not measured again:
-  a walk also spends its days on study, for the knowledge that opens the rest.
+  a walk also spends its days on study, for the knowledge that opens the rest. Since 0.7 a kill
+  trains no part of him (the first of a kind in a life is a lesson instead, `lesson.<mob>`, and
+  the beast is known 3 of 4 from then on), and hides, pelts and fangs drop one more at most.
 - **The record.** Every step is `{n, kind, target, count, ap, hp, text, gave, used, figure, ...}`
-  and has its `marks` (`{step, kind, id, n}`: `use`, `gain`, `loot`, `kill`, `learn`, `stat`,
-  `grow`). A walk by the record is a fold over them (`replayTerm`): what it used is taken as he
+  and has its `marks` (`{step, kind, id, n}`: `use`, `gain`, `loot`, `kill`, `learn`, `stat`). A walk by the record is a fold over them (`replayTerm`): what it used is taken as he
   sets out (or `blocked` says what the bag lacks), what it gathered is gathered, what its beasts
   dropped is rolled anew, what it taught is taught, and his Vitality moves by what each step
   cost. A walk he was carried home from leaves no record.

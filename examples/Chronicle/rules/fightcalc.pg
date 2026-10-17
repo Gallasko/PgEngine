@@ -1,0 +1,616 @@
+// Chronicle rules: the figures of a fight
+// -----------------------------------------
+// What a fight counts: his might and guard, what a blow of his deals and how often it lands,
+// what a beast's move takes from him. Imported by expedition.pg after fightlib.pg; it reads the
+// fight as it stands by name (`fight`, `foes`) and the character as the walk leaves him.
+
+import "string"
+import "math"
+import "algorithm"
+
+fun mightOf()
+{
+    return mine("str") + mine("arms") * 2
+}
+
+fun guardOf()
+{
+    return mine("discipline") + wholeOf(mine("str"), 4)
+}
+
+fun clampTo(v, low, high)
+{
+    return smaller(high, larger(low, v))
+}
+
+// Whether he has learned a technique: any one of the flags that teach it
+fun knowsTech(tech)
+{
+    for (var i = 0; i < len(tech.knows); i++)
+    {
+        if (mine(tech.knows[i]) > 0)
+        {
+            return true
+        }
+    }
+
+    return false
+}
+
+// The might of his workings, as Strength and Arms are of his blows
+fun spellMightOf()
+{
+    return mine("int") + mine("arcana") * 2
+}
+
+// His breath when a fight begins: Discipline holds a blow's, Arcana a working's
+fun breathMost()
+{
+    return walkKnobs.breath + wholeOf(mine("discipline") + mine("arcana"), 4)
+}
+
+// What a choice of his is: "blow" (a strike is one), "spell", "way" or "item"
+fun kindOf(techId)
+{
+    if (techId == "strike")
+    {
+        return "blow"
+    }
+
+    var tech = techOf(techId)
+
+    return pick(tech, "kind", "blow")
+}
+
+// The type of what it deals: cut for a strike, a technique's own, "" for what deals nothing.
+// With blessed oil on it, every blow of his is holy
+fun damageOf(techId)
+{
+    var type = "cut"
+
+    if (techId != "strike")
+    {
+        var tech = techOf(techId)
+
+        type = pick(tech, "damage", "")
+    }
+
+    if (type != "" and kindOf(techId) == "blow" and pick(fight, "oil", 0) > 0)
+    {
+        type = "holy"
+    }
+
+    return type
+}
+
+// Its power, in percent of a strike's
+fun powerOf(techId)
+{
+    if (techId == "strike")
+    {
+        return 100
+    }
+
+    var tech = techOf(techId)
+
+    // A rank, from using it often, is a little more
+    return pick(tech, "power", 100) + mine("rank." + techId) * walkKnobs.rankPower
+}
+
+// A figure of the nth foe as it stands now: what the last phase it has come to names, else its
+// beast's (a foe keeps only the number of its phase: encounterlib.pg's `checkPhase`)
+fun foeField(n, key, fallback)
+{
+    var mob = foeMob(n)
+    var phases = pick(mob, "phases", [])
+
+    for (var k = pick(foes[n], "phase", 0) - 1; k >= 0; k = k - 1)
+    {
+        var p = phases[k]
+
+        if (typeOf(p[key]) != "none")
+        {
+            return p[key]
+        }
+    }
+
+    return pick(mob, key, fallback)
+}
+
+// What the nth foe resists of a type, in percent: negative for what it is weak to. Who has read
+// enough finds a weakness deeper
+fun resistOf(n, type)
+{
+    if (type == "")
+    {
+        return 0
+    }
+
+    var table = foeField(n, "resist", {})
+    var r = pick(table, type, 0)
+
+    if (pick(foes[n], "sundered", 0) > 0)
+    {
+        r = r - walkKnobs.sunderResist
+    }
+
+    if (r < 0)
+    {
+        r = larger(-100, r - mine("lore") * walkKnobs.loreWeak)
+    }
+
+    return r
+}
+
+fun armourOf(n)
+{
+    if (pick(foes[n], "sundered", 0) > 0)
+    {
+        return 0
+    }
+
+    return foeField(n, "armour", 0)
+}
+
+fun wardOf(n)
+{
+    return foeField(n, "ward", 0)
+}
+
+// How well he knows the nth foe, 0 to 4, in this fight
+fun knownLevel(n)
+{
+    var mob = foeMob(n)
+    var level = mobLevel(run.zone, mob)
+
+    if (pick(fight, "read." + toString(n), 0) > 0 or mine("lesson." + mob.id) > 0)
+    {
+        level = larger(level, 3)
+    }
+
+    return level
+}
+
+// "WEAK", "RESISTED" or "" for a choice against the nth foe, once he knows it well enough
+fun resistWord(n, techId)
+{
+    if (knownLevel(n) < 3)
+    {
+        return ""
+    }
+
+    var r = resistOf(n, damageOf(techId))
+
+    if (r < 0)
+    {
+        return "WEAK"
+    }
+
+    if (r > 0)
+    {
+        return "RESISTED"
+    }
+
+    return ""
+}
+
+// What a choice of his deals to the nth foe, as a range [least, most]. In this order: what he
+// is (Strength and Arms for a blow, Intelligence and Arcana for a working), his stance, the
+// power of the move, what the foe resists of its type, then its armour (a blow; a pierce goes
+// through it) or its ward (a working). A crit is counted on what the foe is weak to, never on
+// what it resists
+fun hitRangeOf(n, techId, crit)
+{
+    var stance = stanceOf(fight.stance)
+    var kind = kindOf(techId)
+    var least = walkKnobs.weaponLeast + wholeOf(mightOf(), 2)
+    var most = walkKnobs.weaponMost + wholeOf(mightOf(), 2)
+
+    if (kind == "spell")
+    {
+        least = walkKnobs.spellLeast + wholeOf(spellMightOf(), 2)
+        most = walkKnobs.spellMost + wholeOf(spellMightOf(), 2)
+    }
+
+    var power = powerOf(techId)
+    var low = share(share(least, stance.deals), power)
+    var high = share(share(most, stance.deals), power)
+
+    // The Hidden Hand's rhythm: each hit of his on it since its own last turn makes the next bite harder
+    var tempo = 100 + walkKnobs.tempoPower * pick(foes[n], "hits", 0)
+
+    low = share(low, tempo)
+    high = share(high, tempo)
+
+    var type = damageOf(techId)
+    var resist = resistOf(n, type)
+
+    if (crit)
+    {
+        resist = smaller(resist, 0)
+    }
+
+    // A finisher goes through half of what it resists
+    if (resist > 0 and finisherOf(techId))
+    {
+        resist = wholeOf(resist, 2)
+    }
+
+    low = share(low, 100 - resist)
+    high = share(high, 100 - resist)
+
+    // A shocked beast takes every hit a little harder
+    if (pick(foes[n], "mark", "") == "storm")
+    {
+        low = share(low, walkKnobs.shockedTakes)
+        high = share(high, walkKnobs.shockedTakes)
+    }
+
+    var stops = 0
+
+    if (kind == "spell")
+    {
+        stops = wardOf(n)
+    }
+    else if (type != "pierce")
+    {
+        stops = armourOf(n)
+    }
+
+    low = larger(1, low - stops)
+    high = larger(low, high - stops)
+
+    return [low, high]
+}
+
+fun hitRange(n, techId)
+{
+    return hitRangeOf(n, techId, false)
+}
+
+// How often a choice lands on the nth foe, in percent: a blow aims with his Dexterity, a working
+// with his Intelligence, against how quick it is
+fun hitChance(n, mod, kind)
+{
+    var aim = mine("dex")
+
+    if (kind == "spell")
+    {
+        aim = mine("int")
+    }
+
+    return clampTo(walkKnobs.hitBase + (aim - foeSpeed(n)) * walkKnobs.hitStep + mod, walkKnobs.hitLeast, walkKnobs.hitMost)
+}
+
+fun critChance()
+{
+    return walkKnobs.critBase + wholeOf(mine("guile"), 2)
+}
+
+// How often he steps clear of the nth foe's blow
+fun dodgeChance(n)
+{
+    var odds = walkKnobs.dodgeBase + (mine("dex") - foeSpeed(n)) * walkKnobs.dodgeStep
+
+    if (fight.feinted > 0)
+    {
+        odds = odds + 20
+    }
+
+    if (pick(fight, "stepped", 0) > 0)
+    {
+        odds = odds + walkKnobs.stepDodge
+    }
+
+    return clampTo(odds, 0, walkKnobs.dodgeMost)
+}
+
+// What a move of a beast takes from him, as a range: his guard and his stance are in it
+fun biteRange(mob, move)
+{
+    var stance = stanceOf(fight.stance)
+    var low = mob.least
+    var high = mob.most
+
+    if (move == "maul")
+    {
+        low = share(low, 150)
+        high = share(high, 150)
+    }
+
+    var blunted = wholeOf(guardOf(), 2)
+
+    low = share(larger(1, low - blunted), stance.takes)
+    high = share(larger(1, high - blunted), stance.takes)
+
+    if (fight.guarding > 0)
+    {
+        var cut = walkKnobs.guardCut
+
+        if (pick(fight, "bracing", 0) > 0)
+        {
+            cut = walkKnobs.braceCut
+        }
+
+        low = share(low, 100 - cut)
+        high = share(high, 100 - cut)
+    }
+
+    low = larger(1, low)
+    high = larger(low, high)
+
+    return [low, high]
+}
+
+fun rangeText(range)
+{
+    if (range[0] == range[1])
+    {
+        return toString(range[0])
+    }
+
+    return toString(range[0]) + "–" + toString(range[1])
+}
+
+// ---- what is on a beast: marks, wounds, poise ---------------------------------------------------
+//
+// A beast may carry one element's mark at a time (burning, chilled, shocked), bleed, have its
+// armour broken (sundered) or its guard open (exposed). Each lasts a few of its own turns and is
+// counted down when it acts. A big beast has poise: worn down by his blows, at nothing it
+// staggers.
+
+// Whether the nth foe is of a boss's encounter: delays hold it half as long
+fun bossFoe(n)
+{
+    if (pick(fight, "enc", "") == "")
+    {
+        return false
+    }
+
+    var enc = encounterOf(fight.enc)
+
+    return pick(enc, "boss", false)
+}
+
+// Its next turn pushed back by `percent` of an ordinary wait of its own: each delay on the same
+// foe in a fight holds it for less than the one before
+fun delayFoe(n, percent)
+{
+    var amount = share(waitFor(100, foeSpeed(n)), percent)
+
+    amount = wholeOf(amount, 1 + pick(foes[n], "delays", 0))
+
+    if (bossFoe(n))
+    {
+        amount = share(amount, walkKnobs.bossDelay)
+    }
+
+    foes[n].wait = foeWait(n) + amount
+    foes[n].delays = pick(foes[n], "delays", 0) + 1
+}
+
+// A hold: the beast loses its next move, the first time. Held already, held before or a boss, it
+// is only delayed, by `percent` of its wait and less each time, so nothing is held for good
+fun holdFoe(n, percent)
+{
+    var foe = foes[n]
+
+    if (pick(foe, "held", 0) > 0 or pick(foe, "delays", 0) > 0 or bossFoe(n))
+    {
+        delayFoe(n, percent)
+        return false
+    }
+
+    foe.held = 1
+    foe.delays = 1
+
+    return true
+}
+
+// Whether a choice of his is a finisher: it spends his momentum
+fun finisherOf(techId)
+{
+    if (techId == "strike")
+    {
+        return false
+    }
+
+    var tech = techOf(techId)
+
+    return pick(tech, "finisher", false)
+}
+
+// A roll of one of his workings, before anything about the beast: what a reaction is counted on
+fun workingRoll()
+{
+    return rollBetween(walkKnobs.spellLeast + wholeOf(spellMightOf(), 2), walkKnobs.spellMost + wholeOf(spellMightOf(), 2))
+}
+
+// A hit that no resistance, ward or armour stops, said in the account
+fun pureHit(n, dealt, what)
+{
+    var foe = foes[n]
+
+    if (foe.alive <= 0)
+    {
+        return
+    }
+
+    foe.hp = larger(0, foe.hp - dealt)
+
+    var text = what + ": the " + toLowerCase(foe.name)
+
+    if (foe.hp <= 0)
+    {
+        foe.alive = 0
+        text = text + ", and it falls"
+    }
+
+    fight.byN = n
+    fight.left = wholeOf(foe.hp * 100, larger(1, foe.hpMax))
+    say(text, toString(dealt), "gain")
+    fight.left = -1
+
+    wearPoise(n, dealt, "", false)
+    checkPhase(n)
+}
+
+// The Collegium's rhythm. An element leaves its mark on the beast; a second element on a beast
+// marked with another reacts, and the mark is spent: fire and frost shatter (a burst on it),
+// fire and storm flare (a burst on all of them), frost and storm freeze (held, and its turn far off).
+// The same element again only keeps the mark longer
+fun applyMark(n, type)
+{
+    if (type != "fire" and type != "frost" and type != "storm")
+    {
+        return
+    }
+
+    var foe = foes[n]
+    var had = pick(foe, "mark", "")
+
+    if (had == "" or had == type)
+    {
+        foe.mark = type
+        foe.markTurns = walkKnobs.markTurns
+        return
+    }
+
+    foe.mark = ""
+    foe.markTurns = 0
+
+    if ((had == "fire" and type == "frost") or (had == "frost" and type == "fire"))
+    {
+        pureHit(n, share(workingRoll(), walkKnobs.reactShatter), "Shatter")
+    }
+    else if ((had == "fire" and type == "storm") or (had == "storm" and type == "fire"))
+    {
+        var burst = share(workingRoll(), walkKnobs.reactFlare)
+
+        for (var i = 0; i < len(foes); i++)
+        {
+            pureHit(i, burst, "Flare")
+        }
+    }
+    else
+    {
+        holdFoe(n, walkKnobs.freezeDelay)
+        say("Freeze: the " + toLowerCase(foe.name) + " is held in ice", "", "gain")
+    }
+}
+
+// Its poise worn by a hit: a blunt one twice as fast, a finisher thrice. At nothing it staggers
+fun wearPoise(n, dealt, type, finisher)
+{
+    var mob = foeMob(n)
+    var most = pick(mob, "poise", 0)
+
+    if (most <= 0 or foes[n].alive <= 0)
+    {
+        return
+    }
+
+    var worn = dealt
+
+    if (type == "blunt")
+    {
+        worn = share(worn, walkKnobs.poiseBlunt)
+    }
+
+    if (finisher)
+    {
+        worn = share(worn, walkKnobs.finisherPoise)
+    }
+
+    foes[n].poise = pick(foes[n], "poise", most) - worn
+
+    if (foes[n].poise <= 0)
+    {
+        // (a stagger counts as a delay: less each time on the same beast, half on a boss)
+        delayFoe(n, walkKnobs.staggerDelay)
+        foes[n].exposed = 1
+        foes[n].poise = most
+        say("The " + toLowerCase(foes[n].name) + " staggers", "", "gain")
+    }
+}
+
+// What hurts it at its own turn, and what wears off: it is said in the account. It returns
+// whether it still stands
+fun tickFoe(n)
+{
+    var foe = foes[n]
+    var name = toLowerCase(foe.name)
+
+    if (pick(foe, "mark", "") == "fire")
+    {
+        var burnt = larger(1, share(foe.hpMax, walkKnobs.burnShare))
+
+        foe.hp = larger(0, foe.hp - burnt)
+        say("The " + name + " burns", toString(burnt), "gain")
+    }
+
+    if (pick(foe, "bleeding", 0) > 0)
+    {
+        var bled = larger(1, share(foe.hpMax, walkKnobs.bleedShare))
+
+        foe.hp = larger(0, foe.hp - bled)
+        foe.bleeding = foe.bleeding - 1
+        say("The " + name + " bleeds", toString(bled), "gain")
+    }
+
+    if (pick(foe, "markTurns", 0) > 0)
+    {
+        foe.markTurns = foe.markTurns - 1
+
+        if (foe.markTurns <= 0)
+        {
+            foe.mark = ""
+        }
+    }
+
+    if (pick(foe, "sundered", 0) > 0)
+    {
+        foe.sundered = foe.sundered - 1
+    }
+
+    if (foe.hp <= 0)
+    {
+        foe.alive = 0
+        say("The " + name + " falls", "", "gain")
+        return false
+    }
+
+    checkPhase(n)
+
+    return true
+}
+
+// What is on it, in words for its panel: " · BURNING · EXPOSED"
+fun statusText(n)
+{
+    var foe = foes[n]
+    var text = ""
+    var marks = {fire: " · BURNING", frost: " · CHILLED", storm: " · SHOCKED"}
+
+    if (pick(foe, "mark", "") != "")
+    {
+        text = text + marks[foe.mark]
+    }
+
+    if (pick(foe, "bleeding", 0) > 0)
+    {
+        text = text + " · BLEEDING"
+    }
+
+    if (pick(foe, "sundered", 0) > 0)
+    {
+        text = text + " · SUNDERED"
+    }
+
+    if (pick(foe, "exposed", 0) > 0)
+    {
+        text = text + " · EXPOSED"
+    }
+
+    return text
+}

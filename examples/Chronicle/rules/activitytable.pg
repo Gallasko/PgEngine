@@ -318,7 +318,7 @@ var activities = [
      about: "A month of holding the tongs and being told to hold them still. He is shown the colour the steel must be, once.",
      gains: [{stat: "forge_seen"}],
      requires: [{stat: "done.smithy", label: "Worked the smithy"}]},
-    {id: "temper", group: "Work", name: "Learn to Temper", glyph: "forge", months: 3, rank: "", each: "", path: "", fromAge: 10, finishBy: 13, uses: 1, unless: "drive",
+    {id: "temper", group: "Work", name: "Learn to Temper", glyph: "forge", months: 3, rank: "", each: "A BLUNT BLOW", path: "", fromAge: 10, finishBy: 13, uses: 1, unless: "drive",
      about: "Straw, then blue, then the water. The master's apprentices are known at the Keep, which asks them for less.",
      gains: [{stat: "arms"}, {stat: "smith_apprentice"}],
      requires: [{stat: "forge_seen"}, {stat: "str", needed: 9}]},
@@ -448,7 +448,7 @@ var activities = [
     // What the yard keeps for who has done both: learned the edge or the point (the group after
     // this one), and a term under its sergeants (`done.<id>`). No row before that. It is a thing
     // he holds from then on, in his ledger; nothing in a fight reads it yet
-    {id: "breathing", group: "Training", name: "Learn the Yard's Breathing", glyph: "training", months: 3, rank: "", each: "", path: "", fromAge: 10, uses: 1,
+    {id: "breathing", group: "Training", name: "Learn the Yard's Breathing", glyph: "training", months: 3, rank: "", each: "SECOND WIND", path: "", fromAge: 10, uses: 1,
      about: "In on the step, out on the blow, and never held. The sergeants teach it last, to a boy who has shown he will stay.",
      gains: [{stat: "discipline"}, {stat: "yard_breathing"}],
      requires: [{stat: "slash_learned", label: "Practiced slashes, or thrusts", anyOf: ["slash_learned", "thrust_learned"]},
@@ -466,7 +466,7 @@ var activities = [
      gains: [{stat: "dex"}, {stat: "arms"}, {stat: "thrust_learned"}],
      requires: [{stat: "blade_basics", label: "The basics of the blade"}]},
 
-    {id: "letters", group: "Study", name: "Learn Your Letters", glyph: "quill", months: 6, rank: "", each: "", path: "", finishBy: 14,
+    {id: "letters", group: "Study", name: "Learn Your Letters", glyph: "quill", months: 6, rank: "", each: "READ THE BEAST", path: "", finishBy: 14,
      gains: [{stat: "letters"}, {stat: "int"}],
      requires: [],
      after: [{uses: 3, gains: [{stat: "letters"}]}],
@@ -487,11 +487,11 @@ var activities = [
     // The Church or what it forbids: one or the other, and the first fork a later life is built
     // on. The keys are Father Anselm's trust, which the Collegium counts; the shelf is read by
     // who will go after Harrow. Whoever looted the flood is not given the keys
-    {id: "keys", group: "Study", name: "Take the Sacristan's Keys", glyph: "study", months: 3, rank: "", each: "", path: "", fromAge: 12, finishBy: 13, uses: 1, unless: ["shelf", "flood.salvage"],
+    {id: "keys", group: "Study", name: "Take the Sacristan's Keys", glyph: "study", months: 3, rank: "", each: "BLESSING", path: "", fromAge: 12, finishBy: 13, uses: 1, unless: ["shelf", "flood.salvage"],
      about: "The chapel at five in the morning, the candles, the offices said aloud to nobody. Father Anselm gives his keys to very few.",
      gains: [{stat: "discipline"}, {stat: "anselm_trust"}],
      requires: [{stat: "letters", needed: 2}]},
-    {id: "shelf", group: "Study", name: "Read the Forbidden Shelf", glyph: "magic", months: 3, rank: "", each: "", path: "", fromAge: 12, finishBy: 13, uses: 1, unless: "keys",
+    {id: "shelf", group: "Study", name: "Read the Forbidden Shelf", glyph: "magic", months: 3, rank: "", each: "SPARK", path: "", fromAge: 12, finishBy: 13, uses: 1, unless: "keys",
      about: "The top shelf of the chapel library has a lock, and the lock has been broken for years. Nobody will thank him for what he reads there.",
      gains: [{stat: "lore"}, {stat: "forbidden_read"}],
      requires: [{stat: "letters", needed: 2}]},
@@ -501,7 +501,7 @@ var activities = [
      about: "Which leaf, which root, how long over the fire. On a walk where he can camp, two wortleaf become a remedy on the spot.",
      gains: [{stat: "herbal"}],
      requires: [{stat: "letters"}, {stat: "herbal_primer", label: "A herbal primer, from the market"}]},
-    {id: "mara", group: "Study", name: "Lessons with Mara", glyph: "magic", months: 12, rank: "", each: "", path: "", fromAge: 15, fromMonths: 4, finishBy: 17, uses: 1,
+    {id: "mara", group: "Study", name: "Lessons with Mara", glyph: "magic", months: 12, rank: "", each: "RIME", path: "", fromAge: 15, fromMonths: 4, finishBy: 17, uses: 1,
      gains: [{stat: "lore", amount: 2}, {stat: "discipline"}, {stat: "mara_student"}],
      requires: [{stat: "lore"}, {stat: "letters"}]},
 
@@ -516,16 +516,16 @@ var activities = [
     {id: "roam", group: "The streets", name: "Roam Bellmoor", glyph: "adventure", months: 6, rank: "", each: "", path: "", fromAge: 8, finishBy: 14, uses: 2,
      gains: [{stat: "dex"}, {stat: "lore"}],
      requires: []},
-    {id: "hunters", group: "The streets", name: "Follow the Hunters", glyph: "adventure", months: 9, rank: "", each: "", path: "", fromAge: 10, fromMonths: 2, finishBy: 15, uses: 2,
-     gains: [{stat: "stealth"}, {stat: "vit", amount: 5}, {stat: "dex"}],
+    {id: "hunters", group: "The streets", name: "Follow the Hunters", glyph: "adventure", months: 9, rank: "", each: "TRACK AND SKIN", path: "", fromAge: 10, fromMonths: 2, finishBy: 15, uses: 2,
+     gains: [{stat: "stealth"}, {stat: "vit", amount: 5}, {stat: "dex"}, {stat: "hunter_trained"}],
      requires: [{stat: "dex", needed: 8, eased: {flag: "snare_set", needed: 7}}]},
     {id: "boys", group: "The streets", name: "Run with the Bellmoor Boys", glyph: "town", months: 12, rank: "", each: "", path: "", fromAge: 10, fromMonths: 8, finishBy: 14, uses: 1,
      gains: [{stat: "stealth"}, {stat: "guile"}, {stat: "street_known"}],
      requires: [{stat: "dex", needed: 8}, {stat: "done.roam", label: "Roamed Bellmoor, or watched its cutpurses", anyOf: ["done.roam", "cutpurses_seen"]}]},
     // For who means to live by quick hands: the roofs make them quicker, and the town talks of it
-    {id: "rooftops", group: "The streets", name: "Race the Rooftops", glyph: "dexterity", months: 6, rank: "", each: "", path: "", fromAge: 11, fromMonths: 10, finishBy: 18, uses: 3,
+    {id: "rooftops", group: "The streets", name: "Race the Rooftops", glyph: "dexterity", months: 6, rank: "", each: "STEP ASIDE IN A FIGHT", path: "", fromAge: 11, fromMonths: 10, finishBy: 18, uses: 3,
      about: "From the tanners' sheds to the chapel roof and back, against whoever dares. The town watches from below, and remembers who won.",
-     gains: [{stat: "dex"}, {stat: "renown"}],
+     gains: [{stat: "dex"}, {stat: "renown"}, {stat: "rooftop_runner"}],
      requires: [{stat: "dex", needed: 7}]},
 
     // A deadline, a chain, and the fork that first shuts a class. The snares close at eleven. The
@@ -544,11 +544,11 @@ var activities = [
      about: "Sacks one way, sacks the other, and never a word about either. The smuggler teaches one trick, and it is not a clean one.",
      gains: [{stat: "guile"}, {stat: "coin", amount: 8}, {stat: "smuggler_runner"}],
      requires: [{stat: "tunnel_found"}, {stat: "dex", needed: 8}]},
-    {id: "oath", group: "The streets", name: "Take the Boys' Oath", glyph: "guild", months: 1, rank: "", each: "", path: "", fromAge: 12, finishBy: 14, uses: 1, unless: "turnin",
+    {id: "oath", group: "The streets", name: "Take the Boys' Oath", glyph: "guild", months: 1, rank: "", each: "A DIRTY KICK", path: "", fromAge: 12, finishBy: 14, uses: 1, unless: "turnin",
      about: "A thumb cut on a roof at midnight, and a name he does not give the Watch from then on. The Watch does not forget which boys those are.",
      gains: [{stat: "stealth"}, {stat: "boys_sworn"}],
      requires: [{stat: "done.boys", label: "Ran with the Bellmoor Boys"}]},
-    {id: "turnin", group: "The streets", name: "Turn the Boys In", glyph: "gate", months: 1, rank: "", each: "", path: "", fromAge: 12, finishBy: 14, uses: 1, unless: "oath",
+    {id: "turnin", group: "The streets", name: "Turn the Boys In", glyph: "gate", months: 1, rank: "", each: "BRACE IN A FIGHT", path: "", fromAge: 12, finishBy: 14, uses: 1, unless: "oath",
      about: "A word to the sergeant, a purse, and a welcome at the gatehouse. No one who lives by quick hands will ever trust him.",
      gains: [{stat: "renown"}, {stat: "coin", amount: 8}, {stat: "watch_known"}],
      requires: [{stat: "done.boys", label: "Ran with the Bellmoor Boys"}]},
@@ -1194,6 +1194,21 @@ push(activities, {id: "brew.remedy", group: "Market", name: "Brew a remedy", gly
 
 // And berries dried keep as rations: three to a ration, a little more than they would buy sold
 // (three berries sell for 0.6 coin, a ration costs about 0.8)
+// What a fight spends: a fire flask mixed of firewood a walk brought home, and the chapel's oil
+push(activities, {id: "brew.flask", group: "Market", name: "Mix a fire flask", glyph: "magic", months: 0, rank: "", each: "FROM FIREWOOD", path: "",
+                  finishBy: anyAge, showFrom: 100, place: "market",
+                  about: "Pitch and firewood in a clay bottle, and a rag to light it. Thrown in a fight, it burns whatever it breaks on, hide or no hide.",
+                  gains: [{stat: "flask", amount: 1}],
+                  requires: [{stat: "firewood", label: "Firewood to mix"}],
+                  costs: [{stat: "firewood", amount: 2}, {stat: "coin", amount: 2}]})
+
+push(activities, {id: "buy.oil", group: "Market", name: "Buy blessed oil", glyph: "relic", months: 0, rank: "", each: "FROM THE CHAPEL", path: "",
+                  finishBy: anyAge, showFrom: 100, place: "market", onlyWith: "walked.millpond",
+                  about: "A small flask the chapel blesses for travellers. On a blade, every blow of the fight is holy.",
+                  gains: [{stat: "oil", amount: 1}],
+                  requires: [{stat: "town_known", label: "The town"}],
+                  costs: [{stat: "coin", amount: 4}]})
+
 push(activities, {id: "dry.berries", group: "Market", name: "Dry berries", glyph: "trade", months: 0, rank: "", each: "INTO RATIONS", path: "",
                   finishBy: anyAge, showFrom: 100, place: "market",
                   about: "Spread on a cloth in the sun for a week, they keep through the winter.",

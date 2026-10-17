@@ -35,7 +35,7 @@
 //   - A walk outside the town is a red bar of the Adventure frame, as wide as the months it
 //     blocks. Its row of the table says nothing of what it brings (a walk is played on a screen
 //     of its own), so that is read from the expedition table: its days, what is gathered there,
-//     and a line a beast with what it leaves and the part a kill trains. What a walk brings home
+//     and a line a beast with what it leaves. What a walk brings home
 //     has no arrow: what takes it (what is sold or brewed of it at the market, a place of the
 //     town that is built of it) has a red chip before it with every walk that brings it,
 //     "The Hedgerows, The Quarry Road", and the thing before them when it takes several
@@ -603,7 +603,7 @@ fun addTask(graph, a)
 
 // What a walk brings that its row of the table does not say (its `gains` are empty: a walk is
 // played on a screen of its own, expeditiontable.pg): what is gathered there, what its beasts
-// leave and the part a kill trains, what its events give, and the two flags another task may
+// leave, what its events give, and the two flags another task may
 // ask for (the place walked, its studies), when one does. And what it makes use of: a remedy
 // he holds, drunk there
 fun addWalk(graph, zone)
@@ -638,8 +638,6 @@ fun addWalk(graph, zone)
             graph.things[drop.id] = true
             addLink(graph, node, statNode(drop.id), drop.id, "brings", "+" + rangeOf(drop.least, drop.most) + " a " + toLowerCase(mob.name) + ", " + toString(drop.chance) + "%", 0)
         }
-
-        addLink(graph, node, statNode(mob.trains), mob.trains, "later", "a " + toLowerCase(mob.name) + " killed: " + toString(mob.xp) + " of the " + toString(walkKnobs.xpStep) + " to a point", 0)
     }
 
     for (var e = 0; e < len(zone.events); e = e + 1)
@@ -1345,7 +1343,7 @@ fun walkDays(zone)
 }
 
 // What a walk's bar says of the place: what is gathered there, a line, and a line a beast with
-// what it leaves (the chance, when it is not sure) and the part a kill trains
+// what it leaves (the chance, when it is not sure)
 fun walkLines(zone)
 {
     var lines = []
@@ -1393,7 +1391,7 @@ fun walkLines(zone)
             }
         }
 
-        push(lines, "beast: " + said + " | " + leaves + " | trains " + toLowerCase(statShortName(mob.trains)))
+        push(lines, "beast: " + said + " | " + leaves)
     }
 
     return lines
@@ -2406,7 +2404,7 @@ fun emitTimeline(graph)
     out = out + "</defs>\n"
     out = out + "<rect width='" + toString(view.width) + "' height='" + toString(view.height) + "' fill='#ffffff'/>\n"
     out = out + "<text x='" + toString(view.left) + "' y='20' class='note'>A bar: the months a task takes, from the age it opens at. The line after it: the age it must be over by. Gold: a way into a class; a stripe: a task of that class. An arrow: a flag one task brings and another reads (black asks for it, dashed green is eased by it or takes it as one of several). Purple: the town. A place begins where the task that brings it onto the page ends, its three works bars end to end, with an arrow from that task. A purple chip before a task: the level of a place it waits for.</text>\n"
-    out = out + "<text x='" + toString(view.left) + "' y='34' class='note'>Red: a walk outside the town, with its days, what is gathered there and its beasts (what each leaves, and the part a kill trains). A red chip before a task or a place of the town: the walks that bring what it takes; what is sold or brewed of a thing begins once the first walk that brings it is over. \"in a fight\" on a bar: the technique the task teaches, for the walks that have a beast. A gold chip after a task: the class it leads to, and what it changes of what that class asks; no arrow climbs to the ways in.</text>\n"
+    out = out + "<text x='" + toString(view.left) + "' y='34' class='note'>Red: a walk outside the town, with its days, what is gathered there and its beasts (what each leaves). A red chip before a task or a place of the town: the walks that bring what it takes; what is sold or brewed of a thing begins once the first walk that brings it is over. \"in a fight\" on a bar: the technique the task teaches, for the walks that have a beast. A gold chip after a task: the class it leads to, and what it changes of what that class asks; no arrow climbs to the ways in.</text>\n"
 
     // The frames, a group each, in the colour of its class when it is all of one
     for (var b = 0; b < len(view.bands); b = b + 1)

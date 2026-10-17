@@ -2024,7 +2024,7 @@ namespace pg
             EXPECT_EQ(textOf(rooftops.fields, "group"), "The streets");
             EXPECT_TRUE(rooftops.fields.at("listed").get<bool>());
             EXPECT_FALSE(rooftops.fields.at("locked").get<bool>());
-            EXPECT_EQ(brings(rooftops), (std::vector<std::string>{"dex", "renown"}));
+            EXPECT_EQ(brings(rooftops), (std::vector<std::string>{"dex", "renown", "rooftop_runner"}));   // and the way to step aside in a fight
 
             // Slow hands are not asked up there
             lad["dex"] = ElementType{6};
@@ -4173,6 +4173,120 @@ namespace pg
             ASSERT_TRUE(fromSource.rules.milestones(12.0f, expectedSteps, expectedNext)) << firstError(fromSource.rules);
             ASSERT_TRUE(shipped.milestones(12.0f, gotSteps, gotNext)) << firstError(shipped);
             EXPECT_EQ(gotSteps.size(), expectedSteps.size());
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // What a boy learns racing the rooftops and following the hunters is his on a walk: the
+        // rows leave the flags that teach a way to step aside in a fight, and to track and skin.
+        TEST(rules_test, the_rooftops_and_the_hunters_teach_a_way)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            auto gives = [](const RuleActivity& a, const std::string& stat) {
+                for (const auto& g : a.gains)
+                {
+                    if (textOf(g, "stat") == stat)
+                        return true;
+                }
+
+                return false;
+            };
+
+            ElementMap who = boy();
+            who["dex"] = ElementType{9};
+
+            EXPECT_TRUE(gives(activityAt(f.rules, 12.0f, who, "rooftops"), "rooftop_runner"));
+            EXPECT_TRUE(gives(activityAt(f.rules, 12.0f, who, "hunters"), "hunter_trained"));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The market mixes a fire flask out of firewood a walk brought home, and sells blessed oil.
+        TEST(rules_test, the_market_sells_what_a_fight_spends)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap who = boy();
+            who["town_known"] = ElementType{1};
+            who["firewood"] = ElementType{2};
+            who["walked.millpond"] = ElementType{1};   // (the oil is sold to who has walked where beasts are)
+            who["coin"] = ElementType{10};
+
+            RuleActivity flask = activityAt(f.rules, 12.0f, who, "brew.flask");
+
+            ASSERT_EQ(flask.gains.size(), 1u);
+            EXPECT_EQ(textOf(flask.gains[0], "stat"), "flask");
+
+            int firewood = 0;
+
+            for (const auto& c : flask.costs)
+            {
+                if (textOf(c, "stat") == "firewood")
+                    firewood = intOf(c, "amount");
+            }
+
+            EXPECT_EQ(firewood, 2);
+
+            RuleActivity oil = activityAt(f.rules, 12.0f, who, "buy.oil");
+
+            ASSERT_EQ(oil.gains.size(), 1u);
+            EXPECT_EQ(textOf(oil.gains[0], "stat"), "oil");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Who fell to a boss on a walk is dead, and the next life opens with how.
+        TEST(rules_test, a_fall_on_a_walk_is_a_death)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap fallen = boy();
+            fallen["vit"] = ElementType{0};
+            fallen["fell"] = ElementType{1};
+
+            RuleMonth month;
+            ASSERT_TRUE(f.rules.month(15.0f, fallen, false, month)) << firstError(f.rules);
+            EXPECT_NE(month.death.find("a fight he chose"), std::string::npos) << month.death;
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // What a fight spends is in the Inventory, and so is what fights have taught him: the
+        // ranks of his techniques and the lessons of his first kills.
+        TEST(rules_test, what_fights_teach_and_spend_is_held)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap fighter = boy();
+            fighter["flask"] = ElementType{2};
+            fighter["oil"] = ElementType{1};
+            fighter["rank.slash"] = ElementType{1};
+            fighter["lesson.rat"] = ElementType{1};
+
+            RuleMonth month;
+            ASSERT_TRUE(f.rules.month(15.0f, fighter, false, month)) << firstError(f.rules);
+
+            for (const char* id : {"flask", "oil", "rank.slash", "lesson.rat"})
+            {
+                bool shown = false;
+
+                for (const auto& r : month.rows)
+                {
+                    if (textOf(r, "id") == id)
+                        shown = true;
+                }
+
+                EXPECT_TRUE(shown) << id;
+            }
         }
     }
 }

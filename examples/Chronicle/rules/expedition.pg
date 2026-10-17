@@ -48,6 +48,10 @@ import "algorithm"
 import "lib"
 import "expeditionlib"
 import "fightlib"
+import "fightcalc"
+import "fightpage"
+import "fightauto"
+import "encounterlib"
 import "expeditiontable"
 
 var errors = []

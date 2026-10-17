@@ -1,0 +1,551 @@
+// Chronicle rules: encounters
+// ---------------------------
+// What a walk may meet besides one beast or a pack of it: an encounter, beasts of several kinds
+// in one fight (expeditiontable.pg's `walkEncounters`). Imported by expedition.pg after
+// fightlib.pg; it reads and writes the walk as it stands by name (`run`, `record`, `fight`,
+// `foes`) as expeditionlib.pg does.
+
+import "string"
+import "math"
+import "algorithm"
+
+fun encounterOf(id)
+{
+    for (var i = 0; i < len(walkEncounters); i++)
+    {
+        if (walkEncounters[i].id == id)
+        {
+            return walkEncounters[i]
+        }
+    }
+
+    return {id: "", name: "", foes: [], boss: false, level: 9, rarity: "rare"}
+}
+
+// The encounter a find names ("enc.<id>"), or "" for a beast
+fun encounterIdOf(found)
+{
+    if (startsWith(found, "enc."))
+    {
+        return substring(found, 4)
+    }
+
+    return ""
+}
+
+// What was found, kind by kind: [{mob, count}]
+fun foundGroups()
+{
+    var enc = encounterIdOf(pick(run, "found", ""))
+
+    if (enc != "")
+    {
+        var met = encounterOf(enc)
+
+        return met.foes
+    }
+
+    return [{mob: run.found, count: runOf("foundCount")}]
+}
+
+fun encounterSize(enc)
+{
+    var n = 0
+
+    for (var i = 0; i < len(enc.foes); i++)
+    {
+        n = n + enc.foes[i].count
+    }
+
+    return n
+}
+
+// An encounter is found as a beast of its rarity is, never as a pack
+fun encounterCost(zone, enc)
+{
+    return seekCost(zone, {id: "enc." + enc.id, rarity: enc.rarity, packSize: 1}, 1)
+}
+
+// Whether the place holds it, and shows it yet: an encounter is listed from its zone knowledge
+fun encounterHere(zone, enc)
+{
+    var here = false
+
+    for (var i = 0; i < len(pick(zone, "encounters", [])); i++)
+    {
+        if (zone.encounters[i] == enc.id)
+        {
+            here = true
+        }
+    }
+
+    return here and zoneLevel(zone.id) >= enc.level
+}
+
+// Its tile among the beasts to seek
+fun encounterRow(zone, enc)
+{
+    var row = {id: "enc." + enc.id, mob: "enc." + enc.id, count: 0, name: enc.name, rank: toUpperCase(enc.rarity), note: enc.line, cost: 0, costText: "",
+               locked: 0, asks: "", short: 0, boss: 0}
+
+    row.cost = encounterCost(zone, enc)
+    row.costText = apText(row.cost)
+
+    var last = runOf("cost.enc." + enc.id)
+
+    if (last > 0)
+    {
+        row.note = row.note + " The last fight cost " + daysText(last) + "."
+    }
+
+    // A boss: met by choice, and the tile says what is at stake. Beaten, it is beaten for this life
+    if (pick(enc, "boss", false))
+    {
+        var lead = enc.foes[0]
+
+        row.boss = 1
+        row.rank = "A BOSS · KNOWN " + toString(mobLevel(zone.id, mobOf(lead.mob))) + " OF 4"
+        row.note = row.note + " If he falls here, he dies."
+
+        if (mine("beaten." + enc.id) > 0)
+        {
+            row.locked = 1
+            row.asks = "BEATEN IN THIS LIFE"
+            return row
+        }
+    }
+
+    if (row.cost > runOf("ap"))
+    {
+        row.short = 1
+        row.asks = "NOT ENOUGH DAYS LEFT"
+    }
+
+    return row
+}
+
+fun encounterRows(zone)
+{
+    var rows = []
+
+    for (var i = 0; i < len(walkEncounters); i++)
+    {
+        if (encounterHere(zone, walkEncounters[i]))
+        {
+            push(rows, encounterRow(zone, walkEncounters[i]))
+        }
+    }
+
+    return rows
+}
+
+// He goes looking for it: the days of the search, then the fight, unless something stands between
+fun seekEncounter(id)
+{
+    var zone = zoneOf(run.zone)
+    var enc = encounterOf(id)
+
+    if (enc.id == "" or not encounterHere(zone, enc))
+    {
+        run.refused = "He does not know of that here"
+        return
+    }
+
+    if (pick(enc, "boss", false) and mine("beaten." + enc.id) > 0)
+    {
+        run.refused = "Beaten in this life"
+        return
+    }
+
+    var cost = encounterCost(zone, enc)
+
+    if (cost > runOf("ap"))
+    {
+        run.refused = "Not enough days left to find it"
+        return
+    }
+
+    openStep("seek", "enc." + enc.id, encounterSize(enc), cost, "Sought " + enc.name + ", and found it", "adventure")
+    closeStep()
+
+    // A boss is met once: a record walked again passes its steps by
+    if (pick(enc, "boss", false))
+    {
+        var sought = lastStep()
+
+        sought.once = 1
+    }
+
+    run.found = "enc." + enc.id
+    run.foundCount = encounterSize(enc)
+
+    maybeEvent("seek")
+
+    if (run.event == "")
+    {
+        meetFound()
+    }
+}
+
+// Who has followed the hunters skins a beast better: a hide or a pelt more
+fun skinBonus(itemId)
+{
+    if (mine("hunter_trained") > 0 and (itemId == "hides" or itemId == "pelts"))
+    {
+        return 1
+    }
+
+    return 0
+}
+
+// ---- how he meets what he found: in the open, from cover, into a trap, or not at all -------------
+//
+// A card of its own (run.event "approach"), up only when he has more than the open fight to
+// choose: who can hide (Stealth), who has set traps on the walk, who holds a ration to draw one
+// of a pack off. Its first option is always the open fight.
+
+// The sharpest watch among what was found
+fun foundAwareness()
+{
+    var groups = foundGroups()
+    var most = 0
+
+    for (var g = 0; g < len(groups); g++)
+    {
+        var mob = mobOf(groups[g].mob)
+
+        most = larger(most, pick(mob, "awareness", 5))
+    }
+
+    return most
+}
+
+fun ambushChance()
+{
+    return clampTo(walkKnobs.ambushBase + (mine("stealth") - foundAwareness()) * walkKnobs.ambushStep, walkKnobs.ambushLeast, walkKnobs.ambushMost)
+}
+
+// The ways he may meet it: [{id, label, line, locked, asks}], the open fight first
+fun approachOptions()
+{
+    var rows = [{id: "open", label: "Fight in the open", line: "As it stands: whoever is quicker acts first", locked: 0, asks: ""}]
+
+    if (mine("stealth") > 0)
+    {
+        push(rows, {id: "ambush", label: "Lie in wait", line: "Stealth " + toString(mine("stealth")) + " against its watch of " + toString(foundAwareness()) + ": " + toString(ambushChance()) + " % to strike first, and it comes late; else it strikes first",
+                    locked: 0, asks: ""})
+    }
+
+    if (runOf("traps") > 0)
+    {
+        push(rows, {id: "trap", label: "Lead it into the snare", line: counted(runOf("traps"), "trap", "traps") + " set: each holds one at the start and hurts it " + toString(walkKnobs.trapDamage),
+                    locked: 0, asks: ""})
+    }
+
+    if (encounterIdOf(run.found) == "" and runOf("foundCount") > 1 and held("rations") > 0)
+    {
+        push(rows, {id: "bait", label: "Draw one off with a ration", line: "1 ration: one of them alone", locked: 0, asks: ""})
+    }
+
+    if (len(rows) > 1)
+    {
+        push(rows, {id: "slip", label: "Leave it be", line: "No fight: the days of the search are spent", locked: 0, asks: ""})
+    }
+
+    return rows
+}
+
+fun approachCard()
+{
+    var groups = foundGroups()
+    var first = groups[0]
+    var mob = mobOf(first.mob)
+    var name = toLowerCase(foundName(mob, runOf("foundCount")))
+
+    if (encounterIdOf(run.found) != "")
+    {
+        var enc = encounterOf(encounterIdOf(run.found))
+
+        name = enc.name
+    }
+
+    return {id: "approach", title: "How to meet it", text: "He has found " + name + ", and it has not found him yet.",
+            foot: "How he meets it is his to choose each time: a walk by the record fights nothing again."}
+}
+
+// What he found is met: the card first when there is a choice, else the fight
+fun meetFound()
+{
+    if (len(approachOptions()) > 1)
+    {
+        run.event = "approach"
+        return
+    }
+
+    beginFight()
+}
+
+// His answer to the card
+fun approach(id)
+{
+    run.event = ""
+
+    if (id == "slip")
+    {
+        openStep("approach", run.found, 0, 0, "Slipped past, and left it be", "gate")
+        closeStep()
+
+        run.found = ""
+        run.foundCount = 0
+        return
+    }
+
+    if (id == "bait" and held("rations") > 0)
+    {
+        take("rations", 1)
+        run.foundCount = 1
+    }
+
+    if (id == "ambush")
+    {
+        run.opening = "ambush.lost"
+
+        if (chance(ambushChance()))
+        {
+            run.opening = "ambush.won"
+        }
+    }
+
+    if (id == "trap" and runOf("traps") > 0)
+    {
+        run.opening = "trap"
+    }
+
+    beginFight()
+}
+
+// How the fight opens, once the waits are set and before anyone acts: from cover, with the
+// beasts late; seen first, with them early; or into his traps
+fun openFight()
+{
+    var opening = pick(run, "opening", "")
+
+    run.opening = ""
+
+    if (opening == "ambush.won")
+    {
+        for (var i = 0; i < len(foes); i++)
+        {
+            foes[i].wait = foeWait(i) + share(waitFor(100, foeSpeed(i)), walkKnobs.ambushDelay)
+        }
+
+        push(account, {turn: "", text: "He strikes from cover: they are slow to turn", figure: "", kind: "gain"})
+    }
+    else if (opening == "ambush.lost")
+    {
+        fight.heroWait = waitFor(100, heroSpeed())
+
+        for (var i = 0; i < len(foes); i++)
+        {
+            foes[i].wait = 0
+        }
+
+        push(account, {turn: "", text: "It saw him first", figure: "", kind: "loss"})
+    }
+    else if (opening == "trap")
+    {
+        var sprung = smaller(runOf("traps"), len(foes))
+
+        for (var i = 0; i < sprung; i++)
+        {
+            foes[i].held = 1
+            foes[i].hp = larger(1, foes[i].hp - walkKnobs.trapDamage)
+            push(account, {turn: "", text: "The snare takes the " + toLowerCase(foes[i].name), figure: toString(walkKnobs.trapDamage), kind: "gain"})
+        }
+
+        run.traps = runOf("traps") - sprung
+    }
+}
+
+// A trap set on the walk, for who learned snares as a boy: a day, and it waits for what he finds
+fun doTrap()
+{
+    if (mine("snare_set") <= 0)
+    {
+        run.refused = "He does not know how to do that"
+        return
+    }
+
+    if (runOf("traps") >= walkKnobs.trapsMost)
+    {
+        run.refused = "He has set all the traps he can watch"
+        return
+    }
+
+    if (walkKnobs.trapAp > runOf("ap"))
+    {
+        run.refused = "Not enough days left for a trap"
+        return
+    }
+
+    openStep("trap", "", 1, walkKnobs.trapAp, "Set a trap where a beast will run", "adventure")
+    closeStep()
+
+    run.traps = runOf("traps") + 1
+}
+
+// ---- a beast that changes as it is hurt -------------------------------------------------------------
+//
+// A beast's `phases` ({at, line, armour?, ward?, quick?, resist?, script?, calls?: {mob, count}}) are
+// taken once each, the first time its Vitality falls to `at` percent: from then on what they name
+// is the foe's (fightcalc.pg's `foeField`), and what it calls joins the fight.
+
+fun checkPhase(n)
+{
+    var foe = foes[n]
+
+    if (foe.alive <= 0)
+    {
+        return
+    }
+
+    var mob = foeMob(n)
+    var phases = pick(mob, "phases", [])
+
+    for (var k = pick(foe, "phase", 0); k < len(phases); k++)
+    {
+        var p = phases[k]
+
+        if (foe.hp * 100 <= p.at * foe.hpMax)
+        {
+            // (the foe keeps only the phase it is in: what the phase names is read from the beast,
+            // fightcalc.pg's `foeField`, as a walk saved keeps a foe's plain figures and no table)
+            foe.phase = k + 1
+
+            say(p.line, "", "note")
+
+            if (typeOf(p.calls) != "none")
+            {
+                callFoes(p.calls.mob, p.calls.count)
+            }
+        }
+    }
+}
+
+// More beasts join the fight, an ordinary wait away from their first action: never more than four
+// stand in a fight (the page has room for four)
+fun callFoes(mobId, count)
+{
+    var mob = mobOf(mobId)
+
+    for (var i = 0; i < count; i++)
+    {
+        if (len(foes) >= 4)
+        {
+            return
+        }
+
+        push(foes, {n: len(foes), id: mob.id, name: "Another " + toLowerCase(mob.name), hp: mob.hp, hpMax: mob.hp, at: 0, alive: 1, held: 0,
+                    poise: pick(mob, "poise", 0), mark: "", markTurns: 0, exposed: 0, bleeding: 0, sundered: 0, delays: 0, hits: 0})
+
+        foes[len(foes) - 1].wait = waitFor(100, foeSpeed(len(foes) - 1))
+        fight.count = fight.count + 1
+    }
+}
+
+// ---- bosses, and a walk lost ---------------------------------------------------------------------
+
+// Whether the fight under way is a boss's
+fun bossFight()
+{
+    if (pick(fight, "enc", "") == "")
+    {
+        return false
+    }
+
+    var enc = encounterOf(fight.enc)
+
+    return pick(enc, "boss", false)
+}
+
+// What a boss fight comes to, once it is over (fightlib.pg's `endFight`): beaten, what it gives
+// is his and its lore is written; fled, the walk is over and what it gathered is lost; lost, he dies
+fun bossOutcome(outcome)
+{
+    if (not bossFight())
+    {
+        return
+    }
+
+    var enc = encounterOf(fight.enc)
+    var step = lastStep()
+
+    if (outcome == "won")
+    {
+        after["beaten." + enc.id] = 1
+
+        for (var i = 0; i < len(enc.gives); i++)
+        {
+            var given = enc.gives[i]
+
+            after[given.stat] = mine(given.stat) + given.amount
+        }
+
+        if (enc.lore != "")
+        {
+            push(entries, {text: enc.lore, kind: "milestone", figure: "", glyph: "relic"})
+        }
+    }
+    else if (outcome == "fled")
+    {
+        run.routed = 1
+    }
+    else
+    {
+        after.vit = 0
+        after.fell = 1
+        run.died = 1
+        step.text = "Fell to " + enc.name
+        fight.spoils = "He does not come home"
+        push(entries, {text: "He fell to " + enc.name, kind: "loss", figure: "", glyph: "vitality"})
+    }
+}
+
+// What the walk had gathered is lost: brought down by a beast, or routed by a boss
+fun loseHaul()
+{
+    for (var i = 0; i < len(marks); i++)
+    {
+        var mark = marks[i]
+
+        if (mark.kind == "gain" or mark.kind == "loot")
+        {
+            after[mark.id] = larger(0, mine(mark.id) - mark.n)
+        }
+    }
+}
+
+// The marks of a list but those of a step written once (a boss fight, a meeting of once a life):
+// a record walked again passes such a step by, and asks nothing for it
+fun chargeable(list)
+{
+    var kept = []
+
+    for (var i = 0; i < len(list); i++)
+    {
+        var mark = list[i]
+        var steps = record
+
+        if (pick(mark, "recipe", "") != "")
+        {
+            steps = marksOf(recipeSteps, mark.recipe)
+        }
+
+        if (not stepOnce(steps, mark.step))
+        {
+            push(kept, mark)
+        }
+    }
+
+    return kept
+}

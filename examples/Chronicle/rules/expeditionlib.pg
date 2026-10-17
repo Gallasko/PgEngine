@@ -342,6 +342,18 @@ fun mobLevel(zoneId, mob)
         level = smaller(4, level + 1)
     }
 
+    // The first kill of it in this life was a lesson: it is known 3 of 4 from then on
+    if (mine("lesson." + mob.id) > 0)
+    {
+        level = larger(level, 3)
+    }
+
+    // Who has read enough knows a beast a level better than he has seen it
+    if (level > 0 and mine("lore") >= walkKnobs.loreSees)
+    {
+        level = smaller(4, level + 1)
+    }
+
     return level
 }
 
@@ -507,6 +519,12 @@ fun seekCost(zone, mob, count)
 
     // The lodge's hounds find any beast a day sooner
     if (mine("town.lodge") >= 3)
+    {
+        cost = cost - 1
+    }
+
+    // Who has followed the hunters tracks it a day sooner
+    if (mine("hunter_trained") > 0)
     {
         cost = cost - 1
     }
@@ -722,31 +740,6 @@ fun shiftHp(amount)
     return now - before
 }
 
-// Practice: so many points to one point of the part
-fun practise(part, points)
-{
-    var key = "xp." + part
-    var have = mine(key) + points
-
-    for (var guard = 0; guard < 20 and have >= walkKnobs.xpStep; guard++)
-    {
-        have = have - walkKnobs.xpStep
-
-        var before = mine(part)
-
-        after[part] = raised(before, part, 1)
-
-        if (mine(part) > before)
-        {
-            run["grew." + part] = runOf("grew." + part) + 1
-            push(marks, {step: len(record), kind: "grow", id: part, n: 1})
-            push(entries, {text: statName(part) + " grew with practice", kind: "gain", figure: "+1", glyph: ""})
-        }
-    }
-
-    after[key] = have
-}
-
 // ---- events ------------------------------------------------------------------------------------------------
 
 // After an action an event waits on, one of the zone's may come: its card is up until he answers
@@ -883,6 +876,13 @@ fun optionLine(option)
 
 fun chooseOption(optionId)
 {
+    // How to meet what he found is a card of its own (encounterlib.pg)
+    if (run.event == "approach")
+    {
+        approach(optionId)
+        return
+    }
+
     var event = eventOf(run.event)
     var option = optionOf(event, optionId)
 
@@ -958,7 +958,7 @@ fun chooseOption(optionId)
     // What he had found is still there
     if (run.found != "" and pick(fight, "mob", "") == "")
     {
-        beginFight()
+        meetFound()
     }
 }
 
@@ -1027,6 +1027,13 @@ fun inZone(zone, mobId)
 
 fun doSeek(mobId, count)
 {
+    // An encounter of several kinds is found as a whole (encounterlib.pg)
+    if (startsWith(mobId, "enc."))
+    {
+        seekEncounter(substring(mobId, 4))
+        return
+    }
+
     var zone = zoneOf(run.zone)
     var mob = mobOf(mobId)
 
@@ -1084,7 +1091,7 @@ fun doSeek(mobId, count)
 
     if (run.event == "")
     {
-        beginFight()
+        meetFound()
     }
 }
 
@@ -1319,7 +1326,7 @@ fun stayOver()
         return false
     }
 
-    return runOf("ap") <= 0 or runOf("downed") > 0
+    return runOf("ap") <= 0 or runOf("downed") > 0 or runOf("routed") > 0
 }
 
 // What the walk leaves: he has walked the zone, and the life's log says so
@@ -1330,10 +1337,17 @@ fun endStay()
     run.mode = "done"
     run.leaving = 0
 
-    if (runOf("downed") > 0)
+    // Fallen to a boss: there is no way home (encounterlib.pg's `bossOutcome` wrote it)
+    if (runOf("died") > 0)
     {
-        after.vitmax = larger(1, mostOf(after, "vit") - walkKnobs.woundCost)
-        push(entries, {text: "Carried home from " + zone.name + ", badly hurt", kind: "loss", figure: "−" + toString(walkKnobs.woundCost) + " vit", glyph: "vitality"})
+        return
+    }
+
+    // Brought down by a beast, or run from a boss: home, without what the walk had gathered
+    if (runOf("downed") > 0 or runOf("routed") > 0)
+    {
+        loseHaul()
+        push(entries, {text: "Home from " + zone.name + " with nothing: what the walk had gathered is lost", kind: "loss", figure: "", glyph: "vitality"})
         return
     }
 
@@ -1395,6 +1409,10 @@ fun walkAct(kind, target, count)
     else if (kind == "remedy")
     {
         doRemedy()
+    }
+    else if (kind == "trap")
+    {
+        doTrap()
     }
     else if (kind == "snare")
     {
@@ -1591,7 +1609,7 @@ fun recipeOf()
     }
 
     return {zone: zone.id, name: zone.name, kind: zone.kind, steps: len(record), ap: runOf("spent"), hp: hp, months: runOf("months"),
-            walkedAt: runOf("startMonth"), kills: killsText(marks), downed: runOf("downed")}
+            walkedAt: runOf("startMonth"), kills: killsText(marks), downed: larger(runOf("downed"), runOf("routed")), died: runOf("died")}
 }
 
 // ---- the same walk again: a record replayed, with no day chosen and no fight fought --------------
@@ -1599,6 +1617,9 @@ fun recipeOf()
 // What a record takes from the bag, in all: [{id, n}]
 fun usesOf(list)
 {
+    // (what a step written once used is not asked again: a record walked again passes it by)
+    list = chargeable(list)
+
     var ids = markIds(list, "use")
     var uses = []
 
@@ -1699,17 +1720,14 @@ fun replayTerm(recipe, steps, list)
 
                         if (chance(drop.chance))
                         {
-                            var n = rollBetween(drop.least, drop.most)
+                            var n = rollBetween(drop.least, drop.most) + skinBonus(drop.id)
                             var key = drop.id
 
                             after[key] = mine(key) + n
                             after["know.drop." + mob.id + "." + drop.id] = 1
                             brought[drop.id] = pick(brought, drop.id, 0) + n
                         }
-                    }
-
-                    practise(mob.trains, mob.xp)
-                }
+                    }                }
             }
             else if (mark.kind == "learn")
             {
@@ -1851,6 +1869,13 @@ fun seekRows()
         }
     }
 
+    var met = encounterRows(zone)
+
+    for (var e = 0; e < len(met); e++)
+    {
+        push(rows, met[e])
+    }
+
     return rows
 }
 
@@ -1974,6 +1999,21 @@ fun workRows()
                            daysText(walkKnobs.snareAp) + " of the stay", caught))
     }
 
+    // A trap set for what he will find: no camp asked
+    if (mine("snare_set") > 0)
+    {
+        var trapShort = ""
+
+        if (runOf("traps") >= walkKnobs.trapsMost)
+        {
+            trapShort = toString(walkKnobs.trapsMost) + " SET ALREADY"
+        }
+
+        push(rows, workRow("trap", "Set a trap", "HOLDS A BEAST AT THE START · " + toString(runOf("traps")) + " SET", walkKnobs.trapAp, trapShort, "",
+                           "A snare where a beast will run: the next one he finds, he can lead into it.",
+                           daysText(walkKnobs.trapAp) + " of the stay", "A trap for the next fight"))
+    }
+
     if (camp and mine("herbal") > 0)
     {
         var leaf = toLowerCase(itemOf(walkKnobs.brewItem).name)
@@ -2012,7 +2052,7 @@ fun bagRows()
     {
         var item = walkItems[i]
 
-        if (item.kind == "food" or item.kind == "remedy")
+        if (item.kind == "food" or item.kind == "remedy" or (item.kind == "fight" and held(item.id) > 0))
         {
             push(rows, {id: item.id, name: item.name, glyph: item.glyph, value: toString(held(item.id)), tone: ""})
         }
@@ -2043,17 +2083,14 @@ fun takenRows()
         }
     }
 
-    var parts = ["str", "dex"]
+    // What a technique used often has raised in him on this walk (its ranks, fightlib.pg)
+    var parts = ["str", "dex", "int", "arcana", "discipline"]
 
     for (var i = 0; i < len(parts); i++)
     {
         if (runOf("grew." + parts[i]) > 0)
         {
             push(rows, {id: "grew." + parts[i], name: statName(parts[i]), glyph: "training", value: "+" + toString(runOf("grew." + parts[i])), tone: "gain"})
-        }
-        else if (runOf("xp." + parts[i]) > 0)
-        {
-            push(rows, {id: "xp." + parts[i], name: statName(parts[i]), glyph: "training", value: "a little", tone: "gain"})
         }
     }
 
@@ -2115,6 +2152,11 @@ fun homeRows()
 
 fun optionRows()
 {
+    if (run.event == "approach")
+    {
+        return approachOptions()
+    }
+
     var rows = []
     var event = eventOf(run.event)
 
@@ -2289,6 +2331,11 @@ fun siteHead()
 
 fun eventCard()
 {
+    if (run.event == "approach")
+    {
+        return approachCard()
+    }
+
     var event = eventOf(run.event)
 
     if (event.id == "")

@@ -560,8 +560,9 @@ namespace pg
             EXPECT_EQ(textOf(w.last.duel, "turn"), "TURN 1");
 
             // What he may do is what anyone can: strike, defend, take a remedy while he holds
-            // one, flee. He has learned nothing else, and nothing else is offered
-            ASSERT_EQ(w.last.menu.size(), 4u);
+            // one, flee; then what he has learned, the bow shot of the yard, and nothing else
+            ASSERT_EQ(w.last.menu.size(), 5u);
+            EXPECT_EQ(textOf(w.last.menu[4], "id"), "tech.bow");
             EXPECT_EQ(textOf(w.last.menu[0], "id"), "strike");
             EXPECT_EQ(textOf(w.last.menu[1], "name"), "Defend");
             EXPECT_EQ(textOf(w.last.menu[2], "id"), "remedy");
@@ -638,35 +639,36 @@ namespace pg
 
                 for (const auto& m : w.last.menu)
                 {
-                    if (textOf(m, "group") == "Learned")
+                    if (not textOf(m, "group").empty())
                         ids.push_back(textOf(m, "id"));
                 }
 
                 return ids;
             };
 
-            EXPECT_TRUE(learned(hunter()).empty());
+            // (the hunter learned the bow at the yard: its shot is with him in every fight)
+            EXPECT_EQ(learned(hunter()), (std::vector<std::string>{"tech.bow"}));
 
             ElementMap knight = hunter();
             knight["keep_oath"] = ElementType{1};
-            EXPECT_EQ(learned(knight), (std::vector<std::string>{"tech.heavy"}));
+            EXPECT_EQ(learned(knight), (std::vector<std::string>{"tech.bow", "tech.heavy"}));
 
             knight["veteran"] = ElementType{1};
-            EXPECT_EQ(learned(knight), (std::vector<std::string>{"tech.heavy", "tech.sweep"}));
+            EXPECT_EQ(learned(knight), (std::vector<std::string>{"tech.bow", "tech.heavy", "tech.sweep"}));
 
             ElementMap mage = hunter();
             mage["collegium"] = ElementType{1};
             mage["orin_known"] = ElementType{1};
-            EXPECT_EQ(learned(mage), (std::vector<std::string>{"tech.firebolt", "tech.binding"}));
+            EXPECT_EQ(learned(mage), (std::vector<std::string>{"tech.bow", "tech.firebolt", "tech.binding"}));
 
             ElementMap urchin = hunter();
             urchin["street_known"] = ElementType{1};
-            EXPECT_EQ(learned(urchin), (std::vector<std::string>{"tech.feint"}));
+            EXPECT_EQ(learned(urchin), (std::vector<std::string>{"tech.bow", "tech.feint"}));
 
             // What the wooden blade taught a boy, the edge or the point, comes first: it was first
             ElementMap edge = hunter();
             edge["slash_learned"] = ElementType{1};
-            EXPECT_EQ(learned(edge), (std::vector<std::string>{"tech.slash"}));
+            EXPECT_EQ(learned(edge), (std::vector<std::string>{"tech.slash", "tech.bow"}));
 
             // It is a better strike and no more: it costs no breath, and he is told of none
             {
@@ -697,16 +699,16 @@ namespace pg
             ElementMap point = hunter();
             point["thrust_learned"] = ElementType{1};
             point["keep_oath"] = ElementType{1};
-            EXPECT_EQ(learned(point), (std::vector<std::string>{"tech.thrust", "tech.heavy"}));
+            EXPECT_EQ(learned(point), (std::vector<std::string>{"tech.thrust", "tech.bow", "tech.heavy"}));
 
             // The levy teaches its boys the heavy cut before any oath, and the smuggler his one trick
             ElementMap levied = hunter();
             levied["levy_served"] = ElementType{1};
-            EXPECT_EQ(learned(levied), (std::vector<std::string>{"tech.heavy"}));
+            EXPECT_EQ(learned(levied), (std::vector<std::string>{"tech.bow", "tech.heavy"}));
 
             ElementMap runner = hunter();
             runner["smuggler_runner"] = ElementType{1};
-            EXPECT_EQ(learned(runner), (std::vector<std::string>{"tech.sand"}));
+            EXPECT_EQ(learned(runner), (std::vector<std::string>{"tech.bow", "tech.sand"}));
 
             // A working is counted from his Intelligence: a clever man's firebolt is worth his study
             mage["int"] = ElementType{16};
@@ -720,7 +722,7 @@ namespace pg
 
             ASSERT_TRUE(w.act("pick", "tech.firebolt"));
             EXPECT_EQ(textOf(w.last.preview, "title"), "Firebolt");
-            EXPECT_EQ(textOf(w.last.preview, "deals"), "12\xE2\x80\x93" "15");   // 5-8, and half of 16, less the wolf's guard of 1
+            EXPECT_EQ(textOf(w.last.preview, "deals"), "13\xE2\x80\x93" "16");   // 5-8, and half of 16: a working is not stopped by the armour of a wolf
 
             // The binding word deals nothing: the beast loses the move it meant to make
             ASSERT_TRUE(w.act("pick", "tech.binding"));
@@ -756,8 +758,10 @@ namespace pg
             w.answer();
             ASSERT_EQ(w.screen(), "fight");
 
-            // No rat is quicker than a boy
-            EXPECT_NE(textOf(w.last.duel, "quick").find("HE ACTS FIRST"), std::string::npos);
+            // No rat is quicker than a boy: over the coming six actions he acts at least as often
+            // as it does (the line used to say who acts first in a round; there are no rounds now)
+            EXPECT_EQ(textOf(w.last.duel, "quick").find("HE ACTS ONCE TO"), std::string::npos);
+            EXPECT_NE(textOf(w.last.duel, "quick").find("HE ACTS"), std::string::npos);
 
             // He defends until it has bitten at him once: the bite is a name and nothing else till then
             bool sawUnknown = false;
@@ -1408,6 +1412,1309 @@ namespace pg
                 EXPECT_EQ(firewood, 5);
                 EXPECT_EQ(ashwood, -1);
             }
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // An encounter is beasts of several kinds in one fight: the Old Grey and two of his wolves.
+        // Each beast is its own, with its own name and its own panel, and the fight's line in the
+        // record names the encounter.
+        TEST(expedition_test, a_fight_may_hold_beasts_of_several_kinds)
+        {
+            MockLogger logger;
+            Walker w(knowing(hunter(), "hollow", 10));
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
+            ASSERT_NE(byId(w.last.seeks, "enc.grey"), nullptr);
+
+            ASSERT_TRUE(w.act("seek", "enc.grey", 0));
+            w.answer();
+
+            ASSERT_EQ(w.screen(), "fight");
+            ASSERT_EQ(w.state.foes.size(), 3u);
+            EXPECT_EQ(textOf(w.state.foes[0], "id"), "oldgrey");
+            EXPECT_EQ(textOf(w.state.foes[1], "id"), "wolf");
+            EXPECT_EQ(textOf(w.state.foes[2], "id"), "wolf");
+            ASSERT_EQ(w.last.targets.size(), 3u);
+            EXPECT_EQ(textOf(w.last.targets[0], "name"), "The Old Grey");
+
+            w.fight();
+
+            const ElementMap* line = nullptr;
+
+            for (const auto& step : w.state.record)
+            {
+                if (textOf(step, "kind") == "fight")
+                    line = &step;
+            }
+
+            ASSERT_NE(line, nullptr);
+            EXPECT_EQ(textOf(*line, "target"), "enc.grey");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A fight is a timeline, not rounds: who is quicker acts more often. A boy as quick as
+        // twenty acts twice before a water rat acts once; the order of the turn shows the six
+        // coming actions, his first.
+        TEST(expedition_test, a_quicker_man_acts_more_often)
+        {
+            MockLogger logger;
+
+            ElementMap boy = knowing(gatherer(), "hedgerows", 10);
+            boy["dex"] = ElementType{20};
+
+            Walker w(boy);
+            w.age = 10.0f;
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "millpond", 0}));
+            ASSERT_TRUE(w.act("seek", "rat", 1));
+            w.answer();
+            ASSERT_EQ(w.screen(), "fight");
+
+            auto foeLines = [&w]() {
+                int n = 0;
+
+                for (const auto& a : w.state.account)
+                {
+                    if (textOf(a, "by") == "foe")
+                        ++n;
+                }
+
+                return n;
+            };
+
+            ASSERT_EQ(w.last.order.size(), 6u);
+            EXPECT_EQ(textOf(w.last.order[0], "note"), "NOW");
+
+            // (he defends: nothing of his ends the rat before it has had its turn)
+            ASSERT_TRUE(w.act("move", "guard"));
+            EXPECT_EQ(foeLines(), 0);
+
+            ASSERT_TRUE(w.act("move", "guard"));
+            EXPECT_EQ(foeLines(), 1);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A walk saved in the middle of a fight before the timeline came has no waits: the fight
+        // goes on from where it stood.
+        TEST(expedition_test, a_fight_saved_before_the_timeline_plays_on)
+        {
+            MockLogger logger;
+
+            Walker w(knowing(gatherer(), "hedgerows", 10));
+            w.age = 10.0f;
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "millpond", 0}));
+            ASSERT_TRUE(w.act("seek", "rat", 1));
+            w.answer();
+            ASSERT_EQ(w.screen(), "fight");
+
+            w.state.fight.erase("heroWait");
+
+            for (auto& foe : w.state.foes)
+            {
+                foe.erase("wait");
+                foe.erase("delays");
+            }
+
+            ASSERT_TRUE(w.act("move", "guard"));
+            EXPECT_EQ(textOf(w.last.duel, "turn"), "TURN 2");
+            EXPECT_EQ(textOf(w.state.run, "refused"), "");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A blow has a kind: the boar's hide turns an edge and takes a hammer badly. What it
+        // resists is said on the move once the beast is known well enough, and Lore knows it sooner
+        // and finds the weakness deeper.
+        TEST(expedition_test, a_beast_resists_some_blows_and_not_others)
+        {
+            MockLogger logger;
+
+            ElementMap who = knowing(hunter(), "hollow", 10);
+            who["slash_learned"] = ElementType{1};
+            who["smith_apprentice"] = ElementType{1};
+
+            auto fightBoar = [](const ElementMap& character) {
+                auto w = std::make_unique<Walker>(character);
+
+                EXPECT_TRUE(w->ask("enter", WalkAct{"", "hollow", 0}));
+                EXPECT_TRUE(w->act("seek", "boar", 1));
+                w->answer();
+                EXPECT_EQ(w->screen(), "fight");
+
+                return w;
+            };
+
+            auto row = [](const Walker& w, const std::string& id) {
+                const ElementMap* found = byId(w.last.menu, id);
+
+                EXPECT_NE(found, nullptr) << id;
+
+                return found ? *found : ElementMap{};
+            };
+
+            auto endsWith = [](const std::string& text, const std::string& end) {
+                return text.size() >= end.size() and text.compare(text.size() - end.size(), end.size(), end) == 0;
+            };
+
+            {
+                // Str 11, Arms 2: 11-14 before the move. The edge: 130 %, half of it turned by the
+                // hide, less 2 of armour. The hammer: 110 %, a quarter more, less 2
+                auto w = fightBoar(who);
+
+                EXPECT_EQ(textOf(row(*w, "tech.slash"), "deals"), "5\xE2\x80\x93" "7");
+                EXPECT_EQ(textOf(row(*w, "tech.hammer"), "deals"), "13\xE2\x80\x93" "16");
+
+                // Not known well enough: nothing said of what it resists
+                EXPECT_FALSE(endsWith(textOf(row(*w, "tech.slash"), "note"), "RESISTED"));
+            }
+
+            {
+                ElementMap watched = who;
+                watched["know.observe.boar"] = ElementType{5};
+
+                auto w = fightBoar(watched);
+
+                EXPECT_TRUE(endsWith(textOf(row(*w, "tech.slash"), "note"), "RESISTED"));
+                EXPECT_TRUE(endsWith(textOf(row(*w, "tech.hammer"), "note"), "WEAK"));
+            }
+
+            {
+                // Lore 3: the boar is known a level higher, and its weakness is deeper (-40)
+                ElementMap learned = who;
+                learned["lore"] = ElementType{3};
+
+                Walker plain(who);
+                Walker lettered(learned);
+
+                ASSERT_TRUE(plain.ask("enter", WalkAct{"", "hollow", 0}));
+                ASSERT_TRUE(lettered.ask("enter", WalkAct{"", "hollow", 0}));
+
+                ASSERT_NE(byId(plain.last.seeks, "boar"), nullptr);
+                ASSERT_NE(byId(lettered.last.seeks, "boar"), nullptr);
+                EXPECT_NE(textOf(*byId(plain.last.seeks, "boar"), "rank").find("KNOWN 1 OF 4"), std::string::npos);
+                EXPECT_NE(textOf(*byId(lettered.last.seeks, "boar"), "rank").find("KNOWN 2 OF 4"), std::string::npos);
+
+                auto w = fightBoar(learned);
+
+                EXPECT_EQ(textOf(row(*w, "tech.hammer"), "deals"), "14\xE2\x80\x93" "19");
+            }
+        }
+
+        namespace
+        {
+            // A hunter of the Hollow, known 4 of 4, in a fight with one boar, hard to kill
+            std::unique_ptr<Walker> boarFight(ElementMap who)
+            {
+                who = knowing(std::move(who), "hollow", 10);
+                who["vit"] = ElementType{200};
+                who["vitmax"] = ElementType{200};
+
+                auto w = std::make_unique<Walker>(who);
+
+                EXPECT_TRUE(w->ask("enter", WalkAct{"", "hollow", 0}));
+                EXPECT_TRUE(w->act("seek", "boar", 1));
+                w->answer();
+                EXPECT_EQ(w->screen(), "fight");
+
+                return w;
+            }
+
+            bool accountSays(const Walker& w, const std::string& part)
+            {
+                for (const auto& a : w.state.account)
+                {
+                    if (textOf(a, "text").find(part) != std::string::npos)
+                        return true;
+                }
+
+                return false;
+            }
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A working of fire leaves the beast burning: it hurts at its own turn, for a few of them.
+        TEST(expedition_test, a_burning_beast_hurts_at_its_turn)
+        {
+            MockLogger logger;
+
+            ElementMap mage = hunter();
+            mage["collegium"] = ElementType{1};
+            mage["int"] = ElementType{16};
+
+            auto w = boarFight(mage);
+
+            for (int i = 0; i < 4 and textOf(w->state.foes[0], "mark") != "fire"; ++i)
+            {
+                ASSERT_TRUE(w->act("move", "tech.firebolt"));
+                ASSERT_TRUE(w->act("move", "guard"));
+            }
+
+            ASSERT_TRUE(accountSays(*w, "burns"));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A beast with poise wears it down under his blows, a hammer's twice as fast: at nothing
+        // it staggers, its next turn far off and its guard open, and its poise comes back whole.
+        TEST(expedition_test, poise_broken_staggers_a_beast)
+        {
+            MockLogger logger;
+
+            ElementMap smith = hunter();
+            smith["smith_apprentice"] = ElementType{1};
+            smith["dex"] = ElementType{30};
+
+            auto w = boarFight(smith);
+
+            ASSERT_EQ(intOf(w->state.foes[0], "poise"), 20);
+
+            for (int i = 0; i < 5 and not accountSays(*w, "staggers"); ++i)
+                ASSERT_TRUE(w->act("move", "tech.hammer"));
+
+            ASSERT_TRUE(accountSays(*w, "staggers"));
+            EXPECT_EQ(intOf(w->state.foes[0], "exposed"), 1);
+            EXPECT_EQ(intOf(w->state.foes[0], "poise"), 20);
+            EXPECT_NE(textOf(w->last.targets[0], "life").find("EXPOSED"), std::string::npos);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Holds and delays thrown at one beast again and again count for less each time: it is
+        // never kept from acting for good.
+        TEST(expedition_test, no_beast_is_held_or_delayed_for_good)
+        {
+            MockLogger logger;
+
+            ElementMap binder = hunter();
+            binder["smuggler_runner"] = ElementType{1};
+            binder["collegium"] = ElementType{1};
+            binder["orin_known"] = ElementType{1};
+            binder["discipline"] = ElementType{20};
+
+            auto w = boarFight(binder);
+
+            for (int i = 0; i < 12 and textOf(w->last.duel, "over").empty(); ++i)
+            {
+                std::string move = "guard";
+
+                for (const char* hold : {"tech.sand", "tech.binding"})
+                {
+                    const ElementMap* row = byId(w->last.menu, hold);
+
+                    if (move == "guard" and row and intOf(*row, "locked") == 0)
+                        move = hold;
+                }
+
+                ASSERT_TRUE(w->act("move", move));
+            }
+
+            int acted = 0;
+
+            for (const auto& a : w->state.account)
+            {
+                if (textOf(a, "by") == "foe" or textOf(a, "text").find("paws") != std::string::npos or textOf(a, "text").find("circles") != std::string::npos)
+                    ++acted;
+            }
+
+            EXPECT_GE(acted, 2);
+        }
+
+        namespace
+        {
+            const ElementMap* menuRowOf(const Walker& w, const std::string& id)
+            {
+                return byId(w.last.menu, id);
+            }
+
+            // Presses a move until `done` holds, at most `most` times: whether it came to hold
+            template <typename Done>
+            bool pressUntil(Walker& w, const std::string& move, int most, Done done)
+            {
+                for (int i = 0; i < most and not done() and textOf(w.last.duel, "over").empty(); ++i)
+                {
+                    if (not w.act("move", move))
+                        return false;
+                }
+
+                return done();
+            }
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The Keep's rhythm: every blow that lands builds his momentum, and at three a finisher
+        // spends it all.
+        TEST(expedition_test, three_blows_open_a_finisher)
+        {
+            MockLogger logger;
+
+            ElementMap levy = hunter();
+            levy["slash_learned"] = ElementType{1};
+            levy["levy_served"] = ElementType{1};
+            levy["dex"] = ElementType{30};
+
+            auto w = boarFight(levy);
+
+            ASSERT_NE(menuRowOf(*w, "tech.heavy"), nullptr);
+            EXPECT_EQ(intOf(*menuRowOf(*w, "tech.heavy"), "locked"), 1);
+            EXPECT_EQ(textOf(*menuRowOf(*w, "tech.heavy"), "asks"), "ASKS 3 MOMENTUM");
+
+            ASSERT_TRUE(pressUntil(*w, "tech.slash", 10, [&w]() { return intOf(w->state.fight, "momentum") >= 3; }));
+            EXPECT_EQ(intOf(*menuRowOf(*w, "tech.heavy"), "locked"), 0);
+
+            ASSERT_TRUE(w->act("move", "tech.heavy"));
+            EXPECT_EQ(intOf(w->state.fight, "momentum"), 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Defending on the big blow costs a point of momentum; bracing, the Watch's lesson, keeps it.
+        TEST(expedition_test, defending_costs_momentum_and_bracing_keeps_it)
+        {
+            MockLogger logger;
+
+            ElementMap edge = hunter();
+            edge["slash_learned"] = ElementType{1};
+            edge["dex"] = ElementType{30};
+
+            {
+                auto w = boarFight(edge);
+
+                ASSERT_TRUE(pressUntil(*w, "tech.slash", 10, [&w]() { return intOf(w->state.fight, "momentum") >= 2; }));
+                ASSERT_EQ(intOf(w->state.fight, "momentum"), 2);
+                ASSERT_TRUE(w->act("move", "guard"));
+                EXPECT_EQ(intOf(w->state.fight, "momentum"), 1);
+            }
+
+            edge["watch_known"] = ElementType{1};
+
+            {
+                auto w = boarFight(edge);
+
+                ASSERT_TRUE(pressUntil(*w, "tech.slash", 10, [&w]() { return intOf(w->state.fight, "momentum") >= 2; }));
+                ASSERT_EQ(intOf(w->state.fight, "momentum"), 2);
+                ASSERT_TRUE(w->act("move", "tech.brace"));
+                EXPECT_EQ(intOf(w->state.fight, "momentum"), 2);
+            }
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The Collegium's rhythm: a working of frost on a beast still burning shatters, and the
+        // marks are spent.
+        TEST(expedition_test, frost_on_a_burning_beast_shatters)
+        {
+            MockLogger logger;
+
+            ElementMap scholar = hunter();
+            scholar["forbidden_read"] = ElementType{1};
+            scholar["mara_student"] = ElementType{1};
+            scholar["int"] = ElementType{14};
+
+            auto w = boarFight(scholar);
+
+            ASSERT_TRUE(pressUntil(*w, "tech.spark", 3, [&w]() { return textOf(w->state.foes[0], "mark") == "fire"; }));
+            ASSERT_TRUE(pressUntil(*w, "tech.rime", 3, [&w]() { return accountSays(*w, "Shatter"); }));
+            EXPECT_EQ(textOf(w->state.foes[0], "mark"), "");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The Hidden Hand's rhythm: every hit before the beast's own turn bites a little harder.
+        TEST(expedition_test, hits_before_its_turn_bite_harder)
+        {
+            MockLogger logger;
+
+            ElementMap quick = hunter();
+            quick["thrust_learned"] = ElementType{1};
+            quick["dex"] = ElementType{20};
+
+            auto w = boarFight(quick);
+
+            const std::string before = textOf(*menuRowOf(*w, "tech.thrust"), "deals");
+
+            ASSERT_TRUE(pressUntil(*w, "tech.thrust", 3, [&w]() { return intOf(w->state.foes[0], "hits") >= 1; }));
+            ASSERT_EQ(intOf(w->state.foes[0], "hits"), 1);
+
+            EXPECT_NE(textOf(*menuRowOf(*w, "tech.thrust"), "deals"), before);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The Greenwood's opening: a bow shot at the start of a fight costs no time, and he acts
+        // again before anything moves.
+        TEST(expedition_test, a_bow_shot_opens_the_fight_for_free)
+        {
+            MockLogger logger;
+
+            auto w = boarFight(hunter());
+
+            auto foeLines = [&w]() {
+                int n = 0;
+
+                for (const auto& a : w->state.account)
+                {
+                    if (textOf(a, "by") == "foe")
+                        ++n;
+                }
+
+                return n;
+            };
+
+            const int before = foeLines();
+
+            ASSERT_TRUE(w->act("move", "tech.bow"));
+            EXPECT_EQ(foeLines(), before);
+            EXPECT_EQ(textOf(w->last.duel, "turn"), "TURN 2");
+            EXPECT_EQ(textOf(w->last.order[0], "note"), "NOW");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Who has followed the hunters finds a beast a day sooner.
+        TEST(expedition_test, a_hunter_trained_finds_beasts_sooner)
+        {
+            MockLogger logger;
+
+            ElementMap trained = hunter();
+            trained["hunter_trained"] = ElementType{1};
+
+            Walker plain(hunter());
+            Walker tracker(trained);
+
+            ASSERT_TRUE(plain.ask("enter", WalkAct{"", "hollow", 0}));
+            ASSERT_TRUE(tracker.ask("enter", WalkAct{"", "hollow", 0}));
+            ASSERT_NE(byId(plain.last.seeks, "wolf"), nullptr);
+            ASSERT_NE(byId(tracker.last.seeks, "wolf"), nullptr);
+
+            EXPECT_EQ(intOf(*byId(tracker.last.seeks, "wolf"), "cost"), intOf(*byId(plain.last.seeks, "wolf"), "cost") - 1);
+        }
+
+        namespace
+        {
+            // The place's own events on the way are answered (their first option): the card of
+            // how to meet the beast, if there is one, is left up
+            void answerZoneEvents(Walker& w)
+            {
+                for (int guard = 0; guard < 4 and w.screen() == "event" and textOf(w.last.card, "id") != "approach"; ++guard)
+                    w.act("option", textOf(w.last.options[0], "id"));
+            }
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A beast found, who can hide or has set a trap chooses how to meet it: in the open (always
+        // first), lying in wait, or not at all. Who can do neither meets it in the open, no card.
+        TEST(expedition_test, a_man_who_can_hide_chooses_how_to_meet_a_beast)
+        {
+            MockLogger logger;
+
+            ElementMap sly = hunter();
+            sly["stealth"] = ElementType{6};
+
+            Walker w(sly);
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
+            ASSERT_TRUE(w.act("seek", "wolf", 1));
+            answerZoneEvents(w);
+
+            ASSERT_EQ(w.screen(), "event");
+            EXPECT_EQ(textOf(w.last.card, "id"), "approach");
+            ASSERT_GE(w.last.options.size(), 3u);
+            EXPECT_EQ(textOf(w.last.options[0], "id"), "open");
+
+            const ElementMap* ambush = byId(w.last.options, "ambush");
+
+            ASSERT_NE(ambush, nullptr);
+            EXPECT_NE(textOf(*ambush, "line").find("%"), std::string::npos);
+            EXPECT_NE(byId(w.last.options, "slip"), nullptr);
+
+            Walker plain(hunter());
+
+            ASSERT_TRUE(plain.ask("enter", WalkAct{"", "hollow", 0}));
+            ASSERT_TRUE(plain.act("seek", "wolf", 1));
+            answerZoneEvents(plain);
+
+            EXPECT_EQ(plain.screen(), "fight");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A trap set on the walk springs when he leads the beast into it: held, and hurt.
+        TEST(expedition_test, a_trap_set_holds_the_beast_at_the_start)
+        {
+            MockLogger logger;
+
+            ElementMap trapper = hunter();
+            trapper["snare_set"] = ElementType{1};
+
+            Walker w(trapper);
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
+
+            const ElementMap* trap = byId(w.last.works, "trap");
+
+            ASSERT_NE(trap, nullptr);
+            EXPECT_EQ(textOf(*trap, "costText"), "1 AP");
+
+            const int ap = intOf(w.state.run, "ap");
+
+            ASSERT_TRUE(w.act("trap"));
+            answerZoneEvents(w);
+            EXPECT_EQ(intOf(w.state.run, "ap"), ap - 1);
+            EXPECT_EQ(intOf(w.state.run, "traps"), 1);
+
+            ASSERT_TRUE(w.act("seek", "wolf", 1));
+            answerZoneEvents(w);
+            ASSERT_EQ(textOf(w.last.card, "id"), "approach");
+            ASSERT_NE(byId(w.last.options, "trap"), nullptr);
+
+            ASSERT_TRUE(w.act("option", "trap"));
+            ASSERT_EQ(w.screen(), "fight");
+            EXPECT_EQ(intOf(w.state.foes[0], "held"), 1);
+            EXPECT_EQ(intOf(w.state.foes[0], "hp"), intOf(w.state.foes[0], "hpMax") - 6);
+            EXPECT_EQ(intOf(w.state.run, "traps"), 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // He may leave it be: the days of the search are spent, and there is no fight.
+        TEST(expedition_test, slipping_past_spends_the_days_and_fights_nothing)
+        {
+            MockLogger logger;
+
+            ElementMap sly = hunter();
+            sly["stealth"] = ElementType{3};
+
+            Walker w(sly);
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
+            ASSERT_TRUE(w.act("seek", "wolf", 1));
+            answerZoneEvents(w);
+            ASSERT_EQ(textOf(w.last.card, "id"), "approach");
+
+            ASSERT_TRUE(w.act("option", "slip"));
+            EXPECT_EQ(w.screen(), "site");
+            EXPECT_TRUE(w.state.foes.empty());
+            ASSERT_FALSE(w.state.record.empty());
+            EXPECT_NE(textOf(w.state.record.back(), "text").find("Slipped past"), std::string::npos);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A fire flask from the market: thrown, it does the same to any beast, past its hide and
+        // whatever it resists, and leaves it burning.
+        TEST(expedition_test, a_fire_flask_burns_whatever_it_is_thrown_at)
+        {
+            MockLogger logger;
+
+            ElementMap thrower = hunter();
+            thrower["flask"] = ElementType{1};
+
+            auto w = boarFight(thrower);
+
+            const ElementMap* row = menuRowOf(*w, "item.flask");
+
+            ASSERT_NE(row, nullptr);
+            EXPECT_EQ(textOf(*row, "group"), "Items");
+
+            ASSERT_TRUE(w->act("move", "item.flask"));
+
+            bool thrown = false;
+
+            for (const auto& a : w->state.account)
+            {
+                if (textOf(a, "text").find("Fire flask") != std::string::npos and textOf(a, "figure") == "10")
+                    thrown = true;
+            }
+
+            EXPECT_TRUE(thrown);
+            EXPECT_EQ(intOf(w->character, "flask"), 0);
+            EXPECT_EQ(menuRowOf(*w, "item.flask"), nullptr);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Blessed oil on his blade: every blow of his is holy for the rest of the fight.
+        TEST(expedition_test, blessed_oil_makes_his_blows_holy)
+        {
+            MockLogger logger;
+
+            ElementMap pious = hunter();
+            pious["oil"] = ElementType{1};
+
+            auto w = boarFight(pious);
+
+            ASSERT_TRUE(w->act("move", "item.oil"));
+            EXPECT_EQ(intOf(w->state.fight, "oil"), 1);
+
+            ASSERT_TRUE(w->act("pick", "strike"));
+            EXPECT_NE(textOf(w->last.preview, "text").find("holy"), std::string::npos);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A kill trains no part of him: the first kill of a kind of beast in a life is a lesson
+        // about it instead, and the beast is known 3 of 4 from then on.
+        TEST(expedition_test, a_kill_teaches_a_lesson_and_no_part)
+        {
+            MockLogger logger;
+
+            ElementMap boy = knowing(gatherer(), "hedgerows", 10);
+            boy["str"] = ElementType{20};
+            boy["xp.dex"] = ElementType{49};   // (a kill of a rat used to train Dexterity: one more point was a point)
+
+            Walker w(boy);
+            w.age = 10.0f;
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "millpond", 0}));
+            ASSERT_TRUE(w.act("seek", "rat", 1));
+            w.answer();
+            ASSERT_EQ(w.screen(), "fight");
+
+            const int dex = intOf(w.character, "dex");
+            bool lesson = false;
+
+            for (int i = 0; i < 20 and textOf(w.last.duel, "over").empty(); ++i)
+            {
+                ASSERT_TRUE(w.act("move", "strike"));
+
+                for (const auto& e : w.last.entries)
+                {
+                    if (textOf(e, "glyph") == "study" and textOf(e, "kind") == "gain")
+                        lesson = true;
+                }
+            }
+
+            ASSERT_EQ(textOf(w.last.duel, "over"), "won");
+            EXPECT_TRUE(lesson);
+            EXPECT_EQ(intOf(w.character, "lesson.rat"), 1);
+            EXPECT_EQ(intOf(w.character, "dex"), dex);
+
+            ASSERT_TRUE(w.act("back"));
+            w.answer();
+
+            ASSERT_NE(byId(w.last.seeks, "rat"), nullptr);
+            EXPECT_NE(textOf(*byId(w.last.seeks, "rat"), "rank").find("KNOWN 3 OF 4"), std::string::npos);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A technique used often rises a rank: a little stronger, and a point of the part it trains.
+        TEST(expedition_test, a_technique_used_often_rises_a_rank)
+        {
+            MockLogger logger;
+
+            ElementMap edge = hunter();
+            edge["slash_learned"] = ElementType{1};
+            edge["uses.slash"] = ElementType{9};
+
+            auto w = boarFight(edge);
+
+            const int str = intOf(w->character, "str");
+            const std::string before = textOf(*menuRowOf(*w, "tech.slash"), "deals");
+
+            ASSERT_TRUE(w->act("move", "tech.slash"));
+
+            EXPECT_EQ(intOf(w->character, "uses.slash"), 10);
+            EXPECT_EQ(intOf(w->character, "rank.slash"), 1);
+            EXPECT_EQ(intOf(w->character, "str"), str + 1);
+            EXPECT_NE(textOf(*menuRowOf(*w, "tech.slash"), "deals"), before);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A record kept before kills stopped training him is walked again: its loot, no part.
+        TEST(expedition_test, an_old_record_gives_its_loot_and_no_part)
+        {
+            MockLogger logger;
+
+            ElementMap boy = knowing(gatherer(), "hedgerows", 10);
+            boy["xp.dex"] = ElementType{49};
+
+            Walker w(boy);
+            w.age = 10.0f;
+
+            WalkRecipe old;
+            old.id = "r1";
+            old.fields = {{"zone", ElementType{std::string("millpond")}}, {"name", ElementType{std::string("Mill Pond")}}, {"kind", ElementType{std::string("forage")}},
+                          {"steps", ElementType{1}}, {"ap", ElementType{1}}, {"hp", ElementType{0}}, {"months", ElementType{2}}, {"walkedAt", ElementType{120}},
+                          {"kills", ElementType{std::string("2 water rats")}}, {"downed", ElementType{0}}};
+            old.steps = {{{"n", ElementType{1}}, {"kind", ElementType{std::string("fight")}}, {"target", ElementType{std::string("rat")}}, {"count", ElementType{2}},
+                          {"ap", ElementType{1}}, {"hp", ElementType{0}}, {"once", ElementType{0}}}};
+            old.marks = {{{"step", ElementType{1}}, {"kind", ElementType{std::string("kill")}}, {"id", ElementType{std::string("rat")}}, {"n", ElementType{2}}}};
+
+            w.recipes.push_back(old);
+
+            const int dex = intOf(w.character, "dex");
+
+            ASSERT_TRUE(w.ask("term", WalkAct{}, "r1"));
+            EXPECT_EQ(intOf(w.character, "dex"), dex);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The Old Grey leads: while he stands his wolves are quicker. Hurt below half, he howls
+        // and the wood sends one more, once.
+        TEST(expedition_test, the_old_grey_leads_and_calls_the_wood)
+        {
+            MockLogger logger;
+
+            ElementMap strong = knowing(hunter(), "hollow", 10);
+            strong["str"] = ElementType{30};
+            strong["arms"] = ElementType{8};
+            strong["dex"] = ElementType{30};
+            strong["vit"] = ElementType{300};
+            strong["vitmax"] = ElementType{300};
+
+            Walker w(strong);
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
+            ASSERT_TRUE(w.act("seek", "enc.grey", 0));
+            w.answer();
+            ASSERT_EQ(w.screen(), "fight");
+            ASSERT_EQ(w.state.foes.size(), 3u);
+
+            // A wolf of his is as quick as 9, and 3 more while he leads
+            ASSERT_TRUE(w.act("target", "", 1));
+            EXPECT_NE(textOf(w.last.duel, "quick").find("AGAINST 12"), std::string::npos) << textOf(w.last.duel, "quick");
+
+            ASSERT_TRUE(w.act("target", "", 0));
+            ASSERT_TRUE(pressUntil(w, "strike", 4, [&w]() { return accountSays(w, "howls"); }));
+            EXPECT_EQ(w.state.foes.size(), 4u);
+
+            for (int i = 0; i < 3 and textOf(w.last.duel, "over").empty(); ++i)
+                ASSERT_TRUE(w.act("move", "strike"));
+
+            EXPECT_LE(w.state.foes.size(), 4u);
+
+            int howls = 0;
+
+            for (const auto& a : w.state.account)
+            {
+                if (textOf(a, "text").find("howls") != std::string::npos)
+                    ++howls;
+            }
+
+            EXPECT_EQ(howls, 1);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The White Stag does not stay to be killed: hurt, it bolts at its next turn, with what it
+        // would have left.
+        TEST(expedition_test, the_white_stag_bolts_once_hurt)
+        {
+            MockLogger logger;
+
+            ElementMap hunterOfIt = knowing(hunter(), "hollow", 10);
+            hunterOfIt["str"] = ElementType{17};
+            hunterOfIt["dex"] = ElementType{30};
+
+            Walker w(hunterOfIt);
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
+            ASSERT_TRUE(w.act("seek", "stag", 1));
+            w.answer();
+            ASSERT_EQ(w.screen(), "fight");
+
+            for (int i = 0; i < 6 and textOf(w.last.duel, "over").empty() and not accountSays(w, "bolts"); ++i)
+                ASSERT_TRUE(w.act("move", "strike"));
+
+            ASSERT_TRUE(accountSays(w, "bolts"));
+            EXPECT_FALSE(textOf(w.last.duel, "over").empty());
+            EXPECT_EQ(intOf(w.state.foes[0], "fled"), 1);
+            EXPECT_EQ(marked(w.state.marks, "kill", "stag"), 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The Old Shell turns a working on its stone back: below half the shell cracks, and the
+        // ward is gone.
+        TEST(expedition_test, the_old_shell_cracks_at_half)
+        {
+            MockLogger logger;
+
+            ElementMap mage = knowing(hunter(), "quarry", 10);
+            mage["collegium"] = ElementType{1};
+            mage["int"] = ElementType{16};
+            mage["arcana"] = ElementType{10};
+            mage["vit"] = ElementType{300};
+            mage["vitmax"] = ElementType{300};
+
+            Walker w(mage);
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "quarry", 0}));
+            ASSERT_TRUE(w.act("seek", "enc.shell", 0));
+            w.answer();
+            ASSERT_EQ(w.screen(), "fight");
+
+            // Int 16, Arcana 10: 23-26; fire it is weak to, a quarter more; less its ward of 4
+            ASSERT_NE(menuRowOf(w, "tech.firebolt"), nullptr);
+            EXPECT_EQ(textOf(*menuRowOf(w, "tech.firebolt"), "deals"), "24\xE2\x80\x93" "28");
+
+            for (int i = 0; i < 8 and not accountSays(w, "cracks") and textOf(w.last.duel, "over").empty(); ++i)
+            {
+                const ElementMap* bolt = menuRowOf(w, "tech.firebolt");
+
+                ASSERT_TRUE(w.act("move", bolt and intOf(*bolt, "locked") == 0 ? "tech.firebolt" : "guard"));
+            }
+
+            ASSERT_TRUE(accountSays(w, "cracks"));
+            ASSERT_TRUE(textOf(w.last.duel, "over").empty());
+
+            // (his hits on it since its last turn would make it more: count none)
+            if (intOf(w.state.foes[0], "hits") == 0)
+                EXPECT_EQ(textOf(*menuRowOf(w, "tech.firebolt"), "deals"), "28\xE2\x80\x93" "32");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A boss is met by choice, its tile saying what is at stake; beaten, it gives what it has
+        // and is beaten for this life. Its fight is written once: a record walked again passes it by.
+        TEST(expedition_test, a_boss_is_met_by_choice_and_beaten_once)
+        {
+            MockLogger logger;
+
+            ElementMap champion = knowing(hunter(), "hollow", 10);
+            champion["str"] = ElementType{20};
+            champion["arms"] = ElementType{8};
+            champion["dex"] = ElementType{30};
+            champion["vit"] = ElementType{300};
+            champion["vitmax"] = ElementType{300};
+
+            Walker w(champion);
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
+
+            const ElementMap* tile = byId(w.last.seeks, "enc.grey");
+
+            ASSERT_NE(tile, nullptr);
+            EXPECT_EQ(intOf(*tile, "boss"), 1);
+            EXPECT_NE(textOf(*tile, "note").find("dies"), std::string::npos);
+
+            ASSERT_TRUE(w.act("seek", "enc.grey", 0));
+            w.answer();
+            ASSERT_EQ(w.screen(), "fight");
+
+            ASSERT_TRUE(pressUntil(w, "strike", 30, [&w]() { return not textOf(w.last.duel, "over").empty(); }));
+            ASSERT_EQ(textOf(w.last.duel, "over"), "won");
+
+            EXPECT_EQ(intOf(w.character, "beaten.grey"), 1);
+            EXPECT_EQ(intOf(w.character, "grey_pelt"), 1);
+
+            for (const auto& step : w.state.record)
+            {
+                if (textOf(step, "target") == "enc.grey")
+                    EXPECT_EQ(intOf(step, "once"), 1) << textOf(step, "kind");
+            }
+
+            // Another walk in the same life: it is not there to be fought again
+            w.state = WalkState{};
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
+            tile = byId(w.last.seeks, "enc.grey");
+
+            ASSERT_NE(tile, nullptr);
+            EXPECT_EQ(intOf(*tile, "locked"), 1);
+            EXPECT_EQ(textOf(*tile, "asks"), "BEATEN IN THIS LIFE");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Brought down by a boss, he does not come home.
+        TEST(expedition_test, falling_to_a_boss_is_death)
+        {
+            MockLogger logger;
+
+            ElementMap doomed = knowing(hunter(), "hollow", 10);
+            doomed["vit"] = ElementType{1};
+
+            Walker w(doomed);
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
+            ASSERT_TRUE(w.act("seek", "enc.grey", 0));
+            w.answer();
+
+            if (w.screen() == "fight")
+            {
+                ASSERT_TRUE(pressUntil(w, "guard", 30, [&w]() { return not textOf(w.last.duel, "over").empty(); }));
+                ASSERT_TRUE(w.act("back"));
+            }
+
+            EXPECT_EQ(w.screen(), "done");
+            EXPECT_EQ(intOf(w.character, "vit"), 0);
+            EXPECT_EQ(intOf(w.character, "fell"), 1);
+            EXPECT_EQ(intOf(w.last.recipe, "died"), 1);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Brought down by an ordinary beast, he is carried home without what the walk had gathered,
+        // and with nothing worse.
+        TEST(expedition_test, brought_down_he_loses_what_the_walk_gathered)
+        {
+            MockLogger logger;
+
+            ElementMap boy = knowing(gatherer(), "hedgerows", 10);
+            boy["vit"] = ElementType{1};
+
+            Walker w(boy);
+            w.age = 10.0f;
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "millpond", 0}));
+
+            const int reeds = intOf(w.character, "reeds");
+            const int most = intOf(w.character, "vitmax");
+
+            ASSERT_TRUE(w.act("gather", "reeds"));
+            w.answer();
+            ASSERT_GT(intOf(w.character, "reeds"), reeds);
+
+            ASSERT_TRUE(w.act("seek", "rat", 1));
+            w.answer();
+            ASSERT_EQ(w.screen(), "fight");
+            ASSERT_TRUE(pressUntil(w, "guard", 30, [&w]() { return not textOf(w.last.duel, "over").empty(); }));
+            ASSERT_EQ(textOf(w.last.duel, "over"), "lost");
+            ASSERT_TRUE(w.act("back"));
+
+            EXPECT_EQ(w.screen(), "done");
+            EXPECT_EQ(intOf(w.character, "reeds"), reeds);
+            EXPECT_EQ(intOf(w.character, "vitmax"), most);
+        }
+
+        namespace
+        {
+            // The last thing he did, as the account tells it
+            std::string lastHeroLine(const Walker& w)
+            {
+                std::string line;
+
+                for (const auto& a : w.state.account)
+                {
+                    if (textOf(a, "by") == "hero")
+                        line = textOf(a, "text");
+                }
+
+                return line;
+            }
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Handed over, his stance plays his rhythm: a full momentum is spent on a finisher.
+        TEST(expedition_test, the_stance_spends_a_full_momentum)
+        {
+            MockLogger logger;
+
+            ElementMap levy = hunter();
+            levy["slash_learned"] = ElementType{1};
+            levy["levy_served"] = ElementType{1};
+            levy["dex"] = ElementType{30};
+
+            auto w = boarFight(levy);
+
+            ASSERT_TRUE(pressUntil(*w, "tech.slash", 10, [&w]() { return intOf(w->state.fight, "momentum") >= 3; }));
+            ASSERT_TRUE(w->act("step"));
+            EXPECT_EQ(lastHeroLine(*w).rfind("Heavy cut", 0), 0u) << lastHeroLine(*w);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Handed over, a beast burning and a working of frost known: his stance sets it off.
+        TEST(expedition_test, the_stance_sets_off_a_reaction)
+        {
+            MockLogger logger;
+
+            ElementMap scholar = hunter();
+            scholar["forbidden_read"] = ElementType{1};
+            scholar["mara_student"] = ElementType{1};
+            scholar["int"] = ElementType{14};
+
+            auto w = boarFight(scholar);
+
+            ASSERT_TRUE(pressUntil(*w, "tech.spark", 3, [&w]() { return textOf(w->state.foes[0], "mark") == "fire"; }));
+
+            const size_t before = w->state.account.size();
+
+            ASSERT_TRUE(w->act("step"));
+
+            // (Rime, and a Shatter after it when it lands)
+            bool rime = false;
+
+            for (size_t i = before; i < w->state.account.size(); ++i)
+            {
+                if (textOf(w->state.account[i], "text").rfind("Rime", 0) == 0)
+                    rime = true;
+            }
+
+            EXPECT_TRUE(rime);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Handed over against the Old Grey and his wolves, his stance goes for the leader first.
+        TEST(expedition_test, the_stance_aims_at_the_leader)
+        {
+            MockLogger logger;
+
+            ElementMap strong = knowing(hunter(), "hollow", 10);
+            strong["vit"] = ElementType{300};
+            strong["vitmax"] = ElementType{300};
+
+            Walker w(strong);
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
+            ASSERT_TRUE(w.act("seek", "enc.grey", 0));
+            w.answer();
+            ASSERT_EQ(w.screen(), "fight");
+
+            ASSERT_TRUE(w.act("target", "", 1));
+            ASSERT_TRUE(w.act("step"));
+            EXPECT_EQ(intOf(w.state.fight, "target"), 0);
+        }
+
+        namespace
+        {
+            // A fight against a boss of a place known 4 of 4, for one who will not fall soon
+            std::unique_ptr<Walker> bossFight(ElementMap who, const std::string& zone, const std::string& enc)
+            {
+                who = knowing(std::move(who), zone, 10);
+
+                auto w = std::make_unique<Walker>(who);
+
+                EXPECT_TRUE(w->ask("enter", WalkAct{"", zone, 0}));
+                EXPECT_TRUE(w->act("seek", enc, 0));
+                w->answer();
+                EXPECT_EQ(w->screen(), "fight");
+
+                return w;
+            }
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Holds that cost nothing, thrown again and again by a quick man at a boss, weaken as
+        // delays do: the boss still acts.
+        TEST(expedition_test, a_boss_is_never_held_for_good)
+        {
+            MockLogger logger;
+
+            ElementMap binder = hunter();
+            binder["smuggler_runner"] = ElementType{1};
+            binder["spellwright"] = ElementType{1};
+            binder["dex"] = ElementType{30};
+            binder["vit"] = ElementType{500};
+            binder["vitmax"] = ElementType{500};
+
+            auto w = bossFight(binder, "quarry", "enc.shell");
+
+            for (int i = 0; i < 16 and textOf(w->last.duel, "over").empty(); ++i)
+            {
+                std::string move = "guard";
+
+                for (const char* hold : {"tech.sand", "tech.frostbind"})
+                {
+                    const ElementMap* row = menuRowOf(*w, hold);
+
+                    if (move == "guard" and row and intOf(*row, "locked") == 0)
+                        move = hold;
+                }
+
+                ASSERT_TRUE(w->act("move", move));
+            }
+
+            int acted = 0;
+
+            for (const auto& a : w->state.account)
+            {
+                if (textOf(a, "by") == "foe" or textOf(a, "text").find("circles") != std::string::npos)
+                    ++acted;
+            }
+
+            EXPECT_GE(acted, 3);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A beast held does not bolt: its turn is lost, running too.
+        TEST(expedition_test, a_held_beast_does_not_bolt)
+        {
+            MockLogger logger;
+
+            ElementMap trapper = knowing(hunter(), "hollow", 10);
+            trapper["snare_set"] = ElementType{1};
+            trapper["str"] = ElementType{17};
+            trapper["dex"] = ElementType{30};
+
+            Walker w(trapper);
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
+            ASSERT_TRUE(w.act("trap"));
+            answerZoneEvents(w);
+            ASSERT_TRUE(w.act("seek", "stag", 1));
+            answerZoneEvents(w);
+            ASSERT_EQ(textOf(w.last.card, "id"), "approach");
+            ASSERT_TRUE(w.act("option", "trap"));
+            ASSERT_EQ(w.screen(), "fight");
+            ASSERT_EQ(intOf(w.state.foes[0], "held"), 1);
+
+            ASSERT_TRUE(w.act("move", "strike"));
+
+            EXPECT_FALSE(accountSays(w, "bolts"));
+            EXPECT_TRUE(accountSays(w, "strains"));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A way deals nothing and rolls nothing: what it would do says neither a hit nor a blow.
+        TEST(expedition_test, a_way_says_no_hit_and_no_blow)
+        {
+            MockLogger logger;
+
+            ElementMap watchman = hunter();
+            watchman["watch_known"] = ElementType{1};
+
+            auto w = boarFight(watchman);
+
+            ASSERT_TRUE(w->act("pick", "tech.brace"));
+            EXPECT_EQ(textOf(w->last.preview, "hits"), "");
+            EXPECT_EQ(textOf(w->last.preview, "deals"), "");
+            EXPECT_EQ(textOf(w->last.preview, "odds").find("A miss"), std::string::npos);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Fleeing a boss ends the walk and loses what it gathered: the button says so.
+        TEST(expedition_test, fleeing_a_boss_says_the_walk_is_lost)
+        {
+            MockLogger logger;
+
+            ElementMap tough = hunter();
+            tough["vit"] = ElementType{300};
+            tough["vitmax"] = ElementType{300};
+
+            auto w = bossFight(tough, "hollow", "enc.grey");
+
+            ASSERT_NE(menuRowOf(*w, "retreat"), nullptr);
+            EXPECT_NE(textOf(*menuRowOf(*w, "retreat"), "note").find("LOST"), std::string::npos);
+
+            ASSERT_TRUE(w->act("pick", "retreat"));
+            EXPECT_NE(textOf(w->last.preview, "text").find("lost"), std::string::npos);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Handed over in a boss fight he would not survive, his stance runs: the haul is lost,
+        // not the life.
+        TEST(expedition_test, the_stance_runs_from_a_boss_it_cannot_survive)
+        {
+            MockLogger logger;
+
+            ElementMap frail = hunter();
+            frail["vit"] = ElementType{5};
+            frail["remedy"] = ElementType{0};
+
+            auto w = bossFight(frail, "hollow", "enc.grey");
+
+            ASSERT_TRUE(w->act("step"));
+            EXPECT_EQ(textOf(w->last.duel, "over"), "fled");
+            EXPECT_GT(intOf(w->character, "vit"), 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A record walked again passes a boss fight by, and what that fight used is not asked.
+        TEST(expedition_test, a_record_does_not_charge_for_a_boss_fight)
+        {
+            MockLogger logger;
+
+            Walker w(knowing(hunter(), "hollow", 10));
+
+            WalkRecipe kept;
+            kept.id = "r1";
+            kept.fields = {{"zone", ElementType{std::string("hollow")}}, {"name", ElementType{std::string("The Hollow Woods")}}, {"kind", ElementType{std::string("hunt")}},
+                           {"steps", ElementType{1}}, {"ap", ElementType{3}}, {"hp", ElementType{0}}, {"months", ElementType{3}}, {"walkedAt", ElementType{180}},
+                           {"kills", ElementType{std::string("")}}, {"downed", ElementType{0}}};
+            kept.steps = {{{"n", ElementType{1}}, {"kind", ElementType{std::string("fight")}}, {"target", ElementType{std::string("enc.grey")}}, {"count", ElementType{3}},
+                           {"ap", ElementType{3}}, {"hp", ElementType{0}}, {"once", ElementType{1}}}};
+            kept.marks = {{{"step", ElementType{1}}, {"kind", ElementType{std::string("use")}}, {"id", ElementType{std::string("flask")}}, {"n", ElementType{2}}}};
+
+            w.recipes.push_back(kept);
+
+            ASSERT_TRUE(w.ask("begin", WalkAct{}, "r1"));
+            EXPECT_EQ(w.last.blocked, "");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The Hidden Hand's run is on the beast's panel: his hits on it since its last turn. And a
+        // fire flask is in the bag he carries.
+        TEST(expedition_test, the_run_of_hits_and_the_flasks_are_shown)
+        {
+            MockLogger logger;
+
+            ElementMap quick = hunter();
+            quick["thrust_learned"] = ElementType{1};
+            quick["dex"] = ElementType{20};
+            quick["flask"] = ElementType{1};
+
+            auto w = boarFight(quick);
+
+            bool flasks = false;
+
+            for (const auto& b : w->last.bag)
+            {
+                if (textOf(b, "id") == "flask")
+                    flasks = true;
+            }
+
+            EXPECT_TRUE(flasks);
+
+            ASSERT_TRUE(pressUntil(*w, "tech.thrust", 3, [&w]() { return intOf(w->state.foes[0], "hits") >= 1; }));
+            EXPECT_NE(textOf(w->last.targets[0], "life").find("RUN 1"), std::string::npos) << textOf(w->last.targets[0], "life");
         }
     }
 }

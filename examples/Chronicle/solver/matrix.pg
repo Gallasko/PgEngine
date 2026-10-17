@@ -1,0 +1,465 @@
+// matrix.pg - the fight matrix: every build of a life against every fight of the walks, many
+// times, through expedition.pg as the walk's screen plays it, with the fight handed to his stance
+// (`step`). It says how often each build wins each fight, how long it takes and what it costs him,
+// then whether the checks of the combat design hold (chronicle-combat-design.md, 9.3, and its
+// anti-goals): every rhythm finishes what its age meets, a well-prepared boy can beat the
+// childhood boss, a man of any class beats every boss, and no single way of fighting wins
+// everything.
+//
+//   ChronicleSolver examples/Chronicle/rules examples/Chronicle/solver/matrix.pg [seeds=N] [report=path]
+//
+// (Run it on a copy of the rules: a .pgc is written beside every script loaded.)
+
+import "algorithm"
+import "string"
+import "math"
+import "file"
+
+// ---- the builds: what a life of each rhythm holds at the age it walks -------------------------------
+
+fun withBag(stats)
+{
+    var held = {remedy: 2, rations: 4, coin: 5}
+
+    for (var k : stats)
+    {
+        held[k] = stats[k]
+    }
+
+    held.vitmax = held.vit
+
+    return held
+}
+
+var builds = [
+    {name: "plain boy", age: 14, boy: true, approach: "open",
+     stats: withBag({str: 9, dex: 9, int: 7, vit: 60, arms: 1})},
+    {name: "blade boy", age: 14, boy: true, approach: "open",
+     stats: withBag({str: 11, dex: 9, int: 7, vit: 65, arms: 3, discipline: 2,
+                     slash_learned: 1, smith_apprentice: 1, levy_served: 1, watch_known: 1, yard_breathing: 1})},
+    {name: "scholar boy", age: 15, boy: true, approach: "open",
+     stats: withBag({str: 7, dex: 8, int: 13, vit: 60, letters: 2, lore: 3,
+                     forbidden_read: 1, mara_student: 1, flask: 2})},
+    {name: "street boy", age: 14, boy: true, approach: "ambush",
+     stats: withBag({str: 8, dex: 13, int: 8, vit: 60, guile: 4, stealth: 4,
+                     thrust_learned: 1, smuggler_runner: 1, boys_sworn: 1, rooftop_runner: 1, street_known: 1})},
+    {name: "hedge boy", age: 14, boy: true, approach: "trap",
+     stats: withBag({str: 9, dex: 11, int: 7, vit: 60, stealth: 3,
+                     bow_learned: 1, snare_set: 1, hunter_trained: 1})},
+    {name: "Keep man", age: 25, boy: false, approach: "open",
+     stats: withBag({str: 16, dex: 10, int: 8, vit: 90, arms: 8, discipline: 6,
+                     keep_oath: 1, veteran: 1, slash_learned: 1, smith_apprentice: 1, watch_known: 1, yard_breathing: 1})},
+    {name: "Collegium man", age: 25, boy: false, approach: "open",
+     stats: withBag({str: 8, dex: 9, int: 18, vit: 80, arcana: 6, lore: 5,
+                     collegium: 1, orin_known: 1, letters: 2, forbidden_read: 1, mara_student: 1, flask: 3})},
+    {name: "Hand man", age: 25, boy: false, approach: "ambush",
+     stats: withBag({str: 10, dex: 18, int: 10, vit: 80, guile: 8, stealth: 8,
+                     hidden_hand: 1, thrust_learned: 1, smuggler_runner: 1, rooftop_runner: 1, boys_sworn: 1, street_known: 1})},
+    {name: "Greenwood man", age: 25, boy: false, approach: "trap",
+     stats: withBag({str: 12, dex: 15, int: 8, vit: 85, stealth: 6,
+                     renegade: 1, bow_learned: 1, snare_set: 1, hunter_trained: 1, slash_learned: 1})}
+]
+
+// ---- the fights: each beast of the existing places, a pack where it has one, and the bosses ------------
+
+var fights = [
+    {id: "rat", zone: "millpond", seek: "rat", count: 1, age: 10, boss: false},
+    {id: "nest", zone: "millpond", seek: "nestrat", count: 4, age: 10, boss: false},
+    {id: "adder", zone: "quarry", seek: "adder", count: 1, age: 14, boss: false},
+    {id: "beetles", zone: "quarry", seek: "beetle", count: 2, age: 14, boss: false},
+    {id: "wolf", zone: "hollow", seek: "wolf", count: 1, age: 14, boss: false},
+    {id: "wolves", zone: "hollow", seek: "wolf", count: 3, age: 14, boss: false},
+    {id: "boar", zone: "hollow", seek: "boar", count: 1, age: 14, boss: false},
+    {id: "stag", zone: "hollow", seek: "stag", count: 1, age: 14, boss: false},
+    {id: "pike", zone: "millpond", seek: "enc.pike", count: 0, age: 10, boss: true},
+    {id: "shell", zone: "quarry", seek: "enc.shell", count: 0, age: 14, boss: true},
+    {id: "grey", zone: "hollow", seek: "enc.grey", count: 0, age: 14, boss: true}
+]
+
+var outs = ["run", "record", "marks", "fight", "foes", "account", "after", "site", "seeks", "works", "options", "card", "recipe"]
+
+// ---- one fight ---------------------------------------------------------------------------------------
+
+// The walk asked one thing, as the screen asks it: the answer, and the walk carried on from it
+fun ask(walk, what, act)
+{
+    var inputs = {age: walk.age, character: walk.character, done: {}, world: 0, lives: 2, who: "Aldren", ask: what, seed: walk.seed,
+                  run: walk.run, record: walk.record, marks: walk.marks, fight: walk.fight, foes: walk.foes, account: walk.account,
+                  act: act, recipes: [], recipeSteps: [], recipeMarks: [], walks: [],
+                  queue: {recipe: "", count: 1, stop: "never", value: 0, item: ""}, replay: ""}
+
+    var answer = rule("expedition", inputs, outs)
+
+    if (not answer.ok)
+    {
+        log("RULES FAILED: " + what + " " + act.kind + " " + act.target)
+
+        for (var e : answer.errors)
+        {
+            log("  " + e)
+        }
+
+        walk.failed = true
+        return answer
+    }
+
+    walk.character = answer.after
+    walk.run = answer.run
+    walk.record = answer.record
+    walk.marks = answer.marks
+    walk.fight = answer.fight
+    walk.foes = answer.foes
+    walk.account = answer.account
+
+    return answer
+}
+
+fun option(id)
+{
+    return {kind: "option", target: id, count: 0}
+}
+
+// An event's card answered: the build's way of meeting a beast on the approach card, else the
+// first answer that can be given
+fun answerCard(walk, answer, approach)
+{
+    var pickId = ""
+
+    for (var o : answer.options)
+    {
+        if (pickId == "" and not (o.locked == true or o.locked == 1))
+        {
+            pickId = o.id
+        }
+    }
+
+    if (answer.card.id == "approach")
+    {
+        for (var o : answer.options)
+        {
+            if (o.id == approach)
+            {
+                pickId = approach
+            }
+        }
+    }
+
+    return ask(walk, "act", option(pickId))
+}
+
+// One fight of a build, with the dice of `seed`: {over, turns, days, lost (percent of his Vitality)}
+fun fightOnce(b, f, seed)
+{
+    var character = {}
+
+    for (var k : b.stats)
+    {
+        character[k] = b.stats[k]
+    }
+
+    character["know.visit." + f.zone] = 1
+    character["know.study." + f.zone] = 10
+
+    var walk = {age: b.age, character: character, seed: seed, run: {}, record: [], marks: [],
+                fight: {over: "", mob: ""}, foes: [], account: [], failed: false}
+
+    var answer = ask(walk, "enter", {kind: "", target: f.zone, count: 0})
+
+    // Traps set first, for who has learned snares and means to use them
+    if (b.approach == "trap")
+    {
+        for (var t = 0; t < 2; t++)
+        {
+            answer = ask(walk, "act", {kind: "trap", target: "", count: 0})
+
+            for (var g = 0; g < 4 and answer.site.screen == "event"; g++)
+            {
+                answer = answerCard(walk, answer, b.approach)
+            }
+        }
+    }
+
+    var hpStart = walk.run.hp
+    answer = ask(walk, "act", {kind: "seek", target: f.seek, count: f.count})
+
+    for (var guard = 0; guard < 200 and not walk.failed; guard++)
+    {
+        if (answer.site.screen == "event")
+        {
+            answer = answerCard(walk, answer, b.approach)
+        }
+        else if (answer.site.screen == "fight")
+        {
+            if (walk.fight.over != "" and walk.fight.over != none)
+            {
+                return {over: walk.fight.over, turns: walk.fight.turns, days: walk.fight.ticks,
+                        lost: wholeOf((hpStart - walk.run.hp) * 100, larger(1, walk.run.hpMax))}
+            }
+
+            answer = ask(walk, "act", {kind: "step", target: "", count: 0})
+        }
+        else
+        {
+            // No fight (refused, or slipped past): counted as not won
+            return {over: "none", turns: 0, days: 0, lost: 0}
+        }
+    }
+
+    return {over: "none", turns: 0, days: 0, lost: 0}
+}
+
+fun wholeOf(a, b)
+{
+    return toInt(floor(toFloat(a) / toFloat(b)))
+}
+
+fun larger(a, b)
+{
+    if (a > b)
+    {
+        return a
+    }
+
+    return b
+}
+
+// ---- the run ------------------------------------------------------------------------------------------
+
+var options = {}
+
+for (var ai = 2; ai < getArgCount(); ai = ai + 1)
+{
+    var arg = getArg(ai)
+
+    if (contains(arg, "="))
+    {
+        var kv = split(arg, "=")
+        options[kv[0]] = kv[1]
+    }
+}
+
+var seeds = 20
+
+if (options["seeds"] != none)
+{
+    seeds = toInt(options["seeds"])
+}
+
+var reportPath = ""
+
+if (options["report"] != none)
+{
+    reportPath = options["report"]
+}
+
+var started = clockMs()
+var cell = {}
+var lines = []
+
+push(lines, "CHRONICLE FIGHT MATRIX - " + toString(seeds) + " fights a cell, each handed to his stance")
+push(lines, "")
+push(lines, "build / fight: wins % · his actions · days · vitality lost %")
+
+for (var b : builds)
+{
+    var row = b.name + ":"
+
+    for (var f : fights)
+    {
+        var won = 0
+        var turns = 0
+        var days = 0
+        var lost = 0
+
+        for (var s = 1; s <= seeds; s++)
+        {
+            var r = fightOnce(b, f, s * 7919 + 13)
+
+            if (r.over == "won")
+            {
+                won = won + 1
+            }
+
+            turns = turns + r.turns
+            days = days + r.days
+            lost = lost + r.lost
+        }
+
+        var c = {wins: wholeOf(won * 100, seeds), turns: wholeOf(turns * 10, seeds), days: wholeOf(days * 10, seeds), lost: wholeOf(lost, seeds)}
+
+        cell[b.name + "|" + f.id] = c
+        push(lines, "  " + b.name + " / " + f.id + ": " + toString(c.wins) + " % · " + toString(c.turns / 10) + "." + toString(c.turns % 10) +
+                    " · " + toString(c.days / 10) + "." + toString(c.days % 10) + " d · " + toString(c.lost) + " %")
+    }
+}
+
+// ---- the checks -----------------------------------------------------------------------------------------
+
+var checks = []
+
+fun check(name, ok, why)
+{
+    var said = "FAIL"
+
+    if (ok)
+    {
+        said = "PASS"
+    }
+
+    push(checks, said + "  " + name + ": " + why)
+}
+
+fun cellOf(build, fight)
+{
+    return cell[build + "|" + fight]
+}
+
+// 1. Every boy of a rhythm (not the plain boy, who has learned nothing) wins 90 % of the ordinary
+//    beasts of the places open at his age
+var weak1 = []
+
+for (var b : builds)
+{
+    if (b.boy and b.name != "plain boy")
+    {
+        for (var f : fights)
+        {
+            if (not f.boss and f.age <= b.age)
+            {
+                var c = cellOf(b.name, f.id)
+
+                if (c.wins < 90)
+                {
+                    push(weak1, b.name + " / " + f.id + " " + toString(c.wins) + " %")
+                }
+            }
+        }
+    }
+}
+
+check("a boy's tools beat his age's beasts", len(weak1) == 0, join(weak1, ", "))
+
+// 2. A well-prepared boy can beat the Old Grey; a man of any class does
+var bestBoy = 0
+var weak2 = []
+
+for (var b : builds)
+{
+    var c = cellOf(b.name, "grey")
+
+    if (b.boy)
+    {
+        bestBoy = larger(bestBoy, c.wins)
+    }
+    else if (c.wins < 90)
+    {
+        push(weak2, b.name + " " + toString(c.wins) + " %")
+    }
+}
+
+check("the childhood boss: a boy can win it", bestBoy >= 40, "best boy " + toString(bestBoy) + " %")
+check("the childhood boss: every man wins it", len(weak2) == 0, join(weak2, ", "))
+
+// 3. A man of any class beats the optional bosses
+var weak3 = []
+
+for (var b : builds)
+{
+    if (not b.boy)
+    {
+        for (var boss : ["pike", "shell"])
+        {
+            var c = cellOf(b.name, boss)
+
+            if (c.wins < 75)
+            {
+                push(weak3, b.name + " / " + boss + " " + toString(c.wins) + " %")
+            }
+        }
+    }
+}
+
+check("the optional bosses: every man wins them", len(weak3) == 0, join(weak3, ", "))
+
+// 4. Strike alone is not the answer: the plain boy loses to the Old Shell, and takes longer on a boar
+var plainShell = cellOf("plain boy", "shell")
+var plainBoar = cellOf("plain boy", "boar")
+var bladeBoar = cellOf("blade boy", "boar")
+
+check("strike alone loses to the Old Shell", plainShell.wins < 50, toString(plainShell.wins) + " %")
+check("strike alone is slow on a boar", plainBoar.days > bladeBoar.days, "plain " + toString(plainBoar.days) + " vs blade " + toString(bladeBoar.days) + " tenths of a day")
+
+// 5. Each place has a best rhythm, and not the same one everywhere
+var bestOf = {}
+
+for (var place : ["millpond", "quarry", "hollow"])
+{
+    var best = ""
+    var bestDays = 1000000
+
+    for (var b : builds)
+    {
+        var days = 0
+        var allWon = true
+
+        for (var f : fights)
+        {
+            if (f.zone == place and not f.boss)
+            {
+                var c = cellOf(b.name, f.id)
+
+                days = days + c.days
+
+                if (c.wins < 90)
+                {
+                    allWon = false
+                }
+            }
+        }
+
+        if (allWon and days < bestDays)
+        {
+            best = b.name
+            bestDays = days
+        }
+    }
+
+    bestOf[place] = best
+}
+
+var named = {}
+
+for (var place : bestOf)
+{
+    named[bestOf[place]] = true
+}
+
+var distinct = 0
+
+for (var n : named)
+{
+    distinct = distinct + 1
+}
+
+check("a best rhythm for each place, not one for all", distinct >= 2,
+      "pond: " + bestOf["millpond"] + ", quarry: " + bestOf["quarry"] + ", hollow: " + bestOf["hollow"])
+
+push(lines, "")
+push(lines, "CHECKS")
+
+for (var line : checks)
+{
+    push(lines, "  " + line)
+}
+
+push(lines, "")
+push(lines, "(" + toString((clockMs() - started) / 1000) + " s)")
+
+var text = join(lines, "\n")
+
+log(text)
+
+if (reportPath != "")
+{
+    writeFile(reportPath, text)
+}

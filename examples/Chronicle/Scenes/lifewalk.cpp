@@ -704,6 +704,25 @@ namespace chronicle
         const std::string name = textOf(walk.recipe, "name");
         const bool carried = intOf(walk.recipe, "downed") > 0;
 
+        // Fallen to a boss: no record, no way home, and the life ends where he fell
+        refreshHoldings();
+
+        if (intOf(walk.recipe, "died") > 0 or not death.empty())
+        {
+            ++save.walksByHand;
+
+            save.walk = WalkState{};
+            walk = RuleWalk{};
+            seekChosen.clear();
+            workChosen.clear();
+
+            closeWalk();
+
+            tellAnalytics("life_end");
+            endLife();
+            return;
+        }
+
         // The record of a walk made to its end is kept with the others of the place, the last
         // few of them: a walk he was carried home from is not one to walk again
         if (not carried and not zone.empty())

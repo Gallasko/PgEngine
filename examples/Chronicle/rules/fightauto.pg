@@ -1,0 +1,302 @@
+// Chronicle rules: a fight handed to his stance
+// ----------------------------------------------
+// What the stance chooses when he lets it fight for him, and the two counts it reads: the
+// weakest beast standing, and what is coming at him before his next action. Imported by
+// expedition.pg after fightlib.pg.
+
+import "string"
+import "math"
+import "algorithm"
+
+fun weakest()
+{
+    var best = firstStanding()
+
+    for (var i = 0; i < len(foes); i++)
+    {
+        if (foes[i].alive > 0 and foes[i].hp < foes[best].hp)
+        {
+            best = i
+        }
+    }
+
+    return best
+}
+
+// How many blows are coming this turn, how much if they all land, and whether he knows what
+// each of them does (1) or not (0): [count, least, most, known]
+fun incoming()
+{
+    var count = 0
+    var low = 0
+    var high = 0
+    var known = 1
+
+    for (var i = 0; i < len(foes); i++)
+    {
+        var mob = foeMob(i)
+        var move = moveOf(mob, i)
+
+        if (foes[i].alive > 0 and (move == "bite" or move == "maul"))
+        {
+            var range = biteRange(mob, move)
+
+            count = count + 1
+            low = low + range[0]
+            high = high + range[1]
+
+            if (not moveKnown(mob, move))
+            {
+                known = 0
+            }
+        }
+    }
+
+    return [count, low, high, known]
+}
+
+// What the stance chooses when the fight is handed over: the same choices he has, by his rhythm.
+// In this order: a remedy when low; the target (a leader standing, else the weakest); a defend
+// on a big blow coming before his next action when he is hurt; a finisher on a full momentum;
+// a working that sets off what is on the target; a move that ends it for sure (the lightest);
+// a first element on a target with none; else the move worth most for its time. The stance only
+// moves how hurt he must be to defend
+fun autoChoice()
+{
+    if (runOf("hp") * 100 < runOf("hpMax") * walkKnobs.potionAuto and held("remedy") > 0)
+    {
+        return "remedy"
+    }
+
+    fight.target = autoTarget()
+
+    // A boss fight he would not live through: he runs, and loses the walk, not the life
+    var coming = incoming()
+
+    if (bossFight() and held("remedy") == 0 and coming[2] >= runOf("hp"))
+    {
+        return "retreat"
+    }
+
+    var careful = 60
+
+    if (fight.stance == "cautious")
+    {
+        careful = 75
+    }
+
+    if (fight.stance == "aggressive")
+    {
+        careful = 40
+    }
+
+    if (maulComing() and runOf("hp") * 100 < runOf("hpMax") * careful)
+    {
+        if (choiceShort("tech.brace") == "")
+        {
+            return "tech.brace"
+        }
+
+        return "guard"
+    }
+
+    // The Keep's rhythm: a full momentum is spent
+    if (pick(fight, "momentum", 0) >= walkKnobs.momentumMost)
+    {
+        if (standing() >= walkKnobs.sweepAuto and choiceShort("tech.sweep") == "")
+        {
+            return "tech.sweep"
+        }
+
+        if (choiceShort("tech.heavy") == "")
+        {
+            return "tech.heavy"
+        }
+    }
+
+    // The Collegium's: what is on it is set off
+    var mark = pick(foes[fight.target], "mark", "")
+
+    if (mark != "")
+    {
+        var react = elementMove(mark, true)
+
+        if (react != "")
+        {
+            return react
+        }
+    }
+
+    // A move that ends it for sure, the lightest of them
+    var sure = ""
+    var moves = autoMoves()
+
+    for (var i = 0; i < len(moves); i++)
+    {
+        var id = moves[i]
+        var range = hitRange(fight.target, techIdOf(id))
+
+        if (range[0] >= foes[fight.target].hp and (sure == "" or moveWeight(id) < moveWeight(sure)))
+        {
+            sure = id
+        }
+    }
+
+    if (sure != "")
+    {
+        return sure
+    }
+
+    // A first element on a target with none, to set off after
+    if (mark == "")
+    {
+        var first = elementMove("", false)
+
+        if (first != "")
+        {
+            return first
+        }
+    }
+
+    return bestMove()
+}
+
+// The beast his blows should go to: a leader while one stands, else the weakest standing
+fun autoTarget()
+{
+    for (var i = 0; i < len(foes); i++)
+    {
+        var mob = foeMob(i)
+
+        if (foes[i].alive > 0 and hasRole(mob, "leader"))
+        {
+            return i
+        }
+    }
+
+    return weakest()
+}
+
+// Whether a big blow (a beast's "maul") comes before his next action
+fun maulComing()
+{
+    var his = waitFor(100, heroSpeed())
+
+    for (var i = 0; i < len(foes); i++)
+    {
+        if (foes[i].alive > 0)
+        {
+            var mob = foeMob(i)
+            var script = foeScript(i)
+            var t = foeWait(i) - heroWait()
+
+            for (var k = 0; k < 3 and t < his; k++)
+            {
+                var move = moveOf(mob, i)
+
+                if (k > 0)
+                {
+                    move = script[(foes[i].at + k) % len(script)]
+                }
+
+                if (move == "maul" and not (k == 0 and pick(foes[i], "held", 0) > 0))
+                {
+                    return true
+                }
+
+                t = t + waitFor(100, foeSpeed(i))
+            }
+        }
+    }
+
+    return false
+}
+
+// What deals damage that he may do now: strike, and every technique he has learned that hits
+// and is not a finisher, as menu ids
+fun autoMoves()
+{
+    var moves = ["strike"]
+
+    for (var i = 0; i < len(walkTechniques); i++)
+    {
+        var tech = walkTechniques[i]
+
+        if (knowsTech(tech) and pick(tech, "power", 0) > 0 and not pick(tech, "finisher", false) and choiceShort("tech." + tech.id) == "")
+        {
+            push(moves, "tech." + tech.id)
+        }
+    }
+
+    return moves
+}
+
+// The technique of a menu id ("strike" for a strike)
+fun techIdOf(id)
+{
+    if (startsWith(id, "tech."))
+    {
+        return substring(id, 5)
+    }
+
+    return id
+}
+
+// A working of an element he may cast now: one that reacts with `mark` (`react`), or any first
+// element. A fire flask counts as fire. "" for none
+fun elementMove(mark, react)
+{
+    for (var i = 0; i < len(walkTechniques); i++)
+    {
+        var tech = walkTechniques[i]
+        var type = pick(tech, "damage", "")
+        var elemental = type == "fire" or type == "frost" or type == "storm"
+
+        if (elemental and type != mark and knowsTech(tech) and choiceShort("tech." + tech.id) == "")
+        {
+            if (react or mark == "")
+            {
+                return "tech." + tech.id
+            }
+        }
+    }
+
+    if (react and mark != "fire" and choiceShort("item.flask") == "")
+    {
+        return "item.flask"
+    }
+
+    return ""
+}
+
+// The move worth most for the time it takes: what it deals on average, how often it lands, all
+// the beasts it reaches, for its weight
+fun bestMove()
+{
+    var best = "strike"
+    var worth = -1
+    var moves = autoMoves()
+
+    for (var i = 0; i < len(moves); i++)
+    {
+        var id = moves[i]
+        var techId = techIdOf(id)
+        var range = hitRange(fight.target, techId)
+        var value = (range[0] + range[1]) * hitChance(fight.target, pick(techOf(techId), "hit", 0), kindOf(techId))
+
+        if (techId != "strike" and pick(techOf(techId), "all", false))
+        {
+            value = value * standing()
+        }
+
+        value = wholeOf(value * 100, larger(10, moveWeight(id)))
+
+        if (value > worth)
+        {
+            best = id
+            worth = value
+        }
+    }
+
+    return best
+}

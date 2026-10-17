@@ -181,6 +181,30 @@ for (var w = 0; w < len(walkItems); w++)
         push(holdings, {id: thing.id, group: "stores", groupLabel: "STORES", glyph: thing.glyph, name: thing.name, tone: 0,
                         about: "Brought home from a walk. The places of the town are built of it. At his death, what a place still asks of it can be left to that place; the rest is lost."})
     }
+
+    if (thing.kind == "fight")
+    {
+        push(holdings, {id: thing.id, group: "stores", groupLabel: "STORES", glyph: thing.glyph, name: thing.name, tone: 0,
+                        about: "Carried on a walk, and used in a fight: it is a move of his while he holds one."})
+    }
+}
+
+// What fights have taught him: the rank of a technique used often, and the lesson of the first
+// kill of each kind of beast in this life (fightlib.pg)
+for (var rk = 0; rk < len(walkTechniques); rk++)
+{
+    var ranked = walkTechniques[rk]
+
+    push(holdings, {id: "rank." + ranked.id, group: "fights", groupLabel: "IN A FIGHT", glyph: "swordsmanship", name: ranked.name + ", rank", tone: 0,
+                    about: "Used often in fights: each rank a little stronger, and a point of what it trains."})
+}
+
+for (var lk = 0; lk < len(walkMobs); lk++)
+{
+    var taughtBy = walkMobs[lk]
+
+    push(holdings, {id: "lesson." + taughtBy.id, group: "fights", groupLabel: "IN A FIGHT", glyph: "study", name: "Lesson: " + toLowerCase(taughtBy.name), tone: 0, title: true,
+                    about: lookup(taughtBy, "lesson", "The first one he killed in this life: he knows it better.")})
 }
 
 for (var t = 0; t < len(ties); t++)
@@ -585,6 +609,12 @@ for (var g = 0; g < len(holdings); g++)
 
 // The character as he is: a life with nothing left of what it needs is over
 var death = ""
+
+// Who fell to a boss on a walk does not come home (encounterlib.pg's `bossOutcome`)
+if (has(character, "fell") and statOf(character, "fell") > 0)
+{
+    death = "The last life ended on a walk, in a fight he chose"
+}
 
 for (var m = 0; m < len(mortal); m++)
 {
