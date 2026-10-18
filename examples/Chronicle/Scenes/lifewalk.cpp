@@ -2300,6 +2300,8 @@ namespace chronicle
             gauge.z = z;
 
             ProgressRule bar = makeProgressRule(ecs, gauge);
+            bar.forecast->get<ThemeComponent>()->setElement("timeline.hatch");
+            bar.fill->get<ThemeComponent>()->setElement("timeline.fill");
             anchorIn(bar.root, 0.0f, BarY);
             walkPage->get<Prefab>()->addToPrefab(bar.root);
             timeBar = bar;
@@ -2383,7 +2385,7 @@ namespace chronicle
         timeBar->root->get<PositionComponent>()->setVisibility(not over);
 
         // A tag: its word in its frame, over or under the gauge, its tick on it
-        std::vector<std::pair<float, float>> placed;
+        std::vector<std::vector<std::pair<float, float>>> placed(3);   // The beasts' tags placed, row by row
         size_t used = 0;
 
         auto tag = [&](const std::string& text, const std::string& tone, float x, bool above, bool tick) {
@@ -2409,15 +2411,22 @@ namespace chronicle
 
             if (not above)
             {
-                y = FoeY;
+                // The first row where it touches no tag already there (the last one if none is free)
+                size_t row = 0;
 
-                for (const auto& [a, b] : placed)
+                for (; row + 1 < placed.size(); ++row)
                 {
-                    if (cx < b + 3.0f and cx + w > a - 3.0f)
-                        y = FoeY + FoeRow;
+                    bool touches = false;
+
+                    for (const auto& [a, b] : placed[row])
+                        touches = touches or (cx < b + 3.0f and cx + w > a - 3.0f);
+
+                    if (not touches)
+                        break;
                 }
 
-                placed.emplace_back(cx, cx + w);
+                placed[row].emplace_back(cx, cx + w);
+                y = FoeY + FoeRow * static_cast<float>(row);
             }
 
             chip.ground->get<PositionComponent>()->setWidth(w);

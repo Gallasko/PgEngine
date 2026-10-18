@@ -1122,6 +1122,12 @@ fun timelineMarks(rows, move, events, base, horizon)
     {
         var e = events[i]
 
+        // (one that hangs back does nothing: no tag)
+        if (e.kind == "foe" and e.move == "hold")
+        {
+            continue
+        }
+
         if (e.kind == "foe" and e.t < hisNext)
         {
             var mob = foeMob(e.n)

@@ -262,6 +262,11 @@ fun approachCard()
     var mob = mobOf(first.mob)
     var name = toLowerCase(foundName(mob, runOf("foundCount")))
 
+    if (not startsWith(name, "a "))
+    {
+        name = "a " + name
+    }
+
     if (encounterIdOf(run.found) != "")
     {
         var enc = encounterOf(encounterIdOf(run.found))

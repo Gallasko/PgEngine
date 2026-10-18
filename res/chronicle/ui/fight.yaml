@@ -228,7 +228,7 @@ children:
         children:
           # Who acts when, in time: his actions over the line, the beasts' under it, the end of his day; the
           # scene draws them in this box (LifeScene::fillTimeline), the move under the mouse moving them
-          - {kind: Shape2D, name: timeline, width: 344, height: 112, theme: timeline.ground}
+          - {kind: Shape2D, name: timeline, width: 344, height: 132, theme: timeline.ground}
           - {kind: Label, name: warn, style: label, color: vermilion, overflow: wrap, text: "2 BLOWS COMING · 8–14 IF ALL LAND"}
           - {kind: Label, name: quick, style: label, color: ink-muted, overflow: wrap, text: "QUICKNESS 11 AGAINST 9: HE ACTS FIRST"}
 
