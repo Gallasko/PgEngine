@@ -1499,6 +1499,91 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // A child gathers by hand: the rows bring a basic and count a scavenge, and are closed
+        // while he is full of what they bring. The stones wait for eight.
+        TEST(rules_test, scavenging_gathers_by_hand)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            RuleActivity row = activityAt(f.rules, 7.5f, boy(), "scavenge.water");
+
+            ASSERT_EQ(row.gains.size(), 2u);
+            EXPECT_EQ(textOf(row.gains[0], "stat"), "water");
+            EXPECT_EQ(intOf(row.gains[0], "amount"), 8);
+            EXPECT_EQ(textOf(row.gains[1], "stat"), "scavenged");
+            EXPECT_EQ(intOf(row.gains[1], "amount"), 1);
+            EXPECT_EQ(intOf(row.fields, "months"), 1);
+            EXPECT_FALSE(flag(row.fields, "locked"));
+
+            ElementMap full = boy();
+            full["water"] = ElementType{40};
+            row = activityAt(f.rules, 7.5f, full, "scavenge.water");
+
+            EXPECT_TRUE(flag(row.fields, "locked"));
+            bool roomAsked = false;
+
+            for (const auto& req : row.requires)
+            {
+                if (textOf(req, "label") == "Room for Water")
+                    roomAsked = true;
+            }
+
+            EXPECT_TRUE(roomAsked);
+
+            EXPECT_FALSE(flag(activityAt(f.rules, 7.5f, boy(), "scavenge.stone").fields, "listed"));
+            EXPECT_TRUE(flag(activityAt(f.rules, 8.5f, boy(), "scavenge.stone").fields, "listed"));
+            EXPECT_FALSE(flag(activityAt(f.rules, 8.5f, boy(), "scavenge.stone").fields, "locked"));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The market buys and sells the basics by the lot, and sells no clay
+        TEST(rules_test, the_market_trades_basic_resources)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = townsman();
+            character["coin"] = ElementType{10};
+            character["water"] = ElementType{10};
+
+            RuleActivity buy = activityAt(f.rules, 8.0f, character, "buy.stone");
+
+            ASSERT_EQ(buy.gains.size(), 1u);
+            EXPECT_EQ(textOf(buy.gains[0], "stat"), "stone");
+            EXPECT_EQ(intOf(buy.gains[0], "amount"), 3);
+            ASSERT_EQ(buy.costs.size(), 1u);
+            EXPECT_EQ(textOf(buy.costs[0], "stat"), "coin");
+            EXPECT_EQ(intOf(buy.costs[0], "amount"), 3);
+            EXPECT_FALSE(flag(buy.fields, "locked"));
+
+            RuleActivity sell = activityAt(f.rules, 8.0f, character, "sell.water");
+
+            ASSERT_EQ(sell.gains.size(), 1u);
+            EXPECT_EQ(textOf(sell.gains[0], "stat"), "coin");
+            EXPECT_EQ(intOf(sell.gains[0], "amount"), 1);
+            EXPECT_FALSE(flag(sell.fields, "locked"));
+
+            std::vector<RuleActivity> listed;
+            ASSERT_TRUE(f.rules.activities(8.0f, character, listed)) << firstError(f.rules);
+            int sellBerries = 0;
+
+            for (const auto& a : listed)
+            {
+                EXPECT_NE(textOf(a.fields, "id"), "buy.clay");
+
+                if (textOf(a.fields, "id") == "sell.berries")
+                    sellBerries++;
+            }
+
+            EXPECT_EQ(sellBerries, 1);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // A stat with a cap mends toward it, one every two months; a month that takes from it mends
         // nothing and starts the count again. What raises it for good raises the cap with it.
         TEST(rules_test, month_mends_toward_the_cap)
@@ -1722,7 +1807,7 @@ namespace pg
             for (const auto& id : listed)
             {
                 // The wooden blade too: no age closes it, a man who never held one may begin there
-                const bool old = id == "buy.rations" or id == "buy.blade" or id == "tales" or id == "garden" or id == "teach";
+                const bool old = id == "buy.rations" or id == "buy.water" or id == "buy.firewood" or id == "buy.stone" or id == "buy.blade" or id == "tales" or id == "garden" or id == "teach";
 
                 EXPECT_TRUE(old or id.rfind("raise.", 0) == 0) << id;
             }
@@ -1931,10 +2016,10 @@ namespace pg
 
             // (with what its market sells and the works that raise its places, on the town's own page)
             f.rules.done["tomarket"] = ElementType{1};
-            EXPECT_EQ(listed(at(9), known), (Ids{"harvest", "buy.rations", "raise.market.1", "raise.mill.1"}));
+            EXPECT_EQ(listed(at(9), known), (Ids{"harvest", "buy.rations", "buy.water", "buy.firewood", "buy.stone", "raise.market.1", "raise.mill.1"}));
 
             f.rules.done["harvest"] = ElementType{1};
-            EXPECT_EQ(listed(at(11), known), (Ids{"helping", "buy.rations", "raise.market.1", "raise.mill.1"}));
+            EXPECT_EQ(listed(at(11), known), (Ids{"helping", "buy.rations", "buy.water", "buy.firewood", "buy.stone", "raise.market.1", "raise.mill.1"}));
 
             // The market sells to a boy of six: nothing of the town waits for him to be seven
             RuleActivity buy = activityAt(f.rules, at(9), known, "buy.rations");
@@ -1951,7 +2036,7 @@ namespace pg
 
             // (the first walk outside the town is among them, right under his work)
             // (and, the town being known, what its market sells and the works that raise its places)
-            EXPECT_EQ(listed(7.0f, seven), (Ids{"carters", "mill", "walk.hedgerows", "buy.rations", "letters", "keep", "collegium", "hand", "raise.market.1", "raise.mill.1"}));
+            EXPECT_EQ(listed(7.0f, seven), (Ids{"carters", "mill", "scavenge.berries", "scavenge.water", "scavenge.firewood", "walk.hedgerows", "buy.rations", "letters", "keep", "collegium", "hand", "buy.water", "buy.firewood", "buy.stone", "raise.market.1", "raise.mill.1"}));
         }
 
         // ----------------------------------------------------------------------------------------
@@ -2028,7 +2113,7 @@ namespace pg
             for (const char* id : {"glean", "flour", "wheel", "scribe", "tome", "knots", "sacks", "sing", "harvest", "helping"})
                 EXPECT_TRUE(std::find(seven.begin(), seven.end(), id) == seven.end()) << id;
 
-            EXPECT_EQ(seven, (Ids{"tomarket", "carters", "mill", "walk.hedgerows", "letters", "keep", "collegium", "hand"}));
+            EXPECT_EQ(seven, (Ids{"tomarket", "carters", "mill", "scavenge.berries", "scavenge.water", "scavenge.firewood", "walk.hedgerows", "letters", "keep", "collegium", "hand"}));
         }
 
         // ----------------------------------------------------------------------------------------

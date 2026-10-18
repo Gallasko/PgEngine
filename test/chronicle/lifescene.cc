@@ -5860,12 +5860,12 @@ namespace pg
             life->save.stats["coin"] = 200;
             life->onMonth();
             f.frames(12);
-
+            // The rations it sells and the water, firewood and stone, and the three works for its first three places (the market, the
             // The rations it sells, and the three works for its first three places (the market, the
             // mill, and the inn of a second life)
             ASSERT_NE(stall(f, life, "buy.rations"), nullptr);
-            EXPECT_EQ(tabs->tabs[1].notice, 4);
-            EXPECT_EQ(life->newInTown, 4);
+            EXPECT_EQ(tabs->tabs[1].notice, 7);
+            EXPECT_EQ(life->newInTown, 7);
             EXPECT_EQ(tabs->tabs[0].notice, 0);
             ASSERT_FALSE(tabs->tabs[1].noticeGround.empty());
             EXPECT_TRUE(f.pos(tabs->tabs[1].noticeGround)->visible);
@@ -5890,8 +5890,8 @@ namespace pg
 
             EXPECT_NE(stall(f, life, "buy.blade"), nullptr);
             EXPECT_EQ(life->piece<ActivityList>("activities")->find(&f.ecs, "blades"), nullptr);
-            EXPECT_EQ(tabs->tabs[0].notice, 5);
-            EXPECT_EQ(life->newInLife, 5);
+            EXPECT_EQ(tabs->tabs[0].notice, 6);
+            EXPECT_EQ(life->newInLife, 6);
             EXPECT_EQ(life->piece<ActivityList>("activities")->find(&f.ecs, "walk.millpond"), nullptr);
             EXPECT_EQ(tabs->tabs[1].notice, 0);
             ASSERT_FALSE(tabs->tabs[0].noticeGround.empty());
@@ -7027,10 +7027,11 @@ namespace pg
                 const auto& groups = life->piece<ActivityList>("activities")->spec.groups;
 
                 // (over them, the market a boy of seven has not been to)
-                ASSERT_GE(groups.size(), 3u);
+                ASSERT_GE(groups.size(), 4u);
                 EXPECT_EQ(groups[0].label, "The sixth year");
                 EXPECT_EQ(groups[1].label, "Work");
-                EXPECT_EQ(groups[2].label, "Adventure");
+                EXPECT_EQ(groups[2].label, "Scavenge");
+                EXPECT_EQ(groups[3].label, "Adventure");
 
                 for (const auto& group : groups)
                     EXPECT_NE(group.label, "Market");

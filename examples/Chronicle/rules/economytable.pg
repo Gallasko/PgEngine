@@ -7,6 +7,7 @@
 //           [{id, name, one, glyph, about}]
 //         `madeResources`, what is made of them, not gathered:
 //           [{id, name, one, glyph, about}]
+//         `scavengeRows`, the activity rows that gather the basics by hand (group "Scavenge")
 //         `economyKnobs`, the numbers of the economy that belong to no one resource:
 //           stashMost   the most of any one thing the stash can keep between lives
 //           baseSlots   the stash slots a life has before the town gives it more
@@ -22,13 +23,13 @@
 const basicResources = [
     {id: "berries", name: "Berries", one: "berries", glyph: "trade",
      about: "Picked along the hedges. The market buys them, and a pot of them is a meal."},
-    {id: "water", name: "Water", one: "water", glyph: "vitality",
+    {id: "water", name: "Water", one: "water", glyph: "vitality", lot: 10, coin: 1, price: 2,
      about: "Drawn from the well and the stream. Every craft of the town is wet work."},
-    {id: "firewood", name: "Firewood", one: "firewood", glyph: "work",
+    {id: "firewood", name: "Firewood", one: "firewood", glyph: "work", lot: 5, coin: 1, price: 2,
      about: "Deadfall and cuttings, bundled and carried home. Fires and forges burn it."},
-    {id: "stone", name: "Stone", one: "stone", glyph: "forge",
+    {id: "stone", name: "Stone", one: "stone", glyph: "forge", lot: 3, coin: 1, price: 3,
      about: "Dressed blocks and field stones. The places of the town are built of it."},
-    {id: "clay", name: "Clay", one: "clay", glyph: "work",
+    {id: "clay", name: "Clay", one: "clay", glyph: "work", lot: 4, coin: 1,
      about: "Dug out of the bank, heavy and wet. Bricks and pots are made of it."}
 ]
 
@@ -41,3 +42,25 @@ const economyKnobs = {
     stashMost: 100,
     baseSlots: 1
 }
+
+// What he gathers by hand, a month at a time: the work the town leaves to a child. Each is
+// repeatable, and each counts a stat "scavenged" (a plain counter: it is held in no ledger row).
+// activitytable.pg puts them after the last of the Work rows, and copies them first.
+const scavengeRows = [
+    {id: "scavenge.berries", group: "Scavenge", name: "Pick Berries on the Hedge", glyph: "trade", months: 1, rank: "", each: "BERRIES", path: "",
+     fromAge: 7,
+     gains: [{stat: "berries", amount: 6}, {stat: "scavenged"}],
+     requires: []},
+    {id: "scavenge.water", group: "Scavenge", name: "Draw Water from the Bell", glyph: "vitality", months: 1, rank: "", each: "WATER", path: "",
+     fromAge: 7,
+     gains: [{stat: "water", amount: 8}, {stat: "scavenged"}],
+     requires: []},
+    {id: "scavenge.firewood", group: "Scavenge", name: "Gather Deadfall", glyph: "work", months: 1, rank: "", each: "FIREWOOD", path: "",
+     fromAge: 7,
+     gains: [{stat: "firewood", amount: 4}, {stat: "scavenged"}],
+     requires: []},
+    {id: "scavenge.stone", group: "Scavenge", name: "Pick Stones from the Fields", glyph: "forge", months: 1, rank: "", each: "STONE", path: "",
+     fromAge: 8,
+     gains: [{stat: "stone", amount: 3}, {stat: "scavenged"}],
+     requires: []}
+]

@@ -185,6 +185,7 @@ import "algorithm"
 import "lib"
 import "towntable"
 import "expeditiontable"
+import "economytable"
 
 var errors = []
 
@@ -1145,6 +1146,26 @@ for (var z = 0; z < len(walkZones); z++)
 var tabled = activities
 var walksPlaced = false
 
+// What he gathers by hand stands right after the last of the Work rows. Each is a copy, with its
+// own lists, as a row is written to on every run and the table it comes from is not
+var lastWork = -1
+
+for (var t = 0; t < len(tabled); t++)
+{
+    if (tabled[t].group == "Work")
+    {
+        lastWork = t
+    }
+}
+
+var scavenges = entriesCopied(scavengeRows)
+
+for (var s = 0; s < len(scavenges); s++)
+{
+    scavenges[s].gains = entriesCopied(scavenges[s].gains)
+    scavenges[s].requires = entriesCopied(scavenges[s].requires)
+}
+
 activities = []
 
 for (var t = 0; t < len(tabled); t++)
@@ -1160,6 +1181,14 @@ for (var t = 0; t < len(tabled); t++)
     }
 
     push(activities, tabled[t])
+
+    if (t == lastWork)
+    {
+        for (var s = 0; s < len(scavenges); s++)
+        {
+            push(activities, scavenges[s])
+        }
+    }
 }
 
 if (not walksPlaced)
@@ -1182,6 +1211,32 @@ for (var w = 0; w < len(walkItems); w++)
                           gains: [{stat: "coin", amount: thing.coin}],
                           requires: [{stat: thing.id, label: thing.name + " to sell"}],
                           costs: [{stat: thing.id, amount: thing.lot}]})
+    }
+}
+
+// The basics the market trades: a lot sold for its coin (berries already sell above, with what a
+// walk brings home), and water, firewood and stone bought a lot for its price once the town is
+// known
+for (var b = 0; b < len(basicResources); b++)
+{
+    var basic = basicResources[b]
+
+    if (lookup(basic, "lot", 0) > 0)
+    {
+        push(activities, {id: "sell." + basic.id, group: "Market", name: "Sell " + toLowerCase(basic.name), glyph: "gold", months: 0, rank: "", each: "AT THE MARKET", path: "",
+                          finishBy: anyAge, showFrom: 100, place: "market",
+                          gains: [{stat: "coin", amount: basic.coin}],
+                          requires: [{stat: basic.id, label: basic.name + " to sell"}],
+                          costs: [{stat: basic.id, amount: basic.lot}]})
+
+        if (lookup(basic, "price", 0) > 0)
+        {
+            push(activities, {id: "buy." + basic.id, group: "Market", name: "Buy " + toLowerCase(basic.name), glyph: basic.glyph, months: 0, rank: "", each: "AT THE MARKET", path: "",
+                              finishBy: anyAge, showFrom: 100, place: "market",
+                              gains: [{stat: basic.id, amount: basic.lot}],
+                              requires: [{stat: "town_known", label: "The town"}],
+                              costs: [{stat: "coin", amount: basic.price}]})
+        }
     }
 }
 
