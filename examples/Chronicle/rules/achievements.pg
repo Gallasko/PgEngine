@@ -201,7 +201,7 @@ var achievements = [
      until: [{fact: "life.town", op: "==", value: 1}]},
     {id: "guide.market", kind: "guide", order: 0, world: true, point: "tile:buy.rations", pointChosen: "button:begin",
      say: "This is the market. Your coin buys food here. Click Buy rations.",
-     sayChosen: "Now press Do it now. Buying takes no time.",
+     sayChosen: "Now press Buy. Buying takes no time.",
      asks: [{fact: "said.guide.town", op: ">=", value: 1}],
      until: [{fact: "done.buy.rations", op: ">=", value: 1}]},
     {id: "guide.places", kind: "guide", order: 0, world: true, point: "place:market", hold: 10000,

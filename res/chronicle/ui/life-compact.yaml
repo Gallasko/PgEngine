@@ -127,17 +127,17 @@ children:
       - {side: right, target: working, targetSide: right, margin: 16}
       - {side: bottom, target: working, targetSide: bottom, margin: 16}
 
-  # At the right of Do it now, for what is done at once from what he holds (a sale, berries
-  # dried): the same as often as he can, in one press. Shown only with such a thing chosen
+  # At the right of Do it now (Buy, Sell at the market), for what is done at once from what he
+  # holds (a sale, berries dried) or buys again (rations): the same as often as he can, in one
+  # press. Shown only with such a thing chosen; the scene names it All, Sell all or Buy all, and
+  # the button grows to its label. The scene hangs it at the right of Begin (showWorkButtons): a
+  # name inside "At work now" is out of reach of an anchor here
   - kind: Button
     name: all
     variant: quiet
     label: All
     tag: life.all
     z: 20
-    anchors:
-      - {side: left, target: begin, targetSide: right, margin: 8}
-      - {side: top, target: begin, targetSide: top}
 
   - kind: Panel
     name: may

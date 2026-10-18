@@ -6011,7 +6011,7 @@ namespace pg
             f.settle();
 
             EXPECT_EQ(life->handOn, life->piece<Button>("begin")->root.id);
-            EXPECT_NE(life->noteWords.spec.text.find("Do it now"), std::string::npos) << life->noteWords.spec.text;
+            EXPECT_NE(life->noteWords.spec.text.find("press Buy"), std::string::npos) << life->noteWords.spec.text;
 
             const int held = life->save.stats["rations"];
 
@@ -8891,7 +8891,7 @@ namespace pg
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
         // A thing sold at the market: a click chooses it and its button sells, and it stays chosen
-        // for the next press; All sells what is left in one press and one line of the log. Then
+        // for the next press; Sell all sells what is left in one press and one line of the log. Then
         // its button stays where it was, greyed, and no Pass a month comes under the mouse until
         // a press somewhere else. While at work it is sold the same, the work running on
         TEST(lifescene_test, a_thing_sold_is_sold_by_its_button_all_of_it_by_all)
@@ -8928,7 +8928,7 @@ namespace pg
 
             EXPECT_EQ(life->save.stats["berries"], 15);
             EXPECT_TRUE(f.pos(life->named("begin"))->visible);
-            EXPECT_EQ(begin->spec.label, "Do it now");
+            EXPECT_EQ(begin->spec.label, "Sell");
             EXPECT_TRUE(f.pos(life->named("all"))->visible);
             EXPECT_FALSE(f.pos(life->named("skip"))->visible);
 
@@ -8939,7 +8939,7 @@ namespace pg
             EXPECT_EQ(life->save.stats["berries"], 10);
             EXPECT_EQ(life->save.stats["coin"], coinAtFirst + 1);
             EXPECT_TRUE(f.pos(life->named("begin"))->visible);
-            EXPECT_EQ(begin->spec.label, "Do it now");
+            EXPECT_EQ(begin->spec.label, "Sell");
             EXPECT_FALSE(begin->spec.disabled);
 
             // The rest at once, said once
@@ -9024,7 +9024,7 @@ namespace pg
             f.settle();
 
             EXPECT_TRUE(f.pos(life->named("begin"))->visible);
-            EXPECT_EQ(begin->spec.label, "Do it now");
+            EXPECT_EQ(begin->spec.label, "Sell");
 
             const int coin = life->save.stats["coin"];
 
@@ -9034,6 +9034,330 @@ namespace pg
             EXPECT_EQ(life->save.stats["berries"], 0);
             EXPECT_EQ(life->save.stats["coin"], coin + 1);
             EXPECT_EQ(life->save.running, work);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The market's rows on the Town page stand on two lines of their own, by the rules' `trade`:
+        // "Buy", what he pays coin for, then "Sell", what he is paid for. What is made there (a
+        // remedy) comes after them under "Make", and the other places after the market
+        TEST(lifescene_test, the_market_buys_and_sells_on_lines_of_their_own)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::first();
+            opt.lives = 2;
+            opt.age = 7.0f;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            life->save.townKnown = true;
+            life->save.stats["town_known"] = 1;
+            life->save.stats["berries"] = 15;
+            life->save.stats["wortleaf"] = 4;
+            life->save.stats["water"] = 2;
+            life->save.stats["coin"] = 20;
+            life->onMonth();
+            f.settle();
+
+            auto market = life->piece<ActivityList>("marketRows");
+            ASSERT_NE(market, nullptr);
+
+            auto groupOf = [&market](const std::string& id) {
+                for (const auto& group : market->spec.groups)
+                {
+                    for (const auto& row : group.rows)
+                    {
+                        if (row.id == id)
+                            return group.label;
+                    }
+                }
+
+                return std::string("(none)");
+            };
+
+            EXPECT_EQ(groupOf("buy.rations"), "Buy");
+            EXPECT_EQ(groupOf("buy.water"), "Buy");
+            EXPECT_EQ(groupOf("sell.berries"), "Sell");
+            EXPECT_EQ(groupOf("sell.water"), "Sell");
+            EXPECT_EQ(groupOf("brew.remedy"), "Make");
+
+            // Buy first, then Sell, then the rest of the market: every row under a heading
+            std::vector<std::string> labels;
+
+            for (const auto& group : market->spec.groups)
+            {
+                EXPECT_FALSE(group.label.empty());
+                labels.push_back(group.label);
+            }
+
+            ASSERT_GE(labels.size(), 3u);
+            EXPECT_EQ(labels[0], "Buy");
+            EXPECT_EQ(labels[1], "Sell");
+            EXPECT_EQ(labels[2], "Make");
+
+            // A month later the same lines hold the same rows: the list reconciles them in place
+            life->onMonth();
+            f.settle();
+
+            EXPECT_EQ(groupOf("buy.rations"), "Buy");
+            EXPECT_EQ(groupOf("sell.berries"), "Sell");
+            ASSERT_FALSE(market->spec.groups.empty());
+            EXPECT_EQ(market->spec.groups.front().label, "Buy");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The button names the act: a sale chosen has Sell and Sell all, a buy Buy and Buy all,
+        // and the rest of what is done at once Do it now and All (berries dried)
+        TEST(lifescene_test, the_button_says_buy_or_sell)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::first();
+            opt.lives = 2;
+            opt.age = 7.0f;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            life->save.townKnown = true;
+            life->save.stats["town_known"] = 1;
+            life->save.stats["berries"] = 15;
+            life->save.stats["coin"] = 20;
+            life->onMonth();
+            f.settle();
+
+            auto begin = life->piece<Button>("begin");
+            auto all = life->piece<Button>("all");
+            ASSERT_NE(begin, nullptr);
+            ASSERT_NE(all, nullptr);
+
+            f.ecs.sendEvent(ActivitySelectedEvent{"town.market", "sell.berries"});
+            f.settle();
+
+            EXPECT_EQ(begin->spec.label, "Sell");
+            EXPECT_TRUE(f.pos(life->named("all"))->visible);
+            EXPECT_EQ(all->spec.label, "Sell all");
+
+            f.ecs.sendEvent(ActivitySelectedEvent{"town.market", "buy.rations"});
+            f.settle();
+
+            EXPECT_EQ(begin->spec.label, "Buy");
+            EXPECT_TRUE(f.pos(life->named("all"))->visible);
+            EXPECT_FALSE(all->spec.disabled);
+            EXPECT_EQ(all->spec.label, "Buy all");
+
+            // The button sizes itself to the longer word
+            EXPECT_GT(f.pos(all->face)->width, 0.0f);
+
+            f.ecs.sendEvent(ActivitySelectedEvent{"life.activities", "dry.berries"});
+            f.settle();
+
+            EXPECT_EQ(begin->spec.label, "Do it now");
+            EXPECT_TRUE(f.pos(life->named("all"))->visible);
+            EXPECT_EQ(all->spec.label, "All");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Buy all buys as many lots as his coin and his room allow, and says so in one line of the
+        // log: 23 coin at 5 a lot buys 4 lots and leaves 3; with room for one lot it buys one
+        TEST(lifescene_test, buy_all_buys_what_his_coin_and_room_allow)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::first();
+            opt.lives = 2;
+            opt.age = 7.0f;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            life->save.townKnown = true;
+            life->save.stats["town_known"] = 1;
+            life->save.stats["rations"] = 0;
+            life->save.stats["coin"] = 23;
+            life->onMonth();
+            f.settle();
+
+            life->save.stats["rations"] = 0;
+            life->save.stats["coin"] = 23;
+
+            ActivityRow* rations = stall(f, life, "buy.rations");
+            ASSERT_NE(rations, nullptr);
+            ASSERT_EQ(rations->spec.gains.size(), 2u);    // The rations, and the coin it costs
+            const int lot = rations->spec.gains[0].amount;
+            ASSERT_GT(lot, 0);
+
+            auto all = life->piece<Button>("all");
+            ASSERT_NE(all, nullptr);
+
+            f.ecs.sendEvent(ActivitySelectedEvent{"town.market", "buy.rations"});
+            f.settle();
+
+            const size_t lines = life->save.log.size();
+
+            f.ecs.sendEvent(ButtonActivatedEvent{all->face.id, "life.all"});
+            f.settle();
+
+            EXPECT_EQ(life->save.stats["coin"], 3);
+            EXPECT_EQ(life->save.stats["rations"], 4 * lot);
+
+            int bought = 0;
+
+            for (size_t i = lines; i < life->save.log.size(); ++i)
+            {
+                const LogEntry& line = life->save.log[i];
+
+                if (line.text.find("Buy rations") == std::string::npos)
+                    continue;
+
+                ++bought;
+                EXPECT_NE(line.text.find("\xC3\x97" "4"), std::string::npos) << line.text;
+            }
+
+            EXPECT_EQ(bought, 1);
+
+            // Coin left for less than a lot: the button greyed, as a sale with none left
+            auto begin = life->piece<Button>("begin");
+            ASSERT_NE(begin, nullptr);
+            EXPECT_TRUE(begin->spec.disabled);
+            EXPECT_FALSE(f.pos(life->named("all"))->visible);
+
+            // Room for one lot only: one is bought, coin or not
+            f.ecs.sendEvent(OnMouseClick{Point2D{1.0f, 1.0f}, static_cast<MouseButton>(1)});
+            f.settle();
+
+            life->save.stats["rations"] = 60 - lot;
+            life->save.stats["coin"] = 23;
+            life->onMonth();
+            f.settle();
+
+            life->save.stats["rations"] = 60 - lot;
+            life->save.stats["coin"] = 23;
+
+            f.ecs.sendEvent(ActivitySelectedEvent{"town.market", "buy.rations"});
+            f.settle();
+            f.ecs.sendEvent(ButtonActivatedEvent{all->face.id, "life.all"});
+            f.settle();
+
+            EXPECT_EQ(life->save.stats["coin"], 18);
+            EXPECT_EQ(life->save.stats["rations"], 60);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // What is bought once (the wooden blade) has its Buy, and no Buy all
+        TEST(lifescene_test, what_is_bought_once_has_no_buy_all)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::first();
+            opt.lives = 2;
+            opt.age = 7.25f;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            life->save.townKnown = true;
+            life->save.stats["town_known"] = 1;
+            life->save.stats["coin"] = 30;
+            life->onMonth();
+            f.settle();
+
+            ASSERT_NE(stall(f, life, "buy.blade"), nullptr);
+
+            f.ecs.sendEvent(ActivitySelectedEvent{"town.market", "buy.blade"});
+            f.settle();
+
+            auto begin = life->piece<Button>("begin");
+            ASSERT_NE(begin, nullptr);
+            EXPECT_TRUE(f.pos(life->named("begin"))->visible);
+            EXPECT_EQ(begin->spec.label, "Buy");
+            EXPECT_FALSE(f.pos(life->named("all"))->visible);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Sell all and Buy all fit beside their button on each of the three pages: inside "At work
+        // now", and clear of the button that spends written time
+        TEST(lifescene_test, sell_all_and_buy_all_fit_on_every_page)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::first();
+            opt.lives = 2;
+            opt.age = 7.0f;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            struct Page
+            {
+                float width, height;
+                bool compact, phone;
+            };
+
+            for (const Page& page : {Page{1320.0f, 1020.0f, false, false}, Page{844.0f, 390.0f, true, false}, Page{390.0f, 844.0f, true, true}})
+            {
+                f.resize(page.width, page.height);
+                f.frames(12);
+
+                ASSERT_EQ(life->compact, page.compact) << page.width;
+                ASSERT_EQ(life->phone, page.phone) << page.width;
+
+                life->save.townKnown = true;
+                life->save.stats["town_known"] = 1;
+                life->save.stats["berries"] = 15;
+                life->save.stats["coin"] = 20;
+                life->save.stats["written"] = 600;
+                life->onMonth();
+                f.settle();
+
+                for (const char* id : {"sell.berries", "buy.rations"})
+                {
+                    f.ecs.sendEvent(ActivitySelectedEvent{"town.market", id});
+                    f.settle();
+                    f.frames(6);
+
+                    auto all = life->piece<Button>("all");
+                    ASSERT_NE(all, nullptr);
+                    ASSERT_TRUE(f.pos(life->named("all"))->visible) << id << " at " << page.width;
+
+                    const auto face = f.pos(life->named("all"));
+                    const auto begin = f.pos(life->named("begin"));
+                    const auto working = f.pos(life->named("working"));
+
+                    // Beside its button, on its line
+                    EXPECT_GT(face->width, 0.0f);
+                    EXPECT_NEAR(face->x, begin->x + begin->width + 8.0f, 0.5f) << id << " at " << page.width;
+                    EXPECT_NEAR(face->y, begin->y, 0.5f) << id << " at " << page.width;
+
+                    // Inside the panel
+                    EXPECT_LE(face->x + face->width, working->x + working->width) << id << " at " << page.width;
+                    EXPECT_LE(face->y + face->height, working->y + working->height) << id << " at " << page.width;
+
+                    // And clear of the button that spends written time, on the same line
+                    auto haste = life->piece<Button>("haste");
+                    ASSERT_NE(haste, nullptr);
+                    ASSERT_TRUE(f.pos(life->named("haste"))->isRenderable()) << page.width;
+
+                    const auto fast = f.pos(life->named("haste"));
+                    EXPECT_LE(face->x + face->width, fast->x) << id << " at " << page.width;
+                }
+            }
         }
 
         // ----------------------------------------------------------------------------------------
@@ -10205,11 +10529,11 @@ namespace pg
             EXPECT_EQ(list->find(&f.ecs, "draw.stone"), nullptr);
             ASSERT_NE(stall(f, life, "draw.stone"), nullptr);
 
-            // Under the storehouse's name, after the market's rows
+            // Under the storehouse's name, after the market's rows (its buys first)
             auto market = life->piece<ActivityList>("marketRows");
             ASSERT_NE(market, nullptr);
             ASSERT_GE(market->spec.groups.size(), 2u);
-            EXPECT_EQ(market->spec.groups.front().label, "");
+            EXPECT_EQ(market->spec.groups.front().label, "Buy");
             EXPECT_EQ(market->spec.groups.back().label, "The Storehouse");
             ASSERT_FALSE(market->spec.groups.back().rows.empty());
             EXPECT_EQ(market->spec.groups.back().rows.front().id, "draw.stone");

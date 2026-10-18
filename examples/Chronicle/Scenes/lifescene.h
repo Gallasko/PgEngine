@@ -261,7 +261,7 @@ namespace chronicle
         void clearChoice();            // Nothing chosen in either list, nor in the town's places
         bool spentChoice() const;      // What its button did is chosen still, and can be done no more (the last lot sold): the button greyed in its place
         bool buttonAtWork() const;     // At work, a button's line under the running row: Go on, what is chosen that may be taken while at it, or that spent
-        bool repeats(const RuleActivity* activity) const;   // Done at once from what he holds, as often as he holds it (a sale): it has the All button
+        bool repeats(const RuleActivity* activity) const;   // Done at once from what he holds, as often as he holds it (a sale), or bought as often as he can pay (a buy): it has the All button
         bool pressedOn(const char* name, pg::Point2D at) const;   // That button is shown, and the press is on it
         float workingHeight() const;   // "At work now": its chrome alone, or with a running row
         void showWorkButtons();        // At nothing: the button that begins what is chosen, or the one that passes a month

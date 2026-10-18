@@ -109,6 +109,7 @@ namespace chronicle
         constexpr const char * const BeginTag = "life.begin";
         constexpr const char * const AllTag = "life.all";       // Beside it, for what is done at once from what he holds: all he can
         constexpr int MostAtOnce = 200;            // The most times All does a thing in one press
+        constexpr float AllGap = 8.0f;             // Between the button and All, at its right
         constexpr float DoubleClickMs = 400.0f;    // A second click on a chosen place's tile within it begins its work, as a row's does
         constexpr const char * const AgainTag = "life.again";
 
@@ -1400,14 +1401,37 @@ namespace chronicle
         show("begin", begins or waits or stopped or spent);
 
         // At its right, for what is done at once from what he holds, the button that does it as
-        // often as he can. Outside the panel's stack, as the one below
+        // often as he can. Outside the panel's stack, as the one below. A trade of the market
+        // names it: Sell all, Buy all (the rules' `trade`)
         const bool all = begins and repeats(pick);
+        const std::string trade = pick ? textOf(pick->fields, "trade") : std::string();
 
         if (EntityRef button = named("all"); not button.empty())
+        {
             button->get<PositionComponent>()->setVisibility(all);
 
+            // Hung at the right of the button it repeats, on its line. The page's file cannot
+            // hang it there (that button is inside "At work now", out of reach of a name at the
+            // page's top), nor can the page as it is built: what the file makes of a piece hangs
+            // it on its holder a frame later. Once shown it follows the button wherever it goes
+            if (EntityRef begin = named("begin"); all and not begin.empty() and button->has<UiAnchor>())
+            {
+                auto anchor = button->get<UiAnchor>();
+                anchor->setLeftAnchor(PosAnchor{begin.id, AnchorType::Right});
+                anchor->setLeftMargin(AllGap);
+                anchor->setTopAnchor(PosAnchor{begin.id, AnchorType::Top});
+            }
+        }
+
         if (auto button = piece<Button>("all"))
+        {
+            const char* label = trade == "sell" ? "Sell all" : trade == "buy" ? "Buy all" : "All";
+
+            if (all and button->spec.label != label)
+                button->setLabel(ecsRef, label);
+
             button->setDisabled(ecsRef, not all);
+        }
 
         // At their right, on their line, the button that spends written time, while any is held.
         // It stands outside the panel's stack: where none of them is shown (a running row, the
@@ -1460,10 +1484,12 @@ namespace chronicle
 
         if (auto begin = piece<Button>("begin"))
         {
-            // What takes no time is done on the spot, and says so
+            // What takes no time is done on the spot, and says so: a trade of the market by its
+            // name (Buy, Sell)
             const int months = intOf(pick->fields, "months");
+            const char* now = trade == "buy" ? "Buy" : trade == "sell" ? "Sell" : "Do it now";
 
-            begin->setLabel(ecsRef, months <= 0 ? "Do it now" : idle ? "Begin" : "Answer now");
+            begin->setLabel(ecsRef, months <= 0 ? now : idle ? "Begin" : "Answer now");
             begin->setMonths(ecsRef, months > 0 ? months : -1);
         }
     }
@@ -1602,12 +1628,17 @@ namespace chronicle
     bool LifeScene::repeats(const RuleActivity* activity) const
     {
         // Done at once from what he holds, as often as he holds it: a sale, berries dried, a
-        // remedy brewed. Never what spends coin (a buy), nor what is done a set number of times
+        // remedy brewed; and a buy of the market (the rules' `trade`), as often as his coin and
+        // his room let him. Never else what spends coin, nor what is done a set number of times
+        // (a blade, a horse: bought once)
         if (not activity or intOf(activity->fields, "months") > 0 or intOf(activity->fields, "uses") > 0 or activity->costs.empty())
             return false;
 
         if (not textOf(activity->fields, "event").empty() or not textOf(activity->fields, "goto").empty())
             return false;
+
+        if (textOf(activity->fields, "trade") == "buy")
+            return true;
 
         for (const auto& cost : activity->costs)
         {
@@ -3367,7 +3398,14 @@ namespace chronicle
         // market's rows, what is bought and sold on the spot, and the storehouse's, what is drawn
         // from the stash. The works that raise a place have no row: a click on the place begins
         // its next one (onPlace). Each row with the id of its place
-        std::vector<std::pair<std::string, ActivityRowSpec>> stalls;
+        struct Stall
+        {
+            std::string place;
+            std::string trade;     // The rules' `trade`: "buy", "sell" or "" (the market's lines)
+            ActivityRowSpec row;
+        };
+
+        std::vector<Stall> stalls;
 
         listedRows.clear();
 
@@ -3473,7 +3511,7 @@ namespace chronicle
             }
 
             if (inTown)
-                stalls.push_back({textOf(a.fields, "place"), row});
+                stalls.push_back({textOf(a.fields, "place"), textOf(a.fields, "trade"), row});
             else
                 into.back().rows.push_back(row);
         }
@@ -3484,9 +3522,11 @@ namespace chronicle
             list->setRows(ecsRef, groups);
 
         // The Town page's rows, a group a place in the order of the places: the market's first,
-        // under the heading the page gives it, then each other place's under its name. A row of a
-        // place the town does not name stands with the market's
-        std::vector<ActivityGroup> atPlaces{{"", {}}};
+        // under the heading the page gives it, on three lines of their own by the rules' `trade`
+        // (what he buys, what he sells, then what is made there), then each other place's under
+        // its name. A row of a place the town does not name stands with the market's
+        std::vector<ActivityGroup> atPlaces{{"Buy", {}}, {"Sell", {}}, {"Make", {}}};
+        const auto marketLines = static_cast<std::ptrdiff_t>(atPlaces.size());
 
         for (const auto& place : town.places)
         {
@@ -3497,12 +3537,12 @@ namespace chronicle
 
             ActivityGroup group{textOf(place.fields, "name"), {}};
 
-            for (auto& [at, row] : stalls)
+            for (auto& stall : stalls)
             {
-                if (at == id)
+                if (stall.place == id)
                 {
-                    group.rows.push_back(row);
-                    at.clear();
+                    group.rows.push_back(stall.row);
+                    stall.place.clear();
                 }
             }
 
@@ -3510,14 +3550,17 @@ namespace chronicle
                 atPlaces.push_back(group);
         }
 
-        for (const auto& [at, row] : stalls)
+        for (const auto& stall : stalls)
         {
-            if (not at.empty())
-                atPlaces.front().rows.push_back(row);
+            if (stall.place.empty())
+                continue;
+
+            ActivityGroup& line = stall.trade == "buy" ? atPlaces[0] : stall.trade == "sell" ? atPlaces[1] : atPlaces[2];
+            line.rows.push_back(stall.row);
         }
 
-        if (atPlaces.front().rows.empty())
-            atPlaces.erase(atPlaces.begin());
+        // A line of the market with nothing on it has no heading either
+        atPlaces.erase(std::remove_if(atPlaces.begin(), atPlaces.begin() + marketLines, [](const ActivityGroup& g) { return g.rows.empty(); }), atPlaces.begin() + marketLines);
 
         if (auto market = piece<ActivityList>(MarketName))
             market->setRows(ecsRef, atPlaces);
