@@ -5169,7 +5169,8 @@ namespace pg
             EXPECT_EQ(intOf(draw.costs[0], "amount"), 10);
 
             // The player reads it in words, never as the raw id
-            EXPECT_EQ(textOf(draw.costs[0], "name"), "Water in the stash");
+            // (named as taken, so its price on the tile is not read as what the stash holds)
+            EXPECT_EQ(textOf(draw.costs[0], "name"), "Water from the stash");
 
             // Full, the room he has not closes it
             character["water"] = ElementType{40};
@@ -5211,6 +5212,44 @@ namespace pg
 
                 EXPECT_TRUE(kept) << id;
             }
+        }
+
+        // The ending says what his death puts into the stash: what he holds of the basics, less what
+        // a gift leaves to a place, and no more than the stash has room for
+        TEST(rules_test, the_town_says_what_goes_into_the_stash)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = townsman();
+            character["water"] = ElementType{25};
+            character["firewood"] = ElementType{32};
+            character["stone"] = ElementType{12};
+            character["berries"] = ElementType{1};
+            character["stash.stone"] = ElementType{95};
+            character["walk.hollow"] = ElementType{1};
+            character["seen.lodge"] = ElementType{1};
+
+            RuleTown town;
+            ASSERT_TRUE(f.rules.town(20.0f, character, town)) << firstError(f.rules);
+
+            EXPECT_EQ(town.stashLine, "His stores go to the family's stash: 1 berry, 25 water, 32 firewood, 5 stone.");
+
+            // Left to the lodge, its 20 firewood are not in the stash
+            const RulePlace* lodge = nullptr;
+
+            for (const auto& place : town.places)
+            {
+                if (textOf(place.fields, "id") == "lodge")
+                    lodge = &place;
+            }
+
+            ASSERT_NE(lodge, nullptr);
+            EXPECT_EQ(textOf(lodge->fields, "stashLine"), "His stores go to the family's stash: 1 berry, 25 water, 12 firewood, 5 stone.");
+
+            // Nothing of the kind held: nothing said
+            ASSERT_TRUE(f.rules.town(20.0f, townsman(), town)) << firstError(f.rules);
+            EXPECT_EQ(town.stashLine, "");
         }
     }
 }

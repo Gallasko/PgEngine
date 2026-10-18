@@ -1027,11 +1027,15 @@ namespace chronicle
         ElementType epitaphLine;
         ElementType fundLine;
         ElementType foundLine;
+        ElementType stashLine;
 
         if (not s.run() or not s.get("places", {"gaps", "given", "leaves", "tiers"}, records) or not s.get("start", out.start) or not s.get("stash", out.stash))
             return fail(s);
 
         if (not s.get("opened", opened) or not s.get("raisedLine", raisedLine) or not s.get("epitaphLine", epitaphLine) or not s.get("fundLine", fundLine) or not s.get("foundLine", foundLine))
+            return fail(s);
+
+        if (not s.get("stashLine", stashLine))
             return fail(s);
 
         for (auto& record : records)
@@ -1052,6 +1056,7 @@ namespace chronicle
         out.epitaphLine = epitaphLine.toString();
         out.fundLine = fundLine.toString();
         out.foundLine = foundLine.toString();
+        out.stashLine = stashLine.toString();
 
         // The words of the gift at death
         ElementMap words;

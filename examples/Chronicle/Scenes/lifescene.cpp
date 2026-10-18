@@ -3714,7 +3714,6 @@ namespace chronicle
 
         write("endName", save.name);
         write("endCause", epitaph.cause);
-        write("endStory", epitaph.text);
         write("endTally", epitaph.tally);
         write("endAsk", epitaph.ask);
 
@@ -3730,6 +3729,9 @@ namespace chronicle
         }
 
         fillGifts();
+
+        // Its story ends on what goes into the stash, which the gifts above have just read
+        write("endStory", endingStory());
 
         fitEnding(windowWidth, windowHeight);
 
@@ -5661,13 +5663,15 @@ namespace chronicle
         if (line.empty() or rows.empty() or not rows->has<VerticalLayout>())
             return;
 
-        // Only who knows the town has a town to leave anything to, and only what he holds of it
+        // Only who knows the town has a town to leave anything to, and only what he holds of it.
+        // The town is read all the same: what goes into the stash is its to say, town or none
         auto held = save.stats.find(giftStat());
         const int amount = save.townKnown and held != save.stats.end() ? held->second : 0;
 
         std::vector<const RulePlace*> open;
+        const bool read = rules.town(save.age, save.character(), town);
 
-        if (save.townKnown and rules.town(save.age, save.character(), town))
+        if (save.townKnown and read)
         {
             for (const auto& place : town.places)
             {
@@ -5768,6 +5772,26 @@ namespace chronicle
 
         if (EntityRef again = ending->get<Prefab>()->findEntity("again"); not again.empty() and again->has<Button>())
             again->get<Button>()->setLabel(ecsRef, gift.empty() ? town.giftNone : town.giftChosen);
+
+        // What the place takes is not in the stash: the story says so where it stands
+        if (EntityRef story = ending->get<Prefab>()->findEntity("endStory"); not story.empty() and story->has<Label>())
+            story->get<Label>()->setText(ecsRef, endingStory());
+    }
+
+    std::string LifeScene::endingStory() const
+    {
+        std::string line = town.stashLine;
+
+        if (not gift.empty())
+        {
+            for (const auto& place : town.places)
+            {
+                if (textOf(place.fields, "id") == gift)
+                    line = textOf(place.fields, "stashLine");
+            }
+        }
+
+        return line.empty() ? epitaph.text : epitaph.text + " " + line;
     }
 
     // ---- the month ----------------------------------------------------------------------------------------

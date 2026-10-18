@@ -29,7 +29,8 @@
 //            leaves [{stat, amount}], leaveLine ("12 firewood, 4 ash wood"): what he holds of what
 //                    walks bring for the town that the next level still asks, left to the place
 //                    with his coin if it is the one he chooses at his death ("fund.<id>.<thing>"
-//                    in `character`, counted toward what the level asks as the coin is)}
+//                    in `character`, counted toward what the level asks as the coin is)
+//            stashLine  "" or what goes into the stash if it is the one he chooses (below)}
 //         `start`, [{stat, amount}]: what a new life is born with for the town as it stands
 //         (the `start` of every level reached). The Life screen adds them to a life that is not
 //         the first of its world.
@@ -47,6 +48,9 @@
 //         (economytable.pg's `basicResources`) each, and the most of it it keeps. What he holds
 //         of it then, less what his gift leaves to a place, joins what earlier lives kept
 //         ("stash.<id>" in `character`), up to that most.
+//         `stashLine`, "" or the ending's sentence of what his death puts into the stash with no
+//         gift: "His stores go to the family's stash: 25 water, 12 stone." Each place has its own
+//         `stashLine`, the same with his gift left to it (what it takes of the basics left out).
 //         (`none` is a word of the language, and cannot name a field.)
 //
 // No function here: lib.pg holds them all, ahead of every table (see there why).
@@ -69,6 +73,9 @@ var foundLine = " is his to raise now: it has come onto the Town page"
 var epitaphLine = ""
 var gift = {stat: "coin", before: "LEAVE HIS ", after: " COIN TO", things: "LEAVE WHAT A PLACE CAN USE TO", plain: "Begin a new life", chosen: "Leave it, and begin a new life"}
 
+// What the ending says of the stash, before what goes into it
+var stashSaid = "His stores go to the family's stash: "
+
 if (statOf(character, "town.inn") >= 2)
 {
     epitaphLine = "At the inn they still tell of the one before him. "
@@ -88,7 +95,7 @@ for (var t = 0; t < len(townPlaces); t++)
                  shown: placeShown(place, character, monthOf(age), done, lives),
                  gives: "", line: "NOT YET BUILT", tale: "", built: "", fund: fund,
                  nextWork: "", nextName: "", nextMonths: 0, nextCoin: 0, nextYears: 0, nextCosts: "", nextGives: "", nextLocked: false,
-                 gaps: [], given: [], tiers: [], leaves: [], leaveLine: ""}
+                 gaps: [], given: [], tiers: [], leaves: [], leaveLine: "", stashLine: ""}
 
     // What it gives is what every level reached gives: none takes the place of the one before
     for (var l = 0; l < level; l++)
@@ -223,7 +230,25 @@ for (var t = 0; t < len(townPlaces); t++)
         shown.nextCosts = asks
     }
 
+    // What goes into the stash at his death if he leaves his gift to this place: the rest of
+    // what he holds of the basics, once it has taken what it asks
+    var stashed = stashWords(character, shown.leaves, economyKnobs.stashMost)
+
+    if (stashed != "")
+    {
+        shown.stashLine = stashSaid + stashed + "."
+    }
+
     push(places, shown)
+}
+
+// And with no gift: what the ending says after the story of his life
+var stashLine = ""
+var stashedAll = stashWords(character, [], economyKnobs.stashMost)
+
+if (stashedAll != "")
+{
+    stashLine = stashSaid + stashedAll + "."
 }
 
 // What the stash keeps at his death, of each basic resource, and the most it keeps of each: what

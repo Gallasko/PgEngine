@@ -9649,6 +9649,99 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // The ending says what goes into the stash, after the gift: choosing a place that asks for
+        // some of it changes the line where it stands
+        TEST(lifescene_test, the_ending_says_what_goes_into_the_stash)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = f.life();
+            ASSERT_NE(life, nullptr);
+
+            f.frames(12);
+
+            for (const char* other : {"berries", "water", "firewood", "clay"})
+                life->save.stats.erase(other);
+
+            life->save.town["lodge"] = 2;
+            life->save.fund["lodge.stone"] = 20;
+            life->save.seen.push_back("lodge");
+            life->save.stats["coin"] = 0;
+            life->save.stats["stone"] = 12;
+            life->save.stats["rations"] = 0;
+            life->save.stats["vit"] = 1;
+            life->onMonth();
+            f.frames(12);
+
+            ASSERT_TRUE(life->ended);
+            ASSERT_FALSE(life->ending.empty());
+
+            auto said = [&]() { return life->ending->get<Prefab>()->findEntity("endStory")->get<Label>()->spec.text; };
+
+            EXPECT_EQ(said().rfind(life->epitaph.text, 0), 0u) << said();
+            EXPECT_NE(said().find("His stores go to the family's stash: 12 stone."), std::string::npos) << said();
+
+            // The lodge takes ten of it: two go into the stash
+            ASSERT_EQ(life->gifts.size(), 1u);
+            f.ecs.sendEvent(ButtonActivatedEvent{life->gifts[0].second.face.id, "life.gift.lodge"});
+            f.settle();
+            ASSERT_EQ(life->gift, "lodge");
+            EXPECT_NE(said().find("His stores go to the family's stash: 2 stone."), std::string::npos) << said();
+
+            // Let go of, all of it again
+            f.ecs.sendEvent(ButtonActivatedEvent{life->gifts[0].second.face.id, "life.gift.lodge"});
+            f.settle();
+            ASSERT_EQ(life->gift, "");
+            EXPECT_NE(said().find("His stores go to the family's stash: 12 stone."), std::string::npos) << said();
+        }
+
+        // What he holds over his limit at his death is kept whole, and the draw tile says what the
+        // stash holds beside what a draw takes
+        TEST(lifescene_test, the_stash_keeps_what_was_over_the_limit)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = f.life();
+            ASSERT_NE(life, nullptr);
+
+            f.frames(12);
+
+            life->save.stats["firewood"] = 40;
+            life->save.stats["rations"] = 0;
+            life->save.stats["vit"] = 1;
+            life->onMonth();
+            f.frames(12);
+
+            ASSERT_TRUE(life->ended);
+
+            life->beginAgain();
+            f.frames(12);
+
+            ASSERT_FALSE(life->ended);
+            EXPECT_EQ(life->save.stash["firewood"], 40);
+
+            auto list = life->piece<ActivityList>("activities");
+            ASSERT_NE(list, nullptr);
+            auto tile = list->find(&f.ecs, "draw.firewood");
+            ASSERT_NE(tile, nullptr);
+            EXPECT_EQ(tile->spec.each, "40 IN THE STASH");
+            EXPECT_EQ(tile->spec.cost, "30 firewood from the stash");
+
+            // Drawn, he holds what he has room for, and the rest stays
+            f.ecs.sendEvent(ActivitySelectedEvent{"life.activities", "draw.firewood"});
+            f.settle();
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "draw.firewood"});
+            f.frames(12);
+
+            EXPECT_EQ(life->save.stats["firewood"], 30);
+            EXPECT_EQ(life->save.stash["firewood"], 10);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // A save written before the stash reads an empty one, and what he held is read as it was
         // written, even above its limit.
         TEST(lifescene_test, an_old_save_has_an_empty_stash)

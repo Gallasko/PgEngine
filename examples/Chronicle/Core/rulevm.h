@@ -196,6 +196,7 @@ namespace chronicle
         std::vector<RulePlace> places; // In the order of towntable.pg
         pg::RecordList start;          // {stat, amount}: what a new life is born with for the town as it stands
         pg::RecordList stash;          // {stat, most}: what of his the stash keeps at his death, and the most of each it keeps
+        std::string stashLine;         // "" or the ending's sentence of what goes into the stash with no gift; a place's `stashLine` says it with that place's gift
         std::string opened;            // The line said the month a life comes to know the town
         std::string raisedLine;        // What follows a level's `built` in the line the log writes for it
         std::string epitaphLine;       // "" or what a new life's log says before how the last one ended

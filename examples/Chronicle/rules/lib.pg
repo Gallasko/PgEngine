@@ -508,6 +508,42 @@ fun lessonSentence(kind)
     return "Each " + kind.one + " makes " + toLowerCase(thingsWord(kind.makes[0].stat, 1)) + " more a month."
 }
 
+// What his death puts into the stash, in words: of each basic resource, what he holds less what
+// a gift leaves to a place (`leaves`, [{stat, amount}]), and no more than the stash still has room
+// for under `most`. "1 berry, 25 water, 12 stone", or "" when none of it goes in.
+fun stashWords(character, leaves, most)
+{
+    var parts = []
+
+    for (var b = 0; b < len(basicResources); b++)
+    {
+        var id = basicResources[b].id
+        var left = statOf(character, id)
+
+        for (var l = 0; l < len(leaves); l++)
+        {
+            if (leaves[l].stat == id)
+            {
+                left = left - leaves[l].amount
+            }
+        }
+
+        var room = most - statOf(character, "stash." + id)
+
+        if (left > room)
+        {
+            left = room
+        }
+
+        if (left > 0)
+        {
+            push(parts, toLowerCase(thingsWord(id, left)))
+        }
+    }
+
+    return listedWords(parts)
+}
+
 // The most a stat can ever be, 0 when it has no ceiling.
 fun ceilingOf(stat)
 {

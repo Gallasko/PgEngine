@@ -253,6 +253,7 @@ namespace chronicle
         void raisePlace(const std::string& place, int level);   // A work for the town is done: the place is the world's at that level
         void giveYears(int months);    // Years of his life given at once: the clock jumps, the world's with it
         void fillGifts();              // The ending's row of places his coin can be left to
+        std::string endingStory() const;   // The ending's story: the epitaph's, then what goes into the stash with the gift as chosen
         std::string giftStat() const;  // What of his is left to a place at his death: the rules say (coin)
         void chooseGift(const std::string& place);   // One of them chosen, or let go of
         bool fromLists(const std::string& list) const;      // An event of the choice's list or of the market's

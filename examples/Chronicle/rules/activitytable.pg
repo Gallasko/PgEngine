@@ -1249,7 +1249,8 @@ for (var k = 0; k < len(trainCopies); k++)
 // What the stash keeps of a basic (the stat "stash.<id>", the world's: what lives before him
 // held at their death) is drawn on the spot, as much as he has room for and no more. A row for
 // each basic the stash has some of. Full, he has no room: the row asks room for one, and its room
-// closes it.
+// closes it. Its caption says what the stash holds; what a draw takes is its price, named as taken
+// from the stash, so the two are not read as one.
 var drawCopies = []
 
 for (var b = 0; b < len(basicResources); b++)
@@ -1272,7 +1273,7 @@ for (var b = 0; b < len(basicResources); b++)
                       fromAge: 6, finishBy: anyAge, onlyWith: "stash." + drawn.id,
                       about: "What the lives before him kept of it at their death. He takes as much as he has room for, and the rest stays for the lives after him.",
                       gains: [{stat: drawn.id, amount: take}],
-                      costs: [{stat: "stash." + drawn.id, amount: take}],
+                      costs: [{stat: "stash." + drawn.id, amount: take, name: drawn.name + " from the stash"}],
                       requires: []})
 }
 
@@ -1800,7 +1801,8 @@ for (var i = 0; i < len(activities); i++)
     {
         var cost = costs[c]
         cost.label = statShortName(cost.stat)
-        cost.name = statName(cost.stat)
+        // (under its own name when the row gives one: what a draw takes from the stash)
+        cost.name = lookup(cost, "name", statName(cost.stat))
         push(requires, {stat: cost.stat, needed: cost.amount, cost: true})
     }
 
