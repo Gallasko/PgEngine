@@ -1953,12 +1953,18 @@ for (var i = 0; i < len(activities); i++)
             req.current = roomFor(character, req.stat)
         }
 
+        // A slot to bind a familiar in: what is free of the life's own and what its standing and calling add
+        if (lookup(req, "slot", false))
+        {
+            req.current = freeSlots(character)
+        }
+
         if (req.current < req.needed)
         {
             locked = true
         }
 
-        if (req.stat != "age" and not lookup(req, "cost", false) and not lookup(req, "room", false) and req.needed > 0)
+        if (req.stat != "age" and not lookup(req, "cost", false) and not lookup(req, "room", false) and not lookup(req, "slot", false) and req.needed > 0)
         {
             shares = shares + toInt(floor(clamp(req.current, 0, req.needed) * 100 / req.needed))
             counted = counted + 1

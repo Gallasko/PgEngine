@@ -278,6 +278,158 @@ fun roomFor(character, stat)
     return clamp(limit - statOf(character, stat), 0, limit)
 }
 
+// The kind of familiar with an id, an empty table when there is none.
+fun kindById(id)
+{
+    for (var k = 0; k < len(familiarKinds); k++)
+    {
+        if (familiarKinds[k].id == id)
+        {
+            return familiarKinds[k]
+        }
+    }
+
+    return {}
+}
+
+// How many familiars he can keep: the life's own slots, and what his standing and calling add.
+fun slotsOf(character)
+{
+    var slots = economyKnobs.baseSlots
+
+    for (var g = 0; g < len(slotGivers); g++)
+    {
+        var giver = slotGivers[g]
+
+        if (statOf(character, giver.stat) >= lookup(giver, "needed", 1))
+        {
+            slots = slots + giver.slots
+        }
+    }
+
+    return slots
+}
+
+// How many familiars are bound to him, of every kind.
+fun boundCount(character)
+{
+    var count = 0
+
+    for (var k = 0; k < len(familiarKinds); k++)
+    {
+        count = count + statOf(character, "fam." + familiarKinds[k].id)
+    }
+
+    return count
+}
+
+// The slots he has left, 0 when he is full (or holds more than the slots he has).
+fun freeSlots(character)
+{
+    var free = slotsOf(character) - boundCount(character)
+
+    if (free < 0)
+    {
+        free = 0
+    }
+
+    return free
+}
+
+// Whether a kind is his to bind: known from the start, or learned in this world.
+fun kindKnown(character, kind)
+{
+    return kind.known or statOf(character, "know.fam." + kind.id) > 0
+}
+
+// A stat said as a number of things, in caps: "1 RATION", "4 BERRIES". One says the thing once
+// (a basic's `one`), more say its name; rations and coin are no resource of the table.
+fun thingsWord(stat, amount)
+{
+    var word = toUpperCase(stat)
+
+    if (stat == "rations")
+    {
+        word = "RATIONS"
+
+        if (amount == 1)
+        {
+            word = "RATION"
+        }
+    }
+    else if (stat == "coin")
+    {
+        word = "COIN"
+    }
+    else
+    {
+        for (var b = 0; b < len(basicResources); b++)
+        {
+            if (basicResources[b].id == stat)
+            {
+                word = toUpperCase(basicResources[b].name)
+
+                if (amount == 1)
+                {
+                    word = toUpperCase(basicResources[b].one)
+                }
+            }
+        }
+
+        for (var m = 0; m < len(madeResources); m++)
+        {
+            if (madeResources[m].id == stat)
+            {
+                word = toUpperCase(madeResources[m].name)
+
+                if (amount == 1)
+                {
+                    word = toUpperCase(madeResources[m].one)
+                }
+            }
+        }
+    }
+
+    return toString(amount) + " " + word
+}
+
+// Words joined with commas.
+fun listedWords(words)
+{
+    var text = ""
+
+    for (var w = 0; w < len(words); w++)
+    {
+        if (w > 0)
+        {
+            text = text + ", "
+        }
+
+        text = text + words[w]
+    }
+
+    return text
+}
+
+// What a kind eats and makes a month, in caps for a tile: "EATS 1 RATION · MAKES 4 BERRIES".
+fun upkeepCaption(kind)
+{
+    var eats = []
+    var makes = []
+
+    for (var e = 0; e < len(kind.eats); e++)
+    {
+        push(eats, thingsWord(kind.eats[e].stat, kind.eats[e].amount))
+    }
+
+    for (var m = 0; m < len(kind.makes); m++)
+    {
+        push(makes, thingsWord(kind.makes[m].stat, kind.makes[m].amount))
+    }
+
+    return "EATS " + listedWords(eats) + " · MAKES " + listedWords(makes)
+}
+
 // The most a stat can ever be, 0 when it has no ceiling.
 fun ceilingOf(stat)
 {
@@ -1028,6 +1180,24 @@ statNames["store.berries"] = "Room for berries"
 statNames["store.water"] = "Room for water"
 statNames["store.firewood"] = "Room for firewood"
 statNames["store.stone"] = "Room for stone"
+
+// The familiars he has bound (the stat "fam.<id>", how many of the kind) and the kinds the
+// world has taught him (the stat "know.fam.<id>").
+statShort["fam.sprite"] = "SPRITE"
+statShort["fam.imp"] = "IMP"
+statShort["fam.brownie"] = "BROWNIE"
+statShort["fam.mole"] = "MOLE"
+statShort["fam.weaver"] = "WEAVER"
+statNames["fam.sprite"] = "A hedge sprite"
+statNames["fam.imp"] = "A well imp"
+statNames["fam.brownie"] = "A kitchen brownie"
+statNames["fam.mole"] = "A stone mole"
+statNames["fam.weaver"] = "A gem weaver"
+statNames["know.fam.sprite"] = "The way of the hedge sprite"
+statNames["know.fam.imp"] = "The way of the well imp"
+statNames["know.fam.brownie"] = "The way of the kitchen brownie"
+statNames["know.fam.mole"] = "The way of the stone mole"
+statNames["know.fam.weaver"] = "The way of the gem weaver"
 
 // The most of a stat he can hold at once. A stat not listed has no limit. The limit closes
 // what would bring more (activitytable.pg) and stops what a month produces (resources.pg); an

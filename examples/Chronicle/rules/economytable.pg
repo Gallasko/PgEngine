@@ -9,6 +9,7 @@
 //           [{id, name, one, glyph, about}]
 //         `scavengeRows`, the activity rows that gather the basics by hand (group "Scavenge")
 //         `storeRows`, the activity rows that raise a limit for the life (group "Your stores")
+//         `familiarKinds`, `slotGivers`: the creatures he can bind, and what gives him slots for them
 //         `economyKnobs`, the numbers of the economy that belong to no one resource:
 //           stashMost   the most of any one thing the stash can keep between lives
 //           baseSlots   the stash slots a life has before the town gives it more
@@ -90,4 +91,43 @@ const storeRows = [
      gains: [{stat: "store.stone", amount: 20}],
      requires: [],
      costs: [{stat: "firewood", amount: 2}]}
+]
+
+// The creatures he can bind to himself, for life. Each eats and makes a thing a month (the
+// month's own rules read `eats` and `makes`; binding asks `bind`), and each fills one slot.
+// `known` kinds are his from the first; the others wait for the stat "know.fam.<id>", which
+// research, the Old Shell and the Old Grey give. `one` is the kind said once ("a hedge sprite").
+const familiarKinds = [
+    {id: "sprite", name: "a hedge sprite", one: "sprite", glyph: "magic", known: true,
+     about: "A small green thing that lives in the hedge. It keeps house for its berries, and asks a ration of him.",
+     eats: [{stat: "rations", amount: 1}], makes: [{stat: "berries", amount: 4}], bind: [{stat: "berries", amount: 6}]},
+    {id: "imp", name: "a well imp", one: "imp", glyph: "vitality", known: false,
+     about: "A wet, sullen thing out of the well. It will fetch water all month if it is fed and paid.",
+     eats: [{stat: "rations", amount: 1}, {stat: "coin", amount: 1}], makes: [{stat: "water", amount: 6}], bind: [{stat: "water", amount: 8}]},
+    {id: "brownie", name: "a kitchen brownie", one: "brownie", glyph: "work", known: false,
+     about: "A hearth spirit. It turns a larder and a fire into rations, and takes its share.",
+     eats: [{stat: "berries", amount: 3}, {stat: "water", amount: 2}, {stat: "firewood", amount: 1}], makes: [{stat: "rations", amount: 2}], bind: [{stat: "firewood", amount: 4}]},
+    {id: "mole", name: "a stone mole", one: "mole", glyph: "forge", known: false,
+     about: "A blind digger, as heavy as a cat. The Old Shell knows how to call one.",
+     eats: [{stat: "rations", amount: 2}], makes: [{stat: "stone", amount: 2}], bind: [{stat: "stone", amount: 4}]},
+    {id: "weaver", name: "a gem weaver", one: "weaver", glyph: "relic", known: false,
+     about: "A spider of the deep rock that spins stone into gems. The Old Grey keep the secret of it.",
+     eats: [{stat: "stone", amount: 3}, {stat: "water", amount: 3}, {stat: "rations", amount: 1}], makes: [{stat: "gems", amount: 1}], bind: [{stat: "stone", amount: 10}]}
+]
+
+// What gives him slots to bind familiars in: standing in the town (one each), a second calling
+// (two each) and the Harrow relic (one). `needed` is the least of the stat that counts, 1 when
+// left out.
+const slotGivers = [
+    {stat: "keep_oath", slots: 1},
+    {stat: "collegium", slots: 1},
+    {stat: "hidden_hand", slots: 1},
+    {stat: "renegade", slots: 1},
+    {stat: "castellan", slots: 2},
+    {stat: "crusader", slots: 2},
+    {stat: "curse_breaker", slots: 2},
+    {stat: "spellwright", slots: 2},
+    {stat: "assassin", slots: 2},
+    {stat: "adventurer", slots: 2},
+    {stat: "harrow_relic", slots: 1}
 ]
