@@ -300,7 +300,8 @@ var activities = [
     // take away
     {id: "kitchen", group: "Work", name: "Help in the Kitchen", glyph: "trade", months: 3, rank: "", each: "MEALS PROVIDED", path: "", board: true, fromAge: 7, fromMonths: 8, idleBy: 10,
      gains: [{stat: "rations", amount: 6}],
-     requires: []},
+     requires: [],
+     costs: [{stat: "water", amount: 3}, {stat: "firewood", amount: 2}]},
     {id: "market", group: "Work", name: "Help at the Market", glyph: "trade", months: 6, rank: "", each: "", path: "", fromAge: 8, idleBy: 11,
      gains: [{stat: "guile"}, {stat: "coin", amount: 8}],
      requires: [],
@@ -308,6 +309,7 @@ var activities = [
     {id: "smithy", group: "Work", name: "Work the Smithy", glyph: "forge", months: 9, rank: "", each: "", path: "", fromAge: 9, idleBy: 13,
      gains: [{stat: "str"}, {stat: "coin", amount: 18}],
      requires: [{stat: "str", needed: 8}],
+     costs: [{stat: "firewood", amount: 6}],
      bonus: [{stat: "town.smithy", fromAge: 8}, {stat: "town.smithy", needed: 3, more: [{stat: "coin", amount: 6}]}]},
     // A chain off the smithy that ends in a fork. A month at the master's elbow, once he has
     // worked the smithy, shows him the forge; with that he may learn to temper, or he may drive
@@ -471,6 +473,7 @@ var activities = [
      gains: [{stat: "letters"}, {stat: "int"}],
      requires: [],
      after: [{uses: 3, gains: [{stat: "letters"}]}],
+     costs: [{stat: "firewood", amount: 2}],
      bonus: [{stat: "town.chapel", months: 4}]},
     {id: "chapel", group: "Study", name: "Serve at the Chapel", glyph: "study", months: 9, rank: "", each: "", path: "", fromAge: 9, fromMonths: 6, finishBy: 15, uses: 2,
      gains: [{stat: "letters"}, {stat: "discipline"}],
@@ -1166,6 +1169,7 @@ for (var s = 0; s < len(scavenges); s++)
     scavenges[s].requires = entriesCopied(scavenges[s].requires)
 }
 
+
 activities = []
 
 for (var t = 0; t < len(tabled); t++)
@@ -1245,7 +1249,7 @@ push(activities, {id: "brew.remedy", group: "Market", name: "Brew a remedy", gly
                   finishBy: anyAge, showFrom: 100, place: "market",
                   gains: [{stat: "remedy", amount: 1}],
                   requires: [{stat: "wortleaf", label: "Wortleaf to brew"}],
-                  costs: [{stat: "wortleaf", amount: 2}]})
+                  costs: [{stat: "wortleaf", amount: 2}, {stat: "water", amount: 1}]})
 
 // And berries dried keep as rations: three to a ration, a little more than they would buy sold
 // (three berries sell for 0.6 coin, a ration costs about 0.8)

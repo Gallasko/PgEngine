@@ -205,7 +205,7 @@ namespace pg
 
             EXPECT_TRUE(flag(smithy.fields, "locked"));
             EXPECT_FALSE(flag(smithy.fields, "listed"));
-            ASSERT_EQ(smithy.requires.size(), 2u);
+            ASSERT_EQ(smithy.requires.size(), 3u);
             EXPECT_EQ(textOf(smithy.requires[0], "stat"), "age");
             EXPECT_EQ(textOf(smithy.requires[0], "label"), "Age");
             EXPECT_EQ(intOf(smithy.requires[0], "current"), 7);
@@ -213,9 +213,11 @@ namespace pg
             EXPECT_EQ(textOf(smithy.requires[1], "label"), "Strength");
             EXPECT_EQ(intOf(smithy.requires[1], "current"), 6);
             EXPECT_EQ(intOf(smithy.requires[1], "needed"), 8);
+            EXPECT_EQ(textOf(smithy.requires[2], "stat"), "firewood");
+            EXPECT_EQ(intOf(smithy.requires[2], "needed"), 6);
 
             // Of age, the age is no longer asked
-            EXPECT_EQ(activityAt(f.rules, 9.0f, boy(), "smithy").requires.size(), 1u);
+            EXPECT_EQ(activityAt(f.rules, 9.0f, boy(), "smithy").requires.size(), 2u);
 
             // The carters feed him
             RuleActivity carters = activityAt(f.rules, 7.0f, boy(), "carters");
@@ -2196,6 +2198,66 @@ namespace pg
             EXPECT_FALSE(flag(buy.fields, "locked"));
             EXPECT_EQ(intOf(buy.fields, "reach"), 100);
         }
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The kitchen takes water and firewood, and a row he cannot pay is locked.
+        TEST(rules_test, kitchen_asks_water_and_firewood)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap stocked = boy();
+            stocked["water"] = ElementType{3};
+            stocked["firewood"] = ElementType{2};
+
+            RuleActivity kitchen = activityAt(f.rules, 7.8f, stocked, "kitchen");
+
+            ASSERT_EQ(kitchen.costs.size(), 2u);
+            EXPECT_EQ(textOf(kitchen.costs[0], "stat"), "water");
+            EXPECT_EQ(intOf(kitchen.costs[0], "amount"), 3);
+            EXPECT_EQ(textOf(kitchen.costs[1], "stat"), "firewood");
+            EXPECT_EQ(intOf(kitchen.costs[1], "amount"), 2);
+            EXPECT_FALSE(flag(kitchen.fields, "locked"));
+
+            EXPECT_TRUE(flag(activityAt(f.rules, 7.8f, boy(), "kitchen").fields, "locked"));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Whatever he holds, a child can still eat: a row that feeds him costs no resource.
+        TEST(rules_test, a_child_with_nothing_can_still_eat)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap child = {{"vit", ElementType{35}}, {"vitmax", ElementType{35}}, {"coin", ElementType{0}}};
+            std::vector<RuleActivity> out;
+            ASSERT_TRUE(f.rules.activities(7.0f, child, out)) << firstError(f.rules);
+
+            bool eats = false;
+
+            for (const auto& row : out)
+            {
+                if (not flag(row.fields, "listed") or flag(row.fields, "locked"))
+                    continue;
+
+                bool rations = false;
+
+                for (const auto& gain : row.gains)
+                {
+                    if (textOf(gain, "stat") == "rations")
+                        rations = true;
+                }
+
+                if (flag(row.fields, "board") or rations)
+                    eats = true;
+            }
+
+            EXPECT_TRUE(eats);
+        }
+
 
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
@@ -2207,8 +2269,13 @@ namespace pg
             MockLogger logger;
             RulesFixture f;
 
+            // The kitchen burns firewood and draws water, which he must hold
+            ElementMap fed = boy();
+            fed["water"] = ElementType{3};
+            fed["firewood"] = ElementType{2};
+
             // The kitchen takes boys from seven and eight months
-            RuleActivity kitchen = activityAt(f.rules, 7.75f, boy(), "kitchen");
+            RuleActivity kitchen = activityAt(f.rules, 7.75f, fed, "kitchen");
 
             EXPECT_TRUE(flag(kitchen.fields, "listed"));
             EXPECT_FALSE(flag(kitchen.fields, "locked"));
@@ -2220,21 +2287,40 @@ namespace pg
             EXPECT_EQ(intOf(kitchen.gains[0], "amount"), 6);
 
             // It asks for room, as everything that brings rations does
-            ASSERT_EQ(kitchen.requires.size(), 1u);
-            EXPECT_EQ(textOf(kitchen.requires[0], "label"), "Room for Rations");
-            EXPECT_EQ(intOf(kitchen.requires[0], "current"), 48);
+            // and for the water and the firewood it burns
+            ASSERT_EQ(kitchen.requires.size(), 3u);
+            const ElementMap* room = nullptr;
 
-            ElementMap full = boy();
+            for (const auto& req : kitchen.requires)
+            {
+                if (textOf(req, "label") == "Room for Rations")
+                    room = &req;
+            }
+
+            ASSERT_NE(room, nullptr);
+            EXPECT_EQ(intOf(*room, "current"), 48);
+
+            ElementMap full = fed;
             full["rations"] = ElementType{60};
 
             kitchen = activityAt(f.rules, 7.75f, full, "kitchen");
 
             EXPECT_TRUE(flag(kitchen.fields, "locked"));
-            EXPECT_EQ(intOf(kitchen.requires[0], "current"), 0);
+
+            room = nullptr;
+
+            for (const auto& req : kitchen.requires)
+            {
+                if (textOf(req, "label") == "Room for Rations")
+                    room = &req;
+            }
+
+            ASSERT_NE(room, nullptr);
+            EXPECT_EQ(intOf(*room, "current"), 0);
 
             // The term brings them
             RuleForecast forecast;
-            ASSERT_TRUE(f.rules.forecast(7.75f, boy(), "kitchen", 0, forecast)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.forecast(7.75f, fed, "kitchen", 0, forecast)) << firstError(f.rules);
             EXPECT_EQ(intOf(forecast.atTerm, "rations"), 18);
         }
 

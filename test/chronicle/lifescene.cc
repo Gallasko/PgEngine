@@ -2704,6 +2704,9 @@ namespace pg
             LifeScene* life = f.life(opt);
             ASSERT_NE(life, nullptr);
 
+            // The letters burn a little firewood for the light to read by
+            life->save.stats["firewood"] = 2;
+
             // A month short of 9: the month that passes makes him old enough for the chapel
             life->save.age = 9.0f - 1.0f / 12.0f;
             life->onMonth();
@@ -2837,6 +2840,9 @@ namespace pg
 
             for (const char* id : {"arms", "discipline", "letters", "lore", "arcana", "stealth", "guile", "renown"})
                 EXPECT_EQ(skills->row(id), nullptr) << id;
+
+            // The letters burn a little firewood for the light to read by
+            life->save.stats["firewood"] = 2;
 
             f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "carters"});
             f.settle();
@@ -4667,6 +4673,9 @@ namespace pg
 
             // A work begun, and its months
             auto work = [&](const std::string& id, int months) {
+                // Letters and the kitchen burn firewood, and the kitchen draws water: he has them
+                life->save.stats["firewood"] = 6;
+                life->save.stats["water"] = 3;
                 f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", id});
                 f.settle();
 
