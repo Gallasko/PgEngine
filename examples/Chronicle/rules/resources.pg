@@ -130,6 +130,16 @@ for (var fk = 0; fk < len(familiarKinds); fk++)
                     about: kind.about, creature: kind})
 }
 
+// What the smithy has forged him, a row a piece: he has it or he has not. It goes with him into
+// every fight, and is lost at his death like anything else he holds
+for (var gp = 0; gp < len(gearPieces); gp++)
+{
+    var piece = gearPieces[gp]
+
+    push(holdings, {id: "gear." + piece.id, group: "gear", groupLabel: "GEAR", glyph: piece.glyph, name: piece.name, tone: 0, title: true,
+                    about: piece.about + " It is lost at his death, as the smithy keeps no piece for the next life."})
+}
+
 var standings = [
     {id: "favors", group: "standing", groupLabel: "STANDING", glyph: "guild", name: "Favors", tone: 2,
      about: "What the Hidden Hand owes him. A big job asks for them before it begins."},

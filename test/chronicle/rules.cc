@@ -5641,5 +5641,82 @@ namespace pg
             ASSERT_TRUE(f.rules.town(20.0f, townsman(), town)) << firstError(f.rules);
             EXPECT_EQ(town.stashLine, "");
         }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The smithy forges gear of resources, a piece once a life: the iron blade and the jerkin
+        // once it has its first level, the charm at its second. It stands on the Town page, at the
+        // smithy.
+        TEST(rules_test, the_smithy_forges_gear)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = townsman();
+            EXPECT_FALSE(flag(activityAt(f.rules, 20.0f, character, "forge.iron_blade").fields, "listed"));
+
+            character["town.smithy"] = ElementType{1};
+
+            RuleActivity blade = activityAt(f.rules, 20.0f, character, "forge.iron_blade");
+
+            EXPECT_TRUE(flag(blade.fields, "listed"));
+            EXPECT_EQ(textOf(blade.fields, "place"), "smithy");
+            EXPECT_EQ(textOf(blade.fields, "group"), "Market");
+            EXPECT_EQ(intOf(blade.fields, "uses"), 1);
+
+            bool smithy = false;
+
+            for (const auto& r : blade.requires)
+            {
+                if (textOf(r, "stat") == "town.smithy")
+                {
+                    smithy = true;
+                    EXPECT_EQ(intOf(r, "needed"), 1);
+                }
+            }
+
+            EXPECT_TRUE(smithy);
+            ASSERT_EQ(blade.gains.size(), 1u);
+            EXPECT_EQ(textOf(blade.gains[0], "stat"), "gear.iron_blade");
+            EXPECT_EQ(intOf(blade.gains[0], "amount"), 1);
+
+            // What it is forged of: shut while he has none of it
+            ASSERT_EQ(blade.costs.size(), 3u);
+            EXPECT_EQ(textOf(blade.costs[0], "stat"), "stone");
+            EXPECT_EQ(intOf(blade.costs[0], "amount"), 10);
+            EXPECT_EQ(textOf(blade.costs[1], "stat"), "firewood");
+            EXPECT_EQ(intOf(blade.costs[1], "amount"), 10);
+            EXPECT_EQ(textOf(blade.costs[2], "stat"), "gems");
+            EXPECT_EQ(intOf(blade.costs[2], "amount"), 1);
+            EXPECT_TRUE(flag(blade.fields, "locked"));
+
+            character["stone"] = ElementType{10};
+            character["firewood"] = ElementType{10};
+            character["gems"] = ElementType{1};
+            EXPECT_FALSE(flag(activityAt(f.rules, 20.0f, character, "forge.iron_blade").fields, "locked"));
+
+            // The jerkin at the same level; the charm waits for the second
+            EXPECT_TRUE(flag(activityAt(f.rules, 20.0f, character, "forge.jerkin").fields, "listed"));
+            EXPECT_FALSE(flag(activityAt(f.rules, 20.0f, character, "forge.charm").fields, "listed"));
+
+            character["town.smithy"] = ElementType{2};
+            EXPECT_TRUE(flag(activityAt(f.rules, 20.0f, character, "forge.charm").fields, "listed"));
+
+            // Forged once, it is his for the life: the smithy makes him no second one
+            character["gear.iron_blade"] = ElementType{1};
+            f.rules.done = {{"forge.iron_blade", ElementType{1}}};
+            EXPECT_FALSE(flag(activityAt(f.rules, 20.0f, character, "forge.iron_blade").fields, "listed"));
+
+            // And he holds it: a row of the ledger, in a group of its own, that says he has it
+            RuleMonth month;
+            ASSERT_TRUE(f.rules.month(20.0f, character, false, month)) << firstError(f.rules);
+
+            const ElementMap* held = byId(month.rows, "gear.iron_blade");
+
+            ASSERT_NE(held, nullptr);
+            EXPECT_EQ(textOf(*held, "groupLabel"), "GEAR");
+            EXPECT_TRUE(flag(*held, "title"));
+        }
     }
 }

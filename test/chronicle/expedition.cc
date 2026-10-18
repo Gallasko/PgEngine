@@ -2883,5 +2883,146 @@ namespace pg
                     EXPECT_EQ(intOf(m, "at"), hisNextAt(last));
             }
         }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        namespace
+        {
+            // The ends of a range as the fight page writes it, "11–14" or "3"
+            std::pair<int, int> rangeOf(const std::string& text)
+            {
+                const std::string dash = "\xE2\x80\x93";
+                const size_t at = text.find(dash);
+
+                if (at == std::string::npos)
+                    return {std::stoi(text), std::stoi(text)};
+
+                return {std::stoi(text.substr(0, at)), std::stoi(text.substr(at + dash.size()))};
+            }
+
+            // A hunter in a fight with one wolf whose bite he knows, his strike looked at
+            std::unique_ptr<Walker> wolfFight(ElementMap who)
+            {
+                who["know.move.wolf.bite"] = ElementType{1};
+
+                auto w = std::make_unique<Walker>(who);
+
+                EXPECT_TRUE(w->ask("enter", WalkAct{"", "hollow", 0}));
+                EXPECT_TRUE(w->act("seek", "wolf", 1));
+                w->answer();
+                EXPECT_EQ(w->screen(), "fight");
+                EXPECT_TRUE(w->act("pick", "strike"));
+
+                return w;
+            }
+
+            std::string heroValue(const Walker& w, const std::string& id)
+            {
+                const ElementMap* row = byId(w.last.hero, id);
+
+                return row ? textOf(*row, "value") : std::string();
+            }
+        }
+
+        // What the smithy forges goes with him into a fight: the iron blade is two of Might, a
+        // point more on each end of a blow (Might counts half in a blow, as Arms counts twice in
+        // Might), and the jerkin's armour is two off each bite.
+        TEST(expedition_test, gear_adds_to_a_blow)
+        {
+            MockLogger logger;
+
+            ElementMap armed = hunter();
+            armed["gear.iron_blade"] = ElementType{1};
+            armed["gear.jerkin"] = ElementType{1};
+
+            auto plain = wolfFight(hunter());
+            auto geared = wolfFight(armed);
+
+            EXPECT_EQ(heroValue(*plain, "might"), "15");
+            EXPECT_EQ(heroValue(*geared, "might"), "17");
+
+            const auto bare = rangeOf(textOf(plain->last.preview, "deals"));
+            const auto edged = rangeOf(textOf(geared->last.preview, "deals"));
+
+            EXPECT_EQ(edged.first, bare.first + 1);
+            EXPECT_EQ(edged.second, bare.second + 1);
+
+            // The wolf's bite, said on its panel: the jerkin takes two off each end, never below 1
+            ASSERT_FALSE(plain->last.targets.empty());
+            ASSERT_FALSE(geared->last.targets.empty());
+            ASSERT_EQ(textOf(plain->last.targets[0], "intent"), "BITE");
+            ASSERT_EQ(textOf(geared->last.targets[0], "intent"), "BITE");
+
+            EXPECT_EQ(textOf(plain->last.targets[0], "moveEffect"), "\xE2\x88\x92" "2\xE2\x80\x93" "4 vitality if it lands");
+            EXPECT_EQ(textOf(geared->last.targets[0], "moveEffect"), "\xE2\x88\x92" "1\xE2\x80\x93" "2 vitality if it lands");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A record keeps the walk as it was made: walked again with the gear or without it, it
+        // brings the same and costs the same. Gear is not asked of a record, and a record made
+        // without it does not grow stronger once he has it.
+        TEST(expedition_test, a_record_replays_the_same_with_or_without_gear)
+        {
+            MockLogger logger;
+
+            ElementMap armed = knowing(hunter(), "hollow", 3);
+            armed["gear.iron_blade"] = ElementType{1};
+            armed["gear.jerkin"] = ElementType{1};
+            armed["gear.charm"] = ElementType{1};
+
+            const ElementMap bare = knowing(hunter(), "hollow", 3);
+
+            // A record made with gear, and one made without it
+            auto record = [](const ElementMap& who) {
+                Walker w(who);
+
+                EXPECT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
+                EXPECT_TRUE(w.act("seek", "wolf", 1));
+                w.fight();
+                EXPECT_TRUE(w.act("gather", "ashwood"));
+                w.answer();
+                EXPECT_TRUE(w.act("leave"));
+                EXPECT_TRUE(w.act("leave"));
+                EXPECT_EQ(w.screen(), "done");
+
+                w.keep("r1");
+
+                return w.recipes;
+            };
+
+            // Walked again by the record, on the same dice: what he comes home with, and his Vitality
+            auto replayed = [](const ElementMap& who, const std::vector<WalkRecipe>& recipes) {
+                Walker w(who);
+                w.recipes = recipes;
+                w.seed = 700;
+
+                EXPECT_TRUE(w.ask("begin", {}, "r1"));
+                EXPECT_TRUE(w.last.blocked.empty()) << w.last.blocked;
+                EXPECT_TRUE(w.ask("term", {}, "r1"));
+
+                std::string brought;
+
+                for (const char* id : {"pelts", "fangs", "ashwood", "rations", "remedy", "vit", "walked.hollow", "know.fights.wolf"})
+                    brought += std::string(id) + "=" + std::to_string(intOf(w.character, id)) + ";";
+
+                return brought;
+            };
+
+            for (const auto& made : {armed, bare})
+            {
+                const auto recipes = record(made);
+
+                ASSERT_EQ(recipes.size(), 1u);
+
+                const std::string with = replayed(armed, recipes);
+                const std::string without = replayed(bare, recipes);
+
+                EXPECT_EQ(with, without);
+                EXPECT_NE(with.find("walked.hollow=1"), std::string::npos) << with;
+            }
+        }
     }
 }

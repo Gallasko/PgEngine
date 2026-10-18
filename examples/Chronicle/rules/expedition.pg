@@ -56,6 +56,10 @@ import "encounterlib"
 import "expeditiontable"
 import "testbuilds"
 
+// The gear the smithy forges, for what it adds in a fight (fightcalc.pg's `gearSum`): a table
+// only, after every file of functions
+import "economytable"
+
 var errors = []
 var entries = []
 

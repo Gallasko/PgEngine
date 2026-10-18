@@ -8,9 +8,27 @@ import "string"
 import "math"
 import "algorithm"
 
+// What the gear he holds adds up to of one of its figures ("might", "armour", "ward"): each piece
+// the smithy forged him counts once (economytable.pg's `gearPieces`)
+fun gearSum(field)
+{
+    var sum = 0
+
+    for (var i = 0; i < len(gearPieces); i++)
+    {
+        if (mine("gear." + gearPieces[i].id) > 0)
+        {
+            sum = sum + pick(gearPieces[i], field, 0)
+        }
+    }
+
+    return sum
+}
+
+// His Might: Strength, Arms twice, and his blade
 fun mightOf()
 {
-    return mine("str") + mine("arms") * 2
+    return mine("str") + mine("arms") * 2 + gearSum("might")
 }
 
 fun guardOf()
@@ -305,7 +323,7 @@ fun dodgeChance(n)
     return clampTo(odds, 0, walkKnobs.dodgeMost)
 }
 
-// What a move of a beast takes from him, as a range: his guard and his stance are in it
+// What a move of a beast takes from him, as a range: his guard, his gear and his stance are in it
 fun biteRange(mob, move)
 {
     var stance = stanceOf(fight.stance)
@@ -319,6 +337,19 @@ fun biteRange(mob, move)
     }
 
     var blunted = wholeOf(guardOf(), 2)
+
+    // What he wears stops a little of each: his armour a blow of the body, his ward a working
+    // (a move of the beast's `kind` "spell")
+    var told = pick(mob.moves, move, {})
+
+    if (pick(told, "kind", "") == "spell")
+    {
+        blunted = blunted + gearSum("ward")
+    }
+    else
+    {
+        blunted = blunted + gearSum("armour")
+    }
 
     low = share(larger(1, low - blunted), stance.takes)
     high = share(larger(1, high - blunted), stance.takes)

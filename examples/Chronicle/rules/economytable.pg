@@ -1,7 +1,8 @@
 // Chronicle rules: the basic resources and the economy's knobs
 // ------------------------------------------------------------
 // Imported by resources.pg (what he holds shows in the ledger), activitytable.pg (the works that
-// gather, store and bind with them), town.pg (the stash) and the solver. Never loaded itself.
+// gather, store, bind and forge with them), town.pg (the stash), expedition.pg (the gear in a
+// fight) and the solver. Never loaded itself.
 // Input:  none.
 // Output: `basicResources`, what he gathers by working the land and the town's yards:
 //           [{id, name, one, glyph, about}]
@@ -10,6 +11,8 @@
 //         `scavengeRows`, the activity rows that gather the basics by hand (group "Scavenge")
 //         `storeRows`, the activity rows that raise a limit for the life (group "Your stores")
 //         `familiarKinds`, `slotGivers`: the creatures he can bind, and what gives him slots for them
+//         `gearPieces`, what the smithy forges and he takes into a fight: [{id, name, glyph, about,
+//           might, armour, ward, forge {costs, months, smithy}}] (below)
 //         `economyKnobs`, the numbers of the economy that belong to no one resource:
 //           stashMost   the most of any one thing the stash can keep between lives
 //           baseSlots   the familiar slots a life has before its standing and calling give more
@@ -137,4 +140,23 @@ const slotGivers = [
     {stat: "assassin", slots: 2},
     {stat: "adventurer", slots: 2},
     {stat: "harrow_relic", slots: 1}
+]
+
+// What the smithy forges of resources, a piece once a life: each is held as the stat
+// "gear.<id>" (1 while he has it) and goes with him into every fight (fightcalc.pg's `gearSum`):
+// `might` adds to his Might, `armour` comes off each blow a beast lands on him, `ward` off each of
+// its workings. Like anything he holds, it is lost at his death: not in the stash, not left to a
+// place. `forge` is what its row at the smithy asks (activitytable.pg's "forge.<id>"): the
+// resources it takes, its months, and the level of the smithy that makes it.
+// expedition.pg imports this table for the fight; resources.pg lists each piece under GEAR.
+const gearPieces = [
+    {id: "iron_blade", name: "An iron blade", glyph: "swordsmanship", might: 2, armour: 0, ward: 0,
+     about: "A plain blade of good iron, forged at the town's smithy. It bites deeper than anything he could buy at the market.",
+     forge: {costs: [{stat: "stone", amount: 10}, {stat: "firewood", amount: 10}, {stat: "gems", amount: 1}], months: 2, smithy: 1}},
+    {id: "jerkin", name: "A leather jerkin", glyph: "forge", might: 0, armour: 2, ward: 0,
+     about: "Hides boiled hard and stitched over his chest and shoulders. A bite or a blow takes less of him through it.",
+     forge: {costs: [{stat: "hides", amount: 4}, {stat: "firewood", amount: 6}], months: 1, smithy: 1}},
+    {id: "charm", name: "A warded charm", glyph: "relic", might: 0, armour: 0, ward: 2,
+     about: "A gem set in iron, quenched in well water while the smith says the old words. A working thrown at him takes less of him.",
+     forge: {costs: [{stat: "gems", amount: 3}, {stat: "water", amount: 10}], months: 2, smithy: 2}}
 ]
