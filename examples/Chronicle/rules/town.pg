@@ -26,10 +26,12 @@
 //            nextGives  what it will give
 //            nextLocked true while he cannot pay for it
 //            gaps [{stat, label, current, needed}]: what it takes from him, against what he has
-//            leaves [{stat, amount}], leaveLine ("12 firewood, 4 ash wood"): what he holds of what
-//                    walks bring for the town that the next level still asks, left to the place
-//                    with his coin if it is the one he chooses at his death ("fund.<id>.<thing>"
-//                    in `character`, counted toward what the level asks as the coin is)
+//            leaves [{stat, amount}], leaveLine ("20 stone, 12 water, 1 gem"): what he holds of what
+//                    the next level still asks, left to the place with his coin if it is the one
+//                    he chooses at his death ("fund.<id>.<thing>" in `character`, counted toward
+//                    what the level asks as the coin is). Anything he holds can be left, basics,
+//                    gems and what his walks bring; a part or a skill (a stat with a ceiling,
+//                    lib.pg's `statCeilings`) cannot
 //            stashLine  "" or what goes into the stash if it is the one he chooses (below)}
 //         `start`, [{stat, amount}]: what a new life is born with for the town as it stands
 //         (the `start` of every level reached). The Life screen adds them to a life that is not
@@ -204,26 +206,47 @@ for (var t = 0; t < len(townPlaces); t++)
             }
 
             // And what he holds of it would be left to the place at his death, no more than it
-            // still asks: what a walk brings for the town (expeditiontable.pg's `town` things) is
-            // lost with him otherwise, but for the basics the stash keeps (`stash`, below)
-            for (var w = 0; w < len(walkItems); w++)
+            // still asks: anything he holds, a basic, gems, a thing a walk brought, but not a part
+            // or a skill of his (a stat with a ceiling, lib.pg's `statCeilings`), which ends with
+            // him. What the place does not take of the basics goes into the stash (`stash`, below);
+            // the rest is lost with him
+            var given = 0
+
+            if (ceilingOf(also[c].stat) == 0)
             {
-                if (walkItems[w].kind == "town" and walkItems[w].id == also[c].stat)
+                given = clamp(statOf(character, also[c].stat), 0, need)
+            }
+
+            if (given > 0)
+            {
+                push(shown.leaves, {stat: also[c].stat, amount: given})
+
+                // Named as the ledger names it: a basic or gems as the stash's line counts them
+                // ("1 gem"), anything else by its name
+                var counted = toString(given) + " " + toLowerCase(statName(also[c].stat))
+
+                for (var b = 0; b < len(basicResources); b++)
                 {
-                    var given = clamp(statOf(character, also[c].stat), 0, need)
-
-                    if (given > 0)
+                    if (basicResources[b].id == also[c].stat)
                     {
-                        push(shown.leaves, {stat: also[c].stat, amount: given})
-
-                        if (shown.leaveLine != "")
-                        {
-                            shown.leaveLine = shown.leaveLine + ", "
-                        }
-
-                        shown.leaveLine = shown.leaveLine + toString(given) + " " + toLowerCase(walkItems[w].name)
+                        counted = toLowerCase(thingsWord(also[c].stat, given))
                     }
                 }
+
+                for (var m = 0; m < len(madeResources); m++)
+                {
+                    if (madeResources[m].id == also[c].stat)
+                    {
+                        counted = toLowerCase(thingsWord(also[c].stat, given))
+                    }
+                }
+
+                if (shown.leaveLine != "")
+                {
+                    shown.leaveLine = shown.leaveLine + ", "
+                }
+
+                shown.leaveLine = shown.leaveLine + counted
             }
         }
 

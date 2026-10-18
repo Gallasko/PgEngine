@@ -95,13 +95,17 @@ var holdings = [
 ]
 
 // What he gathers and what is made of it (economytable.pg): each held to a limit that a store
-// raises, and set right after the purse so that the ledger reads them near its top
+// raises, and set right after the purse so that the ledger reads them near its top. A basic's gloss
+// says where it goes at his death: to the place he leaves his gift to, as much as its next level
+// still asks (town.pg's `leaves`), and the rest to the stash
+var basicDeath = " At his death, what a place still asks of it can be left to that place; the family's stash keeps the rest."
+
 for (var br = 0; br < len(basicResources); br++)
 {
     var basic = basicResources[br]
 
     push(holdings, {id: basic.id, group: "resources", groupLabel: "RESOURCES", glyph: basic.glyph, name: basic.name, tone: 0,
-                    about: basic.about})
+                    about: basic.about + basicDeath})
 }
 
 for (var mr = 0; mr < len(madeResources); mr++)

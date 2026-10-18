@@ -9706,6 +9706,58 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // A basic resource a place asks is left to it at his death like what his walks bring: the
+        // mill's wheel asks 20 stone and 20 water. Of 30 stone and 25 water, the mill takes 20 of
+        // each, and only the rest goes into the stash.
+        TEST(lifescene_test, gift_leaves_basic_resources_to_a_place)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = f.life();
+            ASSERT_NE(life, nullptr);
+
+            f.frames(12);
+
+            life->save.stats["coin"] = 0;
+            life->save.stats["stone"] = 30;
+            life->save.stats["water"] = 25;
+            life->save.stats["rations"] = 0;
+            life->save.stats["vit"] = 1;
+            life->onMonth();
+            f.frames(12);
+
+            ASSERT_TRUE(life->ended);
+
+            Button mill;
+
+            for (const auto& [id, button] : life->gifts)
+            {
+                if (id == "mill")
+                    mill = button;
+            }
+
+            ASSERT_FALSE(mill.face.empty());
+            EXPECT_NE(mill.spec.label.find("20 stone, 20 water"), std::string::npos) << mill.spec.label;
+
+            f.ecs.sendEvent(ButtonActivatedEvent{mill.face.id, "life.gift.mill"});
+            f.settle();
+            ASSERT_EQ(life->gift, "mill");
+
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "life.again"});
+            f.frames(12);
+
+            ASSERT_FALSE(life->ended);
+            EXPECT_EQ(life->save.fund["mill.stone"], 20);
+            EXPECT_EQ(life->save.fund["mill.water"], 20);
+            EXPECT_EQ(life->save.stash["stone"], 10);
+            EXPECT_EQ(life->save.stash["water"], 5);
+            EXPECT_EQ(life->save.fund.count("mill"), 0u);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // The ending says what goes into the stash, after the gift: choosing a place that asks for
         // some of it changes the line where it stands
         TEST(lifescene_test, the_ending_says_what_goes_into_the_stash)
