@@ -490,6 +490,7 @@ namespace chronicle
         std::string shaded;                       // What the shade was last laid around: laid again only when that moves
         std::string hovered;                      // The one the mouse is on, "" for none: previewed when nothing is chosen
         std::vector<std::string> known;           // The activities he could do when the list was last filled
+        std::vector<std::string> listedLast;      // The activities that had a row when the list was last filled, open to him or not
         std::vector<std::string> stood;           // Every activity that has had a row in this life: one that has not is new, and its tab says so
 
         // Something that lasts a moment (a gain lifting off its figure, a lit line, a toast): the

@@ -92,6 +92,9 @@ another familiar, a new kind to bind, a bigger stash.
   the market: a sprite's berries feed him before he knows the town.
 - **Dry berries asks only for its berries.** Its tooltip has one line, the three berries it
   costs, no longer a second "Berries to dry"; its row comes with his first berries.
+- **No bind rows without a free slot.** While every slot is filled the *Bind* rows leave the
+  list (the lessons stay). A slot from a class, a relic or the town brings them back, with no
+  "New:" toast for a row he has seen before.
 - **The rations guide** no longer says "3 months": with familiars bound, three rations last less.
 
 ## 0.7 - unreleased: the fight

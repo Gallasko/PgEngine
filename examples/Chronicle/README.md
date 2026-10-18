@@ -899,7 +899,9 @@ warning still runs on the familiars' share alone. Both it and the gloss's *Lasts
 that feed him and his familiars both (`monthsFed`: nine rations at two a month last four), and the
 gloss names the familiars' share (*His familiars eat*).
 - **Binding** (`bind.<kind>`, the group *Familiars*): a month, the kind's `bind` as its costs, and
-  a free slot (the requirement `slot: true`, whose current is `freeSlots`). The first known kind also waits for
+  a free slot (the requirement `slot: true`, whose current is `freeSlots`): while none is free no
+  bind row is listed (the lessons are), and one that comes back with a slot is no "New:" toast
+  when it has stood on the page before (`listedLast`). The first known kind also waits for
   two scavenges (`scavenged` 2); a kind not learned is not listed (`onlyWith: know.fam.<kind>`).
   Its tile says the upkeep ("EATS 1 RATION · MAKES 4 BERRIES") and its gloss ends on it in a
   sentence ("It eats 1 ration a month, and makes 4 berries.", `upkeepSentence`), so it is known

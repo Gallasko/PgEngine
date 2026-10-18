@@ -3227,11 +3227,15 @@ namespace chronicle
         // What the list did not have a moment ago is new: said by a toast. The first list of a page
         // is all he has always had
         std::vector<std::string> ids;
+        std::vector<std::string> listedNow;
 
         for (const auto& a : activities)
         {
             if (boolOf(a.fields, "listed") and not boolOf(a.fields, "locked"))
                 ids.push_back(textOf(a.fields, "id"));
+
+            if (boolOf(a.fields, "listed"))
+                listedNow.push_back(textOf(a.fields, "id"));
         }
 
         if (not known.empty())
@@ -3243,6 +3247,13 @@ namespace chronicle
             for (const auto& id : ids)
             {
                 if (std::find(known.begin(), known.end(), id) != known.end())
+                    continue;
+
+                // A row that stood on the page before and had left it comes back as it was, no news:
+                // a bind row while no slot was free. (One that stood locked and opens is news.)
+                const bool stoodBefore = std::find(stood.begin(), stood.end(), id) != stood.end();
+
+                if (stoodBefore and std::find(listedLast.begin(), listedLast.end(), id) == listedLast.end())
                     continue;
 
                 // What comes with words of its own is written down as well: it is news of his life
@@ -3277,6 +3288,7 @@ namespace chronicle
         }
 
         known = ids;
+        listedLast = listedNow;
 
         // A row that has never stood on a page is new to it, open to him or not: on the page that
         // is not the one in view, its tab says so. Once: what was there and can be done again (the
@@ -6386,6 +6398,7 @@ namespace chronicle
 
         known.clear();
         stood.clear();
+        listedLast.clear();
 
         // What he is born holding has its row from the first frame
         refreshHoldings();

@@ -1962,6 +1962,59 @@ namespace pg
             EXPECT_EQ(life->save.stats["berries"], berries + 4);
         }
 
+        // With no slot free there is no bind row on the page; when a slot comes the row he has seen
+        // before comes back without being told as new
+        TEST(lifescene_test, bind_rows_wait_for_a_free_slot)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.fresh = true;
+            opt.lives = 2;
+            opt.age = 8.0f;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            auto list = life->piece<ActivityList>("activities");
+            ASSERT_NE(list, nullptr);
+
+            // The page has arrived: from here a toast would be shown
+            f.pass(800.0f);
+
+            life->save.stats["rations"] = 24;
+            life->save.stats["scavenged"] = 2;
+            life->save.stats["berries"] = 12;
+            life->onMonth();
+            f.settle();
+
+            // The first time it comes, it is news
+            ASSERT_NE(list->find(&f.ecs, "bind.sprite"), nullptr);
+            const std::string news = "New: Bind a hedge sprite";
+            EXPECT_TRUE(life->toastUp(news));
+
+            // His one slot filled: no bind row, and the lesson of the one he has is there
+            life->save.stats["fam.sprite"] = 1;
+            life->onMonth();
+            f.settle();
+
+            EXPECT_EQ(list->find(&f.ecs, "bind.sprite"), nullptr);
+            EXPECT_NE(list->find(&f.ecs, "train.sprite"), nullptr);
+
+            // What was toasted runs out
+            f.pass(5000.0f);
+            ASSERT_FALSE(life->toastUp(news));
+
+            // A slot with his standing: the row is back, and it is not news
+            life->save.stats["keep_oath"] = 1;
+            life->onMonth();
+            f.settle();
+
+            EXPECT_NE(list->find(&f.ecs, "bind.sprite"), nullptr);
+            EXPECT_FALSE(life->toastUp(news));
+        }
+
         // What he gathers by hand is counted, but the count is the rules' own: the tile, its gloss
         // and the log say the berries alone
         TEST(lifescene_test, gathering_shows_no_count_of_it)

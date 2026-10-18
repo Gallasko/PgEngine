@@ -1757,12 +1757,30 @@ namespace pg
             character["berries"] = ElementType{6};
             EXPECT_EQ(slotCurrent(character), 1);
 
-            character["fam.sprite"] = ElementType{1};
-            EXPECT_EQ(slotCurrent(character), 0);
-            EXPECT_TRUE(flag(activityAt(f.rules, 7.5f, character, "bind.sprite").fields, "locked"));
+            EXPECT_TRUE(flag(activityAt(f.rules, 7.5f, character, "bind.sprite").fields, "listed"));
 
+            // No slot free: no bind row is listed at all, though the one he has can still be taught
+            character["fam.sprite"] = ElementType{1};
+            character["rations"] = ElementType{12};
+            EXPECT_EQ(slotCurrent(character), 0);
+            EXPECT_FALSE(flag(activityAt(f.rules, 7.5f, character, "bind.sprite").fields, "listed"));
+            EXPECT_TRUE(flag(activityAt(f.rules, 7.5f, character, "train.sprite").fields, "listed"));
+
+            {
+                std::vector<RuleActivity> rows;
+                ASSERT_TRUE(f.rules.activities(7.5f, character, rows)) << firstError(f.rules);
+
+                for (const auto& row : rows)
+                {
+                    if (textOf(row.fields, "id").rfind("bind.", 0) == 0)
+                        EXPECT_FALSE(flag(row.fields, "listed")) << textOf(row.fields, "id");
+                }
+            }
+
+            // A slot comes with his standing: the bind rows are back
             character["keep_oath"] = ElementType{1};
             EXPECT_EQ(slotCurrent(character), 1);
+            EXPECT_TRUE(flag(activityAt(f.rules, 7.5f, character, "bind.sprite").fields, "listed"));
 
             character["castellan"] = ElementType{1};
             EXPECT_EQ(slotCurrent(character), 3);
