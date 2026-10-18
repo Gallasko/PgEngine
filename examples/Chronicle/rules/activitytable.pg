@@ -1245,6 +1245,36 @@ for (var k = 0; k < len(trainCopies); k++)
     push(bindCopies, trainCopies[k])
 }
 
+// What the stash keeps of a basic (the stat "stash.<id>", the world's: what lives before him
+// held at their death) is drawn on the spot, as much as he has room for and no more. A row for
+// each basic the stash has some of. Full, he has no room: the row asks room for one, and its room
+// closes it.
+var drawCopies = []
+
+for (var b = 0; b < len(basicResources); b++)
+{
+    var drawn = basicResources[b]
+    var kept = statOf(character, "stash." + drawn.id)
+    var take = roomFor(character, drawn.id)
+
+    if (kept < take)
+    {
+        take = kept
+    }
+
+    if (take < 1)
+    {
+        take = 1
+    }
+
+    push(drawCopies, {id: "draw." + drawn.id, group: "The stash", name: "Take " + toLowerCase(drawn.name) + " from the stash", glyph: drawn.glyph, months: 0, rank: "", each: toString(kept) + " IN THE STASH", path: "",
+                      fromAge: 6, finishBy: anyAge, onlyWith: "stash." + drawn.id,
+                      about: "What the lives before him kept of it at their death. He takes as much as he has room for, and the rest stays for the lives after him.",
+                      gains: [{stat: drawn.id, amount: take}],
+                      costs: [{stat: "stash." + drawn.id, amount: take}],
+                      requires: []})
+}
+
 activities = []
 
 for (var t = 0; t < len(tabled); t++)
@@ -1276,6 +1306,11 @@ for (var t = 0; t < len(tabled); t++)
         for (var s = 0; s < len(bindCopies); s++)
         {
             push(activities, bindCopies[s])
+        }
+
+        for (var s = 0; s < len(drawCopies); s++)
+        {
+            push(activities, drawCopies[s])
         }
     }
 }

@@ -217,6 +217,7 @@ namespace pg
         serialize(archive, "seen", value.seen);
         serialize(archive, "told", value.told);
         serialize(archive, "knowledge", value.knowledge);
+        serialize(archive, "stash", value.stash);
         serialize(archive, "walk", value.walk);
         serialize(archive, "recipes", value.recipes);
         serialize(archive, "queue", value.queue);
@@ -279,6 +280,7 @@ namespace pg
         defaultDeserialize(serialized, "seen", data.seen);
         defaultDeserialize(serialized, "told", data.told);
         defaultDeserialize(serialized, "knowledge", data.knowledge);
+        defaultDeserialize(serialized, "stash", data.stash);
         defaultDeserialize(serialized, "walk", data.walk);
         defaultDeserialize(serialized, "recipes", data.recipes);
         defaultDeserialize(serialized, "queue", data.queue);
@@ -364,6 +366,9 @@ namespace chronicle
         // And what else is the world's: what walks have taught
         const std::string Known = "know.";
 
+        // And what the stash keeps between lives, of each basic
+        const std::string Stashed = "stash.";
+
         std::string textOf(const ElementMap& map, const std::string& key)
         {
             auto it = map.find(key);
@@ -394,12 +399,15 @@ namespace chronicle
         for (const auto& [key, value] : knowledge)
             map[Known + key] = ElementType{value};
 
+        for (const auto& [id, kept] : stash)
+            map[Stashed + id] = ElementType{kept};
+
         return map;
     }
 
     bool LifeSave::ofTheTown(const std::string& key)
     {
-        return key == TownKnown or key.rfind(TownLevel, 0) == 0 or key.rfind(TownFund, 0) == 0 or key.rfind(TownSeen, 0) == 0 or key.rfind(Known, 0) == 0;
+        return key == TownKnown or key.rfind(TownLevel, 0) == 0 or key.rfind(TownFund, 0) == 0 or key.rfind(TownSeen, 0) == 0 or key.rfind(Known, 0) == 0 or key.rfind(Stashed, 0) == 0;
     }
 
     bool LifeSave::takeTown(const std::string& key, int value)
@@ -413,6 +421,15 @@ namespace chronicle
         // What is known is what the scripts say it is: a walk teaches
         if (key.rfind(Known, 0) == 0)
             knowledge[key.substr(Known.size())] = value;
+
+        // And what is left in the stash is what the scripts say: a draw takes from it
+        if (key.rfind(Stashed, 0) == 0)
+        {
+            if (value > 0)
+                stash[key.substr(Stashed.size())] = value;
+            else
+                stash.erase(key.substr(Stashed.size()));
+        }
 
         return true;
     }

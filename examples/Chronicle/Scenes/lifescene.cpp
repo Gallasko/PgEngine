@@ -3764,23 +3764,48 @@ namespace chronicle
         const std::string line = endedLine;
         const std::string age = endedAge;
 
+        // What the gift takes of each thing he holds: the stash keeps only the rest
+        std::unordered_map<std::string, int> given;
+
         // What he held of it at his death, left to the place he chose: counted toward its next
         // level, for whoever raises it
         if (not gift.empty())
         {
             if (auto held = save.stats.find(giftStat()); held != save.stats.end() and held->second > 0)
+            {
                 save.fund[gift] += held->second;
+                given[giftStat()] += held->second;
+            }
 
             // And of what his walks brought for the town, what that place's next level still asks:
-            // the rest ends with him
+            // the rest goes into the stash when the stash keeps it, and ends with him otherwise
             for (const auto& place : town.places)
             {
                 if (textOf(place.fields, "id") != gift)
                     continue;
 
                 for (const auto& left : place.leaves)
+                {
                     save.fund[gift + "." + textOf(left, "stat")] += intOf(left, "amount");
+                    given[textOf(left, "stat")] += intOf(left, "amount");
+                }
             }
+        }
+
+        // What is left of the basics goes into the stash, for the lives after him: the gift is
+        // taken first, and the stash keeps no more than its most of any one thing
+        for (const auto& kept : town.stash)
+        {
+            const std::string stat = textOf(kept, "stat");
+            auto held = save.stats.find(stat);
+
+            if (held == save.stats.end())
+                continue;
+
+            const int left = held->second - given[stat];
+
+            if (left > 0)
+                save.stash[stat] = std::min(intOf(kept, "most"), save.stash[stat] + left);
         }
 
         newLife();
@@ -6224,6 +6249,9 @@ namespace chronicle
         // And so is what its walks have taught. The records are the one who walked them's, and
         // so is what they brought him: a new life has neither
         save.knowledge = last.knowledge;
+
+        // And what the stash keeps of the basics the lives before him held: his to draw
+        save.stash = last.stash;
 
         // Written time is the player's, not his: the one thing held that a death does not take
         if (auto held = last.stats.find(writtenStat); not writtenStat.empty() and held != last.stats.end())

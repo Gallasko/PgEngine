@@ -1232,6 +1232,19 @@ statNames["store.water"] = "Room for water"
 statNames["store.firewood"] = "Room for firewood"
 statNames["store.stone"] = "Room for stone"
 
+// What the stash keeps between lives of each basic (the stat "stash.<id>", the world's and not
+// his: a draw takes from it).
+statShort["stash.berries"] = "STASHED BERRIES"
+statShort["stash.water"] = "STASHED WATER"
+statShort["stash.firewood"] = "STASHED WOOD"
+statShort["stash.stone"] = "STASHED STONE"
+statShort["stash.clay"] = "STASHED CLAY"
+statNames["stash.berries"] = "Berries in the stash"
+statNames["stash.water"] = "Water in the stash"
+statNames["stash.firewood"] = "Firewood in the stash"
+statNames["stash.stone"] = "Stone in the stash"
+statNames["stash.clay"] = "Clay in the stash"
+
 // The familiars he has bound (the stat "fam.<id>", how many of the kind) and the kinds the
 // world has taught him (the stat "know.fam.<id>").
 statShort["fam.sprite"] = "SPRITE"

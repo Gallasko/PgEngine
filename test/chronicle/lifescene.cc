@@ -9444,9 +9444,217 @@ namespace pg
             EXPECT_EQ(life->save.fund.count("lodge.stone"), 0u);
             EXPECT_EQ(life->save.fund.count("lodge"), 0u);
 
-            // The new life holds none of it: what was not left is lost
+            // The new life holds none of it: what was not left of the basics is in the stash, the
+            // rest is lost
             EXPECT_EQ(life->save.stats.count("firewood"), 0u);
             EXPECT_EQ(life->save.stats.count("stone"), 0u);
+            EXPECT_EQ(life->save.stash["firewood"], 12);
+            EXPECT_EQ(life->save.stash["stone"], 9);
+            EXPECT_EQ(life->save.stash.count("ashwood"), 0u);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // What he holds of the basics at his death is kept in the stash, and the next life can
+        // draw it.
+        TEST(lifescene_test, the_stash_keeps_basics_across_a_death)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = f.life();
+            ASSERT_NE(life, nullptr);
+
+            f.frames(12);
+
+            life->save.stats["stone"] = 12;
+            life->save.stats["water"] = 5;
+            life->save.stats["rations"] = 0;
+            life->save.stats["vit"] = 1;
+            life->onMonth();
+            f.frames(12);
+
+            ASSERT_TRUE(life->ended);
+
+            life->beginAgain();
+            f.frames(12);
+
+            ASSERT_FALSE(life->ended);
+            EXPECT_EQ(life->save.stash["stone"], 12);
+            EXPECT_EQ(life->save.stash["water"], 5);
+            EXPECT_EQ(life->save.stats["stone"], 0);
+
+            // The new life sees it as the town's, not as a stat of his
+            const ElementMap seen = life->save.character();
+            ASSERT_EQ(seen.count("stash.stone"), 1u);
+            EXPECT_EQ(seen.at("stash.stone").get<int>(), 12);
+            EXPECT_EQ(life->save.stats.count("stash.stone"), 0u);
+
+            auto list = life->piece<ActivityList>("activities");
+            ASSERT_NE(list, nullptr);
+            ASSERT_NE(list->find(&f.ecs, "draw.stone"), nullptr);
+
+            // Drawn, it is his, and the stash holds no more of it
+            f.ecs.sendEvent(ActivitySelectedEvent{"life.activities", "draw.stone"});
+            f.settle();
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "draw.stone"});
+            f.frames(12);
+
+            EXPECT_EQ(life->save.stats["stone"], 12);
+            EXPECT_EQ(life->save.stash.count("stone"), 0u);
+            EXPECT_EQ(life->save.stats.count("stash.stone"), 0u);
+            EXPECT_EQ(life->save.stash["water"], 5);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The stash keeps no more than its most of any one thing: the rest ends with him.
+        TEST(lifescene_test, the_stash_stops_at_its_most)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = f.life();
+            ASSERT_NE(life, nullptr);
+
+            f.frames(12);
+
+            life->save.stash["stone"] = 95;
+            life->save.stats["stone"] = 12;
+            life->save.stats["rations"] = 0;
+            life->save.stats["vit"] = 1;
+            life->onMonth();
+            f.frames(12);
+
+            ASSERT_TRUE(life->ended);
+
+            life->beginAgain();
+            f.frames(12);
+
+            EXPECT_EQ(life->save.stash["stone"], 100);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The gift is taken first: what a place still asks is left to it, and only the rest goes
+        // into the stash. The lodge's hounds ask 30 stone, 20 of it left by a life before: of 12
+        // he holds, 10 go to the lodge and 2 to the stash.
+        TEST(lifescene_test, gift_comes_before_the_stash)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = f.life();
+            ASSERT_NE(life, nullptr);
+
+            f.frames(12);
+
+            life->save.town["lodge"] = 2;
+            life->save.fund["lodge.stone"] = 20;
+            life->save.seen.push_back("lodge");
+            life->save.stats["coin"] = 0;
+            life->save.stats["stone"] = 12;
+            life->save.stats["rations"] = 0;
+            life->save.stats["vit"] = 1;
+            life->onMonth();
+            f.frames(12);
+
+            ASSERT_TRUE(life->ended);
+            ASSERT_EQ(life->gifts.size(), 1u);
+            EXPECT_EQ(life->gifts[0].first, "lodge");
+
+            f.ecs.sendEvent(ButtonActivatedEvent{life->gifts[0].second.face.id, "life.gift.lodge"});
+            f.settle();
+            ASSERT_EQ(life->gift, "lodge");
+
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "life.again"});
+            f.frames(12);
+
+            ASSERT_FALSE(life->ended);
+            EXPECT_EQ(life->save.fund["lodge.stone"], 20 + 10);
+            EXPECT_EQ(life->save.stash["stone"], 2);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A save written before the stash reads an empty one, and what he held is read as it was
+        // written, even above its limit.
+        TEST(lifescene_test, an_old_save_has_an_empty_stash)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            const std::string path = "save/test_life_old_stash.sz";
+            std::remove(path.c_str());
+
+            LifeScene* life = f.life();
+            ASSERT_NE(life, nullptr);
+
+            LifeSave old = life->save;
+            old.stash["stone"] = 7;
+            old.stats["firewood"] = 50;
+
+            ASSERT_TRUE(old.save(path));
+
+            // The key taken out of the file, with all it holds: the lines under it are indented
+            // deeper, and its closing brace is at its own depth
+            std::string written;
+            {
+                std::ifstream in(path);
+                std::stringstream all;
+                all << in.rdbuf();
+                written = all.str();
+            }
+
+            std::istringstream lines(written);
+            std::string kept;
+            std::string line;
+            size_t under = std::string::npos;
+            bool erased = false;
+
+            while (std::getline(lines, line))
+            {
+                const size_t indent = line.find_first_not_of(" \t");
+
+                if (under != std::string::npos)
+                {
+                    if (indent != std::string::npos and indent > under)
+                        continue;
+
+                    under = std::string::npos;
+
+                    if (indent != std::string::npos and line[indent] == '}')
+                        continue;
+                }
+
+                if (indent != std::string::npos and line.compare(indent, 6, "stash:") == 0)
+                {
+                    under = indent;
+                    erased = true;
+                    continue;
+                }
+
+                kept += line + "\n";
+            }
+
+            ASSERT_TRUE(erased);
+            {
+                std::ofstream out(path, std::ios::trunc);
+                out << kept;
+            }
+
+            LifeSave read;
+            ASSERT_TRUE(read.load(path));
+
+            EXPECT_TRUE(read.stash.empty());
+            EXPECT_EQ(read.stats["firewood"], 50);
+            EXPECT_EQ(read.name, old.name);
+
+            std::remove(path.c_str());
         }
 
         // ----------------------------------------------------------------------------------------

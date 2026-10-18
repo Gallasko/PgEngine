@@ -50,6 +50,11 @@ namespace chronicle
         // watched or fought, what it was seen to drop. A save from before the walks reads none
         std::unordered_map<std::string, int> knowledge;         // "visit.<zone>", "study.<zone>", "observe.<mob>", "fights.<mob>", "drop.<mob>.<item>", "low.<mob>", "high.<mob>"
 
+        // The stash is the world's as well: what a life held of the basics at its death (berries,
+        // water, firewood, stone, clay), up to the most the town keeps of each, for the lives after
+        // it to draw. A save from before the stash reads an empty one
+        std::unordered_map<std::string, int> stash;             // Basic resource id -> what is kept of it
+
         // His walks are his own: the one he is on, the records he keeps of those he made by hand,
         // and the queue that walks one of them again. A new life has none
         WalkState walk;                // The walk under way: he is on site, its screen is the page
@@ -96,17 +101,20 @@ namespace chronicle
         // The character as the rule scripts read it: every stat, and the town with them, which is
         // not his but which the rules read the same way: "town_known" (1 or 0), "town.<place>" its
         // level, "fund.<place>" the coin left to it and "seen.<place>" (1) for a place already
-        // on the Town page. And, the same way, what the world knows ("know.<key>").
+        // on the Town page. And, the same way, what the world knows ("know.<key>") and what the
+        // stash keeps of each basic ("stash.<id>").
         pg::ElementMap character() const;
 
         // Whether a key of what a script hands back is the world's and not a stat of his: the
-        // town's, or what is known of the lands outside it ("know.<key>").
+        // town's, what is known of the lands outside it ("know.<key>"), or what the stash keeps
+        // ("stash.<id>").
         static bool ofTheTown(const std::string& key);
 
         // A key of what a script hands back, when it is the world's: true, and it is not to be
         // written among his stats. Coming to know the town is the one thing a script does to the
         // town this way (`townKnown`); its levels and its funds are the Life screen's to write.
-        // What is known is the scripts' to write: a walk teaches.
+        // What is known is the scripts' to write: a walk teaches. So is what the stash keeps: a draw
+        // takes from it.
         bool takeTown(const std::string& key, int value);
 
         // The levels of every place of the town, added up.

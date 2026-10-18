@@ -1028,7 +1028,7 @@ namespace chronicle
         ElementType fundLine;
         ElementType foundLine;
 
-        if (not s.run() or not s.get("places", {"gaps", "given", "leaves", "tiers"}, records) or not s.get("start", out.start))
+        if (not s.run() or not s.get("places", {"gaps", "given", "leaves", "tiers"}, records) or not s.get("start", out.start) or not s.get("stash", out.stash))
             return fail(s);
 
         if (not s.get("opened", opened) or not s.get("raisedLine", raisedLine) or not s.get("epitaphLine", epitaphLine) or not s.get("fundLine", fundLine) or not s.get("foundLine", foundLine))

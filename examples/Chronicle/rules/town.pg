@@ -43,6 +43,10 @@
 //         it joins the place's fund), before and after (the ending's line around the amount),
 //         plain and chosen (what the ending's button says without a gift, and with one), things (the
 //         ending's line when he holds no coin, only things a place can use)}.
+//         `stash`, [{stat, most}]: what the stash keeps of his at his death, a basic resource
+//         (economytable.pg's `basicResources`) each, and the most of it it keeps. What he holds
+//         of it then, less what his gift leaves to a place, joins what earlier lives kept
+//         ("stash.<id>" in `character`), up to that most.
 //         (`none` is a word of the language, and cannot name a field.)
 //
 // No function here: lib.pg holds them all, ahead of every table (see there why).
@@ -52,6 +56,7 @@ import "math"
 import "algorithm"
 import "lib"
 import "towntable"
+import "economytable"
 import "expeditiontable"
 
 var errors = []
@@ -193,7 +198,7 @@ for (var t = 0; t < len(townPlaces); t++)
 
             // And what he holds of it would be left to the place at his death, no more than it
             // still asks: what a walk brings for the town (expeditiontable.pg's `town` things) is
-            // lost with him otherwise
+            // lost with him otherwise, but for the basics the stash keeps (`stash`, below)
             for (var w = 0; w < len(walkItems); w++)
             {
                 if (walkItems[w].kind == "town" and walkItems[w].id == also[c].stat)
@@ -219,4 +224,14 @@ for (var t = 0; t < len(townPlaces); t++)
     }
 
     push(places, shown)
+}
+
+// What the stash keeps at his death, of each basic resource, and the most it keeps of each: what
+// he holds then, less what his gift left to a place, goes into it for the lives after him. Every
+// basic is kept, up to the same most for now (economytable.pg's `economyKnobs`).
+var stash = []
+
+for (var b = 0; b < len(basicResources); b++)
+{
+    push(stash, {stat: basicResources[b].id, most: economyKnobs.stashMost})
 }

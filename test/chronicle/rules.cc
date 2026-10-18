@@ -4898,5 +4898,80 @@ namespace pg
                 EXPECT_TRUE(shown) << id;
             }
         }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // What the stash keeps is drawn as far as he has room for it: 100 water kept and 30 held
+        // of 40 he can hold draws 10. Full, the row is closed by its room.
+        TEST(rules_test, stash_rows_draw_what_room_allows)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = boy();
+            character["stash.water"] = ElementType{100};
+            character["water"] = ElementType{30};
+
+            RuleActivity draw = activityAt(f.rules, 9.0f, character, "draw.water");
+
+            EXPECT_EQ(textOf(draw.fields, "group"), "The stash");
+            EXPECT_EQ(intOf(draw.fields, "months"), 0);
+            EXPECT_EQ(textOf(draw.fields, "each"), "100 IN THE STASH");
+            EXPECT_TRUE(flag(draw.fields, "listed"));
+            EXPECT_FALSE(flag(draw.fields, "locked"));
+
+            ASSERT_EQ(draw.gains.size(), 1u);
+            EXPECT_EQ(textOf(draw.gains[0], "stat"), "water");
+            EXPECT_EQ(intOf(draw.gains[0], "amount"), 10);
+
+            ASSERT_EQ(draw.costs.size(), 1u);
+            EXPECT_EQ(textOf(draw.costs[0], "stat"), "stash.water");
+            EXPECT_EQ(intOf(draw.costs[0], "amount"), 10);
+
+            // The player reads it in words, never as the raw id
+            EXPECT_EQ(textOf(draw.costs[0], "name"), "Water in the stash");
+
+            // Full, the room he has not closes it
+            character["water"] = ElementType{40};
+            RuleActivity full = activityAt(f.rules, 9.0f, character, "draw.water");
+            EXPECT_TRUE(flag(full.fields, "listed"));
+            EXPECT_TRUE(flag(full.fields, "locked"));
+
+            // With nothing kept, there is no row
+            character.erase("stash.water");
+            EXPECT_FALSE(flag(activityAt(f.rules, 9.0f, character, "draw.water").fields, "listed"));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The town says what the stash keeps between lives: each basic, up to 100 of it.
+        TEST(rules_test, the_town_says_what_the_stash_keeps)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            RuleTown town;
+            ASSERT_TRUE(f.rules.town(7.0f, townsman(), town)) << firstError(f.rules);
+
+            ASSERT_EQ(town.stash.size(), 5u);
+
+            for (const char* id : {"berries", "water", "firewood", "stone", "clay"})
+            {
+                bool kept = false;
+
+                for (const auto& s : town.stash)
+                {
+                    if (textOf(s, "stat") == id)
+                    {
+                        kept = true;
+                        EXPECT_EQ(intOf(s, "most"), 100) << id;
+                    }
+                }
+
+                EXPECT_TRUE(kept) << id;
+            }
+        }
     }
 }
