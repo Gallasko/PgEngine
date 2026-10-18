@@ -1182,6 +1182,41 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // The basic resources are held in their own ledger group, each with a limit that a store
+        // raises; a walk still finds them, and berries are still sold.
+        TEST(rules_test, basic_resources_are_held_with_their_limit)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = {{"water", ElementType{12}}, {"stone", ElementType{3}}};
+
+            RuleMonth month;
+            ASSERT_TRUE(f.rules.month(8.0f, character, false, month)) << firstError(f.rules);
+
+            const ElementMap* water = byId(month.rows, "water");
+            ASSERT_NE(water, nullptr);
+            EXPECT_EQ(textOf(*water, "group"), "resources");
+            EXPECT_EQ(intOf(*water, "limit"), 40);
+
+            const ElementMap* stone = byId(month.rows, "stone");
+            ASSERT_NE(stone, nullptr);
+            EXPECT_EQ(textOf(*stone, "group"), "resources");
+
+            character["store.water"] = ElementType{20};
+
+            RuleMonth stored;
+            ASSERT_TRUE(f.rules.month(8.0f, character, false, stored)) << firstError(f.rules);
+
+            ASSERT_NE(byId(stored.rows, "water"), nullptr);
+            EXPECT_EQ(intOf(*byId(stored.rows, "water"), "limit"), 60);
+
+            EXPECT_EQ(textOf(activityAt(f.rules, 12.0f, townsman(), "sell.berries").fields, "id"), "sell.berries");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // A month eats a ration, and says so as a rate; a month at work that feeds him eats none, and
         // with none held costs nothing either.
         TEST(rules_test, month_decays_unless_fed)

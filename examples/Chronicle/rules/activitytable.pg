@@ -1627,7 +1627,8 @@ for (var i = 0; i < len(activities); i++)
         gain.label = statShortName(gain.stat)
         gain.name = statName(gain.stat)
 
-        if (gain.amount > 0 and limitOf(gain.stat) > 0)
+        // Whether the stat has a limit at all: no store of his is known here, and one only raises a limit
+        if (gain.amount > 0 and limitOf({}, gain.stat) > 0)
         {
             push(requires, {stat: gain.stat, room: true})
         }

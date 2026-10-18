@@ -251,16 +251,31 @@ fun statOf(character, stat)
     return lookup(character, stat, 0)
 }
 
-// The most of a stat he can hold, 0 when it has no limit.
-fun limitOf(stat)
+// The most of a stat he can hold, 0 when it has no limit. A store he has (the stat "store.<stat>")
+// raises a limit that is there; it gives none to a stat without one.
+fun limitOf(character, stat)
 {
-    return lookup(statLimits, stat, 0)
+    var base = lookup(statLimits, stat, 0)
+
+    if (base > 0)
+    {
+        var store = statOf(character, "store." + stat)
+
+        if (store > 0)
+        {
+            base = base + store
+        }
+    }
+
+    return base
 }
 
 // How much more of a stat he can take in, 0 when it is full. Only for a stat with a limit.
 fun roomFor(character, stat)
 {
-    return clamp(limitOf(stat) - statOf(character, stat), 0, limitOf(stat))
+    var limit = limitOf(character, stat)
+
+    return clamp(limit - statOf(character, stat), 0, limit)
 }
 
 // The most a stat can ever be, 0 when it has no ceiling.
@@ -531,7 +546,7 @@ fun shiftIn(after, change, stat, amount)
         now = 0
     }
 
-    var limit = limitOf(stat)
+    var limit = limitOf(after, stat)
 
     if (limit > 0 and amount > 0 and now > limit)
     {
@@ -1005,6 +1020,12 @@ statShort["know.found.millpond"] = "POND"
 // activity begun with room left may still carry him past it.
 const statLimits = {
     rations: 60,
+    berries: 30,
+    water: 40,
+    firewood: 30,
+    stone: 20,
+    clay: 20,
+    gems: 10,
     // Written time is counted in seconds: an hour of it, however long the chronicle stayed shut
     written: 3600
 }

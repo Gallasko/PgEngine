@@ -63,6 +63,7 @@ import "string"
 import "math"
 import "algorithm"
 import "lib"
+import "economytable"
 import "expeditiontable"
 
 // Old age begins where his prime ends: thirty, or fifty in a town whose Inn stands
@@ -83,7 +84,28 @@ var holdings = [
     {id: "written", group: "purse", groupLabel: "PURSE", glyph: "time", name: "Written time", tone: 0, haste: 3, aMonth: 7,
      about: "What was written while the chronicle was shut, an hour at most. Spent, it runs the months twice or three times as fast, a week of it for each month. It is kept from life to life."},
     {id: "reagents", group: "purse", groupLabel: "PURSE", glyph: "magic", name: "Reagents", tone: 0,
-     about: "What a working burns. Bought at the Collegium, spent when a working begins."},
+     about: "What a working burns. Bought at the Collegium, spent when a working begins."}
+]
+
+// What he gathers and what is made of it (economytable.pg): each held to a limit that a store
+// raises, and set right after the purse so that the ledger reads them near its top
+for (var br = 0; br < len(basicResources); br++)
+{
+    var basic = basicResources[br]
+
+    push(holdings, {id: basic.id, group: "resources", groupLabel: "RESOURCES", glyph: basic.glyph, name: basic.name, tone: 0,
+                    about: basic.about})
+}
+
+for (var mr = 0; mr < len(madeResources); mr++)
+{
+    var made = madeResources[mr]
+
+    push(holdings, {id: made.id, group: "resources", groupLabel: "RESOURCES", glyph: made.glyph, name: made.name, tone: 0,
+                    about: made.about})
+}
+
+var standings = [
     {id: "favors", group: "standing", groupLabel: "STANDING", glyph: "guild", name: "Favors", tone: 2,
      about: "What the Hidden Hand owes him. A big job asks for them before it begins."},
     {id: "keep_oath", group: "standing", groupLabel: "STANDING", glyph: "seal", name: "Sworn to the Keep", tone: 2, title: true,
@@ -134,6 +156,11 @@ var holdings = [
      produces: [{stat: "rations", amount: 1, per: 2, every: 3}]}
 ]
 
+for (var sk = 0; sk < len(standings); sk++)
+{
+    push(holdings, standings[sk])
+}
+
 // What a work leaves him besides a figure: whom he is known to, what he was taught, what he
 // carries. Each is a holding like the others, so it has its row in the ledger once he has it
 // ("Mara's pupil", "Known to the Watch"), under the name lib.pg writes it with.
@@ -163,6 +190,20 @@ var ties = ["watch_known", "street_known", "choir", "edric_support", "library_ac
 for (var w = 0; w < len(walkItems); w++)
 {
     var thing = walkItems[w]
+    var isBasic = false
+
+    for (var bi = 0; bi < len(basicResources); bi++)
+    {
+        if (basicResources[bi].id == thing.id)
+        {
+            isBasic = true
+        }
+    }
+
+    if (isBasic)
+    {
+        continue
+    }
 
     if (thing.kind == "remedy")
     {
@@ -460,7 +501,7 @@ for (var j = 0; j < len(holdings); j++)
 
     if (lookup(h, "ledger", true))
     {
-        push(rows, {id: h.id, group: h.group, groupLabel: h.groupLabel, glyph: h.glyph, name: h.name, tone: h.tone, rate: rate, limit: limitOf(h.id), title: lookup(h, "title", false), haste: lookup(h, "haste", 0), aMonth: lookup(h, "aMonth", 0), always: lookup(h, "haste", 0) > 0})
+        push(rows, {id: h.id, group: h.group, groupLabel: h.groupLabel, glyph: h.glyph, name: h.name, tone: h.tone, rate: rate, limit: limitOf(character, h.id), title: lookup(h, "title", false), haste: lookup(h, "haste", 0), aMonth: lookup(h, "aMonth", 0), always: lookup(h, "haste", 0) > 0})
     }
 }
 
@@ -471,7 +512,7 @@ for (var g = 0; g < len(holdings); g++)
 {
     var h = holdings[g]
     var held = statOf(character, h.id)
-    var limit = limitOf(h.id)
+    var limit = limitOf(character, h.id)
     var delta = lookup(change, h.id, 0)
     var footnote = ""
 

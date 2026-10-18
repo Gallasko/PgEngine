@@ -1,0 +1,43 @@
+// Chronicle rules: the basic resources and the economy's knobs
+// ------------------------------------------------------------
+// Imported by resources.pg (what he holds shows in the ledger) and, later, by the works that
+// gather and spend them. Never loaded itself.
+// Input:  none.
+// Output: `basicResources`, what he gathers by working the land and the town's yards:
+//           [{id, name, one, glyph, about}]
+//         `madeResources`, what is made of them, not gathered:
+//           [{id, name, one, glyph, about}]
+//         `economyKnobs`, the numbers of the economy that belong to no one resource:
+//           stashMost   the most of any one thing the stash can keep between lives
+//           baseSlots   the stash slots a life has before the town gives it more
+//         `one` is the thing said once ("a clay"), as the log names it.
+//         The most he can hold of each is lib.pg's `statLimits`; a store raises it with the stat
+//         "store.<id>" (lib.pg's `limitOf`).
+//         Each is held as a stat of the same id and has its row in the ledger, in the group
+//         RESOURCES (resources.pg). Berries, firewood, stone and clay are still found on a walk
+//         (expeditiontable.pg's `walkItems`); this table is what makes them a resource.
+//
+// The numbers are placeholders for the game's balance: change them here, nothing in C++ moves.
+
+const basicResources = [
+    {id: "berries", name: "Berries", one: "berries", glyph: "trade",
+     about: "Picked along the hedges. The market buys them, and a pot of them is a meal."},
+    {id: "water", name: "Water", one: "water", glyph: "vitality",
+     about: "Drawn from the well and the stream. Every craft of the town is wet work."},
+    {id: "firewood", name: "Firewood", one: "firewood", glyph: "work",
+     about: "Deadfall and cuttings, bundled and carried home. Fires and forges burn it."},
+    {id: "stone", name: "Stone", one: "stone", glyph: "forge",
+     about: "Dressed blocks and field stones. The places of the town are built of it."},
+    {id: "clay", name: "Clay", one: "clay", glyph: "work",
+     about: "Dug out of the bank, heavy and wet. Bricks and pots are made of it."}
+]
+
+const madeResources = [
+    {id: "gems", name: "Gems", one: "gem", glyph: "relic",
+     about: "Cut and polished stones. Few are made, and the town's finest work asks for them."}
+]
+
+const economyKnobs = {
+    stashMost: 100,
+    baseSlots: 1
+}
