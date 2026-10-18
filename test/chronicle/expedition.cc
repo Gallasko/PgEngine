@@ -2573,6 +2573,135 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // Millbrook Marsh is a man's walk: listed from sixteen, his from eighteen once the Quarry
+        // Road is known 4 of 4, three months long. Its lights come as a swarm from the first visit,
+        // its bog hounds one at a time; pitch is gathered there from the first, bog iron once the
+        // marsh is known 3 of 4, and the leech mass and the Lantern Mother once it is known 4 of 4.
+        TEST(expedition_test, the_marsh_is_walked_from_eighteen)
+        {
+            MockLogger logger;
+
+            Walker w(knowing(hunter(), "quarry", 10));
+            std::vector<RuleActivity> activities;
+
+            auto marsh = [&activities](Walker& who, float age) -> const RuleActivity* {
+                activities.clear();
+                EXPECT_TRUE(who.rules.activities(age, who.character, activities));
+
+                for (const auto& a : activities)
+                {
+                    if (textOf(a.fields, "id") == "walk.marsh")
+                        return &a;
+                }
+
+                return nullptr;
+            };
+
+            ASSERT_NE(marsh(w, 15.0f), nullptr);
+            EXPECT_EQ(intOf(marsh(w, 15.0f)->fields, "listed"), 0);
+            ASSERT_NE(marsh(w, 17.0f), nullptr);
+            EXPECT_EQ(intOf(marsh(w, 17.0f)->fields, "listed"), 1);
+            EXPECT_EQ(intOf(marsh(w, 17.0f)->fields, "locked"), 1);
+
+            const RuleActivity* grown = marsh(w, 18.0f);
+
+            ASSERT_NE(grown, nullptr);
+            EXPECT_EQ(intOf(grown->fields, "locked"), 0);
+            EXPECT_EQ(textOf(grown->fields, "group"), "Adventure");
+            EXPECT_EQ(textOf(grown->fields, "zone"), "marsh");
+            EXPECT_EQ(intOf(grown->fields, "months"), 3);
+
+            // The Quarry Road not known through and through: shut at eighteen
+            Walker green(hunter());
+            ASSERT_NE(marsh(green, 18.0f), nullptr);
+            EXPECT_EQ(intOf(marsh(green, 18.0f)->fields, "locked"), 1);
+
+            // A first visit: the lights, as a swarm of four or one alone, and a lone bog hound;
+            // pitch to gather
+            w.age = 18.0f;
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "marsh", 0}));
+            EXPECT_NE(byId(w.last.seeks, "light*pack"), nullptr);
+            EXPECT_NE(byId(w.last.seeks, "light"), nullptr);
+            EXPECT_NE(byId(w.last.seeks, "hound"), nullptr);
+            EXPECT_EQ(byId(w.last.seeks, "hound*pack"), nullptr);
+            EXPECT_EQ(byId(w.last.seeks, "leech"), nullptr);
+            EXPECT_EQ(byId(w.last.seeks, "enc.lantern"), nullptr);
+            EXPECT_NE(byId(w.last.works, "gather.pitch"), nullptr);
+            EXPECT_EQ(byId(w.last.works, "gather.bog_iron"), nullptr);
+
+            ASSERT_TRUE(w.act("seek", "light", 4));
+            w.answer();
+            ASSERT_EQ(w.screen(), "fight");
+            EXPECT_EQ(w.state.foes.size(), 4u);
+
+            // Known 4 of 4: the pack of hounds, the leech mass, bog iron, and the Lantern Mother,
+            // a boss met by choice
+            Walker deep(knowing(knowing(hunter(), "quarry", 10), "marsh", 10));
+            deep.age = 18.0f;
+
+            ASSERT_TRUE(deep.ask("enter", WalkAct{"", "marsh", 0}));
+            EXPECT_NE(byId(deep.last.seeks, "hound*pack"), nullptr);
+            EXPECT_NE(byId(deep.last.seeks, "leech"), nullptr);
+            EXPECT_NE(byId(deep.last.works, "gather.bog_iron"), nullptr);
+
+            const ElementMap* lantern = byId(deep.last.seeks, "enc.lantern");
+
+            ASSERT_NE(lantern, nullptr);
+            EXPECT_EQ(intOf(*lantern, "boss"), 1);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The Lantern Mother comes with two of her lights and keeps calling more as she is hurt.
+        // Beaten, she gives a bead of wisp-glass and teaches the wisp: from then on it is his to bind.
+        TEST(expedition_test, the_lantern_mother_teaches_the_wisp)
+        {
+            MockLogger logger;
+
+            ElementMap champion = hunter();
+            champion["str"] = ElementType{40};
+            champion["arms"] = ElementType{10};
+            champion["dex"] = ElementType{30};
+            champion["vit"] = ElementType{400};
+            champion["vitmax"] = ElementType{400};
+
+            auto bindWisp = [](Walker& who) -> bool {
+                std::vector<RuleActivity> activities;
+                EXPECT_TRUE(who.rules.activities(18.0f, who.character, activities));
+
+                for (const auto& a : activities)
+                {
+                    if (textOf(a.fields, "id") == "bind.wisp")
+                        return intOf(a.fields, "listed") == 1;
+                }
+
+                return false;
+            };
+
+            auto w = bossFight(champion, "marsh", "enc.lantern");
+            w->age = 18.0f;
+
+            ASSERT_EQ(w->state.foes.size(), 3u);
+            EXPECT_FALSE(bindWisp(*w));
+
+            ASSERT_TRUE(pressUntil(*w, "strike", 40, [&w]() { return not textOf(w->last.duel, "over").empty(); }));
+            ASSERT_EQ(textOf(w->last.duel, "over"), "won");
+
+            // Hurt, she called more of her lights, never more than four standing
+            EXPECT_TRUE(accountSays(*w, "lamp"));
+            EXPECT_GT(w->state.foes.size(), 3u);
+            EXPECT_LE(w->state.foes.size(), 4u);
+
+            EXPECT_EQ(intOf(w->character, "know.fam.wisp"), 1);
+            EXPECT_GE(intOf(w->character, "wisp_glass"), 1);
+            EXPECT_EQ(intOf(w->character, "beaten.lantern"), 1);
+            EXPECT_TRUE(bindWisp(*w));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // Holds that cost nothing, thrown again and again by a quick man at a boss, weaken as
         // delays do: the boss still acts.
         TEST(expedition_test, a_boss_is_never_held_for_good)
@@ -3022,6 +3151,52 @@ namespace pg
                 EXPECT_EQ(with, without);
                 EXPECT_NE(with.find("walked.hollow=1"), std::string::npos) << with;
             }
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A marsh light's sear is a working: the warded charm takes two off each end of it. A
+        // bite of the body is none of the charm's business: a wolf's is the same with it or without it.
+        TEST(expedition_test, the_charm_wards_a_working_and_not_a_bite)
+        {
+            MockLogger logger;
+
+            auto lightFight = [](ElementMap who) {
+                who["know.move.light.bite"] = ElementType{1};
+
+                auto w = std::make_unique<Walker>(who);
+                w->age = 18.0f;
+
+                EXPECT_TRUE(w->ask("enter", WalkAct{"", "marsh", 0}));
+                EXPECT_TRUE(w->act("seek", "light", 1));
+                w->answer();
+                EXPECT_EQ(w->screen(), "fight");
+
+                return w;
+            };
+
+            ElementMap warded = hunter();
+            warded["gear.charm"] = ElementType{1};
+
+            auto plain = lightFight(hunter());
+            auto charmed = lightFight(warded);
+
+            ASSERT_FALSE(plain->last.targets.empty());
+            ASSERT_FALSE(charmed->last.targets.empty());
+
+            // Its sear, 4-6 less the one his guard takes: 3-5, and with the charm 1-3
+            EXPECT_EQ(textOf(plain->last.targets[0], "moveEffect"), "\xE2\x88\x92" "3\xE2\x80\x93" "5 vitality if it lands");
+            EXPECT_EQ(textOf(charmed->last.targets[0], "moveEffect"), "\xE2\x88\x92" "1\xE2\x80\x93" "3 vitality if it lands");
+
+            // A wolf's bite is untouched by it
+            auto bare = wolfFight(hunter());
+            auto wolfWarded = wolfFight(warded);
+
+            ASSERT_FALSE(bare->last.targets.empty());
+            ASSERT_FALSE(wolfWarded->last.targets.empty());
+            EXPECT_EQ(textOf(wolfWarded->last.targets[0], "moveEffect"), textOf(bare->last.targets[0], "moveEffect"));
+            EXPECT_EQ(textOf(wolfWarded->last.targets[0], "moveEffect"), "\xE2\x88\x92" "2\xE2\x80\x93" "4 vitality if it lands");
         }
     }
 }

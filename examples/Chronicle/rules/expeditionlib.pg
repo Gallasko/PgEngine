@@ -1924,7 +1924,7 @@ fun workRows()
 
         var amount = note
 
-        if (item.kind == "town")
+        if (item.kind == "town" or item.kind == "found")
         {
             note = note + " · FOR THE TOWN"
         }
@@ -1935,7 +1935,7 @@ fun workRows()
 
         var brings = amount + " " + toLowerCase(item.name)
 
-        if (item.kind == "town")
+        if (item.kind == "town" or item.kind == "found")
         {
             brings = brings + ", for the town"
         }
@@ -2074,7 +2074,7 @@ fun takenRows()
         {
             var name = item.name
 
-            if (item.kind == "town")
+            if (item.kind == "town" or item.kind == "found")
             {
                 name = name + ", for the town"
             }

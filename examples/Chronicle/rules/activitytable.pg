@@ -1422,17 +1422,24 @@ push(activities, {id: "buy.oil", group: "Market", name: "Buy blessed oil", glyph
 
 // What the smithy forges of resources (economytable.pg's `gearPieces`), a piece once a life: it
 // stands on the Town page under the smithy once the smithy has the level the piece asks, shut
-// while he lacks what it is made of. Each is a copy, with its own lists
+// while he lacks what it is made of. A piece whose forge names `onlyWith` waits for that stat as
+// well (the warded charm, for the Marsh's workings). Each is a copy, with its own lists
 for (var g = 0; g < len(gearPieces); g++)
 {
     var piece = gearPieces[g]
+    var forgeRow = {id: "forge." + piece.id, group: "Market", name: "Forge " + toLowerCase(piece.name), glyph: piece.glyph, months: piece.forge.months, rank: "", each: "AT THE SMITHY", path: "",
+                    finishBy: anyAge, showFrom: 100, uses: 1, place: "smithy",
+                    about: piece.about,
+                    gains: [{stat: "gear." + piece.id, amount: 1}],
+                    requires: [{stat: "town.smithy", label: "The smithy, level " + toString(piece.forge.smithy), needed: piece.forge.smithy}],
+                    costs: entriesCopied(piece.forge.costs)}
 
-    push(activities, {id: "forge." + piece.id, group: "Market", name: "Forge " + toLowerCase(piece.name), glyph: piece.glyph, months: piece.forge.months, rank: "", each: "AT THE SMITHY", path: "",
-                      finishBy: anyAge, showFrom: 100, uses: 1, place: "smithy",
-                      about: piece.about,
-                      gains: [{stat: "gear." + piece.id, amount: 1}],
-                      requires: [{stat: "town.smithy", label: "The smithy, level " + toString(piece.forge.smithy), needed: piece.forge.smithy}],
-                      costs: entriesCopied(piece.forge.costs)})
+    if (has(piece.forge, "onlyWith"))
+    {
+        forgeRow.onlyWith = piece.forge.onlyWith
+    }
+
+    push(activities, forgeRow)
 }
 
 // The works that raise a place of the town, one a level, made from towntable.pg: the scene lists

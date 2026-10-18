@@ -5748,5 +5748,133 @@ namespace pg
             EXPECT_EQ(town.stashLine.find("blade"), std::string::npos) << town.stashLine;
             EXPECT_EQ(town.stashLine.find("jerkin"), std::string::npos) << town.stashLine;
         }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The warded charm waits for the Marsh: its row at the smithy is listed only once the
+        // world has met a marsh light's working, and at the smithy's second level.
+        TEST(rules_test, the_charm_waits_for_the_marsh_workings)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = townsman();
+            character["town.smithy"] = ElementType{2};
+            EXPECT_FALSE(flag(activityAt(f.rules, 20.0f, character, "forge.charm").fields, "listed"));
+
+            character["know.move.light.bite"] = ElementType{1};
+
+            RuleActivity charm = activityAt(f.rules, 20.0f, character, "forge.charm");
+
+            EXPECT_TRUE(flag(charm.fields, "listed"));
+            EXPECT_EQ(textOf(charm.fields, "place"), "smithy");
+            ASSERT_EQ(charm.gains.size(), 1u);
+            EXPECT_EQ(textOf(charm.gains[0], "stat"), "gear.charm");
+
+            ASSERT_EQ(charm.costs.size(), 2u);
+            EXPECT_EQ(textOf(charm.costs[0], "stat"), "gems");
+            EXPECT_EQ(intOf(charm.costs[0], "amount"), 3);
+            EXPECT_EQ(textOf(charm.costs[1], "stat"), "water");
+            EXPECT_EQ(intOf(charm.costs[1], "amount"), 10);
+
+            // A smithy of one level does not make it
+            character["town.smithy"] = ElementType{1};
+            EXPECT_FALSE(flag(activityAt(f.rules, 20.0f, character, "forge.charm").fields, "listed"));
+
+            // Held, it is a row of GEAR
+            character["gear.charm"] = ElementType{1};
+
+            RuleMonth month;
+            ASSERT_TRUE(f.rules.month(20.0f, character, false, month)) << firstError(f.rules);
+
+            const ElementMap* held = byId(month.rows, "gear.charm");
+
+            ASSERT_NE(held, nullptr);
+            EXPECT_EQ(textOf(*held, "groupLabel"), "GEAR");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // What only the Marsh gives (bog iron, pitch, wisp-glass) is held among his stores and is
+        // not sold: it is what the last levels of the Collegium Gate, the Harrow Road and the
+        // storehouse ask, and what of it a place still asks is left to it at his death.
+        TEST(rules_test, what_the_marsh_finds_is_kept_and_left)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = townsman();
+            character["bog_iron"] = ElementType{1};
+            character["pitch"] = ElementType{3};
+            character["wisp_glass"] = ElementType{1};
+
+            RuleMonth month;
+            ASSERT_TRUE(f.rules.month(20.0f, character, false, month)) << firstError(f.rules);
+
+            for (const char* id : {"bog_iron", "pitch", "wisp_glass"})
+            {
+                const ElementMap* held = byId(month.rows, id);
+
+                ASSERT_NE(held, nullptr) << id;
+                EXPECT_EQ(textOf(*held, "groupLabel"), "STORES") << id;
+            }
+
+            std::vector<RuleActivity> activities;
+            ASSERT_TRUE(f.rules.activities(20.0f, character, activities)) << firstError(f.rules);
+
+            auto asks = [&activities](const std::string& id, const std::string& stat) {
+                for (const auto& a : activities)
+                {
+                    if (textOf(a.fields, "id") != id)
+                        continue;
+
+                    for (const auto& c : a.costs)
+                    {
+                        if (textOf(c, "stat") == stat)
+                            return true;
+                    }
+                }
+
+                return false;
+            };
+
+            for (const auto& a : activities)
+            {
+                for (const char* id : {"sell.bog_iron", "sell.pitch", "sell.wisp_glass"})
+                    EXPECT_NE(textOf(a.fields, "id"), id);
+            }
+
+            EXPECT_TRUE(asks("raise.collegium.3", "wisp_glass"));
+            EXPECT_FALSE(asks("raise.collegium.3", "antler"));
+            EXPECT_TRUE(asks("raise.harrow.3", "bog_iron"));
+            EXPECT_FALSE(asks("raise.harrow.3", "shell_plate"));
+            EXPECT_TRUE(asks("raise.storehouse.3", "bog_iron"));
+            EXPECT_FALSE(asks("raise.storehouse.3", "shell_plate"));
+
+            // The Harrow Road at its second level: his bog iron is left to it
+            character["seen.harrow"] = ElementType{1};
+            character["town.harrow"] = ElementType{2};
+
+            RuleTown town;
+            ASSERT_TRUE(f.rules.town(20.0f, character, town)) << firstError(f.rules);
+
+            int left = 0;
+
+            for (const auto& place : town.places)
+            {
+                if (textOf(place.fields, "id") != "harrow")
+                    continue;
+
+                for (const auto& l : place.leaves)
+                {
+                    if (textOf(l, "stat") == "bog_iron")
+                        left = intOf(l, "amount");
+                }
+            }
+
+            EXPECT_EQ(left, 1);
+        }
     }
 }

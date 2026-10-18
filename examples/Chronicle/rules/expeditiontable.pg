@@ -5,13 +5,16 @@
 // Input:  none.
 // Output: `walkKnobs`  every figure of the rules of a walk, in one table;
 //         `walkItems`  what a walk gathers, uses or brings home:
-//                        {id, name, one (one of it), glyph, kind (food | remedy | sold | town), heals?,
-//                         lot?, coin?}
+//                        {id, name, one (one of it), glyph, kind (food | remedy | sold | town | found | fight),
+//                         heals?, lot?, coin?}
 //                      He holds all of them, among his stats. `sold` is sold at the market,
 //                      `lot` of it for `coin` (activitytable.pg makes its row there); `town` is
 //                      what the town's places are built of (a cost of their works,
 //                      towntable.pg), lost at his death but for what the place he chooses then
-//                      still asks; `remedy` is drunk for `heals` percent of his
+//                      still asks; `found` is what only a far place gives (the Marsh's bog iron,
+//                      pitch and wisp-glass): held among his stores and never sold, it is what
+//                      the last levels of the town ask, and it is left to a place as `town` is;
+//                      `remedy` is drunk for `heals` percent of his
 //                      Vitality; `food` is what a rest eats;
 //         `walkZones`  one table per place he can walk to:
 //                        {id, name, kind (forage | hunt), line, travel (days, one way),
@@ -27,9 +30,13 @@
 //                         moves {move: {name, line}} (what each move of its script is called and
 //                         a line on it, for the gloss of what it means to do: "hold" is the move
 //                         of one that hangs back),
+//                         a move may say `kind: "spell"`: it is a working, and his ward (the
+//                         warded charm) takes off it what his armour takes off a bite),
 //                         hp, least, most (its bite), armour (taken off each blow of the body but a
 //                         pierce), ward (taken off each working), resist {type: percent} (negative:
-//                         weak to it; types cut, pierce, blunt, fire, frost, storm, holy), quick,
+//                         weak to it; types cut, pierce, blunt, fire, frost, storm, holy),
+//                         mends? (percent of its Vitality it mends at its own turn, unless it
+//                         burns), quick,
 //                         verb ("bites"), script [bite | circle | maul] (cycled),
 //                         lesson (what the first kill of it in a life teaches, a line for the log), loot [{id, chance (percent), least, most}]}
 //         `walkEvents` one table per event:
@@ -168,7 +175,11 @@ const walkItems = [
     {id: "firewood", name: "Firewood", one: "firewood", glyph: "work", kind: "town", gather: "Deadfall and cuttings, bundled and carried home."},
     {id: "clay", name: "Clay", one: "clay", glyph: "work", kind: "town", gather: "Dug out of the bank, heavy and wet."},
     {id: "ashwood", name: "Ash wood", one: "ash wood", glyph: "work", kind: "town", gather: "Straight ash poles, felled and trimmed."},
-    {id: "stone", name: "Stone", one: "stone", glyph: "forge", kind: "town", gather: "Dressed blocks, lying where the quarrymen left them."}
+    {id: "stone", name: "Stone", one: "stone", glyph: "forge", kind: "town", gather: "Dressed blocks, lying where the quarrymen left them."},
+    // What only Millbrook Marsh gives: no market buys it, and the town's finest work asks for it
+    {id: "bog_iron", name: "Bog iron", one: "lump of bog iron", glyph: "forge", kind: "found", gather: "Rust-red lumps under the peat, where the water runs brown. The smiths of Harrow made their iron of it."},
+    {id: "pitch", name: "Pitch", one: "pot of pitch", glyph: "work", kind: "found", gather: "Black and slow, it seeps from the drowned pines at the marsh's edge, and is scraped into a pot."},
+    {id: "wisp_glass", name: "Wisp-glass", one: "bead of wisp-glass", glyph: "magic", kind: "found"}
 ]
 
 // `lines`: what the scribe says of the place at the foot of the Adventure page, by his age (the
@@ -253,7 +264,26 @@ const walkZones = [
      encounters: ["shell"],
      fromAge: 14,
      requires: [{stat: "know.study.millpond", label: "Mill Pond known 4 of 4", needed: walkKnobs.studyLevels[3]}],
-     opens: "Stone for the town, and an adder or two under it; wortleaf as he learns the road."}
+     opens: "Stone for the town, and an adder or two under it; wortleaf as he learns the road."},
+
+    // A man's walk, and the Collegium's: the lights there are workings that an edge goes through
+    // as through smoke, the hounds go stiff in the cold and the leech mass mends but where it
+    // burns. It is where the town's last levels are found (bog iron, pitch, wisp-glass), and the
+    // Lantern Mother, who keeps calling her lights, teaches the wisp
+    {id: "marsh", name: "Millbrook Marsh", kind: "hunt", glyph: "magic",
+     line: "Below the mill the brook loses itself in reeds and peat. Lights move there at night, and nobody follows them twice.",
+     lines: [{until: 22, text: "The millers' children are told the lights are lost travellers. They are not travellers."},
+             {until: 30, text: "He knows which tussocks hold a man, and which lights hold still."},
+             {until: 99, text: "The marsh has taken a little more of the mill road every year he has walked it."}],
+     travel: 12, stayMin: 50, stayMax: 60,   // Three months
+     mobs: ["light", "hound", "leech"],
+     spots: [{id: "pitch", ap: 2, least: 1, most: 3}, {id: "bog_iron", ap: 3, least: 1, most: 2}],
+     ladder: [{task: "camp", level: 2}, {task: "bog_iron", level: 3}, {task: "hound*pack", level: 3}, {task: "leech", level: 4}],
+     events: ["marsh.causeway"],
+     encounters: ["lantern"],
+     fromAge: 18,
+     requires: [{stat: "know.study.quarry", label: "The Quarry Road known 4 of 4", needed: walkKnobs.studyLevels[3]}],
+     opens: "Marsh lights and bog hounds to fight, and pitch for the town's last works; bog iron, the hounds' packs and the leech mass as he learns the marsh."}
 ]
 
 const walkMobs = [
@@ -353,7 +383,50 @@ const walkMobs = [
      script: ["circle", "maul"],
      phases: [{at: 50, line: "The Old Shell's back cracks open.", armour: 1, ward: 0, quick: 6, resist: {cut: 0, blunt: -50, fire: -25}}],
      lesson: "The Old Shell's lesson: hammer it until the shell cracks; after that, anything will do.",
-     loot: [{id: "beetle_shell", chance: 100, least: 2, most: 4}]}
+     loot: [{id: "beetle_shell", chance: 100, least: 2, most: 4}]},
+
+    // Millbrook Marsh: lights that are workings, not bodies; hounds the cold slows; a mass that
+    // mends unless it burns; and the Lantern Mother, who calls the lights
+    {id: "light", name: "Marsh light", many: "marsh lights", pack: "Marsh lights", lone: "A marsh light", rarity: "common", packSize: 4, holdsBack: 0, roles: ["swarm", "unnatural"],
+     about: "A pale flame a hand high, over water that should not hold it. An edge goes through it as through smoke; a blessing does not.",
+     hp: 8, least: 4, most: 6, armour: 0, ward: 0, quick: 10, awareness: 8, poise: 0, verb: "sears", resist: {cut: 75, pierce: 75, blunt: 50, holy: -50},
+     moves: {bite: {name: "Cold fire", line: "It comes close and burns without heat: a working, that a ward turns and armour does not.", kind: "spell"},
+             circle: {name: "Drift", line: "It drifts off over the water, and comes back from another side."}},
+     script: ["bite", "circle"],
+     lesson: "The marsh light's lesson: a blade goes through it as through smoke. Fire, frost or a blessing end it; so does a blow at all of them.",
+     loot: [{id: "wisp_glass", chance: 10, least: 1, most: 1}]},
+
+    {id: "hound", name: "Bog hound", many: "bog hounds", pack: "Bog hounds", lone: "A bog hound", rarity: "common", packSize: 3, holdsBack: 1, roles: ["pack"],
+     about: "Black with mud to the shoulder, and thin. They run in threes through the reeds, and the cold makes them slow.",
+     hp: 20, least: 4, most: 6, armour: 1, ward: 0, quick: 9, awareness: 9, poise: 0, verb: "bites", resist: {frost: -50, fire: 25},
+     moves: {bite: {name: "Bite", line: "It comes low out of the reeds, for the leg."},
+             circle: {name: "Circle", line: "It slips into the reeds and out of them again."},
+             hold: {name: "Hang back", line: "It waits in the reeds while the first of them goes in."}},
+     script: ["bite", "circle", "bite"],
+     lesson: "The bog hound's lesson: the cold stiffens them. Frost, and the pack comes slower.",
+     loot: [{id: "hides", chance: 100, least: 1, most: 2}, {id: "fangs", chance: 40, least: 1, most: 2}]},
+
+    {id: "leech", name: "Leech mass", many: "leech masses", pack: "", lone: "", rarity: "uncommon", packSize: 1, holdsBack: 0, roles: ["unnatural"],
+     about: "A heap of black leeches grown into one, as big as a sow. A wound in it closes as he watches, unless it burns.",
+     hp: 40, least: 4, most: 7, armour: 0, ward: 0, quick: 3, awareness: 3, poise: 15, verb: "fastens", resist: {cut: 25, pierce: 50, fire: -25, holy: -25}, mends: 10,
+     moves: {bite: {name: "Fasten", line: "It rolls onto him and holds, and drinks."},
+             circle: {name: "Swell", line: "It draws in on itself, heavy with what it has drunk."}},
+     script: ["bite", "circle"],
+     lesson: "The leech mass's lesson: it mends at every turn of its own, but not while it burns.",
+     loot: [{id: "pitch", chance: 60, least: 1, most: 2}]},
+
+    {id: "lantern", name: "The Lantern Mother", many: "lantern mothers", pack: "", lone: "", rarity: "rare", packSize: 1, holdsBack: 0, roles: ["unnatural"],
+     about: "A tall grey shape over the deepest pool, holding a lamp that is not a lamp. Every light of the marsh is hers, and she calls them home.",
+     hp: 80, least: 6, most: 9, armour: 0, ward: 3, quick: 8, awareness: 12, poise: 30, verb: "sears", resist: {cut: 50, pierce: 50, blunt: 25, holy: -50},
+     moves: {bite: {name: "Lamplight", line: "The lamp turns on him, and its light is cold: a working.", kind: "spell"},
+             circle: {name: "Lift the lamp", line: "She raises her lamp, and the marsh goes dark around it."},
+             maul: {name: "Drowning light", line: "All of the lamp's light at once, as cold as the bottom of the pool: a working.", kind: "spell"}},
+     script: ["bite", "circle", "maul"],
+     phases: [{at: 75, line: "The Lantern Mother lifts her lamp. A light comes to it over the water.", calls: {mob: "light", count: 1}},
+              {at: 50, line: "The lamp burns higher, and another light answers it.", quick: 10, calls: {mob: "light", count: 1}},
+              {at: 25, line: "The lamp gutters. The last of her lights comes to it.", calls: {mob: "light", count: 1}}],
+     lesson: "The Lantern Mother's lesson: she calls a light each time she is hurt. Bless the blade, or end her lights all at once.",
+     loot: [{id: "pitch", chance: 100, least: 2, most: 3}]}
 ]
 
 // What a walk may meet besides one beast or a pack of it: beasts of several kinds in one fight
@@ -377,7 +450,13 @@ const walkEncounters = [
     {id: "grey", name: "The Old Grey", line: "The pack's leader, with two of his wolves.",
      foes: [{mob: "oldgrey", count: 1}, {mob: "wolf", count: 2}], boss: true, level: 4, rarity: "rare",
      gives: [{stat: "grey_pelt", amount: 1}, {stat: "grey_slain", amount: 1}, {stat: "know.fam.weaver", amount: 1}],
-     lore: "The Old Grey is dead. The Hollow is quiet for a season, and the Keep's hunters drink to a boy."}
+     lore: "The Old Grey is dead. The Hollow is quiet for a season, and the Keep's hunters drink to a boy."},
+
+    // Millbrook Marsh's: the Lantern Mother over the deepest pool, with two of her lights
+    {id: "lantern", name: "The Lantern Mother", line: "Over the deepest pool, a lamp held by something tall. Two lights wait by it, and more will come.",
+     foes: [{mob: "lantern", count: 1}, {mob: "light", count: 2}], boss: true, level: 4, rarity: "rare",
+     gives: [{stat: "wisp_glass", amount: 1}, {stat: "lantern_slain", amount: 1}, {stat: "know.fam.wisp", amount: 1}],
+     lore: "The Lantern Mother's lamp lies in the pool, dark. In its glass a small light still moves, and it follows him home."}
 ]
 
 const walkEvents = [
@@ -443,6 +522,16 @@ const walkEvents = [
          line: "Dressed stone from the broken cart"},
         {id: "pass", label: "Leave it", ap: 0, hp: 0, items: [], effects: [],
          line: "He left the cart where it lay"}
+     ]},
+
+    {id: "marsh.causeway", trigger: "gather", weight: 1, once: false,
+     title: "The old causeway",
+     text: "A road of logs runs out into the marsh, half sunk, black with pitch. Whoever laid it went somewhere, once.",
+     options: [
+        {id: "scrape", label: "Scrape the logs", ap: 1, hp: 0, items: [{id: "pitch", amount: 2}], effects: [],
+         line: "Pitch scraped from the causeway logs"},
+        {id: "follow", label: "Follow it out", ap: 1, hp: -4, items: [], effects: [{kind: "study", amount: 1}],
+         line: "He followed the causeway until it sank"}
      ]}
 ]
 

@@ -22,7 +22,7 @@ import "../rules/testbuilds"
 
 var builds = testBuilds
 
-// ---- the fights: each beast of the existing places, a pack where it has one, and the bosses ------------
+// ---- the fights: each beast of every place, a pack where it has one, and the bosses ---------------------
 
 var fights = [
     {id: "rat", zone: "millpond", seek: "rat", count: 1, age: 10, boss: false},
@@ -33,9 +33,14 @@ var fights = [
     {id: "wolves", zone: "hollow", seek: "wolf", count: 3, age: 14, boss: false},
     {id: "boar", zone: "hollow", seek: "boar", count: 1, age: 14, boss: false},
     {id: "stag", zone: "hollow", seek: "stag", count: 1, age: 14, boss: false},
+    {id: "lights", zone: "marsh", seek: "light", count: 4, age: 18, boss: false},
+    {id: "hound", zone: "marsh", seek: "hound", count: 1, age: 18, boss: false},
+    {id: "hounds", zone: "marsh", seek: "hound", count: 3, age: 18, boss: false},
+    {id: "leech", zone: "marsh", seek: "leech", count: 1, age: 18, boss: false},
     {id: "pike", zone: "millpond", seek: "enc.pike", count: 0, age: 10, boss: true},
     {id: "shell", zone: "quarry", seek: "enc.shell", count: 0, age: 14, boss: true},
-    {id: "grey", zone: "hollow", seek: "enc.grey", count: 0, age: 14, boss: true}
+    {id: "grey", zone: "hollow", seek: "enc.grey", count: 0, age: 14, boss: true},
+    {id: "lantern", zone: "marsh", seek: "enc.lantern", count: 0, age: 18, boss: true}
 ]
 
 var outs = ["run", "record", "marks", "fight", "foes", "account", "after", "site", "seeks", "works", "options", "card", "recipe"]
@@ -300,6 +305,31 @@ for (var b : builds)
 
 check("a boy's tools beat his age's beasts", len(weak1) == 0, join(weak1, ", "))
 
+// 1b. Every man of a class wins 90 % of the ordinary beasts of every place open at his age: the
+//     Marsh's too, which no boy walks (the combat design's rule: every rhythm finishes every place)
+var weak1b = []
+
+for (var b : builds)
+{
+    if (not b.boy)
+    {
+        for (var f : fights)
+        {
+            if (not f.boss and f.age <= b.age)
+            {
+                var c = cellOf(b.id, f.id)
+
+                if (c.wins < 90)
+                {
+                    push(weak1b, b.id + " / " + f.id + " " + toString(c.wins) + " %")
+                }
+            }
+        }
+    }
+}
+
+check("a man's tools beat every place's beasts", len(weak1b) == 0, join(weak1b, ", "))
+
 // 2. A well-prepared boy can beat the Old Grey; a man of any class does
 var bestBoy = 0
 var weak2 = []
@@ -328,7 +358,7 @@ for (var b : builds)
 {
     if (not b.boy)
     {
-        for (var boss : ["pike", "shell"])
+        for (var boss : ["pike", "shell", "lantern"])
         {
             var c = cellOf(b.id, boss)
 
@@ -353,7 +383,7 @@ check("strike alone is slow on a boar", plainBoar.days > bladeBoar.days, "plain 
 // 5. Each place has a best rhythm, and not the same one everywhere
 var bestOf = {}
 
-for (var place : ["millpond", "quarry", "hollow"])
+for (var place : ["millpond", "quarry", "hollow", "marsh"])
 {
     var best = ""
     var bestDays = 1000000
@@ -403,7 +433,7 @@ for (var n : named)
 }
 
 check("a best rhythm for each place, not one for all", distinct >= 2,
-      "pond: " + bestOf["millpond"] + ", quarry: " + bestOf["quarry"] + ", hollow: " + bestOf["hollow"])
+      "pond: " + bestOf["millpond"] + ", quarry: " + bestOf["quarry"] + ", hollow: " + bestOf["hollow"] + ", marsh: " + bestOf["marsh"])
 
 push(lines, "")
 push(lines, "CHECKS")

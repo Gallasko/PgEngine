@@ -167,7 +167,7 @@ const townPlaces = [
         {work: "Endow a Reading Desk", built: "The reading desk", months: 9, coin: 20, costs: [{stat: "water", amount: 40}, {stat: "berries", amount: 40}, {stat: "gems", amount: 2}, {stat: "int"}],
          gives: "Every life has a slot for one more familiar", slots: 1,
          lore: "One desk at the gate is free to the town's children. The book chained to it tells how to keep two creatures where one was kept."},
-        {work: "Fund a Town Scholarship", built: "The town scholarship", months: 12, coin: 45, costs: [{stat: "water", amount: 80}, {stat: "berries", amount: 80}, {stat: "gems", amount: 4}, {stat: "antler"}],
+        {work: "Fund a Town Scholarship", built: "The town scholarship", months: 12, coin: 45, costs: [{stat: "water", amount: 80}, {stat: "berries", amount: 80}, {stat: "gems", amount: 4}, {stat: "wisp_glass"}],
          gives: "The Collegium asks Intelligence 11, not 12",
          lore: "One child of Bellmoor is taken each year on promise alone."}
      ]},
@@ -179,7 +179,7 @@ const townPlaces = [
         {work: "Build the Waystation", built: "The waystation", months: 12, coin: 25, costs: [{stat: "stone", amount: 40}, {stat: "clay", amount: 20}, {stat: "gems", amount: 2}],
          gives: "Expedition to Harrow takes 12 months, not 18",
          lore: "Half the way is under a roof now."},
-        {work: "Raise the Harrow Shrine", built: "The Harrow shrine", months: 18, coin: 50, costs: [{stat: "stone", amount: 80}, {stat: "clay", amount: 20}, {stat: "gems", amount: 4}, {stat: "shell_plate"}, {stat: "vit", amount: 10}, {stat: "vitmax", amount: 10}],
+        {work: "Raise the Harrow Shrine", built: "The Harrow shrine", months: 18, coin: 50, costs: [{stat: "stone", amount: 80}, {stat: "clay", amount: 20}, {stat: "gems", amount: 4}, {stat: "bog_iron"}, {stat: "vit", amount: 10}, {stat: "vitmax", amount: 10}],
          gives: "A new life starts holding the Harrow relic", start: [{stat: "harrow_relic"}],
          lore: "The shrine cost him his health. What it holds is passed down."}
      ]},
@@ -209,7 +209,7 @@ const townPlaces = [
         {work: "Dig the Storehouse Cellar", built: "The storehouse cellar", months: 9, coin: 10, costs: [{stat: "stone", amount: 40}, {stat: "firewood", amount: 40}, {stat: "clay", amount: 20}, {stat: "gems", amount: 2}],
          gives: "The stash keeps 200 more of each thing", stash: 200,
          lore: "A cellar under the storehouse, cool and dry. The family's stores go down twice as deep."},
-        {work: "Bind the Storehouse Doors in Iron", built: "The iron doors", months: 12, coin: 20, costs: [{stat: "stone", amount: 80}, {stat: "firewood", amount: 80}, {stat: "clay", amount: 20}, {stat: "gems", amount: 4}, {stat: "shell_plate"}],
+        {work: "Bind the Storehouse Doors in Iron", built: "The iron doors", months: 12, coin: 20, costs: [{stat: "stone", amount: 80}, {stat: "firewood", amount: 80}, {stat: "clay", amount: 20}, {stat: "gems", amount: 4}, {stat: "bog_iron"}],
          gives: "The stash keeps 400 more of each thing", stash: 400,
          lore: "Iron on the doors, and a lock the smith made for no other. What is kept there is kept."}
      ]},

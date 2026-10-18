@@ -101,7 +101,8 @@ const storeRows = [
 // The creatures he can bind to himself, for life. Each eats and makes a thing a month (the
 // month's own rules read `eats` and `makes`; binding asks `bind`), and each fills one slot.
 // `known` kinds are his from the first; the others wait for the stat "know.fam.<id>", which
-// research, the Old Shell and the Old Grey give. `one` is the kind said once ("a hedge sprite").
+// research, the Old Shell, the Old Grey and the Lantern Mother give. `one` is the kind said once
+// ("a hedge sprite").
 const familiarKinds = [
     {id: "sprite", name: "a hedge sprite", one: "sprite", glyph: "magic", known: true,
      about: "A small green thing that lives in the hedge. It keeps house for its berries, and asks a ration of him.",
@@ -121,7 +122,13 @@ const familiarKinds = [
     {id: "weaver", name: "a gem weaver", one: "weaver", glyph: "relic", known: false,
      about: "A spider of the deep rock that spins stone into gems. The Old Grey keep the secret of it.",
      train: "Teach the Weaver the Fine Thread",
-     eats: [{stat: "stone", amount: 3}, {stat: "water", amount: 3}, {stat: "rations", amount: 1}], makes: [{stat: "gems", amount: 1}], bind: [{stat: "stone", amount: 10}]}
+     eats: [{stat: "stone", amount: 3}, {stat: "water", amount: 3}, {stat: "rations", amount: 1}], makes: [{stat: "gems", amount: 1}], bind: [{stat: "stone", amount: 10}]},
+    // The Lantern Mother's: bound into a pitch lamp, it makes light for the night's work, and the
+    // Collegium buys what it leaves in the lamp as reagents
+    {id: "wisp", name: "a marsh wisp", one: "wisp", glyph: "magic", known: false,
+     about: "A small cold light out of Millbrook Marsh, kept in a lamp of pitch. It lights the night's work, and what it leaves in the lamp is a reagent.",
+     train: "Teach the Wisp the Steady Flame",
+     eats: [{stat: "rations", amount: 1}, {stat: "water", amount: 2}], makes: [{stat: "reagents", amount: 1}], bind: [{stat: "pitch", amount: 2}]}
 ]
 
 // What gives him slots to bind familiars in, beside the life's own (`economyKnobs.baseSlots`): a
@@ -145,10 +152,12 @@ const slotGivers = [
 // What the smithy forges of resources, a piece once a life: each is held as the stat
 // "gear.<id>" (1 while he has it) and goes with him into every fight (fightcalc.pg's `gearSum`):
 // `might` adds to his Might, `armour` comes off each blow a beast lands on him, `ward` off each of
-// its workings (a warded charm comes with Millbrook Marsh, where beasts first work against him).
+// its workings (the moves of a beast that are spells: the marsh lights' and the Lantern Mother's).
 // Like anything he holds, it is lost at his death: not in the stash, not left to a place.
 // `forge` is what its row at the smithy asks (activitytable.pg's "forge.<id>"): the resources it
-// takes, its months, and the level of the smithy that makes it.
+// takes, its months, the level of the smithy that makes it, and `onlyWith`, a stat without which
+// its row is not listed: the warded charm waits for the world to have met a marsh light's working
+// ("know.move.light.bite", which the walk sets once the light has used it on him).
 // expedition.pg imports this table for the fight; resources.pg lists each piece under GEAR.
 const gearPieces = [
     {id: "iron_blade", name: "An iron blade", glyph: "swordsmanship", might: 4, armour: 0, ward: 0,
@@ -156,5 +165,8 @@ const gearPieces = [
      forge: {costs: [{stat: "stone", amount: 10}, {stat: "firewood", amount: 10}, {stat: "gems", amount: 1}], months: 2, smithy: 1}},
     {id: "jerkin", name: "A leather jerkin", glyph: "forge", might: 0, armour: 2, ward: 0,
      about: "Hides boiled hard and stitched over his chest and shoulders. A bite or a blow takes less of him through it.",
-     forge: {costs: [{stat: "hides", amount: 4}, {stat: "firewood", amount: 6}], months: 1, smithy: 1}}
+     forge: {costs: [{stat: "hides", amount: 4}, {stat: "firewood", amount: 6}], months: 1, smithy: 1}},
+    {id: "charm", name: "A warded charm", glyph: "magic", might: 0, armour: 0, ward: 2,
+     about: "A ring of iron and cut stones, quenched in well water and worked over at the smithy. A working that reaches him is weaker through it.",
+     forge: {costs: [{stat: "gems", amount: 3}, {stat: "water", amount: 10}], months: 2, smithy: 2, onlyWith: "know.move.light.bite"}}
 ]

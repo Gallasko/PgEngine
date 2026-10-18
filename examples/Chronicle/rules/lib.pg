@@ -1282,7 +1282,10 @@ const statNames = {
     firewood: "Firewood",
     clay: "Clay",
     ashwood: "Ash wood",
-    stone: "Stone"
+    stone: "Stone",
+    bog_iron: "Bog iron",
+    pitch: "Pitch",
+    wisp_glass: "Wisp-glass"
 }
 
 // What a walk leaves in him: their keys hold a dot
@@ -1290,6 +1293,7 @@ statNames["walked.hedgerows"] = "Walked the Hedgerows"
 statNames["walked.millpond"] = "Walked Mill Pond"
 statNames["walked.hollow"] = "Walked the Hollow Woods"
 statNames["walked.quarry"] = "Walked the Quarry Road"
+statNames["walked.marsh"] = "Walked Millbrook Marsh"
 statNames["know.found.millpond"] = "Found the pond"
 statNames["know.study.hedgerows"] = "Studies of the Hedgerows"
 statNames["know.study.millpond"] = "Studies of Mill Pond"
@@ -1443,7 +1447,9 @@ const statShort = {
     tome: "TOME",
     remedy: "REMEDY",
     antler: "ANTLER",
-    ashwood: "ASH WOOD"
+    ashwood: "ASH WOOD",
+    bog_iron: "BOG IRON",
+    wisp_glass: "WISP-GLASS"
 }
 
 // What a walk's task leaves the world, as the row of the task says it
@@ -1480,16 +1486,19 @@ statShort["fam.imp"] = "IMP"
 statShort["fam.brownie"] = "BROWNIE"
 statShort["fam.mole"] = "MOLE"
 statShort["fam.weaver"] = "WEAVER"
+statShort["fam.wisp"] = "WISP"
 statNames["fam.sprite"] = "A hedge sprite"
 statNames["fam.imp"] = "A well imp"
 statNames["fam.brownie"] = "A kitchen brownie"
 statNames["fam.mole"] = "A stone mole"
 statNames["fam.weaver"] = "A gem weaver"
+statNames["fam.wisp"] = "A marsh wisp"
 statNames["know.fam.sprite"] = "How to bind a hedge sprite"
 statNames["know.fam.imp"] = "How to bind a well imp"
 statNames["know.fam.brownie"] = "How to bind a kitchen brownie"
 statNames["know.fam.mole"] = "How to bind a stone mole"
 statNames["know.fam.weaver"] = "How to bind a gem weaver"
+statNames["know.fam.wisp"] = "How to bind a marsh wisp"
 
 // What teaching a familiar adds to each one's yield of a thing (the stat "more.<stat>"), and the
 // short names of the kinds the world teaches, said as what he knows.
@@ -1498,22 +1507,27 @@ statShort["more.water"] = "MORE WATER"
 statShort["more.rations"] = "MORE RATIONS"
 statShort["more.stone"] = "MORE STONE"
 statShort["more.gems"] = "MORE GEMS"
+statShort["more.reagents"] = "MORE REAGENTS"
 statNames["more.berries"] = "Berries each sprite makes more"
 statNames["more.water"] = "Water each imp makes more"
 statNames["more.rations"] = "Rations each brownie makes more"
 statNames["more.stone"] = "Stone each mole makes more"
 statNames["more.gems"] = "Gems each weaver makes more"
+statNames["more.reagents"] = "Reagents each wisp makes more"
 statShort["know.fam.sprite"] = "KNOWS THE SPRITE"
 statShort["know.fam.imp"] = "KNOWS THE IMP"
 statShort["know.fam.brownie"] = "KNOWS THE BROWNIE"
 statShort["know.fam.mole"] = "KNOWS THE MOLE"
 statShort["know.fam.weaver"] = "KNOWS THE WEAVER"
+statShort["know.fam.wisp"] = "KNOWS THE WISP"
 
 // What the smithy forges (economytable.pg's `gearPieces`: the stat "gear.<id>")
 statShort["gear.iron_blade"] = "IRON BLADE"
 statShort["gear.jerkin"] = "JERKIN"
+statShort["gear.charm"] = "CHARM"
 statNames["gear.iron_blade"] = "An iron blade"
 statNames["gear.jerkin"] = "A leather jerkin"
+statNames["gear.charm"] = "A warded charm"
 
 // The most of a stat he can hold at once. A stat not listed has no limit. The limit closes
 // what would bring more (activitytable.pg) and stops what a month produces (resources.pg); an

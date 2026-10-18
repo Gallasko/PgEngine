@@ -339,8 +339,8 @@ fun biteRange(mob, move)
     var blunted = wholeOf(guardOf(), 2)
 
     // What he wears stops a little of each: his armour a blow of the body, his ward a working
-    // (a move of the beast's `kind` "spell"). No piece has a ward yet: the warded charm comes
-    // with Millbrook Marsh, with the first beasts that work against him
+    // (a move of the beast's `kind` "spell": the marsh lights' and the Lantern Mother's, which
+    // the warded charm turns)
     var told = pick(mob.moves, move, {})
 
     if (pick(told, "kind", "") == "spell")
@@ -588,6 +588,18 @@ fun tickFoe(n)
         foe.hp = larger(0, foe.hp - bled)
         foe.bleeding = foe.bleeding - 1
         say("The " + name + " bleeds", toString(bled), "gain")
+    }
+
+    // What mends itself (expeditiontable.pg's `mends`, the leech mass) closes a share of its
+    // wounds at its turn, but never while it burns
+    var mends = foeField(n, "mends", 0)
+
+    if (mends > 0 and foe.hp > 0 and foe.hp < foe.hpMax and pick(foe, "mark", "") != "fire")
+    {
+        var closed = smaller(foe.hpMax - foe.hp, larger(1, share(foe.hpMax, mends)))
+
+        foe.hp = foe.hp + closed
+        say("The " + name + " mends", "+" + toString(closed), "note")
     }
 
     if (pick(foe, "markTurns", 0) > 0)
