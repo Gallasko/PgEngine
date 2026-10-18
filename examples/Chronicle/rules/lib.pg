@@ -322,7 +322,68 @@ fun kindById(id)
     return {}
 }
 
-// How many familiars he can keep: the life's own slots, and what his standing and calling add.
+// The levels of the town that stand, every place's in towntable.pg's order and each place's
+// first first: a level stands once the place is raised to it ("town.<id>" in `character`). What
+// a level gives the economy (its `slots`, `teaches`, `stash` and `more`) is read from these.
+// Only for a script that imports towntable.pg.
+fun levelsReached(character)
+{
+    var reached = []
+
+    for (var t = 0; t < len(townPlaces); t++)
+    {
+        var place = townPlaces[t]
+        var at = clamp(statOf(character, "town." + place.id), 0, len(place.levels))
+
+        for (var l = 0; l < at; l++)
+        {
+            push(reached, place.levels[l])
+        }
+    }
+
+    return reached
+}
+
+// What the levels of the town that stand add to each familiar's yield of a stat: the `amount`
+// of each of their `more` that names it.
+fun moreFromTown(character, stat)
+{
+    var more = 0
+    var reached = levelsReached(character)
+
+    for (var r = 0; r < len(reached); r++)
+    {
+        var given = listOf(reached[r], "more")
+
+        for (var m = 0; m < len(given); m++)
+        {
+            if (given[m].stat == stat)
+            {
+                more = more + given[m].amount
+            }
+        }
+    }
+
+    return more
+}
+
+// The most of any one thing the stash keeps between lives: its own, and what the levels of the
+// town that stand add to it (their `stash`).
+fun stashMost(character)
+{
+    var most = economyKnobs.stashMost
+    var reached = levelsReached(character)
+
+    for (var r = 0; r < len(reached); r++)
+    {
+        most = most + lookup(reached[r], "stash", 0)
+    }
+
+    return most
+}
+
+// How many familiars he can keep: the life's own slots, what his standing and calling add, and
+// what the levels of the town that stand add (their `slots`), from his first day.
 fun slotsOf(character)
 {
     var slots = economyKnobs.baseSlots
@@ -335,6 +396,13 @@ fun slotsOf(character)
         {
             slots = slots + giver.slots
         }
+    }
+
+    var reached = levelsReached(character)
+
+    for (var r = 0; r < len(reached); r++)
+    {
+        slots = slots + lookup(reached[r], "slots", 0)
     }
 
     return slots
@@ -366,10 +434,26 @@ fun freeSlots(character)
     return free
 }
 
-// Whether a kind is his to bind: known from the start, or learned in this world.
+// Whether a kind is his to bind: known from the start, learned in this world, or taught by a
+// level of the town that stands (its `teaches`), for as long as it stands.
 fun kindKnown(character, kind)
 {
-    return kind.known or statOf(character, "know.fam." + kind.id) > 0
+    if (kind.known or statOf(character, "know.fam." + kind.id) > 0)
+    {
+        return true
+    }
+
+    var reached = levelsReached(character)
+
+    for (var r = 0; r < len(reached); r++)
+    {
+        if (lookup(reached[r], "teaches", "") == kind.id)
+        {
+            return true
+        }
+    }
+
+    return false
 }
 
 // A stat said as a number of things, in caps: "1 RATION", "4 BERRIES". One says the thing once
@@ -835,8 +919,8 @@ fun shiftIn(after, change, stat, amount)
 // The familiars bound to him eat and make their month, once he has eaten his: each kind in the
 // order of economytable.pg's `familiarKinds`, so that what one makes can feed a later one the same
 // month. A kind is fed all or nothing: when `after` holds what all of them eat, they take it and
-// make their things, and each `more.<stat>` he has learned adds that much to each one's yield, up
-// to the limit. When it does not, they take nothing and make nothing, and `entries` says they
+// make their things, and each `more.<stat>` he has learned adds that much to each one's yield, as
+// does the `more` of a level of the town that stands (`moreFromTown`), up to the limit. When it does not, they take nothing and make nothing, and `entries` says they
 // went hungry: their hunger costs him nothing. Returns what each stat moved, for the rates.
 fun feedFamiliars(after, entries)
 {
@@ -870,7 +954,7 @@ fun feedFamiliars(after, entries)
                 {
                     var stat = bound.makes[m].stat
 
-                    shiftIn(after, moved, stat, n * bound.makes[m].amount + statOf(after, "more." + stat) * n)
+                    shiftIn(after, moved, stat, n * bound.makes[m].amount + (statOf(after, "more." + stat) + moreFromTown(after, stat)) * n)
                 }
             }
             else

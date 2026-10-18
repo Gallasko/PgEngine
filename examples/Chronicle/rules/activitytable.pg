@@ -148,6 +148,10 @@
 //                    in the place of its group.
 //   whileNot: "stat" its row is not listed once he holds that stat ("town_known": exploring the
 //                    town is for who does not know it).
+//   whileUnknown: "kind"
+//                    its row is not listed once that kind of familiar is his to bind (lib.pg's
+//                    `kindKnown`: learned by the world, or taught by a level of the town that
+//                    stands): what teaches a kind is for who does not know it.
 //   place: "id"      it is done at a place of the town: once the town is known its row stands on
 //                    the Town page, at that place (the market), and no longer on the Life page.
 //                    A work that raises a place (`raises`) has no row: a click on the
@@ -500,14 +504,15 @@ var activities = [
      gains: [{stat: "lore"}, {stat: "forbidden_read"}],
      requires: [{stat: "letters", needed: 2}]},
     // Two kinds of familiar are learned from books and a hearth rather than from a fight: the
-    // world keeps what is learned (the stat "know.fam.<id>"), so the next life can bind them
+    // world keeps what is learned (the stat "know.fam.<id>"), so the next life can bind them. A
+    // kind that is his already, learned or taught by a level of the town, is not studied again
     {id: "research.imp", group: "Study", name: "Read of the Well Spirits", glyph: "study", months: 3, rank: "", each: "LEARNS A KIND OF FAMILIAR", path: "", fromAge: 9, uses: 1,
-     whileNot: "know.fam.imp",
+     whileUnknown: "imp",
      about: "The chapel keeps a book of the things that live in wells, and what they ask to be fetched.",
      gains: [{stat: "know.fam.imp"}],
      requires: [{stat: "letters"}]},
     {id: "research.brownie", group: "Study", name: "Learn the Kitchen Charms", glyph: "study", months: 2, rank: "", each: "LEARNS A KIND OF FAMILIAR", path: "", fromAge: 8, uses: 1,
-     whileNot: "know.fam.brownie",
+     whileUnknown: "brownie",
      about: "The cook knows a charm or two for the hearth, and what to leave out for whoever keeps it.",
      gains: [{stat: "know.fam.brownie"}],
      requires: [{stat: "done.kitchen", label: "Helped in the kitchen"}]},
@@ -1216,7 +1221,10 @@ for (var k = 0; k < len(familiarKinds); k++)
         firstKind = false
     }
 
-    if (not kind.known)
+    // A kind that is not his has no row: it waits for what the world learns of it ("know.fam.<id>").
+    // A level of the town that teaches it makes it his as well (lib.pg's `kindKnown`), and its row
+    // is the same one
+    if (not kindKnown(character, kind))
     {
         bindRow.onlyWith = "know.fam." + kind.id
     }
@@ -2142,6 +2150,17 @@ for (var i = 0; i < len(activities); i++)
     if (has(a, "whileNot"))
     {
         if (statOf(character, a.whileNot) > 0)
+        {
+            a.listed = false
+        }
+    }
+
+    // What teaches a kind of familiar has no row once the kind is his, however it came
+    if (has(a, "whileUnknown"))
+    {
+        var taught = kindById(a.whileUnknown)
+
+        if (kindKnown(character, taught))
         {
             a.listed = false
         }

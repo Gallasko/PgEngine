@@ -87,6 +87,9 @@ if (statOf(character, "town.inn") >= 2)
     epitaphLine = "At the inn they still tell of the one before him. "
 }
 
+// The most of any one thing the stash keeps: what each place's stash line and `stash` say
+var mostKept = stashMost(character)
+
 var places = []
 var start = []
 
@@ -300,7 +303,7 @@ for (var t = 0; t < len(townPlaces); t++)
 
     // What goes into the stash at his death if he leaves his gift to this place: the rest of
     // what he holds of the basics, once it has taken what it asks
-    var stashed = stashWords(character, shown.leaves, economyKnobs.stashMost)
+    var stashed = stashWords(character, shown.leaves, mostKept)
 
     if (stashed != "")
     {
@@ -312,7 +315,7 @@ for (var t = 0; t < len(townPlaces); t++)
 
 // And with no gift: what the ending says after the story of his life
 var stashLine = ""
-var stashedAll = stashWords(character, [], economyKnobs.stashMost)
+var stashedAll = stashWords(character, [], mostKept)
 
 if (stashedAll != "")
 {
@@ -321,10 +324,11 @@ if (stashedAll != "")
 
 // What the stash keeps at his death, of each basic resource, and the most it keeps of each: what
 // he holds then, less what his gift left to a place, goes into it for the lives after him. Every
-// basic is kept, up to the same most for now (economytable.pg's `economyKnobs`).
+// basic is kept, up to the same most: economytable.pg's `economyKnobs`, and what the levels of the
+// town that stand add to it (lib.pg's `stashMost`).
 var stash = []
 
 for (var b = 0; b < len(basicResources); b++)
 {
-    push(stash, {stat: basicResources[b].id, most: economyKnobs.stashMost})
+    push(stash, {stat: basicResources[b].id, most: mostKept})
 }

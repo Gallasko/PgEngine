@@ -63,6 +63,9 @@
 //                                     the player's for a month of his.
 // The most he can hold of a stat is lib.pg's `statLimits`: what a month produces stops at it,
 // and what he already holds past it (an activity may carry him there) is left alone.
+// The town's places (towntable.pg) are imported for what a level that stands adds to what a
+// familiar makes (its `more`, lib.pg's `feedFamiliars`): right after lib.pg, which it imports
+// again.
 //
 // The numbers are placeholders for the game's balance: change them here, nothing in C++ moves.
 
@@ -70,6 +73,7 @@ import "string"
 import "math"
 import "algorithm"
 import "lib"
+import "towntable"
 import "economytable"
 import "expeditiontable"
 

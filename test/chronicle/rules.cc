@@ -1619,6 +1619,105 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // The free slots a bind row asks, as its requirement says them
+        namespace
+        {
+            int freeSlotsOn(const RuleActivity& row)
+            {
+                for (const auto& req : row.requires)
+                {
+                    if (textOf(req, "label") == "A free slot")
+                        return intOf(req, "current");
+                }
+
+                ADD_FAILURE() << "no slot asked";
+
+                return -1;
+            }
+        }
+
+        // The mill loft gives a slot to every life of the town, counted before any class: a boy of
+        // seven has two
+        TEST(rules_test, the_loft_gives_a_slot)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = boy();
+            character["scavenged"] = ElementType{2};
+            EXPECT_EQ(freeSlotsOn(activityAt(f.rules, 7.0f, character, "bind.sprite")), 1);
+
+            character["town.mill"] = ElementType{2};
+            EXPECT_EQ(freeSlotsOn(activityAt(f.rules, 7.0f, character, "bind.sprite")), 2);
+
+            // A level below it gives none
+            character["town.mill"] = ElementType{1};
+            EXPECT_EQ(freeSlotsOn(activityAt(f.rules, 7.0f, character, "bind.sprite")), 1);
+        }
+
+        // A level that teaches a kind makes it his to bind while it stands: the bellows teach the
+        // mole. Known twice, from the town and from the world, its row is there once; and a kind
+        // the town teaches is not researched again
+        TEST(rules_test, the_bellows_teach_the_mole)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = boy();
+            EXPECT_FALSE(flag(activityAt(f.rules, 7.5f, character, "bind.mole").fields, "listed"));
+
+            character["town.smithy"] = ElementType{1};
+            EXPECT_TRUE(flag(activityAt(f.rules, 7.5f, character, "bind.mole").fields, "listed"));
+
+            character["know.fam.mole"] = ElementType{1};
+
+            std::vector<RuleActivity> activities;
+            ASSERT_TRUE(f.rules.activities(7.5f, character, activities)) << firstError(f.rules);
+
+            size_t moles = 0;
+
+            for (const auto& a : activities)
+            {
+                if (textOf(a.fields, "id") == "bind.mole")
+                {
+                    ++moles;
+                    EXPECT_TRUE(flag(a.fields, "listed"));
+                }
+            }
+
+            EXPECT_EQ(moles, 1u);
+
+            // The chapel primer teaches the imp: no study of the well spirits for who has it
+            ElementMap reader = boy();
+            reader["letters"] = ElementType{1};
+            EXPECT_TRUE(flag(activityAt(f.rules, 9.5f, reader, "research.imp").fields, "listed"));
+            EXPECT_FALSE(flag(activityAt(f.rules, 9.5f, reader, "bind.imp").fields, "listed"));
+
+            reader["town.chapel"] = ElementType{2};
+            EXPECT_FALSE(flag(activityAt(f.rules, 9.5f, reader, "research.imp").fields, "listed"));
+            EXPECT_TRUE(flag(activityAt(f.rules, 9.5f, reader, "bind.imp").fields, "listed"));
+        }
+
+        // The market hall feeds the hedge sprites: each makes one more berry
+        TEST(rules_test, the_hall_feeds_the_sprites)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            RuleMonth month;
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{5}}, {"fam.sprite", ElementType{1}}, {"berries", ElementType{0}}, {"town.market", ElementType{2}}}, false, month)) << firstError(f.rules);
+
+            EXPECT_EQ(intOf(month.after, "berries"), 5);
+
+            // With what he has taught them, and two of them
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{5}}, {"fam.sprite", ElementType{2}}, {"berries", ElementType{0}}, {"more.berries", ElementType{1}}, {"town.market", ElementType{2}}}, false, month)) << firstError(f.rules);
+
+            EXPECT_EQ(intOf(month.after, "berries"), 12);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // Binding says what the creature eats and makes, before he binds it
         TEST(rules_test, binding_says_what_it_eats)
         {
@@ -3268,7 +3367,7 @@ namespace pg
             ASSERT_EQ(mill.given.size(), 3u);
             EXPECT_EQ(intOf(mill.given[0], "level"), 1);
             EXPECT_EQ(textOf(mill.given[0], "gives"), "Help at the Mill pays 4 more coin");
-            EXPECT_EQ(textOf(mill.given[1], "gives"), "A new life starts with 6 more rations");
+            EXPECT_EQ(textOf(mill.given[1], "gives"), "Every life has a slot for one more familiar");
             EXPECT_EQ(textOf(mill.given[2], "gives"), textOf(mill.fields, "gives"));
             EXPECT_EQ(textOf(mill.given[2], "built"), "The great millstones");
         }
@@ -4845,7 +4944,7 @@ namespace pg
             };
 
             EXPECT_EQ(given("letters"), 1);
-            EXPECT_EQ(given("rations"), 6);
+            EXPECT_EQ(given("rations"), 0);     // The mill loft gives a familiar slot now, not rations
             EXPECT_EQ(given("str"), 1);
             EXPECT_EQ(given("watch_known"), 1);
             EXPECT_EQ(given("arms"), 0);
@@ -5429,6 +5528,24 @@ namespace pg
 
                 EXPECT_TRUE(kept) << id;
             }
+        }
+
+        // The inn's chair makes the stash keep more of each thing: 150, not 100
+        TEST(rules_test, the_inn_makes_the_stash_bigger)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = townsman();
+            character["town.inn"] = ElementType{1};
+
+            RuleTown town;
+            ASSERT_TRUE(f.rules.town(20.0f, character, town)) << firstError(f.rules);
+
+            ASSERT_EQ(town.stash.size(), 5u);
+
+            for (const auto& s : town.stash)
+                EXPECT_EQ(intOf(s, "most"), 150) << textOf(s, "stat");
         }
 
         // The ending says what his death puts into the stash: what he holds of the basics, less what

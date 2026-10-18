@@ -1,7 +1,8 @@
 // Chronicle rules: the town's places and their levels
 // ----------------------------------------------------
-// Imported by town.pg (what the Town page shows) and by activitytable.pg (the works that raise a
-// place are made from this table, so the two never disagree). Never loaded itself.
+// Imported by town.pg (what the Town page shows), by activitytable.pg (the works that raise a
+// place are made from this table, so the two never disagree) and by resources.pg (what a level
+// adds to a familiar's month). Never loaded itself.
 // Input:  none.
 // Output: `townPlaces`, one table per place of Bellmoor a life can raise:
 //           {id, name, glyph, about, shows, levels [level]}
@@ -46,10 +47,22 @@
 //           gives   what this level gives, in one line, as its tile and its gloss say it
 //           start   optional [{stat, amount}]: what a new life is born with for it (town.pg's
 //                   `start`), every later life and never the first of a world
+//           slots   optional N: N more familiar slots for every life, from his first day, while
+//                   the level stands (lib.pg's `slotsOf`)
+//           teaches optional "<kind id>": that kind of familiar (economytable.pg's
+//                   `familiarKinds`) is his to bind while the level stands, as if the world had
+//                   learned it (lib.pg's `kindKnown`); its study is no longer offered
+//           stash   optional N: the stash keeps N more of each thing between lives (lib.pg's
+//                   `stashMost`, which town.pg's `stash` says)
+//           more    optional [{stat, amount}]: each familiar that makes that stat makes `amount`
+//                   more of it a month, as a lesson he taught it would (lib.pg's `feedFamiliars`)
 //           lore    the line the log writes when the level is reached
 //         The rule for what a level gives: it saves the next life time, and never gives a class
 //         for free. How each gift reaches the rules is said where it does: a `bonus` step or an
-//         `eased` requirement of activitytable.pg, a holding of resources.pg, or `start` here.
+//         `eased` requirement of activitytable.pg, a holding of resources.pg, or `start`,
+//         `slots`, `teaches`, `stash` and `more` here: what a level gives the economy (lib.pg's
+//         `levelsReached` lists the levels that stand, and its functions read these fields off
+//         them). `gives` says each of them in words, by hand.
 //
 // The numbers and the words are placeholders for the game's balance and writing: change them
 // here, nothing in C++ moves.
@@ -71,7 +84,7 @@ const townPlaces = [
          gives: "Buy rations brings 8 rations, not 6",
          lore: "A stall of his own name stands on the square. It weighs fair."},
         {work: "Build the Market Hall", built: "The market hall", months: 9, coin: 15, costs: [{stat: "berries", amount: 40}, {stat: "firewood", amount: 40}, {stat: "gems", amount: 2}, {stat: "guile"}],
-         gives: "The hall sends 1 ration every 3 months, to every life",
+         gives: "The hall sends 1 ration every 3 months, and every sprite brings 1 more berry", more: [{stat: "berries", amount: 1}],
          lore: "The hall keeps a share for the family that built it."},
         {work: "Grant the Market Charter", built: "The market charter", months: 12, coin: 35, costs: [{stat: "berries", amount: 80}, {stat: "firewood", amount: 80}, {stat: "gems", amount: 4}, {stat: "pelts"}],
          gives: "A sword and a horse are sold at the market",
@@ -83,8 +96,8 @@ const townPlaces = [
          gives: "Help at the Mill pays 4 more coin",
          lore: "The wheel turns true again. The miller's boys are paid in more than flour."},
         {work: "Raise the Mill Loft", built: "The mill loft", months: 9, coin: 10, costs: [{stat: "stone", amount: 40}, {stat: "water", amount: 40}, {stat: "gems", amount: 2}],
-         gives: "A new life starts with 6 more rations", start: [{stat: "rations", amount: 6}],
-         lore: "The loft keeps a sack for every child of the mill."},
+         gives: "Every life has a slot for one more familiar", slots: 1,
+         lore: "The loft keeps a dry corner for every child of the mill, and for whatever he has bound."},
         {work: "Set the Great Millstones", built: "The great millstones", months: 12, coin: 30, costs: [{stat: "stone", amount: 80}, {stat: "water", amount: 80}, {stat: "gems", amount: 4}, {stat: "pike_jaw"}, {stat: "str"}],
          gives: "A new life starts with 1 more Strength", start: [{stat: "str"}],
          lore: "He gave his back to the great stones. The boys who turn them grow strong."}
@@ -94,7 +107,7 @@ const townPlaces = [
     {id: "smithy", name: "The Smithy", glyph: "forge", shows: {done: "smithy"}, about: "The forge by the river, loud from dawn.",
      levels: [
         {work: "Add a Second Bellows", built: "The second bellows", months: 6, coin: 5, costs: [{stat: "firewood", amount: 20}, {stat: "stone", amount: 20}],
-         gives: "Work the Smithy opens at age 8, not 9",
+         gives: "Work the Smithy opens at age 8, not 9, and a stone mole can be bound", teaches: "mole",
          lore: "A small boy can work the second bellows."},
         {work: "Forge the Practice Blades", built: "The practice blades", months: 9, coin: 15, costs: [{stat: "firewood", amount: 40}, {stat: "stone", amount: 40}, {stat: "gems", amount: 2}],
          gives: "A new life starts with Arms 1", start: [{stat: "arms"}],
@@ -138,7 +151,7 @@ const townPlaces = [
          gives: "Learn Your Letters takes 4 months, not 6",
          lore: "There is light to read by now, even in winter."},
         {work: "Give the Chapel a Primer", built: "The chapel primer", months: 9, coin: 10, costs: [{stat: "water", amount: 40}, {stat: "clay", amount: 20}, {stat: "gems", amount: 2}, {stat: "letters"}],
-         gives: "A new life starts with Letters 1", start: [{stat: "letters"}],
+         gives: "A new life starts with Letters 1, and a well imp can be bound", start: [{stat: "letters"}], teaches: "imp",
          lore: "He copied out the primer himself. Children learn their letters from his hand."},
         {work: "Found the Almshouse", built: "The almshouse", months: 0, coin: 15, costs: [{stat: "water", amount: 80}, {stat: "clay", amount: 20}, {stat: "gems", amount: 4}, {stat: "antler"}], years: 2,
          gives: "Teach the Young pays 4 more coin",
@@ -150,8 +163,8 @@ const townPlaces = [
          gives: "Buy reagents is sold to every class",
          lore: "The scholars sell at the gate what they used to keep inside."},
         {work: "Endow a Reading Desk", built: "The reading desk", months: 9, coin: 20, costs: [{stat: "water", amount: 40}, {stat: "berries", amount: 40}, {stat: "gems", amount: 2}, {stat: "int"}],
-         gives: "A new life starts with Lore 1", start: [{stat: "lore"}],
-         lore: "One desk at the gate is free to the town's children."},
+         gives: "Every life has a slot for one more familiar", slots: 1,
+         lore: "One desk at the gate is free to the town's children. The book chained to it tells how to keep two creatures where one was kept."},
         {work: "Fund a Town Scholarship", built: "The town scholarship", months: 12, coin: 45, costs: [{stat: "water", amount: 80}, {stat: "berries", amount: 80}, {stat: "gems", amount: 4}, {stat: "antler"}],
          gives: "The Collegium asks Intelligence 11, not 12",
          lore: "One child of Bellmoor is taken each year on promise alone."}
@@ -173,7 +186,7 @@ const townPlaces = [
     {id: "inn", name: "The Inn", glyph: "town", shows: {lives: 2}, about: "The Bell and Barrel, where every tale ends up.",
      levels: [
         {work: "Carve the Storyteller's Chair", built: "The storyteller's chair", months: 6, coin: 5, costs: [{stat: "firewood", amount: 20}, {stat: "berries", amount: 20}],
-         gives: "Tell Tales at the Inn opens at age 26",
+         gives: "Tell Tales at the Inn opens at age 26, and the stash keeps 50 more of each thing", stash: 50,
          lore: "The chair by the fire is for whoever has a tale, young or old."},
         {work: "Hang the Book of Names", built: "The book of names", months: 9, coin: 10, costs: [{stat: "firewood", amount: 40}, {stat: "berries", amount: 40}, {stat: "gems", amount: 2}],
          gives: "A new life is told how the last one ended",
@@ -192,7 +205,7 @@ const townPlaces = [
          gives: "The Hollow Woods are open to every life, bow or no bow",
          lore: "A boy with no bow may go north now: the lodge lends him one, and counts the arrows."},
         {work: "Hang the Lodge's Racks", built: "The lodge's racks", months: 6, coin: 10, costs: [{stat: "ashwood", amount: 20}, {stat: "clay", amount: 15}],
-         gives: "In a fight a day lasts one turn longer",
+         gives: "In a fight a day lasts one turn longer, and every mole digs 1 more stone", more: [{stat: "stone", amount: 1}],
          lore: "Spears on the racks, dry and straight. A man who is not mending his gear fights longer."},
         {work: "Keep the Lodge's Hounds", built: "The lodge's hounds", months: 9, coin: 20, costs: [{stat: "stone", amount: 30}, {stat: "ashwood", amount: 20}],
          gives: "Every beast is found a day sooner",
@@ -200,12 +213,14 @@ const townPlaces = [
      ]}
 ]
 
-// An amount left out is 1: of what a level takes, and of what it starts a new life with
+// An amount left out is 1: of what a level takes, of what it starts a new life with, and of what
+// it adds to a familiar's yield
 for (var t = 0; t < len(townPlaces); t++)
 {
     for (var l = 0; l < len(townPlaces[t].levels); l++)
     {
         amountsOf(townPlaces[t].levels[l], "costs")
         amountsOf(townPlaces[t].levels[l], "start")
+        amountsOf(townPlaces[t].levels[l], "more")
     }
 }

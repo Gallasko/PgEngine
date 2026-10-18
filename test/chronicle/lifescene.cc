@@ -6694,7 +6694,7 @@ namespace pg
 
             ASSERT_EQ(gives.size(), 3u);
             EXPECT_EQ(gives[0], "1 - The chapel windows: Learn Your Letters takes 4 months, not 6");
-            EXPECT_EQ(gives[1], "2 - The chapel primer: A new life starts with Letters 1");
+            EXPECT_EQ(gives[1], "2 - The chapel primer: A new life starts with Letters 1, and a well imp can be bound");
             EXPECT_EQ(gives[2], "3 - The almshouse: Teach the Young pays 4 more coin");
         }
 
@@ -6742,9 +6742,10 @@ namespace pg
             EXPECT_EQ(life->save.raisedBy["mill"], "Aldren of Bellmoor \xC2\xB7 YEAR 10");
             EXPECT_EQ(life->save.fund["yard"], 7);
 
-            // A new life's opening: 6 years old, a boy's parts, and what the town gives on top
+            // A new life's opening: 6 years old, a boy's parts, and what the town gives on top (the
+            // mill loft gives a familiar slot, not rations: he is born with none)
             EXPECT_FLOAT_EQ(life->save.age, 6.0f);
-            EXPECT_EQ(life->save.stats["rations"], 6);
+            EXPECT_EQ(life->save.stats["rations"], 0);
             EXPECT_EQ(life->save.stats["letters"], 1);
             EXPECT_EQ(life->save.stats["watch_known"], 1);
             EXPECT_EQ(life->save.stats["str"], 4);
@@ -6755,7 +6756,6 @@ namespace pg
             auto skills = life->piece<ResourceLedger>("skills");
             ASSERT_NE(ledger, nullptr);
             ASSERT_NE(skills, nullptr);
-            EXPECT_EQ(ledger->row("rations")->figure.spec.text, "6/60");
             EXPECT_NE(ledger->row("watch_known"), nullptr);
             EXPECT_NE(skills->row("letters"), nullptr);
 
