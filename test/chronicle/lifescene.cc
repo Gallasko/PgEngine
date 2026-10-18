@@ -6919,7 +6919,7 @@ namespace pg
             ASSERT_NE(glaze, nullptr);
             EXPECT_FALSE(fieldFlag(glaze->fields, "nextLocked"));
 
-            // Raised, the fund is spent
+            // Raised, the fund pays the windows' 5 coin, and keeps the rest toward the primer
             f.ecs.sendEvent(PlaceSelectedEvent{"chapel"});
             f.settle();
             f.ecs.sendEvent(ButtonActivatedEvent{life->piece<Button>("begin")->face.id, "life.begin"});
@@ -6936,7 +6936,7 @@ namespace pg
             f.frames(12);
 
             EXPECT_EQ(life->save.town["chapel"], 1);
-            EXPECT_EQ(life->save.fund.count("chapel"), 0u);
+            EXPECT_EQ(life->save.fund["chapel"], 84 - 5);
         }
 
         // ----------------------------------------------------------------------------------------
@@ -9753,6 +9753,101 @@ namespace pg
             EXPECT_EQ(life->save.stash["stone"], 10);
             EXPECT_EQ(life->save.stash["water"], 5);
             EXPECT_EQ(life->save.fund.count("mill"), 0u);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A level takes from the fund only what it asks of it: the mill's wheel asks 5 coin and 20
+        // stone, and a fund of 15 coin and 30 stone keeps 10 of each toward the loft.
+        TEST(lifescene_test, a_raise_keeps_what_is_over_in_the_fund)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = f.life();
+            ASSERT_NE(life, nullptr);
+
+            f.frames(12);
+
+            life->save.fund["mill"] = 15;
+            life->save.fund["mill.stone"] = 30;
+            life->save.stats["rations"] = 24;
+            life->save.stats["water"] = 20;
+            life->onMonth();
+            f.frames(12);
+
+            const int coin = life->save.stats["coin"];
+            const int stone = life->save.stats["stone"];
+
+            f.ecs.sendEvent(PlaceSelectedEvent{"mill"});
+            f.settle();
+            f.ecs.sendEvent(PlaceSelectedEvent{"mill"});
+            f.settle();
+
+            // The fund pays the coin and the stone: only the water is his
+            ASSERT_EQ(life->save.running, "raise.mill.1");
+            EXPECT_EQ(life->save.stats["coin"], coin);
+            EXPECT_EQ(life->save.stats["stone"], stone);
+            EXPECT_EQ(life->save.stats["water"], 0);
+
+            for (int i = 0; i < 6; ++i)
+            {
+                life->onMonth();
+                f.settle();
+            }
+
+            f.frames(12);
+
+            ASSERT_EQ(life->save.town["mill"], 1);
+            EXPECT_EQ(life->save.fund["mill"], 10);
+            EXPECT_EQ(life->save.fund["mill.stone"], 10);
+
+            // And the loft counts them: its 10 coin paid, 30 of its 40 stone still to give
+            bool seen = false;
+
+            for (const auto& place : life->town.places)
+            {
+                if (place.fields.at("id").toString() != "mill")
+                    continue;
+
+                seen = true;
+                EXPECT_EQ(fieldInt(place.fields, "nextCoin"), 0);
+                EXPECT_EQ(fieldInt(place.fields, "fund"), 10);
+
+                const std::string asks = place.fields.at("nextCosts").toString();
+                EXPECT_EQ(asks.find("coin"), std::string::npos) << asks;
+                EXPECT_NE(asks.find("30 Stone"), std::string::npos) << asks;
+            }
+
+            EXPECT_TRUE(seen);
+
+            // Raised again with nothing over, the fund of it is gone
+            life->save.stats["coin"] = 0;
+            life->save.stats["stone"] = 30;
+            life->save.stats["water"] = 40;
+            life->save.stats["gems"] = 2;
+            life->onMonth();
+            f.frames(12);
+
+            f.ecs.sendEvent(PlaceSelectedEvent{"mill"});
+            f.settle();
+            f.ecs.sendEvent(PlaceSelectedEvent{"mill"});
+            f.settle();
+
+            ASSERT_EQ(life->save.running, "raise.mill.2");
+
+            for (int i = 0; i < 9; ++i)
+            {
+                life->onMonth();
+                f.settle();
+            }
+
+            f.frames(12);
+
+            ASSERT_EQ(life->save.town["mill"], 2);
+            EXPECT_EQ(life->save.fund.count("mill"), 0u);
+            EXPECT_EQ(life->save.fund.count("mill.stone"), 0u);
         }
 
         // ----------------------------------------------------------------------------------------

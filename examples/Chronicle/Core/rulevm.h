@@ -187,7 +187,8 @@ namespace chronicle
         pg::RecordList gaps;           // {stat, label, current, needed}: what the next level takes, against what he has
         pg::RecordList given;          // {level, built, gives}: what every level reached gives, the first first
         pg::RecordList tiers;          // {level, built, gives, reached}: every level it has, reached or not, the first first
-        pg::RecordList leaves;         // {stat, amount}: what he holds of what walks bring for the town that its next level still asks, left to it with his coin if he chooses it at his death
+        pg::RecordList leaves;         // {stat, amount}: what he holds of the things its next level still asks, left to it with his coin if he chooses it at his death
+        pg::RecordList spends;         // {stat, amount}: what its fund pays of its next level ("coin" its coin), taken from the fund when the level is reached
     };
 
     // The town as its page shows it, from town.pg.

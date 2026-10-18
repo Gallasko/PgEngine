@@ -29,9 +29,13 @@
 //            leaves [{stat, amount}], leaveLine ("20 stone, 12 water, 1 gem"): what he holds of what
 //                    the next level still asks, left to the place with his coin if it is the one
 //                    he chooses at his death ("fund.<id>.<thing>" in `character`, counted toward
-//                    what the level asks as the coin is). Anything he holds can be left, basics,
-//                    gems and what his walks bring; a part or a skill (a stat with a ceiling,
-//                    lib.pg's `statCeilings`) cannot
+//                    what the level asks as the coin is). Only things can be left: the basic and
+//                    made resources (economytable.pg) and what his walks bring (expeditiontable.pg's
+//                    `walkItems`); a part, a skill or a standing (Renown) cannot
+//            spends [{stat, amount}]: what the fund pays of the next level, "coin" for its coin
+//                    ("fund.<id>") and each thing it asks ("fund.<id>.<thing>"), no more than the
+//                    level asks of it. The Life screen takes that much from the fund when the
+//                    level is reached; what is over stays for the level after
 //            stashLine  "" or what goes into the stash if it is the one he chooses (below)}
 //         `start`, [{stat, amount}]: what a new life is born with for the town as it stands
 //         (the `start` of every level reached). The Life screen adds them to a life that is not
@@ -97,7 +101,7 @@ for (var t = 0; t < len(townPlaces); t++)
                  shown: placeShown(place, character, monthOf(age), done, lives),
                  gives: "", line: "NOT YET BUILT", tale: "", built: "", fund: fund,
                  nextWork: "", nextName: "", nextMonths: 0, nextCoin: 0, nextYears: 0, nextCosts: "", nextGives: "", nextLocked: false,
-                 gaps: [], given: [], tiers: [], leaves: [], leaveLine: "", stashLine: ""}
+                 gaps: [], given: [], tiers: [], leaves: [], spends: [], leaveLine: "", stashLine: ""}
 
     // What it gives is what every level reached gives: none takes the place of the one before
     for (var l = 0; l < level; l++)
@@ -137,6 +141,15 @@ for (var t = 0; t < len(townPlaces); t++)
         var next = place.levels[level]
         var coin = clamp(levelCoin(next, character) - fund, 0, next.coin)
         var asks = ""
+
+        // What the fund pays of it: no more coin than the level asks. The Life screen takes that much
+        // from the fund when the level is reached, and what is over stays for the next level
+        var paid = clamp(fund, 0, levelCoin(next, character))
+
+        if (paid > 0)
+        {
+            push(shown.spends, {stat: "coin", amount: paid})
+        }
 
         shown.nextWork = "raise." + place.id + "." + toString(level + 1)
         shown.nextName = next.work
@@ -193,6 +206,12 @@ for (var t = 0; t < len(townPlaces); t++)
 
             // What lives before him left the place of it counts toward what it asks, as their coin does
             var need = clamp(also[c].amount - statOf(character, "fund." + place.id + "." + also[c].stat), 0, also[c].amount)
+            var spent = clamp(statOf(character, "fund." + place.id + "." + also[c].stat), 0, also[c].amount)
+
+            if (spent > 0)
+            {
+                push(shown.spends, {stat: also[c].stat, amount: spent})
+            }
 
             if (not isCap and need > 0)
             {
@@ -206,13 +225,39 @@ for (var t = 0; t < len(townPlaces); t++)
             }
 
             // And what he holds of it would be left to the place at his death, no more than it
-            // still asks: anything he holds, a basic, gems, a thing a walk brought, but not a part
-            // or a skill of his (a stat with a ceiling, lib.pg's `statCeilings`), which ends with
-            // him. What the place does not take of the basics goes into the stash (`stash`, below);
-            // the rest is lost with him
+            // still asks, if it is a thing: a basic or a made resource (economytable.pg) or what a
+            // walk brings (expeditiontable.pg's `walkItems`). A part, a skill or a standing of his
+            // (Strength, Renown) ends with him. What the place does not take of the basics goes into
+            // the stash (`stash`, below); the rest is lost with him
+            var thing = false
+
+            for (var b = 0; b < len(basicResources); b++)
+            {
+                if (basicResources[b].id == also[c].stat)
+                {
+                    thing = true
+                }
+            }
+
+            for (var m = 0; m < len(madeResources); m++)
+            {
+                if (madeResources[m].id == also[c].stat)
+                {
+                    thing = true
+                }
+            }
+
+            for (var w = 0; w < len(walkItems); w++)
+            {
+                if (walkItems[w].id == also[c].stat)
+                {
+                    thing = true
+                }
+            }
+
             var given = 0
 
-            if (ceilingOf(also[c].stat) == 0)
+            if (thing)
             {
                 given = clamp(statOf(character, also[c].stat), 0, need)
             }

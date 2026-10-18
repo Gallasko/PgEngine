@@ -302,22 +302,47 @@ fun giveYears(st, months)
     touch(st)
 }
 
-// LifeScene::raisePlace: the level, and the fund that went into it
+// LifeScene::raisePlace: the level, and the fund that went into it: as much as the level asked of it
+// (town.pg's `spends`, read with the place still one level below). What is over stays in the fund
 fun raisePlace(st, place, level)
 {
-    st.town[place] = level
+    var before = townOf(st)
 
-    var kept = {}
-
-    for (var k : st.fund)
+    for (var shown : before.places)
     {
-        if (k != place and not startsWith(k, place + "."))
+        if (shown.id == place and shown.level == level - 1)
         {
-            kept[k] = st.fund[k]
+            for (var spent : shown.spends)
+            {
+                var key = place + "." + spent.stat
+
+                if (spent.stat == "coin")
+                {
+                    key = place
+                }
+
+                var left = asInt(st.fund[key]) - spent.amount
+                var kept = {}
+
+                for (var k : st.fund)
+                {
+                    if (k != key)
+                    {
+                        kept[k] = st.fund[k]
+                    }
+                }
+
+                if (left > 0)
+                {
+                    kept[key] = left
+                }
+
+                st.fund = kept
+            }
         }
     }
 
-    st.fund = kept
+    st.town[place] = level
     note(st, "RAISED " + place + " to " + toString(level))
     touch(st)
 }

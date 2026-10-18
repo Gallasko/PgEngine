@@ -1029,7 +1029,7 @@ namespace chronicle
         ElementType foundLine;
         ElementType stashLine;
 
-        if (not s.run() or not s.get("places", {"gaps", "given", "leaves", "tiers"}, records) or not s.get("start", out.start) or not s.get("stash", out.stash))
+        if (not s.run() or not s.get("places", {"gaps", "given", "leaves", "tiers", "spends"}, records) or not s.get("start", out.start) or not s.get("stash", out.stash))
             return fail(s);
 
         if (not s.get("opened", opened) or not s.get("raisedLine", raisedLine) or not s.get("epitaphLine", epitaphLine) or not s.get("fundLine", fundLine) or not s.get("foundLine", foundLine))
@@ -1047,6 +1047,7 @@ namespace chronicle
             place.given = std::move(record.lists[1]);
             place.leaves = std::move(record.lists[2]);
             place.tiers = std::move(record.lists[3]);
+            place.spends = std::move(record.lists[4]);
 
             out.places.push_back(std::move(place));
         }

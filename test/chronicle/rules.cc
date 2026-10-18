@@ -6,6 +6,7 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -3478,6 +3479,11 @@ namespace pg
                 EXPECT_EQ(intOf(place.fields, "nextCoin"), 0);
                 EXPECT_EQ(intOf(place.fields, "fund"), 15);
 
+                // The fund pays the wheel's 5 coin and no more: the rest stays in it
+                ASSERT_EQ(place.spends.size(), 1u);
+                EXPECT_EQ(textOf(place.spends[0], "stat"), "coin");
+                EXPECT_EQ(intOf(place.spends[0], "amount"), 5);
+
                 for (const auto& gap : place.gaps)
                     EXPECT_NE(textOf(gap, "stat"), "coin");
             }
@@ -3504,6 +3510,56 @@ namespace pg
 
             EXPECT_EQ(stone, 20);
             EXPECT_EQ(water, 20);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Only things can be left to a place at his death: the gate's tower asks stone, firewood
+        // and Renown, and of the three he holds only the stone and the firewood are left to it.
+        TEST(rules_test, a_standing_is_never_left_to_a_place)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = townsman();
+            character["town.gate"] = ElementType{2};
+            character["renown"] = ElementType{3};
+            character["stone"] = ElementType{10};
+            character["firewood"] = ElementType{5};
+
+            RuleTown town;
+            ASSERT_TRUE(f.rules.town(9.0f, character, town)) << firstError(f.rules);
+
+            bool seen = false;
+
+            for (const auto& place : town.places)
+            {
+                if (textOf(place.fields, "id") != "gate")
+                    continue;
+
+                seen = true;
+
+                // Renown is asked, but not left
+                bool asked = false;
+
+                for (const auto& gap : place.gaps)
+                    asked = asked or textOf(gap, "stat") == "renown";
+
+                EXPECT_TRUE(asked);
+
+                std::map<std::string, int> left;
+
+                for (const auto& l : place.leaves)
+                    left[textOf(l, "stat")] = intOf(l, "amount");
+
+                EXPECT_EQ(left.count("renown"), 0u);
+                EXPECT_EQ(left["stone"], 10);
+                EXPECT_EQ(left["firewood"], 5);
+                EXPECT_EQ(textOf(place.fields, "leaveLine").find("renown"), std::string::npos) << textOf(place.fields, "leaveLine");
+            }
+
+            EXPECT_TRUE(seen);
         }
 
         // ----------------------------------------------------------------------------------------

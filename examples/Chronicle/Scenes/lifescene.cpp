@@ -5583,20 +5583,39 @@ namespace chronicle
 
     void LifeScene::raisePlace(const std::string& place, int level)
     {
+        // What was left to it went into the level, as much as the level asked of it (town.pg's
+        // `spends`, read with the place still one level below): its coin, and each thing under
+        // "<place>.<thing>". What is over stays in the fund, toward the next level
+        RuleTown before;
+
+        if (rules.town(save.age, save.character(), before))
+        {
+            for (const auto& shown : before.places)
+            {
+                if (textOf(shown.fields, "id") != place or intOf(shown.fields, "level") != level - 1)
+                    continue;
+
+                for (const auto& spent : shown.spends)
+                {
+                    const std::string stat = textOf(spent, "stat");
+                    const std::string key = stat == "coin" ? place : place + "." + stat;
+
+                    if (auto held = save.fund.find(key); held != save.fund.end())
+                    {
+                        held->second -= intOf(spent, "amount");
+
+                        if (held->second <= 0)
+                            save.fund.erase(held);
+                    }
+                }
+            }
+        }
+
         save.town[place] = level;
 
         // The milestones read no character: the Inn's level, which moves the end of his prime, is theirs by hand
         if (place == "inn")
             rules.inn = level;
-
-        // What was left to it went into the level: its coin, and each thing under "<place>.<thing>"
-        for (auto it = save.fund.begin(); it != save.fund.end();)
-        {
-            if (it->first == place or it->first.rfind(place + ".", 0) == 0)
-                it = save.fund.erase(it);
-            else
-                ++it;
-        }
 
         // Who raised it, and when: the world's year as the head writes it
         std::vector<RuleMilestone> passed;
