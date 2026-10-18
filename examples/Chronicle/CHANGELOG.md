@@ -95,6 +95,14 @@ another familiar, a new kind to bind, a bigger stash.
 - **No bind rows without a free slot.** While every slot is filled the *Bind* rows leave the
   list (the lessons stay). A slot from a class, a relic or the town brings them back, with no
   "New:" toast for a row he has seen before.
+- **Work that fed him now gives its months of rations when he begins it**: three for the
+  carters, eighteen for the Keep's oath, kept past the limit of sixty. He and his familiars eat
+  every month at any work, so rations go one way only. The tile says RATIONS UP FRONT, the
+  tooltip "Rations 3 up front", and the log what was given. Left before its term (set aside for
+  an answer, and closed before he could go back), the rations of the months not worked go back.
+  A save made in the middle of such a work is given the rations of the months it has left, once,
+  as it opens. The gleaning of his sixth year no longer counts as feeding him: a boy who holds no
+  rations eats none, and what it brings is his first.
 - **The rations guide** no longer says "3 months": with familiars bound, three rations last less.
 
 ## 0.7 - unreleased: the fight

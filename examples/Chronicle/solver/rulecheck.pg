@@ -69,7 +69,7 @@ for (var step = 0; step < 600 and not st.dead and checks < 25; step = step + 1)
                 shown = shown + 1
             }
         }
-        var m = rule("resources", {age: ageOf(st), character: character(st), board: false}, ["month", "rows", "glosses", "death"])
+        var m = rule("resources", {age: ageOf(st), character: character(st)}, ["month", "rows", "glosses", "death"])
         push(out, "-- resources " + show(m.month) + show(m.rows) + show(m.glosses) + show(m.death))
         checks = checks + 1
         var goals = goalsFor(st, [{id: "collegium", weight: 1.0}, {id: "flood.rescue", weight: 1.0}], false, "")

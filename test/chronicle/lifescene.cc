@@ -3190,8 +3190,9 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
-        // Work that feeds him leaves his rations be, and the ledger says so; idle, he eats again.
-        TEST(lifescene_test, work_with_meals_spares_the_rations)
+        // Work that feeds him gives the rations of its months as he begins it, and the log says so;
+        // he eats them a month at a time as he eats any, and ends the work with what he had.
+        TEST(lifescene_test, work_that_feeds_him_gives_rations_up_front)
         {
             MockLogger logger;
             LifeFixture f;
@@ -3202,16 +3203,36 @@ namespace pg
             auto ledger = life->piece<ResourceLedger>("ledger");
             ASSERT_NE(ledger, nullptr);
             ASSERT_NE(ledger->row("rations"), nullptr);
+            ASSERT_EQ(life->save.stats["rations"], 3);
+
+            const size_t before = life->save.log.size();
 
             f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "carters"});
             f.settle();
 
-            EXPECT_EQ(ledger->row("rations")->spec.rate, "");
+            ASSERT_EQ(life->save.running, "carters");
+            EXPECT_EQ(life->save.stats["rations"], 6);
+            EXPECT_EQ(ledger->row("rations")->spec.rate, "\xE2\x88\x92" "1 / mo");
+
+            bool said = false;
+
+            for (size_t i = before; i < life->save.log.size(); ++i)
+            {
+                if (life->save.log[i].text == "Carry for the Carters gives its rations up front")
+                {
+                    said = true;
+                    EXPECT_EQ(life->save.log[i].figure.rfind("+3", 0), 0u) << life->save.log[i].figure;
+                }
+            }
+
+            EXPECT_TRUE(said);
 
             for (int i = 0; i < 3; ++i)
             {
                 life->onMonth();
                 f.settle();
+
+                EXPECT_EQ(life->save.stats["rations"], 5 - i);
             }
 
             EXPECT_EQ(life->save.running, "");
@@ -3224,6 +3245,138 @@ namespace pg
 
             EXPECT_EQ(life->save.stats["rations"], 2);
             EXPECT_EQ(ledger->row("rations")->figure.spec.text, "2/60");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A work that feeds him, set aside for an answer, closed before he could go back to it: he
+        // left it before its term, and the rations it gave for the months he never worked there go
+        // back, never more than he holds.
+        TEST(lifescene_test, a_fed_work_left_early_gives_back_its_rations)
+        {
+            for (int held : {20, 5})
+            {
+                MockLogger logger;
+                LifeFixture f;
+
+                LifeSceneOptions opt = LifeFixture::mockup();
+                opt.fresh = true;
+                opt.lives = 2;
+                opt.age = 19.0f;
+
+                LifeScene* life = f.life(opt);
+                ASSERT_NE(life, nullptr);
+
+                // Six months into the Keep's eighteen, set aside; the carters' last month under way
+                life->save.stats["rations"] = held;
+                life->save.setAside = "keep";
+                life->save.setAsideMonths = 6;
+                life->save.running = "carters";
+                life->save.monthsIn = 2;
+                life->rules.running = "carters";
+
+                const size_t before = life->save.log.size();
+
+                life->onMonth();
+                f.settle();
+
+                // At nineteen the Keep can no longer be served out by twenty: it is not taken up
+                EXPECT_TRUE(life->save.setAside.empty());
+                EXPECT_EQ(life->save.running, "");
+
+                bool closed = false;
+                bool back = false;
+
+                for (size_t i = before; i < life->save.log.size(); ++i)
+                {
+                    const LogEntry& entry = life->save.log[i];
+
+                    if (entry.text.find("is closed to him now") != std::string::npos)
+                        closed = true;
+
+                    if (entry.text == "Swear Service to the Keep, left before its term: the rations of the months not worked go back")
+                    {
+                        back = true;
+                        EXPECT_EQ(entry.figure.rfind("\xE2\x88\x92" + std::to_string(std::min(12, held - 1)), 0), 0u) << entry.figure;
+                    }
+                }
+
+                EXPECT_TRUE(closed);
+                EXPECT_TRUE(back);
+
+                // He ate his one; the twelve months he never worked there take back twelve, or what is left
+                EXPECT_EQ(life->save.stats["rations"], std::max(0, held - 1 - 12)) << held;
+            }
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A save from before the rations were given up front, written in the middle of a work that
+        // feeds him: that work never gave them, and the months it has left must not starve him. It
+        // is given them once, as it is opened.
+        TEST(lifescene_test, an_old_save_at_a_fed_work_is_given_its_rations)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            const std::string path = "save/test_life_up_front.sz";
+            std::remove(path.c_str());
+
+            LifeScene* life = f.life();
+            ASSERT_NE(life, nullptr);
+
+            // A life begun today has them up front already
+            EXPECT_TRUE(life->save.boardUpFront);
+
+            // As it was written before: a month into the carters' three, nothing given for them
+            LifeSave old = life->save;
+            old.running = "carters";
+            old.monthsIn = 1;
+            old.stats["rations"] = 3;
+            old.boardUpFront = false;
+            ASSERT_TRUE(old.save(path));
+
+            LifeSave read;
+            ASSERT_TRUE(read.load(path));
+            EXPECT_FALSE(read.boardUpFront);
+
+            f.load<EmptyScene>();
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.noSave = false;
+            opt.savePath = path;
+
+            LifeScene* again = f.life(opt);
+            ASSERT_NE(again, nullptr);
+
+            // The two months it has left
+            EXPECT_EQ(again->save.running, "carters");
+            EXPECT_EQ(again->save.monthsIn, 1);
+            EXPECT_EQ(again->save.stats["rations"], 5);
+            EXPECT_TRUE(again->save.boardUpFront);
+
+            // Written and opened again, they are not given twice
+            ASSERT_TRUE(again->saveNow());
+            f.load<EmptyScene>();
+
+            LifeScene* third = f.life(opt);
+            ASSERT_NE(third, nullptr);
+            EXPECT_EQ(third->save.stats["rations"], 5);
+
+            // A save of today at the same work had them as it began: nothing more
+            LifeSave today = third->save;
+            today.stats["rations"] = 3;
+            ASSERT_TRUE(today.boardUpFront);
+            ASSERT_TRUE(today.save(path));
+            f.load<EmptyScene>();
+
+            LifeScene* fourth = f.life(opt);
+            ASSERT_NE(fourth, nullptr);
+            EXPECT_EQ(fourth->save.stats["rations"], 3);
+
+            std::remove(path.c_str());
         }
 
         // ----------------------------------------------------------------------------------------
@@ -4098,12 +4251,12 @@ namespace pg
             f.settle();
             EXPECT_EQ(rowOf(registry->find("parts/str"), "Train at the Yard brings it to"), "13");
 
-            // An activity: its time, what it brings and costs, what it asks, whether it feeds him
+            // An activity: its time, what it brings and costs, what it asks, the rations it gives up front
             const GlossSpec* campaign = registry->find("activity/campaign");
             ASSERT_NE(campaign, nullptr);
             EXPECT_EQ(campaign->title, "Join the Border Campaign");
             EXPECT_EQ(rowOf(campaign, "Time"), "24 mo");
-            EXPECT_EQ(rowOf(campaign, "Meals"), "Provided");
+            EXPECT_EQ(rowOf(campaign, "Rations"), "24 up front");
 
             // Locked, and no footnote to say so: what it still asks is in red under REQUIREMENTS
             EXPECT_EQ(campaign->footnote, "");
@@ -4135,7 +4288,7 @@ namespace pg
             };
 
             EXPECT_EQ(toneOf(campaign, "Time"), "time");
-            EXPECT_EQ(toneOf(campaign, "Meals"), "gain");
+            EXPECT_EQ(toneOf(campaign, "Rations"), "gain");
             EXPECT_EQ(toneOf(campaign, "REWARD"), "<heading>");
             EXPECT_EQ(toneOf(campaign, "COST"), "<heading>");
             EXPECT_EQ(toneOf(campaign, "REQUIREMENTS"), "<heading>");
@@ -4177,7 +4330,8 @@ namespace pg
             EXPECT_EQ(toneOf(registry->find("resource/rations"), "A month uses"), "loss");
             EXPECT_EQ(toneOf(registry->find("resource/rations"), "Lasts"), "time");
 
-            EXPECT_EQ(rowOf(registry->find("activity/yard"), "Meals"), "His own rations");
+            // What does not feed him says nothing of rations
+            EXPECT_EQ(rowOf(registry->find("activity/yard"), "Rations"), "<none>");
 
             // A door: its note, its ages, what fits
             const GlossSpec* door = registry->find("window/campaign");

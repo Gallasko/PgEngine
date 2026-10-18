@@ -95,7 +95,7 @@ namespace chronicle
     };
 
     // An activity from activitytable.pg: its scalar fields (id, group, name, glyph, months, rank,
-    // each, path, enters, board, fromAge, finishBy, locked, done, uses, left, spent, closed,
+    // each, path, enters, board, upFront, fromAge, finishBy, locked, done, uses, left, spent, closed,
     // pathOpen, listed, tally) and its three lists.
     struct RuleActivity
     {
@@ -123,6 +123,13 @@ namespace chronicle
         std::string caption;           // "MONTH 3 OF 6 · STRENGTH 14 → 16 AT TERM"
         pg::RecordList gaps;           // {stat, label, current, needed} against the next milestone
         pg::RecordList entries;        // The log lines the term writes: {text, kind, figure, glyph}
+        int upFront = 0;               // The rations beginning it gives: its months' for a work that feeds him
+        int unworked = 0;              // The rations of its months not yet worked: what it gave for months still ahead
+        int takenBack = 0;             // What leaving it now, before its term, takes back of them: never more than he holds
+        pg::RecordList begins;         // The log lines beginning it writes: {text, kind, figure, glyph}
+        pg::RecordList leaves;         // The log lines leaving it now writes: {text, kind, figure, glyph}
+        pg::ElementMap atLeave;        // Every stat of the character once he leaves it now, before its term
+        pg::ElementMap atOwed;         // Every stat with `unworked` given: what a save from before the rations up front is owed
         std::string error;             // "" or "unknown activity"
     };
 
@@ -304,10 +311,10 @@ namespace chronicle
         // forecast.pg: `activityId` for `character` at `age`, `monthsIn` months already spent.
         bool forecast(float age, const pg::ElementMap& character, const std::string& activityId, int monthsIn, RuleForecast& out);
 
-        // resources.pg: what the month that ends at `age` does to what `character` holds (fed by
-        // his work when `board`; old age takes from him past the last milestone), the ledger's
-        // rows and their glosses, and whether the character as he is can go on.
-        bool month(float age, const pg::ElementMap& character, bool board, RuleMonth& out);
+        // resources.pg: what the month that ends at `age` does to what `character` holds (he eats
+        // at any work; old age takes from him past the last milestone), the ledger's rows and
+        // their glosses, and whether the character as he is can go on.
+        bool month(float age, const pg::ElementMap& character, RuleMonth& out);
 
         // town.pg: the places of the town for `character` (who carries their levels and their
         // funds), and what a new life is born with for them.
@@ -385,7 +392,6 @@ namespace chronicle
         bool monthKnown = false;
         float monthAge = 0.0f;
         pg::ElementMap monthCharacter;
-        bool monthBoard = false;
         RuleMonth keptMonth;
 
         bool deedsKnown = false;

@@ -883,8 +883,11 @@ namespace chronicle
         out.toward = number(head, "toward", 0.0f);
         out.months = static_cast<int>(number(head, "months", 0.0f));
         out.caption = text(head, "caption");
+        out.upFront = static_cast<int>(number(head, "upFront", 0.0f));
+        out.unworked = static_cast<int>(number(head, "unworked", 0.0f));
+        out.takenBack = static_cast<int>(number(head, "takenBack", 0.0f));
 
-        if (not s.get("forecast.atStart", out.atStart) or not s.get("forecast.atTerm", out.atTerm) or not s.get("forecast.gaps", out.gaps) or not s.get("forecast.entries", out.entries))
+        if (not s.get("forecast.atStart", out.atStart) or not s.get("forecast.atTerm", out.atTerm) or not s.get("forecast.gaps", out.gaps) or not s.get("forecast.entries", out.entries) or not s.get("forecast.begins", out.begins) or not s.get("forecast.leaves", out.leaves) or not s.get("forecast.atLeave", out.atLeave) or not s.get("forecast.atOwed", out.atOwed))
             return fail(s);
 
         foreseen[asked] = out;
@@ -892,11 +895,11 @@ namespace chronicle
         return true;
     }
 
-    bool Rules::month(float age, const ElementMap& character, bool board, RuleMonth& out)
+    bool Rules::month(float age, const ElementMap& character, RuleMonth& out)
     {
         out = RuleMonth{};
 
-        if (monthKnown and monthAge == age and monthBoard == board and sameMap(monthCharacter, character))
+        if (monthKnown and monthAge == age and sameMap(monthCharacter, character))
         {
             out = keptMonth;
             return true;
@@ -909,7 +912,6 @@ namespace chronicle
 
         s.set("age", ElementType{age});
         s.set("character", character);
-        s.set("board", ElementType{board});
 
         ++nbRuns;
 
@@ -944,7 +946,6 @@ namespace chronicle
 
         monthKnown = true;
         monthAge = age;
-        monthBoard = board;
         monthCharacter = character;
         keptMonth = out;
 

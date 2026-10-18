@@ -5,7 +5,8 @@
 // Every number comes from the game's rules: this file only does what the C++ of the Life screen
 // does between two runs of them (Scenes/lifescene.cpp), and must follow it when it changes:
 //   onMonth      the month: age and world, resources.pg, death, the term of the work under way
-//   beginWork    a work begun (its costs, the years it takes), or done at once when it takes no time
+//   beginWork    a work begun (its costs, the years it takes, the rations a work that feeds him
+//                gives up front), or done at once when it takes no time
 //   doAtOnce     what takes no month: a buy, a sale, a work for the town that takes none
 //   raisePlace   a level of the town reached, the fund left to it spent
 //   seeTown      the places that come onto the Town page stay seen
@@ -16,7 +17,7 @@
 // A state is one table, cloned to try something without losing what was:
 //   {world, lives, town {place: level}, fund {key: coin}, seen {place: 1}, know {key: n},
 //    stash {basic: n} (what the stash keeps between lives),
-//    month (his age in months), stats, done {id: terms}, running, monthsIn, months, board,
+//    month (his age in months), stats, done {id: terms}, running, monthsIn, months,
 //    townKnown, dead, death, planHead (its last line in `planLog`), reached {id: "life 2, 14y3m"},
 //    reachedCount, raises/raiseLevel (what the work under way raises), dice, stamp}
 //
@@ -132,7 +133,7 @@ fun freshStats()
 fun newWorld(seed)
 {
     var st = {world: 0, lives: 1, town: {}, fund: {}, seen: {}, know: {},
-              month: 72, stats: freshStats(), done: {}, running: "", monthsIn: 0, months: 0, board: false,
+              month: 72, stats: freshStats(), done: {}, running: "", monthsIn: 0, months: 0,
               townKnown: false, dead: false, death: "", planHead: -1, reached: {}, reachedCount: 0, raises: "", raiseLevel: 0, aim: "",
               dice: seed, stamp: 0, terms: 0, stash: {}}
     touch(st)
@@ -386,7 +387,7 @@ fun deathOf(st)
 {
     if (mortalStats == none)
     {
-        var answer = rule("resources", {age: ageOf(st), character: character(st), board: false}, ["death", "mortal", "shortAge", "longAge", "callingPlace"])
+        var answer = rule("resources", {age: ageOf(st), character: character(st)}, ["death", "mortal", "shortAge", "longAge", "callingPlace"])
         checked(answer, "resources (death)")
         mortalStats = answer.mortal
         primeAges = {short: answer.shortAge, long: answer.longAge, place: answer.callingPlace}
@@ -418,17 +419,12 @@ fun deathOf(st)
     return ""
 }
 
-// The rations a coming month eats: his own (none at board) and every familiar's he has bound, fed
-// or not (resources.pg's `eats`). It hangs on the board and on the familiars he holds only, so the
-// rules are asked once for each such household and the answer is kept
-fun eatsOf(st, board)
+// The rations a coming month eats: his own, at any work, and every familiar's he has bound, fed or
+// not (resources.pg's `eats`). It hangs on the familiars he holds only, so the rules are asked once
+// for each such household and the answer is kept
+fun eatsOf(st)
 {
     var key = "f"
-
-    if (board)
-    {
-        key = "b"
-    }
 
     for (var kind : familiarKinds)
     {
@@ -442,7 +438,7 @@ fun eatsOf(st, board)
         return known
     }
 
-    var answer = rule("resources", {age: ageOf(st), character: character(st), board: board}, ["eats"])
+    var answer = rule("resources", {age: ageOf(st), character: character(st)}, ["eats"])
     checked(answer, "resources (eats)")
 
     var eats = asInt(answer.eats)
@@ -504,8 +500,16 @@ fun madeAMonth(st)
         return known
     }
 
-    // (a month at board: his own rations are not eaten, so what changes is the familiars' doing)
-    var answer = rule("resources", {age: ageOf(st), character: character(st), board: true}, ["month"])
+    // (his own ration is put back on top of what he holds, so what changes is the familiars' doing,
+    // fed from all he holds as he eats first)
+    var fedFrom = characterOf(st)
+
+    if (fedFrom.rations != none)
+    {
+        fedFrom.rations = fedFrom.rations + economyKnobs.rationsAMonth
+    }
+
+    var answer = rule("resources", {age: ageOf(st), character: fedFrom}, ["month"])
     checked(answer, "resources (made)")
 
     var month = answer.month
@@ -540,7 +544,7 @@ fun limitOfStat(st, stat)
         return known
     }
 
-    var answer = rule("resources", {age: ageOf(st), character: character(st), board: true}, ["rows"])
+    var answer = rule("resources", {age: ageOf(st), character: character(st)}, ["rows"])
     checked(answer, "resources (limits)")
 
     var most = 0
@@ -558,15 +562,16 @@ fun limitOfStat(st, stat)
     return most
 }
 
-// The rations `months` of a work eat, his own and his familiars'; and when the work does not feed
-// him, a month more of them, so that he is not left without the month after it
-fun rationsFor(st, months, board)
+// The rations `months` of a work eat, his own and his familiars', less what it gives up front when
+// it feeds him (its `upFront`); and when it does not, a month more of them, so that he is not left
+// without the month after it
+fun rationsFor(st, months, upFront)
 {
-    var need = eatsOf(st, board) * months
+    var need = eatsOf(st) * months - upFront
 
-    if (not board)
+    if (upFront <= 0)
     {
-        need = need + eatsOf(st, false)
+        need = need + eatsOf(st)
     }
 
     return need
@@ -660,14 +665,8 @@ fun monthPass(st)
     st.world = st.world + 1
     touch(st)
 
-    var board = false
-
-    if (st.running != "")
-    {
-        board = st.board
-    }
-
-    var answer = rule("resources", {age: ageOf(st), character: character(st), board: board}, ["month"])
+    // He eats at any work: a work that feeds him gave its rations as he began it
+    var answer = rule("resources", {age: ageOf(st), character: character(st)}, ["month"])
     checked(answer, "resources")
 
     var month = answer.month
@@ -712,7 +711,6 @@ fun monthPass(st)
     st.running = ""
     st.monthsIn = 0
     st.months = 0
-    st.board = false
     touch(st)
 
     st.raises = ""
@@ -787,7 +785,6 @@ fun beginWork(st, id, goals)
     st.running = id
     st.monthsIn = 0
     st.months = f.months
-    st.board = row.board == true
     st.raises = row.raises
     st.raiseLevel = row.level
 
@@ -855,7 +852,6 @@ fun newLife(st, gift, town)
     st.running = ""
     st.monthsIn = 0
     st.months = 0
-    st.board = false
     st.townKnown = false
     st.dead = false
     st.death = ""

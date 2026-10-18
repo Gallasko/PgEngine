@@ -182,7 +182,7 @@ namespace pg
 
             for (const auto& a : activities)
             {
-                for (const char* key : {"id", "group", "name", "glyph", "months", "rank", "each", "path", "enters", "board", "fromAge", "finishBy", "locked", "listed", "pathOpen", "closed", "reach"})
+                for (const char* key : {"id", "group", "name", "glyph", "months", "rank", "each", "path", "enters", "board", "upFront", "fromAge", "finishBy", "locked", "listed", "pathOpen", "closed", "reach"})
                     EXPECT_TRUE(a.fields.count(key)) << textOf(a.fields, "id") << " has no " << key;
             }
 
@@ -199,6 +199,7 @@ namespace pg
             EXPECT_FALSE(flag(mill.fields, "locked"));
             EXPECT_TRUE(flag(mill.fields, "listed"));
             EXPECT_FALSE(flag(mill.fields, "board"));
+            EXPECT_EQ(intOf(mill.fields, "upFront"), 0);
 
             // The smithy takes boys from 9 with Strength 8: the age first, then what it asks. Too
             // young, it is not listed
@@ -220,11 +221,12 @@ namespace pg
             // Of age, the age is no longer asked
             EXPECT_EQ(activityAt(f.rules, 9.0f, boy(), "smithy").requires.size(), 2u);
 
-            // The carters feed him
+            // The carters feed him: the rations of their three months, given as he begins
             RuleActivity carters = activityAt(f.rules, 7.0f, boy(), "carters");
 
             EXPECT_TRUE(flag(carters.fields, "board"));
-            EXPECT_EQ(textOf(carters.fields, "each"), "MEALS PROVIDED");
+            EXPECT_EQ(intOf(carters.fields, "upFront"), 3);
+            EXPECT_EQ(textOf(carters.fields, "each"), "RATIONS UP FRONT");
         }
 
         // ----------------------------------------------------------------------------------------
@@ -836,8 +838,9 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
-        // A cost is taken when the activity begins (atStart), not again at its term; an activity
-        // done at once lands its gains on what is left.
+        // A cost is taken when the activity begins (atStart), not again at its term, with the rations
+        // of its months given then by a work that feeds him; an activity done at once lands its
+        // gains on what is left.
         TEST(rules_test, forecast_costs_at_start)
         {
             MockLogger logger;
@@ -849,18 +852,18 @@ namespace pg
             ASSERT_TRUE(f.rules.forecast(16.0f, squire, "keep", 0, forecast)) << firstError(f.rules);
 
             EXPECT_EQ(intOf(forecast.atStart, "coin"), 20);
-            EXPECT_EQ(intOf(forecast.atStart, "rations"), 4);
+            EXPECT_EQ(intOf(forecast.atStart, "rations"), 4 + 18);
             EXPECT_EQ(intOf(forecast.atTerm, "coin"), 30);
             EXPECT_EQ(intOf(forecast.atTerm, "keep_oath"), 1);
             EXPECT_EQ(intOf(forecast.atTerm, "arms"), 4);
 
-            // Harrow asks coin, rations and reagents up front
+            // Harrow asks coin, rations and reagents up front, and feeds him its eighteen months
             ElementMap scholar = {{"collegium", ElementType{1}}, {"harrow_fragments", ElementType{1}}, {"lore", ElementType{6}}, {"arcana", ElementType{3}},
                                   {"coin", ElementType{25}}, {"rations", ElementType{10}}, {"reagents", ElementType{4}}};
 
             ASSERT_TRUE(f.rules.forecast(24.0f, scholar, "harrow", 0, forecast));
             EXPECT_EQ(intOf(forecast.atStart, "coin"), 5);
-            EXPECT_EQ(intOf(forecast.atStart, "rations"), 2);
+            EXPECT_EQ(intOf(forecast.atStart, "rations"), 2 + 18);
             EXPECT_EQ(intOf(forecast.atStart, "reagents"), 0);
 
             // Done at once: what it brings, on what is left
@@ -1195,7 +1198,7 @@ namespace pg
             ElementMap character = {{"water", ElementType{12}}, {"stone", ElementType{3}}};
 
             RuleMonth month;
-            ASSERT_TRUE(f.rules.month(8.0f, character, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(8.0f, character, month)) << firstError(f.rules);
 
             const ElementMap* water = byId(month.rows, "water");
             ASSERT_NE(water, nullptr);
@@ -1209,7 +1212,7 @@ namespace pg
             character["store.water"] = ElementType{20};
 
             RuleMonth stored;
-            ASSERT_TRUE(f.rules.month(8.0f, character, false, stored)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(8.0f, character, stored)) << firstError(f.rules);
 
             ASSERT_NE(byId(stored.rows, "water"), nullptr);
             EXPECT_EQ(intOf(*byId(stored.rows, "water"), "limit"), 60);
@@ -1220,9 +1223,9 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
-        // A month eats a ration, and says so as a rate; a month at work that feeds him eats none, and
-        // with none held costs nothing either.
-        TEST(rules_test, month_decays_unless_fed)
+        // A month eats a ration, and says so as a rate, whatever he is at: a work that feeds him gave
+        // its rations as he began it. With none held, his Vitality pays.
+        TEST(rules_test, month_decays_at_any_work)
         {
             MockLogger logger;
             RulesFixture f;
@@ -1230,7 +1233,7 @@ namespace pg
             ElementMap character = {{"vit", ElementType{12}}, {"coin", ElementType{3}}, {"rations", ElementType{5}}};
 
             RuleMonth month;
-            ASSERT_TRUE(f.rules.month(20.0f, character, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(20.0f, character, month)) << firstError(f.rules);
 
             EXPECT_EQ(intOf(month.after, "coin"), 3);
             EXPECT_EQ(intOf(month.after, "rations"), 4);
@@ -1280,20 +1283,19 @@ namespace pg
                     EXPECT_FALSE(gloss.rows.empty());
             }
 
-            // Fed by his work
-            ASSERT_TRUE(f.rules.month(20.0f, character, true, month));
-            EXPECT_EQ(intOf(month.after, "rations"), 5);
-            EXPECT_EQ(textOf(*byId(month.rows, "rations"), "rate"), "");
-
             // The last ration eaten is a fed month: no Vitality taken
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{1}}}, false, month));
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{1}}}, month));
             EXPECT_EQ(intOf(month.after, "rations"), 0);
             EXPECT_EQ(intOf(month.after, "vit"), 12);
 
-            // With none, fed by his work: nothing is taken, nothing is written
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{0}}}, true, month));
+            // With none, his Vitality pays, at any work: the month has nothing to spare him
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{0}}}, month));
+            EXPECT_EQ(intOf(month.after, "vit"), 7);
+            EXPECT_EQ(month.hurt, std::vector<std::string>{"vit"});
+
+            // A boy who never held any eats none
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}}, month));
             EXPECT_EQ(intOf(month.after, "vit"), 12);
-            EXPECT_TRUE(month.hurt.empty());
             EXPECT_TRUE(month.entries.empty());
         }
         // ----------------------------------------------------------------------------------------
@@ -1307,7 +1309,7 @@ namespace pg
 
             RuleMonth month;
 
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{1}}}, false, month));
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{1}}}, month));
             EXPECT_EQ(intOf(month.after, "rations"), 0);
             EXPECT_EQ(intOf(month.after, "vit"), 12);
             ASSERT_EQ(month.entries.size(), 1u);
@@ -1315,7 +1317,7 @@ namespace pg
 
             EXPECT_TRUE(month.hurt.empty());
 
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{0}}}, false, month));
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{0}}}, month));
             EXPECT_EQ(intOf(month.after, "rations"), 0);
             EXPECT_EQ(intOf(month.after, "vit"), 7);
             EXPECT_TRUE(month.entries.empty());
@@ -1325,10 +1327,10 @@ namespace pg
             EXPECT_EQ(month.hurt[0], "vit");
 
             // Nothing goes below zero
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{0}}, {"rations", ElementType{0}}}, false, month));
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{0}}, {"rations", ElementType{0}}}, month));
             EXPECT_EQ(intOf(month.after, "vit"), 0);
 
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}}, false, month));
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}}, month));
             EXPECT_EQ(intOf(month.after, "vit"), 12);
             EXPECT_EQ(month.after.count("rations"), 0u);
         }
@@ -1337,7 +1339,7 @@ namespace pg
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
         // What he lives on running out comes with what to do about it: one sentence while it runs
-        // low, another once it is gone, none while his work feeds him.
+        // low, another once it is gone.
         TEST(rules_test, month_says_what_to_do)
         {
             MockLogger logger;
@@ -1345,30 +1347,34 @@ namespace pg
 
             RuleMonth month;
 
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{12}}}, false, month));
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{12}}}, month));
             EXPECT_EQ(month.warning, "");
             EXPECT_EQ(month.advice, "");
 
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{3}}}, false, month));
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{3}}}, month));
             EXPECT_EQ(month.warning, "RATIONS FOR 3 MONTHS");
             EXPECT_NE(month.advice.find("running low"), std::string::npos);
 
             const std::string low = month.advice;
 
             // The same sentence down to the last one: said once, not every month
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{1}}}, false, month));
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{1}}}, month));
             EXPECT_EQ(month.warning, "RATIONS FOR 1 MONTH");
             EXPECT_EQ(month.advice, low);
 
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{0}}}, false, month));
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{0}}}, month));
             EXPECT_EQ(month.warning, "NO RATIONS LEFT");
             EXPECT_NE(month.advice.find("No rations left"), std::string::npos);
             EXPECT_NE(month.advice, low);
 
-            // Fed by his work: nothing runs out, nothing to say
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{2}}}, true, month));
-            EXPECT_EQ(month.warning, "");
-            EXPECT_EQ(month.advice, "");
+            // What it says to do: the market, or work that gives its rations up front
+            EXPECT_EQ(low, "Rations are running low: buy some at the market, or take work that gives rations up front");
+            EXPECT_EQ(month.advice, "No rations left: his Vitality pays. Buy some at the market, or take work that gives rations up front");
+
+            // Two left are two months, at any work: said
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{2}}}, month));
+            EXPECT_EQ(month.warning, "RATIONS FOR 2 MONTHS");
+            EXPECT_EQ(month.advice, low);
         }
 
         // ----------------------------------------------------------------------------------------
@@ -1401,7 +1407,7 @@ namespace pg
             };
 
             RuleMonth month;
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"coin", ElementType{3}}, {"rations", ElementType{5}}}, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"coin", ElementType{3}}, {"rations", ElementType{5}}}, month)) << firstError(f.rules);
 
             const RuleGloss* coin = glossOf(month, "coin");
             const RuleGloss* rations = glossOf(month, "rations");
@@ -1427,7 +1433,7 @@ namespace pg
 
             // Written time: held with his coin, in seconds, an hour of it at most. It is the one
             // holding that runs the months faster, and a month takes none of it
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{5}}, {"written", ElementType{754}}}, false, month));
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{5}}, {"written", ElementType{754}}}, month));
 
             const ElementMap* written = byId(month.rows, "written");
             ASSERT_NE(written, nullptr);
@@ -1446,15 +1452,16 @@ namespace pg
             EXPECT_EQ(rowOf(*glossOf(month, "written"), "A month takes"), "7 s");
             EXPECT_EQ(rowOf(*glossOf(month, "written"), "Runs faster"), "107 mo");
 
-            // Fed by his work, the month uses none, and the gloss says so
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{5}}}, true, month));
-            EXPECT_NE(textOf(glossOf(month, "rations")->fields, "footnote").find("MEALS PROVIDED"), std::string::npos);
+            // A month uses his one ration at any work: no word of meals in the gloss
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{5}}}, month));
+            EXPECT_EQ(textOf(glossOf(month, "rations")->fields, "footnote").find("MEALS"), std::string::npos);
+            EXPECT_EQ(rowOf(*glossOf(month, "rations"), "A month uses"), "1");
 
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{60}}}, false, month));
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{60}}}, month));
             EXPECT_NE(textOf(glossOf(month, "rations")->fields, "footnote").find("FULL"), std::string::npos);
 
             // What he holds past the limit is his: the month only eats from it
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{64}}}, false, month));
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{12}}, {"rations", ElementType{64}}}, month));
             EXPECT_EQ(intOf(month.after, "rations"), 63);
         }
 
@@ -1705,12 +1712,12 @@ namespace pg
             RulesFixture f;
 
             RuleMonth month;
-            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{5}}, {"fam.sprite", ElementType{1}}, {"berries", ElementType{0}}, {"town.market", ElementType{2}}}, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{5}}, {"fam.sprite", ElementType{1}}, {"berries", ElementType{0}}, {"town.market", ElementType{2}}}, month)) << firstError(f.rules);
 
             EXPECT_EQ(intOf(month.after, "berries"), 5);
 
             // With what he has taught them, and two of them
-            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{5}}, {"fam.sprite", ElementType{2}}, {"berries", ElementType{0}}, {"more.berries", ElementType{1}}, {"town.market", ElementType{2}}}, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{5}}, {"fam.sprite", ElementType{2}}, {"berries", ElementType{0}}, {"more.berries", ElementType{1}}, {"town.market", ElementType{2}}}, month)) << firstError(f.rules);
 
             EXPECT_EQ(intOf(month.after, "berries"), 12);
         }
@@ -1791,7 +1798,7 @@ namespace pg
             EXPECT_EQ(slotCurrent(over), 0);
 
             RuleMonth month;
-            ASSERT_TRUE(f.rules.month(7.5f, over, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(7.5f, over, month)) << firstError(f.rules);
             EXPECT_EQ(intOf(month.after, "fam.sprite"), 2);
         }
 
@@ -1807,7 +1814,7 @@ namespace pg
             ElementMap character = {{"vit", ElementType{20}}, {"rations", ElementType{5}}, {"fam.sprite", ElementType{1}}, {"berries", ElementType{0}}};
 
             RuleMonth month;
-            ASSERT_TRUE(f.rules.month(8.0f, character, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(8.0f, character, month)) << firstError(f.rules);
 
             EXPECT_EQ(intOf(month.after, "rations"), 3);
             EXPECT_EQ(intOf(month.after, "berries"), 4);
@@ -1858,7 +1865,7 @@ namespace pg
             ElementMap character = {{"vit", ElementType{20}}, {"rations", ElementType{2}}, {"fam.sprite", ElementType{2}}, {"berries", ElementType{0}}};
 
             RuleMonth month;
-            ASSERT_TRUE(f.rules.month(8.0f, character, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(8.0f, character, month)) << firstError(f.rules);
 
             EXPECT_EQ(intOf(month.after, "rations"), 1);
             EXPECT_EQ(intOf(month.after, "berries"), 0);
@@ -1870,25 +1877,25 @@ namespace pg
             EXPECT_EQ(textOf(month.entries[0], "kind"), "loss");
         }
 
-        // A month at work that feeds him feeds him only
-        TEST(rules_test, familiars_eat_even_at_board)
+        // Every month he eats, and his familiars after him: one way the rations go, at any work
+        TEST(rules_test, he_and_his_familiars_eat_every_month)
         {
             MockLogger logger;
             RulesFixture f;
 
             RuleMonth month;
-            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{5}}, {"fam.sprite", ElementType{1}}}, true, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{5}}, {"fam.sprite", ElementType{1}}}, month)) << firstError(f.rules);
 
-            EXPECT_EQ(intOf(month.after, "rations"), 4);
+            EXPECT_EQ(intOf(month.after, "rations"), 3);
             EXPECT_EQ(intOf(month.after, "berries"), 4);
             ASSERT_NE(byId(month.rows, "rations"), nullptr);
-            EXPECT_EQ(textOf(*byId(month.rows, "rations"), "rate"), "\xE2\x88\x92" "1 / mo");
+            EXPECT_EQ(textOf(*byId(month.rows, "rations"), "rate"), "\xE2\x88\x92" "2 / mo");
 
             for (const auto& gloss : month.glosses)
             {
                 if (textOf(gloss.fields, "id") == "rations")
                 {
-                    EXPECT_EQ(textOf(gloss.fields, "footnote"), "MEALS PROVIDED: ONLY HIS FAMILIARS EAT");
+                    EXPECT_EQ(textOf(gloss.fields, "footnote").find("MEALS"), std::string::npos);
                 }
             }
         }
@@ -1900,7 +1907,7 @@ namespace pg
             RulesFixture f;
 
             RuleMonth month;
-            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{5}}, {"fam.sprite", ElementType{1}}, {"berries", ElementType{28}}}, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{5}}, {"fam.sprite", ElementType{1}}, {"berries", ElementType{28}}}, month)) << firstError(f.rules);
 
             EXPECT_EQ(intOf(month.after, "berries"), 30);
             ASSERT_NE(byId(month.rows, "berries"), nullptr);
@@ -1914,7 +1921,7 @@ namespace pg
             RulesFixture f;
 
             RuleMonth month;
-            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{5}}, {"fam.sprite", ElementType{2}}, {"berries", ElementType{0}}, {"more.berries", ElementType{2}}}, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{5}}, {"fam.sprite", ElementType{2}}, {"berries", ElementType{0}}, {"more.berries", ElementType{2}}}, month)) << firstError(f.rules);
 
             EXPECT_EQ(intOf(month.after, "berries"), 12);
         }
@@ -1926,16 +1933,16 @@ namespace pg
             RulesFixture f;
 
             RuleMonth month;
-            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{5}}, {"fam.sprite", ElementType{2}}}, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{5}}, {"fam.sprite", ElementType{2}}}, month)) << firstError(f.rules);
 
             ElementType eats;
             ASSERT_TRUE(f.rules.resourcesScript.get("eats", eats)) << firstError(f.rules);
             EXPECT_EQ(eats.toString(), "3");
 
-            // At work that feeds him, his own is not eaten
-            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{5}}, {"fam.sprite", ElementType{2}}}, true, month)) << firstError(f.rules);
+            // Alone, his own: the same at any work
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{5}}}, month)) << firstError(f.rules);
             ASSERT_TRUE(f.rules.resourcesScript.get("eats", eats));
-            EXPECT_EQ(eats.toString(), "2");
+            EXPECT_EQ(eats.toString(), "1");
         }
 
         // In table order: what a brownie makes feeds a kind after it, the same month
@@ -1948,7 +1955,7 @@ namespace pg
                                     {"berries", ElementType{3}}, {"water", ElementType{2}}, {"firewood", ElementType{1}}, {"stone", ElementType{0}}};
 
             RuleMonth month;
-            ASSERT_TRUE(f.rules.month(8.0f, character, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(8.0f, character, month)) << firstError(f.rules);
 
             // He eats his one; the brownie makes two, and the mole eats two of the three
             EXPECT_EQ(intOf(month.after, "rations"), 1);
@@ -1975,11 +1982,11 @@ namespace pg
 
             // Three rations, his one and two sprites': one month of them
             RuleMonth month;
-            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{3}}, {"fam.sprite", ElementType{2}}}, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{3}}, {"fam.sprite", ElementType{2}}}, month)) << firstError(f.rules);
 
             EXPECT_EQ(intOf(month.after, "rations"), 0);
             EXPECT_EQ(month.warning, "RATIONS FOR 1 MONTH");
-            EXPECT_EQ(month.advice, "Rations are running low: buy some at the market, or take work with meals");
+            EXPECT_EQ(month.advice, "Rations are running low: buy some at the market, or take work that gives rations up front");
             EXPECT_EQ(texts(month), std::vector<std::string>{"The rations ran out"});
 
             for (const auto& gloss : month.glosses)
@@ -1997,18 +2004,18 @@ namespace pg
             }
 
             // Six of them: two months, said from three
-            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{6}}, {"fam.sprite", ElementType{2}}}, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{6}}, {"fam.sprite", ElementType{2}}}, month)) << firstError(f.rules);
             EXPECT_EQ(month.warning, "RATIONS FOR 2 MONTHS");
             EXPECT_TRUE(month.entries.empty());
 
             // His last one eaten, the sprite goes hungry: the rations ran out once, then the hunger
-            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{1}}, {"fam.sprite", ElementType{1}}}, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{1}}, {"fam.sprite", ElementType{1}}}, month)) << firstError(f.rules);
             EXPECT_EQ(intOf(month.after, "rations"), 0);
             EXPECT_EQ(intOf(month.after, "vit"), 20);
             EXPECT_EQ(texts(month), (std::vector<std::string>{"The rations ran out", "A hedge sprite went hungry"}));
 
             // Out of them: no second entry, his Vitality pays, the sprite still hungry
-            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{0}}, {"fam.sprite", ElementType{1}}}, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{0}}, {"fam.sprite", ElementType{1}}}, month)) << firstError(f.rules);
             EXPECT_EQ(intOf(month.after, "vit"), 15);
             EXPECT_EQ(month.warning, "NO RATIONS LEFT");
             EXPECT_EQ(texts(month), std::vector<std::string>{"A hedge sprite went hungry"});
@@ -2031,31 +2038,31 @@ namespace pg
             return said;
         }
 
-        // At work that feeds him his familiars still eat: running out is foreseen on their share
-        // alone, and with none bound nothing is said
-        TEST(rules_test, familiars_at_board_are_warned_of)
+        // He and his familiars eat at any work: running out is foreseen on all their shares, the
+        // gloss counting them as the warning does
+        TEST(rules_test, the_warning_counts_every_mouth)
         {
             MockLogger logger;
             RulesFixture f;
 
             RuleMonth month;
-            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{3}}, {"fam.sprite", ElementType{1}}}, true, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{3}}, {"fam.sprite", ElementType{1}}}, month)) << firstError(f.rules);
 
-            EXPECT_EQ(intOf(month.after, "rations"), 2);
-            EXPECT_EQ(month.warning, "RATIONS FOR 3 MONTHS");
-            EXPECT_EQ(month.advice, "Rations are running low: buy some at the market, or take work with meals");
+            EXPECT_EQ(intOf(month.after, "rations"), 1);
+            EXPECT_EQ(month.warning, "RATIONS FOR 1 MONTH");
+            EXPECT_EQ(month.advice, "Rations are running low: buy some at the market, or take work that gives rations up front");
 
             const std::string said = glossSaid(month, "rations");
-            EXPECT_NE(said.find("A month uses=1;"), std::string::npos) << said;
+            EXPECT_NE(said.find("A month uses=2;"), std::string::npos) << said;
             EXPECT_NE(said.find("His familiars eat=1 / mo;"), std::string::npos) << said;
-            EXPECT_NE(said.find("Lasts=3 mo;"), std::string::npos) << said;
+            EXPECT_NE(said.find("Lasts=1 mo;"), std::string::npos) << said;
 
-            // None bound: his work feeds him, and nothing runs out
-            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{3}}}, true, month)) << firstError(f.rules);
-            EXPECT_EQ(intOf(month.after, "rations"), 3);
-            EXPECT_EQ(month.warning, "");
-            EXPECT_EQ(month.advice, "");
-            EXPECT_EQ(glossSaid(month, "rations").find("Lasts="), std::string::npos) << glossSaid(month, "rations");
+            // None bound: his own alone
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{3}}}, month)) << firstError(f.rules);
+            EXPECT_EQ(intOf(month.after, "rations"), 2);
+            EXPECT_EQ(month.warning, "RATIONS FOR 3 MONTHS");
+            EXPECT_NE(glossSaid(month, "rations").find("A month uses=1;"), std::string::npos) << glossSaid(month, "rations");
+            EXPECT_NE(glossSaid(month, "rations").find("Lasts=3 mo;"), std::string::npos) << glossSaid(month, "rations");
             EXPECT_EQ(glossSaid(month, "rations").find("His familiars eat"), std::string::npos) << glossSaid(month, "rations");
         }
 
@@ -2067,7 +2074,7 @@ namespace pg
             RulesFixture f;
 
             RuleMonth month;
-            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{9}}, {"fam.sprite", ElementType{1}}}, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{9}}, {"fam.sprite", ElementType{1}}}, month)) << firstError(f.rules);
 
             std::string said = glossSaid(month, "rations");
             EXPECT_NE(said.find("A month uses=2;"), std::string::npos) << said;
@@ -2076,13 +2083,13 @@ namespace pg
             EXPECT_EQ(month.warning, "");
 
             // Seven: three months, and the warning says the same
-            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{7}}, {"fam.sprite", ElementType{1}}}, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{7}}, {"fam.sprite", ElementType{1}}}, month)) << firstError(f.rules);
             said = glossSaid(month, "rations");
             EXPECT_NE(said.find("Lasts=3 mo;"), std::string::npos) << said;
             EXPECT_EQ(month.warning, "RATIONS FOR 3 MONTHS");
 
             // Alone, he eats one a month: no share of theirs to say
-            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{9}}}, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{9}}}, month)) << firstError(f.rules);
             said = glossSaid(month, "rations");
             EXPECT_NE(said.find("Lasts=9 mo;"), std::string::npos) << said;
             EXPECT_EQ(said.find("His familiars eat"), std::string::npos) << said;
@@ -2335,7 +2342,7 @@ namespace pg
 
             RuleMonth month;
 
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{45}}, {"vitmax", ElementType{60}}, {"rations", ElementType{5}}}, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{45}}, {"vitmax", ElementType{60}}, {"rations", ElementType{5}}}, month)) << firstError(f.rules);
             EXPECT_EQ(intOf(month.after, "vit"), 45);
             EXPECT_EQ(intOf(month.after, "vitrest"), 1);
             EXPECT_TRUE(month.hurt.empty());
@@ -2344,31 +2351,31 @@ namespace pg
             EXPECT_EQ(textOf(month.caps[0], "stat"), "vit");
             EXPECT_EQ(intOf(month.caps[0], "most"), 60);
 
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{45}}, {"vitmax", ElementType{60}}, {"vitrest", ElementType{1}}, {"rations", ElementType{5}}}, false, month));
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{45}}, {"vitmax", ElementType{60}}, {"vitrest", ElementType{1}}, {"rations", ElementType{5}}}, month));
             EXPECT_EQ(intOf(month.after, "vit"), 50);
             EXPECT_EQ(intOf(month.after, "vitmax"), 60);
             EXPECT_EQ(intOf(month.after, "vitrest"), 0);
 
             // Starving: nothing mends, the count starts again
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{45}}, {"vitmax", ElementType{60}}, {"vitrest", ElementType{1}}, {"rations", ElementType{0}}}, false, month));
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{45}}, {"vitmax", ElementType{60}}, {"vitrest", ElementType{1}}, {"rations", ElementType{0}}}, month));
             EXPECT_EQ(intOf(month.after, "vit"), 40);
             EXPECT_EQ(intOf(month.after, "vitmax"), 60);
             EXPECT_EQ(intOf(month.after, "vitrest"), 0);
 
-            // Fed by his work, it mends as on any good month
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{45}}, {"vitmax", ElementType{60}}, {"vitrest", ElementType{1}}, {"rations", ElementType{0}}}, true, month));
+            // His last ration eaten (one a work that feeds him gave up front), it mends as on any good month
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{45}}, {"vitmax", ElementType{60}}, {"vitrest", ElementType{1}}, {"rations", ElementType{1}}}, month));
             EXPECT_EQ(intOf(month.after, "vit"), 50);
 
             // Whole: it stays
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{60}}, {"vitmax", ElementType{60}}, {"vitrest", ElementType{1}}}, false, month));
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{60}}, {"vitmax", ElementType{60}}, {"vitrest", ElementType{1}}}, month));
             EXPECT_EQ(intOf(month.after, "vit"), 60);
 
             // A character from before the cap takes what he has as his most
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{7}}}, false, month));
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{7}}}, month));
             EXPECT_EQ(intOf(month.after, "vitmax"), 7);
 
             // No such stat, no cap
-            ASSERT_TRUE(f.rules.month(20.0f, {{"coin", ElementType{3}}}, false, month));
+            ASSERT_TRUE(f.rules.month(20.0f, {{"coin", ElementType{3}}}, month));
             EXPECT_TRUE(month.caps.empty());
 
             // The mill brings Vitality: the most it can be rises with it
@@ -2388,15 +2395,15 @@ namespace pg
 
             RuleMonth month;
 
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{1}}, {"rations", ElementType{0}}}, false, month));
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{1}}, {"rations", ElementType{0}}}, month));
             EXPECT_EQ(intOf(month.after, "vit"), 0);
             EXPECT_TRUE(month.death.empty());
 
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{0}}, {"rations", ElementType{0}}}, false, month));
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{0}}, {"rations", ElementType{0}}}, month));
             EXPECT_FALSE(month.death.empty());
 
             // A character with no such stat at all is not dead of it
-            ASSERT_TRUE(f.rules.month(20.0f, {{"coin", ElementType{3}}}, false, month));
+            ASSERT_TRUE(f.rules.month(20.0f, {{"coin", ElementType{3}}}, month));
             EXPECT_TRUE(month.death.empty());
         }
 
@@ -2416,40 +2423,40 @@ namespace pg
             RuleMonth month;
 
             // The month that brings him to 30, and the one after: nothing yet
-            ASSERT_TRUE(f.rules.month(30.0f, {{"vit", ElementType{45}}, {"vitmax", ElementType{45}}, {"rations", ElementType{5}}}, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(30.0f, {{"vit", ElementType{45}}, {"vitmax", ElementType{45}}, {"rations", ElementType{5}}}, month)) << firstError(f.rules);
             EXPECT_EQ(intOf(month.after, "vit"), 45);
             EXPECT_EQ(intOf(month.after, "vitmax"), 45);
 
-            ASSERT_TRUE(f.rules.month(30.0f + twelfth, {{"vit", ElementType{45}}, {"vitmax", ElementType{45}}, {"rations", ElementType{5}}}, false, month));
+            ASSERT_TRUE(f.rules.month(30.0f + twelfth, {{"vit", ElementType{45}}, {"vitmax", ElementType{45}}, {"rations", ElementType{5}}}, month));
             EXPECT_EQ(intOf(month.after, "vit"), 45);
             EXPECT_EQ(intOf(month.after, "vitmax"), 45);
 
             // Every second month: the most it can be, and what he has with it. Not a hurt
-            ASSERT_TRUE(f.rules.month(30.0f + 2.0f * twelfth, {{"vit", ElementType{45}}, {"vitmax", ElementType{45}}, {"rations", ElementType{5}}}, false, month));
+            ASSERT_TRUE(f.rules.month(30.0f + 2.0f * twelfth, {{"vit", ElementType{45}}, {"vitmax", ElementType{45}}, {"rations", ElementType{5}}}, month));
             EXPECT_EQ(intOf(month.after, "vit"), 40);
             EXPECT_EQ(intOf(month.after, "vitmax"), 40);
             EXPECT_TRUE(month.hurt.empty());
 
             // Already under it: only the most falls
-            ASSERT_TRUE(f.rules.month(30.0f + 4.0f * twelfth, {{"vit", ElementType{25}}, {"vitmax", ElementType{45}}, {"rations", ElementType{5}}}, false, month));
+            ASSERT_TRUE(f.rules.month(30.0f + 4.0f * twelfth, {{"vit", ElementType{25}}, {"vitmax", ElementType{45}}, {"rations", ElementType{5}}}, month));
             EXPECT_EQ(intOf(month.after, "vit"), 25);
             EXPECT_EQ(intOf(month.after, "vitmax"), 40);
 
             // In his prime the same months take nothing
-            ASSERT_TRUE(f.rules.month(20.0f + 2.0f * twelfth, {{"vit", ElementType{45}}, {"vitmax", ElementType{45}}, {"rations", ElementType{5}}}, false, month));
+            ASSERT_TRUE(f.rules.month(20.0f + 2.0f * twelfth, {{"vit", ElementType{45}}, {"vitmax", ElementType{45}}, {"rations", ElementType{5}}}, month));
             EXPECT_EQ(intOf(month.after, "vit"), 45);
             EXPECT_EQ(intOf(month.after, "vitmax"), 45);
 
             // The last of it, and the line of a life that ended old
-            ASSERT_TRUE(f.rules.month(32.0f, {{"vit", ElementType{5}}, {"vitmax", ElementType{5}}, {"rations", ElementType{5}}}, false, month));
+            ASSERT_TRUE(f.rules.month(32.0f, {{"vit", ElementType{5}}, {"vitmax", ElementType{5}}, {"rations", ElementType{5}}}, month));
             EXPECT_EQ(intOf(month.after, "vit"), 0);
             EXPECT_EQ(intOf(month.after, "vitmax"), 0);
             EXPECT_TRUE(month.death.empty());
 
-            ASSERT_TRUE(f.rules.month(32.0f, {{"vit", ElementType{0}}, {"vitmax", ElementType{0}}, {"rations", ElementType{5}}}, false, month));
+            ASSERT_TRUE(f.rules.month(32.0f, {{"vit", ElementType{0}}, {"vitmax", ElementType{0}}, {"rations", ElementType{5}}}, month));
             EXPECT_NE(month.death.find("old age"), std::string::npos) << month.death;
 
-            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{0}}, {"rations", ElementType{0}}}, false, month));
+            ASSERT_TRUE(f.rules.month(20.0f, {{"vit", ElementType{0}}, {"rations", ElementType{0}}}, month));
             EXPECT_FALSE(month.death.empty());
             EXPECT_EQ(month.death.find("old age"), std::string::npos) << month.death;
         }
@@ -2649,7 +2656,8 @@ namespace pg
             EXPECT_TRUE(flag(glean.fields, "listed"));
             EXPECT_FALSE(flag(glean.fields, "locked"));
             EXPECT_EQ(intOf(glean.fields, "months"), 1);
-            EXPECT_TRUE(flag(glean.fields, "board"));
+            EXPECT_FALSE(flag(glean.fields, "board"));
+            EXPECT_EQ(intOf(glean.fields, "upFront"), 0);
             EXPECT_EQ(brings(glean), (std::vector<std::string>{"rations 10"}));
 
             EXPECT_EQ(brings(activityAt(f.rules, 6.0f, child(), "flour")), (std::vector<std::string>{"coin 6"}));
@@ -2682,6 +2690,7 @@ namespace pg
             EXPECT_TRUE(flag(helping.fields, "listed"));
             EXPECT_EQ(intOf(helping.fields, "months"), 1);
             EXPECT_TRUE(flag(helping.fields, "board"));
+            EXPECT_EQ(intOf(helping.fields, "upFront"), 1);
             EXPECT_EQ(intOf(helping.fields, "uses"), 1);
             EXPECT_EQ(brings(helping), (std::vector<std::string>{"rations 6"}));
         }
@@ -3031,7 +3040,7 @@ namespace pg
 
             ElementMap stored = {{"berries", ElementType{0}}, {"store.berries", ElementType{20}}};
             RuleMonth month;
-            ASSERT_TRUE(f.rules.month(9.0f, stored, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(9.0f, stored, month)) << firstError(f.rules);
             ASSERT_NE(byId(month.rows, "berries"), nullptr);
             EXPECT_EQ(intOf(*byId(month.rows, "berries"), "limit"), 50);
 
@@ -3108,6 +3117,90 @@ namespace pg
             RuleForecast forecast;
             ASSERT_TRUE(f.rules.forecast(7.75f, fed, "kitchen", 0, forecast)) << firstError(f.rules);
             EXPECT_EQ(intOf(forecast.atTerm, "rations"), 18);
+
+            // And it feeds him: its three months of rations as he begins it, his costs taken
+            EXPECT_EQ(forecast.upFront, 3);
+            EXPECT_EQ(intOf(forecast.atStart, "rations"), 15);
+            EXPECT_EQ(intOf(forecast.atStart, "water"), 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A work that feeds him gives the rations of its months as he begins it, and the log says
+        // so; what does not feed him gives none. Past the most he can hold they are his, as any
+        // gain is. Left before its term, it takes back those of the months not worked, never more
+        // than he holds.
+        TEST(rules_test, fed_work_gives_its_rations_up_front)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            RuleForecast carters;
+            ASSERT_TRUE(f.rules.forecast(7.0f, boy(), "carters", 0, carters)) << firstError(f.rules);
+
+            EXPECT_EQ(carters.upFront, 3);
+            EXPECT_EQ(intOf(carters.atStart, "rations"), 15);
+            EXPECT_EQ(intOf(carters.atTerm, "rations"), 12);
+            EXPECT_EQ(carters.unworked, 3);
+            EXPECT_EQ(carters.takenBack, 3);
+            ASSERT_EQ(carters.begins.size(), 1u);
+            EXPECT_EQ(textOf(carters.begins[0], "text"), "Carry for the Carters gives its rations up front");
+            EXPECT_EQ(textOf(carters.begins[0], "kind"), "gain");
+            EXPECT_EQ(textOf(carters.begins[0], "figure").rfind("+3", 0), 0u) << textOf(carters.begins[0], "figure");
+
+            // A month in: two months' rations would go back; at its term, none
+            RuleForecast in;
+            ASSERT_TRUE(f.rules.forecast(7.0f, boy(), "carters", 1, in)) << firstError(f.rules);
+            EXPECT_EQ(in.unworked, 2);
+            EXPECT_EQ(in.takenBack, 2);
+            EXPECT_EQ(intOf(in.atLeave, "rations"), 10);
+            EXPECT_EQ(intOf(in.atOwed, "rations"), 14);
+            ASSERT_EQ(in.leaves.size(), 1u);
+            EXPECT_EQ(textOf(in.leaves[0], "kind"), "loss");
+            EXPECT_EQ(textOf(in.leaves[0], "figure").rfind("\xE2\x88\x92" "2", 0), 0u) << textOf(in.leaves[0], "figure");
+
+            ASSERT_TRUE(f.rules.forecast(7.0f, boy(), "carters", 3, in)) << firstError(f.rules);
+            EXPECT_EQ(in.unworked, 0);
+            EXPECT_EQ(in.takenBack, 0);
+            EXPECT_TRUE(in.leaves.empty());
+
+            // Never more than he holds: one ration left, one goes back
+            ElementMap thin = boy();
+            thin["rations"] = ElementType{1};
+            ASSERT_TRUE(f.rules.forecast(7.0f, thin, "carters", 1, in)) << firstError(f.rules);
+            EXPECT_EQ(in.unworked, 2);
+            EXPECT_EQ(in.takenBack, 1);
+            EXPECT_EQ(intOf(in.atLeave, "rations"), 0);
+
+            // Kept past his limit of sixty: eighteen months at the Keep on fifty held
+            ElementMap full = sworn();
+            full["rations"] = ElementType{50};
+            RuleForecast keep;
+            ASSERT_TRUE(f.rules.forecast(17.5f, full, "keep", 0, keep)) << firstError(f.rules);
+            EXPECT_EQ(keep.upFront, 18);
+            EXPECT_EQ(intOf(keep.atStart, "rations"), 68);
+            EXPECT_EQ(intOf(keep.atStart, "coin"), 36);
+
+            // What does not feed him gives nothing up front, and leaving it takes nothing
+            RuleForecast mill;
+            ASSERT_TRUE(f.rules.forecast(7.0f, boy(), "mill", 2, mill)) << firstError(f.rules);
+            EXPECT_EQ(mill.upFront, 0);
+            EXPECT_EQ(mill.unworked, 0);
+            EXPECT_EQ(mill.takenBack, 0);
+            EXPECT_TRUE(mill.begins.empty());
+            EXPECT_TRUE(mill.leaves.empty());
+
+            ASSERT_TRUE(f.rules.forecast(7.0f, boy(), "mill", 0, mill)) << firstError(f.rules);
+            EXPECT_EQ(intOf(mill.atStart, "rations"), 12);
+
+            // Done at once, nothing is fed: the berries dried give their ration and no more
+            ElementMap picker = boy();
+            picker["berries"] = ElementType{3};
+            RuleForecast dry;
+            ASSERT_TRUE(f.rules.forecast(7.0f, picker, "dry.berries", 0, dry)) << firstError(f.rules);
+            EXPECT_EQ(dry.upFront, 0);
+            EXPECT_EQ(intOf(dry.atTerm, "rations"), 13);
         }
 
         // ----------------------------------------------------------------------------------------
@@ -4199,7 +4292,7 @@ namespace pg
 
             // The Flood is settled the month after its last answer could end: nothing held, he stood by
             RuleMonth passed;
-            ASSERT_TRUE(f.rules.month(settled, character, false, passed)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(settled, character, passed)) << firstError(f.rules);
 
             EXPECT_EQ(intOf(passed.after, "stood_flood"), 1);
             EXPECT_EQ(intOf(passed.after, "stood_by"), 1);
@@ -4208,17 +4301,17 @@ namespace pg
 
             // Not the month before, when an answer begun in the last month is still to end; not who
             // answered; and a life that was never that month old has stood by at nothing
-            ASSERT_TRUE(f.rules.month(settled - month, character, false, passed)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(settled - month, character, passed)) << firstError(f.rules);
             EXPECT_EQ(passed.after.count("stood_flood"), 0u);
 
-            ASSERT_TRUE(f.rules.month(settled + month, character, false, passed)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(settled + month, character, passed)) << firstError(f.rules);
             EXPECT_EQ(passed.after.count("stood_flood"), 0u);
             EXPECT_TRUE(passed.entries.empty());
 
             ElementMap looter = character;
             looter["flood_looted"] = ElementType{1};
 
-            ASSERT_TRUE(f.rules.month(settled, looter, false, passed)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(settled, looter, passed)) << firstError(f.rules);
             EXPECT_EQ(passed.after.count("stood_flood"), 0u);
             EXPECT_TRUE(passed.entries.empty());
 
@@ -4263,11 +4356,11 @@ namespace pg
             ElementMap marched = stood;
             marched["levy_served"] = ElementType{1};
 
-            ASSERT_TRUE(f.rules.month(16.0f, marched, false, passed)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(16.0f, marched, passed)) << firstError(f.rules);
             EXPECT_EQ(passed.after.count("stood_levy"), 0u);
             EXPECT_EQ(intOf(passed.after, "stood_by"), 1);
 
-            ASSERT_TRUE(f.rules.month(16.0f, stood, false, passed)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(16.0f, stood, passed)) << firstError(f.rules);
             EXPECT_EQ(intOf(passed.after, "stood_levy"), 1);
             EXPECT_EQ(intOf(passed.after, "stood_by"), 2);
             EXPECT_TRUE(wrote(passed, "The Levy mustered without him"));
@@ -4359,7 +4452,7 @@ namespace pg
             once["stood_by"] = ElementType{1};
 
             RuleMonth passed;
-            ASSERT_TRUE(f.rules.month(24.0f, once, false, passed)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(24.0f, once, passed)) << firstError(f.rules);
 
             EXPECT_EQ(intOf(passed.after, "stood_plague"), 1);
             EXPECT_EQ(intOf(passed.after, "stood_by"), 2);
@@ -4370,7 +4463,7 @@ namespace pg
             ElementMap shut = once;
             shut["plague_shut"] = ElementType{1};
 
-            ASSERT_TRUE(f.rules.month(24.0f, shut, false, passed)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(24.0f, shut, passed)) << firstError(f.rules);
             EXPECT_EQ(passed.after.count("stood_plague"), 0u);
 
             ElementMap twice = once;
@@ -5011,7 +5104,7 @@ namespace pg
             character["vitrest"] = ElementType{0};
 
             RuleMonth month;
-            ASSERT_TRUE(f.rules.month(9.0f, character, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(9.0f, character, month)) << firstError(f.rules);
             EXPECT_EQ(intOf(month.after, "rations"), 11);
             EXPECT_EQ(intOf(month.after, "vit"), 30);
 
@@ -5020,7 +5113,7 @@ namespace pg
             character["town.market"] = ElementType{2};
             character["town.inn"] = ElementType{3};
 
-            ASSERT_TRUE(f.rules.month(9.0f, character, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(9.0f, character, month)) << firstError(f.rules);
 
             // The hall's month: one eaten, one sent
             EXPECT_EQ(intOf(month.after, "rations"), 12);
@@ -5061,13 +5154,13 @@ namespace pg
             // The two months between: he eats, and the hall sends nothing
             for (float age : {9.0f + 1.0f / 12.0f, 9.0f + 2.0f / 12.0f})
             {
-                ASSERT_TRUE(f.rules.month(age, character, false, month)) << firstError(f.rules);
+                ASSERT_TRUE(f.rules.month(age, character, month)) << firstError(f.rules);
 
                 EXPECT_EQ(intOf(month.after, "rations"), 11) << age;
             }
 
             // And the next one is its month again
-            ASSERT_TRUE(f.rules.month(9.25f, character, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(9.25f, character, month)) << firstError(f.rules);
             EXPECT_EQ(intOf(month.after, "rations"), 12);
         }
 
@@ -5249,11 +5342,14 @@ namespace pg
             // A month, the milestones and the deeds
             RuleMonth month;
 
-            ASSERT_TRUE(f.rules.month(17.5f, stronger, false, month));
-            ASSERT_TRUE(f.rules.month(17.5f, stronger, false, month));
+            ASSERT_TRUE(f.rules.month(17.5f, stronger, month));
+            ASSERT_TRUE(f.rules.month(17.5f, stronger, month));
             EXPECT_EQ(f.rules.nbRuns, 8u);
 
-            ASSERT_TRUE(f.rules.month(17.5f, stronger, true, month));
+            // Another character is another run
+            ElementMap hungrier = stronger;
+            hungrier["rations"] = ElementType{intOf(stronger, "rations") + 1};
+            ASSERT_TRUE(f.rules.month(17.5f, hungrier, month));
             EXPECT_EQ(f.rules.nbRuns, 9u);
 
             std::vector<RuleMilestone> milestones;
@@ -5328,7 +5424,7 @@ namespace pg
 
             timed("activities and windows", [&](float age) { return f.rules.activities(age, sworn(), activities) and f.rules.windows(age, sworn(), windows); });
             timed("forecast", [&](float age) { return f.rules.forecast(age, sworn(), "mill", 0, forecast); });
-            timed("month", [&](float age) { return f.rules.month(age, sworn(), false, month); });
+            timed("month", [&](float age) { return f.rules.month(age, sworn(), month); });
             timed("milestones", [&](float age) { return f.rules.milestones(age, milestones, next); });
 
             EXPECT_EQ(f.rules.nbRuns, static_cast<size_t>(4 * runs));
@@ -5460,7 +5556,7 @@ namespace pg
             fallen["fell"] = ElementType{1};
 
             RuleMonth month;
-            ASSERT_TRUE(f.rules.month(15.0f, fallen, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(15.0f, fallen, month)) << firstError(f.rules);
             EXPECT_NE(month.death.find("a fight he chose"), std::string::npos) << month.death;
         }
 
@@ -5481,7 +5577,7 @@ namespace pg
             fighter["lesson.rat"] = ElementType{1};
 
             RuleMonth month;
-            ASSERT_TRUE(f.rules.month(15.0f, fighter, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(15.0f, fighter, month)) << firstError(f.rules);
 
             for (const char* id : {"flask", "oil", "rank.slash", "lesson.rat"})
             {
@@ -5749,7 +5845,7 @@ namespace pg
 
             // And he holds it: a row of the ledger, in a group of its own, that says he has it
             RuleMonth month;
-            ASSERT_TRUE(f.rules.month(20.0f, character, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(20.0f, character, month)) << firstError(f.rules);
 
             const ElementMap* held = byId(month.rows, "gear.iron_blade");
 
@@ -5829,7 +5925,7 @@ namespace pg
             character["gear.charm"] = ElementType{1};
 
             RuleMonth month;
-            ASSERT_TRUE(f.rules.month(20.0f, character, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(20.0f, character, month)) << firstError(f.rules);
 
             const ElementMap* held = byId(month.rows, "gear.charm");
 
@@ -5854,7 +5950,7 @@ namespace pg
             character["wisp_glass"] = ElementType{1};
 
             RuleMonth month;
-            ASSERT_TRUE(f.rules.month(20.0f, character, false, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.month(20.0f, character, month)) << firstError(f.rules);
 
             for (const char* id : {"bog_iron", "pitch", "wisp_glass"})
             {

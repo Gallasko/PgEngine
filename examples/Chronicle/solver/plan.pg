@@ -778,7 +778,7 @@ fun gainScore(st, goals, row)
 
     if (st.stats.rations != none and row.months > 0)
     {
-        var eaten = eatsOf(st, row.board == true) * row.months
+        var eaten = eatsOf(st) * row.months - asInt(row.upFront)
         net["coin"] = asInt(net["coin"]) - toInt(toFloat(eaten) * rationPrice(st) + 0.5)
     }
 
@@ -1111,17 +1111,17 @@ fun isOpen(row)
     return row.listed == true and row.locked != true and row.goto == ""
 }
 
-// Rations enough for `months` of a work and what they eat (life.pg's rationsFor: his own away from a
-// table that feeds him, his familiars' everywhere): bought at the market while they are short and he
-// can pay
-fun provision(st, months, board, goals)
+// Rations enough for `months` of a work and what they eat (life.pg's rationsFor: his own and his
+// familiars', less what a work that feeds him gives up front): bought at the market while they are
+// short and he can pay
+fun provision(st, months, upFront, goals)
 {
     if (st.stats.rations == none)
     {
         return true
     }
 
-    var need = rationsFor(st, months, board)
+    var need = rationsFor(st, months, upFront)
     var tries = 0
 
     while (statOf(st, "rations") < need and tries < 8)
@@ -1389,12 +1389,12 @@ fun chooseWork(st, goals, novelty)
             }
         }
 
-        var board = row.board == true
-        var fed = st.stats.rations == none or statOf(st, "rations") >= rationsFor(st, row.months, board)
+        var upFront = asInt(row.upFront)
+        var fed = st.stats.rations == none or statOf(st, "rations") >= rationsFor(st, row.months, upFront)
 
         if (not fed)
         {
-            fed = provision(st, row.months, board, goals)
+            fed = provision(st, row.months, upFront, goals)
 
             if (st.dead)
             {
@@ -1404,7 +1404,7 @@ fun chooseWork(st, goals, novelty)
 
         // A work that feeds him is begun whatever his familiars will go without: hungry, they
         // only make nothing
-        if (board)
+        if (upFront > 0)
         {
             fed = true
         }

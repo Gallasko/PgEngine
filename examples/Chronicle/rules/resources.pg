@@ -1,8 +1,8 @@
 // Chronicle rules: what he holds, and what a month does to it
 // ----------------------------------------------------------
-// Input:  `age` (years, at the end of the month), `character` (a table of stats and flags),
-//         `board` (true when the month is spent at an activity that feeds him:
-//         activitytable.pg's `board`).
+// Input:  `age` (years, at the end of the month), `character` (a table of stats and flags).
+//         He eats every month, whatever he is at: a work that feeds him gave its months of
+//         rations as he began it (activitytable.pg's `upFront`, forecast.pg's `atStart`).
 // Output: `month`:
 //           after    every stat of the character once one month has passed
 //           entries  [{text, kind, figure, glyph}]: the log lines that month writes
@@ -25,21 +25,20 @@
 //           from, what it brings, what it uses and how long it lasts, what running out costs.
 //         `death`: "" or the line the next life opens with, when the character as he is has
 //           nothing left of a stat a life needs (`mortal`).
-//         `eats`: the rations a coming month eats as things stand, his own (none at board) and
-//           his familiars', fed or not. The solver reads it; the game does not.
+//         `eats`: the rations a coming month eats as things stand, his own and his familiars',
+//           fed or not. The solver reads it; the game does not.
 //
 // The familiars bound to him (the stat "fam.<id>", how many of the kind: economytable.pg's
-// `familiarKinds`) eat after he has eaten, at board too: his work feeds him, not them. Each kind
-// is fed all or nothing and makes its things when fed (lib.pg's `feedFamiliars`); a hungry one
-// makes nothing, and costs him nothing either. Each kind is a holding of the group FAMILIARS.
+// `familiarKinds`) eat after he has eaten, every month, at any work. Each kind is fed all or
+// nothing and makes its things when fed (lib.pg's `feedFamiliars`); a hungry one makes nothing,
+// and costs him nothing either. Each kind is a holding of the group FAMILIARS.
 //
 // A holding is a stat with a place in the ledger. Optional fields:
 //   produces: [{stat, amount, per, every}]
 //                                     while he holds it, every `per` of it brings `amount` of
 //                                     `stat` each month. With `every` (left out, 1) it brings it
 //                                     one month in `every` only, counted on the months of his life.
-//   decays: N                         it loses N each month, never below 0. Not in a month at
-//                                     board: he is fed, and running out costs nothing either.
+//   decays: N                         it loses N each month, never below 0, at any work.
 //   empty: {effects [{stat, amount}], entry "text", low "text", gone "text"}
 //                                     what running out costs: the entry is written the month it
 //                                     reaches 0, the effects land every month it stays there.
@@ -86,11 +85,11 @@ var holdings = [
     {id: "coin", group: "purse", groupLabel: "PURSE", glyph: "gold", name: "Coin", tone: 1,
      about: "What work pays him in, and what the market takes."},
     {id: "rations", group: "purse", groupLabel: "PURSE", glyph: "trade", name: "Rations", tone: 0,
-     about: "Food for the month. With none left, his Vitality pays for it. Work that feeds him leaves them be.",
-     decays: 1,
+     about: "Food for the month: he eats one every month, whatever he is at. Work that feeds him gives the rations of its months as he begins it. With none left, his Vitality pays for it.",
+     decays: economyKnobs.rationsAMonth,
      empty: {effects: [{stat: "vit", amount: -5}], entry: "The rations ran out",
-             low: "Rations are running low: buy some at the market, or take work with meals",
-             gone: "No rations left: his Vitality pays. Buy some at the market, or take work with meals"}},
+             low: "Rations are running low: buy some at the market, or take work that gives rations up front",
+             gone: "No rations left: his Vitality pays. Buy some at the market, or take work that gives rations up front"}},
     // Not his: the player's. The seconds the chronicle stayed shut, spent to run the months faster
     {id: "written", group: "purse", groupLabel: "PURSE", glyph: "time", name: "Written time", tone: 0, haste: 3, aMonth: 7,
      about: "What was written while the chronicle was shut, an hour at most. Spent, it runs the months twice or three times as fast, a week of it for each month. It is kept from life to life."},
@@ -394,16 +393,11 @@ for (var i = 0; i < len(holdings); i++)
     var decays = lookup(h, "decays", 0)
 
     // What a life hangs on is said to be running out from three months of it left, his familiars'
-    // share counted, and theirs alone at board: his work feeds him, not them. It lasts the months
-    // that feed them all (lib.pg's `monthsFed`). The month it is gone is written once they have eaten
+    // share counted with his own. It lasts the months that feed them all (lib.pg's `monthsFed`).
+    // The month it is gone is written once they have eaten
     if (decays > 0 and has(character, h.id) and held > 0 and has(h, "empty") and warning == "")
     {
-        var uses = lookup(familiarsEat, h.id, 0)
-
-        if (not board)
-        {
-            uses = uses + decays
-        }
+        var uses = lookup(familiarsEat, h.id, 0) + decays
 
         if (uses > 0)
         {
@@ -425,7 +419,7 @@ for (var i = 0; i < len(holdings); i++)
         }
     }
 
-    if (decays > 0 and has(character, h.id) and not board)
+    if (decays > 0 and has(character, h.id))
     {
         if (held > 0)
         {
@@ -448,8 +442,8 @@ for (var i = 0; i < len(holdings); i++)
     }
 }
 
-// He has eaten: his familiars eat after him, at board too, and what they took and made is in the
-// rates with the rest
+// He has eaten: his familiars eat after him, and what they took and made is in the rates with the
+// rest
 var hungry = []
 var fed = feedFamiliars(after, hungry)
 
@@ -475,12 +469,12 @@ for (var hu = 0; hu < len(hungry); hu++)
     push(entries, hungry[hu])
 }
 
-// The rations a coming month eats: his own unless his work feeds him, and all his familiars'
+// The rations a coming month eats: his own and all his familiars'
 var eats = lookup(familiarsEat, "rations", 0)
 
 for (var he = 0; he < len(holdings); he++)
 {
-    if (holdings[he].id == "rations" and not board)
+    if (holdings[he].id == "rations")
     {
         eats = eats + lookup(holdings[he], "decays", 0)
     }
@@ -695,15 +689,9 @@ for (var g = 0; g < len(holdings); g++)
 
     if (decays > 0)
     {
-        // His own and his familiars', or theirs alone at board; it lasts while it feeds them all,
-        // as the warning counts it
+        // His own and his familiars'; it lasts while it feeds them all, as the warning counts it
         var share = lookup(familiarsEat, h.id, 0)
-        var uses = share
-
-        if (not board)
-        {
-            uses = uses + decays
-        }
+        var uses = share + decays
 
         push(notes, {label: "A month uses", value: toString(uses), tone: "loss"})
 
@@ -735,17 +723,6 @@ for (var g = 0; g < len(holdings); g++)
             if (held <= 0 and has(character, h.id))
             {
                 footnote = "NONE LEFT: HE PAYS FOR IT EVERY MONTH"
-            }
-        }
-
-        if (board)
-        {
-            footnote = "MEALS PROVIDED: THIS MONTH USES NONE"
-
-            // His work feeds him, not his familiars
-            if (delta < 0)
-            {
-                footnote = "MEALS PROVIDED: ONLY HIS FAMILIARS EAT"
             }
         }
     }

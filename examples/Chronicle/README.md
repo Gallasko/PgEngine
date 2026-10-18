@@ -435,7 +435,8 @@ come from `rules/*.pg` through the scene, never from the component.
   from it: the Life screen's glosses are inline. The Life screen's activity gloss carries everything its row does not: the
   name with how often it was done beside it (the number alone: `3`, or `0/2` for one that
   can be done twice), its group under it, a rule,
-  the time and the meals, then a ruled section for each of REQUIREMENTS, COST and REWARD,
+  the time and, for a work that feeds him, the rations it gives up front (`Rations  3 up front`),
+  then a ruled section for each of REQUIREMENTS, COST and REWARD,
   each row under the stat's full name (`Strength  +1`), a requirement green when he has it and
   red when he is short. Its only footnote is `AT WORK NOW`, on the work he is at: what a locked
   one still asks is in red under REQUIREMENTS, and when it closes is the tile's to say. The tooltip form is registered under a **key** on
@@ -765,11 +766,11 @@ arguments, compared by value. `Rules::nbRuns` counts the runs.
 |---|---|---|
 | `lib.pg` | - | pure helpers: `clamp`, `ordinal` ("14th"), `monthOf` (whole months lived), `monthsBetween`, `monthsToAttempts`, `signed` ("+1" / "−2"), `fmtMonths` ("6 mo"), `numberWord`, `statName`, `statOf`, `lookup`, `raised` (a gain stopped at the stat's ceiling), `byId`, `pathFlagOf`, `asksOf`, `openNote`, `shiftIn` (a month's change to a stat); `lastAge` (30, where his prime ends), `anyAge` (the `finishBy` of what no age closes) |
 | `economytable.pg` (imported by `activitytable.pg`, `resources.pg`, `town.pg`, `depgraph.pg` and the solver's `life.pg`; never loaded) | - | `const` tables: `basicResources`, `madeResources` (`{id, name, one, glyph, about}`, a basic with `lot`, `coin`, `price` for the market); `scavengeRows`, `storeRows` (activity rows); `familiarKinds` (`{id, name, one, glyph, known, about, train, eats[], makes[], bind[]}`); `slotGivers` (`{stat, slots, needed}`); `gearPieces` (`{id, name, glyph, might, armour, ward, about, forge {costs[], months, smithy, onlyWith?}}`); `economyKnobs` (`stashMost`, `baseSlots`) |
-| `activitytable.pg` (through `windows.pg`) | `age`, `character`, `done`, `activityId` (`""`: all; `forecast.pg` shapes only its own), `world`, `lives` (which life of the world this is: the places of the town read it), `running` | `activities`: `{id, group, name, glyph, months, rank, each, path, enters, board, fromAge, finishBy, gains[{stat, amount, label, name, hidden}], costs[{stat, amount, label, name}], requires[{stat, label, current, needed}], needs (the requirements as written, for `depgraph.pg`), locked, done, uses, left, spent, closed, pathOpen, listed, showAge, showFrom, tally ("DONE 2", "DONE 0 · 1 LEFT"), until ("" or "CLOSES IN 14 MO"), urgent, after[step]}` |
+| `activitytable.pg` (through `windows.pg`) | `age`, `character`, `done`, `activityId` (`""`: all; `forecast.pg` shapes only its own), `world`, `lives` (which life of the world this is: the places of the town read it), `running` | `activities`: `{id, group, name, glyph, months, rank, each, path, enters, board, upFront, fromAge, finishBy, gains[{stat, amount, label, name, hidden}], costs[{stat, amount, label, name}], requires[{stat, label, current, needed}], needs (the requirements as written, for `depgraph.pg`), locked, done, uses, left, spent, closed, pathOpen, listed, showAge, showFrom, tally ("DONE 2", "DONE 0 · 1 LEFT"), until ("" or "CLOSES IN 14 MO"), urgent, after[step]}` |
 | `milestones.pg` (`milestonetable.pg`) | `age`, `world`, `lives` | `milestones`: `{age, id, label, passed, entry, asks[{path, stat, label, needed}]}`; `next`: `{id, label, age, in}` (`in` = months to it; `"", "", -1, -1` past the last) |
 | `windows.pg` | `age`, `character`, `done`, `activityId` (`""`) | `windows`: `{id, name, from, to, state (upcoming / open / closed), note (in attempts), attempts}`, one per door of an activity whose path is open to him |
-| `forecast.pg` | `age`, `character`, `done`, `activityId`, `monthsIn` | `forecast`: `{atStart{stats}, atTerm{stats}, percent, toward (the percent a month on), months, caption ("MONTH 3 OF 6 · STRENGTH 14 → 16 AT TERM"), gaps[{stat, label, current, needed}], entries[{text, kind, figure, glyph}], error}` |
-| `resources.pg` | `age`, `character`, `board` | `month`: `{after{stats}, entries[{text, kind, figure, glyph}], hurt[stat]}`; `rows`: `{id, group, groupLabel, glyph, name, tone, rate ("+2 / mo"), limit}`; `glosses`: `{id, title, text, footnote, rows[{label, value, tone}]}`; `caps`: `{stat, most}`; `death`: `""` or the line the next life opens with; `warning`, `advice`: what he lives on running out, counted with his familiars' share (theirs alone at board); `eats`: the rations the coming month eats, his own (none at board) and his familiars', fed or not (the solver reads it) |
+| `forecast.pg` | `age`, `character`, `done`, `activityId`, `monthsIn` | `forecast`: `{atStart{stats}, atTerm{stats}, percent, toward (the percent a month on), months, caption ("MONTH 3 OF 6 · STRENGTH 14 → 16 AT TERM"), gaps[{stat, label, current, needed}], entries[{text, kind, figure, glyph}], upFront, unworked, takenBack, begins[{text, kind, figure, glyph}], leaves[{text, kind, figure, glyph}], atLeave{stats}, atOwed{stats}, error}` (what a work that feeds him gives as he begins it, and gives back when left before its term) |
+| `resources.pg` | `age`, `character` | `month`: `{after{stats}, entries[{text, kind, figure, glyph}], hurt[stat]}`; `rows`: `{id, group, groupLabel, glyph, name, tone, rate ("+2 / mo"), limit}`; `glosses`: `{id, title, text, footnote, rows[{label, value, tone}]}`; `caps`: `{stat, most}`; `death`: `""` or the line the next life opens with; `warning`, `advice`: what he lives on running out, counted with his familiars' share; `eats`: the rations the coming month eats, his own and his familiars', fed or not (the solver reads it) |
 | `achievements.pg` | - | `achievements`: `{id, kind (deed / guide / lore), name, entry, say, point, hold, order, asks[{fact, op, value}], gives[{stat, amount}], until[{fact, op, value}]}` |
 | `epitaph.pg` | `age`, `character`, `done`, `activityId` (`""`), `deeds` (the names of the deeds reached) | `epitaph`: `{cause ("He died an old man, in his thirty-third year."), story[text] (what he became, worked at, left, and what is told of him), text (the story as one paragraph), tally ("AGE 33 · WORKS 14 · COIN 31 · DEEDS 2"), ask ("" or, past `lastAge`, the line that asks for a comment or a rating)}` |
 | `town.pg` (`towntable.pg`) | `age`, `character` (with `town_known`, `town.<place>`, `fund.<place>`, `fund.<place>.<thing>`, `seen.<place>`, `stash.<id>`), `done`, `world`, `lives` | `places`: `{id, name, glyph, about, level, most, shown, gives, line, tale, built, fund, nextWork, nextName, nextMonths, nextCoin, nextYears, nextCosts, nextGives, nextLocked, gaps[{stat, label, current, needed}], given[{level, built, gives}], tiers[{level, built, gives, reached}], leaves[{stat, amount}], leaveLine, spends[{stat, amount}] (what the fund pays of the next level, `coin` its coin, taken from the fund when it is reached), stashLine}`; `start`: `[{stat, amount}]`; `opened`, `raisedLine`, `epitaphLine`, `fundLine`, `foundLine`; `gift`: `{stat, before, after, plain, chosen, things}`; `stash`: `[{stat, most}]` (what the stash keeps at his death, and the most of each); `stashLine`: `""` or the ending's sentence of what goes into the stash with no gift (a place's `stashLine` says it with the gift left to it) |
@@ -829,10 +830,21 @@ by `lib.pg`'s `amountsOf` before anything reads it. Every age
 test counts whole months (`monthOf`), so an age summed a twelfth at a time meets its doors on
 time.
 
-**Meals** (`activitytable.pg`, `resources.pg`). `board: true` is work that feeds him: a month at it
-takes no ration and costs no Vitality, held rations or not. The scene runs `resources.pg` with
-`board` for the activity at work. Eating the last ration is still a fed month: only a month
-begun with none costs Vitality.
+**Rations up front** (`activitytable.pg`, `forecast.pg`, `resources.pg`). He eats a ration every
+month (`economyKnobs.rationsAMonth`), and his familiars eat theirs, whatever he is at: there is one
+way the rations go. `board: true` is work that feeds him, and its row's `upFront` is the rations
+of its months, given as he begins it (forecast.pg's `atStart`, with the costs; its `begins` is the
+log line, *Carry for the Carters gives its rations up front*, `+3 rations`). They are kept past
+the limit of sixty, as any gain is; a work done at once gives none. Its tile says `RATIONS UP
+FRONT` and its gloss `Rations  3 up front`. Left before its term (a work set aside for an
+answer that closed before he could go back to it), the rations of the months not worked go back,
+never more than he holds (forecast.pg's `takenBack`, `atLeave` and `leaves`, at `monthsIn`). A
+work set aside and taken up again keeps them: the months it gave them for are still ahead. A boy
+who never held a ration eats none, and the gleaning of his sixth year, whose term is his first
+rations, does not feed him. A save from before (`LifeSave::boardUpFront` false) in the middle of
+a work that feeds him is given the rations of its months left once, as it opens (`unworked`,
+`atOwed`). Eating the last ration is still a fed month: only a month begun with none costs
+Vitality.
 
 **Ceilings** (`lib.pg`). `statCeilings` is the most a stat can ever be: parts 30, skills 10;
 renown, favors and what he holds have none. A term's gain stops there (`raised`), what already
@@ -892,10 +904,10 @@ each kind its `eats`, `makes` and `bind` (what binding it costs), its `train` le
 whether it is `known` from the first. Every month `resources.pg` feeds them after he eats
 (`feedFamiliars`): kind by kind in the table's order, **all or nothing per kind**. A fed kind
 takes what it eats and makes what it makes, stopped at the limit; a hungry kind makes nothing and
-costs nothing else, and its hunger never takes his Vitality. Board feeds him, never his
-familiars. `eats` (an output) is the rations the coming month eats, his own (none at board) and
-his familiars', which the rations warning, the *lasts* line and the solver read. At board the
-warning still runs on the familiars' share alone. Both it and the gloss's *Lasts* count the months
+costs nothing else, and its hunger never takes his Vitality. A work that feeds him gives his
+own rations, never his familiars'. `eats` (an output) is the rations the coming month eats, his
+own and his familiars', which the rations warning, the *lasts* line and the solver read. Both it
+and the gloss's *Lasts* count the months
 that feed him and his familiars both (`monthsFed`: nine rations at two a month last four), and the
 gloss names the familiars' share (*His familiars eat*).
 - **Binding** (`bind.<kind>`, the group *Familiars*): a month, the kind's `bind` as its costs, and

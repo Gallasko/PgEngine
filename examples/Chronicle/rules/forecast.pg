@@ -4,8 +4,10 @@
 //         completed, read by activitytable.pg), `activityId`, `monthsIn` (the months already spent
 //         in it), `world`, `lives` and `running` (activitytable.pg's).
 // Output: `forecast`:
-//           atStart  every stat of the character once the activity's costs are taken: what
-//                    beginning it leaves him with
+//           atStart  every stat of the character once the activity's costs are taken, and the
+//                    rations of its months given when it feeds him (activitytable.pg's `upFront`,
+//                    kept past the most he can hold, as any gain is): what beginning it leaves
+//                    him with
 //           atTerm   every stat of the character after the activity's gains, and after the
 //                    effects of a step of its `after` list that this term reaches. The costs
 //                    were taken when it began, so they are not taken again, but for an
@@ -25,6 +27,18 @@
 //                    closes for good (it was one or the other: their `unless`). In a figure an
 //                    amount holds to its stat by a no-break space (lib.pg's `noBreak`), and a
 //                    plain space parts two gains
+//           upFront  the rations beginning it gives, 0 for none
+//           unworked the rations of the months of it he has not worked, `monthsIn` in: what it
+//                    gave up front for months still ahead of him
+//           takenBack what leaving it now takes back of them: `unworked`, never more than he holds
+//           begins   [{text, kind, figure, glyph}]: the log lines beginning it writes (what a
+//                    work that feeds him gives up front)
+//           leaves   [{text, kind, figure, glyph}]: the log lines leaving it now, before its term,
+//                    writes (what it takes back)
+//           atLeave  every stat of the character once he leaves it now, before its term: less what
+//                    it takes back
+//           atOwed   every stat of the character with `unworked` given: what a save from before the
+//                    rations up front is owed, in the middle of a work that feeds him
 //           error    "" or "unknown activity"
 // Run once per month tick; it keeps nothing between runs.
 
@@ -36,7 +50,8 @@ import "milestonetable"
 
 var errors = []
 
-var forecast = {atStart: {}, atTerm: {}, percent: 0, toward: 0, months: 0, caption: "", gaps: [], entries: [], error: ""}
+var forecast = {atStart: {}, atTerm: {}, percent: 0, toward: 0, months: 0, caption: "", gaps: [], entries: [], upFront: 0, unworked: 0, takenBack: 0, begins: [], leaves: [],
+            atLeave: {}, atOwed: {}, error: ""}
 var activity = byId(activities, activityId)
 
 if (activity.id == "")
@@ -60,6 +75,46 @@ else
     {
         var cost = activity.costs[c]
         atStart[cost.stat] = clamp(statOf(character, cost.stat) - cost.amount, 0, statOf(character, cost.stat))
+    }
+
+    // A work that feeds him gives the rations of its months as it begins: he eats them as he eats
+    // any. Leaving it before its term gives back those of the months he has not worked, as many
+    // as he still holds
+    var upFront = activity.upFront
+    var unworked = 0
+    var takenBack = 0
+    var begins = []
+    var leaves = []
+    var atLeave = {}
+    var atOwed = {}
+
+    for (var k : character)
+    {
+        atLeave[k] = character[k]
+        atOwed[k] = character[k]
+    }
+
+    if (upFront > 0)
+    {
+        atStart["rations"] = statOf(atStart, "rations") + upFront
+        unworked = clamp((months - spent) * economyKnobs.rationsAMonth, 0, upFront)
+
+        push(begins, {text: activity.name + " gives its rations up front", kind: "gain", figure: signed(upFront) + noBreak + toLowerCase(statShortName("rations")), glyph: activity.glyph})
+
+        takenBack = clamp(unworked, 0, statOf(character, "rations"))
+
+        if (unworked > 0)
+        {
+            atOwed["rations"] = statOf(character, "rations") + unworked
+        }
+
+        if (takenBack > 0)
+        {
+            atLeave["rations"] = statOf(character, "rations") - takenBack
+
+            push(leaves, {text: activity.name + ", left before its term: the rations of the months not worked go back", kind: "loss",
+                          figure: signed(0 - takenBack) + noBreak + toLowerCase(statShortName("rations")), glyph: activity.glyph})
+        }
     }
 
     // Then the term's gains on top: of what is left once it is paid for when it is done at once,
@@ -205,5 +260,7 @@ else
         toward = clamp(monthsIn + 1, 0, months) * 100.0 / months
     }
 
-    forecast = {atStart: atStart, atTerm: atTerm, percent: percent, toward: toward, months: months, caption: caption, gaps: gaps, entries: entries, error: ""}
+    forecast = {atStart: atStart, atTerm: atTerm, percent: percent, toward: toward, months: months, caption: caption, gaps: gaps, entries: entries,
+                upFront: upFront, unworked: unworked, takenBack: takenBack, begins: begins, leaves: leaves,
+                atLeave: atLeave, atOwed: atOwed, error: ""}
 }

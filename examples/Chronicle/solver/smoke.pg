@@ -47,7 +47,7 @@ var t3 = clockMs()
 
 for (var i = 0; i < 20; i = i + 1)
 {
-    rule("resources", {age: 6.0 + i / 12.0, character: character, board: false}, ["month", "death"])
+    rule("resources", {age: 6.0 + i / 12.0, character: character}, ["month", "death"])
 }
 
 log("20 months ms:", clockMs() - t3)

@@ -240,6 +240,7 @@ namespace pg
         serialize(archive, "monthsIn", value.monthsIn);
         serialize(archive, "setAside", value.setAside);
         serialize(archive, "setAsideMonths", value.setAsideMonths);
+        serialize(archive, "boardUpFront", value.boardUpFront);
         serialize(archive, "stats", value.stats);
         serialize(archive, "parts", value.parts);
         serialize(archive, "skills", value.skills);
@@ -302,6 +303,12 @@ namespace pg
         defaultDeserialize(serialized, "monthsIn", data.monthsIn);
         defaultDeserialize(serialized, "setAside", data.setAside);
         defaultDeserialize(serialized, "setAsideMonths", data.setAsideMonths);
+
+        // A save from before the rations of a work that feeds him were given up front has no word
+        // of it: its work under way never gave them (LifeScene::catchUpRations)
+        data.boardUpFront = false;
+        defaultDeserialize(serialized, "boardUpFront", data.boardUpFront);
+
         defaultDeserialize(serialized, "stats", data.stats);
 
         // A save of the first build of the walks kept what they brought for the town in a store of

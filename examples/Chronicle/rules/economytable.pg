@@ -16,6 +16,8 @@
 //         `economyKnobs`, the numbers of the economy that belong to no one resource:
 //           stashMost   the most of any one thing the stash can keep between lives
 //           baseSlots   the familiar slots a life has before its standing and calling give more
+//           rationsAMonth  the rations he eats a month, at any work (resources.pg); and what a
+//                       month of a work that feeds him gives as it begins (activitytable.pg)
 //         `one` is the thing said once ("1 berry"), as a count of one names it (lib.pg's `thingsWord`).
 //         The most he can hold of each is lib.pg's `statLimits`; a store raises it with the stat
 //         "store.<id>" (lib.pg's `limitOf`).
@@ -45,7 +47,8 @@ const madeResources = [
 
 const economyKnobs = {
     stashMost: 100,
-    baseSlots: 1
+    baseSlots: 1,
+    rationsAMonth: 1
 }
 
 // What he gathers by hand, a month at a time: the work the town leaves to a child. Each is

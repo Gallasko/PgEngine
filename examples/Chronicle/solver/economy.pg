@@ -182,8 +182,8 @@ fun measureRations(drying)
             seeTown(st)
             var id = rationsWork(st)
             var row = rowOf(st, id)
-            var board = row.board == true
-            var need = rationsFor(st, row.months, board)
+            var upFront = asInt(row.upFront)
+            var need = rationsFor(st, row.months, upFront)
             var before = statOf(st, "rations")
 
             if (drying)
@@ -194,7 +194,7 @@ fun measureRations(drying)
             }
 
             var r1 = statOf(st, "rations")
-            provision(st, row.months, board, newGoals(false))
+            provision(st, row.months, upFront, newGoals(false))
             bought = bought + statOf(st, "rations") - r1
 
             if (beginWork(st, id, newGoals(false)) == "")
@@ -207,9 +207,8 @@ fun measureRations(drying)
             }
         }
 
-        // What the coming month eats, and whether he holds it: he eats first (none at board), then
-        // the sprite
-        var atBoard = st.running != "" and st.board
+        // What the coming month eats, and whether he holds it: he eats first, at any work, then the
+        // sprite
         var held = statOf(st, "rations")
 
         if (held < least)
@@ -218,12 +217,12 @@ fun measureRations(drying)
             leastAt = ageText(st.month)
         }
 
-        if (not atBoard and held < 1)
+        if (held < 1)
         {
             himShort = himShort + 1
         }
 
-        if (held < eatsOf(st, atBoard))
+        if (held < eatsOf(st))
         {
             itShort = itShort + 1
         }
@@ -283,11 +282,19 @@ fun measureFour()
         touch(st)
 
         var before = statOf(st, made)
-        var answer = rule("resources", {age: ageOf(st), character: character(st), board: true}, ["month"])
+        var answer = rule("resources", {age: ageOf(st), character: character(st)}, ["month"])
         checked(answer, "resources (four)")
         takeStats(st, answer.month.after)
 
-        say("four: 4 x " + kind.id + " taught twice, at board: " + made + " " + toString(statOf(st, made) - before) + " a month")
+        // He eats his own ration as they work: it is not theirs to count
+        var gained = statOf(st, made) - before
+
+        if (made == "rations")
+        {
+            gained = gained + economyKnobs.rationsAMonth
+        }
+
+        say("four: 4 x " + kind.id + " taught twice: " + made + " " + toString(gained) + " a month")
     }
 }
 

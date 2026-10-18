@@ -309,10 +309,10 @@ fun prospectDelta(st)
 
 // ---- earning --------------------------------------------------------------------------------------
 
-// What a term of a row earns of `stat` a month: coin less the rations its months eat (his own away
-// from a table that feeds him, his familiars' everywhere: life.pg's eatsOf), rations with the
-// rations of his own it spares him at board counted. A basic resource is what it gathers: a month
-// of scavenging is an earner of it like any other work
+// What a term of a row earns of `stat` a month: coin less the rations its months eat (his own and
+// his familiars': life.pg's eatsOf) beyond what it gives up front when it feeds him, rations with
+// those it gives up front counted. A basic resource is what it gathers: a month of scavenging is an
+// earner of it like any other work
 fun earnRate(st, row, stat)
 {
     var got = 0
@@ -333,16 +333,16 @@ fun earnRate(st, row, stat)
     var months = larger(1, row.months)
     var rate = toFloat(got)
 
-    var board = row.board == true
+    var upFront = asInt(row.upFront)
 
     if (stat == "coin")
     {
-        rate = rate - toFloat(months * eatsOf(st, board)) * rationPrice(st)
+        rate = rate - toFloat(months * eatsOf(st) - upFront) * rationPrice(st)
     }
 
-    if (stat == "rations" and board)
+    if (stat == "rations")
     {
-        rate = rate + toFloat(months * (eatsOf(st, false) - eatsOf(st, true)))
+        rate = rate + toFloat(upFront)
     }
 
     return rate / toFloat(months)
@@ -514,7 +514,7 @@ fun earnChildren(st, rows, children)
                 var terms = smaller(6, larger(1, toInt(ceil(toFloat(missing) / larger(0.5, per)))))
                 var c = clone(st)
 
-                provisionFast(c, buy, row.months, row.board == true)
+                provisionFast(c, buy, row.months, asInt(row.upFront))
 
                 beginFast(c, row)
                 c.pending = row.gains
@@ -645,7 +645,7 @@ fun gatherChildren(st, rows, children)
             var terms = smaller(6, larger(1, toInt(ceil(toFloat(missing) / larger(0.5, per)))))
             var c = clone(st)
 
-            provisionFast(c, buy, earner.months, earner.board == true)
+            provisionFast(c, buy, earner.months, asInt(earner.upFront))
 
             beginFast(c, earner)
             c.pending = earner.gains
@@ -680,7 +680,7 @@ fun continueRepeat(st)
             return false
         }
 
-        provisionFast(st, shapeById["buy.rations"], next.months, next.board == true)
+        provisionFast(st, shapeById["buy.rations"], next.months, asInt(next.upFront))
 
         beginFast(st, next)
         st.pending = next.gains
@@ -720,7 +720,7 @@ fun continueRepeat(st)
         return true
     }
 
-    provisionFast(st, shapeById["buy.rations"], row.months, row.board == true)
+    provisionFast(st, shapeById["buy.rations"], row.months, asInt(row.upFront))
 
     beginFast(st, row)
     st.pending = row.gains

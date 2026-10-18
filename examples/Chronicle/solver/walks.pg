@@ -340,7 +340,6 @@ fun walkBy(st, row, goals)
     st.running = row.id
     st.monthsIn = 0
     st.months = f.months
-    st.board = row.board == true
     st.raises = ""
     st.raiseLevel = 0
     touch(st)

@@ -992,6 +992,9 @@ namespace chronicle
         rules.running = save.running;
         rules.inn = save.town.count("inn") > 0 ? save.town.at("inn") : 0;
 
+        // A save from before the rations were given up front, in the middle of a work that feeds him
+        catchUpRations();
+
         // The guide's length, before the page is filled: a first life's guide line waits for its step
         readDeeds();
 
@@ -3578,7 +3581,7 @@ namespace chronicle
     {
         RuleMonth month;
 
-        if (rules.month(save.age, save.character(), boarded(), month))
+        if (rules.month(save.age, save.character(), month))
         {
             holdings = month.rows;
             holdingGlosses = month.glosses;
@@ -3645,16 +3648,6 @@ namespace chronicle
         }
 
         return nullptr;
-    }
-
-    bool LifeScene::boarded() const
-    {
-        if (save.running.empty())
-            return false;
-
-        const RuleActivity* at = activityOf(save.running);
-
-        return at and boolOf(at->fields, "board");
     }
 
     void LifeScene::endLife()
@@ -4915,9 +4908,11 @@ namespace chronicle
         rules.running = save.running;
 
         // What it costs is taken as it begins: the years of his life some works for the town ask,
-        // then what it takes of what he holds
+        // then what it takes of what he holds. A work that feeds him gives the rations of its
+        // months, and the log says so
         giveYears(intOf(chosen->fields, "yearMonths"));
         takeStats(forecast.atStart);
+        writeEntries(forecast.begins);
 
         // Nothing is chosen any more, whether or not the list had its tile lit
         clearChoice();
@@ -4939,6 +4934,49 @@ namespace chronicle
         autoSave();
     }
 
+    void LifeScene::leaveWork(const std::string& id, int monthsIn)
+    {
+        RuleForecast forecast;
+
+        if (not rules.forecast(save.age, save.character(), id, monthsIn, forecast))
+        {
+            for (const auto& e : rules.errors)
+                LOG_ERROR(DOM, e);
+
+            return;
+        }
+
+        if (forecast.takenBack <= 0)
+            return;
+
+        takeStats(forecast.atLeave);
+        writeEntries(forecast.leaves);
+    }
+
+    void LifeScene::catchUpRations()
+    {
+        // A save from before the rations were given up front: the work that feeds him under way
+        // (or set aside for an answer) never gave them, and the months it has left must not starve
+        // him. Given once, and the save says so from then on
+        if (save.boardUpFront)
+            return;
+
+        save.boardUpFront = true;
+
+        const std::pair<std::string, int> works[] = {{save.running, save.monthsIn}, {save.setAside, save.setAsideMonths}};
+
+        for (const auto& [id, monthsIn] : works)
+        {
+            RuleForecast forecast;
+
+            if (id.empty() or not rules.forecast(save.age, save.character(), id, monthsIn, forecast))
+                continue;
+
+            if (forecast.unworked > 0)
+                takeStats(forecast.atOwed);
+        }
+    }
+
     void LifeScene::takeUpSetAside()
     {
         const std::string id = save.setAside;
@@ -4951,6 +4989,11 @@ namespace chronicle
         if (const RuleActivity* left = activityOf(id); left and boolOf(left->fields, "closed"))
         {
             appendLog({save.age, activityName(id) + " is closed to him now, and is not taken up again", LogKind::Note, "", ""});
+
+            // He leaves it before its term: what it gave up front for the months he never worked
+            // there goes back
+            leaveWork(id, months);
+
             return;
         }
 
@@ -5890,11 +5933,11 @@ namespace chronicle
         ++save.world;
         rules.world = save.world;
 
-        // What he holds works or wastes, whatever he is doing; work that feeds him spares his
-        // rations
+        // What he holds works or wastes, whatever he is doing: he eats at any work (one that feeds
+        // him gave its rations as he began it)
         RuleMonth month;
 
-        if (rules.month(save.age, save.character(), boarded(), month))
+        if (rules.month(save.age, save.character(), month))
         {
             takeStats(month.after);
             writeEntries(month.entries);
@@ -6090,13 +6133,13 @@ namespace chronicle
             if (intOf(a.fields, "uses") > 0)
                 gloss.aside += "/" + std::to_string(intOf(a.fields, "uses"));
 
-            // A rule under the head, then what it is in time: how long, and who feeds him. When it
-            // closes is the tile's to say
+            // A rule under the head, then what it is in time: how long, and the rations a work that
+            // feeds him gives as he begins it. When it closes is the tile's to say
             gloss.rows.push_back({"", "", "", true});
             gloss.rows.push_back({"Time", intOf(a.fields, "months") > 0 ? std::to_string(intOf(a.fields, "months")) + " mo" : std::string("At once"), "time"});
 
-            if (intOf(a.fields, "months") > 0)
-                gloss.rows.push_back({"Meals", boolOf(a.fields, "board") ? std::string("Provided") : std::string("His own rations"), boolOf(a.fields, "board") ? "gain" : ""});
+            if (intOf(a.fields, "upFront") > 0)
+                gloss.rows.push_back({"Rations", std::to_string(intOf(a.fields, "upFront")) + " up front", "gain"});
 
             // What he has of it against what it asks, first: met in the gain's colour, short in
             // the loss's. The room a thing he holds still has is not said while there is some (its

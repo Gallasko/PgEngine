@@ -138,7 +138,7 @@ const townPlaces = [
          gives: "A new life starts known to the Watch", start: [{stat: "watch_known"}],
          lore: "The Watch does not forget who kept the rain off them."},
         {work: "Build the Road Posts", built: "The road posts", months: 9, coin: 15, costs: [{stat: "stone", amount: 40}, {stat: "firewood", amount: 40}, {stat: "gems", amount: 2}],
-         gives: "Patrol the North Road gives meals",
+         gives: "Patrol the North Road gives its rations up front",
          lore: "There is a fire and a pot at every post on the North Road."},
         {work: "Raise the Gate Tower", built: "The gate tower", months: 12, coin: 35, costs: [{stat: "stone", amount: 80}, {stat: "firewood", amount: 80}, {stat: "gems", amount: 4}, {stat: "fangs"}, {stat: "renown"}],
          gives: "The Captain's Chain asks Renown 6, not 7",

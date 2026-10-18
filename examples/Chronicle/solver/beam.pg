@@ -33,14 +33,14 @@ fun beamGoals(hunt)
     return g
 }
 
-// A work begun: what beginWork does, its costs taken from the row (they are forecast.atStart, row
-// for row: checked over a life of choices) to spare a run of the rules a branch
+// A work begun: what beginWork does, its costs taken and the rations it gives up front added from
+// the row (they are forecast.atStart, row for row: checked over a life of choices) to spare a run
+// of the rules a branch
 fun beginFast(st, row)
 {
     st.running = row.id
     st.monthsIn = 0
     st.months = row.months
-    st.board = row.board == true
     st.raises = row.raises
     st.raiseLevel = row.level
 
@@ -51,14 +51,19 @@ fun beginFast(st, row)
         st.stats[c.stat] = statOf(st, c.stat) - c.amount
     }
 
+    if (asInt(row.upFront) > 0)
+    {
+        st.stats.rations = statOf(st, "rations") + asInt(row.upFront)
+    }
+
     touch(st)
     note(st, "begin " + row.id + " (" + toString(row.months) + " mo)")
 }
 
-// Rations for `months` of a work and what they eat (life.pg's rationsFor: his own away from a table
-// that feeds him, his familiars' everywhere), bought from the market row as it stands (its price and
-// what it brings, with the room he has for them)
-fun provisionFast(st, buy, months, board)
+// Rations for `months` of a work and what they eat (life.pg's rationsFor: his own and his
+// familiars', less what a work that feeds him gives up front), bought from the market row as it
+// stands (its price and what it brings, with the room he has for them)
+fun provisionFast(st, buy, months, upFront)
 {
     if (st.stats.rations == none or buy == none or not isOpen(buy))
     {
@@ -93,7 +98,7 @@ fun provisionFast(st, buy, months, board)
         }
     }
 
-    var need = rationsFor(st, months, board)
+    var need = rationsFor(st, months, upFront)
     var bought = 0
 
     while (statOf(st, "rations") < need and statOf(st, "coin") >= coin and room > 0 and bought < 8 and rations > 0)
@@ -238,7 +243,7 @@ fun expandChildren(st, round)
             else
             {
                 var c = clone(st)
-                provisionFast(c, buy, row.months, row.board == true)
+                provisionFast(c, buy, row.months, asInt(row.upFront))
 
                 beginFast(c, row)
                 c.pending = row.gains
@@ -527,9 +532,10 @@ fun beamScore(st)
 
     // Hunger ahead: the months of the work under way (or of waiting) he has no rations for cost
     // Vitality, five a month (resources.pg); one he will not live through is no world at all.
-    // A month eats `eats` (his own and his familiars'), and he eats first: the rations he holds
-    // last him that many months, the last one begun
-    if (st.stats.rations != none and not st.board)
+    // A month eats `eats` (his own and his familiars', at any work: a work that feeds him gave its
+    // rations as he began it), and he eats first: the rations he holds last him that many months,
+    // the last one begun
+    if (st.stats.rations != none)
     {
         var ahead = 1
 
@@ -538,7 +544,7 @@ fun beamScore(st)
             ahead = st.months - st.monthsIn
         }
 
-        var eats = larger(1, eatsOf(st, false))
+        var eats = larger(1, eatsOf(st))
         var lasts = (statOf(st, "rations") + eats - 1) / eats
         var hungry = larger(0, ahead - lasts)
 

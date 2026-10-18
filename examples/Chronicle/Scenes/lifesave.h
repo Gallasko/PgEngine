@@ -84,6 +84,7 @@ namespace chronicle
         int monthsIn = 0;              // Months already spent in it
         std::string setAside;          // The work he left to answer an event of his life, "" for none: it goes on once the answer is done
         int setAsideMonths = 0;        // The months it had run
+        bool boardUpFront = true;      // A work that feeds him gives its months' rations as he begins it. A save from before read false: the work under way never gave them, and is given them once on load
         std::unordered_map<std::string, int> stats;   // Parts, skills, flags and coin, by key
         std::vector<std::string> parts;                // The stat keys shown as parts ("str", ...)
         std::vector<LifeResource> skills;              // The skills, in the order shown

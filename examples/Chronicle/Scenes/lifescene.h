@@ -272,6 +272,8 @@ namespace chronicle
         bool takenAtWork(const RuleActivity* activity) const;    // Begun while he is at another work: done at once, or an answer that sets that work aside
         void callEvents(bool stop);    // An event whose answers came into the list, or whose last month to answer has come: said, and the months stopped for it; false: only noted
         void takeUpSetAside();         // The work an answer set aside goes on where it stopped
+        void leaveWork(const std::string& id, int monthsIn);   // A work left before its term, so many months in: what it gave up front for the rest goes back
+        void catchUpRations();         // A save from before the rations were given up front: the months left of a work that feeds him are given once
         float resumeRoom() const;      // What that button takes of the panel, 0 when it is not up
         bool led() const;              // A life that has done nothing yet and is at nothing: the page leads it to its first work
         std::string firstWork() const; // The first activity of the list he may begin that takes months, "" for none
@@ -287,7 +289,6 @@ namespace chronicle
         void fillActivities();         // The rows of what he may do; an activity the rules do not list has none
         void fillWindows();            // The doors on the clock, as the rules list them for his path
         void refreshHoldings();        // resources.pg's rows, rates, glosses and verdict for the character as he is
-        bool boarded() const;          // The activity at work feeds him
         bool titled(const std::string& id) const;   // A holding he has or has not (a standing, a tie): the rules say so, and its row shows no figure
         const RuleActivity* activityOf(const std::string& id) const;   // From the last answer of Rules::activities, nullptr if none
         int closesOf(const RuleActivity& activity) const;   // The months he still has to begin it, for its tile to count down: -1 when it does not close, or not soon
