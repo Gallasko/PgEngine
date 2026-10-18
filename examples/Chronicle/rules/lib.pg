@@ -1018,6 +1018,17 @@ const statShort = {
 // What a walk's task leaves the world, as the row of the task says it
 statShort["know.found.millpond"] = "POND"
 
+// The room a store makes: the stat "store.<id>" counts what a store adds to the limit, and is
+// never held in a ledger row.
+statShort["store.berries"] = "BERRY ROOM"
+statShort["store.water"] = "WATER ROOM"
+statShort["store.firewood"] = "WOOD ROOM"
+statShort["store.stone"] = "STONE ROOM"
+statNames["store.berries"] = "Room for berries"
+statNames["store.water"] = "Room for water"
+statNames["store.firewood"] = "Room for firewood"
+statNames["store.stone"] = "Room for stone"
+
 // The most of a stat he can hold at once. A stat not listed has no limit. The limit closes
 // what would bring more (activitytable.pg) and stops what a month produces (resources.pg); an
 // activity begun with room left may still carry him past it.
