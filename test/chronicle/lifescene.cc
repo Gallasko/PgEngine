@@ -5899,8 +5899,9 @@ namespace pg
 
             EXPECT_NE(stall(f, life, "buy.blade"), nullptr);
             EXPECT_EQ(life->piece<ActivityList>("activities")->find(&f.ecs, "blades"), nullptr);
-            EXPECT_EQ(tabs->tabs[0].notice, 6);
-            EXPECT_EQ(life->newInLife, 6);
+            // and the four stores he may raise from eight
+            EXPECT_EQ(tabs->tabs[0].notice, 10);
+            EXPECT_EQ(life->newInLife, 10);
             EXPECT_EQ(life->piece<ActivityList>("activities")->find(&f.ecs, "walk.millpond"), nullptr);
             EXPECT_EQ(tabs->tabs[1].notice, 0);
             ASSERT_FALSE(tabs->tabs[0].noticeGround.empty());

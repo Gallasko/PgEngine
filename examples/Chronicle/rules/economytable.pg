@@ -8,6 +8,7 @@
 //         `madeResources`, what is made of them, not gathered:
 //           [{id, name, one, glyph, about}]
 //         `scavengeRows`, the activity rows that gather the basics by hand (group "Scavenge")
+//         `storeRows`, the activity rows that raise a limit for the life (group "Your stores")
 //         `economyKnobs`, the numbers of the economy that belong to no one resource:
 //           stashMost   the most of any one thing the stash can keep between lives
 //           baseSlots   the stash slots a life has before the town gives it more
@@ -63,4 +64,30 @@ const scavengeRows = [
      fromAge: 8,
      gains: [{stat: "stone", amount: 3}, {stat: "scavenged"}],
      requires: []}
+]
+
+// What raises the most he can hold of a basic, for this life: three terms of each, each term
+// 20 more (the stat "store.<id>", a plain counter held in no ledger row; lib.pg's `limitOf`
+// adds it to the base). activitytable.pg puts them after the Scavenge rows.
+const storeRows = [
+    {id: "store.berries", group: "Your stores", name: "Weave a Berry Basket", glyph: "trade", months: 2, rank: "", each: "BERRY LIMIT", path: "",
+     fromAge: 8, uses: 3,
+     gains: [{stat: "store.berries", amount: 20}],
+     requires: [],
+     costs: [{stat: "firewood", amount: 2}]},
+    {id: "store.water", group: "Your stores", name: "Set a Rain Barrel", glyph: "vitality", months: 2, rank: "", each: "WATER LIMIT", path: "",
+     fromAge: 8, uses: 3,
+     gains: [{stat: "store.water", amount: 20}],
+     requires: [],
+     costs: [{stat: "firewood", amount: 4}]},
+    {id: "store.firewood", group: "Your stores", name: "Roof a Woodpile", glyph: "work", months: 2, rank: "", each: "FIREWOOD LIMIT", path: "",
+     fromAge: 8, uses: 3,
+     gains: [{stat: "store.firewood", amount: 20}],
+     requires: [],
+     costs: [{stat: "firewood", amount: 3}, {stat: "stone", amount: 2}]},
+    {id: "store.stone", group: "Your stores", name: "Clear a Stone Heap", glyph: "forge", months: 2, rank: "", each: "STONE LIMIT", path: "",
+     fromAge: 8, uses: 3,
+     gains: [{stat: "store.stone", amount: 20}],
+     requires: [],
+     costs: [{stat: "firewood", amount: 2}]}
 ]

@@ -1169,6 +1169,14 @@ for (var s = 0; s < len(scavenges); s++)
     scavenges[s].requires = entriesCopied(scavenges[s].requires)
 }
 
+var storeCopies = entriesCopied(storeRows)
+
+for (var s = 0; s < len(storeCopies); s++)
+{
+    storeCopies[s].gains = entriesCopied(storeCopies[s].gains)
+    storeCopies[s].requires = entriesCopied(storeCopies[s].requires)
+    storeCopies[s].costs = entriesCopied(storeCopies[s].costs)
+}
 
 activities = []
 
@@ -1191,6 +1199,11 @@ for (var t = 0; t < len(tabled); t++)
         for (var s = 0; s < len(scavenges); s++)
         {
             push(activities, scavenges[s])
+        }
+
+        for (var s = 0; s < len(storeCopies); s++)
+        {
+            push(activities, storeCopies[s])
         }
     }
 }

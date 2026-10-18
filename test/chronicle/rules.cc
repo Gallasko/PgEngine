@@ -2258,6 +2258,34 @@ namespace pg
             EXPECT_TRUE(eats);
         }
 
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A basket raises the berries he can hold by 20, three times in a life.
+        TEST(rules_test, a_basket_raises_the_berry_limit)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = boy();
+            character["firewood"] = ElementType{2};
+
+            RuleForecast fc;
+            ASSERT_TRUE(f.rules.forecast(9.0f, character, "store.berries", 0, fc)) << firstError(f.rules);
+            EXPECT_EQ(intOf(fc.atTerm, "store.berries"), 20);
+
+            ElementMap stored = {{"berries", ElementType{0}}, {"store.berries", ElementType{20}}};
+            RuleMonth month;
+            ASSERT_TRUE(f.rules.month(9.0f, stored, false, month)) << firstError(f.rules);
+            ASSERT_NE(byId(month.rows, "berries"), nullptr);
+            EXPECT_EQ(intOf(*byId(month.rows, "berries"), "limit"), 50);
+
+            EXPECT_TRUE(flag(activityAt(f.rules, 9.0f, character, "store.berries").fields, "listed"));
+
+            f.rules.done["store.berries"] = ElementType{3};
+            EXPECT_FALSE(flag(activityAt(f.rules, 9.0f, character, "store.berries").fields, "listed"));
+        }
+
 
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
