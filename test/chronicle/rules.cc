@@ -2095,6 +2095,49 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // Berries are dried at home, before the town is known: what a sprite makes feeds him
+        TEST(rules_test, berries_dry_at_home)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = boy();
+            character["berries"] = ElementType{3};
+
+            RuleActivity dry = activityAt(f.rules, 7.0f, character, "dry.berries");
+            EXPECT_TRUE(flag(dry.fields, "listed"));
+            EXPECT_FALSE(flag(dry.fields, "locked"));
+            EXPECT_EQ(textOf(dry.fields, "group"), "Scavenge");
+            EXPECT_EQ(dry.fields.count("place") ? dry.fields.at("place").toString() : std::string(), "");
+            ASSERT_EQ(dry.gains.size(), 1u);
+            EXPECT_EQ(textOf(dry.gains[0], "stat"), "rations");
+            EXPECT_EQ(intOf(dry.gains[0], "amount"), 1);
+            ASSERT_EQ(dry.costs.size(), 1u);
+            EXPECT_EQ(intOf(dry.costs[0], "amount"), 3);
+
+            // In the Scavenge group, right after the rows that gather by hand
+            std::vector<RuleActivity> listed;
+            ASSERT_TRUE(f.rules.activities(7.0f, character, listed)) << firstError(f.rules);
+            int last = -1;
+            int at = -1;
+
+            for (size_t i = 0; i < listed.size(); ++i)
+            {
+                const std::string id = textOf(listed[i].fields, "id");
+
+                if (id.rfind("scavenge.", 0) == 0)
+                    last = static_cast<int>(i);
+
+                if (id == "dry.berries")
+                    at = static_cast<int>(i);
+            }
+
+            EXPECT_EQ(at, last + 1);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // The market buys and sells the basics by the lot, and sells no clay
         TEST(rules_test, the_market_trades_basic_resources)
         {

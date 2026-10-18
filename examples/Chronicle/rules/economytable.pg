@@ -46,8 +46,10 @@ const economyKnobs = {
 }
 
 // What he gathers by hand, a month at a time: the work the town leaves to a child. Each is
-// repeatable, and each counts a stat "scavenged" (a plain counter: it is held in no ledger row).
-// activitytable.pg puts them after the last of the Work rows, and copies them first.
+// repeatable, and each counts a stat "scavenged" (a plain counter: it is held in no ledger row,
+// and no tile, gloss or log line shows it: lib.pg's `hiddenStats`).
+// activitytable.pg puts them after the last of the Work rows, and copies them first; the
+// drying of berries comes right after them, in the same group.
 const scavengeRows = [
     {id: "scavenge.berries", group: "Scavenge", name: "Pick Berries on the Hedge", glyph: "trade", months: 1, rank: "", each: "BERRIES", path: "",
      fromAge: 7,

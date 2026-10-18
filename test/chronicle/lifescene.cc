@@ -8599,6 +8599,9 @@ namespace pg
             auto list = life->piece<ActivityList>("activities");
             ASSERT_NE(list, nullptr);
 
+            // (berries are dried at home: that is among what he gathers, not the market's)
+            bool drying = false;
+
             for (const auto& group : list->spec.groups)
             {
                 for (const auto& row : group.rows)
@@ -8606,10 +8609,16 @@ namespace pg
                     EXPECT_NE(row.id.rfind("sell.", 0), 0u) << row.id;
                     EXPECT_NE(row.id.rfind("buy.", 0), 0u) << row.id;
                     EXPECT_NE(row.id, "brew.remedy");
-                    EXPECT_NE(row.id, "dry.berries");
+
+                    if (row.id == "dry.berries")
+                    {
+                        drying = true;
+                        EXPECT_EQ(group.label, "Scavenge");
+                    }
                 }
             }
 
+            EXPECT_TRUE(drying);
             EXPECT_EQ(stall(f, life, "sell.berries"), nullptr);
 
             // The town known: they are at its market, and still not on the Life page
@@ -8620,7 +8629,7 @@ namespace pg
 
             EXPECT_NE(stall(f, life, "sell.berries"), nullptr);
             EXPECT_NE(stall(f, life, "brew.remedy"), nullptr);
-            EXPECT_NE(stall(f, life, "dry.berries"), nullptr);
+            EXPECT_EQ(stall(f, life, "dry.berries"), nullptr);
 
             for (const auto& group : list->spec.groups)
             {
