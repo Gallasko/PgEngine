@@ -6092,6 +6092,10 @@ namespace pg
                 {
                     EXPECT_EQ(trade, "make") << id;
                 }
+                else if (id == "dry.berries")
+                {
+                    EXPECT_EQ(trade, "make") << id;
+                }
                 else
                 {
                     EXPECT_EQ(trade, "") << id;
@@ -6111,6 +6115,7 @@ namespace pg
 
             EXPECT_EQ(textOf(activityAt(f.rules, 20.0f, townsman(), "brew.remedy").fields, "trade"), "make");
             EXPECT_EQ(textOf(activityAt(f.rules, 20.0f, townsman(), "brew.flask").fields, "trade"), "make");
+            EXPECT_EQ(textOf(activityAt(f.rules, 20.0f, townsman(), "dry.berries").fields, "trade"), "make");
         }
     }
 }

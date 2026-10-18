@@ -9113,7 +9113,7 @@ namespace pg
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
         // The button names the act: a sale chosen has Sell and Sell all, a buy Buy and Buy all,
-        // and the rest of what is done at once Do it now and All (berries dried)
+        // and a making Make and Make all (a remedy brewed, berries dried)
         TEST(lifescene_test, the_button_says_buy_or_sell)
         {
             MockLogger logger;
@@ -9166,9 +9166,9 @@ namespace pg
             f.ecs.sendEvent(ActivitySelectedEvent{"life.activities", "dry.berries"});
             f.settle();
 
-            EXPECT_EQ(begin->spec.label, "Do it now");
+            EXPECT_EQ(begin->spec.label, "Make");
             EXPECT_TRUE(f.pos(life->named("all"))->visible);
-            EXPECT_EQ(all->spec.label, "All");
+            EXPECT_EQ(all->spec.label, "Make all");
         }
 
         // ----------------------------------------------------------------------------------------

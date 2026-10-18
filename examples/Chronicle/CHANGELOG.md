@@ -71,6 +71,7 @@ another familiar, a new kind to bind, a bigger stash.
 
 ### Changed
 
+- **Drying berries reads Make.** Its buttons say Make and Make all, as the market's making does.
 - **A level of the town is paid mainly in resources.** The first level of a place asks 20 each of
   the two basics it is built of; the second 40 of them and 2 gems; the third 80, 4 gems and one
   thing found on a walk (pelts, hides, fangs, a white antler, bog iron, wisp-glass, or a boss's

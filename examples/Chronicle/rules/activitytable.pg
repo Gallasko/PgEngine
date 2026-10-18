@@ -1323,6 +1323,7 @@ for (var b = 0; b < len(basicResources); b++)
 // a market to sell them at. Its row waits for his first berries (`onlyWith`: no line of the
 // tooltip asks for them besides its cost).
 var drying = {id: "dry.berries", group: "Scavenge", name: "Dry berries", glyph: "trade", months: 0, rank: "", each: "INTO RATIONS", path: "",
+              trade: "make",
               finishBy: anyAge, onlyWith: "berries",
               about: "Spread on a cloth in the sun for a week, they keep through the winter.",
               gains: [{stat: "rations", amount: 1}], requires: [],
