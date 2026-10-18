@@ -62,16 +62,25 @@ coin buys rations, then the places, once in a world, in the life that first goes
 new on the page that is not in view (a task, a thing sold, a place) is counted in a small round
 at its tab's corner until the page is opened. The Adventure tab does the same for the places to walk to: it comes with a count of the places behind it the day of his first walk, and counts a place whose tile comes onto its page, open to him or not, and a place that opens (`newInAdventure`, `stoodWalks`, `openedWalks`). It shows the places of Bellmoor, each with three levels, and under them
 the market, where what is bought on the spot is bought (reached by the Town tab: no tile of the Life page goes there). A place is raised by a work that stands under the places, on the same page (a click on a
-place chooses its work, and Begin begins it): months, coin, and for some a stat or years of his
-life. What is raised is the world's and outlives him: the next
+place chooses its work, and Begin begins it): months, a little coin, and mainly resources: the
+first level of a place two basics, the second more of them and gems, the third more again,
+gems and a thing found on a walk; for some a stat or years of his life as well. What is raised
+is the world's and outlives him: the next
 life finds that town the month it goes to the market (its page is not open before: the places stay raised, the page is each life's to open), with what its places give (a shorter task, a class that asks one
-less, rations or a skill point at birth), never a class for free. At his death the coin he holds
-can be left to one place, and counts toward its next level. The page grows with what he does
+less, a skill point at birth, a familiar slot, a kind of familiar to bind, more room in the stash,
+more from each familiar of a kind), never a class for free. At his death the coin he holds, and
+what he holds of the things a place's next level still asks, can be left to one place, and count
+toward that level; what a raise does not use stays for the level after. The page grows with what he does
 (`shows` in `towntable.pg`): two places the day the town is known (the Market, the Mill), the
 Smithy once he has worked a term at the forge, the Yard to a veteran of the Border Campaign and
 the Watch Gate to a captain, the Chapel the day he enters the Collegium, the Collegium Gate after
-Magister Orin and the Harrow Road after the expedition to Harrow, and the Inn from the second
-life of a world. The day a place comes its first work comes with it: that work is how it is
+Magister Orin and the Harrow Road after the expedition to Harrow, the Inn from the second
+life of a world, the Storehouse once the stash holds anything (what is drawn from the stash is
+drawn there, and its levels make the stash keep more) and the Hunters' Lodge once he has walked
+the Hollow Woods. The smithy forges gear once it has its second bellows (an iron
+blade, a leather jerkin, and a warded charm at its second level once a marsh light's working has
+reached him): a piece once a life, held under GEAR, taken into every fight and lost at his death.
+The day a place comes its first work comes with it: that work is how it is
 built. A place that comes later is
 said in the log and by a toast, and a place a life has seen stays on the page of every later one.
 
@@ -112,6 +121,12 @@ beast watched or fought) is the world's, kept from life to life; the records are
 walked them's. The on-site screen is laid as the Life page is: how he stands (his Vitality, how
 well the place is known), what he carries and the way home at the left, what he may do in the
 middle as tiles, what he has taken and the record at the right.
+The last place to walk to is Millbrook Marsh, from 18 once the Quarry Road is known 4 of 4,
+three months a walk: its lights are workings that a ward turns and armour does not, its leech
+mass mends unless it burns, and the Lantern Mother over its deepest pool calls her lights as she
+is hurt and, beaten, teaches the marsh wisp. It gives what only it has (pitch, bog iron from 3
+of 4, and now and then a light's bead of wisp-glass), held among his stores, never sold, and asked
+by the town's last levels.
 
 **The fight** (0.7). Who is quicker acts more often: the timeline shows who acts when, up to the
 end of his day, and a quick move holds him less than a heavy one. A blow has a type (cut,
@@ -123,7 +138,7 @@ another off it, the Hidden Hand strikes many times before the beast's turn, the 
 traps on the walk and shoots first. A boy's tasks teach a first tool of each kind, and every
 tool he has learned is his in every fight. Who can hide, has set a trap or holds a ration
 chooses how to meet what he finds. Each place has its boss, met by choice, beaten once a life:
-the Old Pike, the Old Shell, the Old Grey. Lose to a boss and the life ends there; be brought
+the Old Pike, the Old Shell, the Old Grey, the Lantern Mother. Lose to a boss and the life ends there; be brought
 down by any other beast and he comes home without what the walk had gathered. A kill trains
 nothing in him: the first of a kind in a life is a lesson about it, and a technique used often
 rises a rank.
@@ -749,7 +764,7 @@ arguments, compared by value. `Rules::nbRuns` counts the runs.
 | script | inputs | outputs |
 |---|---|---|
 | `lib.pg` | - | pure helpers: `clamp`, `ordinal` ("14th"), `monthOf` (whole months lived), `monthsBetween`, `monthsToAttempts`, `signed` ("+1" / "−2"), `fmtMonths` ("6 mo"), `numberWord`, `statName`, `statOf`, `lookup`, `raised` (a gain stopped at the stat's ceiling), `byId`, `pathFlagOf`, `asksOf`, `openNote`, `shiftIn` (a month's change to a stat); `lastAge` (30, where his prime ends), `anyAge` (the `finishBy` of what no age closes) |
-| `economytable.pg` (imported by `activitytable.pg`, `resources.pg`, `town.pg`, `depgraph.pg` and the solver's `life.pg`; never loaded) | - | `const` tables: `basicResources`, `madeResources` (`{id, name, one, glyph, about}`, a basic with `lot`, `coin`, `price` for the market); `scavengeRows`, `storeRows` (activity rows); `familiarKinds` (`{id, name, one, glyph, known, about, train, eats[], makes[], bind[]}`); `slotGivers` (`{stat, slots, needed}`); `economyKnobs` (`stashMost`, `baseSlots`) |
+| `economytable.pg` (imported by `activitytable.pg`, `resources.pg`, `town.pg`, `depgraph.pg` and the solver's `life.pg`; never loaded) | - | `const` tables: `basicResources`, `madeResources` (`{id, name, one, glyph, about}`, a basic with `lot`, `coin`, `price` for the market); `scavengeRows`, `storeRows` (activity rows); `familiarKinds` (`{id, name, one, glyph, known, about, train, eats[], makes[], bind[]}`); `slotGivers` (`{stat, slots, needed}`); `gearPieces` (`{id, name, glyph, might, armour, ward, about, forge {costs[], months, smithy, onlyWith?}}`); `economyKnobs` (`stashMost`, `baseSlots`) |
 | `activitytable.pg` (through `windows.pg`) | `age`, `character`, `done`, `activityId` (`""`: all; `forecast.pg` shapes only its own), `world`, `lives` (which life of the world this is: the places of the town read it), `running` | `activities`: `{id, group, name, glyph, months, rank, each, path, enters, board, fromAge, finishBy, gains[{stat, amount, label, name, hidden}], costs[{stat, amount, label, name}], requires[{stat, label, current, needed}], needs (the requirements as written, for `depgraph.pg`), locked, done, uses, left, spent, closed, pathOpen, listed, showAge, showFrom, tally ("DONE 2", "DONE 0 · 1 LEFT"), until ("" or "CLOSES IN 14 MO"), urgent, after[step]}` |
 | `milestones.pg` (`milestonetable.pg`) | `age`, `world`, `lives` | `milestones`: `{age, id, label, passed, entry, asks[{path, stat, label, needed}]}`; `next`: `{id, label, age, in}` (`in` = months to it; `"", "", -1, -1` past the last) |
 | `windows.pg` | `age`, `character`, `done`, `activityId` (`""`) | `windows`: `{id, name, from, to, state (upcoming / open / closed), note (in attempts), attempts}`, one per door of an activity whose path is open to him |
@@ -757,7 +772,7 @@ arguments, compared by value. `Rules::nbRuns` counts the runs.
 | `resources.pg` | `age`, `character`, `board` | `month`: `{after{stats}, entries[{text, kind, figure, glyph}], hurt[stat]}`; `rows`: `{id, group, groupLabel, glyph, name, tone, rate ("+2 / mo"), limit}`; `glosses`: `{id, title, text, footnote, rows[{label, value, tone}]}`; `caps`: `{stat, most}`; `death`: `""` or the line the next life opens with; `warning`, `advice`: what he lives on running out, counted with his familiars' share (theirs alone at board); `eats`: the rations the coming month eats, his own (none at board) and his familiars', fed or not (the solver reads it) |
 | `achievements.pg` | - | `achievements`: `{id, kind (deed / guide / lore), name, entry, say, point, hold, order, asks[{fact, op, value}], gives[{stat, amount}], until[{fact, op, value}]}` |
 | `epitaph.pg` | `age`, `character`, `done`, `activityId` (`""`), `deeds` (the names of the deeds reached) | `epitaph`: `{cause ("He died an old man, in his thirty-third year."), story[text] (what he became, worked at, left, and what is told of him), text (the story as one paragraph), tally ("AGE 33 · WORKS 14 · COIN 31 · DEEDS 2"), ask ("" or, past `lastAge`, the line that asks for a comment or a rating)}` |
-| `town.pg` (`towntable.pg`) | `age`, `character` (with `town_known`, `town.<place>`, `fund.<place>`), `world`, `lives` | `places`: `{id, name, glyph, about, level, most, shown, gives, line, tale, built, fund, nextWork, nextName, nextMonths, nextCoin, nextYears, nextCosts, nextGives, nextLocked, gaps[{stat, label, current, needed}], leaves[{stat, amount}], leaveLine, stashLine}`; `start`: `[{stat, amount}]`; `opened`, `raisedLine`, `epitaphLine`, `fundLine`, `foundLine`; `gift`: `{stat, before, after, plain, chosen, things}`; `stash`: `[{stat, most}]` (what the stash keeps at his death, and the most of each); `stashLine`: `""` or the ending's sentence of what goes into the stash with no gift (a place's `stashLine` says it with the gift left to it) |
+| `town.pg` (`towntable.pg`) | `age`, `character` (with `town_known`, `town.<place>`, `fund.<place>`, `fund.<place>.<thing>`, `seen.<place>`, `stash.<id>`), `done`, `world`, `lives` | `places`: `{id, name, glyph, about, level, most, shown, gives, line, tale, built, fund, nextWork, nextName, nextMonths, nextCoin, nextYears, nextCosts, nextGives, nextLocked, gaps[{stat, label, current, needed}], given[{level, built, gives}], tiers[{level, built, gives, reached}], leaves[{stat, amount}], leaveLine, spends[{stat, amount}] (what the fund pays of the next level, `coin` its coin, taken from the fund when it is reached), stashLine}`; `start`: `[{stat, amount}]`; `opened`, `raisedLine`, `epitaphLine`, `fundLine`, `foundLine`; `gift`: `{stat, before, after, plain, chosen, things}`; `stash`: `[{stat, most}]` (what the stash keeps at his death, and the most of each); `stashLine`: `""` or the ending's sentence of what goes into the stash with no gift (a place's `stashLine` says it with the gift left to it) |
 | `expedition.pg` (`expeditiontable.pg`, `expeditionlib.pg`, `fightlib.pg`) | `age`, `character` (with `know.<key>`), `who`, `seed`, `ask` (enter, act, look, records, begin, term), the walk as it stands (`run`, `record`, `marks`, `fight`, `foes`, `account`), `act` `{kind, target, count}`, the records (`recipes`, `recipeSteps`, `recipeMarks`), `walks`, `queue`, `replay` | the walk as the run leaves it; `after{stats}`, `entries`; on site `site`, `seeks`, `works`, `card`, `options`, `bag`, `taken`, `home`; a fight `duel`, `menu`, `targets`, `order`, `hero`, `foe`, `preview`; the records `shelf`, `form`, `stops`; `recipe`, `blocked`, `stopped` |
 
 **Repetition** (`activitytable.pg`). `done` is the save's count of terms completed per activity.
@@ -892,20 +907,26 @@ gloss names the familiars' share (*His familiars eat*).
   Nothing unbinds: when slots fall below the familiars bound (a relic spent), only the binding
   rows lock.
 - **Slots** (`slotsOf`): `economyKnobs.baseSlots` (1), and what each of `slotGivers` he holds
-  adds: a first class one, a second calling two, the Harrow relic one.
+  adds: a first class one, a second calling two, the Harrow relic one; and the `slots` of every
+  level of the town that stands (the mill loft, the reading desk: one each).
 - **Lessons** (`train.<kind>`, twice, listed while he has one of the kind): a month of what the
   kind eats, and the stat `more.<stat>` one more, which `feedFamiliars` adds to what each of them
   makes.
 - **Kinds learned** are the world's (`know.fam.<kind>`, kept in the save's knowledge from life to
   life): `research.imp` and `research.brownie` in *Study*, and the Old Shell (mole) and the Old Grey
-  (weaver) among a boss's `gives` (`expeditiontable.pg`).
+  (weaver) and the Lantern Mother (wisp) among a boss's `gives` (`expeditiontable.pg`). A level of
+  the town that `teaches` a kind makes it bindable while it stands, as if the world knew it, and
+  its study is no longer listed (`kindKnown`: the smithy's bellows the mole, the chapel primer
+  the imp).
 
 **The stash** (`town.pg`, `Scenes/lifesave.cpp`, `Scenes/lifescene.cpp`, `activitytable.pg`). The
 world keeps what a life held of each basic at its death (`LifeSave::stash`, written by
-`beginAgain` after the gift to a place has taken its share), up to `economyKnobs.stashMost` (100)
+`beginAgain` after the gift to a place has taken its share), up to `stashMost` (`lib.pg`:
+`economyKnobs.stashMost`, 100, and the `stash` of every level of the town that stands)
 of each: `town.pg`'s `stash` output, `[{stat, most}]`, says what it keeps and how much. The
 scripts read it as `stash.<id>` in `character`, the way they read a place's fund. A new life
-draws on it with the rows of *The stash* (`draw.<id>`, at once, listed while it holds any): as
+draws on it with the rows of *The stash* (`draw.<id>`, at once, listed while it holds any; once
+the town is known they stand on the Town page, under the Storehouse, by their `place`): as
 much as he has room for, and the rest stays. Gems and what walks find that is not a basic are not
 kept. A save from before the stash opens with it empty. The tile's caption says what the stash
 holds ("40 IN THE STASH"); its price, what a draw takes ("30 firewood from the stash"). The ending
@@ -1002,11 +1023,21 @@ under four names: `town_known` (1 or 0), `town.<place>` (its level), `fund.<plac
 left to it) and `seen.<place>` (1 once a life has had the place on its page). What a script hands back under those names is never written among his stats
 (`LifeSave::takeTown`); the one thing a script does to the town this way is to make it known.
 
-- `towntable.pg` is the table: ten places, three levels each, a level being
-  `{work, built, months, coin, costs, years?, gives, start?, lore}`. It is imported, never loaded.
+- `towntable.pg` is the table: eleven places, three levels each, a level being
+  `{work, built, months, coin, costs, years?, cheaper?, gives, start?, slots?, teaches?, stash?, more?, lore}`.
+  It is imported, never loaded. `costs` are mainly resources: a first level asks two basics
+  (`economytable.pg`), a second more of them and gems, a third more again, gems and a thing
+  found on a walk (`expeditiontable.pg`'s `walkItems`: pelts, hides, fangs, a white antler, bog
+  iron, wisp-glass or a boss's trophy); `coin` is a small part of the price. The lodge is built of
+  what walks bring (firewood, ash wood, clay, stone). What a level gives the economy, while it
+  stands (`lib.pg`'s `levelsReached`): `slots: N` more familiar slots (`slotsOf`), `teaches:
+  "<kind>"` a kind bindable as if the world knew it (`kindKnown`), `stash: N` more of each thing
+  kept in the stash (`stashMost`), `more: [{stat, amount}]` more of that stat from each familiar
+  that makes it (`moreFromTown`, read by `feedFamiliars`).
   A place may say what brings it onto the page: `shows: {flag: "veteran"}` (a flag he holds),
   `{done: "smithy"}` (an activity he has done a term of), `{lives: 2}` (a life of the world),
-  `{fromAge: N}`, or several; without it, it is there from the day the town is known (the Market
+  `{fromAge: N}`, `{stash: true}` (the stash holds anything: the Storehouse), or several; without
+  it, it is there from the day the town is known (the Market
   and the Mill alone). `lib.pg`'s `placeShown` weighs
   it for the page (`town.pg`'s `shown`) and for the works (a place not on his page has none
   listed), and a place raised, left coin or seen by a life before is always shown.
@@ -1015,8 +1046,11 @@ left to it) and `seen.<place>` (1 once a life has had the place on its page). Wh
   reached or not, for its gloss),
   and its next level flattened (`nextWork`, `nextCosts`, `nextCoin` less the fund, `nextGives`,
   `nextLocked`, `gaps`), plus `start` (what a new life is born with, every level reached),
-  and the words the scene says (`opened`, `raisedLine`, `epitaphLine`, `fundLine`, `gift`).
-- `activitytable.pg` makes the 30 works from the same table (`raise.<place>.<level>`): listed
+  `leaves` (what he holds of the things its next level still asks: only things, never a part, a
+  skill or a standing) and `spends` (what the fund pays of the next level; the scene takes that
+  much from the fund when it is reached, and what is over stays for the level after), and the
+  words the scene says (`opened`, `raisedLine`, `epitaphLine`, `fundLine`, `gift`).
+- `activitytable.pg` makes the 33 works from the same table (`raise.<place>.<level>`): listed
   only to who knows the town and while the place is one level below. They have no row: a click
   on a place's tile on the Town page chooses its next one (`LifeScene::onPlace`), as a tile of
   the lists is chosen, and the button under "At work now" begins it, or a second click within
@@ -1025,6 +1059,12 @@ left to it) and `seen.<place>` (1 once a life has had the place on its page). Wh
   the town is known), `goto` (confirming it opens a page and does nothing else), `raises` and
   `level` (its term raises that place), `years` (years of his life taken at once when it
   begins), `whileNot` (not listed once he holds that stat).
+- Gear (`economytable.pg`'s `gearPieces`): `activitytable.pg` makes a `forge.<piece>` row of
+  each, at the smithy (`place: "smithy"`, once a life), asking the smithy's level its `forge`
+  names, and listed only with its `onlyWith` (the charm: `know.move.light.bite`, set the first
+  time a marsh light's working reaches him). It gives `gear.<piece>`, a holding of the group GEAR;
+  `fightcalc.pg`'s `gearSum` adds its `might` to his Might and takes its `armour` off each blow a
+  beast lands, its `ward` off each working. Gear is never kept in the stash nor left to a place.
 - How a level's gift reaches the rules: `bonus` is now a list of steps
   `{stat, needed, gains? months? rank? each? uses? fromAge? showAge? showFrom? finishBy? board? path? more?}`,
   every step that holds applied in order (`more` adds to what the term brings); `eased` takes
@@ -1102,7 +1142,7 @@ files of their own, `expeditionlib.pg` and `fightlib.pg`, imported first: a scri
 - **Before a fight**: when he can do more than meet it in the open (Stealth, a trap set, a ration
   for a pack), an approach card asks how (`approach`): lie in wait (Stealth against the beasts'
   `awareness`), lead it into the snare, draw one off, or leave it be.
-- **Bosses** are encounters with `boss: true` (the Old Pike, the Old Shell, the Old Grey), listed
+- **Bosses** are encounters with `boss: true` (the Old Pike, the Old Shell, the Old Grey, the Lantern Mother), listed
   at knowledge 4 with a warning: beaten once a life (`beaten.<id>`), their `gives` and `lore`
   given straight to him, their steps written `once` so a record walked again passes them by.
   Lost, he dies (`fell`, read by `resources.pg`'s death line, and the life ends on the walk).

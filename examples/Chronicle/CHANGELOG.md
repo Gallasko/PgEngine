@@ -3,11 +3,12 @@
 What changed in the game, build by build, as a player sees it. The engine's own changes are in
 the `CHANGELOG.md` at the root of the repository.
 
-## 0.8 - unreleased: the stores and the familiars
+## 0.8 - unreleased: the stores, the familiars and the town
 
 A life now gathers: piles of berries, water, firewood and stone that grow month by month, small
 creatures bound to him that make more of them, and a stash that keeps what he held for the life
-after him.
+after him. The town is built of what he gathers, and gives back what gathering needs: room for
+another familiar, a new kind to bind, a bigger stash.
 
 ### New
 
@@ -42,8 +43,45 @@ after him.
   gift to the town takes its share, up to 100 of each. A new life takes from it with *Take ... from
   the stash*, as much as it has room for; the rest waits for the lives after. The ending says what
   goes into it, and says it again when you choose a place for the gift.
+- **What the town gives back.** Some levels now help the gathering: the market hall makes every
+  sprite bring one more berry, the mill loft and the Collegium's reading desk each give every
+  life a slot for one more familiar, the smithy's second bellows teaches the stone mole and the
+  chapel primer the well imp (no need to beat the Old Shell or read of the well spirits), the
+  storyteller's chair at the inn lets the stash keep 50 more of each thing, and the lodge's racks
+  make every mole dig one more stone.
+- **The Storehouse.** A new place of the town, there once the stash holds anything. What you
+  take from the stash is taken there, on the Town page, once the town is known. Its three levels
+  let the stash keep 100, 200 and then 400 more of each thing.
+- **Gear from the smithy.** Once the smithy has its second bellows it forges an iron blade
+  (10 stone, 10 firewood and a gem: 4 more Might) and a leather jerkin (4 hides and 6 firewood:
+  2 armour off every bite or blow a beast lands). With the practice blades, and once a marsh
+  light has used its cold fire on you, it forges a warded charm too (3 gems and 10 water: 2 off
+  every working). Each is forged once a life, held under GEAR, taken into every fight, and lost
+  at his death: it is never kept in the stash nor left to a place.
+- **Millbrook Marsh.** A new place to walk, from 18, once the Quarry Road is known 4 of 4: three
+  months a walk. Marsh lights are workings, not bodies: an edge goes through them as through
+  smoke, a blessing ends them, and armour does nothing against their cold fire. Bog hounds hunt
+  in threes and frost hurts them more; a leech mass mends at every turn of its own unless it
+  burns. Over the deepest pool waits the Lantern Mother, who calls a light to her as she is hurt.
+  The marsh gives pitch, and bog iron once it is known 3 of 4; a light sometimes leaves a bead of
+  wisp-glass. Beat the Lantern Mother and the marsh wisp is yours to bind: it eats a ration and 2
+  water a month, makes a reagent, and is bound with 2 pitch.
 
 ### Changed
+
+- **A level of the town is paid mainly in resources.** The first level of a place asks 20 each of
+  the two basics it is built of; the second 40 of them and 2 gems; the third 80, 4 gems and one
+  thing found on a walk (pelts, hides, fangs, a white antler, bog iron, wisp-glass, or a boss's
+  trophy). Clay is never asked past 20, since no store makes room for more, and the storehouse
+  asks firewood too from its second level. Their coin is about a quarter of what it was. Some
+  levels still ask a part or a standing as well, and the lodge is still built of what walks
+  bring.
+- **What a death leaves to a place** is anything its next level still asks, not only what walks
+  bring: berries, water, firewood, stone, clay, gems and things found. Never a part, a skill or a
+  standing: renown is not left to anyone. When a level is raised, what is left over in its fund
+  stays for the level after.
+- **The mill loft** gives a familiar slot, no longer 6 rations at birth; **the reading desk** a
+  familiar slot, no longer Lore 1.
 
 - **Early works ask for resources.** The kitchen wants water and firewood, the smithy firewood,
   your letters a little firewood, and a remedy a cup of water. The carters still take anyone, so a
