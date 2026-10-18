@@ -874,7 +874,7 @@ store raises one for the life: `limitOf` adds the stat `store.<id>` to the base,
 `hiddenStats`: a count the rules keep for themselves, gained like any other but marked `hidden` on
 the row's gains, so no tile chip, gloss REWARD line or log figure shows it (what asks for it still
 names it). *Dry berries* (`dry.berries`, three berries to a ration, at once) stands in *Scavenge*
-too, with no place: a sprite's berries feed him before he knows the town. **A walk ignores limits**: its haul is
+too, with no place, from his first berries (`onlyWith`; what it asks is only its cost): a sprite's berries feed him before he knows the town. **A walk ignores limits**: its haul is
 never thrown away. A save from before the limits keeps what it holds past them.
 
 **Caps and mending** (`lib.pg`, `resources.pg`). `statCaps` names the stat holding the most

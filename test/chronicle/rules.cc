@@ -2215,6 +2215,31 @@ namespace pg
             ASSERT_EQ(dry.costs.size(), 1u);
             EXPECT_EQ(intOf(dry.costs[0], "amount"), 3);
 
+            // Of berries it asks only its cost: the three it dries, and no line of its own
+            int berryAsks = 0;
+
+            for (const auto& ask : dry.requires)
+            {
+                EXPECT_NE(textOf(ask, "label"), "Berries to dry");
+
+                if (textOf(ask, "stat") == "berries")
+                {
+                    ++berryAsks;
+                    EXPECT_EQ(intOf(ask, "needed"), 3);
+                }
+            }
+
+            EXPECT_EQ(berryAsks, 1);
+
+            // Its row waits for his first berries, and stands locked until he holds three
+            character["berries"] = ElementType{0};
+            EXPECT_FALSE(flag(activityAt(f.rules, 7.0f, character, "dry.berries").fields, "listed"));
+
+            character["berries"] = ElementType{1};
+            EXPECT_TRUE(flag(activityAt(f.rules, 7.0f, character, "dry.berries").fields, "listed"));
+            EXPECT_TRUE(flag(activityAt(f.rules, 7.0f, character, "dry.berries").fields, "locked"));
+            character["berries"] = ElementType{3};
+
             // In the Scavenge group, right after the rows that gather by hand
             std::vector<RuleActivity> listed;
             ASSERT_TRUE(f.rules.activities(7.0f, character, listed)) << firstError(f.rules);

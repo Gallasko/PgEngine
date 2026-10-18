@@ -90,6 +90,8 @@ another familiar, a new kind to bind, a bigger stash.
   What an old save holds past a limit stays: it is only spent, never cut.
 - **Dry berries at home.** Drying berries into rations is among what a boy gathers, no longer at
   the market: a sprite's berries feed him before he knows the town.
+- **Dry berries asks only for its berries.** Its tooltip has one line, the three berries it
+  costs, no longer a second "Berries to dry"; its row comes with his first berries.
 - **The rations guide** no longer says "3 months": with familiars bound, three rations last less.
 
 ## 0.7 - unreleased: the fight
