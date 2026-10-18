@@ -25,6 +25,13 @@
 //           from, what it brings, what it uses and how long it lasts, what running out costs.
 //         `death`: "" or the line the next life opens with, when the character as he is has
 //           nothing left of a stat a life needs (`mortal`).
+//         `eats`: the rations a coming month eats as things stand, his own (none at board) and
+//           his familiars', fed or not. The solver reads it; the game does not.
+//
+// The familiars bound to him (the stat "fam.<id>", how many of the kind: economytable.pg's
+// `familiarKinds`) eat after he has eaten, at board too: his work feeds him, not them. Each kind
+// is fed all or nothing and makes its things when fed (lib.pg's `feedFamiliars`); a hungry one
+// makes nothing, and costs him nothing either. Each kind is a holding of the group FAMILIARS.
 //
 // A holding is a stat with a place in the ledger. Optional fields:
 //   produces: [{stat, amount, per, every}]
@@ -103,6 +110,16 @@ for (var mr = 0; mr < len(madeResources); mr++)
 
     push(holdings, {id: made.id, group: "resources", groupLabel: "RESOURCES", glyph: made.glyph, name: made.name, tone: 0,
                     about: made.about})
+}
+
+// The familiars he has bound, a row a kind, after what they eat and make. Its count does not move
+// by itself: binding raises it, and nothing takes one back. `creature` keeps the kind, for its gloss
+for (var fk = 0; fk < len(familiarKinds); fk++)
+{
+    var kind = familiarKinds[fk]
+
+    push(holdings, {id: "fam." + kind.id, group: "familiars", groupLabel: "FAMILIARS", glyph: kind.glyph, name: statName("fam." + kind.id), tone: 0,
+                    about: kind.about, creature: kind})
 }
 
 var standings = [
@@ -382,6 +399,40 @@ for (var i = 0; i < len(holdings); i++)
     }
 }
 
+// He has eaten: his familiars eat after him, at board too, and what they took and made is in the
+// rates with the rest
+var fed = feedFamiliars(after, entries)
+
+for (var fs : fed)
+{
+    change[fs] = lookup(change, fs, 0) + fed[fs]
+}
+
+// The rations a coming month eats: his own unless his work feeds him, and all his familiars'
+var eats = 0
+
+for (var he = 0; he < len(holdings); he++)
+{
+    if (holdings[he].id == "rations" and not board)
+    {
+        eats = eats + lookup(holdings[he], "decays", 0)
+    }
+}
+
+for (var fe = 0; fe < len(familiarKinds); fe++)
+{
+    var eater = familiarKinds[fe]
+    var count = statOf(character, "fam." + eater.id)
+
+    for (var fr = 0; fr < len(eater.eats); fr++)
+    {
+        if (eater.eats[fr].stat == "rations")
+        {
+            eats = eats + count * eater.eats[fr].amount
+        }
+    }
+}
+
 // A month that took from what a life needs: the screen says so
 var hurt = []
 
@@ -622,6 +673,12 @@ for (var g = 0; g < len(holdings); g++)
         if (board)
         {
             footnote = "MEALS PROVIDED: THIS MONTH USES NONE"
+
+            // His work feeds him, not his familiars
+            if (delta < 0)
+            {
+                footnote = "MEALS PROVIDED: ONLY HIS FAMILIARS EAT"
+            }
         }
     }
 
@@ -633,6 +690,28 @@ for (var g = 0; g < len(holdings); g++)
         {
             footnote = "FULL: NO MORE IS WRITTEN UNTIL SOME IS SPENT"
         }
+    }
+
+    // A familiar: what each one eats and makes a month, with what he has learned of its yield,
+    // and that it is his for life
+    if (has(h, "creature"))
+    {
+        var creature = h.creature
+
+        for (var ce = 0; ce < len(creature.eats); ce++)
+        {
+            push(notes, {label: "Each eats " + statName(creature.eats[ce].stat), value: signed(0 - creature.eats[ce].amount) + " / mo", tone: "loss"})
+        }
+
+        for (var cm = 0; cm < len(creature.makes); cm++)
+        {
+            var makes = creature.makes[cm]
+
+            push(notes, {label: "Each makes " + statName(makes.stat), value: signed(makes.amount + statOf(character, "more." + makes.stat)) + " / mo", tone: "gain"})
+        }
+
+        push(notes, {label: "Bound to him", value: "For life", tone: "muted"})
+        footnote = "FED, IT MAKES EVERY MONTH; HUNGRY, IT MAKES NOTHING"
     }
 
     // A title is had or not: nothing to count, no limit to state

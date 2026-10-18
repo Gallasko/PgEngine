@@ -1635,6 +1635,168 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // A familiar fed eats after him and makes its month; the rates say both
+        TEST(rules_test, a_fed_familiar_makes)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = {{"vit", ElementType{20}}, {"rations", ElementType{5}}, {"fam.sprite", ElementType{1}}, {"berries", ElementType{0}}};
+
+            RuleMonth month;
+            ASSERT_TRUE(f.rules.month(8.0f, character, false, month)) << firstError(f.rules);
+
+            EXPECT_EQ(intOf(month.after, "rations"), 3);
+            EXPECT_EQ(intOf(month.after, "berries"), 4);
+            EXPECT_EQ(intOf(month.after, "fam.sprite"), 1);
+            EXPECT_TRUE(month.entries.empty());
+
+            ASSERT_NE(byId(month.rows, "berries"), nullptr);
+            EXPECT_EQ(textOf(*byId(month.rows, "berries"), "rate"), "+4 / mo");
+            ASSERT_NE(byId(month.rows, "rations"), nullptr);
+            EXPECT_EQ(textOf(*byId(month.rows, "rations"), "rate"), "\xE2\x88\x92" "2 / mo");
+
+            // Its own row, in a group of its own, and a gloss that says what it eats and makes
+            const ElementMap* sprite = byId(month.rows, "fam.sprite");
+            ASSERT_NE(sprite, nullptr);
+            EXPECT_EQ(textOf(*sprite, "group"), "familiars");
+            EXPECT_EQ(textOf(*sprite, "groupLabel"), "FAMILIARS");
+            EXPECT_EQ(textOf(*sprite, "rate"), "");
+
+            bool glossed = false;
+
+            for (const auto& gloss : month.glosses)
+            {
+                if (textOf(gloss.fields, "id") != "fam.sprite")
+                    continue;
+
+                glossed = true;
+
+                std::string said;
+
+                for (const auto& row : gloss.rows)
+                    said += textOf(row, "label") + "=" + textOf(row, "value") + ";";
+
+                EXPECT_NE(said.find("Each eats Rations=\xE2\x88\x92" "1 / mo"), std::string::npos) << said;
+                EXPECT_NE(said.find("Each makes Berries=+4 / mo"), std::string::npos) << said;
+                EXPECT_NE(said.find("For life"), std::string::npos) << said;
+            }
+
+            EXPECT_TRUE(glossed);
+        }
+
+        // All or nothing: a kind without enough for all of its count eats nothing and makes nothing,
+        // and its hunger costs him nothing
+        TEST(rules_test, a_hungry_familiar_makes_nothing)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = {{"vit", ElementType{20}}, {"rations", ElementType{2}}, {"fam.sprite", ElementType{2}}, {"berries", ElementType{0}}};
+
+            RuleMonth month;
+            ASSERT_TRUE(f.rules.month(8.0f, character, false, month)) << firstError(f.rules);
+
+            EXPECT_EQ(intOf(month.after, "rations"), 1);
+            EXPECT_EQ(intOf(month.after, "berries"), 0);
+            EXPECT_EQ(intOf(month.after, "vit"), 20);
+            EXPECT_TRUE(month.hurt.empty());
+
+            ASSERT_EQ(month.entries.size(), 1u);
+            EXPECT_EQ(textOf(month.entries[0], "text"), "A hedge sprite went hungry");
+            EXPECT_EQ(textOf(month.entries[0], "kind"), "loss");
+        }
+
+        // A month at work that feeds him feeds him only
+        TEST(rules_test, familiars_eat_even_at_board)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            RuleMonth month;
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{5}}, {"fam.sprite", ElementType{1}}}, true, month)) << firstError(f.rules);
+
+            EXPECT_EQ(intOf(month.after, "rations"), 4);
+            EXPECT_EQ(intOf(month.after, "berries"), 4);
+            ASSERT_NE(byId(month.rows, "rations"), nullptr);
+            EXPECT_EQ(textOf(*byId(month.rows, "rations"), "rate"), "\xE2\x88\x92" "1 / mo");
+
+            for (const auto& gloss : month.glosses)
+            {
+                if (textOf(gloss.fields, "id") == "rations")
+                {
+                    EXPECT_EQ(textOf(gloss.fields, "footnote"), "MEALS PROVIDED: ONLY HIS FAMILIARS EAT");
+                }
+            }
+        }
+
+        // What a familiar makes stops at the limit
+        TEST(rules_test, production_stops_at_the_limit)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            RuleMonth month;
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{5}}, {"fam.sprite", ElementType{1}}, {"berries", ElementType{28}}}, false, month)) << firstError(f.rules);
+
+            EXPECT_EQ(intOf(month.after, "berries"), 30);
+            ASSERT_NE(byId(month.rows, "berries"), nullptr);
+            EXPECT_EQ(textOf(*byId(month.rows, "berries"), "rate"), "+2 / mo");
+        }
+
+        // What he has learned of a thing ("more.<stat>") is more of it from each familiar
+        TEST(rules_test, more_raises_the_yield)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            RuleMonth month;
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{5}}, {"fam.sprite", ElementType{2}}, {"berries", ElementType{0}}, {"more.berries", ElementType{2}}}, false, month)) << firstError(f.rules);
+
+            EXPECT_EQ(intOf(month.after, "berries"), 12);
+        }
+
+        // The rations a coming month eats: his, and his familiars'
+        TEST(rules_test, eats_counts_him_and_his_familiars)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            RuleMonth month;
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{5}}, {"fam.sprite", ElementType{2}}}, false, month)) << firstError(f.rules);
+
+            ElementType eats;
+            ASSERT_TRUE(f.rules.resourcesScript.get("eats", eats)) << firstError(f.rules);
+            EXPECT_EQ(eats.toString(), "3");
+
+            // At work that feeds him, his own is not eaten
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{5}}, {"fam.sprite", ElementType{2}}}, true, month)) << firstError(f.rules);
+            ASSERT_TRUE(f.rules.resourcesScript.get("eats", eats));
+            EXPECT_EQ(eats.toString(), "2");
+        }
+
+        // In table order: what a brownie makes feeds a kind after it, the same month
+        TEST(rules_test, familiars_feed_in_table_order)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = {{"vit", ElementType{20}}, {"rations", ElementType{2}}, {"fam.brownie", ElementType{1}}, {"fam.mole", ElementType{1}},
+                                    {"berries", ElementType{3}}, {"water", ElementType{2}}, {"firewood", ElementType{1}}, {"stone", ElementType{0}}};
+
+            RuleMonth month;
+            ASSERT_TRUE(f.rules.month(8.0f, character, false, month)) << firstError(f.rules);
+
+            // He eats his one; the brownie makes two, and the mole eats two of the three
+            EXPECT_EQ(intOf(month.after, "rations"), 1);
+            EXPECT_EQ(intOf(month.after, "stone"), 2);
+            EXPECT_EQ(intOf(month.after, "berries"), 0);
+            EXPECT_TRUE(month.entries.empty());
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // The market buys and sells the basics by the lot, and sells no clay
         TEST(rules_test, the_market_trades_basic_resources)
         {

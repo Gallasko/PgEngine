@@ -1911,6 +1911,60 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // A familiar bound has its row under FAMILIARS, and makes its berries from the next month on
+        TEST(lifescene_test, a_bound_familiar_has_its_row)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.fresh = true;
+            opt.lives = 2;
+            opt.age = 8.0f;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            auto ledger = life->piece<ResourceLedger>("ledger");
+            ASSERT_NE(ledger, nullptr);
+            EXPECT_EQ(ledger->row("fam.sprite"), nullptr);
+
+            // He has scavenged twice and holds what binding a sprite asks
+            life->save.stats["rations"] = 24;
+            life->save.stats["scavenged"] = 2;
+            life->save.stats["berries"] = 6;
+
+            life->onMonth();
+            f.settle();
+
+            ASSERT_NE(life->piece<ActivityList>("activities")->find(&f.ecs, "bind.sprite"), nullptr);
+
+            f.ecs.sendEvent(ActivitySelectedEvent{"life.activities", "bind.sprite"});
+            f.settle();
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "bind.sprite"});
+            f.settle();
+
+            ASSERT_EQ(life->save.running, "bind.sprite");
+
+            life->onMonth();
+            f.frames(12);
+
+            EXPECT_EQ(life->save.stats["fam.sprite"], 1);
+            ASSERT_NE(ledger->row("fam.sprite"), nullptr);
+            EXPECT_EQ(ledger->row("fam.sprite")->name.spec.text, "A hedge sprite");
+
+            // Fed, it makes its berries a month
+            const int berries = life->save.stats["berries"];
+
+            life->onMonth();
+            f.frames(12);
+
+            EXPECT_EQ(life->save.stats["berries"], berries + 4);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // The world's calendar begins at Year 0 with the first life and never rewinds: a life that
         // ends leaves its months counted, and the next one goes on from that date. It is how long
         // the chronicle has been kept.

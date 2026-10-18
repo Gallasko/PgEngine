@@ -718,6 +718,57 @@ fun shiftIn(after, change, stat, amount)
     change[stat] = lookup(change, stat, 0) + amount
 }
 
+// The familiars bound to him eat and make their month, once he has eaten his: each kind in the
+// order of economytable.pg's `familiarKinds`, so that what one makes can feed a later one the same
+// month. A kind is fed all or nothing: when `after` holds what all of them eat, they take it and
+// make their things, and each `more.<stat>` he has learned adds that much to each one's yield, up
+// to the limit. When it does not, they take nothing and make nothing, and `entries` says they
+// went hungry: their hunger costs him nothing. Returns what each stat moved, for the rates.
+fun feedFamiliars(after, entries)
+{
+    var moved = {}
+
+    for (var k = 0; k < len(familiarKinds); k++)
+    {
+        var bound = familiarKinds[k]
+        var n = statOf(after, "fam." + bound.id)
+
+        if (n > 0)
+        {
+            var fed = true
+
+            for (var e = 0; e < len(bound.eats); e++)
+            {
+                if (statOf(after, bound.eats[e].stat) < n * bound.eats[e].amount)
+                {
+                    fed = false
+                }
+            }
+
+            if (fed)
+            {
+                for (var t = 0; t < len(bound.eats); t++)
+                {
+                    shiftIn(after, moved, bound.eats[t].stat, 0 - n * bound.eats[t].amount)
+                }
+
+                for (var m = 0; m < len(bound.makes); m++)
+                {
+                    var stat = bound.makes[m].stat
+
+                    shiftIn(after, moved, stat, n * bound.makes[m].amount + statOf(after, "more." + stat) * n)
+                }
+            }
+            else
+            {
+                push(entries, {text: capitalised(bound.name) + " went hungry", kind: "loss", figure: "", glyph: bound.glyph})
+            }
+        }
+    }
+
+    return moved
+}
+
 // A walk outside the town (expeditiontable.pg): the days on site, the days of the way there, and
 // the months it blocks, for a zone studied that often. The Life page's row and the walk itself
 // read the same three, so they never disagree. A zone studied to its third level is stayed in
