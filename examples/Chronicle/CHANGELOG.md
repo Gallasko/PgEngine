@@ -12,6 +12,8 @@ another familiar, a new kind to bind, a bigger stash.
 
 ### New
 
+- **Berry pies.** From seven the baker on the square pays 6 coin and a little Dexterity for a
+  two-month bake, if he brings 6 berries.
 - **Resources.** Berries, water, firewood, stone and clay have their own place in your ledger,
   under RESOURCES, with the most you can hold of each (30 berries, 40 water, 30 firewood, 20 stone,
   20 clay). Gems are made, never gathered, 20 at most. Walks still bring them, and a

@@ -2698,6 +2698,43 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // The baker's pies ask six of the first berries he scavenges: listed from seven even with
+        // none held (a cost is a requirement, and the list leaves requirements out), locked until
+        // he has them
+        TEST(rules_test, the_pies_ask_the_berries_he_brings)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            RuleActivity bare = activityAt(f.rules, 7.0f, boy(), "pies");
+
+            EXPECT_TRUE(flag(bare.fields, "listed"));
+            EXPECT_TRUE(flag(bare.fields, "locked"));
+            EXPECT_EQ(intOf(bare.fields, "months"), 2);
+
+            ASSERT_EQ(bare.costs.size(), 1u);
+            EXPECT_EQ(textOf(bare.costs[0], "stat"), "berries");
+            EXPECT_EQ(intOf(bare.costs[0], "amount"), 6);
+
+            ElementMap picked = boy();
+            picked["berries"] = ElementType{6};
+
+            RuleActivity ready = activityAt(f.rules, 7.0f, picked, "pies");
+
+            EXPECT_TRUE(flag(ready.fields, "listed"));
+            EXPECT_FALSE(flag(ready.fields, "locked"));
+
+            RuleForecast forecast;
+            ASSERT_TRUE(f.rules.forecast(7.0f, picked, "pies", 0, forecast)) << firstError(f.rules);
+
+            EXPECT_EQ(intOf(forecast.atStart, "berries"), 0);
+            EXPECT_EQ(intOf(forecast.atTerm, "coin"), 6);
+            EXPECT_EQ(intOf(forecast.atTerm, "dex"), 7);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // The year as a first life meets it: a work at a time, one of the two, two of the three,
         // the market, the harvest, the mill; then the town's work, whole, the day he is seven.
         TEST(rules_test, the_sixth_year_a_work_at_a_time)
@@ -2787,7 +2824,7 @@ namespace pg
 
             // (the first walk outside the town is among them, right under his work)
             // (and, the town being known, what its market sells and the works that raise its places)
-            EXPECT_EQ(listed(7.0f, seven), (Ids{"carters", "mill", "scavenge.berries", "scavenge.water", "scavenge.firewood", "walk.hedgerows", "buy.rations", "letters", "keep", "collegium", "hand", "buy.water", "buy.firewood", "buy.stone", "raise.market.1", "raise.mill.1"}));
+            EXPECT_EQ(listed(7.0f, seven), (Ids{"carters", "mill", "pies", "scavenge.berries", "scavenge.water", "scavenge.firewood", "walk.hedgerows", "buy.rations", "letters", "keep", "collegium", "hand", "buy.water", "buy.firewood", "buy.stone", "raise.market.1", "raise.mill.1"}));
         }
 
         // ----------------------------------------------------------------------------------------
@@ -2864,7 +2901,7 @@ namespace pg
             for (const char* id : {"glean", "flour", "wheel", "scribe", "tome", "knots", "sacks", "sing", "harvest", "helping"})
                 EXPECT_TRUE(std::find(seven.begin(), seven.end(), id) == seven.end()) << id;
 
-            EXPECT_EQ(seven, (Ids{"tomarket", "carters", "mill", "scavenge.berries", "scavenge.water", "scavenge.firewood", "walk.hedgerows", "letters", "keep", "collegium", "hand"}));
+            EXPECT_EQ(seven, (Ids{"tomarket", "carters", "mill", "pies", "scavenge.berries", "scavenge.water", "scavenge.firewood", "walk.hedgerows", "letters", "keep", "collegium", "hand"}));
         }
 
         // ----------------------------------------------------------------------------------------

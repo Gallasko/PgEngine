@@ -314,6 +314,14 @@ var activities = [
      gains: [{stat: "dex"}, {stat: "coin", amount: 3}],
      requires: [],
      after: [{uses: 2, gains: [{stat: "coin", amount: 5}]}]},
+    // What the first berries he scavenges are for: six of them, which are his to bring, baked into
+    // pies on the square. Its row stands from seven with none held (a cost is a requirement, and a
+    // requirement is not what lists a row), locked until he has them
+    {id: "pies", group: "Work", name: "Bake Berry Pies with the Baker", glyph: "trade", months: 2, rank: "", each: "", path: "", fromAge: 7, uses: 2,
+     about: "The baker on the square has the oven and the flour, but not the berries. Those are his to bring.",
+     costs: [{stat: "berries", amount: 6}],
+     gains: [{stat: "coin", amount: 6}, {stat: "dex"}],
+     requires: []},
     // What feeds him until the market is his to buy at: the rations of its months as he begins
     // it, and more to take away at its term
     {id: "kitchen", group: "Work", name: "Help in the Kitchen", glyph: "trade", months: 3, rank: "", each: "RATIONS UP FRONT", path: "", board: true, fromAge: 7, fromMonths: 8, idleBy: 10,
