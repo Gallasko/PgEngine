@@ -39,7 +39,7 @@
 //           tally (how often it was done and, for a limited one, what is left, as the row
 //           writes it: "DONE 2", "DONE 0 · 1 LEFT"),
 //           place ("" or the place of the town it is done at: the Town page lists it there, not
-//           the Life page), trade ("" or "buy", "sell": what kind of trade a row of the market
+//           the Life page), trade ("" or "buy", "sell", "make": what kind of trade a row of the market
 //           is), raises and level ("" and 0, or the place its term raises and the level
 //           it raises it to), yearMonths (0, or the months of his life it takes at once when it
 //           begins: its `years`), goto ("" or the page that confirming it opens, and nothing else),
@@ -162,12 +162,13 @@
 //                    the Life page.
 //                    A work that raises a place (`raises`) has no row: a click on the
 //                    place's tile begins it.
-//   trade: "buy" or "sell"
+//   trade: "buy", "sell" or "make"
 //                    what kind of trade a row of the market is: "buy" for what he pays coin for,
 //                    "sell" for what he is paid for. The Town page lists each kind on a line of
 //                    its own, and its button says Buy or Sell; a buy with no `uses` limit has Buy
-//                    all beside it, as a sale has Sell all. What is made there (a remedy, a
-//                    flask) has none.
+//                    all beside it, as a sale has Sell all. "make" is for what is made there
+//                    (a remedy, a flask): its button says Make, and Make all beside it, unless
+//                    it has a `uses` limit.
 //   goto: "page"     confirming it opens that page ("town") and does nothing else: no term, no
 //                    month, no line.
 //   raises: "id", level: N
@@ -1412,14 +1413,14 @@ for (var b = 0; b < len(basicResources); b++)
 
 // And wortleaf is what a remedy is made of
 push(activities, {id: "brew.remedy", group: "Market", name: "Brew a remedy", glyph: "vitality", months: 0, rank: "", each: "FROM WORTLEAF", path: "",
-                  finishBy: anyAge, showFrom: 100, place: "market",
+                  finishBy: anyAge, showFrom: 100, place: "market", trade: "make",
                   gains: [{stat: "remedy", amount: 1}],
                   requires: [{stat: "wortleaf", label: "Wortleaf to brew"}],
                   costs: [{stat: "wortleaf", amount: 2}, {stat: "water", amount: 1}]})
 
 // What a fight spends: a fire flask mixed of firewood a walk brought home, and the chapel's oil
 push(activities, {id: "brew.flask", group: "Market", name: "Mix a fire flask", glyph: "magic", months: 0, rank: "", each: "FROM FIREWOOD", path: "",
-                  finishBy: anyAge, showFrom: 100, place: "market",
+                  finishBy: anyAge, showFrom: 100, place: "market", trade: "make",
                   about: "Pitch and firewood in a clay bottle, and a rag to light it. Thrown in a fight, it burns whatever it breaks on, hide or no hide.",
                   gains: [{stat: "flask", amount: 1}],
                   requires: [{stat: "firewood", label: "Firewood to mix"}],

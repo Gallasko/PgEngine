@@ -6051,6 +6051,10 @@ namespace pg
                     EXPECT_EQ(trade, "sell") << id;
                     ++sells;
                 }
+                else if (id.rfind("brew.", 0) == 0)
+                {
+                    EXPECT_EQ(trade, "make") << id;
+                }
                 else
                 {
                     EXPECT_EQ(trade, "") << id;
@@ -6068,8 +6072,8 @@ namespace pg
             for (const char* id : {"sell.berries", "sell.water", "sell.firewood", "sell.stone", "sell.clay"})
                 EXPECT_EQ(textOf(activityAt(f.rules, 20.0f, townsman(), id).fields, "trade"), "sell") << id;
 
-            EXPECT_EQ(textOf(activityAt(f.rules, 20.0f, townsman(), "brew.remedy").fields, "trade"), "");
-            EXPECT_EQ(textOf(activityAt(f.rules, 20.0f, townsman(), "brew.flask").fields, "trade"), "");
+            EXPECT_EQ(textOf(activityAt(f.rules, 20.0f, townsman(), "brew.remedy").fields, "trade"), "make");
+            EXPECT_EQ(textOf(activityAt(f.rules, 20.0f, townsman(), "brew.flask").fields, "trade"), "make");
         }
     }
 }

@@ -1443,9 +1443,9 @@ it in `lifescene.cpp` over the widgets as they are:
   (`showWorkButtons`), in the place of the one that passes a month; a second click or Enter
   still begins it. What may be done while at work (a thing done at once, an answer)
   has it under the running row. A thing done at once is named by its button ("Do it now"; at the
-  market "Buy" or "Sell", by the rules' `trade`), stays chosen for the next press, and has
+  market "Buy", "Sell" or "Make", by the rules' `trade`), stays chosen for the next press, and has
   **All** beside it when it is made from what he holds or bought again (a sale, "Sell all"; a buy
-  with no `uses` limit, "Buy all": `repeats`, `doAll`, stopped by his coin or his room as one
+  with no `uses` limit, "Buy all"; a making, "Make all": `repeats`, `doAll`, stopped by his coin or his room as one
   press would be, one log line for them all; the scene hangs it on Begin, as a name inside a
   panel is out of reach of the page's anchors); once it can be done no more its button stays
   where it was, greyed ("None left", `spentChoice`), until a press anywhere else, so nothing

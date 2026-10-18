@@ -1402,7 +1402,7 @@ namespace chronicle
 
         // At its right, for what is done at once from what he holds, the button that does it as
         // often as he can. Outside the panel's stack, as the one below. A trade of the market
-        // names it: Sell all, Buy all (the rules' `trade`)
+        // names it: Sell all, Buy all, Make all (the rules' `trade`)
         const bool all = begins and repeats(pick);
         const std::string trade = pick ? textOf(pick->fields, "trade") : std::string();
 
@@ -1425,7 +1425,7 @@ namespace chronicle
 
         if (auto button = piece<Button>("all"))
         {
-            const char* label = trade == "sell" ? "Sell all" : trade == "buy" ? "Buy all" : "All";
+            const char* label = trade == "sell" ? "Sell all" : trade == "buy" ? "Buy all" : trade == "make" ? "Make all" : "All";
 
             if (all and button->spec.label != label)
                 button->setLabel(ecsRef, label);
@@ -1487,7 +1487,7 @@ namespace chronicle
             // What takes no time is done on the spot, and says so: a trade of the market by its
             // name (Buy, Sell)
             const int months = intOf(pick->fields, "months");
-            const char* now = trade == "buy" ? "Buy" : trade == "sell" ? "Sell" : "Do it now";
+            const char* now = trade == "buy" ? "Buy" : trade == "sell" ? "Sell" : trade == "make" ? "Make" : "Do it now";
 
             begin->setLabel(ecsRef, months <= 0 ? now : idle ? "Begin" : "Answer now");
             begin->setMonths(ecsRef, months > 0 ? months : -1);
@@ -1628,7 +1628,7 @@ namespace chronicle
     bool LifeScene::repeats(const RuleActivity* activity) const
     {
         // Done at once from what he holds, as often as he holds it: a sale, berries dried, a
-        // remedy brewed; and a buy of the market (the rules' `trade`), as often as his coin and
+        // remedy brewed; and a buy or a making of the market (the rules' `trade`), as often as his coin and
         // his room let him. Never else what spends coin, nor what is done a set number of times
         // (a blade, a horse: bought once)
         if (not activity or intOf(activity->fields, "months") > 0 or intOf(activity->fields, "uses") > 0 or activity->costs.empty())
@@ -1637,7 +1637,7 @@ namespace chronicle
         if (not textOf(activity->fields, "event").empty() or not textOf(activity->fields, "goto").empty())
             return false;
 
-        if (textOf(activity->fields, "trade") == "buy")
+        if (textOf(activity->fields, "trade") == "buy" or textOf(activity->fields, "trade") == "make")
             return true;
 
         for (const auto& cost : activity->costs)

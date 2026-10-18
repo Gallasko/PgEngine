@@ -9156,6 +9156,13 @@ namespace pg
             // The button sizes itself to the longer word
             EXPECT_GT(f.pos(all->face)->width, 0.0f);
 
+            f.ecs.sendEvent(ActivitySelectedEvent{"town.market", "brew.remedy"});
+            f.settle();
+
+            EXPECT_EQ(begin->spec.label, "Make");
+            EXPECT_TRUE(f.pos(life->named("all"))->visible);
+            EXPECT_EQ(all->spec.label, "Make all");
+
             f.ecs.sendEvent(ActivitySelectedEvent{"life.activities", "dry.berries"});
             f.settle();
 
@@ -9252,6 +9259,66 @@ namespace pg
             EXPECT_EQ(life->save.stats["coin"], 18);
             EXPECT_EQ(life->save.stats["rations"], 60);
         }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Make all makes as many as his stock allows, in one line of the log: wortleaf for three
+        // remedies (two each, and a water each) makes three
+        TEST(lifescene_test, make_all_makes_what_his_stock_allows)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::first();
+            opt.lives = 2;
+            opt.age = 7.0f;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            life->save.townKnown = true;
+            life->save.stats["town_known"] = 1;
+            life->save.stats["wortleaf"] = 6;
+            life->save.stats["water"] = 10;
+            life->onMonth();
+            f.settle();
+
+            life->save.stats["wortleaf"] = 6;
+            life->save.stats["water"] = 10;
+            life->save.stats["remedy"] = 0;
+
+            auto all = life->piece<Button>("all");
+            ASSERT_NE(all, nullptr);
+
+            f.ecs.sendEvent(ActivitySelectedEvent{"town.market", "brew.remedy"});
+            f.settle();
+
+            const size_t lines = life->save.log.size();
+
+            f.ecs.sendEvent(ButtonActivatedEvent{all->face.id, "life.all"});
+            f.settle();
+
+            EXPECT_EQ(life->save.stats["remedy"], 3);
+            EXPECT_EQ(life->save.stats["wortleaf"], 0);
+            EXPECT_EQ(life->save.stats["water"], 7);
+
+            int made = 0;
+
+            for (size_t i = lines; i < life->save.log.size(); ++i)
+            {
+                const LogEntry& line = life->save.log[i];
+
+                if (line.text.find("Brew a remedy") == std::string::npos)
+                    continue;
+
+                ++made;
+                EXPECT_NE(line.text.find("\xC3\x97" "3"), std::string::npos) << line.text;
+            }
+
+            EXPECT_EQ(made, 1);
+        }
+
 
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
