@@ -176,6 +176,15 @@ fun learnTables(info)
         itemKinds[item.id] = item.kind
     }
 
+    // Who makes a resource: the familiar of a kind that makes it, by its bind row
+    for (var kind : familiarKinds)
+    {
+        for (var made : kind.makes)
+        {
+            pushTo(makersOf, made.stat, {bind: "bind." + kind.id, kind: kind, made: made.amount})
+        }
+    }
+
     for (var place : asListOf(info.townPlaces))
     {
         placeShows[place.id] = place.shows
@@ -335,6 +344,72 @@ fun addNeed(goals, st, stat, needed, w, depth, by)
         return
     }
 
+    // A basic or made resource (what a level of the town is paid in, mostly): a figure he gathers
+    // toward, as coin is, so that a month of scavenging is scored by what it brings of it
+    // (gainScore, which counts what his fed familiars make of it too); and a familiar that makes
+    // it, of a kind he knows (its bind row waits for no `onlyWith` he lacks), is aimed at while he
+    // has none of the kind: lightly where a work brings the resource too, as much as the need
+    // where nothing else does (gems)
+    if (isResource(stat))
+    {
+        raiseNeed(goals, stat, needed)
+        raiseWeight(goals.needW, stat, w)
+
+        // More than he can hold: the store that makes room for it first (a level asks 40 or 80
+        // of what a boy holds 30 of)
+        var most = limitOfStat(st, stat)
+
+        if (most > 0 and needed > most)
+        {
+            addAct(goals, st, "store." + stat, w * 0.9, depth + 1, by)
+        }
+
+        var share = 0.3
+
+        if (len(asListOf(producers[stat])) == 0)
+        {
+            share = 0.9
+        }
+
+        for (var maker : asListOf(makersOf[stat]))
+        {
+            var bind = shapeById[maker.bind]
+            var bound = statOf(st, "fam." + maker.kind.id)
+
+            if (bind != none and bind.spent != true and bound < 1)
+            {
+                var known = true
+
+                if (typeOf(bind.onlyWith) == "string" and bind.onlyWith != "" and charValue(st, bind.onlyWith) < 1)
+                {
+                    known = false
+                }
+
+                if (known)
+                {
+                    addAct(goals, st, maker.bind, w * share, depth + 1, by)
+                }
+            }
+
+            // Bound: what it eats besides rations and coin, held for the months it takes to make
+            // what is short (three at most), so that it is fed (a gem weaver eats stone and water)
+            var short = needed - charValue(st, stat)
+
+            if (bound > 0 and short > 0 and depth < 4)
+            {
+                var months = smaller(3, larger(1, (short + bound * maker.made - 1) / (bound * maker.made)))
+
+                for (var e : maker.kind.eats)
+                {
+                    if (e.stat != "rations" and e.stat != "coin")
+                    {
+                        addNeed(goals, st, e.stat, bound * e.amount * months, w * share, depth + 1, by)
+                    }
+                }
+            }
+        }
+    }
+
     if (itemKinds[stat] != none)
     {
         raiseWeight(goals.items, stat, needed)
@@ -346,9 +421,14 @@ fun addNeed(goals, st, stat, needed, w, depth, by)
 
         addWalksFor(goals, st, zonesOfItem[stat], w * 0.9, depth, by)
 
-        for (var pi : asListOf(producers[stat]))
+        // (a resource's scavenging is scored by what it brings of the need, above: it is not
+        // aimed at for itself as well, or a month of it would always outweigh the walk)
+        if (not isResource(stat))
         {
-            addAct(goals, st, pi.id, w * 0.5, depth + 1, by)
+            for (var pi : asListOf(producers[stat]))
+            {
+                addAct(goals, st, pi.id, w * 0.5, depth + 1, by)
+            }
         }
 
         return
@@ -703,6 +783,7 @@ fun gainScore(st, goals, row)
     }
 
     var s = 0.0
+    var made = madeAMonth(st)
 
     for (var stat : net)
     {
@@ -711,6 +792,21 @@ fun gainScore(st, goals, row)
         if (need != none and need > 0)
         {
             var short = need - charValue(st, stat)
+
+            // What his fed familiars make of a resource is earned too, whatever he works at: as
+            // much as they bring by the month it is wanted by, two years at most
+            if (short > 0 and made[stat] != none and made[stat] > 0)
+            {
+                var ahead = 24
+                var wantedBy = goals.needBy[stat]
+
+                if (wantedBy != none and wantedBy > st.month and wantedBy - st.month < ahead)
+                {
+                    ahead = wantedBy - st.month
+                }
+
+                short = short - made[stat] * ahead
+            }
 
             if (short > 0)
             {
@@ -1346,6 +1442,7 @@ var zonesOfItem = {}
 var zonesOfMob = {}
 var mobsOfItem = {}
 var itemKinds = {}
+var makersOf = {}
 var pathFlag = {}
 var pathNames = {}
 var placeShows = {}

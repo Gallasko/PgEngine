@@ -451,6 +451,113 @@ fun eatsOf(st, board)
     return eats
 }
 
+// What a month brings of each basic or made resource while he works, as resources.pg's `month`
+// says it: what his familiars make, fed, less what they eat of it (a gem weaver eats stone).
+// Hungry, they make nothing. It hangs on the familiars he holds, what they are taught, the town's
+// levels (a level's `more`) and whether each kind is fed, so the rules are asked once for each
+// such household and the answer is kept: {stat: a month's change}, none for no change
+fun madeAMonth(st)
+{
+    var key = ""
+    var any = false
+
+    for (var kind : familiarKinds)
+    {
+        var n = statOf(st, "fam." + kind.id)
+        var fed = 1
+
+        if (n > 0)
+        {
+            any = true
+
+            for (var e : kind.eats)
+            {
+                if (statOf(st, e.stat) < n * e.amount)
+                {
+                    fed = 0
+                }
+            }
+        }
+
+        key = key + toString(n) + toString(fed) + ":"
+    }
+
+    if (not any)
+    {
+        return {}
+    }
+
+    for (var r : resourceIds)
+    {
+        key = key + toString(statOf(st, "more." + r)) + ","
+    }
+
+    for (var p : st.town)
+    {
+        key = key + p + toString(st.town[p]) + ","
+    }
+
+    var known = madeKept[key]
+
+    if (known != none)
+    {
+        return known
+    }
+
+    // (a month at board: his own rations are not eaten, so what changes is the familiars' doing)
+    var answer = rule("resources", {age: ageOf(st), character: character(st), board: true}, ["month"])
+    checked(answer, "resources (made)")
+
+    var month = answer.month
+    var after = month.after
+    var made = {}
+
+    for (var id : resourceIds)
+    {
+        var change = asInt(after[id]) - statOf(st, id)
+
+        if (change != 0)
+        {
+            made[id] = change
+        }
+    }
+
+    madeKept[key] = made
+
+    return made
+}
+
+// The most he can hold of a stat, 0 for no limit, as resources.pg's ledger row says it: the
+// base, and the stores he has raised for it (the stat "store.<stat>"). The answer is kept for
+// each such store
+fun limitOfStat(st, stat)
+{
+    var key = stat + ":" + toString(statOf(st, "store." + stat))
+    var known = limitKept[key]
+
+    if (known != none)
+    {
+        return known
+    }
+
+    var answer = rule("resources", {age: ageOf(st), character: character(st), board: true}, ["rows"])
+    checked(answer, "resources (limits)")
+
+    var most = 0
+
+    for (var row : answer.rows)
+    {
+        if (row.id == stat)
+        {
+            most = asInt(row.limit)
+        }
+    }
+
+    limitKept[key] = most
+
+    return most
+}
+
 // The rations `months` of a work eat, his own and his familiars'; and when the work does not feed
 // him, a month more of them, so that he is not left without the month after it
 fun rationsFor(st, months, board)
@@ -789,6 +896,12 @@ var youngest = {}
 
 // What resources.pg's `eats` said, by household (eatsOf)
 var eatsKept = {}
+
+// What resources.pg's `month` said a household of familiars makes (madeAMonth)
+var madeKept = {}
+
+// What resources.pg's ledger said is the most he can hold of a stat, by its stores (limitOfStat)
+var limitKept = {}
 
 // The ids of the basics and of what is made of them, and as keys
 var resourceIds = []
