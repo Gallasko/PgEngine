@@ -1290,7 +1290,7 @@ const statLimits = {
     firewood: 30,
     stone: 20,
     clay: 20,
-    gems: 10,
+    gems: 20,
     // Written time is counted in seconds: an hour of it, however long the chronicle stayed shut
     written: 3600
 }

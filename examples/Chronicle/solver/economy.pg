@@ -1,0 +1,516 @@
+// economy.pg - the economy's first numbers measured: the first familiar, the rations it eats, what
+// four familiars make, and what the stash keeps after a first life.
+//
+// Run by ChronicleSolver, as solver.pg is, on a copy of the rules (a .pgc is written beside every
+// script loaded):
+//
+//   ChronicleSolver <rules copy> examples/Chronicle/solver/economy.pg [what] [out=<file>]
+//
+//   what = all (the default), sprite, rations, four or stash
+//   sprite   the planner aiming at the first binding alone: the month it is bound
+//   rations  a life that binds the first sprite as soon as the planner can, then works only the
+//            carters and the kitchen until twelve, buying rations as the planner does (plan.pg's
+//            provision): the least rations he held at a month's start, and the months he or the
+//            sprite went short. Once with the berries sold or kept, once with them dried
+//   four     four familiars of each kind at thirty, each taught twice, well fed: what a month makes
+//   stash    a first life of each class, played as the solver's shared world plays it (everything
+//            of the class and of no class aimed at): what he holds at his death, and what the
+//            stash keeps of it (path=<class> for one class only)
+//              keep=<n>    the life means to leave n of each basic to the next (keepW=30: how much
+//                          that weighs, in hundredths), as a life does when a later one draws on it
+//              every=<y>   what he holds every y years
+//              tail=<y>    the plan's lines of years y and y+1
+//
+// The lives are played with the game's numbers (life.pg) and the planner's choosing (plan.pg).
+
+import "algorithm"
+import "string"
+import "math"
+import "file"
+import "life"
+import "walks"
+import "plan"
+
+fun say(line)
+{
+    push(out, line)
+    log(line)
+}
+
+fun argOf(key, fallback)
+{
+    for (var i = 2; i < getArgCount(); i = i + 1)
+    {
+        var a = getArg(i)
+
+        if (startsWith(a, key + "="))
+        {
+            return substring(a, strlen(key) + 1, strlen(a))
+        }
+    }
+
+    return fallback
+}
+
+// The first word that is not key=value: what to measure
+fun whatOf()
+{
+    if (getArgCount() < 3)
+    {
+        return "all"
+    }
+
+    var a = getArg(2)
+
+    if (a == "" or contains(a, "="))
+    {
+        return "all"
+    }
+
+    return a
+}
+
+fun basicsText(st)
+{
+    var parts = []
+
+    for (var id : resourceIds)
+    {
+        push(parts, id + " " + toString(statOf(st, id)))
+    }
+
+    return join(parts, ", ")
+}
+
+// The planner, aiming at `targets`, one choice a free month, until `until` (his age in months) or
+// `id` is reached ("" for none)
+fun planUntil(st, targets, until, id)
+{
+    while (not st.dead and st.month < until)
+    {
+        if (id != "" and st.reached[id] != none)
+        {
+            return
+        }
+
+        if (st.running == "")
+        {
+            seeTown(st)
+            var goals = goalsFor(st, targets, false, "")
+            chooseWork(st, goals, false)
+
+            if (st.dead)
+            {
+                return
+            }
+        }
+
+        monthPass(st)
+    }
+}
+
+fun measureSprite()
+{
+    var st = newWorld(1)
+    planUntil(st, [{id: "bind.sprite", weight: 1.0}], 12 * 12, "bind.sprite")
+
+    if (st.reached["bind.sprite"] == none)
+    {
+        say("sprite: not bound by 12")
+        return
+    }
+
+    say("sprite: the planner binds the first sprite at " + st.reached["bind.sprite"] + ", holding " + basicsText(st) +
+        ", rations " + toString(statOf(st, "rations")) + ", coin " + toString(statOf(st, "coin")))
+}
+
+// The month's choice of the rations life: the kitchen when it is open, else the carters
+fun rationsWork(st)
+{
+    var kitchen = rowOf(st, "kitchen")
+
+    if (kitchen != none and isOpen(kitchen))
+    {
+        return "kitchen"
+    }
+
+    return "carters"
+}
+
+// While his rations are short of what the coming months eat, berries dried into them (at once)
+fun dryFor(st, need)
+{
+    var tries = 0
+
+    while (statOf(st, "rations") < need and tries < 20)
+    {
+        var dry = rowOf(st, "dry.berries")
+
+        if (dry == none or not isOpen(dry))
+        {
+            return
+        }
+
+        beginWork(st, "dry.berries", newGoals(false))
+        tries = tries + 1
+    }
+}
+
+fun measureRations(drying)
+{
+    var st = newWorld(1)
+    planUntil(st, [{id: "bind.sprite", weight: 1.0}], 12 * 12, "bind.sprite")
+
+    if (st.reached["bind.sprite"] == none)
+    {
+        say("rations: no sprite bound")
+        return
+    }
+
+    var least = 1000
+    var leastAt = ""
+    var himShort = 0
+    var itShort = 0
+    var works = {kitchen: 0, carters: 0}
+    var bought = 0
+    var dried = 0
+
+    while (not st.dead and st.month < 12 * 12)
+    {
+        if (st.running == "")
+        {
+            seeTown(st)
+            var id = rationsWork(st)
+            var row = rowOf(st, id)
+            var board = row.board == true
+            var need = rationsFor(st, row.months, board)
+            var before = statOf(st, "rations")
+
+            if (drying)
+            {
+                var r0 = statOf(st, "rations")
+                dryFor(st, need)
+                dried = dried + statOf(st, "rations") - r0
+            }
+
+            var r1 = statOf(st, "rations")
+            provision(st, row.months, board, newGoals(false))
+            bought = bought + statOf(st, "rations") - r1
+
+            if (beginWork(st, id, newGoals(false)) == "")
+            {
+                works[id] = works[id] + 1
+            }
+            else
+            {
+                say("rations: " + ageText(st.month) + " could not begin " + id)
+            }
+        }
+
+        // What the coming month eats, and whether he holds it: he eats first (none at board), then
+        // the sprite
+        var atBoard = st.running != "" and st.board
+        var held = statOf(st, "rations")
+
+        if (held < least)
+        {
+            least = held
+            leastAt = ageText(st.month)
+        }
+
+        if (not atBoard and held < 1)
+        {
+            himShort = himShort + 1
+        }
+
+        if (held < eatsOf(st, atBoard))
+        {
+            itShort = itShort + 1
+        }
+
+        monthPass(st)
+    }
+
+    var how = "berries kept or sold"
+
+    if (drying)
+    {
+        how = "berries dried when short"
+    }
+
+    say("rations (" + how + "): sprite bound " + st.reached["bind.sprite"] + "; to 12: kitchen x" + toString(works.kitchen) +
+        ", carters x" + toString(works.carters) + "; least rations " + toString(least) + " at " + leastAt +
+        "; months he went short " + toString(himShort) + ", months the household went short " + toString(itShort) +
+        "; rations bought " + toString(bought) + ", dried " + toString(dried) + "; at 12: rations " + toString(statOf(st, "rations")) +
+        ", coin " + toString(statOf(st, "coin")) + ", " + basicsText(st))
+}
+
+// Four of a kind at thirty, taught twice, with all a month asks in hand and room for what it makes
+fun measureFour()
+{
+    for (var kind : familiarKinds)
+    {
+        var st = newWorld(1)
+        st.month = 30 * 12
+        st.stats.rations = 60
+        st.stats.coin = 200
+        st.stats.berries = 30
+        st.stats.water = 40
+        st.stats.firewood = 30
+        st.stats.stone = 20
+        st.stats.clay = 0
+        st.stats.gems = 0
+        st.stats["fam." + kind.id] = 4
+
+        var made = kind.makes[0].stat
+        st.stats["more." + made] = 2
+
+        // Room for what it makes: the three stores of it, and none of it held
+        if (made != "rations" and made != "gems")
+        {
+            st.stats["store." + made] = 60
+        }
+
+        if (made != "rations")
+        {
+            st.stats[made] = 0
+        }
+        else
+        {
+            st.stats.rations = 20
+        }
+
+        touch(st)
+
+        var before = statOf(st, made)
+        var answer = rule("resources", {age: ageOf(st), character: character(st), board: true}, ["month"])
+        checked(answer, "resources (four)")
+        takeStats(st, answer.month.after)
+
+        say("four: 4 x " + kind.id + " taught twice, at board: " + made + " " + toString(statOf(st, made) - before) + " a month")
+    }
+}
+
+// solver.pg's pathForLife and sharedTargets, kept to what a first life asks
+fun firstPath(st)
+{
+    var best = ""
+    var bestCount = 0
+
+    for (var p : pathIds)
+    {
+        var count = 0
+
+        for (var row : shapeOf(st))
+        {
+            if (row.path == p and st.reached[row.id] == none)
+            {
+                count = count + 1
+            }
+        }
+
+        if (count > bestCount)
+        {
+            best = p
+            bestCount = count
+        }
+    }
+
+    return best
+}
+
+fun firstTargets(st, path)
+{
+    var out2 = []
+    var spread = 0.5
+
+    if (charValue(st, pathFlag[path]) < 1)
+    {
+        spread = 0.1
+    }
+
+    for (var e : asListOf(entersOf[path]))
+    {
+        if (st.reached[e] == none or charValue(st, pathFlag[path]) < 1)
+        {
+            push(out2, {id: e, weight: 3.0})
+        }
+    }
+
+    for (var row : shapeOf(st))
+    {
+        var mine = row.path == "" or row.path == path
+
+        if (mine and st.reached[row.id] == none and row.closed != true and row.spent != true and row.barred == "")
+        {
+            push(out2, {id: row.id, weight: spread})
+        }
+    }
+
+    return out2
+}
+
+fun measureStash(path)
+{
+    var st = newWorld(1000)
+
+    if (path == "")
+    {
+        path = firstPath(st)
+    }
+
+    while (not st.dead and st.month < 12 * 90)
+    {
+        if (st.running == "")
+        {
+            seeTown(st)
+            var goals = goalsFor(st, firstTargets(st, path), true, path)
+
+            // keep=<n>: a life that means to leave the next one n of each basic, as a life of the
+            // solver does when a later task draws on the stash (plan.pg's addNeed of "stash.<id>")
+            if (keepEach > 0)
+            {
+                for (var basic : basicResources)
+                {
+                    addNeed(goals, st, "stash." + basic.id, keepEach, keepWeight, 0, 12 * 90)
+                }
+            }
+
+            chooseWork(st, goals, true)
+
+            if (st.dead)
+            {
+                break
+            }
+        }
+
+        monthPass(st)
+
+        // What he holds every few years (every=<years>), to see the piles grow and be sold
+        if (argOf("every", "") != "" and st.month % (12 * toInt(argOf("every", "4"))) == 0)
+        {
+            say("stash (" + path + "): at " + ageText(st.month) + " " + basicsText(st) + ", coin " + toString(statOf(st, "coin")) +
+                ", rations " + toString(statOf(st, "rations")))
+        }
+    }
+
+    // The plan's lines from an age on (tail=<years>), to see what took the piles at the end
+    var tail = argOf("tail", "")
+
+    if (tail != "")
+    {
+        var tailFrom = "L1 " + tail + "y"
+
+        for (var line : planLines(st.planHead))
+        {
+            if (startsWith(line, tailFrom) or startsWith(line, "L1 " + toString(toInt(tail) + 1) + "y"))
+            {
+                say("   " + line)
+            }
+        }
+    }
+
+    var fams = []
+
+    for (var kind : familiarKinds)
+    {
+        var n = statOf(st, "fam." + kind.id)
+
+        if (n > 0)
+        {
+            push(fams, kind.id + " " + toString(n))
+        }
+    }
+
+    say("stash (" + path + "): died at " + ageText(st.month) + " (" + st.death + "), " + toString(st.reachedCount) +
+        " tasks; held " + basicsText(st) + "; familiars: " + join(fams, ", ") + "; scavenged " + toString(statOf(st, "scavenged")))
+
+    // What took the basics in and out: the terms of each economy row, and of the works that cost them
+    var terms = []
+
+    for (var k : st.done)
+    {
+        if (startsWith(k, "sell.") or startsWith(k, "buy.") or startsWith(k, "scavenge.") or startsWith(k, "store.") or
+            startsWith(k, "bind.") or startsWith(k, "train.") or startsWith(k, "dry.") or startsWith(k, "brew.") or
+            k == "kitchen" or k == "letters" or k == "smithy")
+        {
+            push(terms, k + " " + toString(st.done[k]))
+        }
+    }
+
+    say("stash (" + path + "): terms " + join(terms, ", "))
+
+    var town = townOf(st)
+    newLife(st, "", town)
+
+    var parts = []
+    var full = 0
+
+    for (var kept : town.stash)
+    {
+        var n = asInt(st.stash[kept.stat])
+        push(parts, kept.stat + " " + toString(n))
+
+        if (n >= 30)
+        {
+            full = full + 1
+        }
+    }
+
+    say("stash (" + path + "): keeps " + join(parts, ", ") + " (no gift); basics at 30 or more: " + toString(full))
+}
+
+var out = []
+var info = rule("windows", {age: 6.0, character: freshStats(), done: {}, world: 0, lives: 1, running: "", activityId: ""}, ["activities", "walkZones", "walkMobs", "walkItems", "lifeEvents", "paths", "townPlaces"])
+learnTables(info)
+
+var pathIds = []
+
+for (var pathRow : info.paths)
+{
+    push(pathIds, pathRow.id)
+}
+
+var keepEach = toInt(argOf("keep", "0"))
+var keepWeight = toFloat(toInt(argOf("keepW", "30"))) / 100.0
+var what = whatOf()
+
+if (what == "all" or what == "four")
+{
+    measureFour()
+}
+
+if (what == "all" or what == "sprite")
+{
+    measureSprite()
+}
+
+if (what == "all" or what == "rations")
+{
+    measureRations(false)
+    measureRations(true)
+}
+
+if (what == "all" or what == "stash")
+{
+    var only = argOf("path", "")
+
+    if (only != "")
+    {
+        measureStash(only)
+    }
+    else
+    {
+        for (var p : pathIds)
+        {
+            measureStash(p)
+        }
+    }
+}
+
+var outPath = argOf("out", "")
+
+if (outPath != "")
+{
+    writeFile(outPath, join(out, "\n"))
+}
