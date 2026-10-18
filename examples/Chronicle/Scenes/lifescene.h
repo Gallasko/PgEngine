@@ -44,6 +44,9 @@ namespace chronicle
         std::string fightNarrowFile = "res/chronicle/ui/fight-narrow.yaml";
         int walkSeed = 0;              // The dice of the walks: 0 takes them from the clock, a test gives its own
         std::string walk;              // --walk <zone>: a later life, never written, opened on a walk to that zone with what the zone asks
+        std::string build;             // --build <id>: a later life, never written, of one of testbuilds.pg's builds (its age, what it holds, every place known); "list" says them
+        std::vector<std::pair<std::string, int>> sets;   // --set <stat>=<n>, on top of the build ("know.<key>" for what the world knows)
+        bool saveAsked = false;        // --save given: a life of --walk or --build is written there, as any life
         float autoTurnMs = 600.0f;     // A fight handed to his stance plays a turn every so many ms
         float monthMs = 2000.0f;       // One month every so many ms while the loop runs (--month-ms); a child's months are a part of it (`LifeScene::monthMs`)
         unsigned long long now = 0;    // The wall clock, in seconds since 1970: 0 reads the system's, a test gives its own
@@ -187,6 +190,8 @@ namespace chronicle
         bool onWalk() const { return save.walk.under(); }   // He is on site: the walk's screen is the page
         void beginWalk(const std::string& activity);     // He sets out by hand: the on-site screen opens
         void setOutAt(const std::string& zone);           // A life made fit for a zone and put on its way there: what --walk opens on
+        void applyBuild();                                // --build: the life made one of testbuilds.pg's builds, with --set on top; "list" or an unknown one says them
+        bool built = false;                               // A build was applied: --walk takes him as he is
         void walkDo(const WalkAct& act);                  // One thing he does there, or in a fight
         void showAdventure(bool shown);                   // The Adventure page in the middle column, or the choice back in it
         void chooseRecord(const std::string& id);         // The record the form of a queue is filled for

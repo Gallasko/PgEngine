@@ -245,6 +245,10 @@ namespace chronicle
         pg::ElementMap recipe;         // The figures a finished walk is kept under; its `zone` is "" until the walk is over
         std::string blocked;           // "" or what the bag lacks for a record to be walked again
         std::string stopped;           // "" or why a queue ends before another walk
+
+        // Asked "builds": the builds to try a fight with (--build), testbuilds.pg's, each flat:
+        // {id, name, about, age, "stat.<stat>": value, "know.<key>": value}
+        pg::RecordList builds;
     };
 
     // The scene's scripts, loaded once from a rules root, each with its typed call. Every

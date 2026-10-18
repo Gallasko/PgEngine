@@ -142,6 +142,9 @@ namespace chronicle
                 life.monthMs = opt.monthMs;
                 life.walk = opt.walk;
                 life.walkSeed = opt.walkSeed;
+                life.build = opt.build;
+                life.sets = opt.sets;
+                life.saveAsked = opt.saveAsked;
 
                 ecs.getSystem<SceneElementSystem>()->loadSystemScene<LifeScene>(life);
             }

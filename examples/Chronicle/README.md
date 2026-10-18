@@ -17,6 +17,9 @@ Run from the repo root (assets are read relative to the working directory):
 ./release/Chronicle --month-ms 1000           # a month every second instead of every 2 (a child's months are shorter in proportion)
 ./release/Chronicle --walk hollow             # a life never written, opened on a walk (hedgerows, millpond, hollow, quarry)
 ./release/Chronicle --walk hollow --walk-seed 7   # the same walk with the same dice every time
+./release/Chronicle --build keep --walk hollow    # a man of the Keep on the Hollow's site, every place known 4 of 4: its beasts and its boss to fight
+./release/Chronicle --build hand --set dex=25 --set flask=3   # a build on the Life page, figures set on top (--set know.<key>=<n> for what the world knows)
+./release/Chronicle --build list                  # the builds (rules/testbuilds.pg, the fight matrix's too): plain, blade, scholar, street, hedge, keep, collegium, hand, greenwood
 ./release/Chronicle --dev TypeSpecimen --theme candle
 ```
 

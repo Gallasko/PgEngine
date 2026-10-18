@@ -36,6 +36,7 @@
 //           a fight   `duel`, `menu`, `targets`, `order`, `hero`, `foe`, `preview`;
 //           records   `shelf`, `form`, `stops`;
 //         `recipe`, the figures a finished walk is kept under (`zone` "" until it is over);
+//         `builds`, asked "builds": the builds to try a fight with (testbuilds.pg), flat;
 //         `blocked` ("" or what the bag lacks for a record), `stopped` ("" or why a queue ends).
 //
 // A step of the record: {n, kind, target, count, ap, hp, text, gave, used, figure, tone, glyph,
@@ -53,6 +54,7 @@ import "fightpage"
 import "fightauto"
 import "encounterlib"
 import "expeditiontable"
+import "testbuilds"
 
 var errors = []
 var entries = []
@@ -88,10 +90,16 @@ var stops = []
 var places = []
 
 var recipe = {zone: ""}
+var builds = []
 var blocked = ""
 var stopped = ""
 
-if (ask == "enter")
+// The builds to try a fight with (--build, testbuilds.pg): nothing else is asked with them
+if (ask == "builds")
+{
+    builds = buildRows()
+}
+else if (ask == "enter")
 {
     enterZone(act.target)
 }

@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <cstdlib>
 #include <ios>
 #include <string>
 
@@ -34,7 +35,10 @@ int main(int argc, char* argv[])
         else if (a == "--no-save")
             opt.noSave = true;
         else if (a == "--save" and i + 1 < argc)
+        {
             opt.savePath = argv[++i];
+            opt.saveAsked = true;
+        }
         else if (a == "--size" and i + 1 < argc and std::sscanf(argv[i + 1], "%dx%d", &opt.width, &opt.height) == 2 and opt.width > 0 and opt.height > 0)
             ++i;
         else if (a == "--month-ms" and i + 1 < argc and std::sscanf(argv[i + 1], "%f", &opt.monthMs) == 1 and opt.monthMs > 0.0f)
@@ -43,9 +47,18 @@ int main(int argc, char* argv[])
             opt.walk = argv[++i];
         else if (a == "--walk-seed" and i + 1 < argc and std::sscanf(argv[i + 1], "%d", &opt.walkSeed) == 1 and opt.walkSeed > 0)
             ++i;
+        else if (a == "--build" and i + 1 < argc)
+            opt.build = argv[++i];
+        else if (a == "--set" and i + 1 < argc and std::string(argv[i + 1]).find('=') != std::string::npos)
+        {
+            const std::string set = argv[++i];
+            const auto eq = set.find('=');
+
+            opt.sets.emplace_back(set.substr(0, eq), std::atoi(set.c_str() + eq + 1));
+        }
         else
         {
-            std::fprintf(stderr, "usage: Chronicle [--dev <Scene>] [--theme day|candle] [--reduced-motion] [--fresh] [--guide N] [--age N] [--no-save] [--save <path>] [--size WxH] [--month-ms N] [--walk <zone>] [--walk-seed N]\n");
+            std::fprintf(stderr, "usage: Chronicle [--dev <Scene>] [--theme day|candle] [--reduced-motion] [--fresh] [--guide N] [--age N] [--no-save] [--save <path>] [--size WxH] [--month-ms N] [--walk <zone>] [--walk-seed N] [--build <id>|list] [--set <stat>=<n>]...\n");
             return 2;
         }
     }

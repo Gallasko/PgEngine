@@ -2716,5 +2716,37 @@ namespace pg
             ASSERT_TRUE(pressUntil(*w, "tech.thrust", 3, [&w]() { return intOf(w->state.foes[0], "hits") >= 1; }));
             EXPECT_NE(textOf(w->last.targets[0], "life").find("RUN 1"), std::string::npos) << textOf(w->last.targets[0], "life");
         }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The builds to try a fight with (--build): a boy of each early path, a man of each class
+        // and a plain boy, each with his age, what he holds and every place known through and through.
+        TEST(expedition_test, the_builds_to_try_fights_with)
+        {
+            MockLogger logger;
+            Walker w(hunter());
+
+            ASSERT_TRUE(w.ask("builds"));
+            ASSERT_EQ(w.last.builds.size(), 9u);
+
+            const ElementMap* keep = byId(w.last.builds, "keep");
+
+            ASSERT_NE(keep, nullptr);
+            EXPECT_EQ(intOf(*keep, "age"), 25);
+            EXPECT_FALSE(textOf(*keep, "name").empty());
+            EXPECT_FALSE(textOf(*keep, "about").empty());
+            EXPECT_EQ(intOf(*keep, "stat.keep_oath"), 1);
+            EXPECT_EQ(intOf(*keep, "stat.vit"), intOf(*keep, "stat.vitmax"));
+            EXPECT_EQ(intOf(*keep, "know.study.hollow"), 10);
+            EXPECT_EQ(intOf(*keep, "know.visit.quarry"), 1);
+
+            for (const char* id : {"plain", "blade", "scholar", "street", "hedge", "collegium", "hand", "greenwood"})
+                EXPECT_NE(byId(w.last.builds, id), nullptr) << id;
+
+            // Asked anything else, the walk says nothing of them
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
+            EXPECT_TRUE(w.last.builds.empty());
+        }
     }
 }

@@ -1,0 +1,102 @@
+// Chronicle rules: the builds to try a fight with
+// -----------------------------------------------
+// A life of each rhythm at the age it walks, as the fight matrix measures it
+// (solver/matrix.pg) and as the game opens it to be played (--build <id>, LifeScene::applyBuild,
+// through expedition.pg's ask "builds"): what he is, what he has learned and what he carries.
+// The same table for both, so what is played is what is measured. Imported by expedition.pg and
+// by solver/matrix.pg; never loaded itself.
+//
+// A build: {id, name, about, age, boy (a boy of an early path: the matrix's checks of childhood),
+// approach (how the matrix meets a beast: open, ambush, trap), stats {stat: value}}. Every build
+// carries 2 remedies, 4 rations and 5 coin, and starts whole (`vitmax` is his `vit`).
+
+import "string"
+import "algorithm"
+
+fun withBag(stats)
+{
+    var held = {remedy: 2, rations: 4, coin: 5}
+
+    for (var k : stats)
+    {
+        held[k] = stats[k]
+    }
+
+    held.vitmax = held.vit
+
+    return held
+}
+
+// The builds as expedition.pg hands them to the game, each one flat: {id, name, about, age,
+// "stat.<stat>": value, "know.visit.<zone>": 1 and "know.study.<zone>": 10 for every place}
+fun buildRows()
+{
+    var rows = []
+
+    for (var i = 0; i < len(testBuilds); i++)
+    {
+        var b = testBuilds[i]
+        var row = {id: b.id, name: b.name, about: b.about, age: b.age}
+
+        for (var k : b.stats)
+        {
+            row["stat." + k] = b.stats[k]
+        }
+
+        for (var z = 0; z < len(walkZones); z++)
+        {
+            row["know.visit." + walkZones[z].id] = 1
+            row["know.study." + walkZones[z].id] = walkKnobs.studyLevels[3]
+        }
+
+        push(rows, row)
+    }
+
+    return rows
+}
+
+var testBuilds = [
+    {id: "plain", name: "A plain boy", age: 14, boy: true, approach: "open",
+     about: "A boy of fourteen who has learned nothing for a fight: a strike, a defend, a remedy.",
+     stats: withBag({str: 9, dex: 9, int: 7, vit: 60, arms: 1})},
+
+    {id: "blade", name: "A boy of the blade", age: 14, boy: true, approach: "open",
+     about: "The wooden blade's slash, the smithy's hammer, the levy's heavy cut, the Watch's brace and the yard's breathing.",
+     stats: withBag({str: 11, dex: 9, int: 7, vit: 65, arms: 3, discipline: 2,
+                     slash_learned: 1, smith_apprentice: 1, levy_served: 1, watch_known: 1, yard_breathing: 1})},
+
+    {id: "scholar", name: "A boy of letters", age: 15, boy: true, approach: "open",
+     about: "Reads the beast, a spark from the forbidden shelf, Mara's rime, and two fire flasks.",
+     stats: withBag({str: 7, dex: 8, int: 13, vit: 60, letters: 2, lore: 3,
+                     forbidden_read: 1, mara_student: 1, flask: 2})},
+
+    {id: "street", name: "A boy of the streets", age: 14, boy: true, approach: "ambush",
+     about: "The point, the smuggler's sand, the Boys' kick, the rooftops' step and the streets' feint; he lies in wait.",
+     stats: withBag({str: 8, dex: 13, int: 8, vit: 60, guile: 4, stealth: 4,
+                     thrust_learned: 1, smuggler_runner: 1, boys_sworn: 1, rooftop_runner: 1, street_known: 1})},
+
+    {id: "hedge", name: "A boy of the hedges", age: 14, boy: true, approach: "trap",
+     about: "The yard's bow, snares to set on the walk, and what the hunters taught.",
+     stats: withBag({str: 9, dex: 11, int: 7, vit: 60, stealth: 3,
+                     bow_learned: 1, snare_set: 1, hunter_trained: 1})},
+
+    {id: "keep", name: "A man of the Keep", age: 25, boy: false, approach: "open",
+     about: "Sworn and a veteran: the heavy cut and the sweep, the slash, the hammer, the brace and his second wind.",
+     stats: withBag({str: 16, dex: 10, int: 8, vit: 90, arms: 8, discipline: 6,
+                     keep_oath: 1, veteran: 1, slash_learned: 1, smith_apprentice: 1, watch_known: 1, yard_breathing: 1})},
+
+    {id: "collegium", name: "A scholar of the Collegium", age: 25, boy: false, approach: "open",
+     about: "Firebolt and the binding word, spark and rime, reads the beast, and three fire flasks.",
+     stats: withBag({str: 8, dex: 9, int: 18, vit: 80, arcana: 6, lore: 5,
+                     collegium: 1, orin_known: 1, letters: 2, forbidden_read: 1, mara_student: 1, flask: 3})},
+
+    {id: "hand", name: "A thief of the Hidden Hand", age: 25, boy: false, approach: "ambush",
+     about: "Quick: the point and the feint, sand, the kick and the step; he lies in wait.",
+     stats: withBag({str: 10, dex: 18, int: 10, vit: 80, guile: 8, stealth: 8,
+                     hidden_hand: 1, thrust_learned: 1, smuggler_runner: 1, rooftop_runner: 1, boys_sworn: 1, street_known: 1})},
+
+    {id: "greenwood", name: "An outlaw of the Greenwood", age: 25, boy: false, approach: "trap",
+     about: "The bow and his snares, what the hunters taught, and a slash.",
+     stats: withBag({str: 12, dex: 15, int: 8, vit: 85, stealth: 6,
+                     renegade: 1, bow_learned: 1, snare_set: 1, hunter_trained: 1, slash_learned: 1})}
+]

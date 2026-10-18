@@ -955,11 +955,12 @@ namespace chronicle
                 LOG_ERROR(DOM, e);
         }
 
-        // A life opened on a walk is a later one, made here and never written
-        if (not opt.walk.empty())
+        // A life opened on a walk or of a build is a later one, made here and never written, unless
+        // --save asked for it
+        if (not opt.walk.empty() or not opt.build.empty())
         {
             opt.fresh = true;
-            opt.noSave = true;
+            opt.noSave = not opt.saveAsked;
             opt.lives = std::max(2, opt.lives);
         }
 
@@ -1035,6 +1036,10 @@ namespace chronicle
             paused = true;
             showWalk();
         }
+
+        // Asked for a build (--build): he is that man, every place known, before anything else
+        if (not opt.build.empty() and not onWalk() and not ended)
+            applyBuild();
 
         // Asked to open on a walk: he is made fit for the zone, and sets out
         if (not opt.walk.empty() and not onWalk() and not ended)

@@ -15,50 +15,12 @@ import "string"
 import "math"
 import "file"
 
-// ---- the builds: what a life of each rhythm holds at the age it walks -------------------------------
+// ---- the builds: what a life of each rhythm holds at the age it walks ---------------------------------
+//
+// The game's own (rules/testbuilds.pg): what is measured here is what --build opens to be played
+import "../rules/testbuilds"
 
-fun withBag(stats)
-{
-    var held = {remedy: 2, rations: 4, coin: 5}
-
-    for (var k : stats)
-    {
-        held[k] = stats[k]
-    }
-
-    held.vitmax = held.vit
-
-    return held
-}
-
-var builds = [
-    {name: "plain boy", age: 14, boy: true, approach: "open",
-     stats: withBag({str: 9, dex: 9, int: 7, vit: 60, arms: 1})},
-    {name: "blade boy", age: 14, boy: true, approach: "open",
-     stats: withBag({str: 11, dex: 9, int: 7, vit: 65, arms: 3, discipline: 2,
-                     slash_learned: 1, smith_apprentice: 1, levy_served: 1, watch_known: 1, yard_breathing: 1})},
-    {name: "scholar boy", age: 15, boy: true, approach: "open",
-     stats: withBag({str: 7, dex: 8, int: 13, vit: 60, letters: 2, lore: 3,
-                     forbidden_read: 1, mara_student: 1, flask: 2})},
-    {name: "street boy", age: 14, boy: true, approach: "ambush",
-     stats: withBag({str: 8, dex: 13, int: 8, vit: 60, guile: 4, stealth: 4,
-                     thrust_learned: 1, smuggler_runner: 1, boys_sworn: 1, rooftop_runner: 1, street_known: 1})},
-    {name: "hedge boy", age: 14, boy: true, approach: "trap",
-     stats: withBag({str: 9, dex: 11, int: 7, vit: 60, stealth: 3,
-                     bow_learned: 1, snare_set: 1, hunter_trained: 1})},
-    {name: "Keep man", age: 25, boy: false, approach: "open",
-     stats: withBag({str: 16, dex: 10, int: 8, vit: 90, arms: 8, discipline: 6,
-                     keep_oath: 1, veteran: 1, slash_learned: 1, smith_apprentice: 1, watch_known: 1, yard_breathing: 1})},
-    {name: "Collegium man", age: 25, boy: false, approach: "open",
-     stats: withBag({str: 8, dex: 9, int: 18, vit: 80, arcana: 6, lore: 5,
-                     collegium: 1, orin_known: 1, letters: 2, forbidden_read: 1, mara_student: 1, flask: 3})},
-    {name: "Hand man", age: 25, boy: false, approach: "ambush",
-     stats: withBag({str: 10, dex: 18, int: 10, vit: 80, guile: 8, stealth: 8,
-                     hidden_hand: 1, thrust_learned: 1, smuggler_runner: 1, rooftop_runner: 1, boys_sworn: 1, street_known: 1})},
-    {name: "Greenwood man", age: 25, boy: false, approach: "trap",
-     stats: withBag({str: 12, dex: 15, int: 8, vit: 85, stealth: 6,
-                     renegade: 1, bow_learned: 1, snare_set: 1, hunter_trained: 1, slash_learned: 1})}
-]
+var builds = testBuilds
 
 // ---- the fights: each beast of the existing places, a pack where it has one, and the bosses ------------
 
@@ -262,8 +224,7 @@ push(lines, "build / fight: wins % · his actions · days · vitality lost %")
 
 for (var b : builds)
 {
-    var row = b.name + ":"
-
+    
     for (var f : fights)
     {
         var won = 0
@@ -287,8 +248,8 @@ for (var b : builds)
 
         var c = {wins: wholeOf(won * 100, seeds), turns: wholeOf(turns * 10, seeds), days: wholeOf(days * 10, seeds), lost: wholeOf(lost, seeds)}
 
-        cell[b.name + "|" + f.id] = c
-        push(lines, "  " + b.name + " / " + f.id + ": " + toString(c.wins) + " % · " + toString(c.turns / 10) + "." + toString(c.turns % 10) +
+        cell[b.id + "|" + f.id] = c
+        push(lines, "  " + b.id + " / " + f.id + ": " + toString(c.wins) + " % · " + toString(c.turns / 10) + "." + toString(c.turns % 10) +
                     " · " + toString(c.days / 10) + "." + toString(c.days % 10) + " d · " + toString(c.lost) + " %")
     }
 }
@@ -320,17 +281,17 @@ var weak1 = []
 
 for (var b : builds)
 {
-    if (b.boy and b.name != "plain boy")
+    if (b.boy and b.id != "plain")
     {
         for (var f : fights)
         {
             if (not f.boss and f.age <= b.age)
             {
-                var c = cellOf(b.name, f.id)
+                var c = cellOf(b.id, f.id)
 
                 if (c.wins < 90)
                 {
-                    push(weak1, b.name + " / " + f.id + " " + toString(c.wins) + " %")
+                    push(weak1, b.id + " / " + f.id + " " + toString(c.wins) + " %")
                 }
             }
         }
@@ -345,7 +306,7 @@ var weak2 = []
 
 for (var b : builds)
 {
-    var c = cellOf(b.name, "grey")
+    var c = cellOf(b.id, "grey")
 
     if (b.boy)
     {
@@ -353,7 +314,7 @@ for (var b : builds)
     }
     else if (c.wins < 90)
     {
-        push(weak2, b.name + " " + toString(c.wins) + " %")
+        push(weak2, b.id + " " + toString(c.wins) + " %")
     }
 }
 
@@ -369,11 +330,11 @@ for (var b : builds)
     {
         for (var boss : ["pike", "shell"])
         {
-            var c = cellOf(b.name, boss)
+            var c = cellOf(b.id, boss)
 
             if (c.wins < 75)
             {
-                push(weak3, b.name + " / " + boss + " " + toString(c.wins) + " %")
+                push(weak3, b.id + " / " + boss + " " + toString(c.wins) + " %")
             }
         }
     }
@@ -382,9 +343,9 @@ for (var b : builds)
 check("the optional bosses: every man wins them", len(weak3) == 0, join(weak3, ", "))
 
 // 4. Strike alone is not the answer: the plain boy loses to the Old Shell, and takes longer on a boar
-var plainShell = cellOf("plain boy", "shell")
-var plainBoar = cellOf("plain boy", "boar")
-var bladeBoar = cellOf("blade boy", "boar")
+var plainShell = cellOf("plain", "shell")
+var plainBoar = cellOf("plain", "boar")
+var bladeBoar = cellOf("blade", "boar")
 
 check("strike alone loses to the Old Shell", plainShell.wins < 50, toString(plainShell.wins) + " %")
 check("strike alone is slow on a boar", plainBoar.days > bladeBoar.days, "plain " + toString(plainBoar.days) + " vs blade " + toString(bladeBoar.days) + " tenths of a day")
@@ -406,7 +367,7 @@ for (var place : ["millpond", "quarry", "hollow"])
         {
             if (f.zone == place and not f.boss)
             {
-                var c = cellOf(b.name, f.id)
+                var c = cellOf(b.id, f.id)
 
                 days = days + c.days
 
@@ -419,7 +380,7 @@ for (var place : ["millpond", "quarry", "hollow"])
 
         if (allWon and days < bestDays)
         {
-            best = b.name
+            best = b.id
             bestDays = days
         }
     }

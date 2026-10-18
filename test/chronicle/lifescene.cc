@@ -8796,6 +8796,58 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // --build keep --walk hollow --set str=20: a man of the Keep, the Hollow known through and
+        // through, on its site with every beast and its boss to seek; a figure set on top.
+        TEST(lifescene_test, a_build_opens_on_a_walk_to_try_its_fights)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.build = "keep";
+            opt.walk = "hollow";
+            opt.sets = {{"str", 20}};
+            opt.walkSeed = 11;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+            f.frames(12);
+
+            ASSERT_TRUE(life->onWalk());
+            EXPECT_NEAR(life->save.age, 25.0f, 0.01f);
+            EXPECT_EQ(life->save.stats["keep_oath"], 1);
+            EXPECT_EQ(life->save.stats["str"], 20);
+            EXPECT_EQ(life->save.knowledge["study.hollow"], 10);
+
+            bool grey = false;
+
+            for (const auto& s : life->walk.seeks)
+            {
+                auto id = s.find("id");
+
+                if (id != s.end() and id->second.toString() == "enc.grey")
+                    grey = true;
+            }
+
+            EXPECT_TRUE(grey);
+
+            // Without --walk it opens on the Life page with the same man
+            LifeFixture g;
+            LifeSceneOptions plain = LifeFixture::mockup();
+            plain.build = "collegium";
+
+            LifeScene* scholar = g.life(plain);
+            ASSERT_NE(scholar, nullptr);
+            g.frames(12);
+
+            EXPECT_FALSE(scholar->onWalk());
+            EXPECT_EQ(scholar->save.stats["collegium"], 1);
+            EXPECT_EQ(scholar->save.knowledge["study.quarry"], 10);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // A boss fight lost is the end of the life: no record is kept, and the ending says how.
         TEST(lifescene_test, a_boss_fight_lost_ends_the_life)
         {

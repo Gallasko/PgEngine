@@ -1147,7 +1147,7 @@ namespace chronicle
         for (auto [name, list] : {std::pair<const char*, RecordList*>{"record", &out.state.record}, {"marks", &out.state.marks}, {"foes", &out.state.foes}, {"account", &out.state.account},
                                   {"entries", &out.entries}, {"seeks", &out.seeks}, {"works", &out.works}, {"options", &out.options}, {"bag", &out.bag}, {"taken", &out.taken},
                                   {"home", &out.home}, {"menu", &out.menu}, {"targets", &out.targets}, {"order", &out.order}, {"hero", &out.hero}, {"foe", &out.foe},
-                                  {"shelf", &out.shelf}, {"stops", &out.stops}, {"places", &out.places}})
+                                  {"shelf", &out.shelf}, {"stops", &out.stops}, {"places", &out.places}, {"builds", &out.builds}})
         {
             if (not s.get(name, *list))
                 return fail(s);

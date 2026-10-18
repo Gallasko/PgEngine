@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <limits>
 #include <string>
@@ -588,14 +589,18 @@ namespace chronicle
         }
 
         // A life to try a zone with: of the age the walk asks, a grown youth's parts, and whatever
-        // else its row asks of him, as its row asks it. A walk that eats and mends finds both in the bag
-        save.age = static_cast<float>(std::max(intOf(at->fields, "fromAge"), TrialAge));
-
-        // (a part with a most it can be is left where it is: the most is the rules' to move)
-        for (const auto& part : save.parts)
+        // else its row asks of him, as its row asks it. A walk that eats and mends finds both in the
+        // bag. A build (--build) is taken as it is: only what the row asks and he lacks is added
+        if (not built)
         {
-            if (caps.count(part) == 0)
-                save.stats[part] += TrialParts;
+            save.age = static_cast<float>(std::max(intOf(at->fields, "fromAge"), TrialAge));
+
+            // (a part with a most it can be is left where it is: the most is the rules' to move)
+            for (const auto& part : save.parts)
+            {
+                if (caps.count(part) == 0)
+                    save.stats[part] += TrialParts;
+            }
         }
 
         for (const auto& r : at->requires)
@@ -623,6 +628,68 @@ namespace chronicle
         publish();
 
         beginWalk(activity);
+    }
+
+    void LifeScene::applyBuild()
+    {
+        RuleWalk answer;
+
+        if (not askWalk("builds", WalkAct{}, "", answer))
+            return;
+
+        const ElementMap* chosen = nullptr;
+
+        for (const auto& b : answer.builds)
+        {
+            if (textOf(b, "id") == opt.build)
+                chosen = &b;
+        }
+
+        // "list", or one the rules do not know: what there is, said where the game was launched
+        if (not chosen)
+        {
+            if (opt.build != "list")
+                LOG_ERROR(DOM, "No build '" << opt.build << "'");
+
+            std::fprintf(stderr, "Builds (--build <id>, with --walk <zone> to open on its site, --set <stat>=<n> on top):\n");
+
+            for (const auto& b : answer.builds)
+                std::fprintf(stderr, "  %-10s %s, %d: %s\n", textOf(b, "id").c_str(), textOf(b, "name").c_str(), intOf(b, "age"), textOf(b, "about").c_str());
+
+            return;
+        }
+
+        // He is that man: his age, what he is and holds, and every place known through and through
+        save.age = static_cast<float>(intOf(*chosen, "age"));
+
+        const std::string stat = "stat.";
+        const std::string know = "know.";
+
+        for (const auto& [key, value] : *chosen)
+        {
+            if (key.rfind(stat, 0) == 0)
+                save.stats[key.substr(stat.size())] = intOf(*chosen, key);
+            else if (key.rfind(know, 0) == 0)
+                save.knowledge[key.substr(know.size())] = intOf(*chosen, key);
+        }
+
+        // And what --set changes on top of it
+        for (const auto& [key, value] : opt.sets)
+        {
+            if (key.rfind(know, 0) == 0)
+                save.knowledge[key.substr(know.size())] = value;
+            else
+                save.stats[key] = value;
+        }
+
+        built = true;
+
+        LOG_INFO(DOM, "Opened as the build '" << opt.build << "': " << textOf(*chosen, "name"));
+
+        refreshHoldings();
+        rules.done = save.terms();
+        fillActivities();
+        publish();
     }
 
     void LifeScene::walkDo(const WalkAct& act)
