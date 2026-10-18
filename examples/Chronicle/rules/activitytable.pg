@@ -1211,6 +1211,28 @@ for (var k = 0; k < len(familiarKinds); k++)
     push(bindCopies, bindRow)
 }
 
+// A bound familiar can be taught, once: the lesson costs a month of what the kind eats and raises
+// by one what each of that kind makes of the first thing it makes (the stat "more.<stat>",
+// which lib.pg's `feedFamiliars` adds to the yield).
+var trainCopies = []
+
+for (var k = 0; k < len(familiarKinds); k++)
+{
+    var teach = familiarKinds[k]
+
+    push(trainCopies, {id: "train." + teach.id, group: "Familiars", name: teach.train, glyph: teach.glyph, months: 2, rank: "", each: "MAKES MORE", path: "",
+                       fromAge: 7, uses: 2, onlyWith: "fam." + teach.id,
+                       about: "He shows " + teach.name + " a better way to its work. It makes more of its " + teach.makes[0].stat + " a month from then on.",
+                       gains: [{stat: "more." + teach.makes[0].stat}],
+                       costs: entriesCopied(teach.eats),
+                       requires: []})
+}
+
+for (var k = 0; k < len(trainCopies); k++)
+{
+    push(bindCopies, trainCopies[k])
+}
+
 activities = []
 
 for (var t = 0; t < len(tabled); t++)

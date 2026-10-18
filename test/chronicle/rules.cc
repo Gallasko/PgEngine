@@ -1574,6 +1574,34 @@ namespace pg
             EXPECT_TRUE(flag(activityAt(f.rules, 7.5f, character, "bind.imp").fields, "listed"));
         }
 
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A bound familiar can be taught: the row is there for a kind he holds, and raises what it makes
+        TEST(rules_test, training_a_familiar_raises_what_it_makes)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = boy();
+            EXPECT_FALSE(flag(activityAt(f.rules, 7.5f, character, "train.sprite").fields, "listed"));
+
+            character["fam.sprite"] = ElementType{1};
+            character["rations"] = ElementType{4};
+            RuleActivity row = activityAt(f.rules, 7.5f, character, "train.sprite");
+            EXPECT_TRUE(flag(row.fields, "listed"));
+            EXPECT_EQ(textOf(row.fields, "group"), "Familiars");
+            EXPECT_EQ(textOf(row.fields, "name"), "Teach the Sprite the Old Brambles");
+            EXPECT_EQ(textOf(row.gains[0], "stat"), "more.berries");
+            ASSERT_EQ(row.costs.size(), 1u);
+            EXPECT_EQ(textOf(row.costs[0], "stat"), "rations");
+
+            EXPECT_FALSE(flag(activityAt(f.rules, 7.5f, character, "train.imp").fields, "listed"));
+        }
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Binding says what the creature eats and makes, before he binds it
         TEST(rules_test, binding_says_what_it_eats)
         {
             MockLogger logger;

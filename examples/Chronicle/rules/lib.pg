@@ -1250,6 +1250,23 @@ statNames["know.fam.brownie"] = "The way of the kitchen brownie"
 statNames["know.fam.mole"] = "The way of the stone mole"
 statNames["know.fam.weaver"] = "The way of the gem weaver"
 
+// What teaching a familiar adds to each one's yield of a thing (the stat "more.<stat>"), and the
+// short names of the kinds the world teaches.
+statShort["more.berries"] = "MORE BERRIES"
+statShort["more.water"] = "MORE WATER"
+statShort["more.rations"] = "MORE RATIONS"
+statShort["more.stone"] = "MORE STONE"
+statShort["more.gems"] = "MORE GEMS"
+statNames["more.berries"] = "Berries each sprite makes more"
+statNames["more.water"] = "Water each imp makes more"
+statNames["more.rations"] = "Rations each brownie makes more"
+statNames["more.stone"] = "Stone each mole makes more"
+statNames["more.gems"] = "Gems each weaver makes more"
+statShort["know.fam.imp"] = "IMPS"
+statShort["know.fam.brownie"] = "BROWNIES"
+statShort["know.fam.mole"] = "MOLES"
+statShort["know.fam.weaver"] = "WEAVERS"
+
 // The most of a stat he can hold at once. A stat not listed has no limit. The limit closes
 // what would bring more (activitytable.pg) and stops what a month produces (resources.pg); an
 // activity begun with room left may still carry him past it.
