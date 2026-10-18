@@ -260,6 +260,21 @@ fun statShortName(stat)
     return lookup(statShort, stat, toUpperCase(stat))
 }
 
+// Whether a stat is a count the rules keep for themselves (`hiddenStats`): a tile, a gloss and
+// the log leave it out of what a work brings.
+fun statHidden(stat)
+{
+    for (var h = 0; h < len(hiddenStats); h++)
+    {
+        if (hiddenStats[h] == stat)
+        {
+            return true
+        }
+    }
+
+    return false
+}
+
 // A stat of a character, 0 when it has none.
 fun statOf(character, stat)
 {
@@ -443,6 +458,54 @@ fun upkeepCaption(kind)
     }
 
     return "EATS " + listedWords(eats) + " · MAKES " + listedWords(makes)
+}
+
+// Words joined with commas, and the last two with "and": "3 berries, 2 water and 1 firewood".
+fun joinedWithAnd(words)
+{
+    var text = ""
+
+    for (var w = 0; w < len(words); w++)
+    {
+        if (w > 0 and w == len(words) - 1)
+        {
+            text = text + " and "
+        }
+        else if (w > 0)
+        {
+            text = text + ", "
+        }
+
+        text = text + words[w]
+    }
+
+    return text
+}
+
+// What a kind eats and makes a month, as a sentence for the row that binds it, in the words of
+// its tile's caption: "It eats 1 ration a month, and makes 4 berries."
+fun upkeepSentence(kind)
+{
+    var eats = []
+    var makes = []
+
+    for (var e = 0; e < len(kind.eats); e++)
+    {
+        push(eats, toLowerCase(thingsWord(kind.eats[e].stat, kind.eats[e].amount)))
+    }
+
+    for (var m = 0; m < len(kind.makes); m++)
+    {
+        push(makes, toLowerCase(thingsWord(kind.makes[m].stat, kind.makes[m].amount)))
+    }
+
+    return "It eats " + joinedWithAnd(eats) + " a month, and makes " + joinedWithAnd(makes) + "."
+}
+
+// What one lesson adds to each of a kind, as a sentence: "Each sprite makes 1 berry more a month."
+fun lessonSentence(kind)
+{
+    return "Each " + kind.one + " makes " + toLowerCase(thingsWord(kind.makes[0].stat, 1)) + " more a month."
 }
 
 // The most a stat can ever be, 0 when it has no ceiling.
@@ -905,6 +968,11 @@ var stoodBy = "stood_by"
 // ("+1 str"), so a figure that wraps breaks between two gains and never inside one.
 var noBreak = " "
 
+// The counts the rules keep for themselves (`statHidden`): a work gains them as it gains the rest,
+// but no tile, gloss or log line shows them as something it brings. What asks for one may still
+// name it, under its name below: the requirement says why a row has opened.
+const hiddenStats = ["scavenged"]
+
 // The names a stat or a flag is written with.
 const statNames = {
     str: "Strength",
@@ -1272,14 +1340,14 @@ statNames["fam.imp"] = "A well imp"
 statNames["fam.brownie"] = "A kitchen brownie"
 statNames["fam.mole"] = "A stone mole"
 statNames["fam.weaver"] = "A gem weaver"
-statNames["know.fam.sprite"] = "The way of the hedge sprite"
-statNames["know.fam.imp"] = "The way of the well imp"
-statNames["know.fam.brownie"] = "The way of the kitchen brownie"
-statNames["know.fam.mole"] = "The way of the stone mole"
-statNames["know.fam.weaver"] = "The way of the gem weaver"
+statNames["know.fam.sprite"] = "How to bind a hedge sprite"
+statNames["know.fam.imp"] = "How to bind a well imp"
+statNames["know.fam.brownie"] = "How to bind a kitchen brownie"
+statNames["know.fam.mole"] = "How to bind a stone mole"
+statNames["know.fam.weaver"] = "How to bind a gem weaver"
 
 // What teaching a familiar adds to each one's yield of a thing (the stat "more.<stat>"), and the
-// short names of the kinds the world teaches.
+// short names of the kinds the world teaches, said as what he knows.
 statShort["more.berries"] = "MORE BERRIES"
 statShort["more.water"] = "MORE WATER"
 statShort["more.rations"] = "MORE RATIONS"
@@ -1290,10 +1358,11 @@ statNames["more.water"] = "Water each imp makes more"
 statNames["more.rations"] = "Rations each brownie makes more"
 statNames["more.stone"] = "Stone each mole makes more"
 statNames["more.gems"] = "Gems each weaver makes more"
-statShort["know.fam.imp"] = "IMPS"
-statShort["know.fam.brownie"] = "BROWNIES"
-statShort["know.fam.mole"] = "MOLES"
-statShort["know.fam.weaver"] = "WEAVERS"
+statShort["know.fam.sprite"] = "KNOWS THE SPRITE"
+statShort["know.fam.imp"] = "KNOWS THE IMP"
+statShort["know.fam.brownie"] = "KNOWS THE BROWNIE"
+statShort["know.fam.mole"] = "KNOWS THE MOLE"
+statShort["know.fam.weaver"] = "KNOWS THE WEAVER"
 
 // The most of a stat he can hold at once. A stat not listed has no limit. The limit closes
 // what would bring more (activitytable.pg) and stops what a month produces (resources.pg); an

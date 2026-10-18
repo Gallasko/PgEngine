@@ -1193,7 +1193,8 @@ for (var s = 0; s < len(storeCopies); s++)
 // A familiar is bound to him for life, one row a kind: it costs what the kind's bind asks and
 // fills a slot. The first known kind waits for the second scavenge, so it comes once he has
 // worked the land twice; a kind he has not learned is not listed. The row says what the creature
-// eats and makes, so that the upkeep is known before he binds it.
+// eats and makes, its tile in short and its gloss in a sentence, so that the upkeep is known
+// before he binds it.
 var bindCopies = []
 var firstKind = true
 
@@ -1204,7 +1205,7 @@ for (var k = 0; k < len(familiarKinds); k++)
 
     var bindRow = {id: "bind." + kind.id, group: "Familiars", name: "Bind " + kind.name, glyph: kind.glyph, months: 1, rank: "", each: upkeepCaption(kind), path: "",
                    fromAge: 7,
-                   about: kind.about + " Bound for life: he cannot send it away.",
+                   about: kind.about + " Bound for life: he cannot send it away. " + upkeepSentence(kind),
                    gains: [{stat: "fam." + kind.id}],
                    costs: entriesCopied(kind.bind),
                    requires: kindRequires}
@@ -1223,9 +1224,9 @@ for (var k = 0; k < len(familiarKinds); k++)
     push(bindCopies, bindRow)
 }
 
-// A bound familiar can be taught, once: the lesson costs a month of what the kind eats and raises
-// by one what each of that kind makes of the first thing it makes (the stat "more.<stat>",
-// which lib.pg's `feedFamiliars` adds to the yield).
+// A bound familiar can be taught twice in a life: each lesson costs a month of what the kind eats
+// and raises by one what each of that kind makes of the first thing it makes (the stat
+// "more.<stat>", which lib.pg's `feedFamiliars` adds to the yield). Its gloss says so in words.
 var trainCopies = []
 
 for (var k = 0; k < len(familiarKinds); k++)
@@ -1234,7 +1235,7 @@ for (var k = 0; k < len(familiarKinds); k++)
 
     push(trainCopies, {id: "train." + teach.id, group: "Familiars", name: teach.train, glyph: teach.glyph, months: 2, rank: "", each: "MAKES MORE", path: "",
                        fromAge: 7, uses: 2, onlyWith: "fam." + teach.id,
-                       about: "He shows " + teach.name + " a better way to its work. It makes more of its " + teach.makes[0].stat + " a month from then on.",
+                       about: "He shows " + teach.name + " a better way to its work. " + lessonSentence(teach),
                        gains: [{stat: "more." + teach.makes[0].stat}],
                        costs: entriesCopied(teach.eats),
                        requires: []})
@@ -1805,6 +1806,9 @@ for (var i = 0; i < len(activities); i++)
         var gain = a.gains[g]
         gain.label = statShortName(gain.stat)
         gain.name = statName(gain.stat)
+
+        // A count the rules keep for themselves is gained, and shown nowhere (lib.pg's `hiddenStats`)
+        gain.hidden = statHidden(gain.stat)
 
         // Whether the stat has a limit at all: no store of his is known here, and one only raises a limit
         if (gain.amount > 0 and limitOf({}, gain.stat) > 0)

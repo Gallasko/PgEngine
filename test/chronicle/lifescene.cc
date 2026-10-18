@@ -1962,6 +1962,65 @@ namespace pg
             EXPECT_EQ(life->save.stats["berries"], berries + 4);
         }
 
+        // What he gathers by hand is counted, but the count is the rules' own: the tile, its gloss
+        // and the log say the berries alone
+        TEST(lifescene_test, gathering_shows_no_count_of_it)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.fresh = true;
+            opt.lives = 2;
+            opt.age = 8.0f;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            life->save.stats["rations"] = 24;
+            life->onMonth();
+            f.settle();
+
+            auto tile = life->piece<ActivityList>("activities")->find(&f.ecs, "scavenge.berries");
+            ASSERT_NE(tile, nullptr);
+            ASSERT_EQ(tile->spec.gains.size(), 1u);
+            EXPECT_EQ(tile->spec.gains[0].amount, 6);
+
+            auto registry = f.ecs.getSystem<GlossRegistry>();
+            ASSERT_NE(registry, nullptr);
+            const GlossSpec* gloss = registry->find("activity/scavenge.berries");
+            ASSERT_NE(gloss, nullptr);
+
+            for (const auto& row : gloss->rows)
+                EXPECT_EQ(row.label.find("gathered by hand"), std::string::npos) << row.label;
+
+            f.ecs.sendEvent(ActivitySelectedEvent{"life.activities", "scavenge.berries"});
+            f.settle();
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "scavenge.berries"});
+            f.settle();
+            ASSERT_EQ(life->save.running, "scavenge.berries");
+
+            const size_t before = life->save.log.size();
+            life->onMonth();
+            f.frames(12);
+
+            EXPECT_EQ(life->save.stats["scavenged"], 1);
+            ASSERT_GT(life->save.log.size(), before);
+
+            bool berries = false;
+
+            for (size_t i = before; i < life->save.log.size(); ++i)
+            {
+                const std::string& figure = life->save.log[i].figure;
+                EXPECT_EQ(figure.find("scavenged"), std::string::npos) << figure;
+
+                if (figure.find("berries") != std::string::npos)
+                    berries = true;
+            }
+
+            EXPECT_TRUE(berries);
+        }
+
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------

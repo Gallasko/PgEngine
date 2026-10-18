@@ -23,7 +23,7 @@
 // The numbers are placeholders for the game's balance: change them here, nothing in C++ moves.
 
 const basicResources = [
-    {id: "berries", name: "Berries", one: "berries", glyph: "trade",
+    {id: "berries", name: "Berries", one: "berry", glyph: "trade",
      about: "Picked along the hedges. The market buys them, and a pot of them is a meal."},
     {id: "water", name: "Water", one: "water", glyph: "vitality", lot: 10, coin: 1, price: 2,
      about: "Drawn from the well and the stream. Every craft of the town is wet work."},

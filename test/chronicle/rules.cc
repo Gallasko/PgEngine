@@ -1973,6 +1973,128 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // What binding costs him a month is said before he binds, in the row's words; a lesson says
+        // what it adds, in plain words
+        TEST(rules_test, binding_says_its_upkeep_in_words)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = boy();
+            character["fam.sprite"] = ElementType{1};
+
+            const std::string bind = textOf(activityAt(f.rules, 7.5f, character, "bind.sprite").fields, "about");
+            EXPECT_NE(bind.find("1 ration a month"), std::string::npos) << bind;
+            EXPECT_NE(bind.find("4 berries"), std::string::npos) << bind;
+            EXPECT_EQ(bind.substr(bind.size() - std::string("It eats 1 ration a month, and makes 4 berries.").size()), "It eats 1 ration a month, and makes 4 berries.") << bind;
+
+            const std::string brownie = textOf(activityAt(f.rules, 7.5f, character, "bind.brownie").fields, "about");
+            EXPECT_NE(brownie.find("It eats 3 berries, 2 water and 1 firewood a month, and makes 2 rations."), std::string::npos) << brownie;
+
+            const std::string train = textOf(activityAt(f.rules, 7.5f, character, "train.sprite").fields, "about");
+            EXPECT_NE(train.find("Each sprite makes 1 berry more a month"), std::string::npos) << train;
+
+            // A kind learned is said as what he knows
+            ElementMap reader = boy();
+            reader["letters"] = ElementType{1};
+            RuleActivity research = activityAt(f.rules, 9.5f, reader, "research.imp");
+            ASSERT_EQ(research.gains.size(), 1u);
+            EXPECT_EQ(textOf(research.gains[0], "label"), "KNOWS THE IMP");
+            EXPECT_EQ(textOf(research.gains[0], "name"), "How to bind a well imp");
+        }
+
+        // No tile, gain, cost or log figure of the economy's rows names a stat by its id: the
+        // counter of things gathered by hand is the rules' own and is not shown at all
+        TEST(rules_test, the_economy_rows_show_no_raw_id)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = boy();
+            character["scavenged"] = ElementType{2};
+            character["letters"] = ElementType{1};
+            character["done.kitchen"] = ElementType{1};
+
+            for (const char* basic : {"berries", "water", "firewood", "stone", "clay"})
+            {
+                character[basic] = ElementType{10};
+                character[std::string("stash.") + basic] = ElementType{50};
+            }
+
+            for (const char* kind : {"sprite", "imp", "brownie", "mole", "weaver"})
+                character[std::string("fam.") + kind] = ElementType{1};
+
+            const std::vector<std::string> prefixes = {"scavenge.", "store.", "bind.", "train.", "draw.", "research.", "dry."};
+            const std::vector<std::string> raw = {"scavenged", "fam.", "stash.", "know.", "more.", "store."};
+
+            auto lower = [](std::string text) {
+                std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+                return text;
+            };
+
+            auto clean = [&](const std::string& where, const std::string& text) {
+                for (const auto& id : raw)
+                    EXPECT_EQ(lower(text).find(id), std::string::npos) << where << ": " << text;
+            };
+
+            std::vector<RuleActivity> listed;
+            ASSERT_TRUE(f.rules.activities(9.5f, character, listed)) << firstError(f.rules);
+
+            int checked = 0;
+            int hidden = 0;
+
+            for (const auto& a : listed)
+            {
+                const std::string id = textOf(a.fields, "id");
+                bool ours = false;
+
+                for (const auto& prefix : prefixes)
+                    ours = ours or id.rfind(prefix, 0) == 0;
+
+                if (not ours)
+                    continue;
+
+                ++checked;
+                clean(id + " name", textOf(a.fields, "name"));
+                clean(id + " each", textOf(a.fields, "each"));
+
+                for (const auto& gain : a.gains)
+                {
+                    if (gain.count("hidden") and flag(gain, "hidden"))
+                    {
+                        ++hidden;
+                        continue;
+                    }
+
+                    clean(id + " gain", textOf(gain, "label"));
+                    clean(id + " gain", textOf(gain, "name"));
+                }
+
+                for (const auto& cost : a.costs)
+                {
+                    clean(id + " cost", textOf(cost, "label"));
+                    clean(id + " cost", textOf(cost, "name"));
+                }
+
+                for (const auto& req : a.requires)
+                    clean(id + " requires", textOf(req, "label"));
+
+                RuleForecast fc;
+                ASSERT_TRUE(f.rules.forecast(9.5f, character, id, 0, fc)) << id << ": " << firstError(f.rules);
+
+                for (const auto& entry : fc.entries)
+                    clean(id + " log", textOf(entry, "figure"));
+            }
+
+            EXPECT_GE(checked, 20);
+
+            // The four scavenging rows each count a thing gathered, unseen
+            EXPECT_EQ(hidden, 4);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // The market buys and sells the basics by the lot, and sells no clay
         TEST(rules_test, the_market_trades_basic_resources)
         {

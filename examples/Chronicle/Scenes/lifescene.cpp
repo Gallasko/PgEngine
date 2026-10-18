@@ -3420,8 +3420,10 @@ namespace chronicle
             // A walk takes him out of the town: its tile says so
             row.adventure = not textOf(a.fields, "zone").empty();
 
+            // (but for a count the rules keep for themselves: `hidden`)
             for (const auto& g : a.gains)
-                row.gains.push_back({textOf(g, "label"), intOf(g, "amount")});
+                if (not boolOf(g, "hidden"))
+                    row.gains.push_back({textOf(g, "label"), intOf(g, "amount")});
 
             // What it takes when it begins, beside what it brings
             for (const auto& c : a.costs)
@@ -6032,11 +6034,17 @@ namespace chronicle
             for (const auto& c : a.costs)
                 gloss.rows.push_back({textOf(c, "name"), signedText(-intOf(c, "amount")), "loss"});
 
-            if (not a.gains.empty())
-                gloss.rows.push_back({"REWARD", "", "", true});
+            // (a count the rules keep for themselves is not among it: `hidden`)
+            std::vector<GlossRow> brought;
 
             for (const auto& g : a.gains)
-                gloss.rows.push_back({textOf(g, "name"), signedText(intOf(g, "amount")), intOf(g, "amount") < 0 ? "loss" : "gain"});
+                if (not boolOf(g, "hidden"))
+                    brought.push_back({textOf(g, "name"), signedText(intOf(g, "amount")), intOf(g, "amount") < 0 ? "loss" : "gain"});
+
+            if (not brought.empty())
+                gloss.rows.push_back({"REWARD", "", "", true});
+
+            gloss.rows.insert(gloss.rows.end(), brought.begin(), brought.end());
 
             // A walk's place: what each level of knowing it brings, as the Adventure page last read it
             if (auto ladder = walkLadders.find(textOf(a.fields, "zone")); ladder != walkLadders.end() and not textOf(a.fields, "zone").empty())
