@@ -183,13 +183,14 @@ var achievements = [
      say: "This work cost him Vitality. It comes back over time, as long as he has food.",
      asks: [{fact: "working.sacks", op: ">=", value: 1}]},
     // Said once, the month his rations run low after his sixth year (which has its own word
-    // for it): to the market for who has not been
+    // for it): to the market for who has not been. It gives no number of months: with familiars
+    // bound, three rations last less than three, and the warning over the page says how long
     {id: "guide.rations_low", kind: "guide", order: 0, point: "tile:tomarket", hold: 6000,
-     say: "You only have food for 3 months. Go to the market to buy more.",
+     say: "Food is running low. Go to the market to buy more.",
      asks: [{fact: "stat.rations", op: "<=", value: 3}, {fact: "life.age", op: ">=", value: 7}, {fact: "stat.town_known", op: "<=", value: 0}]},
     // The same once the town is known: food is bought at its market
     {id: "guide.rations_market", kind: "guide", order: 0, point: "tab:town", hold: 6000,
-     say: "You only have food for 3 months. Buy rations at the market, in the Town tab.",
+     say: "Food is running low. Buy rations at the market, in the Town tab.",
      asks: [{fact: "stat.rations", op: "<=", value: 3}, {fact: "life.age", op: ">=", value: 7}, {fact: "stat.town_known", op: ">=", value: 1}]},
     // The town, the month a life comes to know it: its tab, then, once he has opened it, the
     // market where his coin buys rations (it waits for him to buy some), then the places. Said

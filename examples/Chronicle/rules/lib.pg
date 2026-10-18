@@ -103,6 +103,21 @@ fun fmtMonths(n)
     return toString(n) + " mo"
 }
 
+// The months `held` of a thing lasts at `uses` a month, counted while every mouth that eats it is
+// fed: he eats first, so a month that feeds him and not his familiars is not counted. A month
+// that feeds him alone is still one, so what he holds lasts at least that.
+fun monthsFed(held, uses)
+{
+    var months = toInt(floor(held / uses))
+
+    if (months < 1 and held > 0)
+    {
+        months = 1
+    }
+
+    return months
+}
+
 // 0 -> "no", 1 -> "one", ... 12 -> "twelve"; beyond, the figure.
 fun numberWord(n)
 {

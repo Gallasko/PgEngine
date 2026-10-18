@@ -368,33 +368,43 @@ for (var i = 0; i < len(holdings); i++)
 
     var decays = lookup(h, "decays", 0)
 
+    // What a life hangs on is said to be running out from three months of it left, his familiars'
+    // share counted, and theirs alone at board: his work feeds him, not them. It lasts the months
+    // that feed them all (lib.pg's `monthsFed`). The month it is gone is written once they have eaten
+    if (decays > 0 and has(character, h.id) and held > 0 and has(h, "empty") and warning == "")
+    {
+        var uses = lookup(familiarsEat, h.id, 0)
+
+        if (not board)
+        {
+            uses = uses + decays
+        }
+
+        if (uses > 0)
+        {
+            var lasts = monthsFed(held, uses)
+
+            if (lasts == 1)
+            {
+                warning = toUpperCase(h.name) + " FOR 1 MONTH"
+            }
+            else if (lasts <= 3)
+            {
+                warning = toUpperCase(h.name) + " FOR " + toString(lasts) + " MONTHS"
+            }
+
+            if (warning != "")
+            {
+                advice = lookup(h.empty, "low", "")
+            }
+        }
+    }
+
     if (decays > 0 and has(character, h.id) and not board)
     {
         if (held > 0)
         {
             shiftIn(after, change, h.id, 0 - decays)
-
-            // What a life hangs on is said to be running out from three months of it left, his
-            // familiars' share counted. The month it is gone is written once they have eaten
-            if (has(h, "empty") and warning == "")
-            {
-                var uses = decays + lookup(familiarsEat, h.id, 0)
-                var lasts = toInt(floor((held + uses - 1) / uses))
-
-                if (lasts == 1)
-                {
-                    warning = toUpperCase(h.name) + " FOR 1 MONTH"
-                }
-                else if (lasts <= 3)
-                {
-                    warning = toUpperCase(h.name) + " FOR " + toString(lasts) + " MONTHS"
-                }
-
-                if (warning != "")
-                {
-                    advice = lookup(h.empty, "low", "")
-                }
-            }
         }
         else if (has(h, "empty"))
         {
@@ -660,14 +670,26 @@ for (var g = 0; g < len(holdings); g++)
 
     if (decays > 0)
     {
-        // His own and his familiars'
-        var uses = decays + lookup(familiarsEat, h.id, 0)
+        // His own and his familiars', or theirs alone at board; it lasts while it feeds them all,
+        // as the warning counts it
+        var share = lookup(familiarsEat, h.id, 0)
+        var uses = share
+
+        if (not board)
+        {
+            uses = uses + decays
+        }
 
         push(notes, {label: "A month uses", value: toString(uses), tone: "loss"})
 
-        if (held > 0)
+        if (share > 0)
         {
-            push(notes, {label: "Lasts", value: fmtMonths(toInt(floor((held + uses - 1) / uses))), tone: "time"})
+            push(notes, {label: "His familiars eat", value: toString(share) + " / mo", tone: "loss"})
+        }
+
+        if (held > 0 and uses > 0)
+        {
+            push(notes, {label: "Lasts", value: fmtMonths(monthsFed(held, uses)), tone: "time"})
         }
 
         if (has(h, "empty"))

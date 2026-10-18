@@ -1896,6 +1896,80 @@ namespace pg
             EXPECT_EQ(texts(month), std::vector<std::string>{"A hedge sprite went hungry"});
         }
 
+        // What a gloss of a holding says, as "label=value;" pairs
+        std::string glossSaid(const RuleMonth& month, const std::string& id)
+        {
+            std::string said;
+
+            for (const auto& gloss : month.glosses)
+            {
+                if (textOf(gloss.fields, "id") != id)
+                    continue;
+
+                for (const auto& row : gloss.rows)
+                    said += textOf(row, "label") + "=" + textOf(row, "value") + ";";
+            }
+
+            return said;
+        }
+
+        // At work that feeds him his familiars still eat: running out is foreseen on their share
+        // alone, and with none bound nothing is said
+        TEST(rules_test, familiars_at_board_are_warned_of)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            RuleMonth month;
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{3}}, {"fam.sprite", ElementType{1}}}, true, month)) << firstError(f.rules);
+
+            EXPECT_EQ(intOf(month.after, "rations"), 2);
+            EXPECT_EQ(month.warning, "RATIONS FOR 3 MONTHS");
+            EXPECT_EQ(month.advice, "Rations are running low: buy some at the market, or take work with meals");
+
+            const std::string said = glossSaid(month, "rations");
+            EXPECT_NE(said.find("A month uses=1;"), std::string::npos) << said;
+            EXPECT_NE(said.find("His familiars eat=1 / mo;"), std::string::npos) << said;
+            EXPECT_NE(said.find("Lasts=3 mo;"), std::string::npos) << said;
+
+            // None bound: his work feeds him, and nothing runs out
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{3}}}, true, month)) << firstError(f.rules);
+            EXPECT_EQ(intOf(month.after, "rations"), 3);
+            EXPECT_EQ(month.warning, "");
+            EXPECT_EQ(month.advice, "");
+            EXPECT_EQ(glossSaid(month, "rations").find("Lasts="), std::string::npos) << glossSaid(month, "rations");
+            EXPECT_EQ(glossSaid(month, "rations").find("His familiars eat"), std::string::npos) << glossSaid(month, "rations");
+        }
+
+        // The rations last the months that feed him and his familiars both: nine at two a month
+        // feed them both four months (he eats first, and the sprite is hungry in the fifth)
+        TEST(rules_test, rations_last_while_all_are_fed)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            RuleMonth month;
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{9}}, {"fam.sprite", ElementType{1}}}, false, month)) << firstError(f.rules);
+
+            std::string said = glossSaid(month, "rations");
+            EXPECT_NE(said.find("A month uses=2;"), std::string::npos) << said;
+            EXPECT_NE(said.find("His familiars eat=1 / mo;"), std::string::npos) << said;
+            EXPECT_NE(said.find("Lasts=4 mo;"), std::string::npos) << said;
+            EXPECT_EQ(month.warning, "");
+
+            // Seven: three months, and the warning says the same
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{7}}, {"fam.sprite", ElementType{1}}}, false, month)) << firstError(f.rules);
+            said = glossSaid(month, "rations");
+            EXPECT_NE(said.find("Lasts=3 mo;"), std::string::npos) << said;
+            EXPECT_EQ(month.warning, "RATIONS FOR 3 MONTHS");
+
+            // Alone, he eats one a month: no share of theirs to say
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{9}}}, false, month)) << firstError(f.rules);
+            said = glossSaid(month, "rations");
+            EXPECT_NE(said.find("Lasts=9 mo;"), std::string::npos) << said;
+            EXPECT_EQ(said.find("His familiars eat"), std::string::npos) << said;
+        }
+
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
