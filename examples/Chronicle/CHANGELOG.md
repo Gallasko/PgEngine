@@ -104,6 +104,11 @@ another familiar, a new kind to bind, a bigger stash.
   as it opens. The gleaning of his sixth year no longer counts as feeding him: a boy who holds no
   rations eats none, and what it brings is his first.
 - **The rations guide** no longer says "3 months": with familiars bound, three rations last less.
+- **The market buys and sells on lines of their own.** Under *Buy* and *Sell* (what is made there
+  under *Make*), and its button says *Buy* or *Sell*, not *Do it now*. Beside it, *Sell all*
+  sells every lot you hold, and *Buy all* buys as many lots as your coin and your room allow
+  (rations, reagents, water, firewood, stone; not what is bought once). The *All* button now
+  stands beside its button, where it was meant to be.
 
 ## 0.7 - unreleased: the fight
 

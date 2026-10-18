@@ -61,7 +61,7 @@ not on the page at all before that. When it comes, the guide shows it, then the 
 coin buys rations, then the places, once in a world, in the life that first goes there. Whatever is
 new on the page that is not in view (a task, a thing sold, a place) is counted in a small round
 at its tab's corner until the page is opened. The Adventure tab does the same for the places to walk to: it comes with a count of the places behind it the day of his first walk, and counts a place whose tile comes onto its page, open to him or not, and a place that opens (`newInAdventure`, `stoodWalks`, `openedWalks`). It shows the places of Bellmoor, each with three levels, and under them
-the market, where what is bought on the spot is bought (reached by the Town tab: no tile of the Life page goes there). A place is raised by a work that stands under the places, on the same page (a click on a
+the market, where what is bought on the spot is bought (reached by the Town tab: no tile of the Life page goes there), on two lines, *Buy* and *Sell* (by the rules' `trade`), what is made there under *Make*. A place is raised by a work that stands under the places, on the same page (a click on a
 place chooses its work, and Begin begins it): months, a little coin, and mainly resources: the
 first level of a place two basics, the second more of them and gems, the third more again,
 gems and a thing found on a walk; for some a stat or years of his life as well. What is raised
@@ -766,7 +766,7 @@ arguments, compared by value. `Rules::nbRuns` counts the runs.
 |---|---|---|
 | `lib.pg` | - | pure helpers: `clamp`, `ordinal` ("14th"), `monthOf` (whole months lived), `monthsBetween`, `monthsToAttempts`, `signed` ("+1" / "−2"), `fmtMonths` ("6 mo"), `numberWord`, `statName`, `statOf`, `lookup`, `raised` (a gain stopped at the stat's ceiling), `byId`, `pathFlagOf`, `asksOf`, `openNote`, `shiftIn` (a month's change to a stat); `lastAge` (30, where his prime ends), `anyAge` (the `finishBy` of what no age closes) |
 | `economytable.pg` (imported by `activitytable.pg`, `resources.pg`, `town.pg`, `depgraph.pg` and the solver's `life.pg`; never loaded) | - | `const` tables: `basicResources`, `madeResources` (`{id, name, one, glyph, about}`, a basic with `lot`, `coin`, `price` for the market); `scavengeRows`, `storeRows` (activity rows); `familiarKinds` (`{id, name, one, glyph, known, about, train, eats[], makes[], bind[]}`); `slotGivers` (`{stat, slots, needed}`); `gearPieces` (`{id, name, glyph, might, armour, ward, about, forge {costs[], months, smithy, onlyWith?}}`); `economyKnobs` (`stashMost`, `baseSlots`) |
-| `activitytable.pg` (through `windows.pg`) | `age`, `character`, `done`, `activityId` (`""`: all; `forecast.pg` shapes only its own), `world`, `lives` (which life of the world this is: the places of the town read it), `running` | `activities`: `{id, group, name, glyph, months, rank, each, path, enters, board, upFront, fromAge, finishBy, gains[{stat, amount, label, name, hidden}], costs[{stat, amount, label, name}], requires[{stat, label, current, needed}], needs (the requirements as written, for `depgraph.pg`), locked, done, uses, left, spent, closed, pathOpen, listed, showAge, showFrom, tally ("DONE 2", "DONE 0 · 1 LEFT"), until ("" or "CLOSES IN 14 MO"), urgent, after[step]}` |
+| `activitytable.pg` (through `windows.pg`) | `age`, `character`, `done`, `activityId` (`""`: all; `forecast.pg` shapes only its own), `world`, `lives` (which life of the world this is: the places of the town read it), `running` | `activities`: `{id, group, name, glyph, months, rank, each, path, enters, board, upFront, fromAge, finishBy, gains[{stat, amount, label, name, hidden}], costs[{stat, amount, label, name}], requires[{stat, label, current, needed}], needs (the requirements as written, for `depgraph.pg`), locked, done, uses, left, spent, closed, pathOpen, listed, showAge, showFrom, place, trade ("" or "buy", "sell": a row of the market), tally ("DONE 2", "DONE 0 · 1 LEFT"), until ("" or "CLOSES IN 14 MO"), urgent, after[step]}` |
 | `milestones.pg` (`milestonetable.pg`) | `age`, `world`, `lives` | `milestones`: `{age, id, label, passed, entry, asks[{path, stat, label, needed}]}`; `next`: `{id, label, age, in}` (`in` = months to it; `"", "", -1, -1` past the last) |
 | `windows.pg` | `age`, `character`, `done`, `activityId` (`""`) | `windows`: `{id, name, from, to, state (upcoming / open / closed), note (in attempts), attempts}`, one per door of an activity whose path is open to him |
 | `forecast.pg` | `age`, `character`, `done`, `activityId`, `monthsIn` | `forecast`: `{atStart{stats}, atTerm{stats}, percent, toward (the percent a month on), months, caption ("MONTH 3 OF 6 · STRENGTH 14 → 16 AT TERM"), gaps[{stat, label, current, needed}], entries[{text, kind, figure, glyph}], upFront, unworked, takenBack, begins[{text, kind, figure, glyph}], leaves[{text, kind, figure, glyph}], atLeave{stats}, atOwed{stats}, error}` (what a work that feeds him gives as he begins it, and gives back when left before its term) |
@@ -1442,10 +1442,14 @@ it in `lifescene.cpp` over the widgets as they are:
 - A tile chosen in the list, or a place of the town, puts a **Begin** button in "At work now"
   (`showWorkButtons`), in the place of the one that passes a month; a second click or Enter
   still begins it. What may be done while at work (a thing done at once, an answer)
-  has it under the running row. A thing done at once stays chosen for the next press, and has
-  **All** beside it when it is made from what he holds (a sale: `repeats`, `doAll`, one log line
-  for them all); once it can be done no more its button stays where it was, greyed ("None left",
-  `spentChoice`), until a press anywhere else, so nothing else comes under a pressing mouse.
+  has it under the running row. A thing done at once is named by its button ("Do it now"; at the
+  market "Buy" or "Sell", by the rules' `trade`), stays chosen for the next press, and has
+  **All** beside it when it is made from what he holds or bought again (a sale, "Sell all"; a buy
+  with no `uses` limit, "Buy all": `repeats`, `doAll`, stopped by his coin or his room as one
+  press would be, one log line for them all; the scene hangs it on Begin, as a name inside a
+  panel is out of reach of the page's anchors); once it can be done no more its button stays
+  where it was, greyed ("None left", `spentChoice`), until a press anywhere else, so nothing
+  else comes under a pressing mouse.
 - The mouse on a tile is a **preview** (`ActivityHoveredEvent`, `preview`): the ghosts on his
   parts, and "46 -> 52" ("6/60 -> 12/60") on the holdings it would add to (what it costs is said by its gloss, not
   on his purse). What is chosen says more than what the mouse is on.
