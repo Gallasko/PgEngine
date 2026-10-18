@@ -6015,5 +6015,61 @@ namespace pg
 
             EXPECT_EQ(left, 1);
         }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The market's rows say what kind of trade they are (`trade`): "buy" for what he pays coin
+        // for, "sell" for what he is paid for, nothing for what is made there (a remedy, a flask).
+        // The Town page puts them on lines of their own by it, and the button names the act
+        TEST(rules_test, the_market_rows_say_their_trade)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            std::vector<RuleActivity> activities;
+            ASSERT_TRUE(f.rules.activities(20.0f, townsman(), activities)) << firstError(f.rules);
+
+            int buys = 0;
+            int sells = 0;
+
+            for (const auto& a : activities)
+            {
+                const std::string id = textOf(a.fields, "id");
+
+                ASSERT_TRUE(a.fields.count("trade")) << id << " has no trade";
+
+                const std::string trade = textOf(a.fields, "trade");
+
+                if (id.rfind("buy.", 0) == 0)
+                {
+                    EXPECT_EQ(trade, "buy") << id;
+                    ++buys;
+                }
+                else if (id.rfind("sell.", 0) == 0)
+                {
+                    EXPECT_EQ(trade, "sell") << id;
+                    ++sells;
+                }
+                else
+                {
+                    EXPECT_EQ(trade, "") << id;
+                }
+            }
+
+            // The hand-written buys (rations to the horse, and the chapel's oil), the basics bought,
+            // and what a walk brings home sold with the basics
+            EXPECT_GE(buys, 11);
+            EXPECT_GE(sells, 5);
+
+            for (const char* id : {"buy.rations", "buy.reagents", "buy.blade", "buy.wire", "buy.primer", "buy.sword", "buy.horse", "buy.oil", "buy.water", "buy.firewood", "buy.stone"})
+                EXPECT_EQ(textOf(activityAt(f.rules, 20.0f, townsman(), id).fields, "trade"), "buy") << id;
+
+            for (const char* id : {"sell.berries", "sell.water", "sell.firewood", "sell.stone", "sell.clay"})
+                EXPECT_EQ(textOf(activityAt(f.rules, 20.0f, townsman(), id).fields, "trade"), "sell") << id;
+
+            EXPECT_EQ(textOf(activityAt(f.rules, 20.0f, townsman(), "brew.remedy").fields, "trade"), "");
+            EXPECT_EQ(textOf(activityAt(f.rules, 20.0f, townsman(), "brew.flask").fields, "trade"), "");
+        }
     }
 }

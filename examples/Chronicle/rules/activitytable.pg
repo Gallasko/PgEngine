@@ -39,7 +39,8 @@
 //           tally (how often it was done and, for a limited one, what is left, as the row
 //           writes it: "DONE 2", "DONE 0 · 1 LEFT"),
 //           place ("" or the place of the town it is done at: the Town page lists it there, not
-//           the Life page), raises and level ("" and 0, or the place its term raises and the level
+//           the Life page), trade ("" or "buy", "sell": what kind of trade a row of the market
+//           is), raises and level ("" and 0, or the place its term raises and the level
 //           it raises it to), yearMonths (0, or the months of his life it takes at once when it
 //           begins: its `years`), goto ("" or the page that confirming it opens, and nothing else),
 //           zone ("" or the zone of expeditiontable.pg it is a walk to: beginning it opens the
@@ -161,6 +162,12 @@
 //                    the Life page.
 //                    A work that raises a place (`raises`) has no row: a click on the
 //                    place's tile begins it.
+//   trade: "buy" or "sell"
+//                    what kind of trade a row of the market is: "buy" for what he pays coin for,
+//                    "sell" for what he is paid for. The Town page lists each kind on a line of
+//                    its own, and its button says Buy or Sell; a buy with no `uses` limit has Buy
+//                    all beside it, as a sale has Sell all. What is made there (a remedy, a
+//                    flask) has none.
 //   goto: "page"     confirming it opens that page ("town") and does nothing else: no term, no
 //                    month, no line.
 //   raises: "id", level: N
@@ -364,13 +371,13 @@ var activities = [
     // What is bought on the spot is bought in town: these stand on its page, at the market, once
     // the town is known, and nowhere before
     {id: "buy.rations", group: "Market", name: "Buy rations", glyph: "trade", months: 0, rank: "", each: "AT THE MARKET", path: "", finishBy: anyAge, showFrom: 100,
-     place: "market",
+     place: "market", trade: "buy",
      gains: [{stat: "rations", amount: 6}],
      requires: [{stat: "town_known", label: "The town"}],
      costs: [{stat: "coin", amount: 5}],
      bonus: [{stat: "town.market", gains: [{stat: "rations", amount: 8}]}]},
     {id: "buy.reagents", group: "Market", name: "Buy reagents", glyph: "trade", months: 0, rank: "", each: "AT THE COLLEGIUM", path: "mage",
-     place: "market",
+     place: "market", trade: "buy",
      gains: [{stat: "reagents", amount: 2}],
      requires: [],
      costs: [{stat: "coin", amount: 6}],
@@ -380,7 +387,7 @@ var activities = [
     // No age closes it: a man who never held one may still begin there. Where the yard has
     // stocked its racks nobody buys one: the yard lends it (`whileNot`)
     {id: "buy.blade", group: "Market", name: "Buy a Wooden Blade", glyph: "swordsmanship", months: 0, rank: "", each: "AT THE MARKET", path: "", fromAge: 7, fromMonths: 2, finishBy: anyAge, showFrom: 100, uses: 1,
-     place: "market", whileNot: "town.yard",
+     place: "market", trade: "buy", whileNot: "town.yard",
      about: "A blade of ash, blunt, and a hand too long for him. With it he can practice: the work comes into his training the day he holds one.",
      gains: [{stat: "wooden_blade"}],
      requires: [{stat: "town_known", label: "The town"}],
@@ -389,7 +396,7 @@ var activities = [
     // at a time, and some of it is found at the market. A snare wire before the rabbits on the
     // common (they close at eleven, so the wire is sold until there is time for them)...
     {id: "buy.wire", group: "Market", name: "Buy a Snare Wire", glyph: "adventure", months: 0, rank: "", each: "AT THE MARKET", path: "", fromAge: 9, fromMonths: 8, finishBy: 10, finishMonths: 10, showFrom: 100, uses: 1,
-     place: "market",
+     place: "market", trade: "buy",
      about: "A coil of brass wire, enough for a few loops. With it he can learn to snare rabbits on the common: the work comes into his streets the day he holds it.",
      gains: [{stat: "snare_wire"}],
      requires: [{stat: "town_known", label: "The town"}],
@@ -397,18 +404,18 @@ var activities = [
     // ...and a primer of the herbal before the herbal itself (sold until his prime ends, when the
     // herbal closes)
     {id: "buy.primer", group: "Market", name: "Buy a Herbal Primer", glyph: "study", months: 0, rank: "", each: "AT THE MARKET", path: "", fromAge: 10, fromMonths: 6, showFrom: 100, uses: 1,
-     place: "market",
+     place: "market", trade: "buy",
      about: "A few pages of leaves and roots, copied badly and sold dear. With it, and his letters, he can learn the herbal: the work comes into his study the day he holds it.",
      gains: [{stat: "herbal_primer"}],
      requires: [{stat: "town_known", label: "The town"}],
      costs: [{stat: "coin", amount: 4}]},
     {id: "buy.sword", group: "Market", name: "Buy a Sword", glyph: "swordsmanship", months: 0, rank: "", each: "AT THE MARKET", path: "", finishBy: anyAge, showFrom: 100, uses: 1,
-     place: "market",
+     place: "market", trade: "buy",
      gains: [{stat: "arms"}],
      requires: [{stat: "town.market", label: "The market charter", needed: 3}],
      costs: [{stat: "coin", amount: 40}]},
     {id: "buy.horse", group: "Market", name: "Buy a Horse", glyph: "adventure", months: 0, rank: "", each: "AT THE MARKET", path: "", finishBy: anyAge, showFrom: 100, uses: 1,
-     place: "market",
+     place: "market", trade: "buy",
      gains: [{stat: "renown"}],
      requires: [{stat: "town.market", label: "The market charter", needed: 3}],
      costs: [{stat: "coin", amount: 80}]},
@@ -1370,7 +1377,7 @@ for (var w = 0; w < len(walkItems); w++)
     if (thing.kind == "sold")
     {
         push(activities, {id: "sell." + thing.id, group: "Market", name: "Sell " + toLowerCase(thing.name), glyph: "gold", months: 0, rank: "", each: "AT THE MARKET", path: "",
-                          finishBy: anyAge, showFrom: 100, place: "market",
+                          finishBy: anyAge, showFrom: 100, place: "market", trade: "sell",
                           gains: [{stat: "coin", amount: thing.coin}],
                           requires: [{stat: thing.id, label: thing.name + " to sell"}],
                           costs: [{stat: thing.id, amount: thing.lot}]})
@@ -1387,7 +1394,7 @@ for (var b = 0; b < len(basicResources); b++)
     if (lookup(basic, "lot", 0) > 0)
     {
         push(activities, {id: "sell." + basic.id, group: "Market", name: "Sell " + toLowerCase(basic.name), glyph: "gold", months: 0, rank: "", each: "AT THE MARKET", path: "",
-                          finishBy: anyAge, showFrom: 100, place: "market",
+                          finishBy: anyAge, showFrom: 100, place: "market", trade: "sell",
                           gains: [{stat: "coin", amount: basic.coin}],
                           requires: [{stat: basic.id, label: basic.name + " to sell"}],
                           costs: [{stat: basic.id, amount: basic.lot}]})
@@ -1395,7 +1402,7 @@ for (var b = 0; b < len(basicResources); b++)
         if (lookup(basic, "price", 0) > 0)
         {
             push(activities, {id: "buy." + basic.id, group: "Market", name: "Buy " + toLowerCase(basic.name), glyph: basic.glyph, months: 0, rank: "", each: "AT THE MARKET", path: "",
-                              finishBy: anyAge, showFrom: 100, place: "market",
+                              finishBy: anyAge, showFrom: 100, place: "market", trade: "buy",
                               gains: [{stat: basic.id, amount: basic.lot}],
                               requires: [{stat: "town_known", label: "The town"}],
                               costs: [{stat: "coin", amount: basic.price}]})
@@ -1419,7 +1426,7 @@ push(activities, {id: "brew.flask", group: "Market", name: "Mix a fire flask", g
                   costs: [{stat: "firewood", amount: 2}, {stat: "coin", amount: 2}]})
 
 push(activities, {id: "buy.oil", group: "Market", name: "Buy blessed oil", glyph: "relic", months: 0, rank: "", each: "FROM THE CHAPEL", path: "",
-                  finishBy: anyAge, showFrom: 100, place: "market", onlyWith: "walked.millpond",
+                  finishBy: anyAge, showFrom: 100, place: "market", trade: "buy", onlyWith: "walked.millpond",
                   about: "A small flask the chapel blesses for travellers. On a blade, every blow of the fight is holy.",
                   gains: [{stat: "oil", amount: 1}],
                   requires: [{stat: "town_known", label: "The town"}],
@@ -1932,6 +1939,7 @@ for (var i = 0; i < len(activities); i++)
     }
 
     a.place = lookup(a, "place", "")
+    a.trade = lookup(a, "trade", "")
     a.goto = lookup(a, "goto", "")
     a.raises = lookup(a, "raises", "")
     a.zone = lookup(a, "zone", "")
