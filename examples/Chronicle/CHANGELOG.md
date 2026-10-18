@@ -13,8 +13,8 @@ after him.
 
 - **Resources.** Berries, water, firewood, stone and clay have their own place in your ledger,
   under RESOURCES, with the most you can hold of each (30 berries, 40 water, 30 firewood, 20 stone,
-  20 clay). Gems are made, never gathered. Walks still bring them, and a walk's haul is never
-  thrown away, full or not.
+  20 clay). Gems are made, never gathered, 20 at most. Walks still bring them, and a
+  walk's haul is never thrown away, full or not.
 - **Scavenging.** From seven a boy can pick berries on the hedge, draw water from the bell and
   gather deadfall, and from eight pick stones from the fields: a month of each, and the pile grows.
   Full, the row waits until you have room.
@@ -26,8 +26,9 @@ after him.
 - **Familiars.** After his first two scavenges a boy can bind a hedge sprite: it eats a ration a
   month and makes 4 berries. A familiar is bound for life, it cannot be sent away, and it ends with
   him. Every month he eats first, then each kind is fed in turn, all of it or none: a hungry kind
-  makes nothing that month, and costs him nothing else. The row says what a creature eats and makes
-  before you bind it, and your rations warning counts their share.
+  makes nothing that month, and costs him nothing else. The row and its tooltip say what a
+  creature eats and makes before you bind it, and your rations warning counts their share, at work
+  with meals too: the months it says are the months that feed him and them both.
 - **Slots.** A child keeps one familiar. A first class gives a second slot, a second calling two
   more, and the Harrow relic one while he holds it.
 - **More kinds.** *Read of the Well Spirits*, once he has his letters, teaches the well imp (8
@@ -39,7 +40,8 @@ after him.
   every one of that kind makes one more a month from then on.
 - **The stash.** At his death, what he held of each basic resource goes into the stash, after the
   gift to the town takes its share, up to 100 of each. A new life takes from it with *Take ... from
-  the stash*, as much as it has room for; the rest waits for the lives after.
+  the stash*, as much as it has room for; the rest waits for the lives after. The ending says what
+  goes into it, and says it again when you choose a place for the gift.
 
 ### Changed
 
@@ -48,6 +50,9 @@ after him.
   boy with nothing can always eat.
 - **Berries, firewood, stone and clay are resources now**, no longer stores, each with its limit.
   What an old save holds past a limit stays: it is only spent, never cut.
+- **Dry berries at home.** Drying berries into rations is among what a boy gathers, no longer at
+  the market: a sprite's berries feed him before he knows the town.
+- **The rations guide** no longer says "3 months": with familiars bound, three rations last less.
 
 ## 0.7 - unreleased: the fight
 

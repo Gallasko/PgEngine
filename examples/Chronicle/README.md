@@ -750,14 +750,14 @@ arguments, compared by value. `Rules::nbRuns` counts the runs.
 |---|---|---|
 | `lib.pg` | - | pure helpers: `clamp`, `ordinal` ("14th"), `monthOf` (whole months lived), `monthsBetween`, `monthsToAttempts`, `signed` ("+1" / "−2"), `fmtMonths` ("6 mo"), `numberWord`, `statName`, `statOf`, `lookup`, `raised` (a gain stopped at the stat's ceiling), `byId`, `pathFlagOf`, `asksOf`, `openNote`, `shiftIn` (a month's change to a stat); `lastAge` (30, where his prime ends), `anyAge` (the `finishBy` of what no age closes) |
 | `economytable.pg` (imported by `activitytable.pg`, `resources.pg`, `town.pg`, `depgraph.pg` and the solver's `life.pg`; never loaded) | - | `const` tables: `basicResources`, `madeResources` (`{id, name, one, glyph, about}`, a basic with `lot`, `coin`, `price` for the market); `scavengeRows`, `storeRows` (activity rows); `familiarKinds` (`{id, name, one, glyph, known, about, train, eats[], makes[], bind[]}`); `slotGivers` (`{stat, slots, needed}`); `economyKnobs` (`stashMost`, `baseSlots`) |
-| `activitytable.pg` (through `windows.pg`) | `age`, `character`, `done`, `activityId` (`""`: all; `forecast.pg` shapes only its own), `world`, `lives` (which life of the world this is: the places of the town read it), `running` | `activities`: `{id, group, name, glyph, months, rank, each, path, enters, board, fromAge, finishBy, gains[{stat, amount, label, name}], costs[{stat, amount, label, name}], requires[{stat, label, current, needed}], needs (the requirements as written, for `depgraph.pg`), locked, done, uses, left, spent, closed, pathOpen, listed, showAge, showFrom, tally ("DONE 2", "DONE 0 · 1 LEFT"), until ("" or "CLOSES IN 14 MO"), urgent, after[step]}` |
+| `activitytable.pg` (through `windows.pg`) | `age`, `character`, `done`, `activityId` (`""`: all; `forecast.pg` shapes only its own), `world`, `lives` (which life of the world this is: the places of the town read it), `running` | `activities`: `{id, group, name, glyph, months, rank, each, path, enters, board, fromAge, finishBy, gains[{stat, amount, label, name, hidden}], costs[{stat, amount, label, name}], requires[{stat, label, current, needed}], needs (the requirements as written, for `depgraph.pg`), locked, done, uses, left, spent, closed, pathOpen, listed, showAge, showFrom, tally ("DONE 2", "DONE 0 · 1 LEFT"), until ("" or "CLOSES IN 14 MO"), urgent, after[step]}` |
 | `milestones.pg` (`milestonetable.pg`) | `age`, `world`, `lives` | `milestones`: `{age, id, label, passed, entry, asks[{path, stat, label, needed}]}`; `next`: `{id, label, age, in}` (`in` = months to it; `"", "", -1, -1` past the last) |
 | `windows.pg` | `age`, `character`, `done`, `activityId` (`""`) | `windows`: `{id, name, from, to, state (upcoming / open / closed), note (in attempts), attempts}`, one per door of an activity whose path is open to him |
 | `forecast.pg` | `age`, `character`, `done`, `activityId`, `monthsIn` | `forecast`: `{atStart{stats}, atTerm{stats}, percent, toward (the percent a month on), months, caption ("MONTH 3 OF 6 · STRENGTH 14 → 16 AT TERM"), gaps[{stat, label, current, needed}], entries[{text, kind, figure, glyph}], error}` |
-| `resources.pg` | `age`, `character`, `board` | `month`: `{after{stats}, entries[{text, kind, figure, glyph}], hurt[stat]}`; `rows`: `{id, group, groupLabel, glyph, name, tone, rate ("+2 / mo"), limit}`; `glosses`: `{id, title, text, footnote, rows[{label, value, tone}]}`; `caps`: `{stat, most}`; `death`: `""` or the line the next life opens with |
+| `resources.pg` | `age`, `character`, `board` | `month`: `{after{stats}, entries[{text, kind, figure, glyph}], hurt[stat]}`; `rows`: `{id, group, groupLabel, glyph, name, tone, rate ("+2 / mo"), limit}`; `glosses`: `{id, title, text, footnote, rows[{label, value, tone}]}`; `caps`: `{stat, most}`; `death`: `""` or the line the next life opens with; `warning`, `advice`: what he lives on running out, counted with his familiars' share (theirs alone at board); `eats`: the rations the coming month eats, his own (none at board) and his familiars', fed or not (the solver reads it) |
 | `achievements.pg` | - | `achievements`: `{id, kind (deed / guide / lore), name, entry, say, point, hold, order, asks[{fact, op, value}], gives[{stat, amount}], until[{fact, op, value}]}` |
 | `epitaph.pg` | `age`, `character`, `done`, `activityId` (`""`), `deeds` (the names of the deeds reached) | `epitaph`: `{cause ("He died an old man, in his thirty-third year."), story[text] (what he became, worked at, left, and what is told of him), text (the story as one paragraph), tally ("AGE 33 · WORKS 14 · COIN 31 · DEEDS 2"), ask ("" or, past `lastAge`, the line that asks for a comment or a rating)}` |
-| `town.pg` (`towntable.pg`) | `age`, `character` (with `town_known`, `town.<place>`, `fund.<place>`), `world`, `lives` | `places`: `{id, name, glyph, about, level, most, shown, gives, line, tale, built, fund, nextWork, nextName, nextMonths, nextCoin, nextYears, nextCosts, nextGives, nextLocked, gaps[{stat, label, current, needed}]}`; `start`: `[{stat, amount}]`; `opened`, `raisedLine`, `epitaphLine`, `fundLine`, `foundLine`; `gift`: `{stat, before, after, plain, chosen}` |
+| `town.pg` (`towntable.pg`) | `age`, `character` (with `town_known`, `town.<place>`, `fund.<place>`), `world`, `lives` | `places`: `{id, name, glyph, about, level, most, shown, gives, line, tale, built, fund, nextWork, nextName, nextMonths, nextCoin, nextYears, nextCosts, nextGives, nextLocked, gaps[{stat, label, current, needed}], leaves[{stat, amount}], leaveLine, stashLine}`; `start`: `[{stat, amount}]`; `opened`, `raisedLine`, `epitaphLine`, `fundLine`, `foundLine`; `gift`: `{stat, before, after, plain, chosen, things}`; `stash`: `[{stat, most}]` (what the stash keeps at his death, and the most of each); `stashLine`: `""` or the ending's sentence of what goes into the stash with no gift (a place's `stashLine` says it with the gift left to it) |
 | `expedition.pg` (`expeditiontable.pg`, `expeditionlib.pg`, `fightlib.pg`) | `age`, `character` (with `know.<key>`), `who`, `seed`, `ask` (enter, act, look, records, begin, term), the walk as it stands (`run`, `record`, `marks`, `fight`, `foes`, `account`), `act` `{kind, target, count}`, the records (`recipes`, `recipeSteps`, `recipeMarks`), `walks`, `queue`, `replay` | the walk as the run leaves it; `after{stats}`, `entries`; on site `site`, `seeks`, `works`, `card`, `options`, `bag`, `taken`, `home`; a fight `duel`, `menu`, `targets`, `order`, `hero`, `foe`, `preview`; the records `shelf`, `form`, `stops`; `recipe`, `blocked`, `stopped` |
 
 **Repetition** (`activitytable.pg`). `done` is the save's count of terms completed per activity.
@@ -855,7 +855,11 @@ store raises one for the life: `limitOf` adds the stat `store.<id>` to the base,
 *Your stores* (`economytable.pg`'s `storeRows`, listed once he holds some of the resource,
 `onlyWith`) bring 20 of it a term, three terms each. What familiars make stops at the limit
 (`shiftIn`); scavenging (`scavengeRows`, the group *Scavenge*, each term also counting the stat
-`scavenged`) is locked by its room like any other row. **A walk ignores limits**: its haul is
+`scavenged`) is locked by its room like any other row. `scavenged` is one of `lib.pg`'s
+`hiddenStats`: a count the rules keep for themselves, gained like any other but marked `hidden` on
+the row's gains, so no tile chip, gloss REWARD line or log figure shows it (what asks for it still
+names it). *Dry berries* (`dry.berries`, three berries to a ration, at once) stands in *Scavenge*
+too, with no place: a sprite's berries feed him before he knows the town. **A walk ignores limits**: its haul is
 never thrown away. A save from before the limits keeps what it holds past them.
 
 **Caps and mending** (`lib.pg`, `resources.pg`). `statCaps` names the stat holding the most
@@ -875,11 +879,16 @@ whether it is `known` from the first. Every month `resources.pg` feeds them afte
 takes what it eats and makes what it makes, stopped at the limit; a hungry kind makes nothing and
 costs nothing else, and its hunger never takes his Vitality. Board feeds him, never his
 familiars. `eats` (an output) is the rations the coming month eats, his own (none at board) and
-his familiars', which the rations warning, the *lasts* line and the solver read.
+his familiars', which the rations warning, the *lasts* line and the solver read. At board the
+warning still runs on the familiars' share alone. Both it and the gloss's *Lasts* count the months
+that feed him and his familiars both (`monthsFed`: nine rations at two a month last four), and the
+gloss names the familiars' share (*His familiars eat*).
 - **Binding** (`bind.<kind>`, the group *Familiars*): a month, the kind's `bind` as its costs, and
   a free slot (the requirement `slot: true`, whose current is `freeSlots`). The first known kind also waits for
   two scavenges (`scavenged` 2); a kind not learned is not listed (`onlyWith: know.fam.<kind>`).
-  Its tile says the upkeep ("EATS 1 RATION · MAKES 4 BERRIES"), so it is known before he binds.
+  Its tile says the upkeep ("EATS 1 RATION · MAKES 4 BERRIES") and its gloss ends on it in a
+  sentence ("It eats 1 ration a month, and makes 4 berries.", `upkeepSentence`), so it is known
+  before he binds. A lesson's gloss says what it adds (`lessonSentence`).
   Nothing unbinds: when slots fall below the familiars bound (a relic spent), only the binding
   rows lock.
 - **Slots** (`slotsOf`): `economyKnobs.baseSlots` (1), and what each of `slotGivers` he holds
@@ -898,7 +907,11 @@ of each: `town.pg`'s `stash` output, `[{stat, most}]`, says what it keeps and ho
 scripts read it as `stash.<id>` in `character`, the way they read a place's fund. A new life
 draws on it with the rows of *The stash* (`draw.<id>`, at once, listed while it holds any): as
 much as he has room for, and the rest stays. Gems and what walks find that is not a basic are not
-kept. A save from before the stash opens with it empty.
+kept. A save from before the stash opens with it empty. The tile's caption says what the stash
+holds ("40 IN THE STASH"); its price, what a draw takes ("30 firewood from the stash"). The ending
+says what goes into it, after the story (`town.pg`'s `stashLine`, or the chosen place's when a gift
+is chosen: "His stores go to the family's stash: 25 water, 12 stone."); choosing a place rewrites
+the line in place.
 
 **The end of a life** (`resources.pg`). `mortal` lists the stats a life cannot go on without.
 `month.hurt` lists the ones the month took from: the scene turns those parts red for a moment

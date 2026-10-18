@@ -6036,9 +6036,9 @@ namespace pg
             life->save.stats["coin"] = 200;
             life->onMonth();
             f.frames(12);
-            // The rations it sells and the water, firewood and stone, and the three works for its first three places (the market, the
-            // The rations it sells, and the three works for its first three places (the market, the
-            // mill, and the inn of a second life)
+
+            // The rations, water, firewood and stone it sells, and the three works for its first three
+            // places (the market, the mill, and the inn of a second life)
             ASSERT_NE(stall(f, life, "buy.rations"), nullptr);
             EXPECT_EQ(tabs->tabs[1].notice, 7);
             EXPECT_EQ(life->newInTown, 7);

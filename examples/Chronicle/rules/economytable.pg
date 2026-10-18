@@ -1,7 +1,7 @@
 // Chronicle rules: the basic resources and the economy's knobs
 // ------------------------------------------------------------
-// Imported by resources.pg (what he holds shows in the ledger) and, later, by the works that
-// gather and spend them. Never loaded itself.
+// Imported by resources.pg (what he holds shows in the ledger), activitytable.pg (the works that
+// gather, store and bind with them), town.pg (the stash) and the solver. Never loaded itself.
 // Input:  none.
 // Output: `basicResources`, what he gathers by working the land and the town's yards:
 //           [{id, name, one, glyph, about}]
@@ -12,8 +12,8 @@
 //         `familiarKinds`, `slotGivers`: the creatures he can bind, and what gives him slots for them
 //         `economyKnobs`, the numbers of the economy that belong to no one resource:
 //           stashMost   the most of any one thing the stash can keep between lives
-//           baseSlots   the stash slots a life has before the town gives it more
-//         `one` is the thing said once ("a clay"), as the log names it.
+//           baseSlots   the familiar slots a life has before its standing and calling give more
+//         `one` is the thing said once ("1 berry"), as a count of one names it (lib.pg's `thingsWord`).
 //         The most he can hold of each is lib.pg's `statLimits`; a store raises it with the stat
 //         "store.<id>" (lib.pg's `limitOf`).
 //         Each is held as a stat of the same id and has its row in the ledger, in the group
@@ -121,9 +121,10 @@ const familiarKinds = [
      eats: [{stat: "stone", amount: 3}, {stat: "water", amount: 3}, {stat: "rations", amount: 1}], makes: [{stat: "gems", amount: 1}], bind: [{stat: "stone", amount: 10}]}
 ]
 
-// What gives him slots to bind familiars in: standing in the town (one each), a second calling
-// (two each) and the Harrow relic (one). `needed` is the least of the stat that counts, 1 when
-// left out.
+// What gives him slots to bind familiars in, beside the life's own (`economyKnobs.baseSlots`): a
+// class, sworn to one of the three or gone to the Greenwood (one each), a second calling (two
+// each) and the Harrow relic (one). lib.pg's `slotsOf` counts them. A row may give `needed`, the
+// least of its stat that counts (1 when left out); none does yet.
 const slotGivers = [
     {stat: "keep_oath", slots: 1},
     {stat: "collegium", slots: 1},
