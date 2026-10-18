@@ -2925,8 +2925,8 @@ namespace pg
             }
         }
 
-        // What the smithy forges goes with him into a fight: the iron blade is two of Might, a
-        // point more on each end of a blow (Might counts half in a blow, as Arms counts twice in
+        // What the smithy forges goes with him into a fight: the iron blade is four of Might, two
+        // more on each end of a blow (Might counts half in a blow, as Arms counts twice in
         // Might), and the jerkin's armour is two off each bite.
         TEST(expedition_test, gear_adds_to_a_blow)
         {
@@ -2940,13 +2940,13 @@ namespace pg
             auto geared = wolfFight(armed);
 
             EXPECT_EQ(heroValue(*plain, "might"), "15");
-            EXPECT_EQ(heroValue(*geared, "might"), "17");
+            EXPECT_EQ(heroValue(*geared, "might"), "19");
 
             const auto bare = rangeOf(textOf(plain->last.preview, "deals"));
             const auto edged = rangeOf(textOf(geared->last.preview, "deals"));
 
-            EXPECT_EQ(edged.first, bare.first + 1);
-            EXPECT_EQ(edged.second, bare.second + 1);
+            EXPECT_EQ(edged.first, bare.first + 2);
+            EXPECT_EQ(edged.second, bare.second + 2);
 
             // The wolf's bite, said on its panel: the jerkin takes two off each end, never below 1
             ASSERT_FALSE(plain->last.targets.empty());
@@ -2971,7 +2971,6 @@ namespace pg
             ElementMap armed = knowing(hunter(), "hollow", 3);
             armed["gear.iron_blade"] = ElementType{1};
             armed["gear.jerkin"] = ElementType{1};
-            armed["gear.charm"] = ElementType{1};
 
             const ElementMap bare = knowing(hunter(), "hollow", 3);
 

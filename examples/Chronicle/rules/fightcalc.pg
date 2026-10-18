@@ -339,7 +339,8 @@ fun biteRange(mob, move)
     var blunted = wholeOf(guardOf(), 2)
 
     // What he wears stops a little of each: his armour a blow of the body, his ward a working
-    // (a move of the beast's `kind` "spell")
+    // (a move of the beast's `kind` "spell"). No piece has a ward yet: the warded charm comes
+    // with Millbrook Marsh, with the first beasts that work against him
     var told = pick(mob.moves, move, {})
 
     if (pick(told, "kind", "") == "spell")

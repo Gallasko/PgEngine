@@ -5646,8 +5646,8 @@ namespace pg
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
         // The smithy forges gear of resources, a piece once a life: the iron blade and the jerkin
-        // once it has its first level, the charm at its second. It stands on the Town page, at the
-        // smithy.
+        // once it has its first level. It stands on the Town page, at the smithy, and is lost at
+        // his death: never left to a place, never in the stash.
         TEST(rules_test, the_smithy_forges_gear)
         {
             MockLogger logger;
@@ -5696,12 +5696,8 @@ namespace pg
             character["gems"] = ElementType{1};
             EXPECT_FALSE(flag(activityAt(f.rules, 20.0f, character, "forge.iron_blade").fields, "locked"));
 
-            // The jerkin at the same level; the charm waits for the second
+            // The jerkin at the same level
             EXPECT_TRUE(flag(activityAt(f.rules, 20.0f, character, "forge.jerkin").fields, "listed"));
-            EXPECT_FALSE(flag(activityAt(f.rules, 20.0f, character, "forge.charm").fields, "listed"));
-
-            character["town.smithy"] = ElementType{2};
-            EXPECT_TRUE(flag(activityAt(f.rules, 20.0f, character, "forge.charm").fields, "listed"));
 
             // Forged once, it is his for the life: the smithy makes him no second one
             character["gear.iron_blade"] = ElementType{1};
@@ -5717,6 +5713,40 @@ namespace pg
             ASSERT_NE(held, nullptr);
             EXPECT_EQ(textOf(*held, "groupLabel"), "GEAR");
             EXPECT_TRUE(flag(*held, "title"));
+
+            // Lost at his death: what a place is left and what the stash keeps hold stone, and
+            // never a piece of gear
+            character["gear.jerkin"] = ElementType{1};
+            character["stone"] = ElementType{30};
+            character["firewood"] = ElementType{30};
+
+            RuleTown town;
+            ASSERT_TRUE(f.rules.town(20.0f, character, town)) << firstError(f.rules);
+
+            bool leftAny = false;
+
+            for (const auto& place : town.places)
+            {
+                for (const auto& l : place.leaves)
+                {
+                    leftAny = true;
+                    EXPECT_NE(textOf(l, "stat").rfind("gear.", 0), 0u) << textOf(place.fields, "id") << " is left " << textOf(l, "stat");
+                }
+            }
+
+            EXPECT_TRUE(leftAny);
+
+            bool stone = false;
+
+            for (const auto& s : town.stash)
+            {
+                stone = stone or textOf(s, "stat") == "stone";
+                EXPECT_NE(textOf(s, "stat").rfind("gear.", 0), 0u) << "the stash keeps " << textOf(s, "stat");
+            }
+
+            EXPECT_TRUE(stone);
+            EXPECT_EQ(town.stashLine.find("blade"), std::string::npos) << town.stashLine;
+            EXPECT_EQ(town.stashLine.find("jerkin"), std::string::npos) << town.stashLine;
         }
     }
 }
