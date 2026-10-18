@@ -8668,21 +8668,19 @@ namespace pg
             EXPECT_NEAR(account->y + account->height, column->y + column->height, 24.0f);
             EXPECT_LE(account->y + account->height, column->y + column->height + 0.5f);
 
-            // The next six actions on the timeline, his first, the rat among them: all six places stand
-            EXPECT_EQ(walkPart(life, "chip0")->get<Label>()->spec.text.rfind("1 \xC2\xB7 ALDREN", 0), 0u);
-            EXPECT_NE(walkPart(life, "chip0")->get<Label>()->spec.text.find("NOW"), std::string::npos);
-
+            // The timeline in the panel: he now, the rat after, the end of his day
+            bool now = false;
             bool ratComes = false;
 
-            for (int c = 1; c < 6; ++c)
+            for (const auto& [text, x] : life->timelineShown())
             {
-                EXPECT_TRUE(f.pos(walkPart(life, "chip" + std::to_string(c)))->visible);
-
-                if (walkPart(life, "chip" + std::to_string(c))->get<Label>()->spec.text.find("WATER RAT") != std::string::npos)
-                    ratComes = true;
+                now = now or text == "NOW";
+                ratComes = ratComes or text.find("Water rat") != std::string::npos;
             }
 
+            EXPECT_TRUE(now);
             EXPECT_TRUE(ratComes);
+            EXPECT_TRUE(f.pos(walkPart(life, "timeline"))->visible);
 
             // A narrower window, in three columns still: the same screen and the same buttons,
             // his turn's panel narrower and the right column against the window's edge
@@ -8702,10 +8700,10 @@ namespace pg
             EXPECT_GT(order->x, f.pos(walkPart(life, "menuPanel"))->x + f.pos(walkPart(life, "menuPanel"))->width - 0.5f);
             EXPECT_NEAR(f.pos(walkPart(life, "moveNote"))->width, f.pos(walkPart(life, "menuPanel"))->width - 32.0f, 1.0f);
 
-            // One under the other, inside the panel
-            EXPECT_GT(f.pos(walkPart(life, "chip1"))->y, f.pos(walkPart(life, "chip0"))->y + 4.0f);
-            EXPECT_GT(f.pos(walkPart(life, "chip2"))->y, f.pos(walkPart(life, "chip1"))->y + 4.0f);
-            EXPECT_GT(f.pos(walkPart(life, "quick"))->y, f.pos(walkPart(life, "chip2"))->y + 4.0f);
+            // The timeline, then what is coming and his quickness under it, inside the panel
+            auto box = f.pos(walkPart(life, "timeline"));
+
+            EXPECT_GT(f.pos(walkPart(life, "quick"))->y, box->y + box->height - 0.5f);
             EXPECT_LE(f.pos(walkPart(life, "quick"))->y + f.pos(walkPart(life, "quick"))->height, order->y + order->height + 0.5f);
         }
 
@@ -8752,11 +8750,13 @@ namespace pg
             ASSERT_EQ(life->walkScreen, "fight");
             f.pass(100.0f, 50.0f);
 
-            // The next six actions, his first
-            EXPECT_NE(walkPart(life, "chip0")->get<Label>()->spec.text.find("NOW"), std::string::npos);
+            // The timeline, his turn first
+            bool now = false;
 
-            for (int c = 0; c < 6; ++c)
-                EXPECT_TRUE(f.pos(walkPart(life, "chip" + std::to_string(c)))->visible) << c;
+            for (const auto& [text, x] : life->timelineShown())
+                now = now or text == "NOW";
+
+            EXPECT_TRUE(now);
 
             // His blows on a line under what anyone can do, his workings on the next
             const Button* strike = nullptr;
@@ -8791,6 +8791,73 @@ namespace pg
 
             EXPECT_NE(walkPart(life, "foeLife0")->get<Label>()->spec.text.find("BURNING"), std::string::npos)
                 << walkPart(life, "foeLife0")->get<Label>()->spec.text;
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The timeline, top right: his turns and the beasts' where they fall in time, and the end
+        // of his day. The mouse on a quick move brings his next turn sooner, the old place faint.
+        TEST(lifescene_test, the_timeline_moves_with_the_move_under_the_mouse)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.build = "street";
+            opt.walk = "hollow";
+            opt.walkSeed = 11;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+            f.frames(12);
+            ASSERT_TRUE(life->onWalk());
+
+            f.ecs.sendEvent(ActivitySelectedEvent{"walk.seeks", "boar"});
+            f.settle();
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.seek"});
+            f.frames(12);
+
+            // (the street boy lies in wait: the card asks how to meet it, the open fight first)
+            answerEvents(f, life);
+            f.frames(12);
+            ASSERT_EQ(life->walkScreen, "fight");
+            f.pass(100.0f, 50.0f);
+
+            auto firstX = [life](const std::string& text) {
+                float x = -1.0f;
+
+                for (const auto& [shown, at] : life->timelineShown())
+                {
+                    if (shown == text and (x < 0.0f or at < x))
+                        x = at;
+                }
+
+                return x;
+            };
+
+            ASSERT_GE(firstX("NOW"), 0.0f);
+            ASSERT_GT(firstX("TURN 2"), firstX("NOW"));
+            EXPECT_LT(firstX("THE DAY ENDS"), 0.0f);   // (his day does not end with this turn)
+
+            const float before = firstX("TURN 2");
+
+            // The mouse on Thrust
+            for (const auto& [tag, button] : life->moves())
+            {
+                if (tag == "walk.move.tech.thrust")
+                {
+                    auto box = f.pos(button.face);
+
+                    f.ecs.sendEvent(OnMouseMove{Point2D{box->x + box->width / 2.0f, box->y + box->height / 2.0f}, nullptr});
+                }
+            }
+
+            // (the scene looks at the mouse each tick of its clock)
+            f.frames(4);
+            f.pass(300.0f, 50.0f);
+
+            EXPECT_LT(firstX("TURN 2"), before);
         }
 
         // ----------------------------------------------------------------------------------------

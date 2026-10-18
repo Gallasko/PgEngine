@@ -87,8 +87,11 @@ it means to make this turn, by its name alone. What the move is, is in its gloss
 does to him is said there only once it has been used on him or once he has watched the beast.
 A blow is seen coming: its rule fills, his or the beast's, then the blow is told in the account,
 the rule of who was hurt flashes and falls, and what was taken lifts off it (a blow that found
-nothing lifts a small *MISS*). The order of the turn has a panel of its own at the top of the
-right column, over the account: who acts when, and what is coming at him. What he may do is a
+nothing lifts a small *MISS*). The timeline has a panel of its own at the top of the right
+column, over the account: his actions over a line of time and the beasts' under it, where each
+falls, with the end of his day across it; the move under the mouse shows where it would put him
+(his old place faint, a beast it holds put off, a beast that now acts before him in red), and
+under it what is coming at him. What he may do is a
 button each, pressed and done, its gloss saying what it would do: what anyone can (strike,
 defend, take a remedy while he holds one, flee) and what his life has taught him and nothing
 else: the Keep's blows to its sworn men, the Collegium's workings to its scholars, a trick of
@@ -110,8 +113,8 @@ walked them's. The on-site screen is laid as the Life page is: how he stands (hi
 well the place is known), what he carries and the way home at the left, what he may do in the
 middle as tiles, what he has taken and the record at the right.
 
-**The fight** (0.7). Who is quicker acts more often: the order of the turn shows the next six
-actions, his first, and a quick move holds him less than a heavy one. A blow has a type (cut,
+**The fight** (0.7). Who is quicker acts more often: the timeline shows who acts when, up to the
+end of his day, and a quick move holds him less than a heavy one. A blow has a type (cut,
 pierce, blunt) and a working an element (fire, frost, storm) or holiness; a beast resists some
 and is weak to others, has armour against blows and a ward against workings, and a big one has
 poise that his blows wear down until it staggers. Each class plays a rhythm: the Keep builds
@@ -998,8 +1001,9 @@ files of their own, `expeditionlib.pg` and `fightlib.pg`, imported first: a scri
 - **A fight** is a timeline (`fightlib.pg`): everyone waits `waitFor(weight, speed)` between two
   actions, `weight` percent of an ordinary move, his speed his Dexterity, a beast's its `quick`
   (3 more while a `leader` of its fight stands). The one with the least wait acts, he first on a
-  tie; a quick move (a thrust, 70) holds him less, a heavy one (a finisher, 150) more. The order
-  of the turn shows the next six actions (`orderRows`). Every `turnsPerAp` of his actions (3, one
+  tie; a quick move (a thrust, 70) holds him less, a heavy one (a finisher, 150) more. The timeline
+  (`timelineRows`, as it stands and for each move of the menu; drawn by `LifeScene::fillTimeline`,
+  the move under the mouse chosen each tick) runs from now to past the end of his day. Every `turnsPerAp` of his actions (3, one
   more for every 10 Dexterity, one fewer under half his Vitality) a day is gone, and a day begun
   is a day spent. A pack that holds back attacks with its first `holdsBack` members of a kind
   only. A fight may hold beasts of several kinds (`walkEncounters`, sought as `enc.<id>`). A delay

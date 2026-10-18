@@ -222,15 +222,13 @@ children:
         width: 376
         z: 104
         contentZ: 114
-        heading: The order of the turn
+        heading: The timeline
         glyph: time
+        aside: TURN 1 OF 4 · DAY 1      # how far into his day he is (the duel's dayText)
         children:
-          - {kind: Label, name: chip0, style: label, color: lapis, overflow: wrap, text: "1 · ALDREN · NOW"}
-          - {kind: Label, name: chip1, style: label, color: ink, overflow: wrap, text: "2 · FIRST WOLF · BITE"}
-          - {kind: Label, name: chip2, style: label, color: ink, overflow: wrap, text: "3 · SECOND WOLF · CIRCLE"}
-          - {kind: Label, name: chip3, style: label, color: ink-muted, overflow: wrap, text: "4 · THIRD WOLF · HANG BACK"}
-          - {kind: Label, name: chip4, style: label, color: ink-muted, overflow: wrap, text: "5 · ALDREN · A NEW DAY"}
-          - {kind: Label, name: chip5, style: label, color: ink-muted, overflow: wrap, text: ""}
+          # Who acts when, in time: his actions over the line, the beasts' under it, the end of his day; the
+          # scene draws them in this box (LifeScene::fillTimeline), the move under the mouse moving them
+          - {kind: Shape2D, name: timeline, width: 344, height: 112, theme: timeline.ground}
           - {kind: Label, name: warn, style: label, color: vermilion, overflow: wrap, text: "2 BLOWS COMING · 8–14 IF ALL LAND"}
           - {kind: Label, name: quick, style: label, color: ink-muted, overflow: wrap, text: "QUICKNESS 11 AGAINST 9: HE ACTS FIRST"}
 

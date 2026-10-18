@@ -2748,5 +2748,97 @@ namespace pg
             ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));
             EXPECT_TRUE(w.last.builds.empty());
         }
+
+        namespace
+        {
+            // The marks of the timeline for one move ("" as it stands): {kind, n, at, text, tone}
+            std::vector<ElementMap> timelineOf(const Walker& w, const std::string& move)
+            {
+                std::vector<ElementMap> marks;
+
+                for (const auto& t : w.last.timeline)
+                {
+                    if (textOf(t, "move") == move)
+                        marks.push_back(t);
+                }
+
+                return marks;
+            }
+
+            // Where his next turn falls on the gauge, 0 to 1000; -1 for none
+            int hisNextAt(const std::vector<ElementMap>& marks)
+            {
+                for (const auto& m : marks)
+                {
+                    if (textOf(m, "kind") == "next")
+                        return intOf(m, "at");
+                }
+
+                return -1;
+            }
+
+            bool hasKind(const std::vector<ElementMap>& marks, const std::string& kind, const std::string& tone = "")
+            {
+                for (const auto& m : marks)
+                {
+                    if (textOf(m, "kind") == kind and (tone.empty() or textOf(m, "tone") == tone))
+                        return true;
+                }
+
+                return false;
+            }
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The timeline is a gauge from now to his next turn: how long each move he may make takes
+        // (a quick one less, a heavy one more), the beasts that act before it, the next one after it
+        // faint, a hold putting the beast's turn off, and the end of the day on the turn that ends it.
+        TEST(expedition_test, the_timeline_shows_where_each_move_puts_him)
+        {
+            MockLogger logger;
+
+            ElementMap sly = hunter();
+            sly["thrust_learned"] = ElementType{1};
+            sly["smuggler_runner"] = ElementType{1};
+            sly["levy_served"] = ElementType{1};
+
+            auto w = boarFight(sly);
+
+            const auto now = timelineOf(*w, "");
+
+            ASSERT_FALSE(now.empty());
+            ASSERT_GT(hisNextAt(now), 0);
+            EXPECT_LT(hisNextAt(now), 1000);
+            EXPECT_TRUE(hasKind(now, "foe"));
+            EXPECT_TRUE(hasKind(now, "warn"));
+            EXPECT_FALSE(hasKind(now, "day"));
+
+            for (const auto& m : now)
+                EXPECT_LE(intOf(m, "at"), 1000);
+
+            EXPECT_FALSE(textOf(w->last.duel, "dayText").empty());
+
+            // A quick move takes less time, a heavy one more
+            EXPECT_LT(hisNextAt(timelineOf(*w, "tech.thrust")), hisNextAt(now));
+
+            // A hold: the beast's next turn is lost, and said so
+            EXPECT_TRUE(hasKind(timelineOf(*w, "tech.sand"), "foe", "held"));
+
+            // The turn that ends his day has the day's line where his next turn falls
+            for (int i = 0; i < 6 and not hasKind(timelineOf(*w, ""), "day") and textOf(w->last.duel, "over").empty(); ++i)
+                ASSERT_TRUE(w->act("move", "guard"));
+
+            const auto last = timelineOf(*w, "");
+
+            ASSERT_TRUE(hasKind(last, "day"));
+
+            for (const auto& m : last)
+            {
+                if (textOf(m, "kind") == "day")
+                    EXPECT_EQ(intOf(m, "at"), hisNextAt(last));
+            }
+        }
     }
 }

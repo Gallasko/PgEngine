@@ -33,7 +33,7 @@
 //         log; and what the pages show:
 //           on site   `site` (the head, the strip and the words), `seeks`, `works`, `card` and
 //                     `options` (an event), `bag`, `taken`, `home`;
-//           a fight   `duel`, `menu`, `targets`, `order`, `hero`, `foe`, `preview`;
+//           a fight   `duel`, `menu`, `targets`, `order`, `hero`, `foe`, `preview`, `timeline` (who acts when, in time, as it stands and for each move);
 //           records   `shelf`, `form`, `stops`;
 //         `recipe`, the figures a finished walk is kept under (`zone` "" until it is over);
 //         `builds`, asked "builds": the builds to try a fight with (testbuilds.pg), flat;
@@ -83,6 +83,7 @@ var order = []
 var hero = []
 var foe = []
 var preview = {id: ""}
+var timeline = []
 
 var shelf = []
 var form = {recipe: ""}
@@ -157,6 +158,7 @@ if ((ask == "enter" or ask == "act" or ask == "look") and pick(run, "zone", "") 
         hero = heroRows()
         foe = foeRows()
         preview = previewOf(fight.choice)
+        timeline = timelineRows()
     }
 }
 

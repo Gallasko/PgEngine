@@ -883,6 +883,9 @@ fun duelHead()
         view.pack = 1
     }
 
+    // How far into his day he is, for the timeline's corner
+    view.dayText = "TURN " + toString(fight.since + 1) + " OF " + toString(per) + " · DAY " + toString(runOf("spent") + 1)
+
     if (not knowsAny())
     {
         view.breath = ""
@@ -951,4 +954,256 @@ fun duelHead()
     }
 
     return view
+}
+
+// ---- the timeline: who acts when, in time ------------------------------------------------------------
+//
+// From now (his action, at 0) to a little past the end of his day, or three of his ordinary
+// actions when the day ends sooner: his actions above the line, the beasts' under it, where
+// each falls in time. As it stands his next move is an ordinary one; for each move of his menu,
+// where that move puts him (a quick one sooner, a heavy one later) and what it does to the
+// beast aimed at (a hold loses it its next turn, or puts it off). `at` is 0 to 1000 across.
+
+// What would come if he chose `choice` now, up to `horizon`: [{kind (hero, foe), n, t, k, move, held}]
+fun timelineEvents(choice, horizon)
+{
+    var events = []
+    var speed = heroSpeed()
+    var ordinary = waitFor(100, speed)
+    var t = 0
+
+    for (var k = 0; k < 12 and t <= horizon; k++)
+    {
+        push(events, {kind: "hero", n: -1, t: t, k: k, move: "", held: 0})
+
+        if (k == 0)
+        {
+            t = t + waitFor(moveWeight(choice), speed)
+        }
+        else
+        {
+            t = t + ordinary
+        }
+    }
+
+    var holds = false
+
+    if (startsWith(choice, "tech."))
+    {
+        var tech = techOf(substring(choice, 5))
+
+        holds = pick(tech, "holds", false)
+    }
+
+    for (var i = 0; i < len(foes); i++)
+    {
+        if (foes[i].alive > 0)
+        {
+            var mob = foeMob(i)
+            var script = foeScript(i)
+            var ft = foeWait(i) - heroWait()
+            var lost = pick(foes[i], "held", 0) > 0
+
+            // His hold on it: its next turn lost, or only put off (holdFoe)
+            if (holds and i == fight.target)
+            {
+                if (lost or pick(foes[i], "delays", 0) > 0 or bossFoe(i))
+                {
+                    var put = wholeOf(waitFor(100, foeSpeed(i)), 1 + pick(foes[i], "delays", 0))
+
+                    if (bossFoe(i))
+                    {
+                        put = share(put, walkKnobs.bossDelay)
+                    }
+
+                    ft = ft + put
+                }
+                else
+                {
+                    lost = true
+                }
+            }
+
+            var step = 0
+
+            for (var fk = 0; fk < 8 and ft <= horizon; fk++)
+            {
+                var move = moveOf(mob, i)
+
+                if (step > 0 and move != "hold")
+                {
+                    move = script[(foes[i].at + step) % len(script)]
+                }
+
+                var held = 0
+
+                if (fk == 0 and lost)
+                {
+                    held = 1
+                }
+                else
+                {
+                    step = step + 1
+                }
+
+                push(events, {kind: "foe", n: i, t: ft, k: fk, move: move, held: held})
+
+                var wait = waitFor(100, foeSpeed(i))
+
+                if (pick(foes[i], "mark", "") == "frost")
+                {
+                    wait = share(wait, walkKnobs.chillWeight)
+                }
+
+                ft = ft + wait
+            }
+        }
+    }
+
+    return events
+}
+
+// When his next action comes in a list of events (-1: past the timeline)
+fun nextOf(events)
+{
+    for (var i = 0; i < len(events); i++)
+    {
+        if (events[i].kind == "hero" and events[i].k == 1)
+        {
+            return events[i].t
+        }
+    }
+
+    return -1
+}
+
+// When the kth action of the nth beast comes in a list of events (-1: past the timeline)
+fun foeAt(events, n, k)
+{
+    for (var i = 0; i < len(events); i++)
+    {
+        if (events[i].kind == "foe" and events[i].n == n and events[i].k == k)
+        {
+            return events[i].t
+        }
+    }
+
+    return -1
+}
+
+// The marks of one move's gauge, its events against those as it stands: his next turn (the end
+// of the hatched block: how long the move takes), the beasts that act before it (`tone` bite for
+// a blow, calm for what draws no blood, held for a turn his hold takes; `bold` for one that comes
+// before him only because of this move), the first one after it faint, the end of his day where
+// his next turn falls when this turn ends it, and what is coming at him before it (`warn`)
+fun timelineMarks(rows, move, events, base, horizon)
+{
+    var hisNext = nextOf(events)
+    var baseNext = nextOf(base)
+    var after = -1
+    var afterAt = horizon + 1
+    var blows = 0
+    var least = 0
+    var most = 0
+
+    if (hisNext < 0)
+    {
+        hisNext = horizon
+    }
+
+    push(rows, {move: move, kind: "next", n: -1, at: wholeOf(hisNext * 1000, larger(1, horizon)), text: "TURN " + toString(fight.turn + 1), tone: "next", bold: 0})
+
+    if ((fight.since + 1) % turnsPerAp() == 0)
+    {
+        push(rows, {move: move, kind: "day", n: -1, at: wholeOf(hisNext * 1000, larger(1, horizon)), text: "THE DAY ENDS", tone: "day", bold: 0})
+    }
+
+    for (var i = 0; i < len(events); i++)
+    {
+        var e = events[i]
+
+        if (e.kind == "foe" and e.t < hisNext)
+        {
+            var mob = foeMob(e.n)
+            var told = moveInfo(mob, e.move)
+            var says = foes[e.n].name + " · " + toLowerCase(told.name)
+            var tone = "calm"
+            var bold = 0
+
+            if (e.held > 0)
+            {
+                says = foes[e.n].name + " · held"
+                tone = "held"
+            }
+            else if (not harmless(e.move))
+            {
+                tone = "bite"
+
+                var range = biteRange(mob, e.move)
+
+                blows = blows + 1
+                least = least + range[0]
+                most = most + range[1]
+            }
+
+            // It comes before him only because of this move
+            if (move != "" and e.held == 0)
+            {
+                var was = foeAt(base, e.n, e.k)
+
+                if (was < 0 or (baseNext >= 0 and was >= baseNext))
+                {
+                    bold = 1
+                }
+            }
+
+            push(rows, {move: move, kind: "foe", n: e.n, at: wholeOf(e.t * 1000, larger(1, horizon)), text: says, tone: tone, bold: bold})
+        }
+        else if (e.kind == "foe" and e.t < afterAt)
+        {
+            after = i
+            afterAt = e.t
+        }
+    }
+
+    // The first beast after his turn, faint: a slower move would let it in
+    if (after >= 0)
+    {
+        var next = events[after]
+
+        push(rows, {move: move, kind: "foe", n: next.n, at: wholeOf(next.t * 1000, larger(1, horizon)), text: foes[next.n].name, tone: "faint", bold: 0})
+    }
+
+    var warn = "NOTHING COMES BEFORE YOUR TURN"
+
+    if (blows > 0)
+    {
+        warn = toUpperCase(counted(blows, "blow", "blows")) + " COMING BEFORE YOUR TURN · " + rangeText([least, most]) + " IF ALL LAND"
+    }
+
+    push(rows, {move: move, kind: "warn", n: -1, at: 0, text: warn, tone: "warn", bold: 0})
+}
+
+// The gauge as it stands (`move` "", an ordinary move), and for each move of his menu he may make
+// but fleeing. Its scale is the same for all of them: a little past where his slowest move would
+// put him
+fun timelineRows()
+{
+    var rows = []
+    var horizon = waitFor(165, heroSpeed())
+    var base = timelineEvents("strike", horizon)
+
+    timelineMarks(rows, "", base, base, horizon)
+
+    for (var i = 0; i < len(menu); i++)
+    {
+        var id = menu[i].id
+
+        if (id != "retreat" and menu[i].locked == 0)
+        {
+            timelineMarks(rows, id, timelineEvents(id, horizon), base, horizon)
+        }
+    }
+
+    return rows
 }

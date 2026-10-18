@@ -249,6 +249,11 @@ namespace chronicle
         // Asked "builds": the builds to try a fight with (--build), testbuilds.pg's, each flat:
         // {id, name, about, age, "stat.<stat>": value, "know.<key>": value}
         pg::RecordList builds;
+
+        // A fight: its timeline, his actions and the beasts' where they fall in time, as it stands (`move` "")
+        // and for each move of the menu (`move` its id): {move, kind (hero, foe, ghost, day), n (the beast),
+        // at (0 to 1000 across the timeline), text, tone (now, later, foe, before, held, ghost, day)}
+        pg::RecordList timeline;
     };
 
     // The scene's scripts, loaded once from a rules root, each with its typed call. Every

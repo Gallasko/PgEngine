@@ -16,6 +16,8 @@
 #include "ECS/entitysystem.h"
 #include "ECS/callable.h"
 #include "2D/position.h"
+#include "2D/simple2dobject.h"
+#include "2D/decoratedshapes.h"
 #include "UI/prefab.h"
 #include "UI/sizer.h"
 #include "UI/prefabloader.h"
@@ -705,6 +707,10 @@ namespace chronicle
         if (auto log = walkPiece<EventLog>("account"); turn and log)
             told = log->size();
 
+        // Where the move pressed puts his next turn, as the gauge shows it now: the fill goes there
+        // as the turn is told (tellTurn)
+        timeSpan = timelineSpanOf(act.kind == "move" ? act.target : act.kind == "do" ? textOf(save.walk.fight, "choice") : std::string());
+
         RuleWalk answer;
 
         if (not askWalk("act", act, "", answer))
@@ -1080,6 +1086,11 @@ namespace chronicle
         moveRows.clear();
         moveFlow.clear();
         moveHoverStale = 0;
+        timeChips.clear();
+        timeBar.reset();
+        timeDay = EntityRef{};
+        timeDayLabel.reset();
+        timelineMove = "-";
         walkGlossed = false;
         accountFitted = 0.0f;
     }
@@ -1917,7 +1928,7 @@ namespace chronicle
 
         walkSay("quick", textOf(duel, "quick"));
         walkSay("warn", warn.empty() ? std::string(" ") : warn);
-        walkShow("warn", not warn.empty(), "orderPanel");
+        walkShow("warn", not over, "orderPanel");   // (the timeline says what is coming before his next turn)
         walkShow("quick", not over, "orderPanel");
 
         for (int i = 0; i < MaxChips; ++i)
@@ -2122,6 +2133,18 @@ namespace chronicle
         // beast to aim at first
         fillMoves(over, handed);
 
+        // The timeline: as it stands, or as the move under the mouse would leave it; its corner
+        // says how far into his day he is
+        fillTimeline(hoveredMove());
+
+        if (auto panel = walkPiece<Panel>("orderPanel"); panel and panel->aside)
+        {
+            const std::string aside = over ? std::string(" ") : textOf(duel, "dayText");
+
+            if (panel->aside->spec.text != aside)
+                panel->setAside(ecs, aside);
+        }
+
         walkShow("aimNote", pack and not over, "menuPanel");
         walkShow("aims", pack and not over, "menuPanel");
         walkShow("moves", not over, "menuPanel");
@@ -2165,6 +2188,302 @@ namespace chronicle
             autoLeft = 0.0f;
     }
 
+    // ---- the timeline: who acts when, in time ------------------------------------------------------
+
+    std::string LifeScene::hoveredMove() const
+    {
+        const std::string prefix = MoveTag;
+
+        for (const auto& [tag, button] : walkMoves)
+        {
+            EntityRef face = button.face;
+
+            if (tag.rfind(prefix, 0) != 0 or face.empty() or not face->has<ButtonState>())
+                continue;
+
+            if (face->get<ButtonState>()->hovered)
+                return tag.substr(prefix.size());
+        }
+
+        return std::string();
+    }
+
+    std::vector<std::pair<std::string, float>> LifeScene::timelineShown() const
+    {
+        std::vector<std::pair<std::string, float>> shown;
+
+        auto add = [&shown](const Label& label) {
+            EntityRef entity = label.entity;
+
+            if (entity.empty())
+                return;
+
+            auto pos = entity->get<PositionComponent>();
+
+            if (pos->visible)
+                shown.emplace_back(label.spec.text, pos->x);
+        };
+
+        for (const auto& chip : timeChips)
+            add(chip.label);
+
+        if (timeDayLabel)
+            add(*timeDayLabel);
+
+        return shown;
+    }
+
+    float LifeScene::timelineSpanOf(const std::string& move) const
+    {
+        for (const auto& t : walk.timeline)
+        {
+            if (textOf(t, "move") == move and textOf(t, "kind") == "next")
+                return static_cast<float>(intOf(t, "at")) / 10.0f;
+        }
+
+        return move.empty() ? 0.0f : timelineSpanOf("");
+    }
+
+    void LifeScene::fillTimeline(const std::string& move)
+    {
+        EntitySystem* ecs = ecsRef;
+        EntityRef box = inWalk("timeline");
+
+        timelineMove = move;
+
+        // A screen built this pass does not hold all its pieces yet (its box among them): the
+        // timeline is drawn the next one, when the mouse check finds it not drawn (runWalk)
+        if (box.empty() or walkPage.empty() or walkFresh)
+        {
+            timelineMove = "-";
+            return;
+        }
+
+        constexpr size_t Pool = 10;                    // Tags the gauge has room for: now, his next turn, the beasts before it, the one after
+        constexpr float BarY = 44.0f;                  // The gauge, from the box's top
+        constexpr float HeroY = 14.0f;                 // His tags over it
+        constexpr float FoeY = 66.0f;                  // The beasts' under it, and a row lower when two would touch
+        constexpr float FoeRow = 22.0f;
+        constexpr float ChipH = 18.0f;
+        constexpr float ChipPad = 5.0f;
+
+        // Made on another screen (one built anew without being closed, as a save opened on a
+        // fight): those pieces went with it
+        if (timePage != walkPage.id)
+        {
+            timeChips.clear();
+            timeBar.reset();
+            timeDay = EntityRef{};
+            timeDayLabel.reset();
+            timePage = walkPage.id;
+        }
+
+        const auto boxPos = box->get<PositionComponent>();
+        const float width = boxPos->width;
+        const int z = static_cast<int>(boxPos->z) + 2;
+
+        auto anchorIn = [&box](EntityRef piece, float x, float y) {
+            auto anchor = piece->get<UiAnchor>();
+
+            anchor->setLeftAnchor(PosAnchor{box.id, AnchorType::Left});
+            anchor->setLeftMargin(x);
+            anchor->setTopAnchor(PosAnchor{box.id, AnchorType::Top});
+            anchor->setTopMargin(y);
+        };
+
+        // Made once a screen: the gauge, the day across it, and a pool of tags to move
+        if (not timeBar)
+        {
+            ProgressRuleSpec gauge;
+            gauge.width = width;
+            gauge.nib = false;
+            gauge.z = z;
+
+            ProgressRule bar = makeProgressRule(ecs, gauge);
+            anchorIn(bar.root, 0.0f, BarY);
+            walkPage->get<Prefab>()->addToPrefab(bar.root);
+            timeBar = bar;
+
+            auto day = makeUiSimple2DShape(ecs, Shape2D::Square, 2.0f, 40.0f);
+            day.get<PositionComponent>()->setZ(static_cast<float>(z + 3));
+            ecs->attach<ThemeComponent>(day.entity, "timeline.day");
+            anchorIn(day.entity, 0.0f, BarY - 16.0f);
+            walkPage->get<Prefab>()->addToPrefab(day.entity);
+            timeDay = day.entity;
+
+            Label dayLabel = makeLabel(ecs, {"label", "THE DAY ENDS", "status-time", Align::Left, Overflow::Grow, 0.0f, 0, z + 3});
+            anchorIn(dayLabel.entity, 0.0f, 0.0f);
+            walkPage->get<Prefab>()->addToPrefab(dayLabel.entity);
+            timeDayLabel = dayLabel;
+
+            for (size_t i = 0; i < Pool; ++i)
+            {
+                TimeChip chip;
+
+                auto ground = makeUiSimple2DShape(ecs, Shape2D::Square, 40.0f, ChipH);
+                ground.get<PositionComponent>()->setZ(static_cast<float>(z + 4));
+                ecs->attach<ThemeComponent>(ground.entity, "timeline.chip.ground");
+                anchorIn(ground.entity, 0.0f, 0.0f);
+                walkPage->get<Prefab>()->addToPrefab(ground.entity);
+                chip.ground = ground.entity;
+
+                auto frame = makeStrokeRect2DShape(ecs, 40.0f, ChipH, {255.0f, 255.0f, 255.0f, 255.0f}, 1.0f);
+                frame.get<PositionComponent>()->setZ(static_cast<float>(z + 5));
+                ecs->attach<ThemeComponent>(frame.entity, "timeline.chip.hero");
+                anchorIn(frame.entity, 0.0f, 0.0f);
+                walkPage->get<Prefab>()->addToPrefab(frame.entity);
+                chip.frame = frame.entity;
+
+                auto tick = makeUiSimple2DShape(ecs, Shape2D::Square, 2.0f, 10.0f);
+                tick.get<PositionComponent>()->setZ(static_cast<float>(z + 3));
+                ecs->attach<ThemeComponent>(tick.entity, "timeline.tick.hero");
+                anchorIn(tick.entity, 0.0f, 0.0f);
+                walkPage->get<Prefab>()->addToPrefab(tick.entity);
+                chip.tick = tick.entity;
+
+                chip.label = makeLabel(ecs, {"label", " ", "ink", Align::Left, Overflow::Grow, 0.0f, 0, z + 6});
+                anchorIn(chip.label.entity, 0.0f, 0.0f);
+                walkPage->get<Prefab>()->addToPrefab(chip.label.entity);
+
+                timeChips.push_back(chip);
+            }
+        }
+
+        // The marks of the move asked for, or as it stands when it has none (fleeing has none)
+        std::vector<const ElementMap*> marks;
+
+        for (const auto& t : walk.timeline)
+        {
+            if (textOf(t, "move") == move)
+                marks.push_back(&t);
+        }
+
+        if (marks.empty() and not move.empty())
+        {
+            for (const auto& t : walk.timeline)
+            {
+                if (textOf(t, "move").empty())
+                    marks.push_back(&t);
+            }
+        }
+
+        const bool over = not textOf(walk.duel, "over").empty();
+
+        // The gauge: hatched from now to his next turn, empty until a turn is told
+        float span = 0.0f;
+
+        for (const ElementMap* m : marks)
+        {
+            if (textOf(*m, "kind") == "next")
+                span = static_cast<float>(intOf(*m, "at")) / 10.0f;
+        }
+
+        timeBar->setPercent(ecs, 0.0f, false);
+        timeBar->setForecast(ecs, over ? 0.0f : span);
+        timeBar->root->get<PositionComponent>()->setVisibility(not over);
+
+        // A tag: its word in its frame, over or under the gauge, its tick on it
+        std::vector<std::pair<float, float>> placed;
+        size_t used = 0;
+
+        auto tag = [&](const std::string& text, const std::string& tone, float x, bool above, bool tick) {
+            if (used >= timeChips.size())
+                return;
+
+            TimeChip& chip = timeChips[used++];
+
+            const std::string color = tone == "hero" ? "lapis" : tone == "bite" ? "vermilion" : "ink-muted";
+            const std::string frame = "timeline.chip." + (tone == "held" ? std::string("calm") : tone);
+            const std::string mark = tone == "hero" ? "timeline.tick.hero" : tone == "bite" ? "timeline.tick.foe" : "timeline.tick.muted";
+
+            if (chip.label.spec.text != text)
+                chip.label.setText(ecs, text);
+
+            if (chip.label.spec.color != color)
+                chip.label.setColor(ecs, color);
+
+            const float w = chip.label.entity->get<PositionComponent>()->width + 2.0f * ChipPad;
+            const float cx = std::clamp(x - w / 2.0f, 0.0f, std::max(0.0f, width - w));
+
+            float y = HeroY;
+
+            if (not above)
+            {
+                y = FoeY;
+
+                for (const auto& [a, b] : placed)
+                {
+                    if (cx < b + 3.0f and cx + w > a - 3.0f)
+                        y = FoeY + FoeRow;
+                }
+
+                placed.emplace_back(cx, cx + w);
+            }
+
+            chip.ground->get<PositionComponent>()->setWidth(w);
+            chip.frame->get<PositionComponent>()->setWidth(w);
+            chip.frame->get<ThemeComponent>()->setElement(frame);
+
+            for (EntityRef piece : {chip.ground, chip.frame})
+            {
+                piece->get<UiAnchor>()->setLeftMargin(cx);
+                piece->get<UiAnchor>()->setTopMargin(y);
+            }
+
+            chip.label.entity->get<UiAnchor>()->setLeftMargin(cx + ChipPad);
+            chip.label.entity->get<UiAnchor>()->setTopMargin(y + 2.0f);
+
+            chip.tick->get<ThemeComponent>()->setElement(mark);
+            chip.tick->get<UiAnchor>()->setLeftMargin(x - 1.0f);
+            chip.tick->get<UiAnchor>()->setTopMargin(above ? HeroY + ChipH : BarY + 6.0f);
+
+            for (EntityRef piece : {chip.ground, chip.frame, chip.label.entity})
+                piece->get<PositionComponent>()->setVisibility(not over);
+
+            chip.tick->get<PositionComponent>()->setVisibility(tick and not over);
+        };
+
+        tag("NOW", "hero", 0.0f, true, false);
+
+        bool day = false;
+        std::string warn;
+
+        for (const ElementMap* m : marks)
+        {
+            const std::string kind = textOf(*m, "kind");
+            const float x = width * static_cast<float>(intOf(*m, "at")) / 1000.0f;
+
+            if (kind == "next")
+                tag(textOf(*m, "text"), "hero", x, true, true);
+            else if (kind == "foe")
+                tag(textOf(*m, "text"), textOf(*m, "tone"), x, false, true);
+            else if (kind == "warn")
+                warn = textOf(*m, "text");
+            else if (kind == "day")
+            {
+                day = true;
+                timeDay->get<UiAnchor>()->setLeftMargin(x - 1.0f);
+
+                const float w = timeDayLabel->entity->get<PositionComponent>()->width;
+
+                timeDayLabel->entity->get<UiAnchor>()->setLeftMargin(std::clamp(x - w - 4.0f, 0.0f, std::max(0.0f, width - w)));
+            }
+        }
+
+        timeDay->get<PositionComponent>()->setVisibility(day and not over);
+        timeDayLabel->entity->get<PositionComponent>()->setVisibility(day and not over);
+
+        for (size_t i = used; i < timeChips.size(); ++i)
+        {
+            for (EntityRef piece : {timeChips[i].ground, timeChips[i].frame, timeChips[i].tick, timeChips[i].label.entity})
+                piece->get<PositionComponent>()->setVisibility(false);
+        }
+
+        // What is coming before his next turn, as the move under the mouse leaves it
+        if (not over and not warn.empty())
+            walkSay("warn", warn);
+    }
+
     void LifeScene::tellTurn(size_t shown)
     {
         walkBeats.clear();
@@ -2188,6 +2507,16 @@ namespace chronicle
         walkTelling = true;
         beatCasting = false;
         beatLeft = 0.0f;
+
+        // How long the telling takes: a blow's cast and its line, a beat for any other line. The
+        // timeline's gauge fills over that time, to where the move put his next turn
+        timeTellMs = 0.0f;
+
+        for (const auto& beat : walkBeats)
+            timeTellMs += (beat.by.empty() ? 0.0f : CastMs) + BeatMs;
+
+        if (timeBar)
+            timeBar->setGlide(ecsRef, timeSpan, std::max(BeatMs, timeTellMs));
 
         // The turn is played: what the fight handed over waits for it to be told
         autoLeft = 0.0f;
@@ -2389,6 +2718,15 @@ namespace chronicle
         // A width that came while the screen did not hold its pieces yet: it is sized for it now
         if (walkSettling <= 0 and not walkPage.empty() and (windowWidth < NarrowBelow) == walkNarrow and std::abs(windowWidth - walkWidth) > 0.5f)
             sizeWalk(windowWidth, windowHeight);
+
+        // The mouse on another move of his turn: the timeline shows where that move would put him
+        if (walkScreen == "fight" and not walkPage.empty() and not walkTelling)
+        {
+            const std::string move = hoveredMove();
+
+            if (move != timelineMove)
+                fillTimeline(move);
+        }
 
         // The buttons of his turn were made again: the hover is asked for while they are placed
         if (moveHoverStale > 0)

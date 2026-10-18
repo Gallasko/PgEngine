@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <deque>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -13,6 +14,7 @@
 #include "UI/activityrow.h"   // ActivitySelectedEvent, ActivityActivatedEvent
 #include "UI/button.h"
 #include "UI/label.h"
+#include "UI/progressrule.h"   // the fight's timeline gauge
 #include "UI/placetile.h"     // PlaceSelectedEvent
 #include "UI/resourceledger.h" // LedgerRowSpec
 #include "UI/eventlog.h"      // LogEntry
@@ -203,6 +205,7 @@ namespace chronicle
         bool onWalkButton(const std::string& tag);        // A button of the walk's screens or of the Adventure page; false for another's
         bool telling() const { return walkTelling; }      // A turn of a fight is being told on the page: nothing is pressed meanwhile
         const std::vector<std::pair<std::string, Button>>& moves() const { return walkMoves; }   // The buttons of his turn in a fight, by tag
+        std::vector<std::pair<std::string, float>> timelineShown() const;   // The timeline's words in view (his turns, the beasts', the end of the day), each with its x
 
         int newInLife = 0;             // What has come onto the Life page while the Town page was in view: said at its tab's corner
         int newInTown = 0;             // And onto the Town page while the Life page was
@@ -417,6 +420,24 @@ namespace chronicle
         std::unordered_map<std::string, std::string> walkPicks;    // The row to light in each, once the list holds it
         float autoLeft = 0.0f;         // Milliseconds before his stance plays the next turn of a fight handed to it
         std::vector<std::pair<std::string, Button>> walkMoves;   // The buttons of his turn, by tag, in the order they were made
+        // A tag of the timeline: a word in a frame, and its tick on the gauge
+        struct TimeChip
+        {
+            pg::EntityRef ground, frame, tick;
+            Label label;
+        };
+
+        std::vector<TimeChip> timeChips;                       // Made once a fight screen and moved: now, his next turn, the beasts before it, the one after
+        std::optional<ProgressRule> timeBar;                   // The gauge: hatched as long as the move under the mouse takes, filled as a turn is told
+        pg::EntityRef timeDay;                                 // The end of his day, across it
+        std::optional<Label> timeDayLabel;
+        float timeTellMs = 0.0f;                               // How long the turn being told takes: the fill sweeps that long
+        float timeSpan = 0.0f;                                 // Where the move pressed put his next turn, percent of the gauge
+        float timelineSpanOf(const std::string& move) const;  // That percent for a move ("" as it stands)
+        pg::_unique_id timePage = 0;                           // The fight screen they were made on: another one makes them anew
+        std::string timelineMove = "-";                        // The move the timeline shows ("" as it stands; "-" none yet)
+        void fillTimeline(const std::string& move);           // The timeline as it stands, or as the move under the mouse would leave it
+        std::string hoveredMove() const;                       // The move of his turn under the mouse, "" for none
         std::unordered_map<std::string, std::vector<pg::_unique_id>> moveRows;   // The rows they stand on, by the layout that holds them
         int moveHoverStale = 0;        // Frames left in which the hover is asked for again: buttons made again under a mouse that stays still
         std::unordered_map<std::string, std::pair<float, float>> moveFlow;   // By layout: the widths between which its buttons stand on their lines as they do (at least, under)
