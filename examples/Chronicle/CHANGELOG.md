@@ -3,6 +3,52 @@
 What changed in the game, build by build, as a player sees it. The engine's own changes are in
 the `CHANGELOG.md` at the root of the repository.
 
+## 0.8 - unreleased: the stores and the familiars
+
+A life now gathers: piles of berries, water, firewood and stone that grow month by month, small
+creatures bound to him that make more of them, and a stash that keeps what he held for the life
+after him.
+
+### New
+
+- **Resources.** Berries, water, firewood, stone and clay have their own place in your ledger,
+  under RESOURCES, with the most you can hold of each (30 berries, 40 water, 30 firewood, 20 stone,
+  20 clay). Gems are made, never gathered. Walks still bring them, and a walk's haul is never
+  thrown away, full or not.
+- **Scavenging.** From seven a boy can pick berries on the hedge, draw water from the bell and
+  gather deadfall, and from eight pick stones from the fields: a month of each, and the pile grows.
+  Full, the row waits until you have room.
+- **Your stores.** A berry basket, a rain barrel, a roofed woodpile and a stone heap each hold 20
+  more of their resource for the rest of the life, three times over. They cost a little firewood
+  (the woodpile some stone too), and come once you hold some of what they store.
+- **The market trades them.** Sell water, firewood, stone and clay by the lot; once you know the
+  town, buy water, firewood and stone.
+- **Familiars.** After his first two scavenges a boy can bind a hedge sprite: it eats a ration a
+  month and makes 4 berries. A familiar is bound for life, it cannot be sent away, and it ends with
+  him. Every month he eats first, then each kind is fed in turn, all of it or none: a hungry kind
+  makes nothing that month, and costs him nothing else. The row says what a creature eats and makes
+  before you bind it, and your rations warning counts their share.
+- **Slots.** A child keeps one familiar. A first class gives a second slot, a second calling two
+  more, and the Harrow relic one while he holds it.
+- **More kinds.** *Read of the Well Spirits*, once he has his letters, teaches the well imp (8
+  water a month, for a ration and a coin); *Learn the Kitchen Charms*, once he has helped in the
+  kitchen, the kitchen brownie, which turns berries, water and firewood into rations. Beat the Old
+  Shell and the stone mole is yours; beat the Old Grey and the gem weaver, which spins stone into
+  gems. A kind once learned stays learned, in every life after.
+- **Lessons.** A bound familiar can be taught twice, each lesson costing a month of what it eats:
+  every one of that kind makes one more a month from then on.
+- **The stash.** At his death, what he held of each basic resource goes into the stash, after the
+  gift to the town takes its share, up to 100 of each. A new life takes from it with *Take ... from
+  the stash*, as much as it has room for; the rest waits for the lives after.
+
+### Changed
+
+- **Early works ask for resources.** The kitchen wants water and firewood, the smithy firewood,
+  your letters a little firewood, and a remedy a cup of water. The carters still take anyone, so a
+  boy with nothing can always eat.
+- **Berries, firewood, stone and clay are resources now**, no longer stores, each with its limit.
+  What an old save holds past a limit stays: it is only spent, never cut.
+
 ## 0.7 - unreleased: the fight
 
 The walks become the heart of a life: a fight is now about how you fight, and what you learned

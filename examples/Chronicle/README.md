@@ -749,6 +749,7 @@ arguments, compared by value. `Rules::nbRuns` counts the runs.
 | script | inputs | outputs |
 |---|---|---|
 | `lib.pg` | - | pure helpers: `clamp`, `ordinal` ("14th"), `monthOf` (whole months lived), `monthsBetween`, `monthsToAttempts`, `signed` ("+1" / "−2"), `fmtMonths` ("6 mo"), `numberWord`, `statName`, `statOf`, `lookup`, `raised` (a gain stopped at the stat's ceiling), `byId`, `pathFlagOf`, `asksOf`, `openNote`, `shiftIn` (a month's change to a stat); `lastAge` (30, where his prime ends), `anyAge` (the `finishBy` of what no age closes) |
+| `economytable.pg` (imported by `activitytable.pg`, `resources.pg`, `town.pg`, `depgraph.pg` and the solver's `life.pg`; never loaded) | - | `const` tables: `basicResources`, `madeResources` (`{id, name, one, glyph, about}`, a basic with `lot`, `coin`, `price` for the market); `scavengeRows`, `storeRows` (activity rows); `familiarKinds` (`{id, name, one, glyph, known, about, train, eats[], makes[], bind[]}`); `slotGivers` (`{stat, slots, needed}`); `economyKnobs` (`stashMost`, `baseSlots`) |
 | `activitytable.pg` (through `windows.pg`) | `age`, `character`, `done`, `activityId` (`""`: all; `forecast.pg` shapes only its own), `world`, `lives` (which life of the world this is: the places of the town read it), `running` | `activities`: `{id, group, name, glyph, months, rank, each, path, enters, board, fromAge, finishBy, gains[{stat, amount, label, name}], costs[{stat, amount, label, name}], requires[{stat, label, current, needed}], needs (the requirements as written, for `depgraph.pg`), locked, done, uses, left, spent, closed, pathOpen, listed, showAge, showFrom, tally ("DONE 2", "DONE 0 · 1 LEFT"), until ("" or "CLOSES IN 14 MO"), urgent, after[step]}` |
 | `milestones.pg` (`milestonetable.pg`) | `age`, `world`, `lives` | `milestones`: `{age, id, label, passed, entry, asks[{path, stat, label, needed}]}`; `next`: `{id, label, age, in}` (`in` = months to it; `"", "", -1, -1` past the last) |
 | `windows.pg` | `age`, `character`, `done`, `activityId` (`""`) | `windows`: `{id, name, from, to, state (upcoming / open / closed), note (in attempts), attempts}`, one per door of an activity whose path is open to him |
@@ -837,6 +838,11 @@ he holds (over its limit when it has one, on one row: `3/60`), what the month do
 (a holding that `produces` is footnoted as a generator), what it uses and how long it lasts,
 and what running out costs. The Life screen registers it as `resource/<id>` on the ledger row;
 a row the rules do not follow says only what he holds.
+The basics of `economytable.pg` (`basicResources`: berries, water, firewood, stone, clay) and what
+is made of them (`madeResources`: gems) are holdings of the group RESOURCES, each with its limit;
+every kind of familiar is one of the group FAMILIARS (`fam.<kind>`, how many he has bound), and
+its gloss says what it eats and makes. A new group needs no C++: a holding with a new
+`group`/`groupLabel` is enough.
 
 **Limits** (`lib.pg`). `statLimits` is the most he can hold of a stat (`limitOf`, 0 for none;
 `roomFor` is what he can still take in). What a month produces stops at the limit
@@ -844,6 +850,13 @@ a row the rules do not follow says only what he holds.
 requirement, `Room for Rations`, current = the room left, needed 1), so it is locked while he
 is full. Begun with any room left it brings all it brings: **an activity may carry him past the
 limit**, and what he holds past it is only eaten into, never cut.
+The basics have limits (berries 30, water 40, firewood 30, stone 20, clay 20, gems 20), and a
+store raises one for the life: `limitOf` adds the stat `store.<id>` to the base, and the rows of
+*Your stores* (`economytable.pg`'s `storeRows`, listed once he holds some of the resource,
+`onlyWith`) bring 20 of it a term, three terms each. What familiars make stops at the limit
+(`shiftIn`); scavenging (`scavengeRows`, the group *Scavenge*, each term also counting the stat
+`scavenged`) is locked by its room like any other row. **A walk ignores limits**: its haul is
+never thrown away. A save from before the limits keeps what it holds past them.
 
 **Caps and mending** (`lib.pg`, `resources.pg`). `statCaps` names the stat holding the most
 another can be (`vit` -> `vitmax`). What takes from the stat leaves the cap alone; a gain from
@@ -852,6 +865,40 @@ toward its cap, `amount` every `every` months counted in `<stat>rest`; a month t
 mends nothing and starts the count again. `caps` (`[{stat, most}]`) is what the scene shows as
 the part's ghost when no activity is chosen, and as `At most` in its gloss. A save from before
 the cap takes what it has as its most.
+
+**Familiars** (`economytable.pg`, `lib.pg`, `resources.pg`, `activitytable.pg`). A familiar is a
+producer bound to him for life: the stat `fam.<kind>` counts how many of a kind he has bound, so
+it is held, shown in the ledger and lost at his death like any other stat. `familiarKinds` gives
+each kind its `eats`, `makes` and `bind` (what binding it costs), its `train` lesson's name and
+whether it is `known` from the first. Every month `resources.pg` feeds them after he eats
+(`feedFamiliars`): kind by kind in the table's order, **all or nothing per kind**. A fed kind
+takes what it eats and makes what it makes, stopped at the limit; a hungry kind makes nothing and
+costs nothing else, and its hunger never takes his Vitality. Board feeds him, never his
+familiars. `eats` (an output) is the rations the coming month eats, his own (none at board) and
+his familiars', which the rations warning, the *lasts* line and the solver read.
+- **Binding** (`bind.<kind>`, the group *Familiars*): a month, the kind's `bind` as its costs, and
+  a free slot (the requirement `slot: true`, whose current is `freeSlots`). The first known kind also waits for
+  two scavenges (`scavenged` 2); a kind not learned is not listed (`onlyWith: know.fam.<kind>`).
+  Its tile says the upkeep ("EATS 1 RATION · MAKES 4 BERRIES"), so it is known before he binds.
+  Nothing unbinds: when slots fall below the familiars bound (a relic spent), only the binding
+  rows lock.
+- **Slots** (`slotsOf`): `economyKnobs.baseSlots` (1), and what each of `slotGivers` he holds
+  adds: a first class one, a second calling two, the Harrow relic one.
+- **Lessons** (`train.<kind>`, twice, listed while he has one of the kind): a month of what the
+  kind eats, and the stat `more.<stat>` one more, which `feedFamiliars` adds to what each of them
+  makes.
+- **Kinds learned** are the world's (`know.fam.<kind>`, kept in the save's knowledge from life to
+  life): `research.imp` and `research.brownie` in *Study*, and the Old Shell (mole) and the Old Grey
+  (weaver) among a boss's `gives` (`expeditiontable.pg`).
+
+**The stash** (`town.pg`, `Scenes/lifesave.cpp`, `Scenes/lifescene.cpp`, `activitytable.pg`). The
+world keeps what a life held of each basic at its death (`LifeSave::stash`, written by
+`beginAgain` after the gift to a place has taken its share), up to `economyKnobs.stashMost` (100)
+of each: `town.pg`'s `stash` output, `[{stat, most}]`, says what it keeps and how much. The
+scripts read it as `stash.<id>` in `character`, the way they read a place's fund. A new life
+draws on it with the rows of *The stash* (`draw.<id>`, at once, listed while it holds any): as
+much as he has room for, and the rest stays. Gems and what walks find that is not a basic are not
+kept. A save from before the stash opens with it empty.
 
 **The end of a life** (`resources.pg`). `mortal` lists the stats a life cannot go on without.
 `month.hurt` lists the ones the month took from: the scene turns those parts red for a moment
