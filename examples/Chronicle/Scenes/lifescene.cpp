@@ -3349,9 +3349,10 @@ namespace chronicle
         std::vector<ActivityGroup> calls;     // The groups of the events open now: over the others
 
         // What is done at a place of the town stands on the Town page, never on this one: the
-        // market's rows, what is bought and sold on the spot. The works that raise a place have no
-        // row: a click on the place begins its next one (onPlace)
-        std::vector<ActivityRowSpec> stalls;
+        // market's rows, what is bought and sold on the spot, and the storehouse's, what is drawn
+        // from the stash. The works that raise a place have no row: a click on the place begins
+        // its next one (onPlace). Each row with the id of its place
+        std::vector<std::pair<std::string, ActivityRowSpec>> stalls;
 
         listedRows.clear();
 
@@ -3457,7 +3458,7 @@ namespace chronicle
             }
 
             if (inTown)
-                stalls.push_back(row);
+                stalls.push_back({textOf(a.fields, "place"), row});
             else
                 into.back().rows.push_back(row);
         }
@@ -3467,8 +3468,44 @@ namespace chronicle
         if (auto list = piece<ActivityList>("activities"))
             list->setRows(ecsRef, groups);
 
+        // The Town page's rows, a group a place in the order of the places: the market's first,
+        // under the heading the page gives it, then each other place's under its name. A row of a
+        // place the town does not name stands with the market's
+        std::vector<ActivityGroup> atPlaces{{"", {}}};
+
+        for (const auto& place : town.places)
+        {
+            const std::string id = textOf(place.fields, "id");
+
+            if (id == "market")
+                continue;
+
+            ActivityGroup group{textOf(place.fields, "name"), {}};
+
+            for (auto& [at, row] : stalls)
+            {
+                if (at == id)
+                {
+                    group.rows.push_back(row);
+                    at.clear();
+                }
+            }
+
+            if (not group.rows.empty())
+                atPlaces.push_back(group);
+        }
+
+        for (const auto& [at, row] : stalls)
+        {
+            if (not at.empty())
+                atPlaces.front().rows.push_back(row);
+        }
+
+        if (atPlaces.front().rows.empty())
+            atPlaces.erase(atPlaces.begin());
+
         if (auto market = piece<ActivityList>(MarketName))
-            market->setRows(ecsRef, stalls.empty() ? std::vector<ActivityGroup>{} : std::vector<ActivityGroup>{{"", stalls}});
+            market->setRows(ecsRef, atPlaces);
 
         // A walk that has come into the list brings the Adventure page's tab with it
         markAdventure();

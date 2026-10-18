@@ -11,7 +11,9 @@
 //         there from the day the town is known. {flag: "x"}: once he holds that flag (what a
 //         work of his class gives: "veteran", "captain", "collegium"). {done: "id"}: once he has
 //         done a term of that activity. {lives: N}: from the Nth life of the world. {fromAge: N}:
-//         once he is that old. Several: all of them.
+//         once he is that old. {stash: true}: once the stash holds anything (a "stash.<id>" of
+//         `character` above none; the stash is no stat of his, so it is weighed from those keys
+//         and never asked as a flag). Several: all of them.
 //         A place a life has seen stays seen: the Life screen keeps it with the town, and hands
 //         it back in `character` as "seen.<id>". So does a place that was raised, or left coin.
 //         A first look at the town is two places, the Market and the Mill: enough to learn what
@@ -194,6 +196,22 @@ const townPlaces = [
         {work: "Keep a Room at the Inn", built: "The family's room", months: 12, coin: 20, costs: [{stat: "firewood", amount: 80}, {stat: "berries", amount: 80}, {stat: "gems", amount: 4}, {stat: "grey_pelt"}],
          gives: "Vitality mends every month, not every second month",
          lore: "A bed, a fire and a door that locks: he mends faster there."}
+     ]},
+
+    // With the stash: the storehouse, once a life before him has left it anything (from the second
+    // life of a world, in practice). What is drawn from the stash is drawn there (activitytable.pg's
+    // draw rows), and each of its levels makes the stash keep more of each thing
+    {id: "storehouse", name: "The Storehouse", glyph: "work", shows: {stash: true}, about: "Where the family keeps what one life leaves the next.",
+     levels: [
+        {work: "Raise the Storehouse", built: "The storehouse", months: 6, coin: 5, costs: [{stat: "stone", amount: 20}, {stat: "clay", amount: 20}],
+         gives: "The stash keeps 100 more of each thing", stash: 100,
+         lore: "Four walls and a roof over what the family keeps. None of it is left to the rain now."},
+        {work: "Dig the Storehouse Cellar", built: "The storehouse cellar", months: 9, coin: 10, costs: [{stat: "stone", amount: 40}, {stat: "firewood", amount: 40}, {stat: "clay", amount: 20}, {stat: "gems", amount: 2}],
+         gives: "The stash keeps 200 more of each thing", stash: 200,
+         lore: "A cellar under the storehouse, cool and dry. The family's stores go down twice as deep."},
+        {work: "Bind the Storehouse Doors in Iron", built: "The iron doors", months: 12, coin: 20, costs: [{stat: "stone", amount: 80}, {stat: "firewood", amount: 80}, {stat: "clay", amount: 20}, {stat: "gems", amount: 4}, {stat: "shell_plate"}],
+         gives: "The stash keeps 400 more of each thing", stash: 400,
+         lore: "Iron on the doors, and a lock the smith made for no other. What is kept there is kept."}
      ]},
 
     // With his walks: the lodge, once he has walked the Hollow Woods. It is built of what walks

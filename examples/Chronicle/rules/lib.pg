@@ -382,6 +382,20 @@ fun stashMost(character)
     return most
 }
 
+// Whether the stash holds anything: a stat "stash.<id>" above none in `character`.
+fun holdsStash(character)
+{
+    for (var key : character)
+    {
+        if (startsWith(key, "stash.") and statOf(character, key) > 0)
+        {
+            return true
+        }
+    }
+
+    return false
+}
+
 // How many familiars he can keep: the life's own slots, what his standing and calling add, and
 // what the levels of the town that stand add (their `slots`), from his first day.
 fun slotsOf(character)
@@ -669,7 +683,7 @@ fun mostOf(character, stat)
 // months old, with the terms he has `done` (activity id -> terms) in the life of the world that
 // `lives` counts: one that was raised, was left coin or was seen by a life before stays there;
 // else its `shows` says what brings it (an age, a flag he holds, an activity he has done, a life
-// of the world; all of those it gives. None: from the start).
+// of the world, a stash that holds anything; all of those it gives. None: from the start).
 fun placeShown(place, character, lived, done, lives)
 {
     if (statOf(character, "town." + place.id) > 0 or statOf(character, "fund." + place.id) > 0 or statOf(character, "seen." + place.id) > 0)
@@ -703,6 +717,14 @@ fun placeShown(place, character, lived, done, lives)
     if (lives < lookup(shows, "lives", 1))
     {
         return false
+    }
+
+    if (lookup(shows, "stash", false))
+    {
+        if (not holdsStash(character))
+        {
+            return false
+        }
     }
 
     return true

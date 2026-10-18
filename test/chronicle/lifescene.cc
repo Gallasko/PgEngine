@@ -6256,7 +6256,7 @@ namespace pg
             // the others are a veteran's, a captain's, a scholar's, a smith's, or a later life's
             auto grid = life->piece<PlaceGrid>("places");
             ASSERT_NE(grid, nullptr);
-            ASSERT_EQ(life->town.places.size(), 10u);
+            ASSERT_EQ(life->town.places.size(), 11u);
             ASSERT_EQ(grid->tiles.size(), 2u);
 
             const char* const onHisPage[] = {"market", "mill"};
@@ -6264,7 +6264,7 @@ namespace pg
             for (size_t i = 0; i < grid->tiles.size(); ++i)
                 EXPECT_EQ(grid->tiles[i].spec.id, onHisPage[i]) << i;
 
-            for (const char* id : {"smithy", "yard", "gate", "chapel", "collegium", "harrow", "inn"})
+            for (const char* id : {"smithy", "yard", "gate", "chapel", "collegium", "harrow", "inn", "storehouse"})
                 EXPECT_EQ(grid->tile(id), nullptr) << id;
 
             EXPECT_EQ(life->save.seen.size(), 2u);
@@ -9949,6 +9949,76 @@ namespace pg
 
             EXPECT_EQ(life->save.stats["firewood"], 30);
             EXPECT_EQ(life->save.stash["firewood"], 10);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Once the town is his, the stash is drawn at the storehouse: its tile is on the Town page,
+        // and the draw stands there under its name, not on the Life page.
+        TEST(lifescene_test, drawing_from_the_storehouse)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = f.life();
+            ASSERT_NE(life, nullptr);
+
+            f.frames(12);
+
+            life->save.stats["stone"] = 40;
+            life->save.stats["rations"] = 0;
+            life->save.stats["vit"] = 1;
+            life->onMonth();
+            f.frames(12);
+
+            ASSERT_TRUE(life->ended);
+
+            life->beginAgain();
+            f.frames(12);
+
+            ASSERT_FALSE(life->ended);
+            ASSERT_EQ(life->save.stash["stone"], 40);
+
+            // Before he knows the town, the draw is on the Life page
+            auto list = life->piece<ActivityList>("activities");
+            ASSERT_NE(list, nullptr);
+            EXPECT_NE(list->find(&f.ecs, "draw.stone"), nullptr);
+
+            // He knows the town: a month tells the page so
+            life->save.townKnown = true;
+            life->save.stats["rations"] = 40;
+            life->onMonth();
+            f.frames(12);
+
+            auto grid = life->piece<PlaceGrid>("places");
+            ASSERT_NE(grid, nullptr);
+            EXPECT_NE(grid->tile("storehouse"), nullptr);
+
+            EXPECT_EQ(list->find(&f.ecs, "draw.stone"), nullptr);
+            ASSERT_NE(stall(f, life, "draw.stone"), nullptr);
+
+            // Under the storehouse's name, after the market's rows
+            auto market = life->piece<ActivityList>("marketRows");
+            ASSERT_NE(market, nullptr);
+            ASSERT_GE(market->spec.groups.size(), 2u);
+            EXPECT_EQ(market->spec.groups.front().label, "");
+            EXPECT_EQ(market->spec.groups.back().label, "The Storehouse");
+            ASSERT_FALSE(market->spec.groups.back().rows.empty());
+            EXPECT_EQ(market->spec.groups.back().rows.front().id, "draw.stone");
+
+            const int held = life->save.stats["stone"];
+            const int kept = life->save.stash["stone"];
+
+            f.ecs.sendEvent(ActivitySelectedEvent{"town.market", "draw.stone"});
+            f.settle();
+            f.ecs.sendEvent(ActivityActivatedEvent{"town.market", "draw.stone"});
+            f.frames(12);
+
+            const int drawn = life->save.stats["stone"] - held;
+
+            EXPECT_GT(drawn, 0);
+            EXPECT_EQ(life->save.stash["stone"], kept - drawn);
         }
 
         // ----------------------------------------------------------------------------------------

@@ -3284,7 +3284,7 @@ namespace pg
             RuleTown town;
             ASSERT_TRUE(f.rules.town(9.0f, character, town)) << firstError(f.rules);
 
-            ASSERT_EQ(town.places.size(), 10u);
+            ASSERT_EQ(town.places.size(), 11u);
             EXPECT_FALSE(town.opened.empty());
             EXPECT_FALSE(town.raisedLine.empty());
             EXPECT_EQ(town.giftStat, "coin");
@@ -5136,7 +5136,7 @@ namespace pg
             // Every place is told of all the same: the page shows the ones that are his
             RuleTown town;
             ASSERT_TRUE(f.rules.town(7.0f, townsman(), town)) << firstError(f.rules);
-            EXPECT_EQ(town.places.size(), 10u);
+            EXPECT_EQ(town.places.size(), 11u);
             EXPECT_FALSE(town.foundLine.empty());
         }
 
@@ -5546,6 +5546,62 @@ namespace pg
 
             for (const auto& s : town.stash)
                 EXPECT_EQ(intOf(s, "most"), 150) << textOf(s, "stat");
+        }
+
+        // The storehouse comes onto the Town page with the stash: not while it is empty, and once
+        // it holds anything. Its levels make the stash bigger, and its draws stand there once the
+        // town is known (on the Life page before)
+        TEST(rules_test, the_storehouse_comes_with_the_stash)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            auto storehouse = [](const RuleTown& town) -> const RulePlace* {
+                for (const auto& place : town.places)
+                {
+                    if (textOf(place.fields, "id") == "storehouse")
+                        return &place;
+                }
+
+                return nullptr;
+            };
+
+            RuleTown town;
+            ASSERT_TRUE(f.rules.town(20.0f, townsman(), town)) << firstError(f.rules);
+            ASSERT_NE(storehouse(town), nullptr);
+            EXPECT_FALSE(flag(storehouse(town)->fields, "shown"));
+            EXPECT_EQ(intOf(storehouse(town)->fields, "most"), 3);
+
+            ElementMap character = townsman();
+            character["stash.stone"] = ElementType{5};
+
+            ASSERT_TRUE(f.rules.town(20.0f, character, town)) << firstError(f.rules);
+            ASSERT_NE(storehouse(town), nullptr);
+            EXPECT_TRUE(flag(storehouse(town)->fields, "shown"));
+            EXPECT_EQ(textOf(storehouse(town)->fields, "nextWork"), "raise.storehouse.1");
+
+            // Each level keeps more: 100 more, then 200, then 400
+            character["town.storehouse"] = ElementType{2};
+            ASSERT_TRUE(f.rules.town(20.0f, character, town)) << firstError(f.rules);
+
+            for (const auto& s : town.stash)
+                EXPECT_EQ(intOf(s, "most"), 400) << textOf(s, "stat");
+
+            // Its first work is listed, now that it is on his page
+            character["town.storehouse"] = ElementType{0};
+            EXPECT_TRUE(flag(activityAt(f.rules, 20.0f, character, "raise.storehouse.1").fields, "listed"));
+
+            // What is drawn from the stash is drawn at the storehouse once the town is his
+            RuleActivity draw = activityAt(f.rules, 20.0f, character, "draw.stone");
+            EXPECT_TRUE(flag(draw.fields, "listed"));
+            EXPECT_EQ(textOf(draw.fields, "place"), "storehouse");
+
+            // Before, on the Life page: a boy of six of a later life draws from the stash
+            ElementMap young = child();
+            young["stash.stone"] = ElementType{5};
+            RuleActivity early = activityAt(f.rules, 6.0f, young, "draw.stone");
+            EXPECT_TRUE(flag(early.fields, "listed"));
+            EXPECT_EQ(textOf(early.fields, "place"), "");
         }
 
         // The ending says what his death puts into the stash: what he holds of the basics, less what

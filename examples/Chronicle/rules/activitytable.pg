@@ -153,7 +153,8 @@
 //                    `kindKnown`: learned by the world, or taught by a level of the town that
 //                    stands): what teaches a kind is for who does not know it.
 //   place: "id"      it is done at a place of the town: once the town is known its row stands on
-//                    the Town page, at that place (the market), and no longer on the Life page.
+//                    the Town page, at that place (the market, the storehouse), and no longer on
+//                    the Life page.
 //                    A work that raises a place (`raises`) has no row: a click on the
 //                    place's tile begins it.
 //   goto: "page"     confirming it opens that page ("town") and does nothing else: no term, no
@@ -1259,6 +1260,9 @@ for (var k = 0; k < len(trainCopies); k++)
 // each basic the stash has some of. Full, he has no room: the row asks room for one, and its room
 // closes it. Its caption says what the stash holds; what a draw takes is its price, named as taken
 // from the stash, so the two are not read as one.
+// Once the town is his, the stash is drawn at the storehouse (towntable.pg): the row has its
+// `place`, and stands on the Town page under it. Before, it has none and stands on the Life page,
+// as a row with a place would have no row at all until the town is known.
 var drawCopies = []
 
 for (var b = 0; b < len(basicResources); b++)
@@ -1277,12 +1281,19 @@ for (var b = 0; b < len(basicResources); b++)
         take = 1
     }
 
-    push(drawCopies, {id: "draw." + drawn.id, group: "The stash", name: "Take " + toLowerCase(drawn.name) + " from the stash", glyph: drawn.glyph, months: 0, rank: "", each: toString(kept) + " IN THE STASH", path: "",
+    var drawRow = {id: "draw." + drawn.id, group: "The stash", name: "Take " + toLowerCase(drawn.name) + " from the stash", glyph: drawn.glyph, months: 0, rank: "", each: toString(kept) + " IN THE STASH", path: "",
                       fromAge: 6, finishBy: anyAge, onlyWith: "stash." + drawn.id,
                       about: "What the lives before him kept of it at their death. He takes as much as he has room for, and the rest stays for the lives after him.",
                       gains: [{stat: drawn.id, amount: take}],
                       costs: [{stat: "stash." + drawn.id, amount: take, name: drawn.name + " from the stash"}],
-                      requires: []})
+                      requires: []}
+
+    if (statOf(character, "town_known") > 0)
+    {
+        drawRow.place = "storehouse"
+    }
+
+    push(drawCopies, drawRow)
 }
 
 // And berries dried keep as rations, at home, with or without the town: three to a ration, a
