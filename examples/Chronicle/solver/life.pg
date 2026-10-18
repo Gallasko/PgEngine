@@ -260,6 +260,33 @@ fun takeStats(st, after)
         st.townKnown = true
     }
 
+    // What a draw left none of is gone from the stash, as LifeSave::takeTown erases it (the host
+    // writes it as 0)
+    var drained = false
+
+    for (var held : st.stash)
+    {
+        if (st.stash[held] <= 0)
+        {
+            drained = true
+        }
+    }
+
+    if (drained)
+    {
+        var kept = {}
+
+        for (var left : st.stash)
+        {
+            if (st.stash[left] > 0)
+            {
+                kept[left] = st.stash[left]
+            }
+        }
+
+        st.stash = kept
+    }
+
     touch(st)
 }
 
@@ -399,8 +426,8 @@ fun eatsOf(st, board)
     return eats
 }
 
-// The rations `months` of a work eat, and the month after it when it feeds him: his own and his
-// familiars', so that he is not left without the month he comes home
+// The rations `months` of a work eat, his own and his familiars'; and when the work does not feed
+// him, a month more of them, so that he is not left without the month after it
 fun rationsFor(st, months, board)
 {
     var need = eatsOf(st, board) * months

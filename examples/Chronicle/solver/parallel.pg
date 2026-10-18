@@ -183,7 +183,7 @@ fun workerSetup()
         }
 
         setupTable = {everReached: known, beamWidth: beamWidth, beamProspect: beamProspect, beamEarn: beamEarn,
-                      beamScoring: beamScoring, beamScope: beamScope, beamNoise: beamNoise, walksPlayed: walksPlayed,
+                      beamScoring: beamScoring, beamScope: beamScope, beamNoise: beamNoise, walksPlayed: walksPlayed, gatherWorth: gatherWorth,
                       plannerBase: plannerBase}
         setupReached = reached
         setupVersion = setupVersion + 1

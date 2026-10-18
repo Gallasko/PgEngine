@@ -527,8 +527,139 @@ fun earnChildren(st, rows, children)
     }
 }
 
+// What a locked row lacks, when all it lacks is basic resources (what it costs, or asks him to
+// hold): [{stat, needed}], or [] when anything else is lacking too (or nothing is)
+fun resourceLacks(row)
+{
+    var out = []
+
+    for (var r : asListOf(row.requires))
+    {
+        if (r.room != true and r.current < r.needed)
+        {
+            if (not isResource(r.stat))
+            {
+                return []
+            }
+
+            push(out, {stat: r.stat, needed: r.needed})
+        }
+    }
+
+    return out
+}
+
+// Whether a row is worth gathering for: new to him, or bringing what the door of the class his
+// world aims at still asks (beam.pg's `doorReq`: a term of Letters for the Collegium)
+fun gatherFor(st, row)
+{
+    if (unfound(st, row.id))
+    {
+        return true
+    }
+
+    for (var g : asListOf(row.gains))
+    {
+        for (var d : asListOf(st.doorReq))
+        {
+            if (d.stat == g.stat and charValue(st, d.stat) < d.needed)
+            {
+                return true
+            }
+        }
+    }
+
+    return false
+}
+
+// The basics that a work new to him lacks and nothing else: {stat: the most such a work asks}. The
+// beam spends none of it on anything else, as a boy saving firewood for the smithy
+fun gatherKeeps(st, rows)
+{
+    var keeps = {}
+
+    for (var row : rows)
+    {
+        if (row.months > 0 and row.zone == "" and row.listed == true and row.locked == true and row.goto == "" and row.closed != true and row.spent != true and row.pathOpen == true and row.barred == "" and gatherFor(st, row))
+        {
+            var lacks = resourceLacks(row)
+
+            if (len(lacks) == 1 and (keeps[lacks[0].stat] == none or lacks[0].needed > keeps[lacks[0].stat]))
+            {
+                keeps[lacks[0].stat] = lacks[0].needed
+            }
+        }
+    }
+
+    return keeps
+}
+
+// Whether a row would spend what `keeps` saves
+fun spendsKept(st, row, keeps)
+{
+    for (var c : asListOf(row.costs))
+    {
+        if (keeps[c.stat] != none and statOf(st, c.stat) - c.amount < keeps[c.stat])
+        {
+            return true
+        }
+    }
+
+    return false
+}
+
+// A branch for each work new to him that one basic alone keeps locked: what a boy does when the
+// smithy asks for firewood, a month of scavenging at a time until he holds enough (six terms at
+// most), and then the work itself
+fun gatherChildren(st, rows, children)
+{
+    var wanted = {}
+
+    for (var row : rows)
+    {
+        if (row.months > 0 and row.zone == "" and row.listed == true and row.locked == true and row.goto == "" and row.closed != true and row.spent != true and row.pathOpen == true and row.barred == "" and gatherFor(st, row))
+        {
+            var lacks = resourceLacks(row)
+
+            // (one basic short only: the work is begun once it is gathered)
+            if (len(lacks) == 1)
+            {
+                var lack = lacks[0]
+                wanted[row.id] = {stat: lack.stat, needed: lack.needed, id: row.id, long: row.months >= 3, door: not unfound(st, row.id)}
+            }
+        }
+    }
+
+    var buy = shapeById["buy.rations"]
+
+    for (var wid : wanted)
+    {
+        var aim = wanted[wid]
+        var stat = aim.stat
+        var earner = bestEarner(st, rows, stat)
+
+        if (earner != none)
+        {
+            var missing = aim.needed - charValue(st, stat)
+            var per = toFloat(larger(1, earner.months)) * earnRate(st, earner, stat)
+            var terms = smaller(6, larger(1, toInt(ceil(toFloat(missing) / larger(0.5, per)))))
+            var c = clone(st)
+
+            provisionFast(c, buy, earner.months, earner.board == true)
+
+            beginFast(c, earner)
+            c.pending = earner.gains
+            c.pendingNew = unfound(st, earner.id)
+            c.earning = {id: earner.id, stat: stat, target: aim.needed, left: terms - 1, walk: false, then: aim.id, long: aim.long, door: aim.door}
+            note(c, "gathering " + stat + " to " + toString(aim.needed) + " for " + aim.id + ", " + toString(terms) + " terms")
+            push(children, c)
+        }
+    }
+}
+
 // The next term of what a world is earning, when it is still short and the work still open to
-// him: true when it was begun (the world does not choose this month)
+// him: true when it was begun (the world does not choose this month). What was gathered for a
+// work (`then`) is that work's, begun the month it is enough
 fun continueRepeat(st)
 {
     var r = st.earning
@@ -536,6 +667,26 @@ fun continueRepeat(st)
     if (r == none)
     {
         return false
+    }
+
+    if (charValue(st, r.stat) >= r.target and typeOf(r.then) == "string")
+    {
+        st.earning = none
+
+        var next = rowOf(st, r.then)
+
+        if (next == none or not isOpen(next) or next.months <= 0 or next.zone != "")
+        {
+            return false
+        }
+
+        provisionFast(st, shapeById["buy.rations"], next.months, next.board == true)
+
+        beginFast(st, next)
+        st.pending = next.gains
+        st.pendingNew = everReached[next.id] == none
+
+        return true
     }
 
     if (r.left <= 0 or charValue(st, r.stat) >= r.target)

@@ -437,7 +437,8 @@ namespace
 
     // chronicleTakeStats(stats, know, stash, after): what a script handed back made the character's.
     // Every value a whole number; "know.<key>" is the world's knowledge; "stash.<id>" what the
-    // world's stash keeps (a draw takes from it: none left is 0, which the rules read as none);
+    // world's stash keeps (a draw takes from it: none left is written 0, and life.pg's takeStats
+    // drops it, as LifeSave::takeTown erases it);
     // "town.", "fund.", "seen." are the world's and left alone (the solver keeps them, as the C++
     // does). Writes into `stats`, `know` and `stash`; true when the town has come to be known
     Value chronicleTakeStats(VM& vm, Value* args)

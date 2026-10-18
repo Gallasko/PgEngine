@@ -25,6 +25,8 @@
 //   width=8         beam: the worlds kept each month (the wider, the longer and the more found)
 //   minutes=0       beam: stop after so many minutes, whatever is left (0: when every world is over)
 //   seed=1          beam: the dice, and a little chance in which worlds are kept (another seed, another search)
+//   gather=600      beam: what a world gathering the basic a long work lacks is worth, while it
+//                   gathers (reqs.pg's gatherChildren)
 //
 //   threads=N       the host's workers (the cores by default; 0: none): beam and hybrid hand
 //                   them each month's worlds and the planner's tasks (parallel.pg). The same run
@@ -1103,6 +1105,7 @@ else if (mode == "beam")
     beamEarn = option("earn", "1") == "1"
     beamScoring = option("score", "old")
     beamScope = option("scope", "world")
+    gatherWorth = toFloat(toInt(option("gather", "600")))
     var minutes = toInt(option("minutes", "0"))
     var seed = toInt(option("seed", "1"))
 
@@ -1187,6 +1190,7 @@ else if (mode == "hybrid")
     beamEarn = option("earn", "1") == "1"
     beamScoring = option("score", "old")
     beamScope = option("scope", "world")
+    gatherWorth = toFloat(toInt(option("gather", "600")))
     beamStall = toInt(option("stall", "240"))
     beamStallFinds = toInt(option("stallFinds", "3"))
 

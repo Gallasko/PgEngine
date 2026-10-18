@@ -216,11 +216,14 @@ fun expandChildren(st, round)
 
     st.doorReq = doorReq
 
+    // What a work new to him lacks only a basic for is not spent on another (reqs.pg)
+    var keeps = gatherKeeps(st, rows)
+
     var walks = []
 
     for (var row : rows)
     {
-        if (row.months > 0 and isOpen(row))
+        if (row.months > 0 and isOpen(row) and not spendsKept(st, row, keeps))
         {
             if (row.zone != "")
             {
@@ -249,7 +252,7 @@ fun expandChildren(st, round)
     {
         for (var once : rows)
         {
-            if (once.months == 0 and isOpen(once) and once.id != "buy.rations" and st.onceMonth[once.id] == none)
+            if (once.months == 0 and isOpen(once) and once.id != "buy.rations" and st.onceMonth[once.id] == none and not spendsKept(st, once, keeps))
             {
                 var d = clone(st)
                 d.onceMonth[once.id] = 1
@@ -287,10 +290,12 @@ fun expandChildren(st, round)
         }
     }
 
-    // Earning what the tasks it nearly meets are short of (reqs.pg), on its first choice of a month
+    // Earning what the tasks it nearly meets are short of (reqs.pg), on its first choice of a month,
+    // and gathering the basics a work new to him is locked by
     if (round == 0 and beamEarn)
     {
         earnChildren(st, rows, children)
+        gatherChildren(st, rows, children)
     }
 
     var waits = clone(st)
@@ -554,6 +559,13 @@ fun beamScore(st)
     if (st.running != "" and st.pendingNew == true)
     {
         s = s + 900.0
+    }
+
+    // Gathering the basic that alone keeps a long work locked, new to him or a step to his aim's
+    // door (reqs.pg's gatherChildren): a part of it. (A short one is soon done another way)
+    if (st.earning != none and st.earning.long == true and (st.earning.door == true or unfound(st, st.earning.then)))
+    {
+        s = s + gatherWorth
     }
 
     if (st.prospect != none)
@@ -877,6 +889,7 @@ for (var sigKind : familiarKinds)
 }
 
 var beamNoise = 0.0
+var gatherWorth = 600.0
 var zoneHasBeasts = {}
 var aims = [""]
 var beamWidth = 8
