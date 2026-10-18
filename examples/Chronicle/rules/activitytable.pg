@@ -1178,6 +1178,39 @@ for (var s = 0; s < len(storeCopies); s++)
     storeCopies[s].costs = entriesCopied(storeCopies[s].costs)
 }
 
+// A familiar is bound to him for life, one row a kind: it costs what the kind's bind asks and
+// fills a slot. The first known kind waits for the second scavenge, so it comes once he has
+// worked the land twice; a kind he has not learned is not listed. The row says what the creature
+// eats and makes, so that the upkeep is known before he binds it.
+var bindCopies = []
+var firstKind = true
+
+for (var k = 0; k < len(familiarKinds); k++)
+{
+    var kind = familiarKinds[k]
+    var kindRequires = [{stat: "slot", label: "A free slot", needed: 1, slot: true}]
+
+    var bindRow = {id: "bind." + kind.id, group: "Familiars", name: "Bind " + kind.name, glyph: kind.glyph, months: 1, rank: "", each: upkeepCaption(kind), path: "",
+                   fromAge: 7,
+                   about: kind.about + " Bound for life: he cannot send it away.",
+                   gains: [{stat: "fam." + kind.id}],
+                   costs: entriesCopied(kind.bind),
+                   requires: kindRequires}
+
+    if (kind.known and firstKind)
+    {
+        push(kindRequires, {stat: "scavenged", needed: 2})
+        firstKind = false
+    }
+
+    if (not kind.known)
+    {
+        bindRow.onlyWith = "know.fam." + kind.id
+    }
+
+    push(bindCopies, bindRow)
+}
+
 activities = []
 
 for (var t = 0; t < len(tabled); t++)
@@ -1204,6 +1237,11 @@ for (var t = 0; t < len(tabled); t++)
         for (var s = 0; s < len(storeCopies); s++)
         {
             push(activities, storeCopies[s])
+        }
+
+        for (var s = 0; s < len(bindCopies); s++)
+        {
+            push(activities, bindCopies[s])
         }
     }
 }

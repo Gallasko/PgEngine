@@ -1541,6 +1541,100 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // The first familiar waits for the second scavenge, and an unknown kind is not listed
+        TEST(rules_test, the_first_familiar_comes_after_two_scavenges)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap one = boy();
+            one["scavenged"] = ElementType{1};
+            one["berries"] = ElementType{6};
+            EXPECT_FALSE(flag(activityAt(f.rules, 7.5f, one, "bind.sprite").fields, "listed"));
+
+            ElementMap two = one;
+            two["scavenged"] = ElementType{2};
+            RuleActivity row = activityAt(f.rules, 7.5f, two, "bind.sprite");
+            EXPECT_TRUE(flag(row.fields, "listed"));
+            EXPECT_FALSE(flag(row.fields, "locked"));
+            EXPECT_EQ(textOf(row.fields, "group"), "Familiars");
+            EXPECT_EQ(textOf(row.gains[0], "stat"), "fam.sprite");
+        }
+
+        TEST(rules_test, an_unknown_kind_is_not_listed)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = boy();
+            character["scavenged"] = ElementType{2};
+            EXPECT_FALSE(flag(activityAt(f.rules, 7.5f, character, "bind.imp").fields, "listed"));
+
+            character["know.fam.imp"] = ElementType{1};
+            EXPECT_TRUE(flag(activityAt(f.rules, 7.5f, character, "bind.imp").fields, "listed"));
+        }
+
+        TEST(rules_test, binding_says_what_it_eats)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            EXPECT_EQ(textOf(activityAt(f.rules, 7.5f, boy(), "bind.sprite").fields, "each"), "EATS 1 RATION \xC2\xB7 MAKES 4 BERRIES");
+            EXPECT_EQ(textOf(activityAt(f.rules, 7.5f, boy(), "bind.brownie").fields, "each"), "EATS 3 BERRIES, 2 WATER, 1 FIREWOOD \xC2\xB7 MAKES 2 RATIONS");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A life has one slot, and its standing and calling give more; a familiar fills one
+        TEST(rules_test, slots_grow_with_the_life)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            auto slotCurrent = [&](const ElementMap& character)
+            {
+                RuleActivity row = activityAt(f.rules, 7.5f, character, "bind.sprite");
+
+                for (const auto& req : row.requires)
+                {
+                    if (textOf(req, "stat") == "slot")
+                        return intOf(req, "current");
+                }
+
+                ADD_FAILURE() << "no slot requirement";
+
+                return -1;
+            };
+
+            ElementMap character = boy();
+            character["scavenged"] = ElementType{2};
+            character["berries"] = ElementType{6};
+            EXPECT_EQ(slotCurrent(character), 1);
+
+            character["fam.sprite"] = ElementType{1};
+            EXPECT_EQ(slotCurrent(character), 0);
+            EXPECT_TRUE(flag(activityAt(f.rules, 7.5f, character, "bind.sprite").fields, "locked"));
+
+            character["keep_oath"] = ElementType{1};
+            EXPECT_EQ(slotCurrent(character), 1);
+
+            character["castellan"] = ElementType{1};
+            EXPECT_EQ(slotCurrent(character), 3);
+
+            // More bound than the slots hold: none free, and the month leaves them alone
+            ElementMap over = boy();
+            over["fam.sprite"] = ElementType{2};
+            EXPECT_EQ(slotCurrent(over), 0);
+
+            RuleMonth month;
+            ASSERT_TRUE(f.rules.month(7.5f, over, false, month)) << firstError(f.rules);
+            EXPECT_EQ(intOf(month.after, "fam.sprite"), 2);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // The market buys and sells the basics by the lot, and sells no clay
         TEST(rules_test, the_market_trades_basic_resources)
         {
