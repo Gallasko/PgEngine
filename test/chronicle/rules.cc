@@ -1794,6 +1794,63 @@ namespace pg
             EXPECT_TRUE(month.entries.empty());
         }
 
+        // Running out is foreseen with his familiars' share counted: the warning, the gloss and the
+        // entry the month it is gone, written once, before a familiar's hunger
+        TEST(rules_test, familiars_count_in_running_out)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            auto texts = [](const RuleMonth& month) {
+                std::vector<std::string> said;
+
+                for (const auto& entry : month.entries)
+                    said.push_back(textOf(entry, "text"));
+
+                return said;
+            };
+
+            // Three rations, his one and two sprites': one month of them
+            RuleMonth month;
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{3}}, {"fam.sprite", ElementType{2}}}, false, month)) << firstError(f.rules);
+
+            EXPECT_EQ(intOf(month.after, "rations"), 0);
+            EXPECT_EQ(month.warning, "RATIONS FOR 1 MONTH");
+            EXPECT_EQ(month.advice, "Rations are running low: buy some at the market, or take work with meals");
+            EXPECT_EQ(texts(month), std::vector<std::string>{"The rations ran out"});
+
+            for (const auto& gloss : month.glosses)
+            {
+                if (textOf(gloss.fields, "id") != "rations")
+                    continue;
+
+                std::string said;
+
+                for (const auto& row : gloss.rows)
+                    said += textOf(row, "label") + "=" + textOf(row, "value") + ";";
+
+                EXPECT_NE(said.find("A month uses=3;"), std::string::npos) << said;
+                EXPECT_NE(said.find("Lasts=1 mo;"), std::string::npos) << said;
+            }
+
+            // Six of them: two months, said from three
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{6}}, {"fam.sprite", ElementType{2}}}, false, month)) << firstError(f.rules);
+            EXPECT_EQ(month.warning, "RATIONS FOR 2 MONTHS");
+            EXPECT_TRUE(month.entries.empty());
+
+            // His last one eaten, the sprite goes hungry: the rations ran out once, then the hunger
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{1}}, {"fam.sprite", ElementType{1}}}, false, month)) << firstError(f.rules);
+            EXPECT_EQ(intOf(month.after, "rations"), 0);
+            EXPECT_EQ(intOf(month.after, "vit"), 20);
+            EXPECT_EQ(texts(month), (std::vector<std::string>{"The rations ran out", "A hedge sprite went hungry"}));
+
+            // Out of them: no second entry, his Vitality pays, the sprite still hungry
+            ASSERT_TRUE(f.rules.month(8.0f, {{"vit", ElementType{20}}, {"rations", ElementType{0}}, {"fam.sprite", ElementType{1}}}, false, month)) << firstError(f.rules);
+            EXPECT_EQ(intOf(month.after, "vit"), 15);
+            EXPECT_EQ(month.warning, "NO RATIONS LEFT");
+            EXPECT_EQ(texts(month), std::vector<std::string>{"A hedge sprite went hungry"});
+        }
+
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------

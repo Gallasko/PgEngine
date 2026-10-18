@@ -316,6 +316,23 @@ var warning = ""
 // And what to do about it, "" when the holding gives no word for it
 var advice = ""
 
+// What his familiars eat a month, by stat, fed or not: what he lives on runs out that much sooner,
+// and the warning, the gloss and the `eats` count it with his own
+var familiarsEat = {}
+
+for (var fe = 0; fe < len(familiarKinds); fe++)
+{
+    var eater = familiarKinds[fe]
+    var count = statOf(character, "fam." + eater.id)
+
+    for (var fr = 0; fr < len(eater.eats); fr++)
+    {
+        var meal = eater.eats[fr]
+
+        familiarsEat[meal.stat] = lookup(familiarsEat, meal.stat, 0) + count * meal.amount
+    }
+}
+
 for (var i = 0; i < len(holdings); i++)
 {
     var h = holdings[i]
@@ -357,15 +374,12 @@ for (var i = 0; i < len(holdings); i++)
         {
             shiftIn(after, change, h.id, 0 - decays)
 
-            if (after[h.id] == 0 and has(h, "empty"))
-            {
-                push(entries, {text: h.empty.entry, kind: "loss", figure: "", glyph: h.glyph})
-            }
-
-            // What a life hangs on is said to be running out from three months of it left
+            // What a life hangs on is said to be running out from three months of it left, his
+            // familiars' share counted. The month it is gone is written once they have eaten
             if (has(h, "empty") and warning == "")
             {
-                var lasts = toInt(floor((held + decays - 1) / decays))
+                var uses = decays + lookup(familiarsEat, h.id, 0)
+                var lasts = toInt(floor((held + uses - 1) / uses))
 
                 if (lasts == 1)
                 {
@@ -401,35 +415,39 @@ for (var i = 0; i < len(holdings); i++)
 
 // He has eaten: his familiars eat after him, at board too, and what they took and made is in the
 // rates with the rest
-var fed = feedFamiliars(after, entries)
+var hungry = []
+var fed = feedFamiliars(after, hungry)
 
 for (var fs : fed)
 {
     change[fs] = lookup(change, fs, 0) + fed[fs]
 }
 
+// What he held and has no more of once they have all eaten ran out this month, whoever ate the
+// last of it: written once, ahead of the familiars that went hungry
+for (var ro = 0; ro < len(holdings); ro++)
+{
+    var gone = holdings[ro]
+
+    if (has(gone, "empty") and lookup(gone, "decays", 0) > 0 and statOf(character, gone.id) > 0 and statOf(after, gone.id) == 0)
+    {
+        push(entries, {text: gone.empty.entry, kind: "loss", figure: "", glyph: gone.glyph})
+    }
+}
+
+for (var hu = 0; hu < len(hungry); hu++)
+{
+    push(entries, hungry[hu])
+}
+
 // The rations a coming month eats: his own unless his work feeds him, and all his familiars'
-var eats = 0
+var eats = lookup(familiarsEat, "rations", 0)
 
 for (var he = 0; he < len(holdings); he++)
 {
     if (holdings[he].id == "rations" and not board)
     {
         eats = eats + lookup(holdings[he], "decays", 0)
-    }
-}
-
-for (var fe = 0; fe < len(familiarKinds); fe++)
-{
-    var eater = familiarKinds[fe]
-    var count = statOf(character, "fam." + eater.id)
-
-    for (var fr = 0; fr < len(eater.eats); fr++)
-    {
-        if (eater.eats[fr].stat == "rations")
-        {
-            eats = eats + count * eater.eats[fr].amount
-        }
     }
 }
 
@@ -642,11 +660,14 @@ for (var g = 0; g < len(holdings); g++)
 
     if (decays > 0)
     {
-        push(notes, {label: "A month uses", value: toString(decays), tone: "loss"})
+        // His own and his familiars'
+        var uses = decays + lookup(familiarsEat, h.id, 0)
+
+        push(notes, {label: "A month uses", value: toString(uses), tone: "loss"})
 
         if (held > 0)
         {
-            push(notes, {label: "Lasts", value: fmtMonths(toInt(floor((held + decays - 1) / decays))), tone: "time"})
+            push(notes, {label: "Lasts", value: fmtMonths(toInt(floor((held + uses - 1) / uses))), tone: "time"})
         }
 
         if (has(h, "empty"))
