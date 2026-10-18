@@ -22,7 +22,7 @@
 //            nextWork   "" at its last level, else the id of the activity that raises it
 //                       (activitytable.pg makes it from the same table: "raise.<id>.<level>")
 //            nextName, nextMonths, nextCoin (less the fund, never below 0), nextYears,
-//            nextCosts  what the next level asks, in one line: "6 mo · 20 coin · 1 Strength"
+//            nextCosts  what the next level asks, in one line: "6 mo · 5 coin · 20 Stone · 20 Water"
 //            nextGives  what it will give
 //            nextLocked true while he cannot pay for it
 //            gaps [{stat, label, current, needed}]: what it takes from him, against what he has

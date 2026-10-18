@@ -5917,7 +5917,7 @@ namespace pg
                 EXPECT_FALSE(life->piece<PlaceGrid>("places")->tile(id)->spec.ready) << id;
             }
 
-            // The place's gloss keeps it: the coin it asks against the coin he has, in the loss's colour
+            // The place's gloss keeps it: the coin and the berries it asks against what he has, in the loss's colour
             auto registry = f.ecs.getSystem<GlossRegistry>();
             ASSERT_NE(registry, nullptr);
 
@@ -5927,9 +5927,16 @@ namespace pg
             bool asked = false;
 
             for (const auto& row : gloss->rows)
-                asked = asked or (row.label == "Coin" and row.value == "0 / 20" and row.tone == "loss");
+                asked = asked or (row.label == "Coin" and row.value == "0 / 5" and row.tone == "loss");
 
             EXPECT_TRUE(asked);
+
+            bool berries = false;
+
+            for (const auto& row : gloss->rows)
+                berries = berries or (row.label == "Berries" and row.value == "0 / 20" and row.tone == "loss");
+
+            EXPECT_TRUE(berries);
 
             // Nor an age, nor a stat: the Keep is years away and says nothing of it, and its gloss does
             auto list = life->piece<ActivityList>("activities");
@@ -6215,6 +6222,13 @@ namespace pg
 
             f.frames(12);
 
+            // What the market's stall asks besides its coin, so that its tile begins it: the page
+            // reads it the next month
+            life->save.stats["berries"] = 20;
+            life->save.stats["firewood"] = 20;
+            life->onMonth();
+            f.frames(12);
+
             auto tabs = life->piece<Tabs>("tabs");
             ASSERT_NE(tabs, nullptr);
             ASSERT_TRUE(life->save.townKnown);
@@ -6309,7 +6323,7 @@ namespace pg
             ASSERT_TRUE(life->save.running.empty());
 
             const int coin = life->save.stats["coin"];
-            ASSERT_GE(coin, 20);
+            ASSERT_GE(coin, 5);
 
             // While a click would raise it, its tile is lit
             EXPECT_TRUE(grid->tile("market")->spec.ready);
@@ -6331,7 +6345,9 @@ namespace pg
             f.ecs.sendEvent(ButtonActivatedEvent{life->piece<Button>("begin")->face.id, "life.begin"});
             f.settle();
             EXPECT_EQ(life->save.running, "raise.market.1");
-            EXPECT_EQ(life->save.stats["coin"], coin - 20);
+            EXPECT_EQ(life->save.stats["coin"], coin - 5);
+            EXPECT_EQ(life->save.stats["berries"], 0);
+            EXPECT_EQ(life->save.stats["firewood"], 0);
             EXPECT_EQ(grid->selected(), "");
 
             // At work, no tile is: a click would begin nothing
@@ -6342,7 +6358,7 @@ namespace pg
             f.ecs.sendEvent(PlaceSelectedEvent{"mill"});
             f.settle();
             EXPECT_EQ(life->save.running, "raise.market.1");
-            EXPECT_EQ(life->save.stats["coin"], coin - 20);
+            EXPECT_EQ(life->save.stats["coin"], coin - 5);
 
             // The two other columns have not moved, nor has the middle one's panel
             EXPECT_FLOAT_EQ(f.pos(life->named("holds"))->x, holdsX);
@@ -6506,7 +6522,12 @@ namespace pg
 
             f.frames(12);
 
+            // What the market's stall asks besides its coin: the page reads it the next month
             life->save.stats["rations"] = 24;
+            life->save.stats["berries"] = 20;
+            life->save.stats["firewood"] = 20;
+            life->onMonth();
+            f.frames(12);
 
             auto list = life->piece<ActivityList>("activities");
             auto grid = life->piece<PlaceGrid>("places");
@@ -6518,7 +6539,7 @@ namespace pg
             const int coin = life->save.stats["coin"];
             const int millMonths = list->find(&f.ecs, "mill") ? list->find(&f.ecs, "mill")->spec.months : -1;
 
-            ASSERT_GE(coin, 20);
+            ASSERT_GE(coin, 5);
 
             // A double click on the place begins it, as on a row
             f.ecs.sendEvent(PlaceSelectedEvent{"market"});
@@ -6527,7 +6548,9 @@ namespace pg
             f.settle();
 
             ASSERT_EQ(life->save.running, "raise.market.1");
-            EXPECT_EQ(life->save.stats["coin"], coin - 20);
+            EXPECT_EQ(life->save.stats["coin"], coin - 5);
+            EXPECT_EQ(life->save.stats["berries"], 0);
+            EXPECT_EQ(life->save.stats["firewood"], 0);
             EXPECT_EQ(life->save.town.count("market"), 0u);
 
             for (int i = 0; i < 6; ++i)
@@ -6610,9 +6633,13 @@ namespace pg
 
             f.frames(12);
 
-            // The chapel at its second level, and the coin its almshouse asks
+            // The chapel at its second level, and what its almshouse asks: a little coin, and resources
             life->save.town["chapel"] = 2;
             life->save.stats["coin"] = 100;
+            life->save.stats["water"] = 80;
+            life->save.stats["clay"] = 20;
+            life->save.stats["gems"] = 4;
+            life->save.stats["antler"] = 1;
             life->save.stats["rations"] = 24;
             life->onMonth();
             f.frames(12);
@@ -6638,7 +6665,9 @@ namespace pg
             EXPECT_NEAR(life->save.age, age + 2.0f, 0.001f);
             EXPECT_EQ(life->save.world, world + 24);
             EXPECT_EQ(life->rules.world, world + 24);
-            EXPECT_EQ(life->save.stats["coin"], 40);
+            EXPECT_EQ(life->save.stats["coin"], 85);
+            EXPECT_EQ(life->save.stats["water"], 0);
+            EXPECT_EQ(life->save.stats["antler"], 0);
             EXPECT_EQ(life->save.town["chapel"], 3);
             EXPECT_EQ(life->save.done["raise.chapel.3"], 1);
             EXPECT_NEAR(f.fact<float>("life.age"), age + 2.0f, 0.001f);
@@ -6878,8 +6907,11 @@ namespace pg
             auto list = life->piece<ActivityList>("activities");
             ASSERT_NE(list, nullptr);
 
-            // (the town's page is his once he has been to its market: taken there here)
+            // (the town's page is his once he has been to its market: taken there here), and what the
+            // windows ask besides coin
             life->save.townKnown = true;
+            life->save.stats["water"] = 20;
+            life->save.stats["clay"] = 20;
             life->onMonth();
             f.frames(12);
 
@@ -9488,17 +9520,29 @@ namespace pg
 
             auto prefab = life->ending->get<Prefab>();
 
-            // The one place that asks for any of it is offered, with what it would take
+            // The places that ask for any of it are offered, each with what it would take: the market's
+            // stall asks firewood, the mill's wheel stone, the lodge firewood and ash wood
             EntityRef line = prefab->findEntity("giftLabel");
             ASSERT_FALSE(line.empty());
             EXPECT_TRUE(f.pos(line)->visible);
             EXPECT_EQ(line->get<Label>()->spec.text, "LEAVE WHAT A PLACE CAN USE TO");
 
-            ASSERT_EQ(life->gifts.size(), 1u);
-            EXPECT_EQ(life->gifts[0].first, "lodge");
-            EXPECT_NE(life->gifts[0].second.spec.label.find("20 firewood, 4 ash wood"), std::string::npos);
+            ASSERT_EQ(life->gifts.size(), 3u);
 
-            f.ecs.sendEvent(ButtonActivatedEvent{life->gifts[0].second.face.id, "life.gift.lodge"});
+            Button lodge;
+
+            for (const auto& [id, button] : life->gifts)
+            {
+                EXPECT_TRUE(id == "market" or id == "mill" or id == "lodge") << id;
+
+                if (id == "lodge")
+                    lodge = button;
+            }
+
+            ASSERT_FALSE(lodge.face.empty());
+            EXPECT_NE(lodge.spec.label.find("20 firewood, 4 ash wood"), std::string::npos);
+
+            f.ecs.sendEvent(ButtonActivatedEvent{lodge.face.id, "life.gift.lodge"});
             f.settle();
             ASSERT_EQ(life->gift, "lodge");
 
@@ -9631,10 +9675,23 @@ namespace pg
             f.frames(12);
 
             ASSERT_TRUE(life->ended);
-            ASSERT_EQ(life->gifts.size(), 1u);
-            EXPECT_EQ(life->gifts[0].first, "lodge");
 
-            f.ecs.sendEvent(ButtonActivatedEvent{life->gifts[0].second.face.id, "life.gift.lodge"});
+            // The mill's wheel asks stone too: it is offered beside the lodge
+            Button lodge;
+            bool mill = false;
+
+            for (const auto& [id, button] : life->gifts)
+            {
+                mill = mill or id == "mill";
+
+                if (id == "lodge")
+                    lodge = button;
+            }
+
+            EXPECT_TRUE(mill);
+            ASSERT_FALSE(lodge.face.empty());
+
+            f.ecs.sendEvent(ButtonActivatedEvent{lodge.face.id, "life.gift.lodge"});
             f.settle();
             ASSERT_EQ(life->gift, "lodge");
 
@@ -9683,14 +9740,22 @@ namespace pg
             EXPECT_NE(said().find("His stores go to the family's stash: 12 stone."), std::string::npos) << said();
 
             // The lodge takes ten of it: two go into the stash
-            ASSERT_EQ(life->gifts.size(), 1u);
-            f.ecs.sendEvent(ButtonActivatedEvent{life->gifts[0].second.face.id, "life.gift.lodge"});
+            Button lodge;
+
+            for (const auto& [id, button] : life->gifts)
+            {
+                if (id == "lodge")
+                    lodge = button;
+            }
+
+            ASSERT_FALSE(lodge.face.empty());
+            f.ecs.sendEvent(ButtonActivatedEvent{lodge.face.id, "life.gift.lodge"});
             f.settle();
             ASSERT_EQ(life->gift, "lodge");
             EXPECT_NE(said().find("His stores go to the family's stash: 2 stone."), std::string::npos) << said();
 
             // Let go of, all of it again
-            f.ecs.sendEvent(ButtonActivatedEvent{life->gifts[0].second.face.id, "life.gift.lodge"});
+            f.ecs.sendEvent(ButtonActivatedEvent{lodge.face.id, "life.gift.lodge"});
             f.settle();
             ASSERT_EQ(life->gift, "");
             EXPECT_NE(said().find("His stores go to the family's stash: 12 stone."), std::string::npos) << said();

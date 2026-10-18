@@ -3176,6 +3176,8 @@ namespace pg
 
             ElementMap character = townsman();
             character["coin"] = ElementType{30};
+            character["firewood"] = ElementType{20};
+            character["clay"] = ElementType{20};
             character["town.market"] = ElementType{1};
             character["town.mill"] = ElementType{3};
 
@@ -3214,7 +3216,8 @@ namespace pg
             EXPECT_EQ(textOf(yard.fields, "line"), "NOT YET BUILT");
             EXPECT_EQ(textOf(yard.fields, "nextWork"), "raise.yard.1");
             EXPECT_EQ(intOf(yard.fields, "nextMonths"), 6);
-            EXPECT_EQ(intOf(yard.fields, "nextCoin"), 20);
+            EXPECT_EQ(intOf(yard.fields, "nextCoin"), 5);
+            EXPECT_EQ(textOf(yard.fields, "nextCosts"), "6 mo · 5 coin · 20 Firewood · 20 Clay");
             EXPECT_FALSE(flag(yard.fields, "nextLocked"));
 
             // At its first level: what it gives, and a second that asks more than he has
@@ -3239,11 +3242,19 @@ namespace pg
             EXPECT_EQ(textOf(market.fields, "nextWork"), "raise.market.2");
             EXPECT_TRUE(flag(market.fields, "nextLocked"));
 
-            ASSERT_EQ(market.gaps.size(), 2u);
+            // The hall asks a little coin, and mostly resources: the berries and gems he lacks lock it
+            ASSERT_EQ(market.gaps.size(), 5u);
             EXPECT_EQ(textOf(market.gaps[0], "stat"), "coin");
             EXPECT_EQ(intOf(market.gaps[0], "current"), 30);
-            EXPECT_EQ(intOf(market.gaps[0], "needed"), 60);
-            EXPECT_EQ(textOf(market.gaps[1], "stat"), "guile");
+            EXPECT_EQ(intOf(market.gaps[0], "needed"), 15);
+            EXPECT_EQ(textOf(market.gaps[1], "stat"), "berries");
+            EXPECT_EQ(intOf(market.gaps[1], "needed"), 40);
+            EXPECT_EQ(textOf(market.gaps[2], "stat"), "firewood");
+            EXPECT_EQ(intOf(market.gaps[2], "current"), 20);
+            EXPECT_EQ(intOf(market.gaps[2], "needed"), 40);
+            EXPECT_EQ(textOf(market.gaps[3], "stat"), "gems");
+            EXPECT_EQ(intOf(market.gaps[3], "needed"), 2);
+            EXPECT_EQ(textOf(market.gaps[4], "stat"), "guile");
 
             // At its last: nothing more to raise
             const RulePlace& mill = placed("mill");
@@ -3265,15 +3276,21 @@ namespace pg
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
         // What lives left to a place at their death is counted toward its next level: the page and
-        // the work that raises it ask that much less coin, never less than none.
+        // the work that raises it ask that much less coin, never less than none. What the level
+        // asks of resources is asked as before.
         TEST(rules_test, town_fund_lowers_the_coin_asked)
         {
             MockLogger logger;
             RulesFixture f;
 
+            // What the mill's wheel and the yard's racks ask of resources, so that only coin can lock them
             ElementMap character = townsman();
-            character["coin"] = ElementType{10};
-            character["fund.mill"] = ElementType{15};
+            character["coin"] = ElementType{2};
+            character["stone"] = ElementType{20};
+            character["water"] = ElementType{20};
+            character["firewood"] = ElementType{20};
+            character["clay"] = ElementType{20};
+            character["fund.mill"] = ElementType{3};
             character["fund.chapel"] = ElementType{84};
 
             RuleTown town;
@@ -3285,8 +3302,8 @@ namespace pg
 
                 if (id == "mill")
                 {
-                    EXPECT_EQ(intOf(place.fields, "nextCoin"), 5);
-                    EXPECT_EQ(intOf(place.fields, "fund"), 15);
+                    EXPECT_EQ(intOf(place.fields, "nextCoin"), 2);
+                    EXPECT_EQ(intOf(place.fields, "fund"), 3);
                     EXPECT_FALSE(flag(place.fields, "nextLocked"));
                 }
 
@@ -3294,18 +3311,28 @@ namespace pg
                     EXPECT_EQ(intOf(place.fields, "nextCoin"), 0);
 
                 if (id == "yard")
+                {
+                    EXPECT_EQ(intOf(place.fields, "nextCoin"), 5);
                     EXPECT_TRUE(flag(place.fields, "nextLocked"));
+                }
             }
 
             RuleActivity mill = activityAt(f.rules, 9.0f, character, "raise.mill.1");
 
-            ASSERT_EQ(mill.costs.size(), 1u);
+            ASSERT_EQ(mill.costs.size(), 3u);
             EXPECT_EQ(textOf(mill.costs[0], "stat"), "coin");
-            EXPECT_EQ(intOf(mill.costs[0], "amount"), 5);
+            EXPECT_EQ(intOf(mill.costs[0], "amount"), 2);
+            EXPECT_EQ(textOf(mill.costs[1], "stat"), "stone");
+            EXPECT_EQ(intOf(mill.costs[1], "amount"), 20);
             EXPECT_FALSE(flag(mill.fields, "locked"));
 
-            // Paid for whole: the work asks no coin at all
-            EXPECT_TRUE(activityAt(f.rules, 9.0f, character, "raise.chapel.1").costs.empty());
+            // Paid for whole: the work asks no coin at all, and still the resources
+            RuleActivity chapel = activityAt(f.rules, 9.0f, character, "raise.chapel.1");
+
+            ASSERT_FALSE(chapel.costs.empty());
+
+            for (const auto& cost : chapel.costs)
+                EXPECT_NE(textOf(cost, "stat"), "coin");
         }
 
         // ----------------------------------------------------------------------------------------
@@ -3338,11 +3365,18 @@ namespace pg
             EXPECT_FALSE(flag(activityAt(f.rules, 9.0f, character, "raise.market.1").fields, "listed"));
             EXPECT_TRUE(flag(activityAt(f.rules, 9.0f, character, "raise.market.2").fields, "listed"));
 
-            // What it takes of him besides coin is a cost like any other
+            // What it takes of him besides coin is a cost like any other: resources, gems, a stat
             RuleActivity second = activityAt(f.rules, 9.0f, character, "raise.market.2");
 
-            ASSERT_EQ(second.costs.size(), 2u);
-            EXPECT_EQ(textOf(second.costs[1], "stat"), "guile");
+            ASSERT_EQ(second.costs.size(), 5u);
+            EXPECT_EQ(textOf(second.costs[0], "stat"), "coin");
+            EXPECT_EQ(intOf(second.costs[0], "amount"), 15);
+            EXPECT_EQ(textOf(second.costs[1], "stat"), "berries");
+            EXPECT_EQ(intOf(second.costs[1], "amount"), 40);
+            EXPECT_EQ(textOf(second.costs[2], "stat"), "firewood");
+            EXPECT_EQ(textOf(second.costs[3], "stat"), "gems");
+            EXPECT_EQ(intOf(second.costs[3], "amount"), 2);
+            EXPECT_EQ(textOf(second.costs[4], "stat"), "guile");
             EXPECT_TRUE(flag(second.fields, "locked"));
 
             character["town.market"] = ElementType{3};
@@ -3356,6 +3390,120 @@ namespace pg
             EXPECT_EQ(intOf(almshouse.fields, "months"), 0);
             EXPECT_EQ(intOf(almshouse.fields, "yearMonths"), 24);
             EXPECT_EQ(textOf(almshouse.fields, "each"), "COSTS 2 YEARS");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A level of the town is paid mainly in resources: the first of every place asks a basic
+        // resource and little coin, the second gems too.
+        TEST(rules_test, a_level_asks_resources_more_than_coin)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            const ElementMap character = townsman();
+            const std::vector<std::string> basics = {"berries", "water", "firewood", "stone", "clay"};
+
+            std::vector<RuleActivity> activities;
+            ASSERT_TRUE(f.rules.activities(9.0f, character, activities)) << firstError(f.rules);
+
+            for (const char* place : {"market", "mill", "smithy", "yard", "gate", "chapel", "collegium", "harrow", "inn", "lodge"})
+            {
+                const std::string id = std::string("raise.") + place + ".1";
+                const RuleActivity* first = nullptr;
+
+                for (const auto& a : activities)
+                {
+                    if (textOf(a.fields, "id") == id)
+                        first = &a;
+                }
+
+                ASSERT_NE(first, nullptr) << id;
+
+                bool basic = false;
+                int coin = 0;
+
+                for (const auto& cost : first->costs)
+                {
+                    const std::string stat = textOf(cost, "stat");
+
+                    if (stat == "coin")
+                        coin = intOf(cost, "amount");
+
+                    for (const auto& b : basics)
+                        basic = basic or stat == b;
+                }
+
+                EXPECT_TRUE(basic) << id;
+                EXPECT_LE(coin, 10) << id;
+            }
+
+            RuleActivity loft = activityAt(f.rules, 9.0f, character, "raise.mill.2");
+            int gems = 0;
+
+            for (const auto& cost : loft.costs)
+            {
+                if (textOf(cost, "stat") == "gems")
+                    gems = intOf(cost, "amount");
+            }
+
+            EXPECT_EQ(gems, 2);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A world whose fund holds more coin than a level now asks: no coin is asked, never less
+        // than none, and what the level asks of resources is untouched by the coin left over.
+        TEST(rules_test, an_old_fund_never_goes_below_nothing)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = townsman();
+            character["fund.mill"] = ElementType{15};
+
+            RuleTown town;
+            ASSERT_TRUE(f.rules.town(9.0f, character, town)) << firstError(f.rules);
+
+            bool seen = false;
+
+            for (const auto& place : town.places)
+            {
+                if (textOf(place.fields, "id") != "mill")
+                    continue;
+
+                seen = true;
+                EXPECT_EQ(intOf(place.fields, "nextCoin"), 0);
+                EXPECT_EQ(intOf(place.fields, "fund"), 15);
+
+                for (const auto& gap : place.gaps)
+                    EXPECT_NE(textOf(gap, "stat"), "coin");
+            }
+
+            EXPECT_TRUE(seen);
+
+            RuleActivity wheel = activityAt(f.rules, 9.0f, character, "raise.mill.1");
+            int stone = 0;
+            int water = 0;
+
+            for (const auto& cost : wheel.costs)
+            {
+                const std::string stat = textOf(cost, "stat");
+
+                EXPECT_NE(stat, "coin");
+                EXPECT_GT(intOf(cost, "amount"), 0) << stat;
+
+                if (stat == "stone")
+                    stone = intOf(cost, "amount");
+
+                if (stat == "water")
+                    water = intOf(cost, "amount");
+            }
+
+            EXPECT_EQ(stone, 20);
+            EXPECT_EQ(water, 20);
         }
 
         // ----------------------------------------------------------------------------------------
@@ -3637,10 +3785,23 @@ namespace pg
                       "Leave the Flood unanswered, and Carry for the Watch, Take the Sacristan's Keys and Run with the Bellmoor Boys are closed to him for this life.");
             EXPECT_NE(textOf(activityAt(f.rules, 11.0f, character, "flood.salvage").fields, "caution").find("Take the Sacristan's Keys"), std::string::npos);
 
-            // The mill's wheel, before: twenty coin
-            EXPECT_EQ(intOf(activityAt(f.rules, 11.0f, character, "raise.mill.1").costs[0], "amount"), 20);
+            // The coin the mill's wheel asks: 0 when it asks none
+            auto wheelCoin = [&](float age, const ElementMap& who) {
+                int coin = 0;
 
-            // The sandbags: the others are gone, and the wheel is ten
+                for (const auto& cost : activityAt(f.rules, age, who, "raise.mill.1").costs)
+                {
+                    if (textOf(cost, "stat") == "coin")
+                        coin = intOf(cost, "amount");
+                }
+
+                return coin;
+            };
+
+            // The mill's wheel, before: five coin
+            EXPECT_EQ(wheelCoin(11.0f, character), 5);
+
+            // The sandbags: the others are gone, and the wheel asks no coin
             RuleForecast forecast;
             ASSERT_TRUE(f.rules.forecast(11.0f, character, "flood.sandbags", 0, forecast)) << firstError(f.rules);
 
@@ -3654,7 +3815,7 @@ namespace pg
 
             EXPECT_FALSE(listed(11.0f + month, saved, "flood.rescue"));
             EXPECT_FALSE(listed(11.0f + month, saved, "flood.salvage"));
-            EXPECT_EQ(intOf(activityAt(f.rules, 11.5f, saved, "raise.mill.1").costs[0], "amount"), 10);
+            EXPECT_EQ(wheelCoin(11.5f, saved), 0);
             EXPECT_TRUE(listed(12.0f, saved, "keys"));
 
             // The looting: the keys are not his, the forbidden shelf is
