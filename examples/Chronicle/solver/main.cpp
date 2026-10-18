@@ -51,8 +51,8 @@
 //   clone(value)   a deep copy of a table or a list (a state of the search branches off from it)
 //   scalarsOf(table), scalarsOfEach(list)   a table's numbers, booleans and strings only, of one
 //                  table or of each of a list's (what the C++ hands a rule script of its tables)
-//   chronicleCharacter(stats, townKnown, town, fund, seen, know), chronicleTakeStats(stats, know,
-//                  after)   the character between the solver's state and the rules, as the Life
+//   chronicleCharacter(stats, townKnown, town, fund, seen, know, stash), chronicleTakeStats(stats,
+//                  know, stash, after)   the character between the solver's state and the rules, as the Life
 //                  screen's C++ makes it and takes it back (life.pg's character and takeStats)
 //   clockMs()      milliseconds since the host started
 //   getArg(i), getArgCount()   as the PgCompiler CLI's: 0 the host, 1 the script, 2... the user's
@@ -401,9 +401,9 @@ namespace
         return text.rfind(prefix, 0) == 0;
     }
 
-    // chronicleCharacter(stats, townKnown, town, fund, seen, know): his stats, then the town and
-    // what the world knows, as the rules read them ("town.<place>", "fund.<key>", "seen.<place>",
-    // "know.<key>")
+    // chronicleCharacter(stats, townKnown, town, fund, seen, know, stash): his stats, then the town,
+    // what the world knows and what its stash keeps, as the rules read them ("town.<place>",
+    // "fund.<key>", "seen.<place>", "know.<key>", "stash.<id>")
     Value chronicleCharacter(VM& vm, Value* args)
     {
         Value out = vm.createTable();
@@ -421,7 +421,7 @@ namespace
 
         struct Part { int arg; const char* prefix; bool one; };
 
-        for (const Part& part : {Part{2, "town.", false}, Part{3, "fund.", false}, Part{4, "seen.", true}, Part{5, "know.", false}})
+        for (const Part& part : {Part{2, "town.", false}, Part{3, "fund.", false}, Part{4, "seen.", true}, Part{5, "know.", false}, Part{6, "stash.", false}})
         {
             if (not IS_INSTANCE(args[part.arg]))
                 continue;
@@ -435,18 +435,20 @@ namespace
         return out;
     }
 
-    // chronicleTakeStats(stats, know, after): what a script handed back made the character's.
-    // Every value a whole number; "know.<key>" is the world's knowledge; "town.", "fund.", "seen."
-    // are the world's and left alone (the solver keeps them, as the C++ does). Writes into `stats`
-    // and `know`; true when the town has come to be known
+    // chronicleTakeStats(stats, know, stash, after): what a script handed back made the character's.
+    // Every value a whole number; "know.<key>" is the world's knowledge; "stash.<id>" what the
+    // world's stash keeps (a draw takes from it: none left is 0, which the rules read as none);
+    // "town.", "fund.", "seen." are the world's and left alone (the solver keeps them, as the C++
+    // does). Writes into `stats`, `know` and `stash`; true when the town has come to be known
     Value chronicleTakeStats(VM& vm, Value* args)
     {
-        if (not IS_INSTANCE(args[0]) or not IS_INSTANCE(args[1]) or not IS_INSTANCE(args[2]))
-            throw std::runtime_error("chronicleTakeStats expects (stats, know, after) tables");
+        if (not IS_INSTANCE(args[0]) or not IS_INSTANCE(args[1]) or not IS_INSTANCE(args[2]) or not IS_INSTANCE(args[3]))
+            throw std::runtime_error("chronicleTakeStats expects (stats, know, stash, after) tables");
 
         ObjInstance* stats = vm.asInstance(args[0]);
         ObjInstance* know = vm.asInstance(args[1]);
-        ObjInstance* after = vm.asInstance(args[2]);
+        ObjInstance* stash = vm.asInstance(args[2]);
+        ObjInstance* after = vm.asInstance(args[3]);
         bool townKnown = false;
 
         for (size_t i = 0; i < after->fieldCount(); ++i)
@@ -462,6 +464,10 @@ namespace
             else if (startsWith(key, "know."))
             {
                 know->setField(key.substr(5), v, &vm, true);
+            }
+            else if (startsWith(key, "stash."))
+            {
+                stash->setField(key.substr(6), AS_INT(v) > 0 ? v : makeIntValue(0), &vm, true);
             }
             else if (not startsWith(key, "town.") and not startsWith(key, "fund.") and not startsWith(key, "seen."))
             {
@@ -1317,15 +1323,15 @@ namespace
         });
 
         vm.defineNative("chronicleCharacter", [](VM* v, int argCount, Value* args) -> Value {
-            if (argCount != 6)
-                throw std::runtime_error("chronicleCharacter expects (stats, townKnown, town, fund, seen, know)");
+            if (argCount != 7)
+                throw std::runtime_error("chronicleCharacter expects (stats, townKnown, town, fund, seen, know, stash)");
 
             return chronicleCharacter(*v, args);
         });
 
         vm.defineNative("chronicleTakeStats", [](VM* v, int argCount, Value* args) -> Value {
-            if (argCount != 3)
-                throw std::runtime_error("chronicleTakeStats expects (stats, know, after)");
+            if (argCount != 4)
+                throw std::runtime_error("chronicleTakeStats expects (stats, know, stash, after)");
 
             return chronicleTakeStats(*v, args);
         });

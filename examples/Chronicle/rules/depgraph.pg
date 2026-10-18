@@ -694,6 +694,30 @@ fun buildGraph()
         addTask(graph, activities[i])
     }
 
+    // A familiar makes its things every month it is fed (resources.pg), which no row of the
+    // table says: what a kind makes is brought by the work that binds it, from when that is over
+    for (var k = 0; k < len(familiarKinds); k = k + 1)
+    {
+        var kind = familiarKinds[k]
+        var binder = "bind." + kind.id
+
+        if (contain(graph.taskIds, binder))
+        {
+            for (var m = 0; m < len(kind.makes); m = m + 1)
+            {
+                addLink(graph, taskNode(binder), statNode(kind.makes[m].stat), kind.makes[m].stat, "brings", signedText(kind.makes[m].amount) + " a month, fed", 0)
+            }
+        }
+    }
+
+    // What the stash keeps of a basic is what lives before him held of it at their death
+    for (var b = 0; b < len(basicResources); b = b + 1)
+    {
+        var kept = basicResources[b].id
+
+        addLink(graph, statNode(kept), statNode("stash." + kept), "stash." + kept, "birth", "kept at his death", 0)
+    }
+
     // The walks, once every task has said what it asks for
     for (var z = 0; z < len(walkZones); z = z + 1)
     {
@@ -2961,6 +2985,15 @@ var done = {}
 // years to fifty with it)
 var character = {"town.inn": 1}
 
+// The economy's tables: the basics, the familiars and what each kind makes
+import "economytable"
 import "activitytable"
+
+// A life is born with slots for familiars of its own (economytable.pg's `baseSlots`): what his
+// standing and a calling add come later, and nothing has to bring the first
+if (economyKnobs.baseSlots > 0)
+{
+    push(bornWith, "slot")
+}
 
 main()

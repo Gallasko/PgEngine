@@ -213,6 +213,10 @@ fun charValue(st, stat)
     {
         v = st.done[substring(stat, 5, strlen(stat))]
     }
+    else if (startsWith(stat, "stash."))
+    {
+        v = st.stash[substring(stat, 6, strlen(stat))]
+    }
     else if (stat == "town_known")
     {
         if (st.townKnown)
@@ -272,6 +276,18 @@ fun addWalksFor(goals, st, zones, w, depth, by)
 // What a requirement short of what it asks leads to
 fun addNeed(goals, st, stat, needed, w, depth, by)
 {
+    // What the stash keeps is what a life held at its death: this one holds it to the end, and a
+    // life after it draws on it
+    if (startsWith(stat, "stash."))
+    {
+        var kept = substring(stat, 6, strlen(stat))
+
+        raiseWeight(goals.keep, kept, needed)
+        raiseWeight(goals.keepW, kept, w)
+        addNeed(goals, st, kept, needed, w * 0.9, depth + 1, by)
+        return
+    }
+
     if (startsWith(stat, "done."))
     {
         addAct(goals, st, substring(stat, 5, strlen(stat)), w * 0.95, depth + 1, by)
@@ -664,8 +680,8 @@ fun rationPrice(st)
 }
 
 // What a row would do toward the needs: each stat's gain less its cost (and, for coin, the rations
-// its months eat away from a table that feeds him), as a share of what is still missing of that
-// need, weighed as the work that asks for it is
+// its months eat: his away from a table that feeds him, his familiars' everywhere), as a share of
+// what is still missing of that need, weighed as the work that asks for it is
 fun gainScore(st, goals, row)
 {
     var net = {}
@@ -680,9 +696,10 @@ fun gainScore(st, goals, row)
         net[c.stat] = asInt(net[c.stat]) - c.amount
     }
 
-    if (row.board != true and st.stats.rations != none and row.months > 0)
+    if (st.stats.rations != none and row.months > 0)
     {
-        net["coin"] = asInt(net["coin"]) - toInt(toFloat(row.months) * rationPrice(st) + 0.5)
+        var eaten = eatsOf(st, row.board == true) * row.months
+        net["coin"] = asInt(net["coin"]) - toInt(toFloat(eaten) * rationPrice(st) + 0.5)
     }
 
     var s = 0.0
@@ -736,7 +753,8 @@ fun gainScore(st, goals, row)
     return s
 }
 
-// A little of everything, for when nothing is asked: coin, parts and skills, a month at a time
+// A little of everything, for when nothing is asked: coin, parts and skills, a month at a time (the
+// basics a little less than rations: a month of scavenging brings them by the handful)
 fun fillerScore(row)
 {
     var s = 0.0
@@ -750,6 +768,10 @@ fun fillerScore(row)
         else if (g.stat == "rations")
         {
             s = s + toFloat(g.amount) * 0.2
+        }
+        else if (isResource(g.stat))
+        {
+            s = s + toFloat(g.amount) * 0.1
         }
         else if (isBase(g.stat))
         {
@@ -993,18 +1015,20 @@ fun isOpen(row)
     return row.listed == true and row.locked != true and row.goto == ""
 }
 
-// Rations enough for `months` away from a table that feeds him: bought at the market while they
-// are short and he can pay
-fun provision(st, months, goals)
+// Rations enough for `months` of a work and what they eat (life.pg's rationsFor: his own away from a
+// table that feeds him, his familiars' everywhere): bought at the market while they are short and he
+// can pay
+fun provision(st, months, board, goals)
 {
     if (st.stats.rations == none)
     {
         return true
     }
 
+    var need = rationsFor(st, months, board)
     var tries = 0
 
-    while (statOf(st, "rations") < months + 1 and tries < 8)
+    while (statOf(st, "rations") < need and tries < 8)
     {
         var buy = rowOf(st, "buy.rations")
 
@@ -1022,7 +1046,7 @@ fun provision(st, months, goals)
         }
     }
 
-    return statOf(st, "rations") >= months + 1
+    return statOf(st, "rations") >= need
 }
 
 // What is done at once (a buy, a sale, an answer that takes no time): the ones worth it, one after
@@ -1269,16 +1293,24 @@ fun chooseWork(st, goals, novelty)
             }
         }
 
-        var fed = row.board == true or st.stats.rations == none or statOf(st, "rations") >= row.months + 1
+        var board = row.board == true
+        var fed = st.stats.rations == none or statOf(st, "rations") >= rationsFor(st, row.months, board)
 
         if (not fed)
         {
-            fed = provision(st, row.months, goals)
+            fed = provision(st, row.months, board, goals)
 
             if (st.dead)
             {
                 return ""
             }
+        }
+
+        // A work that feeds him is begun whatever his familiars will go without: hungry, they
+        // only make nothing
+        if (board)
+        {
+            fed = true
         }
 
         if (fed)
@@ -1297,6 +1329,13 @@ fun chooseWork(st, goals, novelty)
 
 var baseStats = ["str", "dex", "int", "vit", "vitmax", "arms", "discipline", "letters", "lore", "arcana", "stealth",
                  "guile", "renown", "coin", "rations", "reagents", "favors"]
+
+// The basics and what is made of them are held in numbers, as the parts are: many works bring them
+for (var baseResource : resourceIds)
+{
+    push(baseStats, baseResource)
+}
+
 var producers = {}
 var entersOf = {}
 var closers = {}

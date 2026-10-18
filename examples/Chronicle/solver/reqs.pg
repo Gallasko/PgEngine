@@ -15,9 +15,10 @@
 //                        of each task's minimum it holds, summed
 //   prospectDelta(st)    what the work under way will add to that at its term (only the tasks that
 //                        need what it brings are looked at: `tasksByStat`)
-//   earnChildren(...)    for the coin, rations and things of the walks that the tasks it nearly
-//                        meets are short of, a branch earning them with the best earner, its terms
-//                        played one after the other (continueRepeat)
+//   earnChildren(...)    for the coin, rations, things of the walks and basic resources that the
+//                        tasks it nearly meets are short of, a branch earning them with the best
+//                        earner (for a basic, a scavenging row), its terms played one after the
+//                        other (continueRepeat)
 // A task reached by any world (life.pg's `everReached`) leaves all of it.
 // Imported by solver.pg, after plan.pg.
 
@@ -308,8 +309,10 @@ fun prospectDelta(st)
 
 // ---- earning --------------------------------------------------------------------------------------
 
-// What a term of a row earns of `stat` a month: coin less the rations it eats away from a table
-// that feeds him, rations with the months it feeds him counted
+// What a term of a row earns of `stat` a month: coin less the rations its months eat (his own away
+// from a table that feeds him, his familiars' everywhere: life.pg's eatsOf), rations with the
+// rations of his own it spares him at board counted. A basic resource is what it gathers: a month
+// of scavenging is an earner of it like any other work
 fun earnRate(st, row, stat)
 {
     var got = 0
@@ -330,14 +333,16 @@ fun earnRate(st, row, stat)
     var months = larger(1, row.months)
     var rate = toFloat(got)
 
-    if (stat == "coin" and row.board != true)
+    var board = row.board == true
+
+    if (stat == "coin")
     {
-        rate = rate - toFloat(months) * rationPrice(st)
+        rate = rate - toFloat(months * eatsOf(st, board)) * rationPrice(st)
     }
 
-    if (stat == "rations" and row.board == true)
+    if (stat == "rations" and board)
     {
-        rate = rate + toFloat(months)
+        rate = rate + toFloat(months * (eatsOf(st, false) - eatsOf(st, true)))
     }
 
     return rate / toFloat(months)
@@ -359,6 +364,14 @@ fun earnersOf(st, rows, stat)
     for (var k : st.know)
     {
         key = key + k + toString(st.know[k]) + ","
+    }
+
+    // (and on the familiars he holds: what their rations cost)
+    key = key + "|"
+
+    for (var kind : familiarKinds)
+    {
+        key = key + toString(statOf(st, "fam." + kind.id)) + ","
     }
 
     var kept = earnerCache[key]
@@ -423,7 +436,7 @@ fun bestEarner(st, rows, stat)
 }
 
 // What the tasks a world nearly meets (half of their minimum or more, open now or within two
-// years) are short of in coin, rations and things of the walks: the most each is short of
+// years) are short of in coin, rations, things of the walks and the basics: the most each is short of
 fun shortfalls(st)
 {
     var cls = classOf(st)
@@ -435,7 +448,7 @@ fun shortfalls(st)
         {
             for (var e : t.entries)
             {
-                if (e.stat == "coin" or e.stat == "rations" or itemKinds[e.stat] != none)
+                if (e.stat == "coin" or e.stat == "rations" or itemKinds[e.stat] != none or isResource(e.stat))
                 {
                     var missing = e.needed - charValue(st, e.stat)
 
@@ -452,7 +465,8 @@ fun shortfalls(st)
 }
 
 // A branch for each shortfall: the best earner, its terms played until the shortfall is met (six
-// at most); a thing of the walks, the walk that brings it, three times at most
+// at most); a thing of the walks, the walk that brings it, three times at most; a basic resource
+// that a walk brings too, both
 fun earnChildren(st, rows, children)
 {
     var shorts = shortfalls(st)
@@ -488,7 +502,9 @@ fun earnChildren(st, rows, children)
                 }
             }
         }
-        else
+
+        // A basic is gathered too, a month of scavenging at a time, whatever walk also brings it
+        if (itemKinds[stat] == none or isResource(stat))
         {
             var row = bestEarner(st, rows, stat)
 
@@ -498,10 +514,7 @@ fun earnChildren(st, rows, children)
                 var terms = smaller(6, larger(1, toInt(ceil(toFloat(missing) / larger(0.5, per)))))
                 var c = clone(st)
 
-                if (row.board != true)
-                {
-                    provisionFast(c, buy, row.months)
-                }
+                provisionFast(c, buy, row.months, row.board == true)
 
                 beginFast(c, row)
                 c.pending = row.gains
@@ -556,10 +569,7 @@ fun continueRepeat(st)
         return true
     }
 
-    if (row.board != true)
-    {
-        provisionFast(st, shapeById["buy.rations"], row.months)
-    }
+    provisionFast(st, shapeById["buy.rations"], row.months, row.board == true)
 
     beginFast(st, row)
     st.pending = row.gains

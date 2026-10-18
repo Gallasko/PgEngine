@@ -55,9 +55,10 @@ fun beginFast(st, row)
     note(st, "begin " + row.id + " (" + toString(row.months) + " mo)")
 }
 
-// Rations for `months` away from a table that feeds him, bought from the market row as it stands
-// (its price and what it brings, with the room he has for them)
-fun provisionFast(st, buy, months)
+// Rations for `months` of a work and what they eat (life.pg's rationsFor: his own away from a table
+// that feeds him, his familiars' everywhere), bought from the market row as it stands (its price and
+// what it brings, with the room he has for them)
+fun provisionFast(st, buy, months, board)
 {
     if (st.stats.rations == none or buy == none or not isOpen(buy))
     {
@@ -92,9 +93,10 @@ fun provisionFast(st, buy, months)
         }
     }
 
+    var need = rationsFor(st, months, board)
     var bought = 0
 
-    while (statOf(st, "rations") < months + 1 and statOf(st, "coin") >= coin and room > 0 and bought < 8 and rations > 0)
+    while (statOf(st, "rations") < need and statOf(st, "coin") >= coin and room > 0 and bought < 8 and rations > 0)
     {
         st.stats.coin = statOf(st, "coin") - coin
         st.stats.rations = statOf(st, "rations") + rations
@@ -233,11 +235,7 @@ fun expandChildren(st, round)
             else
             {
                 var c = clone(st)
-
-                if (row.board != true)
-                {
-                    provisionFast(c, buy, row.months)
-                }
+                provisionFast(c, buy, row.months, row.board == true)
 
                 beginFast(c, row)
                 c.pending = row.gains
@@ -523,7 +521,9 @@ fun beamScore(st)
     }
 
     // Hunger ahead: the months of the work under way (or of waiting) he has no rations for cost
-    // Vitality, five a month (resources.pg); one he will not live through is no world at all
+    // Vitality, five a month (resources.pg); one he will not live through is no world at all.
+    // A month eats `eats` (his own and his familiars'), and he eats first: the rations he holds
+    // last him that many months, the last one begun
     if (st.stats.rations != none and not st.board)
     {
         var ahead = 1
@@ -533,7 +533,9 @@ fun beamScore(st)
             ahead = st.months - st.monthsIn
         }
 
-        var hungry = larger(0, ahead - statOf(st, "rations"))
+        var eats = larger(1, eatsOf(st, false))
+        var lasts = (statOf(st, "rations") + eats - 1) / eats
+        var hungry = larger(0, ahead - lasts)
 
         if (hungry > 0)
         {
@@ -596,6 +598,11 @@ fun signatureOf(st)
     for (var t : st.town)
     {
         s = s + ":" + t + toString(st.town[t])
+    }
+
+    for (var kept : st.stash)
+    {
+        s = s + ":s." + kept + toString(st.stash[kept])
     }
 
     return s
@@ -857,6 +864,18 @@ fun beamRun(width, cap, minutes, seed)
 
 var grownStats = ["str", "dex", "int", "arms", "discipline", "letters", "lore", "arcana", "stealth", "guile", "renown"]
 var sigStats = ["str", "dex", "int", "vit", "arms", "discipline", "letters", "lore", "arcana", "stealth", "guile", "renown", "coin", "rations", "reagents"]
+
+// And the basics, what is made of them and the familiars bound (economytable.pg, through life.pg)
+for (var sigResource : resourceIds)
+{
+    push(sigStats, sigResource)
+}
+
+for (var sigKind : familiarKinds)
+{
+    push(sigStats, "fam." + sigKind.id)
+}
+
 var beamNoise = 0.0
 var zoneHasBeasts = {}
 var aims = [""]

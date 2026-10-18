@@ -9,12 +9,13 @@
 //   doAtOnce     what takes no month: a buy, a sale, a work for the town that takes none
 //   raisePlace   a level of the town reached, the fund left to it spent
 //   seeTown      the places that come onto the Town page stay seen
-//   newLife      a death, the gift to a place, and the next life of the same world
+//   newLife      a death, the gift to a place, what the stash keeps, and the next life of the world
 //   takeStats    what a script hands back becomes the character's; the town keys are the world's
 // Left out: the deeds (none of achievements.pg gives anything), the log, the written time.
 //
 // A state is one table, cloned to try something without losing what was:
 //   {world, lives, town {place: level}, fund {key: coin}, seen {place: 1}, know {key: n},
+//    stash {basic: n} (what the stash keeps between lives),
 //    month (his age in months), stats, done {id: terms}, running, monthsIn, months, board,
 //    townKnown, dead, death, planHead (its last line in `planLog`), reached {id: "life 2, 14y3m"},
 //    reachedCount, raises/raiseLevel (what the work under way raises), dice, stamp}
@@ -26,6 +27,10 @@
 import "algorithm"
 import "string"
 import "math"
+
+// The economy's tables (the basics, what is made of them, the familiars): their ids, read here
+// rather than written again
+import "../rules/economytable"
 
 fun smaller(a, b)
 {
@@ -129,7 +134,7 @@ fun newWorld(seed)
     var st = {world: 0, lives: 1, town: {}, fund: {}, seen: {}, know: {},
               month: 72, stats: freshStats(), done: {}, running: "", monthsIn: 0, months: 0, board: false,
               townKnown: false, dead: false, death: "", planHead: -1, reached: {}, reachedCount: 0, raises: "", raiseLevel: 0, aim: "",
-              dice: seed, stamp: 0, terms: 0}
+              dice: seed, stamp: 0, terms: 0, stash: {}}
     touch(st)
 
     return st
@@ -152,7 +157,7 @@ fun character(st)
 
 fun characterOf(st)
 {
-    return chronicleCharacter(st.stats, st.townKnown, st.town, st.fund, st.seen, st.know)
+    return chronicleCharacter(st.stats, st.townKnown, st.town, st.fund, st.seen, st.know, st.stash)
 }
 
 fun note(st, text)
@@ -246,10 +251,11 @@ fun forecastOf(st, id, monthsIn)
 }
 
 // LifeScene::takeStats and LifeSave::takeTown (the host's chronicleTakeStats: every value a whole
-// number, "know." the world's knowledge, the town's levels, funds and places seen left to the solver)
+// number, "know." the world's knowledge, "stash." what the stash keeps, the town's levels, funds and
+// places seen left to the solver)
 fun takeStats(st, after)
 {
-    if (chronicleTakeStats(st.stats, st.know, after))
+    if (chronicleTakeStats(st.stats, st.know, st.stash, after))
     {
         st.townKnown = true
     }
@@ -293,7 +299,7 @@ fun raisePlace(st, place, level)
 fun townOf(st)
 {
     var answer = rule("town", {age: ageOf(st), character: character(st), done: st.done, world: st.world, lives: st.lives},
-                      ["places", "start", "gift"])
+                      ["places", "start", "gift", "stash"])
     checked(answer, "town")
 
     return answer
@@ -358,6 +364,59 @@ fun deathOf(st)
     }
 
     return ""
+}
+
+// The rations a coming month eats: his own (none at board) and every familiar's he has bound, fed
+// or not (resources.pg's `eats`). It hangs on the board and on the familiars he holds only, so the
+// rules are asked once for each such household and the answer is kept
+fun eatsOf(st, board)
+{
+    var key = "f"
+
+    if (board)
+    {
+        key = "b"
+    }
+
+    for (var kind : familiarKinds)
+    {
+        key = key + ":" + toString(statOf(st, "fam." + kind.id))
+    }
+
+    var known = eatsKept[key]
+
+    if (known != none)
+    {
+        return known
+    }
+
+    var answer = rule("resources", {age: ageOf(st), character: character(st), board: board}, ["eats"])
+    checked(answer, "resources (eats)")
+
+    var eats = asInt(answer.eats)
+    eatsKept[key] = eats
+
+    return eats
+}
+
+// The rations `months` of a work eat, and the month after it when it feeds him: his own and his
+// familiars', so that he is not left without the month he comes home
+fun rationsFor(st, months, board)
+{
+    var need = eatsOf(st, board) * months
+
+    if (not board)
+    {
+        need = need + eatsOf(st, false)
+    }
+
+    return need
+}
+
+// A basic resource or a thing made of them (economytable.pg)
+fun isResource(stat)
+{
+    return resourceKeys[stat] != none
 }
 
 fun die(st, line)
@@ -584,6 +643,9 @@ fun beginWork(st, id, goals)
 // LifeScene::beginAgain and newLife: what he held left to a place, and the next life of the world
 fun newLife(st, gift, town)
 {
+    // What the gift takes of each thing he holds: the stash keeps only the rest
+    var given = {}
+
     if (gift != "")
     {
         var coin = statOf(st, town.gift.stat)
@@ -591,6 +653,7 @@ fun newLife(st, gift, town)
         if (coin > 0)
         {
             st.fund[gift] = larger(0, asInt(st.fund[gift])) + coin
+            given[town.gift.stat] = asInt(given[town.gift.stat]) + coin
         }
 
         for (var place : town.places)
@@ -601,11 +664,29 @@ fun newLife(st, gift, town)
                 {
                     var key = gift + "." + left.stat
                     st.fund[key] = larger(0, asInt(st.fund[key])) + left.amount
+                    given[left.stat] = asInt(given[left.stat]) + left.amount
                 }
             }
         }
 
         note(st, "left " + toString(coin) + " coin to " + gift)
+    }
+
+    // What is left of the basics goes into the stash, for the lives after him: the gift is taken
+    // first, and the stash keeps no more than its most of any one thing (town.pg's `stash`)
+    for (var kept : town.stash)
+    {
+        var held = st.stats[kept.stat]
+
+        if (held != none)
+        {
+            var rest = held - asInt(given[kept.stat])
+
+            if (rest > 0)
+            {
+                st.stash[kept.stat] = smaller(kept.most, asInt(st.stash[kept.stat]) + rest)
+            }
+        }
     }
 
     st.lives = st.lives + 1
@@ -653,3 +734,22 @@ var jobReaches = []
 
 var fastestWorld = {}
 var youngest = {}
+
+// What resources.pg's `eats` said, by household (eatsOf)
+var eatsKept = {}
+
+// The ids of the basics and of what is made of them, and as keys
+var resourceIds = []
+var resourceKeys = {}
+
+for (var lifeBasic : basicResources)
+{
+    push(resourceIds, lifeBasic.id)
+    resourceKeys[lifeBasic.id] = 1
+}
+
+for (var lifeMade : madeResources)
+{
+    push(resourceIds, lifeMade.id)
+    resourceKeys[lifeMade.id] = 1
+}
