@@ -2530,6 +2530,49 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // The bosses teach the kinds that need deep places: the Old Shell the mole, the Old Grey
+        // the weaver.
+        TEST(expedition_test, the_old_shell_teaches_the_mole)
+        {
+            MockLogger logger;
+
+            ElementMap champion = hunter();
+            champion["str"] = ElementType{20};
+            champion["arms"] = ElementType{8};
+            champion["dex"] = ElementType{30};
+            champion["vit"] = ElementType{300};
+            champion["vitmax"] = ElementType{300};
+
+            auto w = bossFight(champion, "quarry", "enc.shell");
+
+            ASSERT_TRUE(pressUntil(*w, "strike", 30, [&w]() { return not textOf(w->last.duel, "over").empty(); }));
+            ASSERT_EQ(textOf(w->last.duel, "over"), "won");
+
+            EXPECT_EQ(intOf(w->character, "know.fam.mole"), 1);
+        }
+
+        TEST(expedition_test, the_old_grey_teaches_the_weaver)
+        {
+            MockLogger logger;
+
+            ElementMap champion = hunter();
+            champion["str"] = ElementType{20};
+            champion["arms"] = ElementType{8};
+            champion["dex"] = ElementType{30};
+            champion["vit"] = ElementType{300};
+            champion["vitmax"] = ElementType{300};
+
+            auto w = bossFight(champion, "hollow", "enc.grey");
+
+            ASSERT_TRUE(pressUntil(*w, "strike", 30, [&w]() { return not textOf(w->last.duel, "over").empty(); }));
+            ASSERT_EQ(textOf(w->last.duel, "over"), "won");
+
+            EXPECT_EQ(intOf(w->character, "know.fam.weaver"), 1);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // Holds that cost nothing, thrown again and again by a quick man at a boss, weaken as
         // delays do: the boss still acts.
         TEST(expedition_test, a_boss_is_never_held_for_good)

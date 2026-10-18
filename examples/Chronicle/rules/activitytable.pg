@@ -499,6 +499,18 @@ var activities = [
      about: "The top shelf of the chapel library has a lock, and the lock has been broken for years. Nobody will thank him for what he reads there.",
      gains: [{stat: "lore"}, {stat: "forbidden_read"}],
      requires: [{stat: "letters", needed: 2}]},
+    // Two kinds of familiar are learned from books and a hearth rather than from a fight: the
+    // world keeps what is learned (the stat "know.fam.<id>"), so the next life can bind them
+    {id: "research.imp", group: "Study", name: "Read of the Well Spirits", glyph: "study", months: 3, rank: "", each: "LEARNS A KIND OF FAMILIAR", path: "", fromAge: 9, uses: 1,
+     whileNot: "know.fam.imp",
+     about: "The chapel keeps a book of the things that live in wells, and what they ask to be fetched.",
+     gains: [{stat: "know.fam.imp"}],
+     requires: [{stat: "letters"}]},
+    {id: "research.brownie", group: "Study", name: "Learn the Kitchen Charms", glyph: "study", months: 2, rank: "", each: "LEARNS A KIND OF FAMILIAR", path: "", fromAge: 8, uses: 1,
+     whileNot: "know.fam.brownie",
+     about: "The cook knows a charm or two for the hearth, and what to leave out for whoever keeps it.",
+     gains: [{stat: "know.fam.brownie"}],
+     requires: [{stat: "done.kitchen", label: "Helped in the kitchen"}]},
     // The herbal: nothing for his stats, and a thing to do on every walk from then on (he brews
     // a remedy where he stands, expeditionlib.pg)
     {id: "herbal", group: "Study", name: "Learn the Herbal", glyph: "study", months: 2, rank: "", each: "BREW ON A WALK", path: "", fromAge: 10, fromMonths: 6, uses: 1,

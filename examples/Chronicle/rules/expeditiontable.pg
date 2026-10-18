@@ -370,13 +370,13 @@ const walkEncounters = [
     // The Quarry Road's: the Old Shell, that a hammer opens
     {id: "shell", name: "The Old Shell", line: "In the deepest cut of the quarry, a shell the size of a cart. It does not move for a boy.",
      foes: [{mob: "oldshell", count: 1}], boss: true, level: 4, rarity: "rare",
-     gives: [{stat: "shell_plate", amount: 1}, {stat: "shell_slain", amount: 1}],
+     gives: [{stat: "shell_plate", amount: 1}, {stat: "shell_slain", amount: 1}, {stat: "know.fam.mole", amount: 1}],
      lore: "Under the Old Shell, where it had lain for years, the quarry stone is carved: marks no quarryman made."},
 
     // The Hollow Woods': the wolves' leader, with his own
     {id: "grey", name: "The Old Grey", line: "The pack's leader, with two of his wolves.",
      foes: [{mob: "oldgrey", count: 1}, {mob: "wolf", count: 2}], boss: true, level: 4, rarity: "rare",
-     gives: [{stat: "grey_pelt", amount: 1}, {stat: "grey_slain", amount: 1}],
+     gives: [{stat: "grey_pelt", amount: 1}, {stat: "grey_slain", amount: 1}, {stat: "know.fam.weaver", amount: 1}],
      lore: "The Old Grey is dead. The Hollow is quiet for a season, and the Keep's hunters drink to a boy."}
 ]
 

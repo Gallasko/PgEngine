@@ -1965,6 +1965,60 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // A kind learned from a study row is kept by the world: the next life can bind it.
+        TEST(lifescene_test, a_kind_learned_is_kept_by_the_world)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.fresh = true;
+            opt.lives = 2;
+            opt.age = 9.5f;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            life->save.stats["rations"] = 24;
+            life->save.stats["letters"] = 1;
+
+            life->onMonth();
+            f.settle();
+
+            ASSERT_NE(life->piece<ActivityList>("activities")->find(&f.ecs, "research.imp"), nullptr);
+
+            f.ecs.sendEvent(ActivitySelectedEvent{"life.activities", "research.imp"});
+            f.settle();
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "research.imp"});
+            f.settle();
+
+            ASSERT_EQ(life->save.running, "research.imp");
+
+            for (int month = 0; month < 3; ++month)
+            {
+                life->onMonth();
+                f.frames(12);
+            }
+
+            EXPECT_EQ(life->save.knowledge["fam.imp"], 1);
+
+            life->newLife();
+            f.settle();
+
+            EXPECT_EQ(life->save.knowledge["fam.imp"], 1);
+
+            life->save.age = 8.0f;
+            life->save.stats["scavenged"] = 2;
+            life->save.stats["rations"] = 24;
+            life->onMonth();
+            f.settle();
+
+            EXPECT_NE(life->piece<ActivityList>("activities")->find(&f.ecs, "bind.imp"), nullptr);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // The world's calendar begins at Year 0 with the first life and never rewinds: a life that
         // ends leaves its months counted, and the next one goes on from that date. It is how long
         // the chronicle has been kept.

@@ -1598,6 +1598,23 @@ namespace pg
 
             EXPECT_FALSE(flag(activityAt(f.rules, 7.5f, character, "train.imp").fields, "listed"));
         }
+
+        // A kind is learned from a study row, and the row is not offered to a world that knows it
+        TEST(rules_test, research_teaches_a_kind)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = boy();
+            character["letters"] = ElementType{1};
+            RuleActivity row = activityAt(f.rules, 9.5f, character, "research.imp");
+            EXPECT_TRUE(flag(row.fields, "listed"));
+            EXPECT_EQ(textOf(row.gains[0], "stat"), "know.fam.imp");
+
+            character["know.fam.imp"] = ElementType{1};
+            EXPECT_FALSE(flag(activityAt(f.rules, 9.5f, character, "research.imp").fields, "listed"));
+        }
+
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
