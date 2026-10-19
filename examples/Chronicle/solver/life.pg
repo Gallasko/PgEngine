@@ -226,6 +226,12 @@ fun shapeOf(st)
     for (var row : shapeRows)
     {
         byId[row.id] = row
+
+        // A story asks the fees of its plan besides (walks.pg's withStoryFees)
+        if (row.story != none and row.story != "" and row.listed == true)
+        {
+            withStoryFees(st, row)
+        }
     }
 
     shapeById = byId
@@ -775,6 +781,12 @@ fun beginWork(st, id, goals)
     if (st.running != "")
     {
         return "already at work"
+    }
+
+    // A story (its days chosen by its plan, its months run as they fall due), before a walk: no zone
+    if (row.story != none and row.story != "")
+    {
+        return storyBy(st, row, goals)
     }
 
     if (row.zone != "")

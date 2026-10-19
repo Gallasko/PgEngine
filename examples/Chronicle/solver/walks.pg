@@ -8,6 +8,7 @@
 //                     turn for home when nothing more can be done
 //
 // The dice are cast when a walk begins, from the moment and the world's own (askWalk).
+// A story (a row with `story`) is played on the same screen, by its own plan: storyBy, below.
 // Imported by solver.pg, after life.pg.
 
 import "algorithm"
@@ -348,3 +349,305 @@ fun walkBy(st, row, goals)
 
     return ""
 }
+
+// ---- a story ----------------------------------------------------------------------------------------
+//
+// A row with a `story` (rules/storytable.pg) is a scene of days, as the Life screen plays it
+// (Scenes/lifewalk.cpp: beginStory, walkDo, runStoryMonths, endStory), followed by the story's own
+// `plan` (asked "plan" of expedition.pg, flat: storylib.pg's planRow), as the tests follow it
+// (test/chronicle/story.cc's followPlan):
+//
+//   a day         the first of the plan's tiles not yet spent that is offered and open that day,
+//                 else the first open tile; nothing open: he leaves
+//   a card        the plan's answer to it (its `cards`, its `tests`), else the first he can give
+//   a fight       his stance's, turn after turn (a tile's `auto` fight is the rules' own)
+//
+// The months the days add up to are his life's, run as each act makes them due (`run.monthsDue`).
+// Never a record, never replayed.
+
+// The plan of a story, flat (kept: the rules do not change during a run)
+fun storyPlanOf(st, story, rows)
+{
+    var known = storyPlans[story]
+
+    if (known != none)
+    {
+        return known
+    }
+
+    var ws = {run: {}, record: [], marks: [], fight: {over: "", mob: ""}, foes: [], account: []}
+    var answer = askWalk(st, ws, "plan", {kind: "", target: story, count: 0}, rows)
+    var flat = answer.site
+    var tiles = []
+
+    for (var i = 0; i < asInt(flat.tiles); i = i + 1)
+    {
+        push(tiles, flat["tile." + toString(i)])
+    }
+
+    var plan = {tiles: tiles, answers: {}, fees: [], gives: []}
+
+    for (var k : flat)
+    {
+        if (startsWith(k, "card.") or startsWith(k, "test."))
+        {
+            plan.answers[substring(k, 5, strlen(k))] = flat[k]
+        }
+
+        if (startsWith(k, "fee."))
+        {
+            push(plan.fees, {stat: substring(k, 4, strlen(k)), amount: asInt(flat[k])})
+        }
+
+        if (startsWith(k, "gives."))
+        {
+            push(plan.gives, {stat: substring(k, 6, strlen(k)), amount: asInt(flat[k])})
+        }
+    }
+
+    storyPlans[story] = plan
+
+    return plan
+}
+
+// A story is begun with the fees of its plan in hand (the solver's own way: a term begun without
+// them is a term left, and its door stays shut behind him). Asked of him as a row's costs are, and
+// the row locked while he is short: the search earns them first
+fun withStoryFees(st, row)
+{
+    var plan = storyPlanOf(st, row.story, [])
+
+    for (var fee : plan.fees)
+    {
+        var held = statOf(st, fee.stat)
+
+        push(row.requires, {stat: fee.stat, label: fee.stat, current: held, needed: fee.amount, room: false, cost: true})
+
+        if (held < fee.amount)
+        {
+            row.locked = true
+        }
+    }
+}
+
+// What he does next in a story, by its plan (`spent` the plan's tiles taken, by their place in it)
+fun storyChoice(answer, plan, spent)
+{
+    var screen = answer.site.screen
+
+    if (screen == "event")
+    {
+        var up = answer.run.event
+        var said = none
+
+        if (up != none and startsWith(up, "story."))
+        {
+            said = plan.answers[substring(up, 6, strlen(up))]
+        }
+
+        if (said != none)
+        {
+            for (var o : answer.options)
+            {
+                if (o.id == said and not isLocked(o))
+                {
+                    return {kind: "option", target: said, count: 0}
+                }
+            }
+        }
+
+        for (var o2 : answer.options)
+        {
+            if (not isLocked(o2))
+            {
+                return {kind: "option", target: o2.id, count: 0}
+            }
+        }
+
+        return {kind: "leave", target: "", count: 0}
+    }
+
+    if (screen == "fight")
+    {
+        var over = answer.fight.over
+
+        if (over != none and over != "")
+        {
+            return {kind: "back", target: "", count: 0}
+        }
+
+        return {kind: "step", target: "", count: 0}
+    }
+
+    var open = {}
+
+    for (var w : answer.works)
+    {
+        if (not isLocked(w))
+        {
+            open[w.id] = 1
+        }
+    }
+
+    for (var i = 0; i < len(plan.tiles); i = i + 1)
+    {
+        if (spent[i] == 0 and open["tile." + plan.tiles[i]] != none)
+        {
+            spent[i] = 1
+
+            return {kind: "tile." + plan.tiles[i], target: "", count: 0}
+        }
+    }
+
+    for (var w2 : answer.works)
+    {
+        if (not isLocked(w2))
+        {
+            return {kind: w2.id, target: "", count: 0}
+        }
+    }
+
+    return {kind: "leave", target: "", count: 0}
+}
+
+// beginStory, its days chosen one by one (each running the months it makes due), then endStory:
+// "" when it was begun (whatever came of it), else why not
+fun storyBy(st, row, goals)
+{
+    var rows = walkRowsOf(st)
+    var plan = storyPlanOf(st, row.story, rows)
+    var f = forecastOf(st, row.id, 0)
+
+    // What beginning its row takes and gives (a board's rations up front), taken before he is there,
+    // and given back if the story cannot be entered
+    var held = {stats: clone(st.stats), know: clone(st.know), stash: clone(st.stash), townKnown: st.townKnown}
+
+    takeStats(st, f.atStart)
+
+    var ws = {run: {}, record: [], marks: [], fight: {over: "", mob: ""}, foes: [], account: []}
+    var answer = askWalk(st, ws, "enter", {kind: "story", target: row.story, count: 0}, rows)
+
+    if (answer.run.story == none or answer.run.story == "")
+    {
+        st.stats = held.stats
+        st.know = held.know
+        st.stash = held.stash
+        st.townKnown = held.townKnown
+        touch(st)
+
+        return "the story would not begin"
+    }
+
+    takeStats(st, answer.after)
+    ws = walkStateOf(answer)
+
+    // Its row runs from here, its months the story's, each run as its days add up to it
+    st.running = row.id
+    st.monthsIn = 0
+    st.months = f.months
+    st.raises = ""
+    st.raiseLevel = 0
+    touch(st)
+
+    var spent = []
+
+    for (var s = 0; s < len(plan.tiles); s = s + 1)
+    {
+        push(spent, 0)
+    }
+
+    var told = []
+    var steps = 0
+
+    while (steps < 400 and answer.site.screen != "done")
+    {
+        var act = storyChoice(answer, plan, spent)
+
+        if (act.kind != "step" and act.kind != "back")
+        {
+            var said = act.kind
+
+            if (startsWith(said, "tile."))
+            {
+                said = substring(said, 5, strlen(said))
+            }
+
+            if (act.target != "")
+            {
+                said = act.target
+            }
+
+            push(told, said)
+        }
+
+        answer = askWalk(st, ws, "act", act, rows)
+        takeStats(st, answer.after)
+        ws = walkStateOf(answer)
+        steps = steps + 1
+
+        // A day that ended: the months it makes due are his life's, run now
+        var months = asInt(answer.run.monthsDue)
+
+        for (var m = 0; m < months and not st.dead; m = m + 1)
+        {
+            monthPass(st)
+        }
+
+        // A month that left him nothing to live on: the life is over, and the story with it
+        if (st.dead)
+        {
+            st.running = ""
+            st.monthsIn = 0
+            st.months = 0
+            touch(st)
+            note(st, "story " + row.story + ", ended by his death: " + join(told, ", "))
+
+            return ""
+        }
+
+        // The page as the months left him (his Vitality, what he holds)
+        if (months > 0 and answer.site.screen != "done")
+        {
+            answer = askWalk(st, ws, "look", {kind: "", target: "", count: 0}, rows)
+            ws = walkStateOf(answer)
+        }
+    }
+
+    var result = answer.run.result
+
+    if (result == none)
+    {
+        result = ""
+    }
+
+    // Left, or sent away, before its term: the row stops where its days left it, and what its board
+    // gave ahead for the months he will not stay goes back (LifeScene::leaveWork)
+    if (st.running == row.id)
+    {
+        var left = forecastOf(st, row.id, st.monthsIn)
+
+        if (asInt(left.takenBack) > 0)
+        {
+            takeStats(st, left.atLeave)
+        }
+
+        st.running = ""
+        st.monthsIn = 0
+        st.months = 0
+        touch(st)
+    }
+
+    // Passed, the way into a path: the Life screen's `aim` (the stat lines' thresholds) is his path's.
+    // The rules never read it, and the solver's own `aim` is the class its search heads for: kept
+    // apart, as `path`
+    if ((result == "pass" or result == "merit" or result == "distinction") and row.enters == true)
+    {
+        st.path = row.path
+    }
+
+    note(st, "story " + row.story + " (" + result + "): " + join(told, ", "))
+
+    return ""
+}
+
+var storyPlans = {}

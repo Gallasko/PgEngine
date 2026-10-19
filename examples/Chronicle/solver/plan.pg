@@ -102,6 +102,13 @@ fun learnTables(info)
     {
         addGains(row.gains, row.id)
 
+        // A story gives nothing at its term: what its days and its passing grade give, followed by
+        // its plan (walks.pg's storyBy)
+        if (row.story != none and row.story != "")
+        {
+            addGains(storyPlanOf(newWorld(0), row.story, []).gives, row.id)
+        }
+
         for (var step : asListOf(row.after))
         {
             addGains(step.gains, row.id)

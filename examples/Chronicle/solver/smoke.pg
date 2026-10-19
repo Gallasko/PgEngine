@@ -1,13 +1,18 @@
-// smoke.pg - the solver's host is up: one run of the activities for a boy of six, and its cost.
+// smoke.pg - the solver's host is up: one run of the activities for a boy of six, and its cost;
+// then the solver's own checks, each a CHECK line that says PASS or FAIL.
 //
 // Usage:  ChronicleSolver examples/Chronicle/rules examples/Chronicle/solver/smoke.pg
 
 import "algorithm"
+import "string"
+import "life"
+import "walks"
+import "plan"
 
-var character = {str: 4, dex: 4, int: 4, vit: 35, vitmax: 35, arms: 0, discipline: 0, letters: 0, lore: 0,
-                 arcana: 0, stealth: 0, guile: 0, renown: 0, coin: 0}
+var boy = {str: 4, dex: 4, int: 4, vit: 35, vitmax: 35, arms: 0, discipline: 0, letters: 0, lore: 0,
+           arcana: 0, stealth: 0, guile: 0, renown: 0, coin: 0}
 
-var inputs = {age: 6.0, character: character, done: {}, world: 0, lives: 1, running: "", activityId: ""}
+var inputs = {age: 6.0, character: boy, done: {}, world: 0, lives: 1, running: "", activityId: ""}
 
 var t0 = clockMs()
 var answer = rule("windows", inputs, ["activities", "windows"])
@@ -47,7 +52,117 @@ var t3 = clockMs()
 
 for (var i = 0; i < 20; i = i + 1)
 {
-    rule("resources", {age: 6.0 + i / 12.0, character: character}, ["month", "death"])
+    rule("resources", {age: 6.0 + i / 12.0, character: boy}, ["month", "death"])
 }
 
 log("20 months ms:", clockMs() - t3)
+
+// ---- the solver's own checks ------------------------------------------------------------------
+
+fun check(name, ok, why)
+{
+    if (ok)
+    {
+        log("CHECK " + name + ": PASS")
+    }
+    else
+    {
+        log("CHECK " + name + ": FAIL (" + why + ")")
+    }
+}
+
+learnTables(rule("windows", {age: 6.0, character: freshStats(), done: {}, world: 0, lives: 1, running: "", activityId: ""},
+                 ["activities", "walkZones", "walkMobs", "walkItems", "lifeEvents", "paths", "townPlaces"]))
+
+// solver_test.the_solver_lives_a_collegium_term: a youth fit to enter the Collegium at sixteen, its
+// fees in hand, begins its row: the solver plays its sixteen days by the story's own plan, the
+// months they make run as they fall due, and the term ends with him a scholar, two years older
+var scholar = newWorld(1)
+scholar.month = 16 * 12
+scholar.stats.int = 13
+scholar.stats.letters = 3
+scholar.stats.lore = 2
+scholar.stats.coin = 45
+scholar.stats.vit = 50
+scholar.stats.vitmax = 50
+touch(scholar)
+
+var enteredAt = scholar.month
+var begun = beginWork(scholar, "collegium", newGoals(false))
+var why = ""
+
+if (begun != "")
+{
+    why = "not begun: " + begun
+}
+else if (scholar.dead)
+{
+    why = "died: " + scholar.death
+}
+else if (scholar.running != "")
+{
+    why = "still at " + scholar.running + ", " + toString(scholar.monthsIn) + " months in"
+}
+else if (doneOf(scholar, "collegium") != 1)
+{
+    why = "its term not reached"
+}
+else if (statOf(scholar, "collegium") < 1)
+{
+    why = "no scholar of it"
+}
+else if (scholar.month != enteredAt + 24)
+{
+    why = "aged " + toString(scholar.month - enteredAt) + " months"
+}
+
+check("solver_test.the_solver_lives_a_collegium_term", why == "", why)
+
+for (var line : planLines(scholar.planHead))
+{
+    log("  " + line)
+}
+
+// solver_test.a_story_waits_for_its_fees: the same youth with too little coin for the fees of the
+// plan is not let in (the row is locked to the solver, the fees asked as a cost): he earns them first
+var poor = newWorld(1)
+poor.month = 16 * 12
+poor.stats.int = 13
+poor.stats.letters = 3
+poor.stats.lore = 2
+poor.stats.coin = 10
+touch(poor)
+
+var poorRow = rowOf(poor, "collegium")
+var refused = beginWork(poor, "collegium", newGoals(false))
+var asked = 0
+
+for (var r : poorRow.requires)
+{
+    if (r.stat == "coin" and r.cost == true)
+    {
+        asked = r.needed
+    }
+}
+
+check("solver_test.a_story_waits_for_its_fees", refused == "not open to him" and poor.running == "" and poor.month == 16 * 12 and asked > 10,
+      "begun: '" + refused + "', running '" + poor.running + "', coin asked " + toString(asked))
+
+// solver_test.the_solver_knows_what_a_story_gives: the Collegium's row gives nothing at its term;
+// what its plan and its pass give are learned as the row's own, so that what asks for them (the
+// chapel shown by `collegium`, the works of the mage) knows where they come from
+var makes = {}
+
+for (var stat : ["collegium", "fire_course", "arcana"])
+{
+    for (var p : asListOf(producers[stat]))
+    {
+        if (p.id == "collegium")
+        {
+            makes[stat] = 1
+        }
+    }
+}
+
+check("solver_test.the_solver_knows_what_a_story_gives", makes.collegium == 1 and makes.fire_course == 1 and makes.arcana == 1,
+      "collegium " + toString(makes.collegium) + ", fire_course " + toString(makes.fire_course) + ", arcana " + toString(makes.arcana))

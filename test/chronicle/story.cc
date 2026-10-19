@@ -1534,6 +1534,33 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // A plan says what its tiles ask in fees, all of them taken (the solver begins a story with
+        // them in hand): the Collegium's thirteen fee'd tiles of 3 coin, both binding halls counted.
+        // A plan of no tiles asks none
+        TEST(story_test, a_plan_says_what_it_asks_and_gives)
+        {
+            MockLogger logger;
+            Walker w(collegian());
+
+            ASSERT_TRUE(w.ask("plan", WalkAct{"", "collegium", 0}));
+            EXPECT_EQ(intOf(w.last.site, "fee.coin"), 39);
+
+            // And what following it gives: the binding halls and the fire course on the way, what a
+            // pass gives at its end (the search learns from it what the story makes)
+            EXPECT_EQ(intOf(w.last.site, "gives.know.fam.imp"), 1);
+            EXPECT_EQ(intOf(w.last.site, "gives.fire_course"), 1);
+            EXPECT_EQ(intOf(w.last.site, "gives.collegium"), 1);
+            EXPECT_EQ(intOf(w.last.site, "gives.arcana"), 1);
+            EXPECT_EQ(intOf(w.last.site, "gives.top_floor"), 0);
+
+            ASSERT_TRUE(w.ask("plan", WalkAct{"", "trial", 0}));
+            EXPECT_EQ(textOf(w.last.site, "id"), "trial");
+            EXPECT_EQ(intOf(w.last.site, "fee.coin"), 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // Two days of the elemental lectures and the seventh day is the fork: fire, frost, storm or
         // the basics. One day only, and there is no fork: he stays on the basics.
         TEST(story_test, the_collegium_course_card_opens_on_day_seven)

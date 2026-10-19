@@ -240,6 +240,23 @@ fun expandChildren(st, round)
                     push(walks, {row: row, hunt: true, est: walkEstimate(st, row, true)})
                 }
             }
+            else if (row.story != none and row.story != "")
+            {
+                // A story is played whole, by its plan, its months run as its days make them due
+                // (walks.pg's storyBy): the world comes out of it that many months on. Tried on the
+                // month's first choice only, being as dear as a walk
+                if (round == 0)
+                {
+                    var told = clone(st)
+                    provisionFast(told, buy, row.months, asInt(row.upFront))
+
+                    if (storyBy(told, row, beamGoals(false)) == "")
+                    {
+                        told.pendingNew = unfound(st, row.id)
+                        push(children, told)
+                    }
+                }
+            }
             else
             {
                 var c = clone(st)

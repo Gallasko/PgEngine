@@ -86,7 +86,8 @@
 //                         `tiles` not yet spent that is offered and open that day, else the
 //                         first tile open; each card and test answered as it says, a chance
 //                         meeting by its first answer, a fight by his stance. Asked "plan",
-//                         expedition.pg hands it flat: storylib.pg's `planRow`)
+//                         expedition.pg hands it flat, with the fees its tiles ask:
+//                         storylib.pg's `planRow`. The solver begins a story with them in hand)
 //
 // `from`, `not` and `class` are words of the language: as keys they are written in quotes, and
 // read as `stage["from"]`, `tile["not"]`, `story["class"]`.

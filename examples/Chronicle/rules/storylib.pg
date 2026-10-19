@@ -66,8 +66,9 @@ fun storyNow()
 
 // A story's plan, flat, as the tests and the solver read it (expedition.pg's ask "plan"): its
 // id, row, days and months; its tiles in their order, a day each ("tile.<n>", from 0, `tiles` of
-// them); what it answers to each card ("card.<id>") and each test ("test.<id>"). {id: ""} for no
-// story
+// them); what it answers to each card ("card.<id>") and each test ("test.<id>"); what its tiles
+// ask in fees ("fee.<stat>"); what following it gives ("gives.<stat>": its tiles' stats and its
+// first passing grade's). {id: ""} for no story
 fun planRow(id)
 {
     var story = storyOf(id)
@@ -98,7 +99,48 @@ fun planRow(id)
         row["test." + k] = tests[k]
     }
 
+    // What its tiles ask in fees ("fee.<stat>"), each as often as the plan names it (two that are one
+    // or the other both counted): what to hold before beginning it, at most
+    for (var t = 0; t < len(tiles); t++)
+    {
+        var fee = pick(storyTile(story, tiles[t]), "fee", [])
+
+        for (var j = 0; j < len(fee); j++)
+        {
+            row["fee." + fee[j].stat] = pick(row, "fee." + fee[j].stat, 0) + fee[j].amount
+        }
+
+        planGives(row, pick(storyTile(story, tiles[t]), "gives", []))
+    }
+
+    // And what its first passing grade gives (the grades go from the lowest)
+    var grades = pick(story, "grades", [])
+    var passed = false
+
+    for (var g = 0; g < len(grades); g++)
+    {
+        if (not passed and grades[g].id != "fail")
+        {
+            passed = true
+            planGives(row, pick(grades[g], "gives", []))
+        }
+    }
+
     return row
+}
+
+// The stats a list of gifts gives, into a plan's row ("gives.<stat>": the most any one gift gives)
+fun planGives(row, gives)
+{
+    for (var i = 0; i < len(gives); i++)
+    {
+        var stat = pick(gives[i], "stat", "")
+
+        if (stat != "")
+        {
+            row["gives." + stat] = larger(pick(row, "gives." + stat, 0), pick(gives[i], "amount", 1))
+        }
+    }
 }
 
 // ---- the marks of the scene, and what holds ---------------------------------------------------------------
