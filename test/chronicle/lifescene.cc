@@ -11620,6 +11620,427 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // The days of a story are seen to pass: the head's gauge of the days and its stage, what
+        // is new, what has gone, and how he stands, all written where they stand
+        namespace
+        {
+            std::string walkText(LifeScene* life, const std::string& name)
+            {
+                EntityRef part = walkPart(life, name);
+
+                return part.empty() or not part->has<Label>() ? std::string("<none>") : part->get<Label>()->spec.text;
+            }
+
+            ProgressRule* walkRule(LifeScene* life, const std::string& name)
+            {
+                EntityRef part = walkPart(life, name);
+
+                return part.empty() or not part->has<ProgressRule>() ? nullptr : part->get<ProgressRule>().operator->();
+            }
+
+            // What the head's gauge of the days says, and how far it is filled
+            std::string gaugeText(LifeScene* life)
+            {
+                ProgressRule* rule = walkRule(life, "strip");
+
+                return rule and rule->caption ? rule->caption->spec.text : std::string("<none>");
+            }
+
+            float gaugePercent(LifeScene* life)
+            {
+                ProgressRule* rule = walkRule(life, "strip");
+
+                return rule ? rule->spec.percent : -1.0f;
+            }
+
+            bool tileFlaired(LifeFixture& f, LifeScene* life, const std::string& tile)
+            {
+                EntityRef part = walkPart(life, "works");
+
+                if (part.empty() or not part->has<ActivityList>())
+                    return false;
+
+                ActivityRow* row = part->get<ActivityList>()->find(&f.ecs, "tile." + tile);
+
+                return row and row->spec.adventure;
+            }
+
+            std::string fieldText(const ElementMap& map, const std::string& key)
+            {
+                auto it = map.find(key);
+
+                return it == map.end() ? std::string() : it->second.toString();
+            }
+
+            // An ending page that cannot be built (a list, not a node): a life that ends begins the
+            // next one at once, as when the game has no ending to show
+            std::string noEnding()
+            {
+                const std::string path = (std::filesystem::temp_directory_path() / "chronicle-no-ending.yaml").string();
+
+                std::ofstream out(path);
+                out << "- not\n- a node\n";
+
+                return path;
+            }
+
+            // What stands under an entity: its pieces, and theirs, through prefabs and layouts
+            size_t countUnder(LifeFixture& f, EntityRef root)
+            {
+                std::set<_unique_id> seen;
+                std::vector<EntityRef> open{root};
+
+                while (not open.empty())
+                {
+                    EntityRef at = open.back();
+                    open.pop_back();
+
+                    if (at.empty() or not seen.insert(at.id).second)
+                        continue;
+
+                    if (at->has<Prefab>())
+                    {
+                        for (auto id : at->get<Prefab>()->childrenIds)
+                        {
+                            if (auto child = f.ecs.getEntity(id))
+                                open.push_back(child);
+                        }
+                    }
+
+                    if (at->has<VerticalLayout>())
+                    {
+                        for (auto& child : at->get<VerticalLayout>()->entities)
+                            open.push_back(child);
+                    }
+
+                    if (at->has<HorizontalLayout>())
+                    {
+                        for (auto& child : at->get<HorizontalLayout>()->entities)
+                            open.push_back(child);
+                    }
+                }
+
+                return seen.size();
+            }
+        }
+
+        TEST(lifescene_test, a_story_head_shows_its_day)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = storyLife(f, storyOptions());
+            ASSERT_NE(life, nullptr);
+
+            openStory(f);
+            ASSERT_TRUE(life->onWalk());
+            f.pass(300.0f, 50.0f);
+
+            // The first day of four, on the gauge of the days, and the stage it begins
+            ASSERT_NE(walkRule(life, "strip"), nullptr);
+            EXPECT_EQ(gaugeText(life), "Day 1 of 4");
+            EXPECT_NEAR(gaugePercent(life), 25.0f, 0.01f);
+            EXPECT_EQ(walkText(life, "headNote"), "THE FIRST DAYS");
+            EXPECT_EQ(walkText(life, "kicker"), "4 DAYS \xC2\xB7 4 MONTHS OF HIS LIFE");
+            EXPECT_EQ(walkText(life, "zoneLine"), "Everything is new, and every door is open to him.");
+
+            // How he stands, in words, under his Vitality; no place to know
+            EXPECT_FALSE(siteText(life, "standing").empty());
+            EXPECT_EQ(walkText(life, "standing"), siteText(life, "standing"));
+            ASSERT_FALSE(walkPart(life, "standing").empty());
+            EXPECT_TRUE(f.pos(walkPart(life, "standing"))->visible);
+            EXPECT_FALSE(f.pos(walkPart(life, "knowledge"))->visible);
+            EXPECT_FALSE(f.pos(walkPart(life, "knowledgeBar"))->visible);
+            EXPECT_FALSE(f.pos(walkPart(life, "knowledgeNote"))->visible);
+
+            // A day on: the gauge moves, a month is gone, and the stage's text was said once
+            takeTile(f, life, "library");
+            f.pass(300.0f, 50.0f);
+
+            EXPECT_EQ(gaugeText(life), "Day 2 of 4 \xC2\xB7 1 month gone");
+            EXPECT_NEAR(gaugePercent(life), 50.0f, 0.01f);
+            EXPECT_EQ(walkText(life, "zoneLine"), "");
+            EXPECT_EQ(walkText(life, "headNote"), "THE FIRST DAYS");
+
+            // The third day is the last stage's first: its title and its text
+            takeTile(f, life, "lecture");
+            f.pass(300.0f, 50.0f);
+
+            EXPECT_EQ(gaugeText(life), "Day 3 of 4 \xC2\xB7 2 months gone");
+            EXPECT_EQ(walkText(life, "headNote"), "THE LAST DAYS");
+            EXPECT_EQ(walkText(life, "zoneLine"), "What he has heard lets him follow more.");
+            EXPECT_EQ(walkText(life, "standing"), siteText(life, "standing"));
+        }
+
+        TEST(lifescene_test, a_fresh_tile_carries_the_flair)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = storyLife(f, storyOptions());
+            ASSERT_NE(life, nullptr);
+
+            openStory(f);
+            ASSERT_TRUE(life->onWalk());
+            f.pass(300.0f, 50.0f);
+
+            // Everything is new on the first day: nothing is marked
+            EXPECT_FALSE(tileFlaired(f, life, "lecture"));
+            EXPECT_FALSE(tileFlaired(f, life, "library"));
+
+            takeTile(f, life, "lecture");
+            takeTile(f, life, "library");
+            f.pass(300.0f, 50.0f);
+
+            // The advanced course comes on the third day, and is marked that day
+            ASSERT_EQ(runText(life, "day"), "3");
+            EXPECT_TRUE(tileFlaired(f, life, "advanced"));
+            EXPECT_FALSE(tileFlaired(f, life, "library"));
+
+            // Not the next
+            takeTile(f, life, "library");
+            f.pass(300.0f, 50.0f);
+
+            ASSERT_EQ(runText(life, "day"), "4");
+            EXPECT_FALSE(tileFlaired(f, life, "advanced"));
+        }
+
+        TEST(lifescene_test, a_gone_line_names_what_left)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = storyLife(f, storyOptions());
+            ASSERT_NE(life, nullptr);
+
+            openStory(f);
+            ASSERT_TRUE(life->onWalk());
+            f.pass(300.0f, 50.0f);
+
+            ASSERT_FALSE(walkPart(life, "goneNote").empty());
+            EXPECT_FALSE(f.pos(walkPart(life, "goneNote"))->visible);
+
+            takeTile(f, life, "lecture");
+            f.pass(300.0f, 50.0f);
+            EXPECT_FALSE(f.pos(walkPart(life, "goneNote"))->visible);
+
+            // The halls are walked the first two days only (the tile `early`): on the third they
+            // are said gone
+            takeTile(f, life, "library");
+            f.pass(300.0f, 50.0f);
+
+            ASSERT_EQ(runText(life, "day"), "3");
+            EXPECT_TRUE(f.pos(walkPart(life, "goneNote"))->visible);
+            EXPECT_EQ(walkText(life, "goneNote"), "No longer offered: Walk the halls");
+
+            // Said once: the next day names what left then
+            takeTile(f, life, "library");
+            f.pass(300.0f, 50.0f);
+
+            ASSERT_EQ(runText(life, "day"), "4");
+            EXPECT_EQ(walkText(life, "goneNote").find("Walk the halls"), std::string::npos);
+        }
+
+        TEST(lifescene_test, a_story_page_is_not_rebuilt_by_a_day)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = storyLife(f, storyOptions());
+            ASSERT_NE(life, nullptr);
+
+            openStory(f);
+            ASSERT_TRUE(life->onWalk());
+            f.pass(300.0f, 50.0f);
+
+            const _unique_id page = life->walkPage.id;
+            const size_t middle = countUnder(f, walkPart(life, "walkMiddle"));
+
+            auto list = walkPart(life, "works")->get<ActivityList>();
+            ActivityRow* library = list->find(&f.ecs, "tile.library");
+            ASSERT_NE(library, nullptr);
+            const _unique_id tile = library->root.id;
+
+            takeTile(f, life, "library");
+            f.pass(300.0f, 50.0f);
+
+            ASSERT_EQ(runText(life, "day"), "2");
+            EXPECT_EQ(life->walkPage.id, page);
+            EXPECT_EQ(countUnder(f, walkPart(life, "walkMiddle")), middle);
+
+            ActivityRow* again = list->find(&f.ecs, "tile.library");
+            ASSERT_NE(again, nullptr);
+            EXPECT_EQ(again->root.id, tile);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A story's months stop with his life, and are written once, when the day is done
+
+        // A month that ends his life where no ending can be shown begins the next one at once: the
+        // story's other months are not the new boy's
+        TEST(lifescene_test, a_story_stops_when_its_month_begins_another_life)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = storyOptions();
+            opt.endingFile = noEnding();
+
+            LifeScene* life = storyLife(f, opt);
+            ASSERT_NE(life, nullptr);
+
+            openStory(f);
+            ASSERT_TRUE(life->onWalk());
+
+            const int lives = life->save.lives;
+
+            life->save.stats["rations"] = 0;
+            life->save.stats["coin"] = 0;
+            life->save.stats["vit"] = 1;
+
+            // Two months asked: the first ends him, the second is not run
+            life->runStoryMonths(2);
+
+            EXPECT_EQ(life->save.lives, lives + 1);
+            EXPECT_FALSE(life->ended);
+            EXPECT_FLOAT_EQ(life->save.age, 6.0f);
+        }
+
+        TEST(lifescene_test, a_story_day_that_begins_another_life_closes_the_story)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = storyOptions();
+            opt.endingFile = noEnding();
+
+            LifeScene* life = storyLife(f, opt);
+            ASSERT_NE(life, nullptr);
+
+            openStory(f);
+            ASSERT_TRUE(life->onWalk());
+
+            const int lives = life->save.lives;
+
+            life->save.stats["rations"] = 0;
+            life->save.stats["coin"] = 0;
+            life->save.stats["vit"] = 1;
+
+            // Two months to the day: the first ends him, the second is not the new boy's
+            life->save.walk.run["months"] = ElementType{8};
+
+            takeTile(f, life, "library");
+
+            EXPECT_EQ(life->save.lives, lives + 1);
+            EXPECT_FALSE(life->onWalk());
+            EXPECT_FALSE(life->walk.state.story());
+            EXPECT_TRUE(life->walkPage.empty());
+            EXPECT_TRUE(life->save.running.empty());
+            EXPECT_FLOAT_EQ(life->save.age, 6.0f);
+        }
+
+        // The rations its board gives are in his bag as the story opens
+        TEST(lifescene_test, a_story_opens_with_what_its_row_gave)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = storyLife(f, storyOptions());
+            ASSERT_NE(life, nullptr);
+
+            const int before = life->save.stats["rations"];
+
+            openStory(f);
+            ASSERT_TRUE(life->onWalk());
+            ASSERT_GT(life->save.stats["rations"], before);
+
+            const ElementMap* rations = nullptr;
+
+            for (const auto& row : life->walk.bag)
+            {
+                if (fieldText(row, "id") == "rations")
+                    rations = &row;
+            }
+
+            ASSERT_NE(rations, nullptr);
+            EXPECT_EQ(fieldText(*rations, "value"), std::to_string(life->save.stats["rations"]));
+        }
+
+        // An act whose day adds up to two months is written once, after both: a death in the
+        // second is not lost to a save written after the first
+        TEST(lifescene_test, a_story_day_of_two_months_is_written_once)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            const std::string path = "save/test_life_story_months.sz";
+            std::remove(path.c_str());
+
+            LifeSceneOptions opt = storyOptions();
+            opt.noSave = false;
+            opt.savePath = path;
+
+            LifeScene* life = storyLife(f, opt);
+            ASSERT_NE(life, nullptr);
+
+            openStory(f);
+            ASSERT_TRUE(life->onWalk());
+
+            // Eight months on four days: the first day's end runs two
+            life->save.walk.run["months"] = ElementType{8};
+            life->save.stats["rations"] = 0;
+            life->save.stats["coin"] = 0;
+            life->save.stats["vit"] = 6;
+            life->save.stats["vitmax"] = 40;
+            ASSERT_TRUE(life->saveNow());
+
+            const float age = life->save.age;
+
+            takeTile(f, life, "library");
+            ASSERT_TRUE(life->ended);
+
+            // Opened again: the day before its act, not a month into it
+            f.load<EmptyScene>();
+            opt.fresh = false;
+
+            LifeScene* again = f.life(opt);
+            ASSERT_NE(again, nullptr);
+            f.frames(12);
+
+            ASSERT_TRUE(again->onWalk());
+            EXPECT_EQ(runText(again, "day"), "1");
+            EXPECT_FLOAT_EQ(again->save.age, age);
+
+            f.load<EmptyScene>();
+            std::remove(path.c_str());
+        }
+
+        // A step of the guide that waits for a work to begin ends as the story begins
+        TEST(lifescene_test, a_story_begun_ends_the_guide_step_waiting_for_it)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = storyLife(f, storyOptions());
+            ASSERT_NE(life, nullptr);
+
+            GuideStep waiting;
+            waiting.id = "test.story";
+            waiting.until = {ElementMap{{"fact", ElementType{std::string("working.story.trial")}}, {"value", ElementType{1}}, {"op", ElementType{std::string("==")}}}};
+            waiting.active = true;
+            life->step = waiting;
+
+            life->beginStory("story.trial");
+
+            ASSERT_TRUE(life->onWalk());
+            EXPECT_FALSE(life->step.active);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // The Options page: a folder of its own for a test's settings and saves, empty
         static std::filesystem::path optionsScratch()
         {

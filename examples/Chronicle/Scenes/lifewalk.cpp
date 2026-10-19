@@ -413,7 +413,7 @@ namespace chronicle
 
                 for (const auto& row : group.rows)
                 {
-                    signature += row.id + "|" + row.name + "|" + row.rank + "|" + row.each + "|" + row.cost + "|" + row.until + "|" + std::to_string(static_cast<int>(row.state)) + (row.urgent ? "!" : "") + ";";
+                    signature += row.id + "|" + row.name + "|" + row.rank + "|" + row.each + "|" + row.cost + "|" + row.until + "|" + std::to_string(static_cast<int>(row.state)) + (row.urgent ? "!" : "") + (row.adventure ? "*" : "") + ";";
 
                     for (const auto& r : row.requirements)
                         signature += r.label + ",";
@@ -750,11 +750,14 @@ namespace chronicle
         if (walk.state.story())
         {
             const int months = intOf(walk.state.run, "monthsDue");
+            const int lives = save.lives;
 
             runStoryMonths(months);
 
-            // A month that left him nothing to live on: the life is over, and the story with it
-            if (ended)
+            // A month that left him nothing to live on: the life is over, and the story with it.
+            // Over, or already another's: a life with no ending to show begins the next at once
+            // (and is written there)
+            if (ended or save.lives != lives)
             {
                 save.walk = WalkState{};
                 walk = RuleWalk{};
@@ -948,10 +951,20 @@ namespace chronicle
             return;
         }
 
+        // Taken before he is there: the story is entered with what its row gave him, and its first
+        // page counts it. (`atStart` is every stat as it was asked: taken after the enter's answer,
+        // it would undo what entering did.) Given back if the story cannot be entered
+        const auto held = save.stats;
+
+        takeStats(forecast.atStart);
+
         RuleWalk answer;
 
         if (not askWalk("enter", WalkAct{"story", story, 0}, "", answer) or not answer.state.story())
+        {
+            save.stats = held;
             return;
+        }
 
         // He is there: the calendar does not run, the days he chooses move it
         paused = true;
@@ -960,6 +973,7 @@ namespace chronicle
         walk = answer;
         save.walk = answer.state;
 
+        writeEntries(forecast.begins);
         takeStats(answer.after);
         writeEntries(answer.entries);
 
@@ -968,9 +982,6 @@ namespace chronicle
         save.monthsIn = 0;
         ++save.begun;
         rules.running = save.running;
-
-        takeStats(forecast.atStart);
-        writeEntries(forecast.begins);
 
         if (auto facts = ecsRef->getSystem<WorldFacts>())
             facts->setFact("activity." + activity + ".state", std::string("running"));
@@ -983,16 +994,25 @@ namespace chronicle
         showWalk();
 
         publish();
+
+        // A step of the guide that waited for a work to begin ends with it, as at any work's
+        if (step.active and not step.until.empty() and holds(step.until))
+            endStep();
+
         autoSave();
     }
 
     void LifeScene::runStoryMonths(int months)
     {
         // Each the life's own month, as the calendar runs it: eaten, made, mended, aged, paid. One
-        // that leaves him nothing to live on ends the life there
+        // that leaves him nothing to live on ends the life there (and one that ends it where no
+        // ending can be shown begins the next life at once: the months left are not the new
+        // boy's). They are written once they have all run, by what asked them
+        const int lives = save.lives;
+
         storyMonth = true;
 
-        for (int i = 0; i < months and not ended; ++i)
+        for (int i = 0; i < months and not ended and save.lives == lives; ++i)
             onMonth();
 
         storyMonth = false;
@@ -1589,13 +1609,31 @@ namespace chronicle
         EntitySystem* ecs = ecsRef;
         const ElementMap& site = walk.site;
         const bool asked = textOf(site, "screen") == "event";
+        const bool story = walk.state.story();
 
-        walkSay("kicker", textOf(site, "kicker"));
+        // A story's head: what its days are worth over its name, the stage's text under it on the
+        // stage's first day only, and the stage's title over the end of its gauge
+        if (story)
+        {
+            const int days = intOf(site, "days");
+            const int months = intOf(site, "monthsTotal");
+            const std::string unit = upper(textOf(site, "unit"));
+
+            // (a phone's head has the room for the figures only, beside its big one)
+            walkSay("kicker", std::to_string(days) + " " + unit + (days == 1 ? "" : "S") + " \xC2\xB7 " + std::to_string(months) + (months == 1 ? " MONTH" : " MONTHS") + (walkNarrow ? "" : " OF HIS LIFE"));
+            walkSay("zoneLine", textOf(site, "stageText"));
+            walkSay("headNote", upper(textOf(site, "stage")));
+        }
+        else
+        {
+            walkSay("kicker", textOf(site, "kicker"));
+            walkSay("zoneLine", textOf(site, "line"));
+            walkSay("headNote", textOf(site, "home"));
+        }
+
         walkSay("zoneTitle", textOf(site, "title"));
-        walkSay("zoneLine", textOf(site, "line"));
         walkSay("daysLeft", textOf(site, "daysLeft"));
         walkSay("daysNote", textOf(site, "daysNote"));
-        walkSay("headNote", textOf(site, "home"));
 
         // How he stands, at the head of the left column: his Vitality in the field and how well
         // the place is known, each over its rule, and what knowing it better would bring
@@ -1603,7 +1641,7 @@ namespace chronicle
             panel->setHeading(ecs, save.name);
 
         // A story is not a walk: no way home to turn to, nothing met on a way
-        if (walk.state.story())
+        if (story)
         {
             for (auto [name, heading] : {std::pair<const char*, const char*>{"workPanel", "The day's work"}, {"cardPanel", "On this day"}, {"homePanel", "If he left now"}})
             {
@@ -1616,6 +1654,16 @@ namespace chronicle
         walkSay("knowledge", textOf(site, "knowledge"));
         walkSay("knowledgeNote", textOf(site, "knowledgeNote"));
 
+        // In a story, how he stands before its masters in the place of a place's knowledge: in
+        // words, as the rules say it (a story without it says nothing there)
+        const std::string standing = story ? textOf(site, "standing") : std::string();
+
+        walkSay("standing", standing);
+        walkShow("standing", not standing.empty(), "statePanel");
+
+        for (const char* part : {"knowledge", "knowledgeBar", "knowledgeNote"})
+            walkShow(part, not story, "statePanel");
+
         // The knowledge's rule fills with the studies toward the next level, not with the level
         // he has: what is left to learn is what he can do something about here
         for (auto [name, key] : {std::pair<const char*, const char*>{"vitalityBar", "vitalityPercent"}, {"knowledgeBar", "studyPercent"}})
@@ -1626,7 +1674,7 @@ namespace chronicle
 
         // His panel's gloss: what knowing a place is, what each level of it brings, and how far
         // he is from the next
-        if (auto registry = ecs->getSystem<GlossRegistry>(); registry and walk.state.story())
+        if (auto registry = ecs->getSystem<GlossRegistry>(); registry and story)
         {
             // A story is no place to know: its gloss says what the days are worth
             GlossSpec gloss;
@@ -1678,15 +1726,29 @@ namespace chronicle
             }
         }
 
-        // The strip of days: what is spent solid, what is left of the stay hatched after it
+        // The strip of days: what is spent solid, what is left of the stay hatched after it. In a
+        // story, the gauge of its days, filled to the day he is on, and the months gone with them
         if (auto strip = walkPiece<ProgressRule>("strip"))
         {
-            const float spent = static_cast<float>(intOf(site, "percent"));
+            float spent = static_cast<float>(intOf(site, "percent"));
+            std::string caption = textOf(site, "caption");
+
+            if (story)
+            {
+                const int days = intOf(site, "days");
+                const int gone = intOf(site, "months");
+
+                spent = days > 0 ? 100.0f * static_cast<float>(intOf(site, "day")) / static_cast<float>(days) : 0.0f;
+                caption = textOf(site, "dayText");
+
+                if (gone > 0)
+                    caption += " \xC2\xB7 " + std::to_string(gone) + (gone == 1 ? " month gone" : " months gone");
+            }
 
             // A screen built this pass is filled as it stands: what moves, moves from the next
             strip->setPercent(ecs, spent, not walkFresh);
             strip->setForecast(ecs, 100.0f);   // The hatch runs from the fill's head to where it is told: the end of the stay
-            strip->setCaption(ecs, textOf(site, "caption"));
+            strip->setCaption(ecs, caption);
         }
 
         // The beasts he may seek: one that he does not know yet, or has not the days for, stands
@@ -1807,6 +1869,14 @@ namespace chronicle
                 workCost = row.cost;
             }
 
+            // A story's tile offered for the first time today wears the adventure's look, that
+            // day only. Not on the first day: everything is new then
+            if (story and intOf(w, "fresh") > 0 and intOf(site, "day") > 1)
+            {
+                row.adventure = true;
+                gloss.footnote = gloss.footnote.empty() ? std::string("NEW TODAY") : "NEW TODAY \xC2\xB7 " + gloss.footnote;
+            }
+
             if (auto registry = ecs->getSystem<GlossRegistry>())
                 registry->set(row.glossKey, gloss);
 
@@ -1824,6 +1894,18 @@ namespace chronicle
             work->setCost(ecs, workStands ? workCost : std::string());
             work->setDisabled(ecs, not workStands);
         }
+
+        if (story)
+            walkSay("workNote", "Choose the day's work, then do it. Hover one to read what it costs and what it gives.");
+
+        // What a story stopped offering, said under the tiles the day after, once
+        std::string gone;
+
+        for (const auto& g : walk.gone)
+            gone += (gone.empty() ? "" : ", ") + textOf(g, "name");
+
+        walkSay("goneNote", gone.empty() ? std::string() : "No longer offered: " + gone);
+        walkShow("goneNote", not gone.empty(), "workPanel");
 
         walkSay("leaveNote", textOf(site, "leaveNote"));
 

@@ -13,6 +13,11 @@
 # before it builds the page (lifewalk.cpp, shapeWalk) and sets their heights on every resize; in
 # a window too narrow for three columns it builds expedition-narrow.yaml, the same pieces in one.
 #
+# A story (rules/storylib.pg) is played on the same page: the strip is its gauge of the days
+# ("Day 3 of 16 · 4 months gone") with the stage's title over its end, the stage's text under the
+# title on its first day only, a tile new that day in the adventure's look, what is no longer
+# offered under the tiles, and how he stands in words under his Vitality.
+#
 # A beast or a work is chosen among its tiles, then done by the button under them, as a work is
 # begun on the Life page; a second click on the tile does it too.
 # z: the Overlay band, 100-129 (the veil 100, the head and the panels 104, their content 114).
@@ -105,6 +110,8 @@ children:
           # place is known, each over its rule
           - {kind: Label, name: vitality, style: label, overflow: wrap, text: "VITALITY 49 OF 90"}
           - {kind: ProgressRule, name: vitalityBar, nib: false, percent: 54}
+          # In a story, how he stands before its masters, in words (never a figure); hidden on a walk
+          - {kind: Label, name: standing, style: body-sm, overflow: wrap, text: "The masters would look on him kindly."}
           - {kind: Label, name: knowledge, style: label, color: lapis, overflow: wrap, text: "ZONE KNOWLEDGE 1 OF 4"}
           - {kind: ProgressRule, name: knowledgeBar, nib: false, small: true, percent: 25}
           - {kind: Label, name: knowledgeNote, style: body-sm, color: ink-muted, overflow: wrap, text: "Study 0 of 3 to knowledge 2: the rare beasts are listed, and every beast is found a day sooner."}
@@ -234,6 +241,9 @@ children:
             cost: 1 AP
             tag: walk.work
           - {kind: Label, name: workNote, style: body-sm, color: ink-muted, overflow: wrap, text: "Choose a work, then do it. Hover one to read what it costs and what it gives."}
+          # In a story, the day after a tile stopped being offered: what left (under the note, so
+          # that it never moves the button). Hidden the rest of the time
+          - {kind: Label, name: goneNote, style: body-sm, color: ink-muted, overflow: wrap, text: "No longer offered: Walk the halls"}
 
   # -- Right: what he has taken, and the record so far --
   - kind: Layout:Vertical

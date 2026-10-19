@@ -6232,8 +6232,13 @@ namespace chronicle
 
         endangered = not month.hurt.empty();
 
-        // A life that ended above is not written: loaded again, its last month ends it again
-        autoSave();
+        // A life that ended above is not written: loaded again, its last month ends it again. Nor
+        // is a month of a story's day: the day is written once all its months have run (walkDo),
+        // or a death in its second month would be lost to a save written after the first
+        if (storyMonth)
+            tellAnalytics();
+        else
+            autoSave();
     }
 
     // ---- the glosses -----------------------------------------------------------------------------------------
