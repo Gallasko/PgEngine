@@ -46,7 +46,10 @@
 //           cheaper optional {flag, coin}: the coin it costs a life that holds the flag, in
 //                   place of `coin` (lib.pg's `levelCoin`: who saved the mill mends its wheel
 //                   for nothing)
-//           gives   what this level gives, in one line, as its tile and its gloss say it
+//           gives   what this level gives, in one line, as its gloss says it (and its tile, without
+//                   a `note`)
+//           note    optional: the same, short enough for the tile's three lines (148 px, in caps):
+//                   what the tile says in place of `gives`
 //           start   optional [{stat, amount}]: what a new life is born with for it (town.pg's
 //                   `start`), every later life and never the first of a world
 //           slots   optional N: N more familiar slots for every life, from his first day, while
@@ -86,7 +89,7 @@ const townPlaces = [
          gives: "Buy rations brings 8 rations, not 6",
          lore: "A stall of his own name stands on the square. It weighs fair."},
         {work: "Build the Market Hall", built: "The market hall", months: 9, coin: 15, costs: [{stat: "berries", amount: 40}, {stat: "firewood", amount: 40}, {stat: "gems", amount: 2}, {stat: "guile"}],
-         gives: "The hall sends 1 ration every 3 months, and every sprite brings 1 more berry", more: [{stat: "berries", amount: 1}],
+         gives: "The hall sends 1 ration every 3 months, and every sprite brings 1 more berry", note: "1 ration every 3 months, +1 berry a sprite", more: [{stat: "berries", amount: 1}],
          lore: "The hall keeps a share for the family that built it."},
         {work: "Grant the Market Charter", built: "The market charter", months: 12, coin: 35, costs: [{stat: "berries", amount: 80}, {stat: "firewood", amount: 80}, {stat: "gems", amount: 4}, {stat: "pelts"}],
          gives: "A sword and a horse are sold at the market",
@@ -109,10 +112,10 @@ const townPlaces = [
     {id: "smithy", name: "The Smithy", glyph: "forge", shows: {done: "smithy"}, about: "The forge by the river, loud from dawn.",
      levels: [
         {work: "Add a Second Bellows", built: "The second bellows", months: 6, coin: 5, costs: [{stat: "firewood", amount: 20}, {stat: "stone", amount: 20}],
-         gives: "Work the Smithy opens at age 8, not 9, and a stone mole can be bound", teaches: "mole",
+         gives: "Work the Smithy opens at age 8, not 9, a stone mole can be bound, and the smithy forges an iron blade and a leather jerkin", note: "The smithy at 8, the mole, and gear forged", teaches: "mole",
          lore: "A small boy can work the second bellows."},
         {work: "Forge the Practice Blades", built: "The practice blades", months: 9, coin: 15, costs: [{stat: "firewood", amount: 40}, {stat: "stone", amount: 40}, {stat: "gems", amount: 2}],
-         gives: "A new life starts with Arms 1", start: [{stat: "arms"}],
+         gives: "A new life starts with Arms 1, and the smithy forges a warded charm", note: "Arms 1 at birth, and a warded charm", start: [{stat: "arms"}],
          lore: "Children of the town play with blunt steel before they can read."},
         {work: "Build the Great Forge", built: "The great forge", months: 12, coin: 40, costs: [{stat: "firewood", amount: 80}, {stat: "stone", amount: 80}, {stat: "gems", amount: 4}, {stat: "shell_plate"}],
          gives: "Work the Smithy pays 6 more coin",
@@ -123,7 +126,7 @@ const townPlaces = [
     {id: "yard", name: "The Yard", glyph: "training", shows: {flag: "veteran"}, about: "The training yard under the Keep's wall.",
      levels: [
         {work: "Stock the Yard with Blades", built: "The yard's racks", months: 6, coin: 5, costs: [{stat: "firewood", amount: 20}, {stat: "clay", amount: 20}],
-         gives: "The yard lends a wooden blade: no boy has to buy one",
+         gives: "The yard lends a wooden blade: no boy has to buy one", note: "The yard lends a wooden blade",
          lore: "No boy waits for a wooden blade any more."},
         {work: "Lay the Yard's Sand", built: "The sanded yard", months: 9, coin: 15, costs: [{stat: "firewood", amount: 40}, {stat: "clay", amount: 20}, {stat: "gems", amount: 2}, {stat: "str"}],
          gives: "The Keep asks Strength 11, not 12",
@@ -138,7 +141,7 @@ const townPlaces = [
          gives: "A new life starts known to the Watch", start: [{stat: "watch_known"}],
          lore: "The Watch does not forget who kept the rain off them."},
         {work: "Build the Road Posts", built: "The road posts", months: 9, coin: 15, costs: [{stat: "stone", amount: 40}, {stat: "firewood", amount: 40}, {stat: "gems", amount: 2}],
-         gives: "Patrol the North Road gives its rations up front",
+         gives: "Patrol the North Road gives its rations up front", note: "North Road patrols: rations up front",
          lore: "There is a fire and a pot at every post on the North Road."},
         {work: "Raise the Gate Tower", built: "The gate tower", months: 12, coin: 35, costs: [{stat: "stone", amount: 80}, {stat: "firewood", amount: 80}, {stat: "gems", amount: 4}, {stat: "fangs"}, {stat: "renown"}],
          gives: "The Captain's Chain asks Renown 6, not 7",
@@ -153,7 +156,7 @@ const townPlaces = [
          gives: "Learn Your Letters takes 4 months, not 6",
          lore: "There is light to read by now, even in winter."},
         {work: "Give the Chapel a Primer", built: "The chapel primer", months: 9, coin: 10, costs: [{stat: "water", amount: 40}, {stat: "clay", amount: 20}, {stat: "gems", amount: 2}, {stat: "letters"}],
-         gives: "A new life starts with Letters 1, and a well imp can be bound", start: [{stat: "letters"}], teaches: "imp",
+         gives: "A new life starts with Letters 1, and a well imp can be bound", note: "Letters 1 at birth, and the well imp", start: [{stat: "letters"}], teaches: "imp",
          lore: "He copied out the primer himself. Children learn their letters from his hand."},
         {work: "Found the Almshouse", built: "The almshouse", months: 0, coin: 15, costs: [{stat: "water", amount: 80}, {stat: "clay", amount: 20}, {stat: "gems", amount: 4}, {stat: "antler"}], years: 2,
          gives: "Teach the Young pays 4 more coin",
@@ -174,7 +177,7 @@ const townPlaces = [
     {id: "harrow", name: "The Harrow Road", glyph: "relic", shows: {flag: "harrow_truth"}, about: "The old road east, to what is left of Harrow.",
      levels: [
         {work: "Clear the Harrow Road", built: "The cleared road", months: 9, coin: 10, costs: [{stat: "stone", amount: 20}, {stat: "clay", amount: 20}], cheaper: {flag: "woodfolk_guest", coin: 5},
-         gives: "The works of Harrow show what they ask from the start",
+         gives: "The works of Harrow show what they ask from the start", note: "Harrow's works show what they ask",
          lore: "The road is open as far as the first ruins."},
         {work: "Build the Waystation", built: "The waystation", months: 12, coin: 25, costs: [{stat: "stone", amount: 40}, {stat: "clay", amount: 20}, {stat: "gems", amount: 2}],
          gives: "Expedition to Harrow takes 12 months, not 18",
@@ -188,13 +191,13 @@ const townPlaces = [
     {id: "inn", name: "The Inn", glyph: "town", shows: {lives: 2}, about: "The Bell and Barrel, where every tale ends up.",
      levels: [
         {work: "Carve the Storyteller's Chair", built: "The storyteller's chair", months: 6, coin: 5, costs: [{stat: "firewood", amount: 20}, {stat: "berries", amount: 20}],
-         gives: "Tell Tales at the Inn opens at age 26, and the stash keeps 50 more of each thing", stash: 50,
+         gives: "Tell Tales at the Inn opens at age 26, and the stash keeps 50 more of each thing", note: "Tales at 26, and the stash keeps 50 more", stash: 50,
          lore: "The chair by the fire is for whoever has a tale, young or old."},
         {work: "Hang the Book of Names", built: "The book of names", months: 9, coin: 10, costs: [{stat: "firewood", amount: 40}, {stat: "berries", amount: 40}, {stat: "gems", amount: 2}],
          gives: "A new life is told how the last one ended",
          lore: "The inn keeps a book. Every life of the family has a line in it."},
         {work: "Keep a Room at the Inn", built: "The family's room", months: 12, coin: 20, costs: [{stat: "firewood", amount: 80}, {stat: "berries", amount: 80}, {stat: "gems", amount: 4}, {stat: "grey_pelt"}],
-         gives: "Vitality mends every month, not every second month",
+         gives: "Vitality mends every month, not every second month", note: "Vitality mends every month",
          lore: "A bed, a fire and a door that locks: he mends faster there."}
      ]},
 
@@ -220,10 +223,10 @@ const townPlaces = [
     {id: "lodge", name: "The Hunters' Lodge", glyph: "adventure", shows: {done: "walk.hollow"}, about: "A roof at the wood's edge, for whoever goes after the wolves.",
      levels: [
         {work: "Raise the Hunters' Lodge", built: "The hunters' lodge", months: 6, coin: 5, costs: [{stat: "firewood", amount: 20}, {stat: "ashwood", amount: 10}],
-         gives: "The Hollow Woods are open to every life, bow or no bow",
+         gives: "The Hollow Woods are open to every life, bow or no bow", note: "The Hollow Woods open to every life",
          lore: "A boy with no bow may go north now: the lodge lends him one, and counts the arrows."},
         {work: "Hang the Lodge's Racks", built: "The lodge's racks", months: 6, coin: 10, costs: [{stat: "ashwood", amount: 20}, {stat: "clay", amount: 15}],
-         gives: "In a fight a day lasts one turn longer, and every mole digs 1 more stone", more: [{stat: "stone", amount: 1}],
+         gives: "In a fight a day lasts one turn longer, and every mole digs 1 more stone", note: "Fight days a turn longer, +1 stone a mole", more: [{stat: "stone", amount: 1}],
          lore: "Spears on the racks, dry and straight. A man who is not mending his gear fights longer."},
         {work: "Keep the Lodge's Hounds", built: "The lodge's hounds", months: 9, coin: 20, costs: [{stat: "stone", amount: 30}, {stat: "ashwood", amount: 20}],
          gives: "Every beast is found a day sooner",

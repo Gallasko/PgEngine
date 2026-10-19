@@ -6158,5 +6158,52 @@ namespace pg
             // A work that does not feed him says nothing
             EXPECT_EQ(intOf(activityAt(f.rules, 8.0f, kept, "mill").fields, "upFrontLasts"), 0);
         }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A thing counted once is named once: the found thing a level asks ("1 Pelt", not "1
+        // Pelts") on its costs line and on what a death would leave, and the wisp's one reagent
+        TEST(rules_test, one_thing_is_named_once)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap character = townsman();
+            character["town.market"] = ElementType{2};
+            character["town.yard"] = ElementType{2};
+            character["town.chapel"] = ElementType{2};
+            character["pelts"] = ElementType{1};
+            character["hides"] = ElementType{1};
+            character["antler"] = ElementType{1};
+            character["gems"] = ElementType{1};
+
+            RuleTown town;
+            ASSERT_TRUE(f.rules.town(20.0f, character, town)) << firstError(f.rules);
+
+            std::map<std::string, const RulePlace*> places;
+
+            for (const auto& place : town.places)
+                places[textOf(place.fields, "id")] = &place;
+
+            ASSERT_EQ(places.count("market"), 1u);
+            ASSERT_EQ(places.count("yard"), 1u);
+            ASSERT_EQ(places.count("chapel"), 1u);
+
+            const std::string market = textOf(places["market"]->fields, "nextCosts");
+            EXPECT_NE(market.find(" · 1 Pelt"), std::string::npos) << market;
+            EXPECT_EQ(market.find("1 Pelts"), std::string::npos) << market;
+            EXPECT_NE(market.find(" · 4 Gems"), std::string::npos) << market;
+
+            EXPECT_NE(textOf(places["yard"]->fields, "nextCosts").find(" · 1 Hide"), std::string::npos) << textOf(places["yard"]->fields, "nextCosts");
+            EXPECT_NE(textOf(places["chapel"]->fields, "nextCosts").find(" · 1 White antler"), std::string::npos) << textOf(places["chapel"]->fields, "nextCosts");
+
+            EXPECT_EQ(textOf(places["market"]->fields, "leaveLine"), "1 gem, 1 pelt");
+            EXPECT_EQ(textOf(places["yard"]->fields, "leaveLine"), "1 gem, 1 hide");
+            EXPECT_EQ(textOf(places["chapel"]->fields, "leaveLine"), "1 gem, 1 white antler");
+
+            // What a wisp makes: one reagent
+            EXPECT_EQ(textOf(activityAt(f.rules, 18.0f, boy(), "bind.wisp").fields, "each"), "EATS 1 RATION, 2 WATER \xC2\xB7 MAKES 1 REAGENT");
+        }
     }
 }

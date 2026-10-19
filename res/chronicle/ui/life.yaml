@@ -142,7 +142,8 @@ children:
         tileWidth: 148        # and the rows are tiles, as many to a line as fit at that width or more: three at 1320 (the list is 572 wide), more as the window widens
       # The Town page: it takes the choice's place in this column once a life has explored the town
       # (LifeScene::showTown). The places, a click on one beginning its next upgrade; what is
-      # bought on the spot, at the market; and who raised what
+      # done on the spot in the town, a line each under its own heading (Buy, Sell, Make, then
+      # the places); and who raised what
       - kind: Layout:Vertical
         name: town
         width: 572
@@ -154,7 +155,6 @@ children:
             name: places
             width: 572
             tileWidth: 148
-          - {kind: Label, name: marketHead, style: gloss-title, overflow: ellipsis, width: 572, text: "The Market"}
           - kind: ActivityList
             name: marketRows
             id: town.market

@@ -174,7 +174,6 @@ children:
             name: places
             width: 334
             tileWidth: 148
-          - {kind: Label, name: marketHead, style: gloss-title, overflow: ellipsis, width: 334, text: "The Market"}
           - kind: ActivityList
             name: marketRows
             id: town.market

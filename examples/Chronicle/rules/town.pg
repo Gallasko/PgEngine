@@ -15,7 +15,8 @@
 //                    adds to the ones before it: the gloss lists them all, the tile says the last
 //            tiers [{level, built, gives, reached}]: every level the place has, reached or not, the
 //                    first first: the gloss lists them all, what he has raised and what is still to raise
-//            line    what its tile says: that, or "NOT YET BUILT"
+//            line    what its tile says: that, or the level's shorter `note` (towntable.pg), in
+//                    caps, or "NOT YET BUILT"
 //            tale    "" or the line the log writes when its level is reached (the level's `lore`)
 //            built   "" or what stands there at its level, as the log names it
 //            fund    the coin left to it, counted toward its next level
@@ -123,7 +124,7 @@ for (var t = 0; t < len(townPlaces); t++)
         var reached = place.levels[level - 1]
 
         shown.gives = reached.gives
-        shown.line = toUpperCase(reached.gives)
+        shown.line = toUpperCase(lookup(reached, "note", reached.gives))
         shown.tale = reached.lore
         shown.built = reached.built
     }
@@ -216,9 +217,49 @@ for (var t = 0; t < len(townPlaces); t++)
                 push(shown.spends, {stat: also[c].stat, amount: spent})
             }
 
+            // Whether it is a thing: a basic or a made resource (economytable.pg) or what a walk
+            // brings (expeditiontable.pg's `walkItems`), and what one of it is called ("1 Pelt",
+            // "1 Gem"): a thing asked once is named once, as `thingsWord` counts the basics
+            var thing = false
+            var once = ""
+
+            for (var w = 0; w < len(walkItems); w++)
+            {
+                if (walkItems[w].id == also[c].stat)
+                {
+                    thing = true
+                    once = walkItems[w].one
+                }
+            }
+
+            for (var b = 0; b < len(basicResources); b++)
+            {
+                if (basicResources[b].id == also[c].stat)
+                {
+                    thing = true
+                    once = basicResources[b].one
+                }
+            }
+
+            for (var m = 0; m < len(madeResources); m++)
+            {
+                if (madeResources[m].id == also[c].stat)
+                {
+                    thing = true
+                    once = madeResources[m].one
+                }
+            }
+
+            var named = statName(also[c].stat)
+
+            if (need == 1 and once != "")
+            {
+                named = capitalised(once)
+            }
+
             if (not isCap and need > 0)
             {
-                asks = asks + " · " + toString(need) + " " + statName(also[c].stat)
+                asks = asks + " · " + toString(need) + " " + named
                 push(shown.gaps, {stat: also[c].stat, label: statName(also[c].stat), current: statOf(character, also[c].stat), needed: need})
             }
 
@@ -228,36 +269,9 @@ for (var t = 0; t < len(townPlaces); t++)
             }
 
             // And what he holds of it would be left to the place at his death, no more than it
-            // still asks, if it is a thing: a basic or a made resource (economytable.pg) or what a
-            // walk brings (expeditiontable.pg's `walkItems`). A part, a skill or a standing of his
-            // (Strength, Renown) ends with him. What the place does not take of the basics goes into
-            // the stash (`stash`, below); the rest is lost with him
-            var thing = false
-
-            for (var b = 0; b < len(basicResources); b++)
-            {
-                if (basicResources[b].id == also[c].stat)
-                {
-                    thing = true
-                }
-            }
-
-            for (var m = 0; m < len(madeResources); m++)
-            {
-                if (madeResources[m].id == also[c].stat)
-                {
-                    thing = true
-                }
-            }
-
-            for (var w = 0; w < len(walkItems); w++)
-            {
-                if (walkItems[w].id == also[c].stat)
-                {
-                    thing = true
-                }
-            }
-
+            // still asks, if it is a thing. A part, a skill or a standing of his (Strength, Renown)
+            // ends with him. What the place does not take of the basics goes into the stash
+            // (`stash`, below); the rest is lost with him
             var given = 0
 
             if (thing)
@@ -270,8 +284,13 @@ for (var t = 0; t < len(townPlaces); t++)
                 push(shown.leaves, {stat: also[c].stat, amount: given})
 
                 // Named as the ledger names it: a basic or gems as the stash's line counts them
-                // ("1 gem"), anything else by its name
+                // ("1 gem"), anything else by its name, or by what one of it is called ("1 pelt")
                 var counted = toString(given) + " " + toLowerCase(statName(also[c].stat))
+
+                if (given == 1 and once != "")
+                {
+                    counted = "1 " + once
+                }
 
                 for (var b = 0; b < len(basicResources); b++)
                 {

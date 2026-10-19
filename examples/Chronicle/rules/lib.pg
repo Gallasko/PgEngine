@@ -471,7 +471,7 @@ fun kindKnown(character, kind)
 }
 
 // A stat said as a number of things, in caps: "1 RATION", "4 BERRIES". One says the thing once
-// (a basic's `one`), more say its name; rations and coin are no resource of the table.
+// (a basic's `one`), more say its name; rations, reagents and coin are no resource of the table.
 fun thingsWord(stat, amount)
 {
     var word = toUpperCase(stat)
@@ -483,6 +483,15 @@ fun thingsWord(stat, amount)
         if (amount == 1)
         {
             word = "RATION"
+        }
+    }
+    else if (stat == "reagents")
+    {
+        word = "REAGENTS"
+
+        if (amount == 1)
+        {
+            word = "REAGENT"
         }
     }
     else if (stat == "coin")

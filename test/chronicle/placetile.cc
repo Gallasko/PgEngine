@@ -20,7 +20,10 @@
 #include "Input/inputcomponent.h"
 #include "2D/simple2dobject.h"
 
+#include "Core/rulevm.h"
+
 #include "mocklogger.h"
+#include "compiledrules.h"
 
 using namespace chronicle;
 
@@ -353,6 +356,77 @@ namespace pg
             EXPECT_TRUE(grid.tiles.empty());
             EXPECT_EQ(grid.selected(), "");
             EXPECT_FLOAT_EQ(f.pos(grid.root)->height, 0.0f);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // What every level of every place says on its tile fits the tile's three lines at its
+        // narrowest, 148 px: none of it is cut off. The rules write a short `note` where the gift
+        // in full (its gloss's) is too long
+        TEST(placetile_test, every_levels_line_fits_its_tile)
+        {
+            MockLogger logger;
+            PlaceFixture f;
+
+            auto ttf = f.ecs.getSystem<TTFTextSystem>();
+            ASSERT_NE(ttf, nullptr);
+
+            EntitySystem rulesEcs;
+            Rules rules;
+            ASSERT_TRUE(rules.load(&rulesEcs, compiledRules())) << (rules.errors.empty() ? "" : rules.errors.front());
+
+            auto textOf = [](const ElementMap& map, const std::string& key) {
+                auto it = map.find(key);
+                return it == map.end() ? std::string() : it->second.toString();
+            };
+
+            RuleTown bare;
+            ASSERT_TRUE(rules.town(20.0f, {{"town_known", ElementType{1}}}, bare));
+            ASSERT_FALSE(bare.places.empty());
+
+            int checked = 0;
+
+            for (int level = 1; level <= 3; ++level)
+            {
+                ElementMap character = {{"town_known", ElementType{1}}};
+
+                for (const auto& place : bare.places)
+                    character["town." + textOf(place.fields, "id")] = ElementType{level};
+
+                RuleTown town;
+                ASSERT_TRUE(rules.town(20.0f, character, town)) << (rules.errors.empty() ? "" : rules.errors.front());
+
+                for (const auto& place : town.places)
+                {
+                    PlaceTileSpec spec = market(level);
+                    spec.id = textOf(place.fields, "id");
+                    spec.name = textOf(place.fields, "name");
+                    spec.line = textOf(place.fields, "line");
+                    spec.width = 148.0f;
+
+                    ASSERT_NE(spec.line, "NOT YET BUILT") << spec.id << " " << level;
+
+                    PlaceTile tile = makePlaceTile(&f.ecs, spec);
+                    f.settle();
+
+                    TextLayoutParams params;
+                    params.maxWidth = tile.line.spec.width;
+                    params.spacing = tile.line.lineSpacingPx;
+                    params.letterSpacing = tile.line.letterSpacingPx;
+                    params.overflow = tile.line.spec.overflow;
+                    params.align = tile.line.spec.align;
+                    params.maxLines = tile.line.spec.maxLines;
+
+                    const auto measured = ttf->measureText(tile.line.fontAlias, spec.line, params);
+
+                    EXPECT_FALSE(measured.elided) << spec.id << " " << level << ": " << spec.line;
+                    EXPECT_LE(measured.lineCount, 3) << spec.id << " " << level << ": " << spec.line;
+                    ++checked;
+                }
+            }
+
+            EXPECT_EQ(checked, 33);
         }
     }
 }

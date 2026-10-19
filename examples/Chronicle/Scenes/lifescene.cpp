@@ -375,7 +375,7 @@ namespace chronicle
 
             if (NodeSpec* may = childNamed(page, "may"))
             {
-                for (const char* name : {"town", "places", "marketHead", "marketRows", "raised",
+                for (const char* name : {"town", "places", "marketRows", "raised",
                                          "adventure", "recordsHead", "records", "recordsNote", "queueHead", "queueTitle", "queueCount", "queueTake", "queueUse",
                                          "queueBring", "queueTeach", "queueWarn", "queueGo", "atWalk"})
                     setProp(childNamed(*may, name), "width", inner);
@@ -3522,7 +3522,7 @@ namespace chronicle
             list->setRows(ecsRef, groups);
 
         // The Town page's rows, a group a place in the order of the places: the market's first,
-        // under the heading the page gives it, on three lines of their own by the rules' `trade`
+        // on three lines of their own by the rules' `trade`, each under its own heading
         // (what he buys, what he sells, then what is made there), then each other place's under
         // its name. A row of a place the town does not name stands with the market's
         std::vector<ActivityGroup> atPlaces{{"Buy", {}}, {"Sell", {}}, {"Make", {}}};
@@ -5445,11 +5445,8 @@ namespace chronicle
         if (auto market = piece<ActivityList>(MarketName))
             market->setSize(ecsRef, width, 0.0f);
 
-        for (const char* name : {"marketHead", RaisedName})
-        {
-            if (auto label = piece<Label>(name))
-                label->setWidth(ecsRef, width);
-        }
+        if (auto label = piece<Label>(RaisedName))
+            label->setWidth(ecsRef, width);
 
         // The Adventure page stands in the same place, at the same size
         fitAdventure(width, height);
