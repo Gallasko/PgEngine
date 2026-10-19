@@ -321,6 +321,30 @@ namespace pg
         namingSceneFlag = true;
     }
 
+    void SceneElementSystem::releaseScenes()
+    {
+        if (nextSystemScene and nextSystemScene != systemScene)
+            delete nextSystemScene;
+
+        nextSystemScene = nullptr;
+
+        if (systemScene)
+            delete systemScene;
+
+        systemScene = nullptr;
+
+        // No system scene left to run or to load
+        if (currentLoadedScene == SceneToLoadFlag::SystemScene)
+            currentLoadedScene = SceneToLoadFlag::None;
+
+        if (sceneToLoadFlag == SceneToLoadFlag::SystemScene)
+        {
+            sceneToLoadFlag = SceneToLoadFlag::None;
+            loadingNewScene = false;
+            currentState = LoadingState::Idle;
+        }
+    }
+
     void SceneElementSystem::execute()
     {
         if (currentState != LoadingState::Idle)

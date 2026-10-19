@@ -322,6 +322,10 @@ namespace pg
 
         LOG_INFO(DOM, "Ecs stopped");
 
+        // Every system is still there while each frees what reaches the others
+        for (auto& sys : systems)
+            sys.second->onShutdown();
+
         for (auto& sys : systems)
         {
             sys.second->removeFromRegistry();

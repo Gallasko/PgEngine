@@ -73,6 +73,14 @@ namespace pg
 
         virtual void onRegisterFinished() {};
 
+        /**
+         * @brief Called on every system by ~EntitySystem, once the ecs is stopped and before any system is deleted
+         *
+         * Free here what may reach other systems as it goes (a scene and what it holds): by the time a
+         * system's destructor runs, the systems deleted before it are gone.
+         */
+        virtual void onShutdown() {}
+
         virtual void execute() { LOG_THIS_MEMBER("System"); }
 
         // Todo

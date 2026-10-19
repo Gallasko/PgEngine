@@ -191,6 +191,14 @@ namespace pg
             currentScene.filename = "newScene.sz";
         }
 
+        // The scenes are owned here: freed with the ecs (onShutdown), or with this system if it goes first
+        virtual ~SceneElementSystem() { releaseScenes(); }
+
+        virtual void onShutdown() override { releaseScenes(); }
+
+        /** Delete the current system scene and the one waiting to replace it, without running their onLeave */
+        void releaseScenes();
+
         virtual void init() override;
 
         virtual void onEvent(const SceneElementClicked& event) override
