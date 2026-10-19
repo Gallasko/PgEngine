@@ -1,6 +1,7 @@
 #include "stdafx.h"
 
 #include <algorithm>
+#include <cctype>
 #include <string>
 #include <vector>
 
@@ -1212,6 +1213,142 @@ namespace pg
                 for (const auto& entry : w.last.entries)
                     EXPECT_EQ(textOf(entry, "text").find("with nothing"), std::string::npos);
             }
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The page's rows: what is new is marked on its first day only, and a look changes nothing.
+        TEST(story_test, a_new_tile_is_marked_fresh_on_its_first_day)
+        {
+            MockLogger logger;
+            Walker w(student());
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"story", "trial", 0}));
+            EXPECT_EQ(w.work("advanced"), nullptr);
+            ASSERT_NE(w.work("lecture"), nullptr);
+            EXPECT_EQ(intOf(*w.work("lecture"), "fresh"), 1);
+
+            ASSERT_TRUE(w.spend("lecture"));
+            ASSERT_TRUE(w.spend("lecture"));
+            w.answerAll();
+
+            EXPECT_EQ(w.day(), 3);
+            ASSERT_NE(w.work("advanced"), nullptr);
+            EXPECT_EQ(intOf(*w.work("advanced"), "fresh"), 1);
+            EXPECT_EQ(intOf(*w.work("lecture"), "fresh"), 0);
+
+            // A look asks again: nothing moves
+            ASSERT_TRUE(w.ask("look"));
+            ASSERT_NE(w.work("advanced"), nullptr);
+            EXPECT_EQ(intOf(*w.work("advanced"), "fresh"), 1);
+
+            ASSERT_TRUE(w.spend("library"));
+            w.settle();
+
+            EXPECT_EQ(w.day(), 4);
+            ASSERT_NE(w.work("advanced"), nullptr);
+            EXPECT_EQ(intOf(*w.work("advanced"), "fresh"), 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A tile that left is said on the day it left, and not again.
+        TEST(story_test, a_tile_that_left_is_said_once)
+        {
+            MockLogger logger;
+            Walker w(student());
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"story", "trial", 0}));
+            EXPECT_TRUE(w.last.gone.empty());
+
+            ASSERT_TRUE(w.spend("library"));
+            EXPECT_TRUE(w.last.gone.empty());
+
+            ASSERT_TRUE(w.spend("library"));
+            w.answerAll();
+
+            EXPECT_EQ(w.day(), 3);
+            ASSERT_EQ(w.last.gone.size(), 1u);
+            EXPECT_EQ(textOf(w.last.gone.front(), "id"), "tile.early");
+            EXPECT_EQ(textOf(w.last.gone.front(), "name"), "Walk the halls");
+
+            // A look says it still, that day
+            ASSERT_TRUE(w.ask("look"));
+            EXPECT_EQ(w.last.gone.size(), 1u);
+
+            ASSERT_TRUE(w.spend("library"));
+            w.answerAll();
+
+            EXPECT_EQ(w.day(), 4);
+            EXPECT_EQ(byId(w.last.gone, "tile.early"), nullptr);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A stage says its text on its first day only.
+        TEST(story_test, a_stage_says_its_text_on_its_first_day)
+        {
+            MockLogger logger;
+            Walker w(student());
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"story", "trial", 0}));
+            EXPECT_EQ(textOf(w.last.site, "stage"), "The first days");
+            EXPECT_NE(textOf(w.last.site, "stageText"), "");
+            EXPECT_EQ(intOf(w.last.site, "day"), 1);
+            EXPECT_EQ(intOf(w.last.site, "days"), 4);
+            EXPECT_EQ(textOf(w.last.site, "unit"), "day");
+            EXPECT_EQ(intOf(w.last.site, "monthsTotal"), 4);
+
+            ASSERT_TRUE(w.spend("library"));
+            EXPECT_EQ(textOf(w.last.site, "stageText"), "");
+            EXPECT_EQ(intOf(w.last.site, "months"), 1);
+
+            ASSERT_TRUE(w.spend("library"));
+            w.answerAll();
+
+            EXPECT_EQ(textOf(w.last.site, "stage"), "The last days");
+            EXPECT_NE(textOf(w.last.site, "stageText"), "");
+
+            ASSERT_TRUE(w.spend("library"));
+            w.answerAll();
+
+            EXPECT_EQ(w.day(), 4);
+            EXPECT_EQ(textOf(w.last.site, "stageText"), "");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // His standing is said in words, and rises with what he has read.
+        TEST(story_test, the_standing_is_words_only)
+        {
+            MockLogger logger;
+            Walker w(student());
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"story", "trial", 0}));
+
+            const std::string low = textOf(w.last.site, "standing");
+
+            EXPECT_NE(low, "");
+            EXPECT_EQ(std::count_if(low.begin(), low.end(), [](unsigned char c) { return std::isdigit(c); }), 0);
+
+            ASSERT_TRUE(w.spend("library"));
+
+            const std::string one = textOf(w.last.site, "standing");
+
+            ASSERT_TRUE(w.spend("library"));
+            w.answerAll();
+
+            const std::string two = textOf(w.last.site, "standing");
+
+            EXPECT_NE(one, low);
+            EXPECT_NE(two, one);
+
+            for (const auto& line : {one, two})
+                EXPECT_EQ(std::count_if(line.begin(), line.end(), [](unsigned char c) { return std::isdigit(c); }), 0);
         }
     }
 }

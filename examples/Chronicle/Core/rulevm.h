@@ -265,6 +265,9 @@ namespace chronicle
         // and for each move of the menu (`move` its id): {move, kind (hero, foe, ghost, day), n (the beast),
         // at (0 to 1000 across the timeline), text, tone (now, later, foe, before, held, ghost, day)}
         pg::RecordList timeline;
+
+        // A story: the tiles that left since yesterday, said for the one day: {id, name}
+        pg::RecordList gone;
     };
 
     // The scene's scripts, loaded once from a rules root, each with its typed call. Every

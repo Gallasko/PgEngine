@@ -243,8 +243,143 @@ fun enterStory(id)
     foes = []
     account = []
 
+    noteOffer()
+
     // A card of the first day is there when he arrives
     openDue()
+}
+
+// What is offered, noted when a day begins (a look writes nothing, so what the page says of
+// the day is kept in the run): "seen.<tile>" the day a tile was first listed, "off.<tile>" 1
+// while it was listed at the last note, "gone.<tile>" the day it left. A tile just taken that
+// left by itself (not by its `most`) is not said gone
+fun noteOffer()
+{
+    var tiles = pick(storyNow(), "tiles", [])
+    var day = runOf("day")
+    var took = pick(run, "took", "")
+
+    for (var i = 0; i < len(tiles); i++)
+    {
+        var tile = tiles[i]
+        var key = tile.id
+
+        if (tileOffered(tile))
+        {
+            if (pick(run, "seen." + key, 0) == 0)
+            {
+                run["seen." + key] = day
+            }
+
+            run["off." + key] = 1
+        }
+        else
+        {
+            var most = pick(tile, "most", 0)
+            var byMost = most > 0 and takenOf(key) >= most
+
+            if (pick(run, "off." + key, 0) == 1 and (took != key or byMost))
+            {
+                run["gone." + key] = day
+            }
+
+            run["off." + key] = 0
+        }
+    }
+
+    run.took = ""
+}
+
+// The tiles that left since yesterday, for the day only: {id, name}
+fun goneRows()
+{
+    var tiles = pick(storyNow(), "tiles", [])
+    var rows = []
+
+    if (run.mode == "done")
+    {
+        return rows
+    }
+
+    for (var i = 0; i < len(tiles); i++)
+    {
+        if (pick(run, "gone." + tiles[i].id, 0) == runOf("day") and not tileOffered(tiles[i]))
+        {
+            push(rows, {id: "tile." + tiles[i].id, name: tiles[i].name})
+        }
+    }
+
+    return rows
+}
+
+// What he would score if the tests were sat today, the tests sat counted as they scored: the best
+// answer open to him for each. Never said; only the words it picks are
+fun standingEstimate(story)
+{
+    var tests = pick(story, "tests", [])
+    var total = 0
+
+    for (var i = 0; i < len(tests); i++)
+    {
+        var test = tests[i]
+
+        if (pick(run, "sat." + test.id, 0) > 0)
+        {
+            total = total + pick(run, "score." + test.id, 0)
+            continue
+        }
+
+        if (pick(test, "kind", "card") == "fight")
+        {
+            total = total + markOf("practised") * pick(test, "practised", 0)
+            continue
+        }
+
+        var options = pick(test, "options", [])
+        var best = testScore(test, {})
+
+        for (var j = 0; j < len(options); j++)
+        {
+            var open = true
+            var needs = pick(options[j], "needs", [])
+
+            for (var k = 0; k < len(needs); k++)
+            {
+                if (not meets(needs[k]))
+                {
+                    open = false
+                }
+            }
+
+            if (open)
+            {
+                best = larger(best, testScore(test, options[j]))
+            }
+        }
+
+        total = total + best
+    }
+
+    return total
+}
+
+// How he stands, in words: the line of the story's `standing` the estimate has reached ("" when
+// the story says none)
+fun standingLine(story)
+{
+    var lines = pick(story, "standing", [])
+    var line = ""
+    var estimate = standingEstimate(story)
+
+    for (var i = 0; i < len(lines); i++)
+    {
+        if (estimate >= lines[i].at)
+        {
+            line = lines[i].line
+        }
+    }
+
+    return line
 }
 
 // The months that fall due as the days pass: the row's months spread over the scene's days,
@@ -267,6 +402,7 @@ fun endDay(days)
 
     if (runOf("day") <= runOf("days"))
     {
+        noteOffer()
         openDue()
 
         if (run.event == "")
@@ -407,6 +543,7 @@ fun takeTile(id)
     }
 
     run["t." + tile.id] = takenOf(tile.id) + 1
+    run.took = tile.id
 
     var gives = pick(tile, "gives", [])
     var gave = []
@@ -1741,6 +1878,13 @@ fun storyHead()
     }
 
     var percent = 0
+    var stageText = ""
+
+    // (said on a stage's first day only)
+    if (stage.title != "" and day == stage["from"])
+    {
+        stageText = stage.text
+    }
 
     if (runOf("days") > 0)
     {
@@ -1750,8 +1894,9 @@ fun storyHead()
     return {story: story.id, zone: "", mode: run.mode,
             kicker: toUpperCase(stage.title),
             title: story.name, line: stage.text,
-            day: unit + " " + toString(day) + " of " + toString(runOf("days")),
-            stage: stage.title, stageText: stage.text,
+            day: day, days: runOf("days"), unit: story.unit, dayText: unit + " " + toString(day) + " of " + toString(runOf("days")),
+            stage: stage.title, stageText: stageText,
+            months: runOf("monthsRun"), monthsTotal: runOf("months"), standing: standingLine(story),
             daysLeft: toString(runOf("ap")), daysNote: toUpperCase(story.unit) + "S LEFT",
             vitality: "VITALITY " + toString(runOf("hp")) + " OF " + toString(runOf("hpMax")),
             vitalityPercent: wholeOf(runOf("hp") * 100, larger(1, runOf("hpMax"))),
@@ -1799,6 +1944,12 @@ fun storyTiles()
         var row = workRow("tile." + tile.id, tile.name, toUpperCase(fee), cost, tileShort(tile), "", pick(tile, "about", ""), costs, givesText(story, tile))
 
         row.costText = days
+
+        // (kept in the run when the day began: a look must say the same)
+        if (pick(run, "seen." + tile.id, 0) == runOf("day"))
+        {
+            row.fresh = 1
+        }
 
         push(rows, row)
     }

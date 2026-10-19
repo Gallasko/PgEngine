@@ -131,6 +131,11 @@ const walkStories = [
               {id: "pass", floors: {exam: 14}, total: 14, gives: [{stat: "trialled", amount: 1}], line: "Passed the trial's examination"},
               {id: "merit", floors: {exam: 14}, total: 18, gives: [{stat: "trialled", amount: 1}, {stat: "lore", amount: 1}],
                line: "Passed the trial's examination with merit"}],
+     // How he stands, in words, over what he would score if he sat today (never said in figures)
+     standing: [{at: 0, line: "The masters would find little in him yet."},
+                {at: 13, line: "He would hold his own before the masters."},
+                {at: 15, line: "The masters would look on him kindly."},
+                {at: 18, line: "He is among the best of his year."}],
      // Who has heard no lecture is sent away before the examination
      gate: {day: 4, courses: ["taught"], least: 1, card: "sent_away"},
      plan: {}},
@@ -157,6 +162,7 @@ const walkStories = [
               text: "Two dummies stand in the sand. The masters along the wall have their pens ready.",
               mob: "exam_dummy", count: 2, turns: 10, reaction: 5, practised: 2,
               options: [{id: "face", label: "Face the dummies", line: "Faced the examination dummies"}]}],
+     standing: [{at: 0, line: "The masters watch him, and say nothing."}],
      grades: [],
      plan: {}}
 ]

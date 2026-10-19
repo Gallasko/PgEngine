@@ -92,6 +92,7 @@ var hero = []
 var foe = []
 var preview = {id: ""}
 var timeline = []
+var gone = []
 
 var shelf = []
 var form = {recipe: ""}
@@ -146,6 +147,7 @@ if ((ask == "enter" or ask == "act" or ask == "look") and (pick(run, "zone", "")
         works = storyTiles()
         taken = storyTaken()
         home = storyHome()
+        gone = goneRows()
     }
     else
     {
