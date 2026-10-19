@@ -13,19 +13,20 @@
 
 #include "mocklogger.h"
 
+#include "compiledrules.h"
+
 using namespace chronicle;
 
 // The walks outside the town, as the rules play them: rules/expedition.pg asked through
 // Rules::walk, with the walk as it stands handed in and taken back at every step, the way the
-// Life screen does it (the scripts are copied beside the test binary).
+// Life screen does it (the scripts are copied beside the test binary, and compiled once a run:
+// compiledrules.h).
 namespace pg
 {
     namespace test
     {
         namespace
         {
-            constexpr const char* Root = "rules";
-
             int intOf(const ElementMap& map, const std::string& key)
             {
                 auto it = map.find(key);
@@ -117,7 +118,7 @@ namespace pg
 
                 explicit Walker(ElementMap who) : character(std::move(who))
                 {
-                    EXPECT_TRUE(rules.load(&ecs, Root)) << (rules.errors.empty() ? "" : rules.errors.front());
+                    EXPECT_TRUE(rules.load(&ecs, compiledRules())) << (rules.errors.empty() ? "" : rules.errors.front());
 
                     rules.lives = 2;
                 }

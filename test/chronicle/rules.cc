@@ -18,10 +18,13 @@
 
 #include "mocklogger.h"
 
+#include "compiledrules.h"
+
 using namespace chronicle;
 
 // The rule bridge: inputs as globals, outputs read back by path, through the scripts in rules/
-// (examples/Chronicle/rules, copied beside the test binary).
+// (examples/Chronicle/rules, copied beside the test binary). The fixtures read them compiled once
+// a run (compiledrules.h); `Root` is the sources, for the tests of compiling itself.
 namespace pg
 {
     namespace test
@@ -35,9 +38,10 @@ namespace pg
                 EntitySystem ecs;
                 Rules rules;
 
-                RulesFixture()
+                // The rules compiled once a run, or the sources given (`Root`), compiled here
+                explicit RulesFixture(const std::string& root = compiledRules())
                 {
-                    EXPECT_TRUE(rules.load(&ecs, Root)) << (rules.errors.empty() ? "" : rules.errors.front());
+                    EXPECT_TRUE(rules.load(&ecs, root)) << (rules.errors.empty() ? "" : rules.errors.front());
 
                     // A later life: the town has what a second life brings it (the Inn). The tests of
                     // a first life say so themselves
@@ -5489,7 +5493,7 @@ namespace pg
             std::ifstream compiled("rules-shipped/windows.pgc");
             EXPECT_TRUE(compiled.good());
 
-            RulesFixture fromSource;
+            RulesFixture fromSource(Root);   // compiled from the sources here, not the run's .pgc
 
             EntitySystem ecs;
             Rules shipped;

@@ -19,6 +19,8 @@
 
 #include <gtest/gtest.h>
 
+#include "compiledrules.h"
+
 #include "Scenes/lifescene.h"
 #include "UI/factories.h"
 #include "UI/label.h"
@@ -198,7 +200,7 @@ namespace pg
                 {
                     LifeSceneOptions opt;
                     opt.noSave = true;
-                    opt.rulesRoot = "rules";
+                    opt.rulesRoot = compiledRules();
                     opt.pageFile = "res/chronicle/ui/life.yaml";
                     return opt;
                 }
