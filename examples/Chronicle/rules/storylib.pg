@@ -386,8 +386,69 @@ fun goneRows()
     return rows
 }
 
-// What he would score if the tests were sat today, the tests sat counted as they scored: the best
-// answer open to him for each. Never said; only the words it picks are
+// What he would score at one test if he sat it today: what it scored, once sat; for a card, the
+// best answer open to him; for a fight, his days on the dummies, and one beast beaten if he has
+// a way to harm it (with none, he breaks nothing). Never said; only the words it picks are
+fun testEstimate(test)
+{
+    if (pick(run, "sat." + test.id, 0) > 0)
+    {
+        return pick(run, "score." + test.id, 0)
+    }
+
+    if (pick(test, "kind", "card") == "fight")
+    {
+        var fought = markOf("practised") * pick(test, "practised", 0)
+
+        if (knowsAHarm())
+        {
+            fought = fought + 10
+        }
+
+        return fought
+    }
+
+    var options = pick(test, "options", [])
+    var best = testScore(test, {})
+
+    for (var j = 0; j < len(options); j++)
+    {
+        var open = true
+        var needs = pick(options[j], "needs", [])
+
+        for (var k = 0; k < len(needs); k++)
+        {
+            if (not meets(needs[k]))
+            {
+                open = false
+            }
+        }
+
+        if (open)
+        {
+            best = larger(best, testScore(test, options[j]))
+        }
+    }
+
+    return best
+}
+
+// Whether he knows a technique that deals harm (a blow or a working with a `damage`): what breaks
+// a dummy
+fun knowsAHarm()
+{
+    for (var i = 0; i < len(walkTechniques); i++)
+    {
+        if (walkTechniques[i].damage != "" and knowsTech(walkTechniques[i]))
+        {
+            return true
+        }
+    }
+
+    return false
+}
+
+// What he would score if the tests were sat today, all of them together
 fun standingEstimate(story)
 {
     var tests = pick(story, "tests", [])
@@ -395,65 +456,78 @@ fun standingEstimate(story)
 
     for (var i = 0; i < len(tests); i++)
     {
-        var test = tests[i]
-
-        if (pick(run, "sat." + test.id, 0) > 0)
-        {
-            total = total + pick(run, "score." + test.id, 0)
-            continue
-        }
-
-        if (pick(test, "kind", "card") == "fight")
-        {
-            total = total + markOf("practised") * pick(test, "practised", 0)
-            continue
-        }
-
-        var options = pick(test, "options", [])
-        var best = testScore(test, {})
-
-        for (var j = 0; j < len(options); j++)
-        {
-            var open = true
-            var needs = pick(options[j], "needs", [])
-
-            for (var k = 0; k < len(needs); k++)
-            {
-                if (not meets(needs[k]))
-                {
-                    open = false
-                }
-            }
-
-            if (open)
-            {
-                best = larger(best, testScore(test, options[j]))
-            }
-        }
-
-        total = total + best
+        total = total + testEstimate(tests[i])
     }
 
     return total
 }
 
+// The least a test must score for the lowest grade that asks anything of it (its floor), 0 when
+// no grade does
+fun testFloor(story, id)
+{
+    var grades = pick(story, "grades", [])
+
+    for (var i = 0; i < len(grades); i++)
+    {
+        var floors = pick(grades[i], "floors", {})
+        var floor = pick(floors, id, -1)
+
+        if (floor >= 0)
+        {
+            return floor
+        }
+    }
+
+    return 0
+}
+
 // How he stands, in words: the line of the story's `standing` the estimate has reached ("" when
-// the story says none)
+// the story says none). While a test would fall under its floor, no line that promises a pass
+// (`passes`) is said, and above the lowest the masters say on which side he is behind (the test's
+// `behind`): never a figure
 fun standingLine(story)
 {
     var lines = pick(story, "standing", [])
-    var line = ""
+    var tests = pick(story, "tests", [])
     var estimate = standingEstimate(story)
+    var reached = -1
 
     for (var i = 0; i < len(lines); i++)
     {
         if (estimate >= lines[i].at)
         {
-            line = lines[i].line
+            reached = i
         }
     }
 
-    return line
+    if (reached < 0)
+    {
+        return ""
+    }
+
+    for (var t = 0; t < len(tests); t++)
+    {
+        if (testEstimate(tests[t]) < testFloor(story, tests[t].id) and (reached > 0 or pick(lines[reached], "passes", false)))
+        {
+            if (pick(tests[t], "behind", "") != "")
+            {
+                return tests[t].behind
+            }
+
+            for (var j = reached; j >= 0; j--)
+            {
+                if (not pick(lines[j], "passes", false))
+                {
+                    return lines[j].line
+                }
+            }
+
+            return ""
+        }
+    }
+
+    return lines[reached].line
 }
 
 // The months that fall due as the days pass: the row's months spread over the scene's days,

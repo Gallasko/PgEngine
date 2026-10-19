@@ -63,7 +63,9 @@
 //                           hand, `count` of the beast `mob`, time called after `turns` of his
 //                           turns; it scores 10 for each beaten, `reaction` if an element set
 //                           another off, and `practised` for each day on the dummies: the
-//                           mark "practised")}]
+//                           mark "practised"),
+//                    behind? (what the masters say of him while this test would fall under its
+//                           floor, the lowest grade's: in words)}]
 //                        (sat on their days, in order; sitting one is the day's work);
 //            grades [{id ("fail" | "pass" | "merit" | "distinction"), floors? {<test id>: n} (each
 //                     test's score at n or more), total? (all the scores together at it or more),
@@ -73,8 +75,12 @@
 //                        (the curriculum: on `day`, before the tests, the marks of `courses`
 //                         together must come to `least`, or the card opens, and the tests never
 //                         do: he is sent away),
-//            standing [{at, line}] (how he stands, in words, over what he would score if he sat
-//                     the tests today: the last line reached is said, never a figure),
+//            standing [{at, line, passes?}] (how he stands, in words, over what he would score if he sat
+//                     the tests today: the last line reached is said, never a figure. A fight
+//                     test is counted at its days on the dummies, and one beast beaten while he
+//                     knows a way to harm it. While a test would fall under its floor, a line
+//                     that `passes` (promises a pass) is not said, nor above the lowest: the
+//                     test's `behind` is, else the highest line under it that promises nothing),
 //            plan {tiles [tile id...], cards {<card>: <answer>}, tests {<test>: <answer>}}}
 //                        (the solver's way through it, and the tests': each day the first of
 //                         `tiles` not yet spent that is offered and open that day, else the
@@ -195,11 +201,13 @@ const walkStories = [
                         {id: "shelf", label: "Answer from the forbidden shelf", needs: [{stat: "forbidden_read", at: 1}], adds: 6,
                          gives: [{stat: "suspected", amount: 1}], line: "Sat the theory from what the forbidden shelf had taught him"},
                         {id: "fathers", label: "Cite the Church fathers", needs: [{stat: "anselm_trust", at: 1}], adds: 3,
-                         line: "Sat the theory on the Church fathers"}]},
+                         line: "Sat the theory on the Church fathers"}],
+              behind: "The masters think him behind in his books."},
              {id: "practical", day: 16, kind: "fight", title: "The practical",
               text: "Two dummies stand in the sand of the yard. The masters along the wall have their pens ready, and will call time when they have seen enough.",
               mob: "exam_dummy", count: 2, turns: 10, reaction: 5, practised: 2,
-              options: [{id: "face", label: "Face the dummies", line: "Faced the examination dummies"}]}],
+              options: [{id: "face", label: "Face the dummies", line: "Faced the examination dummies"}],
+              behind: "The masters think him behind with the workings."}],
 
      // Either examination below its floor is a fail, whatever the other; above, the two together
      grades: [{id: "fail", floors: {}, total: 0, gives: [], line: "Failed the Collegium's examinations"},
@@ -213,10 +221,13 @@ const walkStories = [
                gives: [{stat: "collegium", amount: 1}, {stat: "arcana", amount: 2}, {stat: "lore", amount: 1}, {stat: "top_floor", amount: 1}],
                line: "Passed the Collegium's examinations with distinction"}],
 
+     // How he stands, in words, over what he would score today: the two examinations together (a
+     // dummy counted broken while he has a way to harm it). The last two promise a pass, and are
+     // not said while either examination would fall under its floor: the masters say which
      standing: [{at: 0, line: "The masters do not know his name."},
-                {at: 18, line: "The masters think him behind."},
-                {at: 26, line: "The masters expect him to pass."},
-                {at: 40, line: "The masters speak of him on the top floor."}],
+                {at: 24, line: "The masters think him behind."},
+                {at: 34, line: "The masters expect him to pass.", passes: true},
+                {at: 50, line: "The masters speak of him on the top floor.", passes: true}],
 
      // Six days of courses, the lectures, the familiar studies and his element together
      gate: {day: 15, courses: ["courses"], least: 6, card: "sent_away"},

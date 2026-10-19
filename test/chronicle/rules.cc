@@ -811,6 +811,51 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // The Collegium's door says what it asks now (no coin up front: the fees of its courses,
+        // paid as he follows them), and is shut to who left it or was sent away, though no term
+        // of it is done.
+        TEST(rules_test, the_collegium_door_is_shut_to_who_left_it)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            RecordList windows;
+            ASSERT_TRUE(f.rules.windows(12.0f, boy(), windows)) << firstError(f.rules);
+
+            ASSERT_NE(byId(windows, "collegium"), nullptr);
+            const std::string asks = textOf(*byId(windows, "collegium"), "note");
+
+            EXPECT_EQ(textOf(*byId(windows, "collegium"), "state"), "upcoming");
+            EXPECT_EQ(asks.find("35"), std::string::npos) << asks;
+            EXPECT_NE(asks.find("fees"), std::string::npos) << asks;
+
+            // At seventeen the door stands open to a man of no class; not to one who left it
+            ElementMap man = boy();
+            man["int"] = ElementType{12};
+            man["letters"] = ElementType{3};
+            man["lore"] = ElementType{2};
+
+            ASSERT_TRUE(f.rules.windows(17.0f, man, windows));
+            ASSERT_NE(byId(windows, "collegium"), nullptr);
+            EXPECT_EQ(textOf(*byId(windows, "collegium"), "state"), "open");
+
+            man["dropout.collegium"] = ElementType{1};
+            man["fire_course"] = ElementType{1};
+
+            ASSERT_TRUE(f.rules.windows(17.0f, man, windows));
+            ASSERT_NE(byId(windows, "collegium"), nullptr);
+            EXPECT_EQ(textOf(*byId(windows, "collegium"), "state"), "closed");
+            EXPECT_EQ(intOf(*byId(windows, "collegium"), "attempts"), 0);
+            EXPECT_EQ(textOf(*byId(windows, "collegium"), "note"), "He left the Collegium, and it does not take back who left it. That door is shut.");
+
+            // The other doors of his age stand as they did
+            ASSERT_NE(byId(windows, "keep"), nullptr);
+            EXPECT_EQ(textOf(*byId(windows, "keep"), "state"), "open");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         TEST(rules_test, forecast_at_term)
         {
             MockLogger logger;

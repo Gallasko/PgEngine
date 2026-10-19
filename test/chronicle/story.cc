@@ -1764,5 +1764,68 @@ namespace pg
             ASSERT_TRUE(w.act("option", "shelf"));
             EXPECT_EQ(intOf(w.character, "suspected"), 1);
         }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The masters' word never promises a pass that one examination's floor refuses: a student
+        // of the basics who practised twice but read once (theory 22, under its 24) is told he is
+        // behind in his books, and he fails.
+        TEST(story_test, the_standing_never_promises_what_a_floor_refuses)
+        {
+            MockLogger logger;
+            Walker w(collegian());
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"story", "collegium", 0}));
+
+            for (const char* tile : {"lectures", "lectures", "lectures", "library", "scriptorium", "scriptorium"})
+                ASSERT_TRUE(study(w, tile)) << tile;
+
+            ASSERT_EQ(w.cardId(), "story.course");
+            ASSERT_TRUE(w.act("option", "basic"));
+
+            for (const char* tile : {"basics", "basics", "basics", "practice", "practice", "scriptorium", "scriptorium", "rest"})
+                ASSERT_TRUE(study(w, tile)) << tile;
+
+            ASSERT_EQ(w.day(), 15);
+            ASSERT_EQ(w.cardId(), "story.theory");
+            ASSERT_EQ(w.mark("courses"), 6);
+            ASSERT_EQ(w.mark("revised"), 1);
+            ASSERT_EQ(w.mark("practised"), 2);
+
+            const std::string said = textOf(w.last.site, "standing");
+
+            EXPECT_EQ(said, "The masters think him behind in his books.");
+            EXPECT_NE(said, "The masters expect him to pass.");
+
+            ASSERT_TRUE(w.act("option", "taught"));
+            EXPECT_EQ(intOf(w.state.run, "score.theory"), 22);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Who comes to the examinations with no working he can throw (all his days on the familiar
+        // studies) cannot break a dummy: his books are enough, and the masters say he is behind
+        // with the workings.
+        TEST(story_test, the_standing_says_who_has_no_working_is_behind)
+        {
+            MockLogger logger;
+            Walker w(collegian());
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"story", "collegium", 0}));
+
+            for (int day = 1; day <= 13; ++day)
+                ASSERT_TRUE(study(w, "familiar")) << day;
+
+            ASSERT_NE(w.work("practice"), nullptr);
+            EXPECT_EQ(intOf(*w.work("practice"), "locked"), 1);
+
+            ASSERT_TRUE(study(w, "library"));
+
+            ASSERT_EQ(w.day(), 15);
+            ASSERT_EQ(w.cardId(), "story.theory");
+            EXPECT_EQ(textOf(w.last.site, "standing"), "The masters think him behind with the workings.");
+        }
     }
 }
