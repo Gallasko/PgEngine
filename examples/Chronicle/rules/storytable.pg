@@ -22,8 +22,13 @@
 //                           tile already taken; while one holds it is not shown),
 //                    most? (how many times it may be taken in the scene; 0 or none: no end),
 //                    gives? [{mark, amount} | {stat, amount} | {item, amount} | {hp, amount}
-//                            | {fight, mob, auto}] (a stat lands on him when it is taken; a fight
-//                           is Task 3's),
+//                            | {fight (the beast's id), count? (1), turns? (the beast's), auto?,
+//                               wins? [...gifts given if he wins...]}]
+//                           (a stat lands on him when it is taken. A fight is fought with what
+//                           he knows that day, a story's beast (expeditiontable.pg's `story`
+//                           ones) or any; `auto`: on its own, told in a line of the record, else
+//                           on the fight screen, the day ending when he is back from it. Lost
+//                           or fled, it takes nothing the scene gave, and nobody is carried home),
 //                    line (the record's line for the day)}],
 //            cards [{id, day (the day it opens; 0: when its `when` holds),
 //                    when? [{mark | stat, at}] (all must hold: it opens the first day they do),
@@ -38,14 +43,18 @@
 //            events [{id, trigger ("day": at the start of a day), weight, days: [from, to],
 //                     once, title, text, options [...as walkEvents' (expeditiontable.pg)...]}]
 //                        (the story's own chance meetings, drawn in place of a zone's);
-//            tests [{id, day, kind ("card"; "fight": Task 3's), title, text,
+//            tests [{id, day, kind ("card" | "fight"), title, text,
 //                    score [{stat | mark | flag, times (what each point counts), at? (with it, the
 //                           term counts `times` once when the stat or mark is at `at` or more;
 //                           a flag counts `times` when he holds it)}],
 //                    options [{id, label, needs? (not shown till met: an answer for who holds
 //                              it), adds? (to the score), swap? {"from", to, times?} (a term read
 //                              as another stat or mark), gives?, line}],
-//                    mob, count, turns, reaction, practised (a fight's: Task 3)}]
+//                    mob, count, turns, reaction, practised (a fight's: its answer is fought by
+//                           hand, `count` of the beast `mob`, time called after `turns` of his
+//                           turns; it scores 10 for each beaten, `reaction` if an element set
+//                           another off, and `practised` for each day on the dummies: the
+//                           mark "practised")}]
 //                        (sat on their days, in order; sitting one is the day's work);
 //            grades [{id ("fail" | "pass" | "merit" | "distinction"), floors? {<test id>: n} (each
 //                     test's score at n or more), total? (all the scores together at it or more),
@@ -67,11 +76,13 @@ const walkStories = [
     // The tests' story (test/chronicle/story.cc): no row of the game opens it (its row,
     // `story.trial`, is hidden, for the tests only). Four days for four months: a lecture for a
     // coin, the library for nothing, an advanced course from the third day for who was taught
-    // twice, an early tile of the first two days only, and a tile taken once. Then its scenes, a
-    // rumour, the examination of the fourth day and its grades; who fails it or is sent away is
-    // a drop-out of it.
+    // twice, an early tile of the first two days only, a tile taken once, the practice dummy
+    // for who knows a working (fought on its own), and a book copied in two days. Then its
+    // scenes, a rumour, the examination of the fourth day and its grades; who fails it or is
+    // sent away is a drop-out of it.
     {id: "trial", name: "The trial", glyph: "study", unit: "day", days: 4, months: 4, row: "story.trial", "class": "", dropout: "dropout.trial",
-     marks: [{id: "taught", name: "Lectures heard"}, {id: "revised", name: "Days in the library"}, {id: "deep", name: "The advanced course"}],
+     marks: [{id: "taught", name: "Lectures heard"}, {id: "revised", name: "Days in the library"}, {id: "deep", name: "The advanced course"},
+            {id: "practised", name: "Days on the dummy"}],
      stages: [{"from": 1, to: 2, title: "The first days", text: "Everything is new, and every door is open to him."},
               {"from": 3, to: 4, title: "The last days", text: "What he has heard lets him follow more."}],
      tiles: [{id: "lecture", name: "Hear a lecture", about: "A master reads, the students write it down.", days: [1, 4], cost: 1,
@@ -84,7 +95,12 @@ const walkStories = [
              {id: "early", name: "Walk the halls", about: "The first days only, while all is new.", days: [1, 2], cost: 1,
               line: "Walked the halls"},
              {id: "once", name: "Meet the dean", about: "He sees each of them once.", days: [1, 4], cost: 1, most: 1,
-              gives: [{stat: "renown", amount: 1}], line: "Met the dean"}],
+              gives: [{stat: "renown", amount: 1}], line: "Met the dean"},
+             {id: "practice", name: "Practise on the dummy", about: "A working tried on straw and sacking, in the yard.", days: [1, 4], cost: 1,
+              needs: [{stat: "forbidden_read", at: 1, asks: "ASKS A WORKING HE KNOWS"}],
+              gives: [{fight: "dummy", auto: true, wins: [{mark: "practised", amount: 1}]}], line: "Practised on the dummy"},
+             {id: "copy", name: "Copy a book", about: "Two days at a desk, and the copy is his.", days: [1, 3], cost: 2,
+              line: "Copied a book"}],
      // The third day's question, four answers that each set a mark; a master who notices him once
      // he has read two days; and the masters sending him away, the gate's card
      cards: [{id: "crossroads", day: 3, title: "The masters' question",
@@ -117,5 +133,25 @@ const walkStories = [
                line: "Passed the trial's examination with merit"}],
      // Who has heard no lecture is sent away before the examination
      gate: {day: 4, courses: ["taught"], least: 1, card: "sent_away"},
+     plan: {}},
+
+    // The tests' fight story (story.cc): no row opens it. Three days: the fire working taught,
+    // a day idled, a bout with a wolf (fought by hand, and he may lose it), then the practical of
+    // the second day, two examination dummies fought by hand; no grade
+    {id: "drill", name: "The drill yard", glyph: "swordsmanship", unit: "day", days: 3, months: 3, row: "", "class": "", dropout: "",
+     marks: [{id: "practised", name: "Days on the dummy"}, {id: "braved", name: "Bouts fought"}],
+     stages: [{"from": 1, to: 3, title: "The yard", text: "Posts, straw and sand, and the masters along the wall."}],
+     tiles: [{id: "fire", name: "Learn the fire working", about: "A master shows him how the fire is thrown.", days: [1, 1], cost: 1,
+              gives: [{stat: "fire_course", amount: 1}], line: "Learned the fire working"},
+             {id: "idle", name: "Watch the others", about: "Nothing asked of him today.", days: [1, 3], cost: 1, line: "Watched the others"},
+             {id: "bout", name: "Spar with the wolf", about: "The keeper's wolf, on a long chain.", days: [1, 1], cost: 1,
+              gives: [{mark: "braved", amount: 1}, {stat: "renown", amount: 1}, {fight: "wolf"}], line: "Sparred with the wolf"}],
+     cards: [],
+     events: [],
+     tests: [{id: "practical", day: 2, kind: "fight", title: "The practical",
+              text: "Two dummies stand in the sand. The masters along the wall have their pens ready.",
+              mob: "exam_dummy", count: 2, turns: 10, reaction: 5, practised: 2,
+              options: [{id: "face", label: "Face the dummies", line: "Faced the examination dummies"}]}],
+     grades: [],
      plan: {}}
 ]

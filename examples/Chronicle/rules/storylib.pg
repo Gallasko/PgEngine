@@ -297,7 +297,9 @@ fun giftText(gift)
 
     if (typeOf(gift.fight) != "none")
     {
-        return "A fight"
+        var mob = mobOf(gift.fight)
+
+        return "A bout with " + theName(toLowerCase(foundName(mob, pick(gift, "count", 1))))
     }
 
     return ""
@@ -335,7 +337,7 @@ fun givesText(story, tile)
 }
 
 // A gift of a tile, as it lands: a mark of the scene, a stat on him, a thing in the bag, his
-// Vitality. A fight is Task 3's
+// Vitality, a fight (on its own at once, else on the fight screen: `storyFight`)
 fun giveGift(gift)
 {
     if (typeOf(gift.mark) != "none")
@@ -354,6 +356,19 @@ fun giveGift(gift)
     else if (typeOf(gift.hp) != "none")
     {
         shiftHp(gift.hp)
+    }
+    else if (typeOf(gift.fight) != "none")
+    {
+        var mob = mobOf(gift.fight)
+
+        run.fightFrom = pick(run, "giving", "")
+        storyFight(gift.fight, pick(gift, "count", 1), pick(gift, "turns", pick(mob, "turns", 0)))
+
+        if (pick(gift, "auto", false) and pick(run, "found", "") != "")
+        {
+            fightOnItsOwn()
+            storyFightBack(true)
+        }
     }
 }
 
@@ -381,6 +396,8 @@ fun takeTile(id)
 
     openStep("tile", tile.id, 1, cost, pick(tile, "line", tile.name), pick(tile, "glyph", story.glyph))
 
+    // (its own line: a fight it gives writes another after it)
+    var step = lastStep()
     var fee = pick(tile, "fee", [])
 
     for (var i = 0; i < len(fee); i++)
@@ -394,20 +411,24 @@ fun takeTile(id)
     var gives = pick(tile, "gives", [])
     var gave = []
 
+    run.giving = "tile." + tile.id
+
     for (var i = 0; i < len(gives); i++)
     {
         giveGift(gives[i])
 
+        // (a fight is told in its own line)
         var text = giftText(gives[i])
 
-        if (text != "")
+        if (text != "" and typeOf(gives[i].fight) == "none")
         {
             push(gave, text)
         }
     }
 
+    run.giving = ""
+
     // The line's right: the days, what it cost him, what it gave (a mark is not said in figures)
-    var step = lastStep()
     var parts = [toUpperCase(counted(cost, story.unit, story.unit + "s"))]
 
     if (feeText(tile) != "")
@@ -423,6 +444,13 @@ fun takeTile(id)
     }
 
     step.figure = joined(parts, " · ")
+
+    // A fight on the fight screen: the day ends when he is back from it
+    if (pick(run, "found", "") != "")
+    {
+        run.fightDays = cost
+        return
+    }
 
     endDay(cost)
 }
@@ -694,9 +722,12 @@ fun dueCard()
         }
     }
 
+    // (a card whose day went by inside a tile of several days comes the day he is out of it)
     for (var i = 0; i < len(cards); i++)
     {
-        if (cards[i].id != gateCard and pick(cards[i], "day", 0) == day and not answered(cards[i].id))
+        var on = pick(cards[i], "day", 0)
+
+        if (cards[i].id != gateCard and on > 0 and on <= day and not answered(cards[i].id))
         {
             return cards[i].id
         }
@@ -728,7 +759,7 @@ fun dueCard()
 // The card that waits, put up (nothing once the scene is over)
 fun openDue()
 {
-    if (run.mode == "done" or pick(run, "result", "") != "" or runOf("day") > runOf("days"))
+    if (run.mode == "done" or pick(run, "result", "") != "" or runOf("day") > runOf("days") or pick(run, "found", "") != "")
     {
         return
     }
@@ -898,8 +929,13 @@ fun answerLine(option, isTest)
     {
         var swap = pick(option, "swap", {})
         var adds = pick(option, "adds", 0)
+        var up = storyUp()
 
-        if (pick(swap, "from", "") != "")
+        if (pick(up, "kind", "card") == "fight")
+        {
+            push(parts, "A fight, by his own hand")
+        }
+        else if (pick(swap, "from", "") != "")
         {
             push(parts, "Leans on " + toLowerCase(statName(swap.to)) + " in place of " + toLowerCase(statName(swap["from"])))
         }
@@ -1236,11 +1272,19 @@ fun testsSat(story)
 // A test sat with an answer: its score kept, its day spent; after the last, the result
 fun sitTest(test, option)
 {
-    var story = storyNow()
     var score = testScore(test, option)
 
     answerStep("test", test.id + "/" + option.id, 1, option)
     answerFigure(1)
+
+    testSat(test, score)
+}
+
+// A test sat, a card's or a fight's: its score kept, its day spent (the months it completes
+// fall due); after the last, the result
+fun testSat(test, score)
+{
+    var story = storyNow()
 
     run["score." + test.id] = score
     run["sat." + test.id] = 1
@@ -1372,7 +1416,14 @@ fun storyChoose(optionId)
 
     run.event = ""
 
-    if (isTest)
+    if (isTest and pick(up, "kind", "card") == "fight")
+    {
+        // Fought by hand: sat when he is back from it (storyFightBack)
+        run.fightTest = up.id
+        run.fightFrom = ""
+        storyFight(pick(up, "mob", ""), pick(up, "count", 1), pick(up, "turns", 0))
+    }
+    else if (isTest)
     {
         sitTest(up, option)
     }
@@ -1389,6 +1440,243 @@ fun storyChoose(optionId)
     {
         openDue()
     }
+}
+
+// ---- the fights of a story -------------------------------------------------------------------------------
+//
+// A tile, a card or a test may open a fight: the walk's own (fightlib.pg), with no approach card
+// and no zone, against a beast of the story's own or any. What he knows that day is in its menu
+// (fightcalc.pg's `knowsTech` reads `after`, where what the scene taught has landed). Its turns
+// are no days: the fight is the day's work, and the day ends when he is back from it (`back`).
+// A story's beast may be one that spares (a dummy: it brings nobody down), and time may be
+// called (`run.fightMost`: held, if neither side has fallen). Lost or fled, nothing the scene
+// gave is lost and nobody is carried home. Its run keys, scalars as every run's are:
+// `fightMost`, `fightDays` (the days the tile took: they end when he is back), `fightTest` (the
+// test it is), `fightFrom` ("tile.<id>": whose `wins` a win gives)
+
+// "the wolf" for "wolf", what has an article kept as it is
+fun theName(name)
+{
+    if (startsWith(name, "the ") or startsWith(name, "a ") or startsWith(name, "an "))
+    {
+        return name
+    }
+
+    return "the " + name
+}
+
+// A fight of the story begins: `count` of the beast, time called after `most` of his turns (0:
+// never)
+fun storyFight(mobId, count, most)
+{
+    var mob = mobOf(mobId)
+
+    if (mob.id == "")
+    {
+        push(errors, "unknown beast " + mobId)
+        return
+    }
+
+    run.found = mob.id
+    run.foundCount = larger(1, count)
+    run.fightMost = most
+
+    beginFight()
+}
+
+// A fight played on its own, by the stance's choices (fightauto.pg), to its end
+fun fightOnItsOwn()
+{
+    for (var guard = 0; guard < 100 and fight.over == ""; guard++)
+    {
+        resolve(autoChoice())
+
+        // (a choice it could not make: a strike in its place)
+        if (pick(run, "refused", "") != "")
+        {
+            run.refused = ""
+            resolve("strike")
+        }
+    }
+}
+
+// What a won fight gives, from what opened it: the `wins` of the tile's fight
+fun fightWins(origin)
+{
+    if (not startsWith(origin, "tile."))
+    {
+        return []
+    }
+
+    var story = storyNow()
+    var tile = storyTile(story, substring(origin, 5))
+    var gives = pick(tile, "gives", [])
+
+    for (var i = 0; i < len(gives); i++)
+    {
+        if (typeOf(gives[i].fight) != "none")
+        {
+            return pick(gives[i], "wins", [])
+        }
+    }
+
+    return []
+}
+
+// The fight is over (fightlib.pg's `endFight` asks it in a story): its line in the scene's
+// words, and he is not carried home. `length` and `hurt` are the walk's words for it
+fun storyFightEnd(outcome, length, hurt)
+{
+    var step = lastStep()
+    var what = theName(toLowerCase(fightName()))
+    var said = account[len(account) - 1]
+
+    step.tone = "time"
+
+    if (outcome == "won")
+    {
+        step.text = "Beat " + what + " · " + length + ", " + hurt
+        fight.spoils = "Written to the day"
+        said.text = "It is over. " + step.text
+    }
+    else if (outcome == "held")
+    {
+        step.text = "Stood against " + what + " till time was called · " + length + ", " + hurt
+    }
+    else if (outcome == "fled")
+    {
+        step.text = "Broke off from " + what + " · " + length + ", " + hurt
+        step.tone = "loss"
+        fight.spoils = "The day is spent; what the days gave is kept"
+        said.text = "He breaks off"
+    }
+    else
+    {
+        step.text = "Beaten by " + what + " · " + length
+        step.tone = "loss"
+        fight.spoils = "He is helped up: the day is spent, and what the days gave is kept"
+        said.text = "He goes down, and is helped up"
+    }
+
+    // The line's right: its turns and what it took (no days: the day is the tile's or the test's)
+    var parts = [toUpperCase(length)]
+
+    if (step.hp < 0)
+    {
+        push(parts, "−" + toString(0 - step.hp) + " VIT")
+    }
+
+    if (step.gave != "")
+    {
+        push(parts, toUpperCase(step.gave))
+    }
+
+    step.figure = joined(parts, " · ")
+
+    // Brought down, he is left with one Vitality and the scene goes on
+    run.downed = 0
+}
+
+// Back from a fight of the story: what a win gives, the test it was sat, and the day ended (a
+// fight on its own, `auto`, is inside its tile's day, which ends it)
+fun storyFightBack(auto)
+{
+    var story = storyNow()
+    var outcome = fight.over
+    var beaten = 0
+
+    for (var i = 0; i < len(foes); i++)
+    {
+        if (foes[i].alive <= 0 and pick(foes[i], "fled", 0) == 0)
+        {
+            beaten = beaten + 1
+        }
+    }
+
+    var reacted = pick(fight, "reactions", 0) > 0
+    var testId = pick(run, "fightTest", "")
+    var origin = pick(run, "fightFrom", "")
+    var days = runOf("fightDays")
+
+    run.found = ""
+    run.foundCount = 0
+    run.fightMost = 0
+    run.fightTest = ""
+    run.fightFrom = ""
+    run.fightDays = 0
+    run.downed = 0
+    foes = []
+    account = []
+    fight = {over: "", mob: ""}
+
+    if (outcome == "won")
+    {
+        var wins = fightWins(origin)
+
+        for (var i = 0; i < len(wins); i++)
+        {
+            giveGift(wins[i])
+        }
+    }
+
+    if (auto)
+    {
+        return
+    }
+
+    if (testId != "")
+    {
+        // The practical: ten for each beaten in its time, its bonus for a reaction made, and the
+        // days he practised
+        var test = storyTest(story, testId)
+        var score = 10 * beaten + markOf("practised") * pick(test, "practised", 0)
+
+        if (reacted)
+        {
+            score = score + pick(test, "reaction", 0)
+        }
+
+        // (its day, as a test's: the fight's line is that day's)
+        var step = lastStep()
+
+        step.ap = step.ap + 1
+        run.ap = larger(0, runOf("ap") - 1)
+        run.spent = runOf("spent") + 1
+
+        testSat(test, score)
+    }
+    else if (days > 0)
+    {
+        endDay(days)
+    }
+    else
+    {
+        openDue()
+    }
+}
+
+// The head of the fight screen in a story (fightpage.pg's `duelHead`): the scene and its day, no
+// days counted by turns
+fun storyDuel(view)
+{
+    var story = storyNow()
+
+    view.kicker = toUpperCase(story.name) + " · " + toUpperCase(storyDayText()) + " · A FIGHT"
+    view.cost = "THE DAY'S WORK"
+    view.daysLeft = toUpperCase(daysText(runOf("ap"))) + " LEFT"
+    view.back = "Back to the day"
+    view.low = ""
+    view.dayText = "TURN " + toString(fight.turn)
+
+    if (runOf("fightMost") > 0)
+    {
+        view.cost = "TIME IS CALLED AFTER " + toUpperCase(counted(runOf("fightMost"), "turn", "turns"))
+        view.dayText = "TURN " + toString(fight.turn) + " OF " + toString(runOf("fightMost"))
+    }
+
+    var lost = fight.hpStart - runOf("hp")
+
+    view.footnote = toString(larger(0, lost)) + " VITALITY LOST · WHAT THE DAYS GAVE IS KEPT, WHATEVER COMES"
 }
 
 // ---- the page ---------------------------------------------------------------------------------------------

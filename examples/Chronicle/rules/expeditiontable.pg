@@ -426,7 +426,35 @@ const walkMobs = [
               {at: 50, line: "The lamp burns higher, and another light answers it.", quick: 10, calls: {mob: "light", count: 1}},
               {at: 25, line: "The lamp gutters. The last of her lights comes to it.", calls: {mob: "light", count: 1}}],
      lesson: "The Lantern Mother's lesson: she calls a light each time she is hurt. Bless the blade, or end her lights all at once.",
-     loot: [{id: "pitch", chance: 100, least: 2, most: 3}]}
+     loot: [{id: "pitch", chance: 100, least: 2, most: 3}]},
+
+    // A story's own (storylib.pg): no place lists them, so no walk meets them. `story`: of a
+    // story only (no lesson, nothing learned of it); `level`: how well he knows it there (a story
+    // walks no zone: expeditionlib.pg's `mobLevel`); `spares`: its blows always leave him one
+    // Vitality, it brings nobody down; `turns`: time is called after so many of his turns, and a
+    // fight neither side has lost is held (a story's test or tile may say its own).
+    // The practice dummy falls in two or three turns to a boy's spark; the examination's to a mage
+    // of the pass (Intelligence 12, Arcana 1, one bolt), the first in three or four turns (his
+    // two bolts) and both in seven or eight, most often inside the examination's ten
+    {id: "dummy", name: "Practice dummy", many: "practice dummies", pack: "Practice dummies", lone: "A practice dummy", rarity: "common", packSize: 1, holdsBack: 0,
+     story: true, spares: true, level: 3, turns: 10,
+     about: "Straw in sacking on a post, with an arm that swings round when it is struck.",
+     hp: 16, least: 1, most: 1, armour: 0, ward: 0, quick: 2, awareness: 1, poise: 0, verb: "swings round",
+     moves: {hold: {name: "Stand", line: "It stands on its post and waits to be struck."},
+             bite: {name: "Swing", line: "Its arm comes round on the post: a knock, no more."}},
+     script: ["hold", "hold", "bite"],
+     lesson: "",
+     loot: []},
+
+    {id: "exam_dummy", name: "Examination dummy", many: "examination dummies", pack: "The examination dummies", lone: "An examination dummy", rarity: "common", packSize: 2, holdsBack: 0,
+     story: true, spares: true, level: 3, turns: 10,
+     about: "Oak and old leather on a post. The masters watch it, and write.",
+     hp: 24, least: 1, most: 2, armour: 0, ward: 0, quick: 3, awareness: 1, poise: 0, verb: "swings round",
+     moves: {hold: {name: "Stand", line: "It stands on its post, and the masters write."},
+             bite: {name: "Swing", line: "Its arm comes round on the post, harder than the practice dummy's."}},
+     script: ["hold", "bite"],
+     lesson: "",
+     loot: []}
 ]
 
 // What a walk may meet besides one beast or a pack of it: beasts of several kinds in one fight
@@ -609,7 +637,7 @@ const walkTechniques = [
 
     // The Collegium's: a first working, and what Magister Orin shows his assistant
     {id: "firebolt", name: "Firebolt", kind: "spell", damage: "fire", breath: 2, cool: 1, power: 100, hit: 15, weight: 100, all: false, holds: false, trains: "arcana",
-     knows: ["collegium"], where: "THE COLLEGIUM", line: "A working thrown like a stone: it seldom misses, and leaves the beast burning"},
+     knows: ["collegium", "fire_course"], where: "THE COLLEGIUM", line: "A working thrown like a stone: it seldom misses, and leaves the beast burning"},
     {id: "binding", name: "Binding word", kind: "spell", damage: "", breath: 2, cool: 3, power: 0, hit: 0, weight: 100, all: false, holds: true,
      knows: ["orin_known"], where: "MAGISTER ORIN", line: "The beast aimed at is held, and loses its next move"},
 

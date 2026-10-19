@@ -327,6 +327,13 @@ fun listedFrom(mob)
 // one who has fought it himself
 fun mobLevel(zoneId, mob)
 {
+    // A story walks no zone: how well its beast is known there is the beast's own (a place
+    // named is a place, whatever is under way)
+    if (pick(run, "story", "") != "" and zoneId == "")
+    {
+        return pick(mob, "level", 2)
+    }
+
     var level = 0
 
     if (zoneLevel(zoneId) >= listedFrom(mob))

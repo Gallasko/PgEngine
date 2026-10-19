@@ -184,7 +184,57 @@ namespace pg
 
                 int day() const { return intOf(state.run, "day"); }
                 int mark(const std::string& key) const { return intOf(state.run, "m." + key); }
+
+                // A fight of the story: how it ended ("" while it goes on), the beasts still up
+                std::string over() const { return textOf(state.fight, "over"); }
+
+                int standing() const
+                {
+                    int n = 0;
+
+                    for (const auto& foe : state.foes)
+                    {
+                        if (intOf(foe, "alive") > 0)
+                            ++n;
+                    }
+
+                    return n;
+                }
+
+                // The same move made turn after turn till the fight is over (or till `until` beasts stand);
+                // "step" hands the turn to his stance
+                void fightWith(const std::string& move, int until = -1)
+                {
+                    for (int guard = 0; guard < 40 and screen() == "fight" and over().empty() and standing() != until; ++guard)
+                    {
+                        if (move == "step")
+                            act("step");
+                        else
+                            act("move", move);
+                    }
+                }
+
+                const ElementMap* step(const std::string& kind) const
+                {
+                    for (const auto& s : state.record)
+                    {
+                        if (textOf(s, "kind") == kind)
+                            return &s;
+                    }
+
+                    return nullptr;
+                }
             };
+
+            // A mage at the level of a pass: his wits and a little of the art
+            ElementMap mage()
+            {
+                ElementMap who = student();
+
+                who["arcana"] = ElementType{1};
+
+                return who;
+            }
         }
 
         // ----------------------------------------------------------------------------------------
@@ -871,6 +921,257 @@ namespace pg
             // Over, nothing more is answered
             ASSERT_TRUE(w.act("option", "plain"));
             EXPECT_FALSE(textOf(w.last.site, "refused").empty());
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A card's day passed inside a tile of two days still comes: the third day's question is put
+        // to him on the fourth, when the copying is done.
+        TEST(story_test, a_card_is_not_skipped_by_a_long_tile)
+        {
+            MockLogger logger;
+            Walker w(student());
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"story", "trial", 0}));
+            ASSERT_TRUE(w.spend("lecture"));
+
+            ASSERT_EQ(w.day(), 2);
+            ASSERT_TRUE(w.take("copy"));
+            EXPECT_EQ(textOf(w.last.site, "refused"), "");
+
+            EXPECT_EQ(w.day(), 4);
+            EXPECT_EQ(w.cardId(), "story.crossroads");
+
+            // Answered, the examination follows on the same day
+            ASSERT_TRUE(w.act("option", "a"));
+            w.settle();
+            EXPECT_EQ(w.cardId(), "story.exam");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The practice dummy is fought on its own: no fight screen, a line of the record tells it,
+        // and a win is a day on the dummies.
+        TEST(story_test, a_practice_tile_is_fought_on_its_own)
+        {
+            MockLogger logger;
+
+            ElementMap who = student();
+            who["forbidden_read"] = ElementType{1};
+
+            Walker w(who);
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"story", "trial", 0}));
+
+            ASSERT_NE(w.work("practice"), nullptr);
+            EXPECT_EQ(intOf(*w.work("practice"), "locked"), 0);
+
+            ASSERT_TRUE(w.take("practice"));
+            EXPECT_EQ(textOf(w.last.site, "refused"), "");
+
+            EXPECT_NE(w.screen(), "fight");
+            EXPECT_EQ(textOf(w.state.fight, "mob"), "");
+            EXPECT_EQ(textOf(w.state.run, "found"), "");
+            EXPECT_EQ(w.mark("practised"), 1);
+            EXPECT_EQ(w.day(), 2);
+            EXPECT_EQ(intOf(w.state.run, "ap"), 3);
+            EXPECT_EQ(intOf(w.state.run, "monthsDue"), 1);
+
+            const ElementMap* told = w.step("fight");
+
+            ASSERT_NE(told, nullptr);
+            EXPECT_EQ(textOf(*told, "text").rfind("Beat the practice dummy", 0), 0u) << textOf(*told, "text");
+
+            // Without a working, the practice is shut
+            Walker plain(student());
+
+            ASSERT_TRUE(plain.ask("enter", WalkAct{"story", "trial", 0}));
+            ASSERT_NE(plain.work("practice"), nullptr);
+            EXPECT_EQ(intOf(*plain.work("practice"), "locked"), 1);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A working taught on the first day is his against the dummies on the second.
+        TEST(story_test, a_spell_given_in_the_story_is_in_the_fight_menu)
+        {
+            MockLogger logger;
+
+            auto hasFirebolt = [](const Walker& w)
+            {
+                return byId(w.last.menu, "tech.firebolt") != nullptr;
+            };
+
+            Walker w(mage());
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"story", "drill", 0}));
+            ASSERT_TRUE(w.take("fire"));
+
+            EXPECT_EQ(intOf(w.character, "fire_course"), 1);
+            EXPECT_EQ(w.day(), 2);
+            ASSERT_EQ(w.cardId(), "story.practical");
+
+            ASSERT_TRUE(w.act("option", "face"));
+            ASSERT_EQ(w.screen(), "fight");
+            EXPECT_EQ(textOf(w.state.fight, "mob"), "exam_dummy");
+            EXPECT_EQ(w.state.foes.size(), 2u);
+            EXPECT_TRUE(hasFirebolt(w));
+
+            // Who idled the first day has no Firebolt
+            Walker idle(mage());
+
+            ASSERT_TRUE(idle.ask("enter", WalkAct{"story", "drill", 0}));
+            ASSERT_TRUE(idle.take("idle"));
+            ASSERT_TRUE(idle.act("option", "face"));
+            ASSERT_EQ(idle.screen(), "fight");
+            EXPECT_FALSE(hasFirebolt(idle));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The dummies' blows are weak and never bring him down: with three Vitality he stands the
+        // whole examination behind his guard, and time is called with neither side fallen.
+        TEST(story_test, a_dummy_cannot_bring_him_down)
+        {
+            MockLogger logger;
+
+            ElementMap who = mage();
+            who["vit"] = ElementType{3};
+
+            Walker w(who);
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"story", "drill", 0}));
+            ASSERT_TRUE(w.take("idle"));
+            ASSERT_TRUE(w.act("option", "face"));
+            ASSERT_EQ(w.screen(), "fight");
+
+            w.fightWith("guard");
+
+            EXPECT_EQ(w.over(), "held");
+            EXPECT_EQ(intOf(w.state.fight, "turns"), 10);
+            EXPECT_EQ(intOf(w.state.run, "downed"), 0);
+            EXPECT_GE(intOf(w.state.run, "hp"), 1);
+            EXPECT_GE(intOf(w.character, "vit"), 1);
+            EXPECT_EQ(w.standing(), 2);
+
+            // Back to the scene: the day is over, and with its only test sat the drill is over too
+            // (no grade: seen to its end), not lost
+            ASSERT_TRUE(w.act("back"));
+            EXPECT_EQ(w.screen(), "done");
+            EXPECT_EQ(textOf(w.state.run, "result"), "over");
+            EXPECT_EQ(w.day(), 3);
+            EXPECT_EQ(intOf(w.state.run, "sat.practical"), 1);
+            EXPECT_EQ(intOf(w.state.run, "score.practical"), 0);
+            EXPECT_EQ(intOf(w.state.run, "monthsDue"), 1);
+            EXPECT_EQ(intOf(w.state.run, "downed"), 0);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The practical scores ten for each dummy beaten in its time: both, twenty; one beaten and
+        // the other standing when time is called, ten.
+        TEST(story_test, a_fight_test_is_scored)
+        {
+            MockLogger logger;
+
+            {
+                Walker w(mage());
+
+                ASSERT_TRUE(w.ask("enter", WalkAct{"story", "drill", 0}));
+                ASSERT_TRUE(w.take("fire"));
+                ASSERT_TRUE(w.act("option", "face"));
+
+                w.fightWith("step");
+
+                EXPECT_EQ(w.over(), "won");
+                EXPECT_LE(intOf(w.state.fight, "turns"), 10);
+
+                ASSERT_TRUE(w.act("back"));
+                EXPECT_EQ(intOf(w.state.run, "score.practical"), 20);
+                EXPECT_EQ(w.day(), 3);
+            }
+
+            {
+                Walker w(mage());
+
+                ASSERT_TRUE(w.ask("enter", WalkAct{"story", "drill", 0}));
+                ASSERT_TRUE(w.take("fire"));
+                ASSERT_TRUE(w.act("option", "face"));
+
+                w.fightWith("step", 1);
+                ASSERT_EQ(w.standing(), 1);
+
+                w.fightWith("guard");
+                EXPECT_EQ(w.over(), "held");
+
+                ASSERT_TRUE(w.act("back"));
+                EXPECT_EQ(intOf(w.state.run, "score.practical"), 10);
+            }
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A fight of the story lost or fled from takes nothing the days gave: the marks and the stats
+        // stay his, he is not carried home, and the scene goes on.
+        TEST(story_test, a_story_fight_never_loses_the_gains)
+        {
+            MockLogger logger;
+
+            // Fled from the practical, the fire course taught the day before is kept
+            {
+                Walker w(mage());
+
+                ASSERT_TRUE(w.ask("enter", WalkAct{"story", "drill", 0}));
+                ASSERT_TRUE(w.take("fire"));
+                ASSERT_TRUE(w.act("option", "face"));
+                ASSERT_TRUE(w.act("move", "retreat"));
+
+                EXPECT_EQ(w.over(), "fled");
+
+                ASSERT_TRUE(w.act("back"));
+                EXPECT_EQ(intOf(w.character, "fire_course"), 1);
+                EXPECT_EQ(intOf(w.state.run, "routed"), 0);
+                EXPECT_EQ(intOf(w.state.run, "sat.practical"), 1);
+                EXPECT_EQ(textOf(w.state.run, "result"), "over");
+                EXPECT_EQ(w.day(), 3);
+            }
+
+            // Brought down by the wolf of the bout, what the bout gave before the fight is kept
+            {
+                ElementMap who = mage();
+                who["vit"] = ElementType{3};
+
+                Walker w(who);
+
+                ASSERT_TRUE(w.ask("enter", WalkAct{"story", "drill", 0}));
+                ASSERT_TRUE(w.take("bout"));
+                ASSERT_EQ(w.screen(), "fight");
+
+                w.fightWith("strike");
+
+                EXPECT_EQ(w.over(), "lost");
+                EXPECT_EQ(intOf(w.state.run, "downed"), 0);
+                EXPECT_EQ(w.day(), 1);
+
+                ASSERT_TRUE(w.act("back"));
+                EXPECT_EQ(w.mark("braved"), 1);
+                EXPECT_EQ(intOf(w.character, "renown"), 1);
+                EXPECT_GE(intOf(w.character, "vit"), 1);
+                EXPECT_EQ(intOf(w.state.run, "downed"), 0);
+                EXPECT_EQ(textOf(w.state.run, "mode"), "site");
+                EXPECT_EQ(w.day(), 2);
+                EXPECT_EQ(intOf(w.state.run, "monthsDue"), 1);
+
+                // No line of a walk lost
+                for (const auto& entry : w.last.entries)
+                    EXPECT_EQ(textOf(entry, "text").find("with nothing"), std::string::npos);
+            }
         }
     }
 }

@@ -267,7 +267,7 @@ fun beginFight()
 
     fight = {mob: run.found, enc: encounterIdOf(run.found), count: count, turn: 1, turns: 0, ticks: 0, since: 0, breath: breathMost(), stance: pick(run, "stance", "balanced"), momentum: 0,
              guarding: 0, feinted: 0, target: 0, auto: 0, over: "", hpStart: runOf("hp"), bitten: 0, choice: "strike", spoils: "", lowSaid: 0,
-             by: "", byN: 0, left: -1}
+             by: "", byN: 0, left: -1, reactions: 0}
 
     for (var i = 0; i < len(walkTechniques); i++)
     {
@@ -913,24 +913,41 @@ fun foeTurn(i)
             fight.byN = i
 
             var range = biteRange(mob, move)
-            var taken = 0 - shiftHp(0 - rollBetween(range[0], range[1]))
+            var dealt = rollBetween(range[0], range[1])
 
-            fight.bitten = fight.bitten + 1
-
-            // What was seen of it is known from here on, whatever else is
-            var low = mine("know.low." + mob.id)
-
-            if (low == 0 or taken < low)
+            // One that spares (a story's dummy) leaves him one Vitality, whatever it deals
+            if (pick(mob, "spares", false))
             {
-                after["know.low." + mob.id] = taken
+                dealt = smaller(dealt, runOf("hp") - 1)
             }
 
-            if (taken > mine("know.high." + mob.id))
+            var taken = 0 - shiftHp(0 - dealt)
+
+            if (taken <= 0)
             {
-                after["know.high." + mob.id] = taken
+                // It spared him all of it: a knock, no more
+                say("The " + toLowerCase(foe.name) + " " + mob.verb + ": it barely touches him", "—", "note")
+            }
+            else
+            {
+                fight.bitten = fight.bitten + 1
+
+                // What was seen of it is known from here on, whatever else is
+                var low = mine("know.low." + mob.id)
+
+                if (low == 0 or taken < low)
+                {
+                    after["know.low." + mob.id] = taken
+                }
+
+                if (taken > mine("know.high." + mob.id))
+                {
+                    after["know.high." + mob.id] = taken
+                }
+
+                say("The " + toLowerCase(foe.name) + " " + mob.verb, "−" + toString(taken), "loss")
             }
 
-            say("The " + toLowerCase(foe.name) + " " + mob.verb, "−" + toString(taken), "loss")
             fight.by = ""
         }
     }
@@ -951,14 +968,17 @@ fun endFight(outcome)
     var kinds = fightKinds()
     var step = lastStep()
 
+    // (a story's fight is its day's work, its turns no days: storylib.pg)
+    var story = pick(run, "story", "") != ""
+
     // A day begun is a day spent
-    if (fight.since > 0)
+    if (fight.since > 0 and not story)
     {
         tickDay("The fight ends in a day begun: a day gone · " + toString(fight.since) + " of " + toString(turnsPerAp()) + " turns")
     }
 
     // A beast known through and through costs a day less, never less than one
-    if (mobLevel(run.zone, mob) >= 4 and fight.ticks > 1)
+    if (mobLevel(run.zone, mob) >= 4 and fight.ticks > 1 and not story)
     {
         fight.ticks = fight.ticks - 1
         step.ap = step.ap - 1
@@ -974,8 +994,12 @@ fun endFight(outcome)
     {
         run["cost." + kinds[k]] = fight.ticks
 
-        learn("fights." + kinds[k], 1)
-        after["fought." + kinds[k]] = 1
+        // (nothing is learned of a story's own beast: a dummy is no beast of the world)
+        if (not pick(mobOf(kinds[k]), "story", false))
+        {
+            learn("fights." + kinds[k], 1)
+            after["fought." + kinds[k]] = 1
+        }
     }
 
     var hurt = "not touched once"
@@ -1013,7 +1037,7 @@ fun endFight(outcome)
         {
             var taught = mobOf(kinds[k])
 
-            if (killedOf(kinds[k]) > 0 and mine("lesson." + kinds[k]) == 0)
+            if (killedOf(kinds[k]) > 0 and mine("lesson." + kinds[k]) == 0 and not pick(taught, "story", false))
             {
                 after["lesson." + kinds[k]] = 1
                 push(entries, {text: pick(taught, "lesson", "The first " + toLowerCase(taught.name) + " he has killed: he knows it better now"), kind: "gain", figure: "", glyph: "study"})
@@ -1071,6 +1095,12 @@ fun endFight(outcome)
         fight.spoils = "No loot: he left the field"
         push(account, {turn: "", text: "He breaks off and runs", figure: "", kind: "loss"})
     }
+    else if (outcome == "held")
+    {
+        step.text = "Held " + what + " till time was called · " + length + ", " + hurt
+        fight.spoils = "Neither side fell"
+        push(account, {turn: "", text: "Time is called, and neither side has fallen", figure: "", kind: "note"})
+    }
     else
     {
         step.text = "Brought down by " + what + " · " + length
@@ -1083,6 +1113,12 @@ fun endFight(outcome)
     bossOutcome(outcome)
 
     closeStep()
+
+    // A story's: its own words, and nobody is carried home (storylib.pg)
+    if (story)
+    {
+        storyFightEnd(outcome, length, hurt)
+    }
 }
 
 // One turn: his choice, the beasts' moves, and the day it may end
@@ -1149,7 +1185,10 @@ fun resolve(choice)
         return
     }
 
-    if (fight.since >= turnsPerAp())
+    // (a story's fight is its day's work: no day of it goes by turns)
+    var story = pick(run, "story", "") != ""
+
+    if (fight.since >= turnsPerAp() and not story)
     {
         tickDay(capitalised(wordOf(fight.since)) + " turns: a day gone to this fight")
     }
@@ -1169,7 +1208,14 @@ fun resolve(choice)
         return
     }
 
-    if (turnsPerAp() < walkKnobs.turnsPerAp and fight.lowSaid == 0)
+    // Time called (a story's fight: storylib.pg), and neither side is down: it is held
+    if (runOf("fightMost") > 0 and fight.turns >= runOf("fightMost"))
+    {
+        endFight("held")
+        return
+    }
+
+    if (turnsPerAp() < walkKnobs.turnsPerAp and fight.lowSaid == 0 and not story)
     {
         fight.lowSaid = 1
         push(account, {turn: "", text: "Under half vitality: days now pass in " + toString(turnsPerAp()) + " turns", figure: "", kind: "time"})
@@ -1201,7 +1247,12 @@ fun fightAct(kind, target, count)
 
     if (fight.over != "")
     {
-        if (kind == "back")
+        // A story's: back to its day, which ends now (storylib.pg)
+        if (kind == "back" and pick(run, "story", "") != "")
+        {
+            storyFightBack(false)
+        }
+        else if (kind == "back")
         {
             run.found = ""
             run.foundCount = 0

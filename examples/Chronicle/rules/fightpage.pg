@@ -263,6 +263,11 @@ fun menuRows()
         fleeNote = "ENDS THE WALK · WHAT IT GATHERED IS LOST"
     }
 
+    if (pick(run, "story", "") != "")
+    {
+        fleeNote = "ENDS THE DAY · WHAT THE DAYS GAVE IS KEPT"
+    }
+
     push(rows, menuRow("retreat", "", "Flee", "", fleeNote))
 
     // What he has learned, kind by kind: his blows, his ways, his workings
@@ -649,7 +654,7 @@ fun previewOf(choice)
         view.odds = view.odds + " A miss means a free blow for the beast."
     }
 
-    if (newDay)
+    if (newDay and pick(run, "story", "") == "")
     {
         view.odds = view.odds + " This turn ends a day: one more written to the record."
     }
@@ -860,6 +865,14 @@ fun duelHead()
 {
     var mob = foeMob(fight.target)
     var zone = zoneOf(run.zone)
+
+    if (pick(run, "story", "") != "")
+    {
+        var scene = storyNow()
+
+        zone = {id: "", name: scene.name}
+    }
+
     var coming = incoming()
     var per = turnsPerAp()
     var lost = fight.hpStart - runOf("hp")
@@ -940,6 +953,12 @@ fun duelHead()
         view.footnote = "WRITTEN TO THE RECORD · " + toUpperCase(daysText(fight.ticks)) + " · " + toString(larger(0, lost)) + " VITALITY LOST"
     }
 
+    // A story's fight: no place, no days counted by turns (storylib.pg)
+    if (pick(run, "story", "") != "")
+    {
+        storyDuel(view)
+    }
+
     if (fight.over == "won")
     {
         view.title = "The field is his"
@@ -951,6 +970,10 @@ fun duelHead()
     else if (fight.over == "lost")
     {
         view.title = "He is brought down"
+    }
+    else if (fight.over == "held")
+    {
+        view.title = "Time is called"
     }
 
     return view
@@ -1113,7 +1136,7 @@ fun timelineMarks(rows, move, events, base, horizon)
 
     push(rows, {move: move, kind: "next", n: -1, at: wholeOf(hisNext * 1000, larger(1, horizon)), text: "TURN " + toString(fight.turn + 1), tone: "next", bold: 0})
 
-    if ((fight.since + 1) % turnsPerAp() == 0)
+    if ((fight.since + 1) % turnsPerAp() == 0 and pick(run, "story", "") == "")
     {
         push(rows, {move: move, kind: "day", n: -1, at: wholeOf(hisNext * 1000, larger(1, horizon)), text: "THE DAY ENDS", tone: "day", bold: 0})
     }

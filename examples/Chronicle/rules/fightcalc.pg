@@ -511,6 +511,9 @@ fun applyMark(n, type)
     foe.mark = ""
     foe.markTurns = 0
 
+    // (counted: a story's test scores a reaction, storylib.pg)
+    fight.reactions = pick(fight, "reactions", 0) + 1
+
     if ((had == "fire" and type == "frost") or (had == "frost" and type == "fire"))
     {
         pureHit(n, share(workingRoll(), walkKnobs.reactShatter), "Shatter")
