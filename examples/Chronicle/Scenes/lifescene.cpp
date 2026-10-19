@@ -6177,12 +6177,20 @@ namespace chronicle
                 gloss.aside += "/" + std::to_string(intOf(a.fields, "uses"));
 
             // A rule under the head, then what it is in time: how long, and the rations a work that
-            // feeds him gives as he begins it. When it closes is the tile's to say
+            // feeds him gives as he begins it, with how long they last when his familiars eat them
+            // before its term (the rules count it: `upFrontLasts`). When it closes is the tile's to say
             gloss.rows.push_back({"", "", "", true});
             gloss.rows.push_back({"Time", intOf(a.fields, "months") > 0 ? std::to_string(intOf(a.fields, "months")) + " mo" : std::string("At once"), "time"});
 
             if (intOf(a.fields, "upFront") > 0)
-                gloss.rows.push_back({"Rations", std::to_string(intOf(a.fields, "upFront")) + " up front", "gain"});
+            {
+                std::string upFront = std::to_string(intOf(a.fields, "upFront")) + " up front";
+
+                if (intOf(a.fields, "upFrontLasts") > 0)
+                    upFront += " \xC2\xB7 lasts " + std::to_string(intOf(a.fields, "upFrontLasts")) + " mo";
+
+                gloss.rows.push_back({"Rations", upFront, "gain"});
+            }
 
             // What he has of it against what it asks, first: met in the gain's colour, short in
             // the loss's. The room a thing he holds still has is not said while there is some (its

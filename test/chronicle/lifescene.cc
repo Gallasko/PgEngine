@@ -5277,7 +5277,7 @@ namespace pg
             EXPECT_EQ(life->save.stats["dex"], 6);
             EXPECT_EQ(life->save.stats["int"], 7);
             EXPECT_EQ(life->save.stats["vitmax"], 40);
-            EXPECT_EQ(life->save.stats["rations"], 8 - 2 + 6);
+            EXPECT_EQ(life->save.stats["rations"], 8 - 2 + 6 - 1);
 
             EXPECT_EQ(life->step.id, "guide.doors");
             EXPECT_EQ(life->handOn, list->find(&f.ecs, "keep")->root.id);
@@ -5324,6 +5324,157 @@ namespace pg
             // Lines of the town's story, among what happened
             EXPECT_TRUE(reached(life, "lore.bell"));
             EXPECT_TRUE(reached(life, "lore.classes"));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The guided first year of a boy who buys nothing at the market: his rations run out once,
+        // at the harvest, and the mill's month that brings him to seven gives its six as he begins
+        // it. Nothing then says they are running low, and they do not run out a second time.
+        TEST(lifescene_test, the_first_year_runs_out_of_rations_once)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = f.life(LifeFixture::first());
+            ASSERT_NE(life, nullptr);
+
+            f.frames(12);
+
+            // Whatever the guide says for a time is read, and passed with its Next
+            auto through = [&]() {
+                for (int guard = 0; guard < 4 and life->step.active and life->nextShown; ++guard)
+                {
+                    f.ecs.sendEvent(ButtonActivatedEvent{life->noteNext.face.id, "life.guide.next"});
+                    f.frames(12);
+                }
+            };
+
+            auto work = [&](const std::string& id, int months) {
+                through();
+
+                life->save.stats["firewood"] = 6;
+                life->save.stats["water"] = 3;
+                f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", id});
+                f.settle();
+
+                ASSERT_EQ(life->save.running, id);
+
+                for (int i = 0; i < months; ++i)
+                {
+                    through();
+                    life->onMonth();
+                    f.settle();
+                }
+
+                f.frames(12);
+
+                ASSERT_TRUE(life->save.running.empty()) << id;
+            };
+
+            // The times the log says so, from its entry `from` on
+            auto ranOut = [&](size_t from) {
+                int n = 0;
+
+                for (size_t i = from; i < life->save.log.size(); ++i)
+                {
+                    if (life->save.log[i].text == "The rations ran out")
+                        ++n;
+                }
+
+                return n;
+            };
+
+            work("glean", 1);
+            work("flour", 1);
+            work("scribe", 1);
+            work("tome", 1);
+            work("knots", 2);
+            work("sacks", 2);
+            work("tomarket", 1);
+            ASSERT_EQ(life->save.stats["rations"], 2);
+
+            // No market: the harvest eats the last two
+            work("harvest", 2);
+            EXPECT_EQ(life->save.stats["rations"], 0);
+            EXPECT_EQ(ranOut(0), 1);
+
+            // The mill's month: six as he begins it, and nothing said of running low
+            const float eleven = 6.0f + 11.0f / 12.0f;
+            ASSERT_NEAR(life->save.age, eleven, 0.001f);
+
+            through();
+            const size_t atMill = life->save.log.size();
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "helping"});
+            f.settle();
+
+            ASSERT_EQ(life->save.running, "helping");
+            EXPECT_EQ(life->save.stats["rations"], 6);
+            EXPECT_EQ(f.fact<std::string>("life.warning").find("RATIONS"), std::string::npos) << f.fact<std::string>("life.warning");
+
+            life->onMonth();
+            f.settle();
+            f.frames(12);
+
+            EXPECT_NEAR(life->save.age, 7.0f, 0.0001f);
+            EXPECT_TRUE(life->save.running.empty());
+            EXPECT_EQ(life->save.stats["rations"], 5);
+            EXPECT_EQ(f.fact<std::string>("life.warning").find("RATIONS"), std::string::npos) << f.fact<std::string>("life.warning");
+
+            EXPECT_EQ(ranOut(atMill), 0);
+            EXPECT_EQ(ranOut(0), 1);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A fed work's tooltip says how long its rations last when his familiars eat them before its
+        // term: the rules count it, the tooltip only says it
+        TEST(lifescene_test, a_fed_works_tooltip_says_how_long_its_rations_last)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = f.life();
+            ASSERT_NE(life, nullptr);
+
+            auto registry = f.ecs.getSystem<GlossRegistry>();
+            ASSERT_NE(registry, nullptr);
+
+            auto rations = [&]() -> std::string {
+                const GlossSpec* carters = registry->find("activity/carters");
+
+                if (not carters)
+                    return "<no gloss>";
+
+                for (const auto& r : carters->rows)
+                {
+                    if (r.label == "Rations")
+                        return r.value;
+                }
+
+                return "<none>";
+            };
+
+            EXPECT_EQ(rations(), "3 up front");
+
+            // Two sprites and nothing held: he and they eat three a month, the three last one
+            life->save.stats["fam.sprite"] = 2;
+            life->save.stats["rations"] = 1;
+            life->onMonth();
+            f.settle();
+
+            ASSERT_EQ(life->save.stats["rations"], 0);
+            EXPECT_EQ(rations(), "3 up front \xC2\xB7 lasts 1 mo");
+
+            // With nine held the three months are fed: nothing more is said
+            life->save.stats["rations"] = 12;
+            life->onMonth();
+            f.settle();
+
+            ASSERT_EQ(life->save.stats["rations"], 9);
+            EXPECT_EQ(rations(), "3 up front");
         }
 
         // ----------------------------------------------------------------------------------------

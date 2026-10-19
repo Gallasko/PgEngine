@@ -2694,9 +2694,12 @@ namespace pg
             EXPECT_TRUE(flag(helping.fields, "listed"));
             EXPECT_EQ(intOf(helping.fields, "months"), 1);
             EXPECT_TRUE(flag(helping.fields, "board"));
-            EXPECT_EQ(intOf(helping.fields, "upFront"), 1);
+            // Its six rations are given as he begins it, none at its term: he does not go hungry
+            // the month he starts
+            EXPECT_EQ(intOf(helping.fields, "upFront"), 6);
+            EXPECT_EQ(intOf(helping.fields, "upFrontLasts"), 0);
             EXPECT_EQ(intOf(helping.fields, "uses"), 1);
-            EXPECT_EQ(brings(helping), (std::vector<std::string>{"rations 6"}));
+            EXPECT_EQ(brings(helping), (std::vector<std::string>{}));
         }
 
         // ----------------------------------------------------------------------------------------
@@ -6120,6 +6123,40 @@ namespace pg
             EXPECT_EQ(textOf(activityAt(f.rules, 20.0f, townsman(), "brew.remedy").fields, "trade"), "make");
             EXPECT_EQ(textOf(activityAt(f.rules, 20.0f, townsman(), "brew.flask").fields, "trade"), "make");
             EXPECT_EQ(textOf(activityAt(f.rules, 20.0f, townsman(), "dry.berries").fields, "trade"), "make");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // His familiars eat a fed work's up-front rations with him: the row says how long they last
+        // as things stand (`upFrontLasts`), when that is short of the work, and nothing otherwise
+        TEST(rules_test, a_fed_work_says_how_long_its_rations_last)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            // Alone, what the carters give lasts their three months
+            ElementMap alone = boy();
+            alone["rations"] = ElementType{0};
+
+            RuleActivity carters = activityAt(f.rules, 8.0f, alone, "carters");
+            EXPECT_EQ(intOf(carters.fields, "upFront"), 3);
+            EXPECT_EQ(intOf(carters.fields, "upFrontLasts"), 0);
+
+            // Two sprites eat a ration each: three a month, and the three last one
+            ElementMap kept = alone;
+            kept["fam.sprite"] = ElementType{2};
+            EXPECT_EQ(intOf(activityAt(f.rules, 8.0f, kept, "carters").fields, "upFrontLasts"), 1);
+
+            // What he holds counts with them: 3 more last two months, 6 more the three
+            kept["rations"] = ElementType{3};
+            EXPECT_EQ(intOf(activityAt(f.rules, 8.0f, kept, "carters").fields, "upFrontLasts"), 2);
+
+            kept["rations"] = ElementType{6};
+            EXPECT_EQ(intOf(activityAt(f.rules, 8.0f, kept, "carters").fields, "upFrontLasts"), 0);
+
+            // A work that does not feed him says nothing
+            EXPECT_EQ(intOf(activityAt(f.rules, 8.0f, kept, "mill").fields, "upFrontLasts"), 0);
         }
     }
 }

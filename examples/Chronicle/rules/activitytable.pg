@@ -16,7 +16,9 @@
 //           id, group, name, glyph, months, rank ("" or caps), each ("" or caps), path ("" or the
 //           path it belongs to, `paths` below), enters (true for the activity that makes him one
 //           of a path), board (true when it feeds him), upFront (the rations beginning it gives:
-//           its months' when it feeds him, 0 otherwise), fromAge, finishBy,
+//           its months' when it feeds him, 0 otherwise), upFrontLasts (the months those
+//           rations last, his own and his familiars' share of them eaten, when that is fewer than
+//           its months: 0 when they last the work), fromAge, finishBy,
 //           gains [{stat, amount, label, name}] (at term; label: the stat's short name, for a
 //           row; name: its full one, for a gloss),
 //           costs [{stat, amount, label, name}] (taken when it begins),
@@ -111,6 +113,8 @@
 //                    `rationsAMonth` for each (its `upFront`, taken with its costs: forecast.pg's
 //                    `atStart`). He eats them as he eats any (resources.pg); leaving it before its
 //                    term gives back those of the months not worked. One done at once gives none.
+//   upFront: N       on a `board` work: the rations beginning it gives, in place of its months'
+//                    (the mill's first month gives six, enough to carry him to his next work).
 //   path, enters     a path's activities are listed once he is one of it (holds its flag); the
 //                    one that enters it is listed until he is one of any. The paths exclude
 //                    each other. The page says "class" for what the rules call a path.
@@ -293,11 +297,12 @@ var activities = [
      fromAge: 6, fromMonths: 9, finishBy: 7, closingShown: -1, uses: 1,
      gains: [{stat: "str"}, {stat: "dex"}, {stat: "int"}],
      requires: []},
-    // The last month before he is seven: the mill takes him on, and feeds him. From there the
-    // town's work is his
+    // The last month before he is seven: the mill takes him on, and feeds him: its six rations are
+    // his as he begins, so he does not go hungry the month he starts. From there the town's work
+    // is his
     {id: "helping", group: "Work", name: "Start Helping Out", glyph: "work", months: 1, rank: "", each: "AT THE MILL", path: "",
-     fromAge: 6, fromMonths: 11, finishBy: 7, closingShown: -1, board: true, uses: 1,
-     gains: [{stat: "rations", amount: 6}],
+     fromAge: 6, fromMonths: 11, finishBy: 7, closingShown: -1, board: true, upFront: 6, uses: 1,
+     gains: [],
      requires: []},
     // The town's work for a child. The carters take anyone, at any age: their row is the one
     // that always stands. The others leave the list when he has never taken them by ten or so
@@ -1521,6 +1526,23 @@ for (var p = 0; p < len(paths); p++)
 
 var lived = monthOf(age)
 
+// The rations a month eats, his own and his familiars', fed or not, as resources.pg counts them:
+// what a fed work gives up front lasts that much less with familiars bound
+var rationsEaten = economyKnobs.rationsAMonth
+
+for (var fe = 0; fe < len(familiarKinds); fe++)
+{
+    var eater = familiarKinds[fe]
+
+    for (var fm = 0; fm < len(eater.eats); fm++)
+    {
+        if (eater.eats[fm].stat == "rations")
+        {
+            rationsEaten = rationsEaten + statOf(character, "fam." + eater.id) * eater.eats[fm].amount
+        }
+    }
+}
+
 // The terms done in this life, of every activity: what a first life's list grows by
 var termsDone = 0
 
@@ -1890,12 +1912,32 @@ for (var i = 0; i < len(activities); i++)
     a.costs = costs
     a.board = lookup(a, "board", false)
 
-    // What feeds him gives the rations of its months as it begins: what his months at it eat
+    // What feeds him gives the rations of its months as it begins: what his months at it eat, or
+    // what its row says it gives
+    var given = lookup(a, "upFront", -1)
     a.upFront = 0
 
     if (a.board and a.months > 0)
     {
         a.upFront = a.months * economyKnobs.rationsAMonth
+
+        if (given >= 0)
+        {
+            a.upFront = given
+        }
+    }
+
+    // How long they last as things stand, with what he holds: said only when it is short of the work
+    a.upFrontLasts = 0
+
+    if (a.upFront > 0)
+    {
+        var lasts = monthsFed(statOf(character, "rations") + a.upFront, rationsEaten)
+
+        if (lasts < a.months)
+        {
+            a.upFrontLasts = lasts
+        }
     }
 
     a.enters = lookup(a, "enters", false)
