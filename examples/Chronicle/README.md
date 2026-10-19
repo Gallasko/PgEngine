@@ -765,8 +765,8 @@ arguments, compared by value. `Rules::nbRuns` counts the runs.
 | script | inputs | outputs |
 |---|---|---|
 | `lib.pg` | - | pure helpers: `clamp`, `ordinal` ("14th"), `monthOf` (whole months lived), `monthsBetween`, `monthsToAttempts`, `signed` ("+1" / "−2"), `fmtMonths` ("6 mo"), `numberWord`, `statName`, `statOf`, `lookup`, `raised` (a gain stopped at the stat's ceiling), `byId`, `pathFlagOf`, `asksOf`, `openNote`, `shiftIn` (a month's change to a stat); `lastAge` (30, where his prime ends), `anyAge` (the `finishBy` of what no age closes) |
-| `economytable.pg` (imported by `activitytable.pg`, `resources.pg`, `town.pg`, `depgraph.pg` and the solver's `life.pg`; never loaded) | - | `const` tables: `basicResources`, `madeResources` (`{id, name, one, glyph, about}`, a basic with `lot`, `coin`, `price` for the market); `scavengeRows`, `storeRows` (activity rows); `familiarKinds` (`{id, name, one, glyph, known, about, train, eats[], makes[], bind[]}`); `slotGivers` (`{stat, slots, needed}`); `gearPieces` (`{id, name, glyph, might, armour, ward, about, forge {costs[], months, smithy, onlyWith?}}`); `economyKnobs` (`stashMost`, `baseSlots`) |
-| `activitytable.pg` (through `windows.pg`) | `age`, `character`, `done`, `activityId` (`""`: all; `forecast.pg` shapes only its own), `world`, `lives` (which life of the world this is: the places of the town read it), `running` | `activities`: `{id, group, name, glyph, months, rank, each, path, enters, board, upFront, fromAge, finishBy, gains[{stat, amount, label, name, hidden}], costs[{stat, amount, label, name}], requires[{stat, label, current, needed}], needs (the requirements as written, for `depgraph.pg`), locked, done, uses, left, spent, closed, pathOpen, listed, showAge, showFrom, place, trade ("" or "buy", "sell": a row of the market), tally ("DONE 2", "DONE 0 · 1 LEFT"), until ("" or "CLOSES IN 14 MO"), urgent, after[step]}` |
+| `economytable.pg` (imported by `activitytable.pg`, `resources.pg`, `town.pg`, `depgraph.pg` and the solver's `life.pg`; never loaded) | - | `const` tables: `basicResources`, `madeResources` (`{id, name, one, glyph, about}`, a basic with `lot`, `coin`, `price` for the market); `scavengeRows`, `storeRows` (activity rows); `familiarKinds` (`{id, name, one, glyph, known, about, train, eats[], makes[], bind[]}`); `slotGivers` (`{stat, slots, needed}`); `gearPieces` (`{id, name, glyph, might, armour, ward, about, forge {costs[], months, smithy, onlyWith?}}`); `economyKnobs` (`stashMost`, `baseSlots`, `rationsAMonth`) |
+| `activitytable.pg` (through `windows.pg`) | `age`, `character`, `done`, `activityId` (`""`: all; `forecast.pg` shapes only its own), `world`, `lives` (which life of the world this is: the places of the town read it), `running` | `activities`: `{id, group, name, glyph, months, rank, each, path, enters, board, upFront, upFrontLasts (the months its rations last with his familiars eating them, when fewer than its own; 0 otherwise), fromAge, finishBy, gains[{stat, amount, label, name, hidden}], costs[{stat, amount, label, name}], requires[{stat, label, current, needed}], needs (the requirements as written, for `depgraph.pg`), locked, done, uses, left, spent, closed, pathOpen, listed, showAge, showFrom, place, trade ("" or "buy", "sell", "make": a row of the market), tally ("DONE 2", "DONE 0 · 1 LEFT"), until ("" or "CLOSES IN 14 MO"), urgent, after[step]}` |
 | `milestones.pg` (`milestonetable.pg`) | `age`, `world`, `lives` | `milestones`: `{age, id, label, passed, entry, asks[{path, stat, label, needed}]}`; `next`: `{id, label, age, in}` (`in` = months to it; `"", "", -1, -1` past the last) |
 | `windows.pg` | `age`, `character`, `done`, `activityId` (`""`) | `windows`: `{id, name, from, to, state (upcoming / open / closed), note (in attempts), attempts}`, one per door of an activity whose path is open to him |
 | `forecast.pg` | `age`, `character`, `done`, `activityId`, `monthsIn` | `forecast`: `{atStart{stats}, atTerm{stats}, percent, toward (the percent a month on), months, caption ("MONTH 3 OF 6 · STRENGTH 14 → 16 AT TERM"), gaps[{stat, label, current, needed}], entries[{text, kind, figure, glyph}], upFront, unworked, takenBack, begins[{text, kind, figure, glyph}], leaves[{text, kind, figure, glyph}], atLeave{stats}, atOwed{stats}, error}` (what a work that feeds him gives as he begins it, and gives back when left before its term) |
@@ -927,7 +927,8 @@ gloss names the familiars' share (*His familiars eat*).
   kind eats, and the stat `more.<stat>` one more, which `feedFamiliars` adds to what each of them
   makes.
 - **Kinds learned** are the world's (`know.fam.<kind>`, kept in the save's knowledge from life to
-  life): `research.imp` and `research.brownie` in *Study*, and the Old Shell (mole) and the Old Grey
+  life): `research.imp`, `research.brownie` and `research.weaver` (from 14, Letters 2 and Lore
+  1) in *Study*, and the Old Shell (mole) and the Old Grey
   (weaver) and the Lantern Mother (wisp) among a boss's `gives` (`expeditiontable.pg`). A level of
   the town that `teaches` a kind makes it bindable while it stands, as if the world knew it, and
   its study is no longer listed (`kindKnown`: the smithy's bellows the mole, the chapel primer
@@ -1056,7 +1057,8 @@ left to it) and `seen.<place>` (1 once a life has had the place on its page). Wh
   it for the page (`town.pg`'s `shown`) and for the works (a place not on his page has none
   listed), and a place raised, left coin or seen by a life before is always shown.
 - `town.pg` (`Rules::town`) is what the Town page shows: each place's level, what it gives
-  (`gives`, the last level's, for its tile; `given`, every level reached; `tiers`, every level
+  (`gives`, the last level's; `line`, its tile's, from the level's shorter `note` when it has one;
+  `given`, every level reached; `tiers`, every level
   reached or not, for its gloss),
   and its next level flattened (`nextWork`, `nextCosts`, `nextCoin` less the fund, `nextGives`,
   `nextLocked`, `gaps`), plus `start` (what a new life is born with, every level reached),

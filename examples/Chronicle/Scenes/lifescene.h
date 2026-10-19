@@ -264,7 +264,7 @@ namespace chronicle
         bool repeats(const RuleActivity* activity) const;   // Done at once from what he holds, as often as he holds it (a sale), or bought as often as he can pay (a buy): it has the All button
         bool pressedOn(const char* name, pg::Point2D at) const;   // That button is shown, and the press is on it
         float workingHeight() const;   // "At work now": its chrome alone, or with a running row
-        void showWorkButtons();        // At nothing: the button that begins what is chosen, or the one that passes a month
+        void showWorkButtons();        // At nothing: the button that begins what is chosen (Buy, Sell or Make for a trade of the market), or the one that passes a month
         bool guideSaid() const;        // The guide line is up: a life led to its first work, with no guide to say so
         float guideRoom() const;       // What the guide line takes of "At work now", 0 when it is not up
         bool resumes() const;          // His work is stopped: "At work now" has a button that goes on

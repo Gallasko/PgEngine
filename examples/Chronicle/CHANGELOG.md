@@ -38,7 +38,9 @@ another familiar, a new kind to bind, a bigger stash.
   water a month, for a ration and a coin); *Learn the Kitchen Charms*, once he has helped in the
   kitchen, the kitchen brownie, which turns berries, water and firewood into rations. Beat the Old
   Shell and the stone mole is yours; beat the Old Grey and the gem weaver, which spins stone into
-  gems. A kind once learned stays learned, in every life after.
+  gems. *Study the Stone-Weavers' Craft*, from fourteen with Letters 2 and some Lore, teaches the
+  gem weaver too, for 5 stone and 5 water: the gems of the town's higher levels wait on no boss.
+  A kind once learned stays learned, in every life after.
 - **Lessons.** A bound familiar can be taught twice, each lesson costing a month of what it eats:
   every one of that kind makes one more a month from then on.
 - **The stash.** At his death, what he held of each basic resource goes into the stash, after the
@@ -85,7 +87,6 @@ another familiar, a new kind to bind, a bigger stash.
   stays for the level after.
 - **The mill loft** gives a familiar slot, no longer 6 rations at birth; **the reading desk** a
   familiar slot, no longer Lore 1.
-
 - **Early works ask for resources.** The kitchen wants water and firewood, the smithy firewood,
   your letters a little firewood, and a remedy a cup of water. The carters still take anyone, so a
   boy with nothing can always eat.
@@ -113,6 +114,15 @@ another familiar, a new kind to bind, a bigger stash.
   (rations, reagents, water, firewood, stone; not what is bought once), and *Make all* makes
   as many as you can pay for and have room for (remedies, fire flasks). The *All* button now
   stands beside its button, where it was meant to be.
+- **The Town page** no longer writes "The Market" over its lines: *Buy*, *Sell*, *Make* and each
+  place have their own heading.
+- **A place's tile** says a short line for what its level gives, so the end is no longer cut off;
+  its tooltip still says all of it. The second bellows say the smithy forges gear now, and its
+  practice blades that it forges the warded charm.
+- **Start Helping Out** gives its 6 rations as he begins it, no longer 1 then 6 at its term: the
+  guided first year no longer says his rations are running out the month before he is seven.
+- **A fed work's tooltip says how long its rations last** when his familiars eat them sooner than
+  its term: "Rations 24 up front · lasts 6 mo".
 
 ## 0.7 - unreleased: the fight
 

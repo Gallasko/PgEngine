@@ -1361,9 +1361,9 @@ namespace chronicle
             return;
 
         // At nothing one button stands in the running row's place: the one that begins what is
-        // chosen in the list, or the one that passes a month when nothing is. A life that has done
-        // nothing yet is led to its first work: no month to pass before one is begun, and a line
-        // that says how
+        // chosen in the list (Buy, Sell or Make for a trade of the market, Begin for a work), or the
+        // one that passes a month when nothing is. A life that has done nothing yet is led to its
+        // first work: no month to pass before one is begun, and a line that says how
         const bool idle = save.running.empty();
         const RuleActivity* pick = chosen.empty() ? nullptr : activityOf(chosen);
         const bool leads = led() and not firstWork().empty();
@@ -1485,7 +1485,7 @@ namespace chronicle
         if (auto begin = piece<Button>("begin"))
         {
             // What takes no time is done on the spot, and says so: a trade of the market by its
-            // name (Buy, Sell)
+            // name (Buy, Sell, Make)
             const int months = intOf(pick->fields, "months");
             const char* now = trade == "buy" ? "Buy" : trade == "sell" ? "Sell" : trade == "make" ? "Make" : "Do it now";
 
@@ -3395,13 +3395,13 @@ namespace chronicle
         std::vector<ActivityGroup> calls;     // The groups of the events open now: over the others
 
         // What is done at a place of the town stands on the Town page, never on this one: the
-        // market's rows, what is bought and sold on the spot, and the storehouse's, what is drawn
+        // market's rows, what is bought, sold and made on the spot, and the storehouse's, what is drawn
         // from the stash. The works that raise a place have no row: a click on the place begins
         // its next one (onPlace). Each row with the id of its place
         struct Stall
         {
             std::string place;
-            std::string trade;     // The rules' `trade`: "buy", "sell" or "" (the market's lines)
+            std::string trade;     // The rules' `trade`: "buy", "sell", "make" or "" (the market's lines)
             ActivityRowSpec row;
         };
 
@@ -3866,8 +3866,9 @@ namespace chronicle
                 given[giftStat()] += held->second;
             }
 
-            // And of what his walks brought for the town, what that place's next level still asks:
-            // the rest goes into the stash when the stash keeps it, and ends with him otherwise
+            // And of the things he holds (resources, and what his walks found), what that place's
+            // next level still asks: the rest goes into the stash when the stash keeps it, and ends
+            // with him otherwise
             for (const auto& place : town.places)
             {
                 if (textOf(place.fields, "id") != gift)
@@ -5878,7 +5879,7 @@ namespace chronicle
             spec.glyph = textOf(place->fields, "glyph");
             spec.tag = GiftTag + textOf(place->fields, "id");
 
-            // What it would take of what his walks brought, beside his coin
+            // What it would take of the things he holds, beside his coin
             if (const std::string things = textOf(place->fields, "leaveLine"); not things.empty())
                 spec.label += " \xC2\xB7 " + things;
             spec.z = z;

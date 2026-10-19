@@ -765,9 +765,9 @@ fun rationPrice(st)
     return toFloat(coin) / toFloat(rations)
 }
 
-// What a row would do toward the needs: each stat's gain less its cost (and, for coin, the rations
-// its months eat: his away from a table that feeds him, his familiars' everywhere), as a share of
-// what is still missing of that need, weighed as the work that asks for it is
+// What a row would do toward the needs: each stat's gain less its cost (and, for coin, what the
+// rations its months eat cost, his own and his familiars', less those a work that feeds him gives up
+// front), as a share of what is still missing of that need, weighed as the work that asks for it is
 fun gainScore(st, goals, row)
 {
     var net = {}

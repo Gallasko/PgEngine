@@ -1443,7 +1443,7 @@ push(activities, {id: "brew.remedy", group: "Market", name: "Brew a remedy", gly
 // What a fight spends: a fire flask mixed of firewood a walk brought home, and the chapel's oil
 push(activities, {id: "brew.flask", group: "Market", name: "Mix a fire flask", glyph: "magic", months: 0, rank: "", each: "FROM FIREWOOD", path: "",
                   finishBy: anyAge, showFrom: 100, place: "market", trade: "make",
-                  about: "Pitch and firewood in a clay bottle, and a rag to light it. Thrown in a fight, it burns whatever it breaks on, hide or no hide.",
+                  about: "Firewood burned down to tar in a clay bottle, and a rag to light it. Thrown in a fight, it burns whatever it breaks on, hide or no hide.",
                   gains: [{stat: "flask", amount: 1}],
                   requires: [{stat: "firewood", label: "Firewood to mix"}],
                   costs: [{stat: "firewood", amount: 2}, {stat: "coin", amount: 2}]})
