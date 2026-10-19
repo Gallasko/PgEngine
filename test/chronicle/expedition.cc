@@ -3199,5 +3199,66 @@ namespace pg
             EXPECT_EQ(textOf(wolfWarded->last.targets[0], "moveEffect"), textOf(bare->last.targets[0], "moveEffect"));
             EXPECT_EQ(textOf(wolfWarded->last.targets[0], "moveEffect"), "\xE2\x88\x92" "2\xE2\x80\x93" "4 vitality if it lands");
         }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The warded charm waits for the world to know what a marsh light's cold fire does: its
+        // forge row is gated on the literal key "know.move.light.bite". A real fight with a light
+        // sets that key once the light has used its cold fire on him, landed or dodged, and the
+        // charm comes to the smithy's list with it.
+        TEST(expedition_test, a_marsh_light_fight_opens_the_charm)
+        {
+            MockLogger logger;
+
+            Walker w(hunter());
+            w.age = 18.0f;
+
+            auto charmListed = [&w]() {
+                ElementMap who = w.character;
+                who["town_known"] = ElementType{1};
+                who["town.smithy"] = ElementType{2};
+                who["gems"] = ElementType{3};
+                who["water"] = ElementType{10};
+
+                std::vector<RuleActivity> activities;
+                EXPECT_TRUE(w.rules.activities(w.age, who, activities)) << (w.rules.errors.empty() ? "" : w.rules.errors.front());
+
+                for (const auto& a : activities)
+                {
+                    if (textOf(a.fields, "id") == "forge.charm")
+                        return intOf(a.fields, "listed") == 1;
+                }
+
+                return false;
+            };
+
+            EXPECT_FALSE(charmListed());
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "marsh", 0}));
+            ASSERT_TRUE(w.act("seek", "light", 1));
+            w.answer();
+            ASSERT_EQ(w.screen(), "fight");
+            EXPECT_EQ(intOf(w.character, "know.move.light.bite"), 0);
+
+            // He guards until the light has used its cold fire on him
+            bool seen = false;
+
+            for (int turn = 0; turn < 12 and intOf(w.character, "know.move.light.bite") == 0 and textOf(w.last.duel, "over").empty(); ++turn)
+            {
+                ASSERT_FALSE(w.last.targets.empty());
+
+                if (textOf(w.last.targets[0], "moveName") == "Cold fire")
+                    seen = true;
+
+                ASSERT_TRUE(w.act("move", "guard"));
+            }
+
+            EXPECT_TRUE(seen);
+            ASSERT_EQ(intOf(w.character, "know.move.light.bite"), 1);
+
+            // The world knows it now, and the smithy forges the charm
+            EXPECT_TRUE(charmListed());
+        }
     }
 }
