@@ -6128,6 +6128,53 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // The gem weaver is studied, as the imp and the brownie are, so that the gems of the town's
+        // higher levels wait on no boss: from fourteen, with Letters 2 and some Lore, for a little
+        // stone and water. The row is gone once the world knows the kind, and the kind is bindable
+        TEST(rules_test, the_stone_weavers_craft_teaches_the_weaver)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap reader = boy();
+            reader["letters"] = ElementType{2};
+            reader["lore"] = ElementType{1};
+            reader["stone"] = ElementType{5};
+            reader["water"] = ElementType{5};
+
+            EXPECT_FALSE(flag(activityAt(f.rules, 13.5f, reader, "research.weaver").fields, "listed"));
+
+            RuleActivity row = activityAt(f.rules, 14.5f, reader, "research.weaver");
+            EXPECT_TRUE(flag(row.fields, "listed"));
+            EXPECT_FALSE(flag(row.fields, "locked"));
+            EXPECT_EQ(textOf(row.fields, "group"), "Study");
+            EXPECT_EQ(textOf(row.fields, "name"), "Study the Stone-Weavers' Craft");
+            ASSERT_EQ(row.gains.size(), 1u);
+            EXPECT_EQ(textOf(row.gains[0], "stat"), "know.fam.weaver");
+
+            std::map<std::string, int> costs;
+
+            for (const auto& c : row.costs)
+                costs[textOf(c, "stat")] = intOf(c, "amount");
+
+            EXPECT_EQ(costs, (std::map<std::string, int>{{"stone", 5}, {"water", 5}}));
+
+            // No lore, no study: the row stands shut
+            ElementMap unread = reader;
+            unread.erase("lore");
+            EXPECT_TRUE(flag(activityAt(f.rules, 14.5f, unread, "research.weaver").fields, "locked"));
+
+            // Not before he can bind it, and gone once it is known
+            EXPECT_FALSE(flag(activityAt(f.rules, 14.5f, reader, "bind.weaver").fields, "listed"));
+
+            reader["know.fam.weaver"] = ElementType{1};
+            EXPECT_FALSE(flag(activityAt(f.rules, 14.5f, reader, "research.weaver").fields, "listed"));
+            EXPECT_TRUE(flag(activityAt(f.rules, 14.5f, reader, "bind.weaver").fields, "listed"));
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // His familiars eat a fed work's up-front rations with him: the row says how long they last
         // as things stand (`upFrontLasts`), when that is short of the work, and nothing otherwise
         TEST(rules_test, a_fed_work_says_how_long_its_rations_last)

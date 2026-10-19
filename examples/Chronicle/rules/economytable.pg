@@ -119,11 +119,11 @@ const familiarKinds = [
      train: "Teach the Brownie the Slow Oven",
      eats: [{stat: "berries", amount: 3}, {stat: "water", amount: 2}, {stat: "firewood", amount: 1}], makes: [{stat: "rations", amount: 2}], bind: [{stat: "firewood", amount: 4}]},
     {id: "mole", name: "a stone mole", one: "mole", glyph: "forge", known: false,
-     about: "A blind digger, as heavy as a cat. The Old Shell knows how to call one.",
+     about: "A blind digger, as heavy as a cat. The Old Shell knows how to call one, and so does a smithy with a second bellows.",
      train: "Teach the Mole the Deep Seam",
      eats: [{stat: "rations", amount: 2}], makes: [{stat: "stone", amount: 2}], bind: [{stat: "stone", amount: 4}]},
     {id: "weaver", name: "a gem weaver", one: "weaver", glyph: "relic", known: false,
-     about: "A spider of the deep rock that spins stone into gems. The Old Grey keep the secret of it.",
+     about: "A spider of the deep rock that spins stone into gems. The Old Grey keep the secret of it, and an old mason's book tells it to a reader with some lore.",
      train: "Teach the Weaver the Fine Thread",
      eats: [{stat: "stone", amount: 3}, {stat: "water", amount: 3}, {stat: "rations", amount: 1}], makes: [{stat: "gems", amount: 1}], bind: [{stat: "stone", amount: 10}]},
     // The Lantern Mother's: bound into a pitch lamp, it makes light for the night's work, and the

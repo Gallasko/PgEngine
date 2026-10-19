@@ -389,6 +389,12 @@ fun addNeed(goals, st, stat, needed, w, depth, by)
                 {
                     addAct(goals, st, maker.bind, w * share, depth + 1, by)
                 }
+                else if (share > 0.5 and startsWith(bind.onlyWith, "know.") and depth < 4)
+                {
+                    // A kind the world has yet to learn, and nothing else brings the thing: what
+                    // teaches the kind is aimed at first (the stone-weavers' book, for the gems)
+                    addNeed(goals, st, bind.onlyWith, 1, w * share, depth + 1, by)
+                }
             }
 
             // Bound: what it eats besides rations and coin, held for the months it takes to make
