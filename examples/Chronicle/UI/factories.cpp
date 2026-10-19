@@ -26,6 +26,9 @@
 #include "resourceledger.h"
 #include "eventlog.h"
 #include "placetile.h"
+#include "switch.h"
+#include "radiocard.h"
+#include "wordfield.h"
 
 using namespace pg;
 
@@ -78,6 +81,12 @@ namespace pg
     template <> chronicle::ResourceLedger deserialize(const UnserializedObject&) { return chronicle::ResourceLedger{}; }
     template <> void serialize(Archive& archive, const chronicle::EventLog& value) { (void)value; serializeEmptyPiece<chronicle::EventLog>(archive, "EventLog"); }
     template <> chronicle::EventLog deserialize(const UnserializedObject&) { return chronicle::EventLog{}; }
+    template <> void serialize(Archive& archive, const chronicle::Switch& value) { (void)value; serializeEmptyPiece<chronicle::Switch>(archive, "Switch"); }
+    template <> chronicle::Switch deserialize(const UnserializedObject&) { return chronicle::Switch{}; }
+    template <> void serialize(Archive& archive, const chronicle::RadioCards& value) { (void)value; serializeEmptyPiece<chronicle::RadioCards>(archive, "RadioCards"); }
+    template <> chronicle::RadioCards deserialize(const UnserializedObject&) { return chronicle::RadioCards{}; }
+    template <> void serialize(Archive& archive, const chronicle::WordField& value) { (void)value; serializeEmptyPiece<chronicle::WordField>(archive, "WordField"); }
+    template <> chronicle::WordField deserialize(const UnserializedObject&) { return chronicle::WordField{}; }
 }
 
 namespace chronicle
@@ -302,6 +311,9 @@ namespace chronicle
             ecs->registerFlagComponent<WindowMeter>();
             ecs->registerFlagComponent<ResourceLedger>();
             ecs->registerFlagComponent<EventLog>();
+            ecs->registerFlagComponent<Switch>();
+            ecs->registerFlagComponent<RadioCards>();
+            ecs->registerFlagComponent<WordField>();
             registerActivityComponents(ecs);   // Guarded: makeActivityRow registers them too
         }
 
@@ -455,7 +467,7 @@ namespace chronicle
 
             static const std::vector<std::pair<std::string, PanelFrame>> FRAME = {
                 {"hair", PanelFrame::Hair}, {"ruled", PanelFrame::Ruled},
-                {"plain", PanelFrame::Plain}, {"illuminated", PanelFrame::Illuminated},
+                {"plain", PanelFrame::Plain}, {"illuminated", PanelFrame::Illuminated}, {"rubric", PanelFrame::Rubric},
             };
 
             registry->registerFactory("Panel", std::move(schema),
@@ -1300,6 +1312,93 @@ namespace chronicle
                     return leaf(keep(ecs, grid.root, std::move(grid)));
                 }});
         }
+
+        void registerSwitch(PrefabFactoryRegistry* registry)
+        {
+            ParamSchema schema;
+            schema.entries = {
+                {"on",      false},
+                {"onText",  "On"},
+                {"offText", "Off"},
+                {"tag",     ""},
+                {"z",       20},
+            };
+
+            registry->registerFactory("Switch", std::move(schema),
+                PrefabFactoryFn{[](EntitySystem* ecs, const NodeSpec& spec) -> FactoryResult
+                {
+                    SwitchSpec s;
+                    s.on      = getParamBool(spec.props, "on", s.on);
+                    s.onText  = stringProp(spec.props, "onText", s.onText);
+                    s.offText = stringProp(spec.props, "offText", s.offText);
+                    s.tag     = stringProp(spec.props, "tag", s.tag);
+                    s.z       = getParamInt(spec.props, "z", s.z);
+
+                    Switch sw = makeSwitch(ecs, s);
+                    return leaf(keep(ecs, sw.root, std::move(sw)));
+                }});
+        }
+
+        void registerRadioCards(PrefabFactoryRegistry* registry)
+        {
+            ParamSchema schema;
+            schema.entries = {
+                {"selected", ""},
+                {"width",    400.0f},
+                {"tag",      ""},
+                {"z",        20},
+            };
+
+            registry->registerFactory("RadioCards", std::move(schema),
+                PrefabFactoryFn{[](EntitySystem* ecs, const NodeSpec& spec) -> FactoryResult
+                {
+                    auto* theme = ecs->getSystem<ThemeSystem>();
+                    RadioCardsSpec s;
+                    s.selected = stringProp(spec.props, "selected", s.selected);
+                    s.width    = numberProp(spec.props, "width", theme, s.width);
+                    s.tag      = stringProp(spec.props, "tag", s.tag);
+                    s.z        = getParamInt(spec.props, "z", s.z);
+
+                    if (const RecordList* items = recordsOf(spec, "items"))
+                    {
+                        for (const auto& rec : *items)
+                            s.items.push_back({stringProp(rec, "id"), stringProp(rec, "label"), stringProp(rec, "line"), stringProp(rec, "swatch")});
+                    }
+
+                    if (s.items.empty())
+                        LOG_ERROR(DOM, "RadioCards: `items` is empty");
+
+                    RadioCards cards = makeRadioCards(ecs, s);
+                    return leaf(keep(ecs, cards.root, std::move(cards)));
+                }});
+        }
+
+        void registerWordField(PrefabFactoryRegistry* registry)
+        {
+            ParamSchema schema;
+            schema.entries = {
+                {"width",       240.0f},
+                {"placeholder", ""},
+                {"tag",         ""},
+                {"most",        24},
+                {"z",           20},
+            };
+
+            registry->registerFactory("WordField", std::move(schema),
+                PrefabFactoryFn{[](EntitySystem* ecs, const NodeSpec& spec) -> FactoryResult
+                {
+                    auto* theme = ecs->getSystem<ThemeSystem>();
+                    WordFieldSpec s;
+                    s.width       = numberProp(spec.props, "width", theme, s.width);
+                    s.placeholder = stringProp(spec.props, "placeholder", s.placeholder);
+                    s.tag         = stringProp(spec.props, "tag", s.tag);
+                    s.most        = static_cast<size_t>(std::max(1, getParamInt(spec.props, "most", static_cast<int>(s.most))));
+                    s.z           = getParamInt(spec.props, "z", s.z);
+
+                    WordField field = makeWordField(ecs, s);
+                    return leaf(keep(ecs, field.root, std::move(field)));
+                }});
+        }
     }
 
     const std::vector<std::string>& chronicleKinds()
@@ -1309,7 +1408,7 @@ namespace chronicle
             "Tabs", "Gloss", "ProgressRule", "StatLine", "RequirementList", "LifeClock",
             "ActivityRow", "ActivityList", "ActivityGroup", "WindowMeter",
             "ResourceLedger", "LedgerGroup", "LedgerRow", "EventLog",
-            "PlaceTile", "PlaceGrid",
+            "PlaceTile", "PlaceGrid", "Switch", "RadioCards", "WordField",
         };
 
         return kinds;
@@ -1348,5 +1447,8 @@ namespace chronicle
         registerEventLog(registry);
         registerPlaceTile(registry);
         registerPlaceGrid(registry);
+        registerSwitch(registry);
+        registerRadioCards(registry);
+        registerWordField(registry);
     }
 }

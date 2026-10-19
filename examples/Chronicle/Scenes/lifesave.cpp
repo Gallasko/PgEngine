@@ -202,6 +202,8 @@ namespace pg
     {
         archive.startSerialization("LifeSave");
 
+        // Always the format this build writes: what was read is written again in it
+        serialize(archive, "version", chronicle::LifeSave::SaveVersion);
         serialize(archive, "name", value.name);
         serialize(archive, "profession", value.profession);
         serialize(archive, "origin", value.origin);
@@ -265,6 +267,10 @@ namespace pg
 
         if (serialized.isNull())
             return data;
+
+        // A save from before the field has none
+        data.version = 0;
+        defaultDeserialize(serialized, "version", data.version);
 
         defaultDeserialize(serialized, "name", data.name);
         defaultDeserialize(serialized, "profession", data.profession);
@@ -572,7 +578,7 @@ namespace chronicle
         return line.str();
     }
 
-    bool LifeSave::save(const std::string& path) const
+    bool LifeSave::save(const std::string& path, const Settings* settings) const
     {
         std::error_code ec;
         const auto folder = std::filesystem::path(path).parent_path();
@@ -586,9 +592,16 @@ namespace chronicle
             return false;
         }
 
+        // What the file held is not written back: the serializer reads an object with its name and
+        // would write the name a second time
         Serializer serializer(false);
         serializer.setFile(path);
+        serializer.clear();
         serializer.serializeObject(ObjectName, *this);
+
+        if (settings)
+            settings->writeInto(serializer);
+
         serializer.save();
 
         return UniversalFileAccessor::exists(path);
@@ -604,7 +617,8 @@ namespace chronicle
 
         if (serializer.getSerializedMap().count(ObjectName) == 0)
         {
-            LOG_ERROR(DOM, path << " holds no life");
+            // Burnt: the file keeps the settings alone
+            LOG_INFO(DOM, path << " holds no life");
             return false;
         }
 
@@ -619,6 +633,42 @@ namespace chronicle
         *this = std::move(loaded);
 
         return true;
+    }
+
+    LifeSave::Opened LifeSave::open(const std::string& path, LifeSave& out)
+    {
+        if (not UniversalFileAccessor::exists(path))
+            return Opened::NotASave;
+
+        Serializer serializer(false);
+        serializer.setFile(path);
+
+        // A file of another kind has no life in it, or not one written by the serializer of this build
+        if (serializer.getSerializedMap().count(ObjectName) == 0)
+            return Opened::NotASave;
+
+        LifeSave read;
+
+        try
+        {
+            read = serializer.deserializeObject<LifeSave>(ObjectName);
+        }
+        catch (const std::exception& e)
+        {
+            LOG_ERROR(DOM, path << ": " << e.what());
+            return Opened::NotASave;
+        }
+
+        // Written by a build that knew the field, with what every save has: a name, his parts, a log
+        if (read.version <= 0 or read.name.empty() or read.parts.empty() or read.log.empty())
+            return Opened::NotASave;
+
+        if (read.version > SaveVersion)
+            return Opened::Newer;
+
+        out = std::move(read);
+
+        return Opened::Ok;
     }
 
     namespace

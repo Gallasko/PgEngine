@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <regex>
@@ -35,6 +36,9 @@
 #include "UI/placetile.h"
 #include "UI/button.h"
 #include "UI/tabs.h"
+#include "UI/switch.h"
+#include "UI/radiocard.h"
+#include "UI/wordfield.h"
 #include "UI/gloss.h"
 #include "UI/focusorder.h"
 #include "UI/sizer.h"
@@ -134,6 +138,9 @@ namespace pg
                     ecs.createSystem<GlossRegistry>();
                     ecs.createSystem<ButtonSystem>();
                     ecs.createSystem<TabsSystem>();
+                    ecs.createSystem<SwitchSystem>();
+                    ecs.createSystem<RadioCardSystem>();
+                    ecs.createSystem<WordFieldSystem>();
                     ecs.createSystem<ActivitySystem>();
                     ecs.succeed<LayoutSystem, ActivitySystem>();
                     installIconEntries();
@@ -4994,14 +5001,15 @@ namespace pg
 
             const size_t logEntries = life->save.log.size();
 
-            // Life, the town and his walks for now: the other chapters come back as their pages are built
-            ASSERT_EQ(tabs->tabs.size(), 3u);
+            // Life, the town, his walks and the options for now: the other chapters come back as their pages are built
+            ASSERT_EQ(tabs->tabs.size(), 4u);
             EXPECT_EQ(tabs->tabs[0].label.spec.text, "Life");
             EXPECT_EQ(tabs->tabs[1].label.spec.text, "Town");
             EXPECT_EQ(tabs->tabs[2].label.spec.text, "Adventure");
+            EXPECT_EQ(tabs->tabs[3].label.spec.text, "Options");
 
             // A chapter with no page yet, should one be selected, says so and Life stays open
-            f.ecs.sendEvent(TabSelectedEvent{tabs->root.id, "life.tabs", 3});
+            f.ecs.sendEvent(TabSelectedEvent{tabs->root.id, "life.tabs", 4});
             f.settle();
 
             EXPECT_EQ(tabs->active(), 0);
@@ -6180,7 +6188,7 @@ namespace pg
 
             auto tabs = life->piece<Tabs>("tabs");
             ASSERT_NE(tabs, nullptr);
-            ASSERT_EQ(tabs->tabs.size(), 3u);
+            ASSERT_EQ(tabs->tabs.size(), 4u);
 
             EXPECT_FALSE(life->save.townKnown);
             EXPECT_TRUE(tabs->enabled(0));
@@ -8292,7 +8300,7 @@ namespace pg
             // Its tab is there now that he has been on a walk, and its page has his record
             auto tabs = life->piece<Tabs>("tabs");
             ASSERT_NE(tabs, nullptr);
-            ASSERT_EQ(tabs->spec.items.size(), 3u);
+            ASSERT_EQ(tabs->spec.items.size(), 4u);
             EXPECT_TRUE(tabs->tabs[2].shown);
 
             f.ecs.sendEvent(TabSelectedEvent{tabs->root.id, "life.tabs", 2});
@@ -9150,7 +9158,7 @@ namespace pg
 
             auto tabs = life->piece<Tabs>("tabs");
             ASSERT_NE(tabs, nullptr);
-            ASSERT_EQ(tabs->spec.items.size(), 3u);
+            ASSERT_EQ(tabs->spec.items.size(), 4u);
 
             // A first life: neither the town nor a walk
             EXPECT_TRUE(tabs->tabs[0].shown);
@@ -11110,6 +11118,466 @@ namespace pg
 
                 f.load<EmptyScene>();
             }
+        }
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The Options page: a folder of its own for a test's settings and saves, empty
+        static std::filesystem::path optionsScratch()
+        {
+            const auto* info = ::testing::UnitTest::GetInstance()->current_test_info();
+            const auto folder = std::filesystem::temp_directory_path() / (std::string("chronicle-life-") + info->name());
+
+            std::error_code ec;
+            std::filesystem::remove_all(folder, ec);
+            std::filesystem::create_directories(folder, ec);
+
+            return folder;
+        }
+
+        // The Options tab takes the choice's place in the middle column, as the Town page does, and
+        // says what the chronicle is; the Life tab gives the column back
+        TEST(lifescene_test, options_tab_takes_the_column)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = f.life();
+            ASSERT_NE(life, nullptr);
+
+            auto tabs = life->piece<Tabs>("tabs");
+            ASSERT_NE(tabs, nullptr);
+            ASSERT_EQ(life->optionsTab(), 3);
+            EXPECT_TRUE(tabs->tabs[3].shown);
+            EXPECT_FALSE(f.pos(life->named("options"))->isRenderable());
+
+            f.ecs.sendEvent(TabSelectedEvent{tabs->root.id, "life.tabs", 3});
+            f.frames(12);
+
+            EXPECT_TRUE(life->optionsShown);
+            EXPECT_EQ(tabs->active(), 3);
+            EXPECT_TRUE(f.pos(life->named("options"))->isRenderable());
+            EXPECT_FALSE(f.pos(life->named("activities"))->isRenderable());
+
+            // What it says: who and how old, which life, never written (the mockup's), the file Export writes
+            EXPECT_EQ(life->piece<Label>("chronicleWho")->spec.text, "Aldren of Bellmoor · 17 yr");
+            EXPECT_EQ(life->piece<Label>("chronicleWhere")->spec.text, "Life 1 · Bellmoor · never written (--no-save)");
+            EXPECT_EQ(life->piece<Label>("exportNote")->spec.text, "chronicle-aldren-life1.sz");
+            EXPECT_EQ(life->piece<Panel>("burnPanel")->title->spec.color, "vermilion");
+            EXPECT_EQ(life->piece<Label>("optionsFoot")->spec.text.rfind("Alpha ", 0), 0u);
+
+            // No failure said: neither line under Export nor under Load
+            EXPECT_FALSE(f.pos(life->named("exportFail"))->isRenderable());
+            EXPECT_FALSE(f.pos(life->named("loadNote"))->isRenderable());
+
+            // Each row as tall as what it holds, and its line as wide as its control leaves it
+            auto panel = life->piece<Panel>("playPanel");
+            ASSERT_NE(panel, nullptr);
+            EXPECT_NEAR(f.pos(life->named("clickLine"))->width + f.pos(life->named("clickSwitch"))->width + 16.0f, panel->innerWidth(), 0.5f);
+            EXPECT_GE(f.pos(life->named("clickRow"))->height, f.pos(life->named("clickLine"))->height - 0.5f);
+            EXPECT_GE(f.pos(life->named("clickRow"))->height, 44.0f);
+
+            // The Life tab: the choice back, the page out of the Tab order
+            f.ecs.sendEvent(TabSelectedEvent{tabs->root.id, "life.tabs", 0});
+            f.frames(12);
+
+            EXPECT_FALSE(life->optionsShown);
+            EXPECT_TRUE(f.pos(life->named("activities"))->isRenderable());
+            EXPECT_FALSE(f.pos(life->named("options"))->isRenderable());
+
+            f.load<EmptyScene>();
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Begin on first click: off, a click on a work chooses it; on, the click begins it. The
+        // setting is written at once and read by the next scene
+        TEST(lifescene_test, options_begin_on_first_click)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            const auto folder = optionsScratch();
+
+            // The settings are kept in the save's file: a life that is written
+            LifeSceneOptions opt = LifeFixture::first();
+            opt.noSave = false;
+            opt.savePath = (folder / "life.sz").string();
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+            EXPECT_FALSE(life->settings.beginOnFirstClick);
+            EXPECT_EQ(life->piece<Label>("guide")->spec.text, "Choose a work, then press Begin");
+
+            auto list = life->piece<ActivityList>("activities");
+            ASSERT_NE(list, nullptr);
+            ASSERT_NE(list->find(&f.ecs, "glean"), nullptr);
+
+            auto click = [&](const char* id) {
+                auto box = f.pos(list->find(&f.ecs, id)->root);
+                const Point2D at{box->x + box->width / 2.0f, box->y + box->height / 2.0f};
+
+                f.ecs.sendEvent(OnMouseMove{at, nullptr});
+                f.frames(4);
+                f.ecs.sendEvent(OnMouseClick{at, static_cast<MouseButton>(1)});
+                f.frames(4);
+                f.ecs.sendEvent(OnMouseRelease{at, static_cast<MouseButton>(1)});
+                f.frames(12);
+            };
+
+            // Off: chosen, not begun
+            click("glean");
+            EXPECT_EQ(life->chosen, "glean");
+            EXPECT_TRUE(life->save.running.empty());
+
+            // The switch turned on: written, and the list begins on the click
+            f.ecs.sendEvent(SwitchToggledEvent{0, "options.click", true});
+            f.settle();
+
+            EXPECT_TRUE(life->settings.beginOnFirstClick);
+            EXPECT_EQ(f.ecs.getSystem<ActivitySystem>()->beginOnFirstClick.count("life.activities"), 1u);
+            EXPECT_EQ(life->piece<Label>("guide")->spec.text, "Click a work to begin it");
+
+            Settings written;
+            ASSERT_TRUE(written.load(opt.savePath));
+            EXPECT_TRUE(written.beginOnFirstClick);
+
+            // A long wait: no double click about it
+            f.pass(1000.0f);
+            ASSERT_TRUE(life->save.running.empty());
+
+            click("glean");
+            EXPECT_EQ(life->save.running, "glean");
+
+            // The next scene reads it
+            f.load<EmptyScene>();
+
+            LifeScene* next = f.life(opt);
+            ASSERT_NE(next, nullptr);
+            EXPECT_TRUE(next->settings.beginOnFirstClick);
+
+            f.load<EmptyScene>();
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The light of the page: the card chosen lights every screen at once and is written; the T
+        // key goes the same way
+        TEST(lifescene_test, options_theme_is_lit_and_kept)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            const auto folder = optionsScratch();
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.noSave = false;
+            opt.savePath = (folder / "life.sz").string();
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+            ASSERT_EQ(f.theme->currentTheme(), "day");
+
+            f.ecs.sendEvent(RadioChosenEvent{0, "options.light", "candle"});
+            f.frames(6);
+
+            EXPECT_EQ(f.theme->currentTheme(), "candle");
+            EXPECT_EQ(life->piece<RadioCards>("lightCards")->selected(), "candle");
+
+            Settings written;
+            ASSERT_TRUE(written.load(opt.savePath));
+            EXPECT_EQ(written.theme, "candle");
+
+            // The page's ground is the candle's vellum now
+            const auto ground = life->named("page")->get<Simple2DObject>()->colors;
+            const auto candle = f.theme->theme().color("vellum", "candle");
+            EXPECT_FLOAT_EQ(ground.x, candle.x);
+            EXPECT_FLOAT_EQ(ground.z, candle.z);
+
+            f.ecs.sendEvent(OnSDLScanCode{SDL_SCANCODE_T, 0});
+            f.frames(6);
+
+            EXPECT_EQ(f.theme->currentTheme(), "day");
+            EXPECT_EQ(life->piece<RadioCards>("lightCards")->selected(), "day");
+            ASSERT_TRUE(written.load(opt.savePath));
+            EXPECT_EQ(written.theme, "day");
+
+            f.load<EmptyScene>();
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Wipe: the button opens a dialog and nothing more. It says what is lost, keeps the keys to
+        // itself, and its button stays greyed until BURN is typed. Burnt: the save and its copy are
+        // gone, a first life begins at six, and the settings stay
+        TEST(lifescene_test, options_wipe_asks_for_the_word)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            const auto folder = optionsScratch();
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.noSave = false;
+            opt.savePath = (folder / "life.sz").string();
+
+            // A file with the settings alone, as a burnt chronicle leaves it: the mockup's life is opened
+            Settings chosen;
+            chosen.beginOnFirstClick = true;
+            ASSERT_TRUE(chosen.save(opt.savePath));
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            ASSERT_TRUE(life->saveNow());
+            { std::ofstream bak(opt.savePath + ".bak"); bak << "the last one"; }
+
+            const int lives = life->save.lives;
+
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "options.wipe"});
+            f.frames(12);
+
+            ASSERT_FALSE(life->dialog.empty());
+            EXPECT_EQ(life->dialogKind, "burn");
+            EXPECT_TRUE(std::filesystem::exists(opt.savePath));
+
+            auto find = [&](const char* name) { return life->dialog->get<Prefab>()->findEntity(name); };
+
+            EXPECT_EQ(find("lostLivesFigure")->get<Label>()->spec.text, "− 1");
+            EXPECT_EQ(find("lostTownFigure")->get<Label>()->spec.text, "− 0 buildings");
+            EXPECT_EQ(find("burnGloss")->get<Label>()->spec.text, "One life, a town, and everything the Guild had learned — gone to ash.");
+
+            auto confirm = find("burnConfirm")->get<Button>();
+            EXPECT_TRUE(confirm->face->get<ButtonState>()->disabled);
+
+            // Pressed anyway (a key that reached it): nothing
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "options.burn"});
+            f.frames(12);
+            ASSERT_EQ(f.scenes->systemScene, life);
+            EXPECT_TRUE(std::filesystem::exists(opt.savePath));
+
+            // The field has the keys: a letter the game knows (N, a new life) is a letter
+            f.ecs.sendEvent(OnSDLScanCode{SDL_SCANCODE_N, 0});
+            f.frames(4);
+            EXPECT_EQ(life->save.lives, lives);
+
+            // Tab goes round the dialog alone: the field, Keep, and not the greyed button
+            auto order = f.ecs.getSystem<FocusOrderSystem>();
+            EXPECT_EQ(order->current(), find("burnWord")->get<WordField>()->face.id);
+            f.ecs.sendEvent(OnSDLScanCode{SDL_SCANCODE_TAB, 0});
+            f.frames(2);
+            EXPECT_EQ(order->current(), find("burnKeep")->get<Button>()->face.id);
+            f.ecs.sendEvent(OnSDLScanCode{SDL_SCANCODE_TAB, 0});
+            f.frames(2);
+            EXPECT_EQ(order->current(), find("burnWord")->get<WordField>()->face.id);
+
+            // In any case
+            for (const char* letter : {"b", "U", "r", "N"})
+                f.ecs.sendEvent(OnSDLTextInput{letter});
+            f.frames(6);
+
+            EXPECT_FALSE(confirm->face->get<ButtonState>()->disabled);
+
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "options.burn"});
+            f.frames(24);
+
+            auto after = dynamic_cast<LifeScene*>(f.scenes->systemScene);
+            ASSERT_NE(after, nullptr);
+            ASSERT_NE(after, life);
+
+            // The old life and its copy are gone; the file keeps the settings, and a life there now is
+            // the new one's own, written as it began
+            EXPECT_FALSE(std::filesystem::exists(opt.savePath + ".bak"));
+
+            Settings kept;
+            ASSERT_TRUE(kept.load(opt.savePath));
+            EXPECT_TRUE(kept.beginOnFirstClick);
+
+            if (LifeSave now; now.load(opt.savePath))
+            {
+                EXPECT_EQ(now.lives, 1);
+                EXPECT_EQ(now.termsDone(), 0);
+                EXPECT_NE(now.profession, "Sworn man of the Keep at Bellmoor");
+            }
+
+            EXPECT_EQ(after->save.lives, 1);
+            EXPECT_FLOAT_EQ(after->save.age, 6.0f);
+            EXPECT_EQ(after->save.termsDone(), 0);
+            EXPECT_TRUE(after->dialog.empty());
+            EXPECT_TRUE(after->settings.beginOnFirstClick);
+
+            // The last life's facts went with it: the mockup's oath to the Keep is not this boy's
+            EXPECT_FALSE(f.facts->hasFact("stat.keep_oath"));
+
+            f.load<EmptyScene>();
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Escape, or Keep the chronicle, closes the dialog: nothing lost
+        TEST(lifescene_test, options_wipe_kept)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = f.life();
+            ASSERT_NE(life, nullptr);
+
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "options.wipe"});
+            f.frames(12);
+            ASSERT_FALSE(life->dialog.empty());
+
+            f.ecs.sendEvent(OnSDLScanCode{SDL_SCANCODE_ESCAPE, 0});
+            f.frames(6);
+            EXPECT_TRUE(life->dialog.empty());
+            EXPECT_TRUE(life->dialogFaces.empty());
+
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "options.wipe"});
+            f.frames(12);
+            ASSERT_FALSE(life->dialog.empty());
+
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "options.keep"});
+            f.frames(6);
+            EXPECT_TRUE(life->dialog.empty());
+
+            EXPECT_EQ(f.scenes->systemScene, life);
+            EXPECT_EQ(life->save.name, "Aldren of Bellmoor");
+
+            f.load<EmptyScene>();
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // Load: a file that is no save, or a newer one, is refused with a line and nothing touched.
+        // A save, over a game under way, is asked about first; Keep keeps this one, Replace takes
+        // the file's: written as the save, the last one kept as .bak, and the scene made again on it
+        TEST(lifescene_test, options_load_checks_then_replaces)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            const auto folder = optionsScratch();
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.noSave = false;
+            opt.savePath = (folder / "life.sz").string();
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            // His settings, written with the life
+            life->settings.theme = "candle";
+            life->writeSettings();
+            ASSERT_TRUE(life->saveNow());
+
+            life->showOptions(true);
+            f.frames(6);
+
+            // Not a save
+            const auto foreign = folder / "foreign.sz";
+            { std::ofstream file(foreign); file << "nothing of a chronicle here\n"; }
+
+            life->takeSave(foreign.string());
+            f.frames(6);
+
+            EXPECT_EQ(life->loadFailed, "Not a Chronicle save.");
+            EXPECT_TRUE(life->dialog.empty());
+            EXPECT_TRUE(f.pos(life->named("loadNote"))->isRenderable());
+            EXPECT_EQ(life->named("loadNote")->get<MarkedLabel>()->label.spec.text, "Not a Chronicle save.");
+            EXPECT_EQ(f.scenes->systemScene, life);
+
+            // Another life's save
+            LifeSave other = boyOfSeven();
+            other.name = "Wenna of the Mill";
+            other.lives = 3;
+            const auto otherPath = folder / "other.sz";
+            ASSERT_TRUE(other.save(otherPath.string()));
+
+            life->takeSave(otherPath.string());
+            f.frames(12);
+
+            // A game under way: asked first, and kept
+            ASSERT_EQ(life->dialogKind, "replace");
+            EXPECT_TRUE(life->loadFailed.empty());
+
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "options.keepSave"});
+            f.frames(6);
+
+            EXPECT_TRUE(life->dialog.empty());
+            EXPECT_EQ(f.scenes->systemScene, life);
+            EXPECT_EQ(life->save.name, "Aldren of Bellmoor");
+
+            // Asked again, and replaced
+            life->takeSave(otherPath.string());
+            f.frames(12);
+            ASSERT_EQ(life->dialogKind, "replace");
+
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "options.replace"});
+            f.frames(24);
+
+            auto after = dynamic_cast<LifeScene*>(f.scenes->systemScene);
+            ASSERT_NE(after, nullptr);
+            ASSERT_NE(after, life);
+
+            EXPECT_EQ(after->save.name, "Wenna of the Mill");
+            EXPECT_EQ(after->save.lives, 3);
+            EXPECT_FALSE(after->optionsShown);
+
+            LifeSave written;
+            ASSERT_TRUE(written.load(opt.savePath));
+            EXPECT_EQ(written.name, "Wenna of the Mill");
+
+            LifeSave kept;
+            ASSERT_TRUE(kept.load(opt.savePath + ".bak"));
+            EXPECT_EQ(kept.name, "Aldren of Bellmoor");
+
+            // The settings are not the file's: they stayed in the save, and with the new scene
+            Settings settings;
+            ASSERT_TRUE(settings.load(opt.savePath));
+            EXPECT_EQ(settings.theme, "candle");
+            EXPECT_EQ(after->settings.theme, "candle");
+
+            f.load<EmptyScene>();
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A chronicle not begun is replaced without a question
+        TEST(lifescene_test, options_load_over_nothing_asks_nothing)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            const auto folder = optionsScratch();
+
+            LifeSceneOptions opt = LifeFixture::first();
+            opt.noSave = false;
+            opt.savePath = (folder / "life.sz").string();
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+            ASSERT_TRUE(life->untouched());
+
+            LifeSave other = boyOfSeven();
+            other.name = "Wenna of the Mill";
+            const auto otherPath = folder / "other.sz";
+            ASSERT_TRUE(other.save(otherPath.string()));
+
+            life->takeSave(otherPath.string());
+            f.frames(24);
+
+            auto after = dynamic_cast<LifeScene*>(f.scenes->systemScene);
+            ASSERT_NE(after, nullptr);
+            EXPECT_EQ(after->save.name, "Wenna of the Mill");
+            EXPECT_TRUE(after->dialog.empty());
+
+            f.load<EmptyScene>();
         }
     }
 }

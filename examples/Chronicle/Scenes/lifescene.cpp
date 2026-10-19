@@ -69,6 +69,7 @@ namespace chronicle
         constexpr const char * const ChoiceName = "activities";
         constexpr const char * const TownName = "town";
         constexpr const char * const AdventureName = "adventure";   // The Adventure page: the records of his walks (lifewalk.cpp)
+        constexpr const char * const OptionsName = "options";       // The Options page (lifeoptions.cpp)
         constexpr const char * const PlacesName = "places";
         constexpr const char * const PlacesList = "town.places";   // What `chosenList` says of a place's work chosen by its tile
         constexpr const char * const MarketName = "marketRows";
@@ -720,8 +721,37 @@ namespace chronicle
         widthStep = std::max(0, widthStepFor(width));
         heightStep = std::max(0, heightStepFor(height));
 
+        // Made again in the place of another scene (a save loaded, the chronicle burnt): what the
+        // last one wrote of its life is not this one's
+        if (opt.clearFacts)
+        {
+            if (auto facts = ecsRef->getSystem<WorldFacts>())
+                facts->factMap.clear();
+        }
+
+        // How the player plays: before the page, which is built with the way a click begins a work
+        readSettings();
+
         if (not buildPage(needsCompact(width, height), needsPhone(width), width))
             return;
+
+        // The Options page's controls (lifeoptions.cpp)
+        listenToEvent<SwitchToggledEvent>([this](const SwitchToggledEvent& e) {
+            if (e.tag == "options.click")
+            {
+                settings.beginOnFirstClick = e.on;
+                writeSettings();
+                applyClickMode();
+            }
+        });
+        listenToEvent<RadioChosenEvent>([this](const RadioChosenEvent& e) {
+            if (e.tag == "options.light")
+                chooseTheme(e.id);
+        });
+        listenToEvent<WordChangedEvent>([this](const WordChangedEvent& e) {
+            if (e.tag == "options.burnWord")
+                burnWordChanged(e.text);
+        });
 
         // The lists of a walk's screens and of the Adventure page are the walk's to hear (lifewalk.cpp)
         listenToEvent<ActivitySelectedEvent>([this](const ActivitySelectedEvent& e) { onSelect(e); onWalkSelect(e); });
@@ -735,6 +765,13 @@ namespace chronicle
         // At nothing, a month passes when he says so; at work the months run on their own. The
         // ending's one button begins the next life
         listenToEvent<ButtonActivatedEvent>([this](const ButtonActivatedEvent& e) {
+            if (onOptionsButton(e.tag))
+                return;
+
+            // A question over the page: nothing under it answers
+            if (not dialog.empty())
+                return;
+
             if (onWalkButton(e.tag))
                 return;
 
@@ -791,6 +828,30 @@ namespace chronicle
 
         // The month loop: one month every monthMs() while it runs
         listenToEvent<TickEvent>([this](const TickEvent& e) {
+            // The scene is being made again: nothing more passes here
+            if (leaving)
+                return;
+
+            // An OS dialog held the game still: what it held is no time played, and no month runs on it
+            if (skipTick)
+            {
+                skipTick = false;
+                return;
+            }
+
+            // "Exported to" stays a moment in the place of the last-written line
+            if (exportedLeft > 0.0f)
+            {
+                exportedLeft -= e.tick;
+
+                if (exportedLeft <= 0.0f)
+                    fillOptions();
+            }
+
+            // A file chosen in a browser is read by the browser: taken once it has come
+            if (uploading)
+                runUpload();
+
             sincePlaceClick += e.tick;
 
             // What lasts a moment runs its course whether the months run or not
@@ -899,6 +960,19 @@ namespace chronicle
         listenToEvent<OnSDLScanCode>([this](const OnSDLScanCode& e) {
             stirred();
 
+            // A question over the page takes the keys: Escape answers no, and nothing else is a shortcut
+            if (not dialog.empty())
+            {
+                if (e.key == SDL_SCANCODE_ESCAPE)
+                    closeDialog();
+
+                return;
+            }
+
+            // A field being typed in takes the letters
+            if (auto fields = ecsRef->getSystem<WordFieldSystem>(); fields and fields->anyTyping())
+                return;
+
             auto theme = ecsRef->getSystem<ThemeSystem>();
 
             switch (e.key)
@@ -922,9 +996,10 @@ namespace chronicle
                     pressHaste();
                 break;
 
+            // The other light, as the Options page chooses it: kept for the next start too
             case SDL_SCANCODE_T:
                 if (theme)
-                    theme->setTheme(theme->currentTheme() == "day" ? "candle" : "day");
+                    chooseTheme(theme->currentTheme() == "day" ? "candle" : "day");
                 break;
 
             case SDL_SCANCODE_R:
@@ -976,8 +1051,11 @@ namespace chronicle
             opt.lives = std::max(2, opt.lives);
         }
 
+        // A save loaded from a file (the Options page) is the chronicle now, whatever else was asked
+        if (opt.opened)
+            save = *opt.opened;
         // A life made here is the first of its world, unless a later one was asked for
-        if (opt.fresh)
+        else if (opt.fresh)
         {
             const bool first = opt.lives <= 1;
 
@@ -1107,6 +1185,7 @@ namespace chronicle
 
         fitEnding(width, height);
         fitWalk(width, height);
+        fitDialog(width, height);
 
         if (swap)
         {
@@ -2591,7 +2670,7 @@ namespace chronicle
 
     bool LifeScene::behindPage(const std::string& point) const
     {
-        if (point.rfind(TilePoint, 0) != 0 or not (townShown or adventureShown))
+        if (point.rfind(TilePoint, 0) != 0 or not (townShown or adventureShown or optionsShown))
             return false;
 
         auto list = listHolding(point.substr(TilePoint.size()));
@@ -3391,7 +3470,7 @@ namespace chronicle
             if (not textOf(a.fields, "zone").empty() and adventureKnown())
                 continue;
 
-            const bool inView = onTown ? townShown : not townShown and not adventureShown;
+            const bool inView = onTown ? townShown : not townShown and not adventureShown and not optionsShown;
 
             if (filledBefore and not inView)
                 ++(onTown ? newInTown : newInLife);
@@ -5037,7 +5116,7 @@ namespace chronicle
             }
         }
 
-        if (granted and not opt.noSave and not save.save(opt.savePath))
+        if (granted and not opt.noSave and not save.save(opt.savePath, &settings))
             LOG_ERROR(DOM, "Could not save to " << opt.savePath);
     }
 
@@ -5350,7 +5429,14 @@ namespace chronicle
         if (event.index == 0)
         {
             adventureShown = false;
+            optionsShown = false;
             showTown(false);
+            return;
+        }
+
+        if (event.index == optionsTab())
+        {
+            showOptions(true);
             return;
         }
 
@@ -5372,6 +5458,7 @@ namespace chronicle
             return;
 
         adventureShown = false;
+        optionsShown = false;
         showTown(false);
 
         const std::string label = event.index >= 0 and static_cast<size_t>(event.index) < tabs->tabs.size() ? tabs->tabs[event.index].label.spec.text : "That page";
@@ -5403,9 +5490,17 @@ namespace chronicle
     {
         townShown = shown and save.townKnown;
 
-        // The middle column holds one page at a time: the town's takes the Adventure page's place too
+        // The middle column holds one page at a time: the town's takes the Adventure page's place
+        // too, and the Options page's
         if (townShown)
+        {
             adventureShown = false;
+            optionsShown = false;
+        }
+
+        // A page built without the Options page (the phone's) cannot show it
+        if (optionsShown and named(OptionsName).empty())
+            optionsShown = false;
 
         auto may = piece<Panel>("may");
 
@@ -5422,16 +5517,19 @@ namespace chronicle
             }
         };
 
-        show(ChoiceName, not townShown and not adventureShown);
+        show(ChoiceName, not townShown and not adventureShown and not optionsShown);
         show(TownName, townShown);
         show(AdventureName, adventureShown);
+        show(OptionsName, optionsShown);
+
+        enableOptionsFocus(optionsShown);
 
         // Seen: what was new on the page now in view is new no longer
         if (townShown)
             newInTown = 0;
         else if (adventureShown)
             newInAdventure = 0;
-        else
+        else if (not optionsShown)
             newInLife = 0;
 
         showNotices();
@@ -5440,13 +5538,13 @@ namespace chronicle
 
         // On the phone page a panel may stand in the choice's place: the town asked for takes it
         // back, and the choice does not take a panel's tab from it
-        if (phone and (townShown or adventureShown) and not phonePanel.empty())
+        if (phone and (townShown or adventureShown or optionsShown) and not phonePanel.empty())
         {
             phonePanel.clear();
             showPhone();
         }
 
-        const int tab = townShown ? townTab() : adventureShown ? adventureTab() : 0;
+        const int tab = townShown ? townTab() : adventureShown ? adventureTab() : optionsShown ? optionsTab() : 0;
 
         if (auto tabs = piece<Tabs>("tabs"); tabs and tab >= 0 and tabs->active() != tab and phonePanel.empty())
             tabs->setActive(ecsRef, tab);
@@ -5469,8 +5567,9 @@ namespace chronicle
         if (auto label = piece<Label>(RaisedName))
             label->setWidth(ecsRef, width);
 
-        // The Adventure page stands in the same place, at the same size
+        // The Adventure page stands in the same place, at the same size, and so does the Options page
         fitAdventure(width, height);
+        fitOptions(width, height);
     }
 
     void LifeScene::fillTown()
@@ -5727,7 +5826,7 @@ namespace chronicle
             return;
 
         // What is new on the page that is not in view, at its tab's corner
-        tabs->setNotice(ecsRef, 0, townShown or adventureShown ? newInLife : 0);
+        tabs->setNotice(ecsRef, 0, townShown or adventureShown or optionsShown ? newInLife : 0);
 
         if (townTab() >= 0)
             tabs->setNotice(ecsRef, townTab(), townShown ? 0 : newInTown);
@@ -6425,7 +6524,7 @@ namespace chronicle
         // Told whether or not the life is written: what is played is played
         tellAnalytics();
 
-        if (opt.noSave)
+        if (opt.noSave or leaving)
             return;
 
         if (not writeSave())
@@ -6434,10 +6533,15 @@ namespace chronicle
 
     bool LifeScene::writeSave()
     {
+        // Made again on a save just written (Options' Load) or burnt (Wipe): this one is gone
+        if (leaving)
+            return false;
+
         // The hour it is written at: what the chronicle writes while it stays shut runs from it
         save.savedAt = static_cast<size_t>(wallClock());
 
-        return save.save(opt.savePath);
+        // The settings beside the life: one file holds everything the game keeps
+        return save.save(opt.savePath, &settings);
     }
 
     void LifeScene::newLife()
@@ -6507,8 +6611,9 @@ namespace chronicle
                 save.stats[textOf(given, "stat")] += intOf(given, "amount");
         }
 
-        // The page does not open on the town
+        // The page does not open on the town, nor on the Options page
         townShown = false;
+        optionsShown = false;
 
         // "At work now" has the line of a life that has done nothing again
         fit(windowWidth, windowHeight);

@@ -20,6 +20,10 @@
 #include "UI/eventlog.h"      // LogEntry
 #include "UI/gloss.h"         // GlossRow
 #include "UI/tabs.h"          // TabSelectedEvent
+#include "UI/switch.h"        // SwitchToggledEvent
+#include "UI/radiocard.h"     // RadioChosenEvent
+#include "UI/wordfield.h"     // WordChangedEvent
+#include "Core/settings.h"
 #include "lifesave.h"
 
 namespace chronicle
@@ -52,6 +56,12 @@ namespace chronicle
         float autoTurnMs = 600.0f;     // A fight handed to his stance plays a turn every so many ms
         float monthMs = 2000.0f;       // One month every so many ms while the loop runs (--month-ms); a child's months are a part of it (`LifeScene::monthMs`)
         unsigned long long now = 0;    // The wall clock, in seconds since 1970: 0 reads the system's, a test gives its own
+
+        // The Options page (lifeoptions.cpp)
+        std::string burnFile = "res/chronicle/ui/burn.yaml";       // The wipe's dialog, over the page
+        std::string replaceFile = "res/chronicle/ui/replace.yaml"; // Asked before a save loaded takes the place of a game under way
+        std::optional<LifeSave> opened;   // A save loaded from a file, opened in the place of the one at savePath (the scene is made again with it)
+        bool clearFacts = false;       // The scene is made again in the place of another: the facts the last one wrote are the last life's, cleared before any is written
     };
 
     // A step of the guide (achievements.pg, kind "guide") as the scene holds it
@@ -527,5 +537,47 @@ namespace chronicle
         std::vector<std::string> alerted;         // The parts in red
         float alertLeft = 0.0f;                   // Milliseconds of red left
         bool endangered = false;                  // The last month took from what the life hangs on
+
+        // The Options page (lifeoptions.cpp): how the game is played and lit, kept on this machine,
+        // and the save itself: exported, loaded, burnt. It takes the choice's place in the middle
+        // column, as the Town page does
+        Settings settings;             // As read at the scene's start, and written with the life at every change
+        bool optionsShown = false;     // The Options page is in view
+        pg::EntityRef dialog;          // The wipe's or the load's question over the page, empty for none
+        std::string dialogKind;        // "burn" or "replace"
+        std::optional<LifeSave> toReplace;   // A save read from a file, waiting for the player's word
+        float exportedLeft = 0.0f;     // Milliseconds left of "Exported to <file>" in the place of the last-written line
+        std::string exportedTo;        // The file it names
+        std::string exportFailed;      // A line in vermilion under Export, "" for none
+        std::string loadFailed;        // And under Load
+        bool uploading = false;        // In a browser: the file picker is open, or the file chosen on its way in
+        bool skipTick = false;         // An OS dialog held the game still: the frame after it is no time played
+        bool leaving = false;          // The scene is being made again (a save loaded, the chronicle burnt): no month runs and nothing is written meanwhile
+        std::vector<pg::_unique_id> dialogFaces;   // What the keyboard goes round while a dialog is up
+
+        int optionsTab() const;
+        void showOptions(bool shown);  // The Options page in the middle column, or the choice back in it
+        void fitOptions(float width, float height);
+        void fillOptions();            // Its figures and lines from the save and the settings, then laid out
+        void layOptions();             // Each row as tall as its text, each line as wide as its panel leaves it
+        void readSettings();           // From the save's file (opt.savePath), and applied: the way a click begins a work
+        void writeSettings();
+        void applyClickMode();         // The Life page's list begins a work on its first click, or chooses it
+        void chooseTheme(const std::string& id);   // The page lit so, at once, and the settings written
+        bool onOptionsButton(const std::string& tag);   // One of the page's or of its dialogs' buttons: true when it was
+        void exportSave();             // The save written now, then a copy where the player says (a download in a browser)
+        void askLoad();                // The file to load: the OS's dialog, or the browser's picker
+        void runUpload();              // A browser's file on its way in: taken once it has come
+        void takeSave(const std::string& path);   // A file offered as a save: refused with a line, asked about, or taken
+        void replaceWith(LifeSave loaded);         // It is the chronicle now: written, the old one kept as .bak, the scene made again on it
+        void wipe();                   // Every life, the town and all knowledge gone; a first life begins. The settings stay
+        void remake(LifeSceneOptions next);        // The scene made again in its own place, with these options
+        bool untouched() const;        // The chronicle has not begun: nothing would be lost by replacing it
+        std::string exportName() const;           // chronicle-<first name>-life<N>.sz
+        bool openDialog(const std::string& kind); // "burn" or "replace", over the page
+        void closeDialog();
+        void fitDialog(float width, float height);
+        void burnWordChanged(const std::string& word);   // The burn's button opens once the word is BURN
+        void enableOptionsFocus(bool on);         // The page's controls in the Tab order only while it is in view
     };
 }

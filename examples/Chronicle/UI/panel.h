@@ -13,7 +13,7 @@
 
 namespace chronicle
 {
-    enum class PanelFrame : uint8_t { Hair, Ruled, Plain, Illuminated };
+    enum class PanelFrame : uint8_t { Hair, Ruled, Plain, Illuminated, Rubric };   // Rubric: a leaf of something that cannot be undone, framed in vermilion
 
     struct PanelSpec
     {

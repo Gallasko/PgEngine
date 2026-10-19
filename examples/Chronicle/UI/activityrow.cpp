@@ -2460,11 +2460,22 @@ namespace chronicle
         auto row = ecsRef->getEntity(released);
         auto st = row->get<ActivityRowState>();
 
+        auto listEntity = st->list != 0 ? ecsRef->getEntity(st->list) : nullptr;
+        const bool atOnce = listEntity and listEntity->has<ActivityListState>() and beginOnFirstClick.count(listEntity->get<ActivityListState>()->id) > 0;
+
+        // A list that begins on the first click: the row is chosen, then confirmed, in one release
+        if (atOnce)
+        {
+            if (not st->selected)
+                select(listEntity, st->id);
+
+            activate(row);
+        }
         // A second release on the selected row confirms it; a first one selects it.
-        if (st->selected and lastReleased == released and now - lastReleaseAt <= DoubleReleaseMs)
+        else if (st->selected and lastReleased == released and now - lastReleaseAt <= DoubleReleaseMs)
             activate(row);
         else if (not st->selected and st->list != 0)
-            select(ecsRef->getEntity(st->list), st->id);
+            select(listEntity, st->id);
 
         lastReleased = released;
         lastReleaseAt = now;

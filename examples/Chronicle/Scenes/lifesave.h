@@ -7,6 +7,7 @@
 #include "UI/eventlog.h"   // LogEntry
 #include "UI/prefabspec.h" // RecordList
 #include "Core/walk.h"     // WalkState, WalkRecipe, WalkQueue
+#include "Core/settings.h"
 
 namespace chronicle
 {
@@ -144,8 +145,23 @@ namespace chronicle
         // the works it names), so that two builds' rows can be told apart
         static constexpr const char* DigestBuild = "0.6";
 
-        bool save(const std::string& path) const;
+        // The file holds the life, and with `settings` the player's settings beside it (the game's
+        // own save: one file for everything). Without, the life alone (an export). Whatever else the
+        // file held is gone: the two objects are written from memory, never carried over from it
+        bool save(const std::string& path, const Settings* settings = nullptr) const;
         bool load(const std::string& path);
+
+        // The version of the save's own format, written with every save. A save read from a file
+        // keeps the one it was written with in `version`: 0 for a save from before the field
+        static constexpr int SaveVersion = 1;
+        int version = SaveVersion;
+
+        // What a file offered as a save is (the Options page's Load): one of this build, or what
+        // stands in the way. A save from before the version field is not taken from outside the game
+        enum class Opened { Ok, NotASave, Newer };
+
+        // Reads `path` into `out` without touching anything else; `out` is left as it was unless Ok
+        static Opened open(const std::string& path, LifeSave& out);
     };
 
     // The design mockup's life: Aldren of Bellmoor at 17.5, the page of the Main Life screen, as

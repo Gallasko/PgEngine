@@ -70,6 +70,14 @@ another familiar, a new kind to bind, a bigger stash.
   The marsh gives pitch, and bog iron once it is known 3 of 4; a light sometimes leaves a bead of
   wisp-glass. Beat the Lantern Mother and the marsh wisp is yours to bind: it eats a ration and 2
   water a month, makes a reagent, and is bound with 2 pitch.
+- **Options.** A fourth tab, after Adventure. Begin on first click makes a click on a task start
+  it at once (off as before: a click chooses, Begin or a double click starts). The light of the
+  page is Scriptorium (day) or Candle (night), and the game opens in the one you chose. Export
+  writes your save to a file of yours, Load brings one back (the game says so when a file is not a
+  save, or is from a newer version, and asks before it replaces a game under way), and Burn the
+  chronicle erases every life, the town and all knowledge once you type BURN. Your settings are
+  kept in your save, and loading another save or burning the chronicle leaves them as they are; an
+  exported file holds the chronicle alone. Not on the phone page yet.
 
 ### Changed
 

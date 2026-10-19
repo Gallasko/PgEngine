@@ -1,0 +1,75 @@
+# Burn the chronicle: the second step of the wipe, over the Options page.
+#
+# Built by LifeScene (examples/Chronicle/Scenes/lifeoptions.cpp) when "Wipe all data…" is pressed,
+# and removed when it is answered. This file is layout and placeholder content only: the gloss and
+# the three figures of the ledger are the scene's, from the chronicle as it stands.
+#
+# The veil (the scrim) is sized to the window by the scene on every resize and takes the mouse, so
+# nothing of the page under it is hovered or clicked; the leaf stands in the window's middle with a
+# 3 px vermilion frame. "Burn everything" stays greyed until BURN is typed in the field, in any case.
+# Escape or "Keep the chronicle" closes it. z: over the ending and the guide (100-129), under the
+# tooltips (200): the veil 130, the leaf 134, its content 144.
+name: burn
+children:
+
+  - kind: Shape2D
+    name: veil
+    width: 1320
+    height: 1020
+    z: 130
+    theme: modal.scrim
+
+  - kind: Panel
+    name: leaf
+    frame: rubric
+    width: 560
+    z: 134
+    contentZ: 144
+    anchors:
+      - {side: horizontalCenter, target: __MainWindow, targetSide: horizontalCenter}
+      - {side: verticalCenter, target: __MainWindow, targetSide: verticalCenter}
+    children:
+      - {kind: Label, name: burnMark, style: label, color: vermilion, text: IRREVERSIBLE}
+      - {kind: Label, name: burnTitle, style: title, color: vermilion, overflow: wrap, text: "Burn the chronicle?"}
+      - {kind: Label, name: burnGloss, style: gloss, color: ink-muted, overflow: wrap, text: "Four lives, a town, and everything the Guild had learned — gone to ash."}
+      - {kind: Ornament, ornament: divider, knot: false, weight: hair}
+      # What is lost, a line each: what it is at the left, its figure in vermilion at the right
+      - kind: Layout:Horizontal
+        name: lostLivesRow
+        width: 512
+        height: 20
+        spacing: 16
+        children:
+          - {kind: Label, name: lostLives, style: body-sm, overflow: ellipsis, width: 376, text: "Lives lived"}
+          - {kind: Label, name: lostLivesFigure, style: body-sm, color: vermilion, overflow: ellipsis, align: right, width: 120, text: "− 4"}
+      - {kind: Ornament, ornament: divider, knot: false, weight: hair}
+      - kind: Layout:Horizontal
+        name: lostTownRow
+        width: 512
+        height: 20
+        spacing: 16
+        children:
+          - {kind: Label, name: lostTown, style: body-sm, overflow: ellipsis, width: 376, text: "Town of Bellmoor, buildings and stores"}
+          - {kind: Label, name: lostTownFigure, style: body-sm, color: vermilion, overflow: ellipsis, align: right, width: 120, text: "− 6 buildings"}
+      - {kind: Ornament, ornament: divider, knot: false, weight: hair}
+      - kind: Layout:Horizontal
+        name: lostKnownRow
+        width: 512
+        height: 20
+        spacing: 16
+        children:
+          - {kind: Label, name: lostKnown, style: body-sm, overflow: ellipsis, width: 376, text: "Knowledge of places and monsters"}
+          - {kind: Label, name: lostKnownFigure, style: body-sm, color: vermilion, overflow: ellipsis, align: right, width: 120, text: "− 11 entries"}
+      - {kind: Ornament, ornament: divider, knot: false, weight: hair}
+      - {kind: Label, name: burnNote, style: body-sm, overflow: wrap, text: "Settings are kept. Exported save files on your machine are not touched; you can load one afterwards."}
+      - {kind: Label, name: burnAsk, style: label, color: ink-muted, text: TYPE BURN TO CONFIRM}
+      - {kind: WordField, name: burnWord, placeholder: BURN, tag: options.burnWord, width: 512, most: 12}
+      - kind: Layout:Horizontal
+        name: burnButtons
+        width: 512
+        height: 36
+        spacing: 12
+        children:
+          - {kind: Label, name: burnSpacer, style: label, overflow: ellipsis, width: 100, text: " "}
+          - {kind: Button, name: burnKeep, variant: quiet, label: Keep the chronicle, tag: options.keep}
+          - {kind: Button, name: burnConfirm, variant: seal, label: Burn everything, disabled: true, tag: options.burn}

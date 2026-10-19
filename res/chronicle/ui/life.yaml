@@ -132,6 +132,7 @@ children:
           - {label: Life, glyph: quill}
           - {label: Town, glyph: town}      # not open until a life has explored the town
           - {label: Adventure, glyph: adventure}   # not there until he has somewhere to walk to
+          - {label: Options, glyph: seal}   # how the game is played and lit, and the save (lifeoptions.cpp)
           # Kit, Guild and Chronicle come back as their pages are built
       - kind: ActivityList
         name: activities
@@ -312,6 +313,96 @@ children:
 
           # -- The foot: what the scribe says of the place, at his age. Never anything the game counts --
           - {kind: Label, name: footLine, style: gloss, color: ink-muted, overflow: wrap, width: 572, text: ""}
+
+      # The Options page (LifeScene::showOptions, lifeoptions.cpp): it takes the choice's place in
+      # this column, as the Town page does. How the game is played and lit, which this machine keeps
+      # (in the save's file, beside the life), then the save itself: what it is, a copy
+      # taken out of the game, one brought in, and the chronicle burnt. The scene writes every
+      # width here on each resize (fitOptions) and the rows' heights from what their text takes
+      - kind: Layout:Vertical
+        name: options
+        width: 572
+        height: 846
+        scrollable: true
+        spacing: 16
+        children:
+          - kind: Panel
+            name: playPanel
+            frame: ruled
+            width: 572
+            heading: Play
+            children:
+              - {kind: Label, name: clickHead, style: label, color: ink-muted, overflow: ellipsis, text: BEGIN ON FIRST CLICK}
+              - kind: Layout:Horizontal
+                name: clickRow
+                width: 540
+                height: 44
+                spacing: 16
+                children:
+                  - {kind: Label, name: clickLine, style: body-sm, overflow: wrap, width: 420, text: "A task starts the moment it is clicked. When this is off, a click only chooses a task, and Begin or a double click starts it."}
+                  - {kind: Switch, name: clickSwitch, tag: options.click}
+              - {kind: Ornament, ornament: divider, knot: false, weight: hair}
+              - {kind: Label, name: lightHead, style: label, color: ink-muted, overflow: ellipsis, text: LIGHT OF THE PAGE}
+              - {kind: Label, name: lightLine, style: body-sm, overflow: wrap, text: "Choose how the manuscript is lit. Figures and marks stay the same in both."}
+              - kind: RadioCards
+                name: lightCards
+                tag: options.light
+                selected: day
+                width: 540
+                items:
+                  - {id: day, label: Scriptorium, line: "Day · ink on vellum", swatch: day}
+                  - {id: candle, label: Candle, line: "Night · pale ink on dark leaf", swatch: candle}
+          - kind: Panel
+            name: savesPanel
+            frame: ruled
+            width: 572
+            heading: Saves
+            children:
+              - {kind: Label, name: chronicleHead, style: label, color: ink-muted, overflow: ellipsis, text: THIS CHRONICLE}
+              - {kind: Label, name: chronicleWho, style: figure, overflow: ellipsis, text: "Aldren of Bellmoor · 23 yr"}
+              - {kind: Label, name: chronicleWhere, style: body-sm, color: ink-muted, overflow: wrap, text: "Life 4 · Bellmoor · last written 19 Oct, 06:41"}
+              - {kind: Label, name: chronicleLine, style: body-sm, color: ink-muted, overflow: wrap, text: "The game writes the save on its own every month. Export keeps a copy outside the game."}
+              - {kind: Ornament, ornament: divider, knot: false, weight: hair}
+              - {kind: Label, name: exportHead, style: label, color: ink-muted, overflow: ellipsis, text: EXPORT}
+              - kind: Layout:Horizontal
+                name: exportRow
+                width: 540
+                height: 44
+                spacing: 16
+                children:
+                  - {kind: Label, name: exportLine, style: body-sm, overflow: wrap, width: 400, text: "Writes one file: this life, the town and all knowledge gathered."}
+                  - {kind: Button, name: exportButton, variant: quiet, label: Export save, tag: options.export}
+              # The file it writes; under it, a cross and a line in vermilion when it could not
+              - {kind: Label, name: exportNote, style: body-sm, color: ink-muted, overflow: ellipsis, text: "chronicle-aldren-life4.sz"}
+              - {kind: MarkedLabel, name: exportFail, style: body-sm, color: vermilion, mark: cross, text: "The file could not be written."}
+              - {kind: Ornament, ornament: divider, knot: false, weight: hair}
+              - {kind: Label, name: loadHead, style: label, color: ink-muted, overflow: ellipsis, text: LOAD}
+              - kind: Layout:Horizontal
+                name: loadRow
+                width: 540
+                height: 44
+                spacing: 16
+                children:
+                  - {kind: Label, name: loadLine, style: body-sm, overflow: wrap, width: 400, text: "Opens a save file and replaces this chronicle with it. Export first if this one is worth keeping."}
+                  - {kind: Button, name: loadButton, variant: quiet, label: "Load save…", tag: options.load}
+              # Shown only when a file was refused: why, in vermilion
+              - {kind: MarkedLabel, name: loadNote, style: body-sm, color: vermilion, mark: cross, text: "Not a Chronicle save"}
+          # The heading is in vermilion (the scene paints it): what is here cannot be undone
+          - kind: Panel
+            name: burnPanel
+            frame: ruled
+            width: 572
+            heading: Burn the chronicle
+            children:
+              - kind: Layout:Horizontal
+                name: burnRow
+                width: 540
+                height: 44
+                spacing: 16
+                children:
+                  - {kind: Label, name: burnLine, style: body-sm, overflow: wrap, width: 380, text: "Erases every life, the town, its buildings and all knowledge of places and monsters. The game returns to its first page. Nothing comes back."}
+                  - {kind: Button, name: wipeButton, variant: seal, label: "Wipe all data…", tag: options.wipe}
+          - {kind: Label, name: optionsFoot, style: caption, color: ink-muted, overflow: wrap, width: 572, text: "Alpha · settings are kept in the save, and stay when another is loaded or the chronicle is burnt."}
 
   # ── Right: the years and his life, the work at hand, what has happened ──
   - kind: Panel

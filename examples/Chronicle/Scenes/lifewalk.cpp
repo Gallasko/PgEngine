@@ -3023,7 +3023,10 @@ namespace chronicle
     {
         adventureShown = shown and adventureKnown();
 
-        // The three pages of the middle column take each other's place: showTown lays them
+        // The pages of the middle column take each other's place: showTown lays them
+        if (adventureShown)
+            optionsShown = false;
+
         showTown(adventureShown ? false : townShown);
 
         if (adventureShown)

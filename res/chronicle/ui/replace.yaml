@@ -1,0 +1,38 @@
+# Replace this chronicle? Asked over the Options page when a save file is loaded while a game is
+# under way (a life begun, or one lived before it). A chronicle that has not begun is replaced
+# without asking.
+#
+# Built by LifeScene (examples/Chronicle/Scenes/lifeoptions.cpp), removed when it is answered.
+# The line is the scene's: who the file holds, and that this chronicle goes. Escape or "Keep"
+# closes it. z as the wipe's dialog (burn.yaml): the veil 130, the leaf 134, its content 144.
+name: replace
+children:
+
+  - kind: Shape2D
+    name: veil
+    width: 1320
+    height: 1020
+    z: 130
+    theme: modal.scrim
+
+  - kind: Panel
+    name: leaf
+    frame: ruled
+    width: 480
+    z: 134
+    contentZ: 144
+    anchors:
+      - {side: horizontalCenter, target: __MainWindow, targetSide: horizontalCenter}
+      - {side: verticalCenter, target: __MainWindow, targetSide: verticalCenter}
+    children:
+      - {kind: Label, name: replaceTitle, style: title, overflow: wrap, text: "Replace this chronicle?"}
+      - {kind: Label, name: replaceLine, style: body-sm, overflow: wrap, text: "The file holds Aldren of Bellmoor at 23, in his fourth life. It takes the place of this chronicle, which is not kept."}
+      - kind: Layout:Horizontal
+        name: replaceButtons
+        width: 440
+        height: 36
+        spacing: 12
+        children:
+          - {kind: Label, name: replaceSpacer, style: label, overflow: ellipsis, width: 100, text: " "}
+          - {kind: Button, name: replaceKeep, variant: quiet, label: Keep, tag: options.keepSave}
+          - {kind: Button, name: replaceConfirm, variant: seal, label: Replace, tag: options.replace}

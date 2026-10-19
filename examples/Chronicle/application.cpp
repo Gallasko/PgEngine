@@ -18,6 +18,9 @@
 #include "UI/ornament.h"
 #include "UI/button.h"
 #include "UI/tabs.h"
+#include "UI/switch.h"
+#include "UI/radiocard.h"
+#include "UI/wordfield.h"
 #include "UI/activityrow.h"
 #include "UI/gloss.h"
 #include "ECS/entitysystem_fwd.h"   // ResizeEvent, used by tooltip.h
@@ -31,6 +34,7 @@
 #include "Core/factrouter.h"
 #include "Core/settle.h"
 #include "Core/analytics.h"
+#include "Core/settings.h"
 
 using namespace pg;
 
@@ -73,9 +77,15 @@ namespace chronicle
             //    font atlas on the TTFTextSystem and paints every themed entity from then on.
             ecs.createSystem<TTFTextSystem>(window.masterRenderer);
 
+            //    The page is lit as the player chose on the Options page (kept beside the life in the
+            //    save's file; read before the first screen is built, so the first frame is right),
+            //    unless --theme asks otherwise for once
+            Settings settings;
+            settings.load(opt.savePath);
+
             auto* theme = ecs.getSystem<ThemeSystem>();
             theme->loadTheme("res/chronicle/tokens.json", "res/font");
-            theme->setTheme(opt.theme);
+            theme->setTheme(opt.theme.empty() ? settings.theme : opt.theme);
 
             // 2. animation and the data seam every phase-2 scene drives through.
             ecs.createSystem<TweenSystem>();
@@ -106,6 +116,14 @@ namespace chronicle
 
             ecs.createSystem<TabsSystem>();
             ecs.succeed<MouseHoverSystem, TabsSystem>();
+
+            // The Options page's controls: a switch, the theme's cards, the word a wipe asks for
+            ecs.createSystem<SwitchSystem>();
+            ecs.succeed<MouseHoverSystem, SwitchSystem>();
+            ecs.createSystem<RadioCardSystem>();
+            ecs.succeed<MouseHoverSystem, RadioCardSystem>();
+            ecs.createSystem<WordFieldSystem>();
+            ecs.succeed<MouseHoverSystem, WordFieldSystem>();
 
             // Activity rows and lists: hover, selection and confirm, and the rows' adoption by their list.
             ecs.createSystem<ActivitySystem>();

@@ -25,6 +25,9 @@ namespace chronicle
         void remove(pg::_unique_id face);
         void setEnabled(pg::_unique_id face, bool); // disabled faces are skipped, not removed
 
+        // While a dialog is open, Tab goes round its own faces only: `faces` in their order. {} lifts it
+        void setScope(const std::vector<pg::_unique_id>& faces) { scope = faces; }
+
         void focusNext();
         void focusPrev();
         void focus(pg::_unique_id face);            // focus a specific face (keyboard), keeping current in sync
@@ -40,6 +43,7 @@ namespace chronicle
 
         std::vector<pg::_unique_id> order;
         std::unordered_set<pg::_unique_id> disabledFaces;
+        std::vector<pg::_unique_id> scope;
         pg::_unique_id currentFace = 0;
         bool kbFocus = false;
     };

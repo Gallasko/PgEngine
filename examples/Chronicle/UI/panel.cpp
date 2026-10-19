@@ -34,6 +34,7 @@ namespace chronicle
                 return 0.0f;
 
             case PanelFrame::Illuminated:
+            case PanelFrame::Rubric:
                 return theme->space(5);
 
             default:
@@ -126,6 +127,10 @@ namespace chronicle
                 gap = 1.0f;
                 doubled = true;
                 frameElement = "panel.frame.illuminated";
+                break;
+
+            case PanelFrame::Rubric:
+                frameElement = "panel.frame.rubric";
                 break;
 
             default:

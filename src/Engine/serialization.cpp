@@ -1050,6 +1050,12 @@ namespace pg
                         break;
                     }
 
+                    // TODO: this keeps the "<objectName>: " prefix in the object's text, while
+                    // registerToFile writes "<objectName>: " again before it. A file read with setFile
+                    // and saved back writes "name: name: Class {" for every object not serialized
+                    // again, and the file no longer reads. Store the text without the prefix (as
+                    // registerSerialized does), once UnserializedObject is checked to read it so.
+                    // Until then, write every object from memory (Chronicle's LifeSave::save clears first)
                     serializedString = line + '\n';
                     startOfClass = false;
                 }

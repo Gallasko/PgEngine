@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "ECS/entitysystem.h"
@@ -322,6 +323,11 @@ namespace chronicle
         float now = 0.0f;              // Milliseconds of TickEvent received
         float lastReleaseAt = -1000.0f;
         pg::_unique_id lastReleased = 0;
+
+        // The lists (by id) whose rows begin on their first click: chosen and confirmed at once.
+        // Every other list chooses on a click and confirms on a second within DoubleReleaseMs
+        std::unordered_set<std::string> beginOnFirstClick;
+
         int hoverStale = 0;            // Frames left in which the hover is asked for again: the rows of a list built again are placed over a few
     };
 

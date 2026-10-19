@@ -12,7 +12,7 @@ namespace chronicle
     struct LaunchOptions
     {
         std::string devScene;          // "" = the Life scene
-        std::string theme = "day";
+        std::string theme;             // --theme day|candle: this session only. "" takes the one the player chose (kept in the save's file, savePath)
         bool fresh = false;            // --fresh: a first life, a month before 7, led by its guide
         int guide = 0;                 // --guide N, with --fresh: the guide past its step N
         float age = 0.0f;              // --age N, with --fresh: opened at that age (7 or more), his sixth year not played

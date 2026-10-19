@@ -41,7 +41,7 @@ namespace chronicle
     void FocusOrderSystem::step(int dir)
     {
         std::vector<_unique_id> enabled;
-        for (auto f : order)
+        for (auto f : scope.empty() ? order : scope)
             if (disabledFaces.find(f) == disabledFaces.end())
                 enabled.push_back(f);
         if (enabled.empty())
