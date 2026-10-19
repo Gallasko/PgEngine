@@ -6239,6 +6239,14 @@ namespace chronicle
 
             gloss.rows.insert(gloss.rows.end(), brought.begin(), brought.end());
 
+            // What a part or a skill of his would make of it, before he has it: in the gain's colour
+            // once he has, plain until then
+            if (not a.steps.empty())
+                gloss.rows.push_back({"BONUS", "", "", true});
+
+            for (const auto& s : a.steps)
+                gloss.rows.push_back({textOf(s, "label"), "", boolOf(s, "reached") ? "gain" : ""});
+
             // A walk's place: what each level of knowing it brings, as the Adventure page last read it
             if (auto ladder = walkLadders.find(textOf(a.fields, "zone")); ladder != walkLadders.end() and not textOf(a.fields, "zone").empty())
                 gloss.rows.insert(gloss.rows.end(), ladder->second.begin(), ladder->second.end());

@@ -58,7 +58,10 @@
 //           event ("" or the event it answers), barred ("" or what shut it: the line of the
 //           event he stood by, as the log wrote it that month; a row that is barred is not
 //           listed),
-//           after (its steps, as below).
+//           after (its steps, as below),
+//           steps [{label, reached}] (each step of its `bonus` on one of his parts or skills, as its
+//           gloss says it: "With Strength 8: +2 firewood", "With Dexterity 9: 2 months, not 3";
+//           reached: he has it. lib.pg's `bonusStepLabel`).
 //
 // `months: 0` is an activity done at once: it takes no time, and can be done while another runs.
 //
@@ -148,7 +151,9 @@
 //                    gives none) it replaces the activity's own gains, costs, months, rank, each, uses,
 //                    fromAge, showAge, showFrom, finishBy, board or path with the ones it gives,
 //                    and adds its `more` [{stat, amount}] to what the term brings. Every step
-//                    that holds is applied, in order: the last one wins what two of them give.
+//                    that holds is applied, in order: the last one wins what two of them give,
+//                    and what their `more` add adds up: two steps on one stat, the second gives
+//                    the rest of what he brings at its stat (the berries: 3, then 3 more, for 6).
 //   featured: true   the page wants it seen: its tile stands on a gold ground while he can
 //                    choose it (exploring the town, which a life should not miss).
 //   major: true      it turns his life (a class, the town): its tile is framed in gold and shows
@@ -306,10 +311,14 @@ var activities = [
      requires: []},
     // The town's work for a child. The carters take anyone, at any age: their row is the one
     // that always stands. The others leave the list when he has never taken them by ten or so
-    // (`idleBy`): what he has done once stays his, the rest is cleared from the top of the page
+    // (`idleBy`): what he has done once stays his, the rest is cleared from the top of the page.
+    // Some go better for a boy with the part for them (their `bonus`): a strong one carries for the
+    // carters in two months, a deft one runs the messages as fast, and brings more home from the
+    // kitchen and the baker.
     {id: "carters", group: "Work", name: "Carry for the Carters", glyph: "work", months: 3, rank: "", each: "RATIONS UP FRONT", path: "", board: true,
      gains: [{stat: "coin", amount: 6}],
-     requires: []},
+     requires: [],
+     bonus: [{stat: "str", needed: 9, months: 2}]},
     {id: "mill", group: "Work", name: "Help at the Mill", glyph: "work", months: 6, rank: "", each: "", path: "", idleBy: 10,
      gains: [{stat: "str"}, {stat: "vit", amount: 5}, {stat: "coin", amount: 8}],
      requires: [],
@@ -318,7 +327,8 @@ var activities = [
     {id: "messages", group: "Work", name: "Run Messages", glyph: "town", months: 3, rank: "", each: "", path: "", fromAge: 7, fromMonths: 4, idleBy: 10,
      gains: [{stat: "dex"}, {stat: "coin", amount: 3}],
      requires: [],
-     after: [{uses: 2, gains: [{stat: "coin", amount: 5}]}]},
+     after: [{uses: 2, gains: [{stat: "coin", amount: 5}]}],
+     bonus: [{stat: "dex", needed: 9, months: 2}]},
     // What the first berries he scavenges are for: six of them, which are his to bring, baked into
     // pies on the square. Its row stands from seven with none held (a cost is a requirement, and a
     // requirement is not what lists a row), locked until he has them
@@ -326,13 +336,15 @@ var activities = [
      about: "The baker on the square has the oven and the flour, but not the berries. Those are his to bring.",
      costs: [{stat: "berries", amount: 6}],
      gains: [{stat: "coin", amount: 6}, {stat: "dex"}],
-     requires: []},
+     requires: [],
+     bonus: [{stat: "dex", needed: 9, more: [{stat: "coin", amount: 3}]}]},
     // What feeds him until the market is his to buy at: the rations of its months as he begins
     // it, and more to take away at its term
     {id: "kitchen", group: "Work", name: "Help in the Kitchen", glyph: "trade", months: 3, rank: "", each: "RATIONS UP FRONT", path: "", board: true, fromAge: 7, fromMonths: 8, idleBy: 10,
      gains: [{stat: "rations", amount: 6}],
      requires: [],
-     costs: [{stat: "water", amount: 3}, {stat: "firewood", amount: 2}]},
+     costs: [{stat: "water", amount: 3}, {stat: "firewood", amount: 2}],
+     bonus: [{stat: "dex", needed: 8, more: [{stat: "rations", amount: 2}]}]},
     {id: "market", group: "Work", name: "Help at the Market", glyph: "trade", months: 6, rank: "", each: "", path: "", fromAge: 8, idleBy: 11,
      gains: [{stat: "guile"}, {stat: "coin", amount: 8}],
      requires: [],
@@ -505,7 +517,7 @@ var activities = [
      requires: [],
      after: [{uses: 3, gains: [{stat: "letters"}]}],
      costs: [{stat: "firewood", amount: 2}],
-     bonus: [{stat: "town.chapel", months: 4}]},
+     bonus: [{stat: "town.chapel", months: 4}, {stat: "int", needed: 8, months: 4}]},
     {id: "chapel", group: "Study", name: "Serve at the Chapel", glyph: "study", months: 9, rank: "", each: "", path: "", fromAge: 9, fromMonths: 6, finishBy: 15, uses: 2,
      gains: [{stat: "letters"}, {stat: "discipline"}],
      requires: [{stat: "letters"}]},
@@ -1797,14 +1809,27 @@ for (var i = 0; i < len(activities); i++)
         }
     }
 
-    // What a stat he holds, or the town, makes of it: every step that holds, in order
+    // What a stat he holds, or the town, makes of it: every step that holds, in order (what their
+    // `more` add, adds up). Its gloss says each step on a part or a skill of his, held or not,
+    // against the work as it is without them
     var bonuses = listOf(a, "bonus")
+    var plainMonths = a.months
+    var plainGains = a.gains
+
+    a.steps = []
 
     for (var b = 0; b < len(bonuses); b++)
     {
         var better = bonuses[b]
 
         amountsOf(better, "gains")
+
+        var stepLine = bonusStepLabel(bonuses, b, plainMonths, plainGains)
+
+        if (stepLine != "")
+        {
+            push(a.steps, {label: stepLine, reached: statOf(character, better.stat) >= lookup(better, "needed", 1)})
+        }
 
         if (statOf(character, better.stat) >= lookup(better, "needed", 1))
         {

@@ -1837,6 +1837,8 @@ namespace pg
             // The last month the carters' three months may be begun: 29 years and 9 months
             life->save.age = 29.75f - 1.0f / 12.0f;
             life->save.stats["rations"] = 60;
+            // (not strong enough to carry for them in two: Strength 9 shortens it)
+            life->save.stats["str"] = 8;
 
             life->onMonth();
             f.settle();
@@ -2074,6 +2076,63 @@ namespace pg
             }
 
             EXPECT_TRUE(berries);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A gloss says what a part or a skill of his would make of a work, before he has it, and
+        // marks it once he has.
+        TEST(lifescene_test, a_gloss_says_what_a_stat_would_bring)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.fresh = true;
+            opt.lives = 2;
+            opt.age = 8.0f;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            life->save.stats["rations"] = 24;
+            life->save.stats["dex"] = 8;
+            life->onMonth();
+            f.settle();
+
+            auto registry = f.ecs.getSystem<GlossRegistry>();
+            ASSERT_NE(registry, nullptr);
+
+            auto section = [](const GlossSpec* g, const std::string& heading) {
+                std::vector<GlossRow> rows;
+                bool inside = false;
+
+                for (const auto& r : g->rows)
+                {
+                    if (r.heading)
+                        inside = r.label == heading;
+                    else if (inside)
+                        rows.push_back(r);
+                }
+
+                return rows;
+            };
+
+            // The berries: what Dexterity 8 makes of them, which he has, and what 12 would
+            const GlossSpec* picking = registry->find("activity/scavenge.berries");
+            ASSERT_NE(picking, nullptr);
+
+            auto steps = section(picking, "BONUS");
+            ASSERT_EQ(steps.size(), 2u);
+            EXPECT_EQ(steps[0].label, "With Dexterity 8: +3 berries");
+            EXPECT_EQ(steps[0].tone, "gain");
+            EXPECT_EQ(steps[1].label, "With Dexterity 12: +6 berries");
+            EXPECT_EQ(steps[1].tone, "");
+
+            auto reward = section(picking, "REWARD");
+            ASSERT_EQ(reward.size(), 1u);
+            EXPECT_EQ(reward[0].value, "+9");
         }
 
         // ----------------------------------------------------------------------------------------
@@ -2415,6 +2474,8 @@ namespace pg
             // A year and a half from 30, a month at a time: three months of work, begun by 29.75
             life->save.age = 28.5f;
             life->save.stats["rations"] = 60;
+            // (not strong enough to carry for them in two: Strength 9 shortens it)
+            life->save.stats["str"] = 8;
 
             life->onMonth();
             f.settle();
@@ -3205,6 +3266,9 @@ namespace pg
             auto ledger = life->piece<ResourceLedger>("ledger");
             ASSERT_NE(ledger, nullptr);
             ASSERT_NE(ledger->row("rations"), nullptr);
+            // (not strong enough to carry for them in two: Strength 9 shortens it)
+            life->save.stats["str"] = 8;
+
             ASSERT_EQ(life->save.stats["rations"], 3);
 
             const size_t before = life->save.log.size();
@@ -3337,6 +3401,7 @@ namespace pg
             old.running = "carters";
             old.monthsIn = 1;
             old.stats["rations"] = 3;
+            old.stats["str"] = 8;
             old.boardUpFront = false;
             ASSERT_TRUE(old.save(path));
 
@@ -3411,6 +3476,7 @@ namespace pg
                 old.setAside = aside ? "carters" : "";
                 old.setAsideMonths = aside ? 1 : 0;
                 old.stats["rations"] = 3;
+                old.stats["str"] = 8;
                 old.boardUpFront = false;
                 ASSERT_TRUE(old.save(path));
 
@@ -5516,6 +5582,11 @@ namespace pg
 
                 return "<none>";
             };
+
+            // (not strong enough to carry for them in two: Strength 9 shortens it)
+            life->save.stats["str"] = 8;
+            life->onMonth();
+            f.settle();
 
             EXPECT_EQ(rations(), "3 up front");
 

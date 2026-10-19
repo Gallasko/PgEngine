@@ -548,6 +548,154 @@ fun listedWords(words)
     return text
 }
 
+// What a step of a work brings or takes, as a line of its gloss says it: a thing in plain words
+// ("+3 berries", "+2 coin"), a part or a skill by its name ("+1 Renown"), and a flag by its name
+// alone ("Victor of the tourney").
+fun stepGainWords(stat, amount)
+{
+    var thing = stat == "coin" or stat == "rations" or stat == "reagents"
+
+    for (var b = 0; b < len(basicResources); b++)
+    {
+        if (basicResources[b].id == stat)
+        {
+            thing = true
+        }
+    }
+
+    for (var m = 0; m < len(madeResources); m++)
+    {
+        if (madeResources[m].id == stat)
+        {
+            thing = true
+        }
+    }
+
+    var sign = "+"
+    var count = amount
+
+    if (amount < 0)
+    {
+        sign = "−"
+        count = 0 - amount
+    }
+
+    if (thing)
+    {
+        return sign + toLowerCase(thingsWord(stat, count))
+    }
+
+    var counted = stat == "favors"
+
+    for (var p = 0; p < len(partsAndSkills); p++)
+    {
+        if (partsAndSkills[p] == stat)
+        {
+            counted = true
+        }
+    }
+
+    if (counted)
+    {
+        return sign + toString(count) + " " + statName(stat)
+    }
+
+    return statName(stat)
+}
+
+// The line of a work's gloss for the step `s` of its `bonus`: what one of his parts or skills
+// (`partsAndSkills`) would make of it, "With Strength 8: +2 firewood", "With Dexterity 9: 2 months,
+// not 3". What the town or a flag makes of a work is said where they are: "" for those steps.
+// `plainMonths` and `plainGains` are the work's own, before any step. Every step on that stat up
+// to this one adds its `more` (activitytable.pg applies them all), so the line says all he brings
+// once he has it, and not the step's share.
+fun bonusStepLabel(steps, s, plainMonths, plainGains)
+{
+    var step = steps[s]
+    var shown = false
+
+    for (var p = 0; p < len(partsAndSkills); p++)
+    {
+        if (partsAndSkills[p] == step.stat)
+        {
+            shown = true
+        }
+    }
+
+    if (not shown)
+    {
+        return ""
+    }
+
+    var needed = lookup(step, "needed", 1)
+    var said = []
+
+    if (has(step, "months"))
+    {
+        var unit = " months"
+
+        if (step.months == 1)
+        {
+            unit = " month"
+        }
+
+        push(said, toString(step.months) + unit + ", not " + toString(plainMonths))
+    }
+
+    // What it brings in place of the work's own: what that adds to them
+    var gained = listOf(step, "gains")
+
+    for (var g = 0; g < len(gained); g++)
+    {
+        var before = 0
+
+        for (var o = 0; o < len(plainGains); o++)
+        {
+            if (plainGains[o].stat == gained[g].stat)
+            {
+                before = before + plainGains[o].amount
+            }
+        }
+
+        var added = lookup(gained[g], "amount", 1) - before
+
+        if (added != 0 and not statHidden(gained[g].stat))
+        {
+            push(said, stepGainWords(gained[g].stat, added))
+        }
+    }
+
+    // What it adds to them, with what the steps below it on the same stat add
+    var moreOf = {}
+    var order = []
+
+    for (var o = 0; o < len(steps); o++)
+    {
+        if (steps[o].stat == step.stat and lookup(steps[o], "needed", 1) <= needed)
+        {
+            var more = listOf(steps[o], "more")
+
+            for (var m = 0; m < len(more); m++)
+            {
+                if (not contain(moreOf, more[m].stat))
+                {
+                    moreOf[more[m].stat] = 0
+                    push(order, more[m].stat)
+                }
+
+                moreOf[more[m].stat] = moreOf[more[m].stat] + lookup(more[m], "amount", 1)
+            }
+        }
+    }
+
+    for (var m = 0; m < len(order); m++)
+    {
+        push(said, stepGainWords(order[m], moreOf[order[m]]))
+    }
+
+    return "With " + statName(step.stat) + " " + toString(needed) + ": " + listedWords(said)
+}
+
 // What a kind eats and makes a month, in caps for a tile: "EATS 1 RATION · MAKES 4 BERRIES".
 fun upkeepCaption(kind)
 {
@@ -1123,6 +1271,10 @@ var noBreak = " "
 // but no tile, gloss or log line shows them as something it brings. What asks for one may still
 // name it, under its name below: the requirement says why a row has opened.
 const hiddenStats = ["scavenged"]
+
+// His parts and his skills, as the Life page lists them: what a work may go better with (the steps
+// of its `bonus` on one of them are said in its gloss, `bonusStepLabel`).
+const partsAndSkills = ["str", "dex", "int", "vit", "arms", "discipline", "letters", "lore", "arcana", "stealth", "guile", "renown"]
 
 // The names a stat or a flag is written with.
 const statNames = {

@@ -96,13 +96,14 @@ namespace chronicle
 
     // An activity from activitytable.pg: its scalar fields (id, group, name, glyph, months, rank,
     // each, path, enters, board, upFront, fromAge, finishBy, locked, done, uses, left, spent, closed,
-    // pathOpen, listed, tally) and its three lists.
+    // pathOpen, listed, tally) and its four lists.
     struct RuleActivity
     {
         pg::ElementMap fields;
         pg::RecordList gains;          // {stat, amount, label}: what the activity brings at term
         pg::RecordList costs;          // {stat, amount, label}: what it takes when it begins
         pg::RecordList requires;       // {stat, label, current, needed}: what it asks before it can start
+        pg::RecordList steps;          // {label, reached}: what a part or skill of his would make of it (its `bonus`), and whether he has it
     };
 
     // A milestone from milestones.pg: {age, id, label, passed} and what it asks, per path.

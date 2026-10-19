@@ -2742,6 +2742,93 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // A stat makes some works pay more or go faster: steps of a row's `bonus`. Two steps on one
+        // stat add up, so the higher one gives the rest of what is said of it ("in total")
+        TEST(rules_test, stats_make_works_pay_more_or_go_faster)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            auto berriesAt = [&](int dex) {
+                ElementMap picker = boy();
+                picker["dex"] = ElementType{dex};
+
+                RuleActivity row = activityAt(f.rules, 8.0f, picker, "scavenge.berries");
+
+                for (const auto& g : row.gains)
+                {
+                    if (textOf(g, "stat") == "berries")
+                        return intOf(g, "amount");
+                }
+
+                return -1;
+            };
+
+            EXPECT_EQ(berriesAt(7), 6);
+            EXPECT_EQ(berriesAt(8), 9);
+            EXPECT_EQ(berriesAt(12), 12);
+
+            // The carters take a strong boy for two months, not three: the pay stays, and the
+            // rations up front are the two months'
+            ElementMap strong = boy();
+            strong["str"] = ElementType{9};
+
+            RuleActivity carters = activityAt(f.rules, 8.0f, boy(), "carters");
+            EXPECT_EQ(intOf(carters.fields, "months"), 3);
+            EXPECT_EQ(intOf(carters.fields, "upFront"), 3);
+
+            carters = activityAt(f.rules, 8.0f, strong, "carters");
+            EXPECT_EQ(intOf(carters.fields, "months"), 2);
+            EXPECT_EQ(intOf(carters.fields, "upFront"), 2);
+            ASSERT_EQ(carters.gains.size(), 1u);
+            EXPECT_EQ(intOf(carters.gains[0], "amount"), 6);
+
+            // A quick mind learns its letters in four months
+            ElementMap bright = boy();
+            bright["int"] = ElementType{8};
+
+            EXPECT_EQ(intOf(activityAt(f.rules, 8.0f, boy(), "letters").fields, "months"), 6);
+            EXPECT_EQ(intOf(activityAt(f.rules, 8.0f, bright, "letters").fields, "months"), 4);
+
+            // What each step would give is said before he has it, and marked once he has
+            ElementMap deft = boy();
+            deft["dex"] = ElementType{8};
+
+            RuleActivity berries = activityAt(f.rules, 8.0f, deft, "scavenge.berries");
+            ASSERT_EQ(berries.steps.size(), 2u);
+            EXPECT_EQ(textOf(berries.steps[0], "label"), "With Dexterity 8: +3 berries");
+            EXPECT_TRUE(flag(berries.steps[0], "reached"));
+            EXPECT_EQ(textOf(berries.steps[1], "label"), "With Dexterity 12: +6 berries");
+            EXPECT_FALSE(flag(berries.steps[1], "reached"));
+
+            RuleActivity firewood = activityAt(f.rules, 8.0f, boy(), "scavenge.firewood");
+            ASSERT_EQ(firewood.steps.size(), 2u);
+            EXPECT_EQ(textOf(firewood.steps[0], "label"), "With Strength 8: +2 firewood");
+            EXPECT_EQ(textOf(firewood.steps[1], "label"), "With Strength 12: +4 firewood");
+            EXPECT_FALSE(flag(firewood.steps[0], "reached"));
+
+            carters = activityAt(f.rules, 8.0f, strong, "carters");
+            ASSERT_EQ(carters.steps.size(), 1u);
+            EXPECT_EQ(textOf(carters.steps[0], "label"), "With Strength 9: 2 months, not 3");
+            EXPECT_TRUE(flag(carters.steps[0], "reached"));
+
+            // The town's bonus, or a flag's, is not one of them: the chapel's windows on the letters
+            RuleActivity letters = activityAt(f.rules, 8.0f, boy(), "letters");
+            ASSERT_EQ(letters.steps.size(), 1u);
+            EXPECT_EQ(textOf(letters.steps[0], "label"), "With Intelligence 8: 4 months, not 6");
+
+            EXPECT_TRUE(activityAt(f.rules, 8.0f, boy(), "mill").steps.empty());
+
+            // A step that gives other gains says what it adds
+            ElementMap knight = {{"keep_oath", ElementType{1}}, {"arms", ElementType{5}}};
+            RuleActivity tourney = activityAt(f.rules, 19.0f, knight, "tourney");
+            ASSERT_EQ(tourney.steps.size(), 1u);
+            EXPECT_EQ(textOf(tourney.steps[0], "label"), "With Arms 7: +1 Renown, Victor of the tourney");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // The year as a first life meets it: a work at a time, one of the two, two of the three,
         // the market, the harvest, the mill; then the town's work, whole, the day he is seven.
         TEST(rules_test, the_sixth_year_a_work_at_a_time)

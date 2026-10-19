@@ -729,7 +729,7 @@ namespace chronicle
         // A list read is added to what its list holds
         shapedWindows.clear();
 
-        if (not s.run() or not s.get("activities", {"gains", "costs", "requires"}, records) or not s.get("windows", shapedWindows))
+        if (not s.run() or not s.get("activities", {"gains", "costs", "requires", "steps"}, records) or not s.get("windows", shapedWindows))
             return fail(s);
 
         shapedActivities.clear();
@@ -743,6 +743,7 @@ namespace chronicle
             activity.gains = std::move(record.lists[0]);
             activity.costs = std::move(record.lists[1]);
             activity.requires = std::move(record.lists[2]);
+            activity.steps = std::move(record.lists[3]);
 
             shapedActivities.push_back(std::move(activity));
         }
