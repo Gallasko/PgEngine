@@ -5,6 +5,8 @@
 #include <cstddef>
 
 #include <stdexcept>
+#include <string_view>
+#include <unordered_map>
 
 #include "object.h"
 
@@ -147,6 +149,12 @@ namespace pg
 
         std::vector<Value> constants;
 
+        // findConstant's index of `constants`: hash -> position, for the first constantsIndexed of them,
+        // hashed with constantIndexPool
+        std::unordered_multimap<size_t, uint32_t> constantIndex;
+        size_t constantsIndexed = 0;
+        AllocatorPool<std::string>* constantIndexPool = nullptr;
+
         std::vector<int> lines;
 
         // Track which native modules were imported during compilation
@@ -219,29 +227,83 @@ namespace pg
 
         AllocatorPool<std::string>* stringPool = nullptr;  // Set by compiler/VM for string comparison
 
+        /**
+         * @brief A hash of what valuesEqual compares: two values it finds equal hash alike
+         *
+         * Small strings by their characters, interned ones by their index, long ones by their text
+         * in the string pool (when valuesEqual could read it there), anything else by its bits.
+         */
+        size_t constantHash(Value v) const
+        {
+            if (IS_SMALL_STRING(v))
+                return std::hash<std::string>{}(AS_SMALL_STRING(v));
+
+            if (IS_INTERNED_STRING(v))
+                return std::hash<uint64_t>{}(0x1000000000ull | AS_INTERNED_STRING_INDEX(v));
+
+            if (IS_LONG_STRING(v) and stringPool and AS_STRING_INDEX(v) < stringPool->getNbElements())
+            {
+                auto str = stringPool->getElement(AS_STRING_INDEX(v));
+
+                if (str)
+                    return std::hash<std::string_view>{}(*str);
+            }
+
+            return std::hash<uint64_t>{}(v);
+        }
+
+        /**
+         * @brief The first constant valuesEqual finds equal to value, or -1: what a scan of every
+         * constant from the first would find, through a hash index of them
+         *
+         * The index follows `constants` as it grows, from here or from outside (a .pgc read), and is
+         * built again when it shrank or the string pool changed.
+         */
+        int64_t findConstant(Value value)
+        {
+            if (constantIndexPool != stringPool or constantsIndexed > constants.size())
+            {
+                constantIndex.clear();
+                constantsIndexed = 0;
+                constantIndexPool = stringPool;
+            }
+
+            for (; constantsIndexed < constants.size(); ++constantsIndexed)
+                constantIndex.emplace(constantHash(constants[constantsIndexed]), static_cast<uint32_t>(constantsIndexed));
+
+            int64_t found = -1;
+
+            auto range = constantIndex.equal_range(constantHash(value));
+
+            for (auto it = range.first; it != range.second; ++it)
+            {
+                if ((found < 0 or it->second < found) and valuesEqual(constants[it->second], value, stringPool))
+                    found = it->second;
+            }
+
+            return found;
+        }
+
         size_t addConstant(const Value& value, int line)
         {
             // Check if constant already exists
-            for (size_t i = 0; i < constants.size(); i++)
+            if (auto existing = findConstant(value); existing >= 0)
             {
-                if (valuesEqual(constants[i], value, stringPool))
+                // Found existing constant, emit code to load it
+                size_t cIndex = static_cast<size_t>(existing);
+                if (cIndex > 255)
                 {
-                    // Found existing constant, emit code to load it
-                    auto cIndex = i;
-                    if (cIndex > 255)
-                    {
-                        addCode(OpCode::OP_LongConstant, line);
-                        addCode((cIndex >> 16) & 0xFF, line);
-                        addCode((cIndex >> 8) & 0xFF, line);
-                        addCode(cIndex & 0xFF, line);
-                    }
-                    else
-                    {
-                        addCode(OpCode::OP_Constant, line);
-                        addCode(cIndex, line);
-                    }
-                    return code.size() - 1;
+                    addCode(OpCode::OP_LongConstant, line);
+                    addCode((cIndex >> 16) & 0xFF, line);
+                    addCode((cIndex >> 8) & 0xFF, line);
+                    addCode(cIndex & 0xFF, line);
                 }
+                else
+                {
+                    addCode(OpCode::OP_Constant, line);
+                    addCode(cIndex, line);
+                }
+                return code.size() - 1;
             }
 
             // Constant doesn't exist, add it
@@ -275,17 +337,14 @@ namespace pg
         uint8_t addConstantIndex(const Value& value)
         {
             // Check if constant already exists
-            for (size_t i = 0; i < constants.size(); i++)
+            if (auto existing = findConstant(value); existing >= 0)
             {
-                if (valuesEqual(constants[i], value, stringPool))
+                if (existing > 255)
                 {
-                    if (i > 255)
-                    {
-                        throw std::runtime_error("Too many constants for single-byte index");
-                    }
-
-                    return static_cast<uint8_t>(i);
+                    throw std::runtime_error("Too many constants for single-byte index");
                 }
+
+                return static_cast<uint8_t>(existing);
             }
 
             // Constant doesn't exist, add it
@@ -321,6 +380,9 @@ namespace pg
             code.clear();
             constants.clear();
             lines.clear();
+
+            constantIndex.clear();
+            constantsIndexed = 0;
         }
     };
 
