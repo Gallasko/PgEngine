@@ -3384,6 +3384,66 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // What an old save is given is written at once: opened again before a month has passed, and
+        // with nothing saved by hand, it is not given twice. A fed work set aside for an answer is
+        // given the months it has left as well
+        TEST(lifescene_test, an_old_saves_rations_are_given_once_and_kept)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            const std::string path = "save/test_life_up_front_kept.sz";
+            std::remove(path.c_str());
+
+            LifeScene* life = f.life();
+            ASSERT_NE(life, nullptr);
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.noSave = false;
+            opt.savePath = path;
+
+            for (const bool aside : {false, true})
+            {
+                // A month into the carters' three, at work or set aside, nothing given for them
+                LifeSave old = life->save;
+                old.running = aside ? "" : "carters";
+                old.monthsIn = aside ? 0 : 1;
+                old.setAside = aside ? "carters" : "";
+                old.setAsideMonths = aside ? 1 : 0;
+                old.stats["rations"] = 3;
+                old.boardUpFront = false;
+                ASSERT_TRUE(old.save(path));
+
+                f.load<EmptyScene>();
+
+                LifeScene* opened = f.life(opt);
+                ASSERT_NE(opened, nullptr);
+                EXPECT_EQ(opened->save.stats["rations"], 5) << aside;
+                EXPECT_TRUE(opened->save.boardUpFront);
+
+                // The file says so already, before any month or any save by hand
+                LifeSave read;
+                ASSERT_TRUE(read.load(path));
+                EXPECT_TRUE(read.boardUpFront) << aside;
+                EXPECT_EQ(read.stats["rations"], 5) << aside;
+
+                f.load<EmptyScene>();
+
+                LifeScene* again = f.life(opt);
+                ASSERT_NE(again, nullptr);
+                EXPECT_EQ(again->save.stats["rations"], 5) << aside;
+
+                f.load<EmptyScene>();
+                life = f.life();
+                ASSERT_NE(life, nullptr);
+            }
+
+            std::remove(path.c_str());
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // Rations have a limit, and a purchase begun with room left may carry him past it. Under
         // it, at it and past it the row that sells them goes through every state it has (it asks
         // for room, is locked, is chosen and confirmed all the same) and the months pass over it.

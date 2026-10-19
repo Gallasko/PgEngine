@@ -5000,13 +5000,16 @@ namespace chronicle
     {
         // A save from before the rations were given up front: the work that feeds him under way
         // (or set aside for an answer) never gave them, and the months it has left must not starve
-        // him. Given once, and the save says so from then on
+        // him. Given once, and the save says so from then on: written at once, so that a save opened
+        // again before a month has passed is not given them twice. Written as it was read, the hour
+        // it was shut with it: what was written while it stayed shut is counted after this
         if (save.boardUpFront)
             return;
 
         save.boardUpFront = true;
 
         const std::pair<std::string, int> works[] = {{save.running, save.monthsIn}, {save.setAside, save.setAsideMonths}};
+        bool granted = false;
 
         for (const auto& [id, monthsIn] : works)
         {
@@ -5016,8 +5019,14 @@ namespace chronicle
                 continue;
 
             if (forecast.unworked > 0)
+            {
                 takeStats(forecast.atOwed);
+                granted = true;
+            }
         }
+
+        if (granted and not opt.noSave and not save.save(opt.savePath))
+            LOG_ERROR(DOM, "Could not save to " << opt.savePath);
     }
 
     void LifeScene::takeUpSetAside()
