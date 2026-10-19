@@ -2416,6 +2416,43 @@ namespace pg
             EXPECT_EQ(intOf(w.character, "vitmax"), most);
         }
 
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // On a walk the blow that brings him down is a blow: counted, and told as the beast's,
+        // whatever little was left of him to take (only a story's dummy spares him).
+        TEST(expedition_test, the_blow_that_brings_him_down_is_a_blow)
+        {
+            MockLogger logger;
+
+            ElementMap boy = knowing(gatherer(), "hedgerows", 10);
+            boy["vit"] = ElementType{1};
+
+            Walker w(boy);
+            w.age = 10.0f;
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"", "millpond", 0}));
+            ASSERT_TRUE(w.act("seek", "rat", 1));
+            w.answer();
+            ASSERT_EQ(w.screen(), "fight");
+            ASSERT_TRUE(pressUntil(w, "guard", 30, [&w]() { return not textOf(w.last.duel, "over").empty(); }));
+            ASSERT_EQ(textOf(w.last.duel, "over"), "lost");
+
+            EXPECT_GE(intOf(w.state.fight, "bitten"), 1);
+
+            bool bitten = false;
+
+            for (const auto& a : w.state.account)
+            {
+                EXPECT_EQ(textOf(a, "text").find("barely touches him"), std::string::npos) << textOf(a, "text");
+
+                if (textOf(a, "text") == "The water rat bites")
+                    bitten = true;
+            }
+
+            EXPECT_TRUE(bitten);
+        }
+
         namespace
         {
             // The last thing he did, as the account tells it

@@ -1577,8 +1577,8 @@ fun storyFightEnd(outcome, length, hurt)
     run.downed = 0
 }
 
-// Back from a fight of the story: what a win gives, the test it was sat, and the day ended (a
-// fight on its own, `auto`, is inside its tile's day, which ends it)
+// Back from a fight of the story: what a win gives, the test it was sat, and the day ended:
+// the tile's days, else one (a fight on its own, `auto`, is inside its tile's day, which ends it)
 fun storyFightBack(auto)
 {
     var story = storyNow()
@@ -1636,13 +1636,7 @@ fun storyFightBack(auto)
             score = score + pick(test, "reaction", 0)
         }
 
-        // (its day, as a test's: the fight's line is that day's)
-        var step = lastStep()
-
-        step.ap = step.ap + 1
-        run.ap = larger(0, runOf("ap") - 1)
-        run.spent = runOf("spent") + 1
-
+        countFightDay()
         testSat(test, score)
     }
     else if (days > 0)
@@ -1651,8 +1645,21 @@ fun storyFightBack(auto)
     }
     else
     {
-        openDue()
+        // A card's fight (or a meeting's): the day goes to it
+        countFightDay()
+        endDay(1)
     }
+}
+
+// The fight's line is a day of the scene: the day a test or a card's fight takes (a tile counted
+// its own days when it was taken)
+fun countFightDay()
+{
+    var step = lastStep()
+
+    step.ap = step.ap + 1
+    run.ap = larger(0, runOf("ap") - 1)
+    run.spent = runOf("spent") + 1
 }
 
 // The head of the fight screen in a story (fightpage.pg's `duelHead`): the scene and its day, no

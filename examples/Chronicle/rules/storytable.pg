@@ -136,17 +136,22 @@ const walkStories = [
      plan: {}},
 
     // The tests' fight story (story.cc): no row opens it. Three days: the fire working taught,
-    // a day idled, a bout with a wolf (fought by hand, and he may lose it), then the practical of
-    // the second day, two examination dummies fought by hand; no grade
+    // a day idled, a bout with a wolf (fought by hand, and he may lose it), a boast that brings a
+    // challenge (a card whose answer is a fight), then the practical of the second day, two
+    // examination dummies fought by hand; no grade
     {id: "drill", name: "The drill yard", glyph: "swordsmanship", unit: "day", days: 3, months: 3, row: "", "class": "", dropout: "",
-     marks: [{id: "practised", name: "Days on the dummy"}, {id: "braved", name: "Bouts fought"}],
+     marks: [{id: "practised", name: "Days on the dummy"}, {id: "braved", name: "Bouts fought"}, {id: "boasted", name: "Boasts made"}],
      stages: [{"from": 1, to: 3, title: "The yard", text: "Posts, straw and sand, and the masters along the wall."}],
      tiles: [{id: "fire", name: "Learn the fire working", about: "A master shows him how the fire is thrown.", days: [1, 1], cost: 1,
               gives: [{stat: "fire_course", amount: 1}], line: "Learned the fire working"},
              {id: "idle", name: "Watch the others", about: "Nothing asked of him today.", days: [1, 3], cost: 1, line: "Watched the others"},
              {id: "bout", name: "Spar with the wolf", about: "The keeper's wolf, on a long chain.", days: [1, 1], cost: 1,
-              gives: [{mark: "braved", amount: 1}, {stat: "renown", amount: 1}, {fight: "wolf"}], line: "Sparred with the wolf"}],
-     cards: [],
+              gives: [{mark: "braved", amount: 1}, {stat: "renown", amount: 1}, {fight: "wolf"}], line: "Sparred with the wolf"},
+             {id: "boast", name: "Boast in the yard", about: "Someone will want to see it.", days: [1, 1], cost: 1,
+              gives: [{mark: "boasted", amount: 1}], line: "Boasted in the yard"}],
+     cards: [{id: "challenge", day: 0, when: [{mark: "boasted", at: 1}], title: "A challenge",
+              text: "An older student points at the practice dummy, and waits.",
+              options: [{id: "accept", label: "Show him", gives: [{fight: "dummy"}], line: "Took the challenge"}]}],
      events: [],
      tests: [{id: "practical", day: 2, kind: "fight", title: "The practical",
               text: "Two dummies stand in the sand. The masters along the wall have their pens ready.",

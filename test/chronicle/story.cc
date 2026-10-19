@@ -1117,6 +1117,46 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // A card answered with a fight: the fight is the day's work, and the day ends when he is
+        // back from it.
+        TEST(story_test, a_fight_from_a_card_ends_the_day)
+        {
+            MockLogger logger;
+
+            ElementMap who = mage();
+            who["forbidden_read"] = ElementType{1};
+
+            Walker w(who);
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"story", "drill", 0}));
+            ASSERT_TRUE(w.take("boast"));
+
+            ASSERT_EQ(w.day(), 2);
+            ASSERT_EQ(w.cardId(), "story.challenge");
+
+            const int ap = intOf(w.state.run, "ap");
+
+            ASSERT_TRUE(w.act("option", "accept"));
+            ASSERT_EQ(w.screen(), "fight");
+            EXPECT_EQ(textOf(w.state.fight, "mob"), "dummy");
+            EXPECT_EQ(w.day(), 2);
+
+            w.fightWith("step");
+            ASSERT_FALSE(w.over().empty());
+
+            ASSERT_TRUE(w.act("back"));
+            EXPECT_EQ(w.day(), 3);
+            EXPECT_EQ(intOf(w.state.run, "ap"), ap - 1);
+            EXPECT_EQ(intOf(w.state.run, "monthsDue"), 1);
+            EXPECT_EQ(intOf(w.state.run, "monthsRun"), 2);
+
+            // The practical, whose day went by in the fight, comes next
+            EXPECT_EQ(w.cardId(), "story.practical");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // A fight of the story lost or fled from takes nothing the days gave: the marks and the stats
         // stay his, he is not carried home, and the scene goes on.
         TEST(story_test, a_story_fight_never_loses_the_gains)

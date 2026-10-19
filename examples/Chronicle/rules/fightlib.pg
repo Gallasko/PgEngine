@@ -923,7 +923,8 @@ fun foeTurn(i)
 
             var taken = 0 - shiftHp(0 - dealt)
 
-            if (taken <= 0)
+            // (only a beast that spares: on a walk, the blow that brings him down at one is a blow)
+            if (taken <= 0 and pick(mob, "spares", false))
             {
                 // It spared him all of it: a knock, no more
                 say("The " + toLowerCase(foe.name) + " " + mob.verb + ": it barely touches him", "—", "note")
