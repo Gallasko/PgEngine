@@ -1662,6 +1662,7 @@ if(NOT BUILD_STATIC_LIB AND BUILD_EXAMPLES)
             test/hover.cc
             test/tooltip.cc
             test/clip.cc
+            test/scenesystem.cc
             test/scriptregistry.cc
             test/serialize.cc
             test/sparsesettest.cc

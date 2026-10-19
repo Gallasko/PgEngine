@@ -117,7 +117,7 @@ namespace pg
         template <typename Type>
         Type* getSystem() const { return ecsRef->getSystem<Type>(); }
 
-        EntitySystem *ecsRef;
+        EntitySystem *ecsRef = nullptr;
     };
 
     struct SceneFile
@@ -225,6 +225,9 @@ namespace pg
                 delete nextSystemScene;
 
             nextSystemScene = new Type(args...);
+
+            // Set now: a scene freed before it loads (with the ecs) may reach the ecs as it goes
+            nextSystemScene->ecsRef = ecsRef;
 
             sceneToLoadFlag = SceneToLoadFlag::SystemScene;
             loadingNewScene = true;
