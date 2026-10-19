@@ -13,12 +13,16 @@
 //   {story, zone: "", mode (site | done), day (the day he is on, from 1), days, months,
 //    monthsRun (the months gone by), monthsDue (the months the act just answered has run: the
 //    Life screen runs them), ap (the days left: a day is one, so openStep and stayOver hold),
-//    apTotal, spent, hp, hpMax, hpStart, found: "", event: "", refused, leaving, result ("" while
-//    it runs, then "over" or "left"), seed, startMonth,
-//    "m.<mark>" (a mark of the scene), "t.<tile>" (the times a tile was taken)}
+//    apTotal, spent, hp, hpMax, hpStart, found: "", event ("" or "story.<id>": a card, a test or
+//    a chance meeting of the story waits for his answer), refused, leaving, result ("" while it
+//    runs, then "over", "left", "dropout" or the grade's id), seed, startMonth,
+//    "m.<mark>" (a mark of the scene), "t.<tile>" (the times a tile was taken),
+//    "c.<card>" (a card answered), "met.<event>" (a chance meeting met),
+//    "sat.<test>" and "score.<test>" (a test sat, and what it scored)}
 // A step of the record is a day: kind "tile", target the tile's id. A mark is also written to
 // `marks` ({step, kind: "mark", id, n}), a stat it gave ({kind: "stat"}) and a fee ({kind: "fee"}),
-// so the page says what the scene has given and taken.
+// so the page says what the scene has given and taken. An answer is a step too: kind "card",
+// "event" (no day) or "test" (its day), target "<card>/<answer>".
 
 import "string"
 import "math"
@@ -238,6 +242,9 @@ fun enterStory(id)
     fight = {over: "", mob: ""}
     foes = []
     account = []
+
+    // A card of the first day is there when he arrives
+    openDue()
 }
 
 // The months that fall due as the days pass: the row's months spread over the scene's days,
@@ -247,7 +254,8 @@ fun monthsDue()
     return wholeOf((runOf("day") - 1) * runOf("months"), larger(1, runOf("days"))) - runOf("monthsRun")
 }
 
-// The day's end: the next day comes, and the months it completes are run (by the Life screen)
+// The day's end: the next day comes, and the months it completes are run (by the Life screen).
+// The new day begins with its card, if one waits, or by chance a meeting of the story's
 fun endDay(days)
 {
     run.day = runOf("day") + days
@@ -256,6 +264,16 @@ fun endDay(days)
 
     run.monthsDue = due
     run.monthsRun = runOf("monthsRun") + due
+
+    if (runOf("day") <= runOf("days"))
+    {
+        openDue()
+
+        if (run.event == "")
+        {
+            maybeEvent("day")
+        }
+    }
 }
 
 // What a gift brings, in words, for the tile's gloss and the record ("" for a mark: the scene's
@@ -428,6 +446,9 @@ fun leaveStory()
     run.ap = 0
     run.left = lost
     run.result = "left"
+
+    // Leaving a class is dropping out of it
+    dropOut()
 }
 
 // One thing he does in a story: a tile (`tile` and its id, or `tile.<id>` as the page sends it)
@@ -478,9 +499,895 @@ fun endStory()
     {
         push(entries, {text: "Left " + name + " on the " + storyDayText() + ", with what it had given him", kind: "note", figure: "", glyph: story.glyph})
     }
-    else
+    else if (run.result == "dropout")
+    {
+        push(entries, {text: "Dropped out of " + name + " on the " + storyDayText() + ", with what it had given him", kind: "loss", figure: "", glyph: story.glyph})
+    }
+    else if (run.result == "over")
     {
         push(entries, {text: "Saw " + name + " to its end", kind: "note", figure: "", glyph: story.glyph})
+    }
+
+    // A grade wrote its own line (storyResult)
+}
+
+// ---- the cards, the chance meetings and the tests -----------------------------------------------------
+//
+// A card, a test or a meeting of the story is up while `run.event` is "story.<its id>": the walk's
+// event screen shows it (expeditionlib.pg's `eventCard` and `optionRows` ask `storyCardPage` and
+// `storyOptionRows`) and the answer comes to `storyChoose`. A card is no day: the day's tiles are
+// there again once it is answered. A test is its day's work.
+
+fun storyCard(story, id)
+{
+    var cards = pick(story, "cards", [])
+
+    for (var i = 0; i < len(cards); i++)
+    {
+        if (cards[i].id == id)
+        {
+            return cards[i]
+        }
+    }
+
+    return {id: ""}
+}
+
+fun storyTest(story, id)
+{
+    var tests = pick(story, "tests", [])
+
+    for (var i = 0; i < len(tests); i++)
+    {
+        if (tests[i].id == id)
+        {
+            return tests[i]
+        }
+    }
+
+    return {id: ""}
+}
+
+fun storyEvent(story, id)
+{
+    var events = pick(story, "events", [])
+
+    for (var i = 0; i < len(events); i++)
+    {
+        if (events[i].id == id)
+        {
+            return events[i]
+        }
+    }
+
+    return {id: ""}
+}
+
+// What is up, by the id `run.event` gives it ("story.<id>"): the card, the test or the meeting
+fun storyUp()
+{
+    if (not startsWith(pick(run, "event", ""), "story."))
+    {
+        return {id: ""}
+    }
+
+    var id = substring(run.event, 6)
+    var story = storyNow()
+    var test = storyTest(story, id)
+
+    if (test.id != "")
+    {
+        return test
+    }
+
+    var card = storyCard(story, id)
+
+    if (card.id != "")
+    {
+        return card
+    }
+
+    return storyEvent(story, id)
+}
+
+// What is up: "test", "card", "event", or "" (each looked up into a var: a field of a table a
+// function has just built is not read off the call)
+fun upKind()
+{
+    var up = storyUp()
+
+    if (up.id == "")
+    {
+        return ""
+    }
+
+    var story = storyNow()
+    var test = storyTest(story, up.id)
+
+    if (test.id != "")
+    {
+        return "test"
+    }
+
+    var card = storyCard(story, up.id)
+
+    if (card.id != "")
+    {
+        return "card"
+    }
+
+    return "event"
+}
+
+// A condition of a card or a need: a mark of the scene, or a stat or flag of his life, at `at`
+// or more (1 when it says none)
+fun meets(cond)
+{
+    var at = pick(cond, "at", 1)
+
+    if (typeOf(cond.mark) != "none")
+    {
+        return markOf(cond.mark) >= at
+    }
+
+    if (typeOf(cond.flag) != "none")
+    {
+        return mine(cond.flag) >= at
+    }
+
+    return mine(pick(cond, "stat", "")) >= at
+}
+
+fun answered(id)
+{
+    return runOf("c." + id) > 0
+}
+
+// The curriculum: the marks of its courses together come to its least (no gate: it holds)
+fun gateHolds(story)
+{
+    var gate = pick(story, "gate", {})
+    var courses = pick(gate, "courses", [])
+    var followed = 0
+
+    for (var i = 0; i < len(courses); i++)
+    {
+        followed = followed + markOf(courses[i])
+    }
+
+    return followed >= pick(gate, "least", 0)
+}
+
+// The card that waits for him today, "" when none: first a card whose `when` is met, then the
+// card of the day, then, from the gate's day, the masters sending him away if the curriculum is
+// not followed (and no test opens), then the tests in their days' order. Each card opens once,
+// each test is sat once
+fun dueCard()
+{
+    var story = storyNow()
+    var day = runOf("day")
+    var cards = pick(story, "cards", [])
+    var gate = pick(story, "gate", {})
+    var gateCard = pick(gate, "card", "")
+
+    for (var i = 0; i < len(cards); i++)
+    {
+        var card = cards[i]
+
+        if (card.id != gateCard and pick(card, "day", 0) == 0 and not answered(card.id))
+        {
+            var when = pick(card, "when", [])
+            var met = true
+
+            for (var w = 0; w < len(when); w++)
+            {
+                if (not meets(when[w]))
+                {
+                    met = false
+                }
+            }
+
+            if (met)
+            {
+                return card.id
+            }
+        }
+    }
+
+    for (var i = 0; i < len(cards); i++)
+    {
+        if (cards[i].id != gateCard and pick(cards[i], "day", 0) == day and not answered(cards[i].id))
+        {
+            return cards[i].id
+        }
+    }
+
+    if (typeOf(story.gate) != "none" and day >= pick(gate, "day", 0) and not gateHolds(story))
+    {
+        if (gateCard != "" and not answered(gateCard))
+        {
+            return gateCard
+        }
+
+        return ""
+    }
+
+    var tests = pick(story, "tests", [])
+
+    for (var i = 0; i < len(tests); i++)
+    {
+        if (pick(tests[i], "day", 0) <= day and runOf("sat." + tests[i].id) == 0)
+        {
+            return tests[i].id
+        }
+    }
+
+    return ""
+}
+
+// The card that waits, put up (nothing once the scene is over)
+fun openDue()
+{
+    if (run.mode == "done" or pick(run, "result", "") != "" or runOf("day") > runOf("days"))
+    {
+        return
+    }
+
+    var id = dueCard()
+
+    if (id != "")
+    {
+        run.event = "story." + id
+    }
+}
+
+// A chance meeting of the story's own, in place of a zone's (expeditionlib.pg's `maybeEvent`
+// asks it in a story): one of those of the trigger and the day, not met yet in the scene
+fun drawStoryEvent(trigger)
+{
+    if (pick(run, "event", "") != "")
+    {
+        return
+    }
+
+    var story = storyNow()
+    var events = pick(story, "events", [])
+    var day = runOf("day")
+    var open = []
+    var weight = 0
+
+    for (var i = 0; i < len(events); i++)
+    {
+        var event = events[i]
+        var days = pick(event, "days", [1, runOf("days")])
+
+        if (event.trigger == trigger and day >= days[0] and day <= days[1] and runOf("met." + event.id) == 0)
+        {
+            if (not pick(event, "once", false) or mine("met." + story.id + "." + event.id) <= 0)
+            {
+                push(open, event)
+                weight = weight + pick(event, "weight", 1)
+            }
+        }
+    }
+
+    if (len(open) == 0 or not chance(walkKnobs.eventChance))
+    {
+        return
+    }
+
+    var drawn = roll(weight)
+
+    for (var i = 0; i < len(open); i++)
+    {
+        var w = pick(open[i], "weight", 1)
+
+        if (drawn >= 0 and drawn < w)
+        {
+            run.event = "story." + open[i].id
+        }
+
+        drawn = drawn - w
+    }
+}
+
+// Whether an answer is listed: nothing it shuts on holds, and a test's answer is there only for
+// who holds what it needs (a card's is shown shut, saying what it asks)
+fun answerShown(option, isTest)
+{
+    var shut = pick(option, "not", [])
+
+    for (var i = 0; i < len(shut); i++)
+    {
+        if (holds(shut[i]))
+        {
+            return false
+        }
+    }
+
+    return not isTest or needShort(option) == ""
+}
+
+// Why an answer listed cannot be given: what it needs, what it costs ("" if it can)
+fun answerShort(option)
+{
+    var need = needShort(option)
+
+    if (need != "")
+    {
+        return need
+    }
+
+    var fee = pick(option, "fee", [])
+
+    for (var i = 0; i < len(fee); i++)
+    {
+        if (mine(fee[i].stat) < fee[i].amount)
+        {
+            return "ASKS " + toUpperCase(feeText(option)) + ", " + toString(mine(fee[i].stat)) + " HELD"
+        }
+    }
+
+    return ""
+}
+
+// An answer in one line: what it costs and gives, and for a test what it leans on (never how
+// much: no figure of the score is said)
+fun answerLine(option, isTest)
+{
+    var story = storyNow()
+    var parts = []
+    var ap = pick(option, "ap", 0)
+
+    if (ap > 0)
+    {
+        push(parts, counted(ap, story.unit, story.unit + "s"))
+    }
+
+    if (feeText(option) != "")
+    {
+        push(parts, "−" + feeText(option))
+    }
+
+    var hp = pick(option, "hp", 0)
+
+    if (hp != 0)
+    {
+        push(parts, signed(hp) + " vitality")
+    }
+
+    var items = pick(option, "items", [])
+
+    for (var i = 0; i < len(items); i++)
+    {
+        if (items[i].amount < 0)
+        {
+            push(parts, "−" + itemText(items[i].id, 0 - items[i].amount))
+        }
+        else
+        {
+            push(parts, "+" + itemText(items[i].id, items[i].amount))
+        }
+    }
+
+    var effects = pick(option, "effects", [])
+
+    for (var i = 0; i < len(effects); i++)
+    {
+        if (effects[i].kind == "stat")
+        {
+            push(parts, signed(effects[i].amount) + " " + toLowerCase(statName(effects[i].stat)))
+        }
+    }
+
+    var gives = pick(option, "gives", [])
+
+    for (var i = 0; i < len(gives); i++)
+    {
+        if (typeOf(gives[i].mark) != "none")
+        {
+            push(parts, markName(story, gives[i].mark))
+        }
+        else if (giftText(gives[i]) != "")
+        {
+            push(parts, giftText(gives[i]))
+        }
+    }
+
+    if (isTest)
+    {
+        var swap = pick(option, "swap", {})
+        var adds = pick(option, "adds", 0)
+
+        if (pick(swap, "from", "") != "")
+        {
+            push(parts, "Leans on " + toLowerCase(statName(swap.to)) + " in place of " + toLowerCase(statName(swap["from"])))
+        }
+        else if (adds > 0)
+        {
+            push(parts, "Counts for more than was taught")
+        }
+        else if (adds < 0)
+        {
+            push(parts, "Counts for less than was taught")
+        }
+        else
+        {
+            push(parts, "Leans on what he was taught")
+        }
+    }
+
+    return joined(parts, " · ")
+}
+
+// The card up, for the event screen
+fun storyCardPage()
+{
+    var up = storyUp()
+
+    if (up.id == "")
+    {
+        return {id: "", title: "", text: "", foot: ""}
+    }
+
+    var story = storyNow()
+    var foot = "His answer is written to the day; the day goes on."
+
+    if (upKind() == "test")
+    {
+        foot = "He sits it once, and it is his day's work."
+    }
+    else if (upKind() == "event")
+    {
+        foot = "A chance of the day: his answer is written to it."
+    }
+
+    return {id: run.event, title: up.title, text: up.text, foot: foot}
+}
+
+// Its answers: up to four, those he may not see left out, those he cannot give shut
+fun storyOptionRows()
+{
+    var story = storyNow()
+    var up = storyUp()
+    var rows = []
+
+    if (up.id == "")
+    {
+        return rows
+    }
+
+    var isTest = upKind() == "test"
+    var isEvent = upKind() == "event"
+
+    for (var i = 0; i < len(up.options) and len(rows) < 4; i++)
+    {
+        var option = up.options[i]
+
+        if (not answerShown(option, isTest))
+        {
+            continue
+        }
+
+        var short = answerShort(option)
+
+        if (isEvent)
+        {
+            short = optionShort(option)
+        }
+
+        var row = {id: option.id, label: option.label, line: answerLine(option, isTest), locked: 0, asks: short}
+
+        if (short != "")
+        {
+            row.locked = 1
+        }
+
+        push(rows, row)
+    }
+
+    return rows
+}
+
+// An answer written as a step of the record: its line, its fee paid, its gifts given
+fun answerStep(kind, target, days, option)
+{
+    var story = storyNow()
+
+    openStep(kind, target, 1, days, pick(option, "line", option.label), story.glyph)
+
+    var fee = pick(option, "fee", [])
+
+    for (var i = 0; i < len(fee); i++)
+    {
+        after[fee[i].stat] = mine(fee[i].stat) - fee[i].amount
+        push(marks, {step: len(record), kind: "fee", id: fee[i].stat, n: fee[i].amount})
+    }
+
+    var step = lastStep()
+
+    if (feeText(option) != "")
+    {
+        step.used = "−" + feeText(option)
+    }
+
+    var gives = pick(option, "gives", [])
+
+    for (var i = 0; i < len(gives); i++)
+    {
+        giveGift(gives[i])
+
+        if (typeOf(gives[i].mark) == "none" and typeOf(gives[i].item) == "none" and giftText(gives[i]) != "")
+        {
+            step.gave = addTo(step.gave, giftText(gives[i]))
+        }
+    }
+}
+
+// The line's right for an answer: the days if it took any, his Vitality, what it cost and gave
+fun answerFigure(days)
+{
+    var story = storyNow()
+    var step = lastStep()
+    var parts = []
+
+    if (days > 0)
+    {
+        push(parts, toUpperCase(counted(days, story.unit, story.unit + "s")))
+    }
+
+    if (step.hp != 0)
+    {
+        push(parts, signed(step.hp) + " VIT")
+    }
+
+    if (step.used != "")
+    {
+        push(parts, toUpperCase(step.used))
+    }
+
+    if (step.gave != "")
+    {
+        push(parts, toUpperCase(step.gave))
+    }
+
+    step.figure = joined(parts, " · ")
+}
+
+// He drops out of the story (a fail, sent away, or he left): its flag, when it has one. He keeps
+// all the days gave him
+fun dropOut()
+{
+    var story = storyNow()
+
+    if (pick(story, "dropout", "") != "")
+    {
+        after[story.dropout] = 1
+    }
+}
+
+// A card answered: the answer's gifts, and the scene ended there if the answer ends it (the
+// gate's card always does: he is sent away)
+fun answerCard(card, option)
+{
+    var story = storyNow()
+    var gate = pick(story, "gate", {})
+
+    answerStep("card", card.id + "/" + option.id, 0, option)
+    answerFigure(0)
+
+    run["c." + card.id] = 1
+
+    if (pick(option, "ends", "") == "dropout" or card.id == pick(gate, "card", ""))
+    {
+        run.result = "dropout"
+        run.left = runOf("ap")
+        run.ap = 0
+
+        dropOut()
+    }
+}
+
+// A chance meeting answered, as a walk's is (its days, his Vitality, things, stats), with a
+// story's gifts besides
+fun answerEvent(event, option)
+{
+    var story = storyNow()
+    var ap = pick(option, "ap", 0)
+
+    answerStep("event", event.id + "/" + option.id, ap, option)
+
+    run["met." + event.id] = 1
+
+    if (pick(event, "once", false))
+    {
+        after["met." + story.id + "." + event.id] = 1
+    }
+
+    if (pick(option, "hp", 0) != 0)
+    {
+        shiftHp(option.hp)
+    }
+
+    var items = pick(option, "items", [])
+
+    for (var i = 0; i < len(items); i++)
+    {
+        if (items[i].amount < 0)
+        {
+            take(items[i].id, 0 - items[i].amount)
+        }
+        else
+        {
+            give(items[i].id, items[i].amount)
+        }
+    }
+
+    var effects = pick(option, "effects", [])
+    var step = lastStep()
+
+    for (var i = 0; i < len(effects); i++)
+    {
+        if (effects[i].kind == "stat")
+        {
+            after[effects[i].stat] = raised(mine(effects[i].stat), effects[i].stat, effects[i].amount)
+            push(marks, {step: len(record), kind: "stat", id: effects[i].stat, n: effects[i].amount})
+            step.gave = addTo(step.gave, signed(effects[i].amount) + " " + statName(effects[i].stat))
+        }
+    }
+
+    answerFigure(ap)
+
+    if (ap > 0)
+    {
+        endDay(ap)
+    }
+}
+
+// What a term of a test's score counts: a stat or mark times `times` (or `times` once at `at`),
+// a flag `times` when held. The answer may read the term as another stat or mark
+fun termValue(term, option)
+{
+    var kind = "stat"
+    var key = pick(term, "stat", "")
+
+    if (typeOf(term.mark) != "none")
+    {
+        kind = "mark"
+        key = term.mark
+    }
+    else if (typeOf(term.flag) != "none")
+    {
+        kind = "flag"
+        key = term.flag
+    }
+
+    var times = pick(term, "times", 1)
+    var swap = pick(option, "swap", {})
+
+    if (key != "" and pick(swap, "from", "") == key)
+    {
+        key = pick(swap, "to", key)
+        times = pick(swap, "times", times)
+    }
+
+    var value = mine(key)
+
+    if (kind == "mark")
+    {
+        value = markOf(key)
+    }
+
+    if (kind == "flag")
+    {
+        if (value > 0)
+        {
+            return times
+        }
+
+        return 0
+    }
+
+    var at = pick(term, "at", 0)
+
+    if (at > 0)
+    {
+        if (value >= at)
+        {
+            return times
+        }
+
+        return 0
+    }
+
+    return value * times
+}
+
+// A test's score, sat with an answer: its terms, and what the answer adds
+fun testScore(test, option)
+{
+    var score = pick(test, "score", [])
+    var total = pick(option, "adds", 0)
+
+    for (var i = 0; i < len(score); i++)
+    {
+        total = total + termValue(score[i], option)
+    }
+
+    return total
+}
+
+// Every test of the story sat
+fun testsSat(story)
+{
+    var tests = pick(story, "tests", [])
+
+    for (var i = 0; i < len(tests); i++)
+    {
+        if (runOf("sat." + tests[i].id) == 0)
+        {
+            return false
+        }
+    }
+
+    return true
+}
+
+// A test sat with an answer: its score kept, its day spent; after the last, the result
+fun sitTest(test, option)
+{
+    var story = storyNow()
+    var score = testScore(test, option)
+
+    answerStep("test", test.id + "/" + option.id, 1, option)
+    answerFigure(1)
+
+    run["score." + test.id] = score
+    run["sat." + test.id] = 1
+
+    endDay(1)
+
+    if (testsSat(story))
+    {
+        storyResult()
+    }
+}
+
+// The grade of the scores: the last of the story's grades (from the lowest up) whose floors and
+// total are reached, the first when none is; {id: "over"} for a story with no grades
+fun gradeOf()
+{
+    var story = storyNow()
+    var grades = pick(story, "grades", [])
+
+    if (len(grades) == 0)
+    {
+        return {id: "over", gives: []}
+    }
+
+    var tests = pick(story, "tests", [])
+    var total = 0
+
+    for (var i = 0; i < len(tests); i++)
+    {
+        total = total + runOf("score." + tests[i].id)
+    }
+
+    var best = grades[0]
+
+    for (var i = 0; i < len(grades); i++)
+    {
+        var floors = pick(grades[i], "floors", {})
+        var reached = total >= pick(grades[i], "total", 0)
+
+        for (var k : floors)
+        {
+            if (runOf("score." + k) < floors[k])
+            {
+                reached = false
+            }
+        }
+
+        if (reached)
+        {
+            best = grades[i]
+        }
+    }
+
+    return best
+}
+
+// The tests are sat: the grade is his result and gives what it gives; a fail drops him out.
+// The scene is over
+fun storyResult()
+{
+    var story = storyNow()
+    var grade = gradeOf()
+    var gives = pick(grade, "gives", [])
+
+    run.result = grade.id
+
+    for (var i = 0; i < len(gives); i++)
+    {
+        giveGift(gives[i])
+    }
+
+    var kind = "note"
+
+    if (grade.id == "fail")
+    {
+        kind = "loss"
+        dropOut()
+    }
+
+    if (pick(grade, "line", "") != "")
+    {
+        push(entries, {text: grade.line, kind: kind, figure: "", glyph: story.glyph})
+    }
+    else if (grade.id != "over")
+    {
+        push(entries, {text: "Saw " + toLowerCase(story.name) + " to its end: " + grade.id, kind: kind, figure: "", glyph: story.glyph})
+    }
+
+    run.event = ""
+    run.left = runOf("ap")
+    run.ap = 0
+}
+
+// His answer to what is up (expeditionlib.pg's `chooseOption` hands it here in a story). The
+// next card of the day comes up after it, if one waits
+fun storyChoose(optionId)
+{
+    var story = storyNow()
+    var up = storyUp()
+
+    if (up.id == "")
+    {
+        run.refused = "No such choice"
+        return
+    }
+
+    var isTest = upKind() == "test"
+    var isCard = upKind() == "card"
+    var option = optionOf(up, optionId)
+
+    if (option.id == "" or not answerShown(option, isTest))
+    {
+        run.refused = "No such choice"
+        return
+    }
+
+    var short = answerShort(option)
+
+    if (not isTest and not isCard)
+    {
+        short = optionShort(option)
+    }
+
+    if (short != "")
+    {
+        run.refused = capitalised(toLowerCase(short))
+        return
+    }
+
+    run.event = ""
+
+    if (isTest)
+    {
+        sitTest(up, option)
+    }
+    else if (isCard)
+    {
+        answerCard(up, option)
+    }
+    else
+    {
+        answerEvent(up, option)
+    }
+
+    if (run.event == "")
+    {
+        openDue()
     }
 }
 

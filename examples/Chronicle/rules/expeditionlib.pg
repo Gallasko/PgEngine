@@ -750,6 +750,13 @@ fun maybeEvent(trigger)
         return
     }
 
+    // A story walks no zone: its meetings are its own (storylib.pg)
+    if (pick(run, "story", "") != "")
+    {
+        drawStoryEvent(trigger)
+        return
+    }
+
     var zone = zoneOf(run.zone)
     var open = []
     var weight = 0
@@ -880,6 +887,13 @@ fun chooseOption(optionId)
     if (run.event == "approach")
     {
         approach(optionId)
+        return
+    }
+
+    // A story's cards, tests and meetings are answered by its own rules (storylib.pg)
+    if (pick(run, "story", "") != "")
+    {
+        storyChoose(optionId)
         return
     }
 
@@ -2177,6 +2191,11 @@ fun optionRows()
         return approachOptions()
     }
 
+    if (pick(run, "story", "") != "")
+    {
+        return storyOptionRows()
+    }
+
     var rows = []
     var event = eventOf(run.event)
 
@@ -2354,6 +2373,11 @@ fun eventCard()
     if (run.event == "approach")
     {
         return approachCard()
+    }
+
+    if (pick(run, "story", "") != "")
+    {
+        return storyCardPage()
     }
 
     var event = eventOf(run.event)
