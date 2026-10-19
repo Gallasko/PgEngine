@@ -81,7 +81,9 @@
 //   graphFacts()   the task graph's facts: the rules dir's depgraph.pg run with --facts, its lines
 //                  ("task|id|begin|end|by", "missing|stat", "unread|stat"), "" without it
 //
-// The rules' answers are kept for all of them alike: the same inputs bring the same answer.
+// The rules' answers are kept for all of them alike: the same inputs bring the same answer. They
+// are kept up to a budget of memory, every script's together (CHRONICLE_SOLVER_CACHE_MB, 1024 by
+// default; the oldest answers go first). CHRONICLE_SOLVER_CACHE=0 keeps none.
 //
 // No window and no scene: the EntitySystem is there for its script registry, as ChronicleRules'.
 
@@ -366,15 +368,59 @@ namespace
 
     // The answers already given, by script: a rule script keeps nothing between runs and its dice
     // are an input, so the same inputs always bring the same answer. Kept outside any VM, for every
-    // thread alike; the oldest go once a script holds `most` of them
+    // thread alike. What they hold is counted (`keptSize`) across every script, and the oldest go,
+    // whichever script's, once the whole is over the host's budget (Host::keptBudget)
     struct Kept
     {
-        size_t most = 0;
-        std::unordered_map<std::string, std::shared_ptr<const Tree>> answers;
-        std::list<std::string> order;
+        struct Answer
+        {
+            std::shared_ptr<const Tree> tree;
+            size_t bytes = 0;   // keptSize: what keeping it costs
+        };
+
+        std::unordered_map<std::string, Answer> answers;
         std::unordered_set<std::string> pending;   // Being run by a thread: the others wait for it
         long hits = 0;
     };
+
+    // The heap a string or a tree holds, about: what their buffers allocate, with malloc's own few
+    // words for each (a string of 15 chars or fewer is held inside it)
+    constexpr size_t PerAllocation = 16;
+
+    size_t heapOf(const std::string& s)
+    {
+        return s.capacity() > 15 ? s.capacity() + 1 + PerAllocation : 0;
+    }
+
+    size_t heapOf(const Tree& t)
+    {
+        size_t bytes = heapOf(t.text);
+
+        if (t.items.capacity() > 0)
+            bytes += t.items.capacity() * sizeof(Tree) + PerAllocation;
+
+        if (t.keys.capacity() > 0)
+            bytes += t.keys.capacity() * sizeof(std::string) + PerAllocation;
+
+        for (const auto& k : t.keys)
+            bytes += heapOf(k);
+
+        for (const auto& item : t.items)
+            bytes += heapOf(item);
+
+        return bytes;
+    }
+
+    // What keeping an answer costs: the map's node with its key, the shared tree (in one block with
+    // its counts) and all it holds, and its place in the order the oldest go in
+    size_t keptSize(const std::string& key, const Tree& tree)
+    {
+        constexpr size_t node = 2 * sizeof(void*) + PerAllocation;   // a hash or list node's links
+
+        return sizeof(std::pair<const std::string, Kept::Answer>) + node + sizeof(void*) + heapOf(key)
+             + sizeof(Tree) + 2 * sizeof(long) + PerAllocation + heapOf(tree)
+             + sizeof(std::pair<Kept*, const std::string*>) + node;
+    }
 
     // ---- Chronicle's own: the character between the solver's state and the rules -------------
     // What the Life screen's C++ does (LifeSave::character, LifeScene::takeStats + takeTown), with
@@ -535,20 +581,20 @@ namespace
         std::condition_variable keptReady;
         bool caching = []{ const char* c = std::getenv("CHRONICLE_SOLVER_CACHE"); return not c or std::string(c) != "0"; }();
 
-        // How many answers each script keeps: an activity list is large, a month is small
-        size_t mostFor(const std::string& name) const
-        {
-            if (name == "windows")
-                return 600;
+        // What the kept answers may hold, every script's together (an estimate, keptSize): an
+        // activity list is large, a month small, so a count would bound nothing
+        size_t keptBudget = []{
+            const char* c = std::getenv("CHRONICLE_SOLVER_CACHE_MB");
+            const unsigned long long mb = c ? std::strtoull(c, nullptr, 10) : 1024ull;
+            return static_cast<size_t>(mb) * 1024 * 1024;
+        }();
 
-            if (name == "forecast")
-                return 20000;
+        size_t keptBytes = 0;   // What they hold now
+        long keptDropped = 0;   // Answers let go to stay within the budget
 
-            if (name == "expedition")
-                return 30000;
-
-            return 60000;
-        }
+        // Every script's kept answers, the oldest first (the key is the map's own: a node's key stays
+        // where it is until the node goes)
+        std::list<std::pair<Kept*, const std::string*>> keptOrder;
 
         bool profiling = std::getenv("CHRONICLE_SOLVER_PROFILE") != nullptr;
         std::string vmProfileDir = []{ const char* d = std::getenv("CHRONICLE_SOLVER_VMPROFILE"); return d ? std::string(d) : std::string(); }();
@@ -720,9 +766,6 @@ namespace
                     std::unique_lock<std::mutex> lock(keptLock);
                     Kept& store = kept[name];
 
-                    if (store.most == 0)
-                        store.most = mostFor(name);
-
                     // Asked by another thread at the same time: its answer, once it has it
                     keptReady.wait(lock, [&] { return store.pending.count(key) == 0; });
 
@@ -731,7 +774,7 @@ namespace
                     if (found != store.answers.end())
                     {
                         ++store.hits;
-                        hit = found->second;
+                        hit = found->second.tree;
                     }
                     else
                     {
@@ -822,25 +865,41 @@ namespace
             if (running)
             {
                 std::shared_ptr<Tree> tree;
+                size_t bytes = 0;
 
                 if (ok)
                 {
                     tree = std::make_shared<Tree>();
                     treeOf(*vm, answer, *tree);
+                    bytes = keptSize(key, *tree);
                 }
 
                 {
                     std::lock_guard<std::mutex> lock(keptLock);
                     Kept& store = kept[name];
 
-                    if (tree and store.answers.emplace(key, std::move(tree)).second)
+                    if (tree and bytes <= keptBudget)
                     {
-                        store.order.push_back(key);
+                        auto [at, fresh] = store.answers.try_emplace(key);
 
-                        while (store.order.size() > store.most)
+                        if (fresh)
                         {
-                            store.answers.erase(store.order.front());
-                            store.order.pop_front();
+                            at->second.tree = std::move(tree);
+                            at->second.bytes = bytes;
+                            keptOrder.emplace_back(&store, &at->first);
+                            keptBytes += bytes;
+
+                            // The oldest go, whichever script's, until they fit (this one alone does)
+                            while (keptBytes > keptBudget)
+                            {
+                                auto [owner, oldKey] = keptOrder.front();
+                                keptOrder.pop_front();
+
+                                auto old = owner->answers.find(*oldKey);
+                                keptBytes -= old->second.bytes;
+                                owner->answers.erase(old);
+                                ++keptDropped;
+                            }
                         }
                     }
 
@@ -1263,6 +1322,17 @@ namespace
                 const double spentHere = c.copyIn + c.run + c.copyOut;
                 inRules += spentHere;
                 std::fprintf(stderr, "%-14s %8ld %8ld %10.1f %10.1f %10.1f %9.2f %8.1f\n", name.c_str(), c.calls, c.repeats, c.copyIn / 1000.0, c.run / 1000.0, c.copyOut / 1000.0, c.calls ? spentHere / c.calls : 0.0, c.keying / 1000.0);
+            }
+
+            if (caching)
+            {
+                size_t answers = 0;
+
+                for (const auto& [name, store] : kept)
+                    answers += store.answers.size();
+
+                std::fprintf(stderr, "kept answers: %zu, about %.0f MB of %.0f MB; %ld let go to stay within it\n",
+                             answers, keptBytes / 1048576.0, keptBudget / 1048576.0, keptDropped);
             }
 
             if (workers.empty())
