@@ -1,0 +1,658 @@
+// Chronicle rules: a story, a scene played day by day
+// --------------------------------------------------
+// The functions of expedition.pg that play a story (storytable.pg's `walkStories`): a walk of
+// days with no zone, played once, never kept as a record. Imported by expedition.pg after
+// encounterlib.pg, ahead of the tables: a function is a constant of the script that declares it
+// and its index must fit in a byte, and expeditionlib.pg is full.
+//
+// They read and write expedition.pg's globals by name, as expeditionlib.pg's do (`run`, `record`,
+// `marks`, `fight`, `foes`, `account`, `after`, `entries`, `errors`), and use its functions
+// (`pick`, `runOf`, `mine`, `openStep`, `give`, `shiftHp`...).
+//
+// The run of a story, flat as every run is:
+//   {story, zone: "", mode (site | done), day (the day he is on, from 1), days, months,
+//    monthsRun (the months gone by), monthsDue (the months the act just answered has run: the
+//    Life screen runs them), ap (the days left: a day is one, so openStep and stayOver hold),
+//    apTotal, spent, hp, hpMax, hpStart, found: "", event: "", refused, leaving, result ("" while
+//    it runs, then "over" or "left"), seed, startMonth,
+//    "m.<mark>" (a mark of the scene), "t.<tile>" (the times a tile was taken)}
+// A step of the record is a day: kind "tile", target the tile's id. A mark is also written to
+// `marks` ({step, kind: "mark", id, n}), a stat it gave ({kind: "stat"}) and a fee ({kind: "fee"}),
+// so the page says what the scene has given and taken.
+
+import "string"
+import "math"
+import "algorithm"
+
+// ---- the tables ------------------------------------------------------------------------------------------
+
+fun storyOf(id)
+{
+    for (var i = 0; i < len(walkStories); i++)
+    {
+        if (walkStories[i].id == id)
+        {
+            return walkStories[i]
+        }
+    }
+
+    return {id: ""}
+}
+
+fun storyTile(story, id)
+{
+    var tiles = pick(story, "tiles", [])
+
+    for (var i = 0; i < len(tiles); i++)
+    {
+        if (tiles[i].id == id)
+        {
+            return tiles[i]
+        }
+    }
+
+    return {id: ""}
+}
+
+// The story being played
+fun storyNow()
+{
+    return storyOf(pick(run, "story", ""))
+}
+
+// ---- the marks of the scene, and what holds ---------------------------------------------------------------
+
+fun markOf(key)
+{
+    return runOf("m." + key)
+}
+
+fun addMark(key, n)
+{
+    run["m." + key] = markOf(key) + n
+
+    if (len(record) > 0)
+    {
+        push(marks, {step: len(record), kind: "mark", id: key, n: n})
+    }
+}
+
+// The times a tile was taken in this scene
+fun takenOf(id)
+{
+    return runOf("t." + id)
+}
+
+// A mark of the scene, a tile taken ("tile.<id>") or a stat or flag of his life
+fun holds(key)
+{
+    if (startsWith(key, "tile."))
+    {
+        return takenOf(substring(key, 5)) > 0
+    }
+
+    return markOf(key) > 0 or mine(key) > 0
+}
+
+// The name the page gives a mark: the story's, or its id
+fun markName(story, key)
+{
+    var named = pick(story, "marks", [])
+
+    for (var i = 0; i < len(named); i++)
+    {
+        if (named[i].id == key)
+        {
+            return named[i].name
+        }
+    }
+
+    return capitalised(key)
+}
+
+// What a tile asks that he has not: its first need not met, in words ("" when all are)
+fun needShort(tile)
+{
+    var needs = pick(tile, "needs", [])
+
+    for (var i = 0; i < len(needs); i++)
+    {
+        var need = needs[i]
+        var mark = pick(need, "mark", "")
+        var has = 0
+        var name = ""
+
+        if (mark != "")
+        {
+            has = markOf(mark)
+            name = toUpperCase(markName(storyNow(), mark))
+        }
+        else
+        {
+            has = mine(pick(need, "stat", ""))
+            name = toUpperCase(statName(pick(need, "stat", "")))
+        }
+
+        if (has < pick(need, "at", 1))
+        {
+            return pick(need, "asks", "ASKS MORE " + name)
+        }
+    }
+
+    return ""
+}
+
+// What a tile costs in coin and such, in words: "1 coin", "" when free
+fun feeText(tile)
+{
+    var fee = pick(tile, "fee", [])
+    var parts = []
+
+    for (var i = 0; i < len(fee); i++)
+    {
+        push(parts, toString(fee[i].amount) + " " + toLowerCase(statName(fee[i].stat)))
+    }
+
+    return joined(parts, ", ")
+}
+
+// Whether a tile is shown today: within its days, nothing it shuts on holds, not taken its most
+fun tileOffered(tile)
+{
+    var day = runOf("day")
+    var days = pick(tile, "days", [1, runOf("days")])
+
+    if (day < days[0] or day > days[1])
+    {
+        return false
+    }
+
+    var shut = pick(tile, "not", [])
+
+    for (var i = 0; i < len(shut); i++)
+    {
+        if (holds(shut[i]))
+        {
+            return false
+        }
+    }
+
+    var most = pick(tile, "most", 0)
+
+    if (most > 0 and takenOf(tile.id) >= most)
+    {
+        return false
+    }
+
+    return true
+}
+
+// Why a tile shown cannot be taken: what it needs, what it costs, the days it takes ("" if it can)
+fun tileShort(tile)
+{
+    var need = needShort(tile)
+
+    if (need != "")
+    {
+        return need
+    }
+
+    var fee = pick(tile, "fee", [])
+
+    for (var i = 0; i < len(fee); i++)
+    {
+        if (mine(fee[i].stat) < fee[i].amount)
+        {
+            return "ASKS " + toUpperCase(feeText(tile)) + ", " + toString(mine(fee[i].stat)) + " HELD"
+        }
+    }
+
+    if (pick(tile, "cost", 1) > runOf("ap"))
+    {
+        return "NOT ENOUGH DAYS LEFT"
+    }
+
+    return ""
+}
+
+// ---- the days -------------------------------------------------------------------------------------------
+
+// A story begins: its first day, the days before him
+fun enterStory(id)
+{
+    var story = storyOf(id)
+
+    if (story.id == "")
+    {
+        push(errors, "unknown story " + id)
+        return
+    }
+
+    run = {story: story.id, zone: "", mode: "site", day: 1, days: story.days, months: story.months, monthsRun: 0, monthsDue: 0,
+           ap: story.days, apTotal: story.days, spent: 0,
+           hp: fieldHp(), hpMax: mostOf(after, "vit"), hpStart: fieldHp(),
+           found: "", event: "", refused: "", leaving: 0, result: "", seed: diceFrom(seed), startMonth: monthOf(age)}
+
+    record = []
+    marks = []
+    fight = {over: "", mob: ""}
+    foes = []
+    account = []
+}
+
+// The months that fall due as the days pass: the row's months spread over the scene's days,
+// counted from the day he is on, less those gone by already
+fun monthsDue()
+{
+    return wholeOf((runOf("day") - 1) * runOf("months"), larger(1, runOf("days"))) - runOf("monthsRun")
+}
+
+// The day's end: the next day comes, and the months it completes are run (by the Life screen)
+fun endDay(days)
+{
+    run.day = runOf("day") + days
+
+    var due = monthsDue()
+
+    run.monthsDue = due
+    run.monthsRun = runOf("monthsRun") + due
+}
+
+// What a gift brings, in words, for the tile's gloss and the record ("" for a mark: the scene's
+// own count is not said in figures)
+fun giftText(gift)
+{
+    if (typeOf(gift.stat) != "none")
+    {
+        return "+" + toString(gift.amount) + " " + statName(gift.stat)
+    }
+
+    if (typeOf(gift.item) != "none")
+    {
+        return itemText(gift.item, gift.amount)
+    }
+
+    if (typeOf(gift.hp) != "none")
+    {
+        return "+" + toString(gift.hp) + " Vitality"
+    }
+
+    if (typeOf(gift.fight) != "none")
+    {
+        return "A fight"
+    }
+
+    return ""
+}
+
+// What a tile gives, in words: the stats and things with their figures, the marks by their names
+fun givesText(story, tile)
+{
+    var gives = pick(tile, "gives", [])
+    var parts = []
+
+    for (var i = 0; i < len(gives); i++)
+    {
+        if (typeOf(gives[i].mark) != "none")
+        {
+            push(parts, markName(story, gives[i].mark))
+        }
+        else
+        {
+            var text = giftText(gives[i])
+
+            if (text != "")
+            {
+                push(parts, text)
+            }
+        }
+    }
+
+    if (len(parts) == 0)
+    {
+        return "The day, and what he makes of it"
+    }
+
+    return joined(parts, ", ")
+}
+
+// A gift of a tile, as it lands: a mark of the scene, a stat on him, a thing in the bag, his
+// Vitality. A fight is Task 3's
+fun giveGift(gift)
+{
+    if (typeOf(gift.mark) != "none")
+    {
+        addMark(gift.mark, gift.amount)
+    }
+    else if (typeOf(gift.stat) != "none")
+    {
+        after[gift.stat] = mine(gift.stat) + gift.amount
+        push(marks, {step: len(record), kind: "stat", id: gift.stat, n: gift.amount})
+    }
+    else if (typeOf(gift.item) != "none")
+    {
+        give(gift.item, gift.amount)
+    }
+    else if (typeOf(gift.hp) != "none")
+    {
+        shiftHp(gift.hp)
+    }
+}
+
+// A tile taken: its fee paid, its gifts given, its days gone
+fun takeTile(id)
+{
+    var story = storyNow()
+    var tile = storyTile(story, id)
+
+    if (tile.id == "" or not tileOffered(tile))
+    {
+        run.refused = "That is not offered today"
+        return
+    }
+
+    var short = tileShort(tile)
+
+    if (short != "")
+    {
+        run.refused = capitalised(toLowerCase(short))
+        return
+    }
+
+    var cost = pick(tile, "cost", 1)
+
+    openStep("tile", tile.id, 1, cost, pick(tile, "line", tile.name), pick(tile, "glyph", story.glyph))
+
+    var fee = pick(tile, "fee", [])
+
+    for (var i = 0; i < len(fee); i++)
+    {
+        after[fee[i].stat] = mine(fee[i].stat) - fee[i].amount
+        push(marks, {step: len(record), kind: "fee", id: fee[i].stat, n: fee[i].amount})
+    }
+
+    run["t." + tile.id] = takenOf(tile.id) + 1
+
+    var gives = pick(tile, "gives", [])
+    var gave = []
+
+    for (var i = 0; i < len(gives); i++)
+    {
+        giveGift(gives[i])
+
+        var text = giftText(gives[i])
+
+        if (text != "")
+        {
+            push(gave, text)
+        }
+    }
+
+    // The line's right: the days, what it cost him, what it gave (a mark is not said in figures)
+    var step = lastStep()
+    var parts = [toUpperCase(counted(cost, story.unit, story.unit + "s"))]
+
+    if (feeText(tile) != "")
+    {
+        step.used = "−" + feeText(tile)
+        push(parts, toUpperCase(step.used))
+    }
+
+    if (len(gave) > 0)
+    {
+        step.gave = joined(gave, ", ")
+        push(parts, toUpperCase(step.gave))
+    }
+
+    step.figure = joined(parts, " · ")
+
+    endDay(cost)
+}
+
+// Leave is asked twice: the first press says what is lost, the second ends the scene as it stands
+fun leaveStory()
+{
+    if (runOf("leaving") == 0 and runOf("ap") > 0)
+    {
+        run.leaving = 1
+        return
+    }
+
+    var lost = runOf("ap")
+
+    openStep("leave", "", 1, 0, "Left on the " + storyDayText() + ", " + daysText(lost) + " unspent", "gate")
+
+    var step = lastStep()
+    step.figure = "LEFT"
+
+    run.ap = 0
+    run.left = lost
+    run.result = "left"
+}
+
+// One thing he does in a story: a tile (`tile` and its id, or `tile.<id>` as the page sends it)
+// or leave
+fun storyAct(kind, target)
+{
+    if (kind == "leave")
+    {
+        leaveStory()
+    }
+    else if (kind == "tile")
+    {
+        takeTile(target)
+    }
+    else if (startsWith(kind, "tile."))
+    {
+        takeTile(substring(kind, 5))
+    }
+    else
+    {
+        run.refused = "That is not done here"
+    }
+}
+
+// The scene is over: its last day gone, or he left. No record is kept and no place is walked:
+// what it gave is his, what it took stays taken
+fun endStory()
+{
+    var story = storyNow()
+
+    run.mode = "done"
+    run.leaving = 0
+
+    if (pick(run, "result", "") == "")
+    {
+        run.result = "over"
+    }
+
+    // "The trial" in the middle of a line is "the trial"
+    var name = story.name
+
+    if (startsWith(name, "The "))
+    {
+        name = "the " + substring(name, 4, strlen(name))
+    }
+
+    if (run.result == "left")
+    {
+        push(entries, {text: "Left " + name + " on the " + storyDayText() + ", with what it had given him", kind: "note", figure: "", glyph: story.glyph})
+    }
+    else
+    {
+        push(entries, {text: "Saw " + name + " to its end", kind: "note", figure: "", glyph: story.glyph})
+    }
+}
+
+// ---- the page ---------------------------------------------------------------------------------------------
+
+// The day he is on, in words: "third day"; the last day once the scene is over
+fun storyDayText()
+{
+    var words = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth", "eleventh", "twelfth"]
+    var day = smaller(runOf("day"), larger(1, runOf("days")))
+
+    if (day >= 1 and day <= len(words))
+    {
+        return words[day - 1] + " " + storyNow().unit
+    }
+
+    return storyNow().unit + " " + toString(day)
+}
+
+// The stage of the day he is on ({"from": 0, title: ""} when none)
+fun storyStage(story)
+{
+    var stages = pick(story, "stages", [])
+    var day = smaller(runOf("day"), larger(1, runOf("days")))
+
+    for (var i = 0; i < len(stages); i++)
+    {
+        if (day >= stages[i]["from"] and day <= stages[i].to)
+        {
+            return stages[i]
+        }
+    }
+
+    return {title: "", text: ""}
+}
+
+// The head of the page: the story, the day of how many, the stage, his Vitality and Leave
+fun storyHead()
+{
+    var story = storyNow()
+    var stage = storyStage(story)
+    var day = smaller(runOf("day"), larger(1, runOf("days")))
+    var unit = capitalised(story.unit)
+    var leave = "Leave"
+    var leaveNote = "WHAT HE WAS GIVEN IS HIS"
+
+    if (runOf("leaving") > 0)
+    {
+        leave = "Leave: " + daysText(runOf("ap")) + " are lost"
+        leaveNote = "PRESS AGAIN TO GO"
+
+        if (pick(story, "dropout", "") != "")
+        {
+            leaveNote = "HE DROPS OUT. PRESS AGAIN TO GO"
+        }
+    }
+
+    var percent = 0
+
+    if (runOf("days") > 0)
+    {
+        percent = wholeOf(runOf("spent") * 100, runOf("days"))
+    }
+
+    return {story: story.id, zone: "", mode: run.mode,
+            kicker: toUpperCase(stage.title),
+            title: story.name, line: stage.text,
+            day: unit + " " + toString(day) + " of " + toString(runOf("days")),
+            stage: stage.title, stageText: stage.text,
+            daysLeft: toString(runOf("ap")), daysNote: toUpperCase(story.unit) + "S LEFT",
+            vitality: "VITALITY " + toString(runOf("hp")) + " OF " + toString(runOf("hpMax")),
+            vitalityPercent: wholeOf(runOf("hp") * 100, larger(1, runOf("hpMax"))),
+            knowledge: "", knowledgeNote: "",
+            home: toUpperCase(counted(runOf("monthsRun"), "month", "months") + " gone by of " + toString(runOf("months"))),
+            percent: smaller(100, percent),
+            caption: toUpperCase(story.unit + " " + toString(day) + " of " + toString(runOf("days")) + " · " + counted(runOf("monthsRun"), "month", "months") + " gone by"),
+            written: "", leave: leave, leaveNote: leaveNote, watchCost: "",
+            summary: "", scribe: "Each " + story.unit + " is chosen when it comes.",
+            result: pick(run, "result", ""),
+            refused: pick(run, "refused", "")}
+}
+
+// The tiles of the day, as a walk's works are: shown ones only, shut ones with what they ask
+fun storyTiles()
+{
+    var story = storyNow()
+    var tiles = pick(story, "tiles", [])
+    var rows = []
+
+    if (run.mode == "done")
+    {
+        return rows
+    }
+
+    for (var i = 0; i < len(tiles); i++)
+    {
+        var tile = tiles[i]
+
+        if (not tileOffered(tile))
+        {
+            continue
+        }
+
+        var cost = pick(tile, "cost", 1)
+        var days = counted(cost, story.unit, story.unit + "s")
+        var fee = feeText(tile)
+        var costs = days
+
+        if (fee != "")
+        {
+            costs = days + ", " + fee
+        }
+
+        var row = workRow("tile." + tile.id, tile.name, toUpperCase(fee), cost, tileShort(tile), "", pick(tile, "about", ""), costs, givesText(story, tile))
+
+        row.costText = days
+
+        push(rows, row)
+    }
+
+    return rows
+}
+
+// What the scene has given so far: its marks in words, the stats he gained, the things he holds
+fun storyTaken()
+{
+    var story = storyNow()
+    var rows = []
+    var named = markIds(marks, "mark")
+
+    for (var i = 0; i < len(named); i++)
+    {
+        push(rows, {id: "m." + named[i], name: markName(story, named[i]), glyph: story.glyph, value: wordOf(markOf(named[i])), tone: "know"})
+    }
+
+    var stats = markIds(marks, "stat")
+
+    for (var i = 0; i < len(stats); i++)
+    {
+        push(rows, {id: "stat." + stats[i], name: statName(stats[i]), glyph: "training", value: "+" + toString(sumMarks(marks, "stat", stats[i])), tone: "gain"})
+    }
+
+    var items = markIds(marks, "gain")
+
+    for (var i = 0; i < len(items); i++)
+    {
+        push(rows, {id: "got." + items[i], name: itemOf(items[i]).name, glyph: itemOf(items[i]).glyph, value: "+" + toString(runOf("got." + items[i])), tone: "gain"})
+    }
+
+    return rows
+}
+
+// If he left now: the months gone by, what he keeps, and for a class that he drops out
+fun storyHome()
+{
+    var story = storyNow()
+    var rows = []
+
+    push(rows, {id: "time", name: "Months gone by", glyph: "time", value: counted(runOf("monthsRun"), "month", "months") + " of " + toString(runOf("months")), tone: "time"})
+    push(rows, {id: "keeps", name: "He keeps", glyph: story.glyph, value: "what he was given", tone: "gain"})
+
+    var paid = markIds(marks, "fee")
+
+    for (var i = 0; i < len(paid); i++)
+    {
+        push(rows, {id: "paid." + paid[i], name: statName(paid[i]) + " paid", glyph: "gold", value: toString(sumMarks(marks, "fee", paid[i])) + " " + toLowerCase(statName(paid[i])), tone: "loss"})
+    }
+
+    if (pick(story, "dropout", "") != "")
+    {
+        push(rows, {id: "dropout", name: "Leaving now", glyph: "gate", value: "is dropping out", tone: "loss"})
+    }
+
+    return rows
+}

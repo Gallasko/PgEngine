@@ -1,0 +1,58 @@
+// Chronicle rules: the stories, scenes played day by day
+// -----------------------------------------------------
+// Imported by expedition.pg, with the tables, after every file of functions (storylib.pg plays
+// them). Never loaded itself.
+// Input:  none.
+// Output: `walkStories`  one table per story, a walk of days that is played once in a life (never
+//                        a record, never walked again, never on the Adventure page):
+//           {id, name, glyph, unit ("day": the word for one step), days (how many the scene lasts),
+//            months (what the row's time is: they fall due as the days pass, storylib.pg's
+//            `endDay`), row (the activity id that opens it),
+//            "class" ("" or the path it enters: "mage"), dropout ("" or the flag a failure sets),
+//            marks? [{id, name}] (what the page calls a mark of the scene; its id otherwise),
+//            stages [{"from", to, title, text}] (spans of days, for the head of the page),
+//            tiles [{id, name, about, glyph?,
+//                    days: [from, to] (the days it may be offered),
+//                    cost? (days it takes, 1 when none),
+//                    fee? [{stat, amount}] (paid the day it is taken; shut while he cannot),
+//                    needs? [{mark | stat, at, asks?}] (what must hold: a mark of the scene or a
+//                           stat or flag of his life at `at` or more; shown shut till then, the
+//                           need's `asks` said, in words),
+//                    "not"? [mark | stat | "tile.<id>"] (what must not hold: a mark, a flag, a
+//                           tile already taken; while one holds it is not shown),
+//                    most? (how many times it may be taken in the scene; 0 or none: no end),
+//                    gives? [{mark, amount} | {stat, amount} | {item, amount} | {hp, amount}
+//                            | {fight, mob, auto}] (a stat lands on him when it is taken; a fight
+//                           is Task 3's),
+//                    line (the record's line for the day)}],
+//            cards [...], events [...], tests [...], grades [...], plan {...}}
+//                        (the scenes, the tests and their grades, and the solver's plan: to come)
+//
+// `from`, `not` and `class` are words of the language: as keys they are written in quotes, and
+// read as `stage["from"]`, `tile["not"]`, `story["class"]`.
+//
+// The tables are `const`: a rule script's VM makes them on its first run and keeps them for the
+// next ones. Nothing writes into them.
+
+const walkStories = [
+    // The tests' story (test/chronicle/story.cc): no row of the game opens it (its row,
+    // `story.trial`, is hidden, for the tests only). Four days for four months: a lecture for a
+    // coin, the library for nothing, an advanced course from the third day for who was taught
+    // twice, an early tile of the first two days only, and a tile taken once.
+    {id: "trial", name: "The trial", glyph: "study", unit: "day", days: 4, months: 4, row: "story.trial", "class": "", dropout: "",
+     marks: [{id: "taught", name: "Lectures heard"}, {id: "revised", name: "Days in the library"}, {id: "deep", name: "The advanced course"}],
+     stages: [{"from": 1, to: 2, title: "The first days", text: "Everything is new, and every door is open to him."},
+              {"from": 3, to: 4, title: "The last days", text: "What he has heard lets him follow more."}],
+     tiles: [{id: "lecture", name: "Hear a lecture", about: "A master reads, the students write it down.", days: [1, 4], cost: 1,
+              fee: [{stat: "coin", amount: 1}], gives: [{mark: "taught", amount: 1}], line: "Heard a lecture"},
+             {id: "library", name: "Read in the library", about: "The books are free to who sits with them.", days: [1, 4], cost: 1,
+              gives: [{mark: "revised", amount: 1}], line: "Read in the library"},
+             {id: "advanced", name: "Follow the advanced course", about: "For who has heard the lectures.", days: [3, 4], cost: 1,
+              needs: [{mark: "taught", at: 2, asks: "ASKS THE LECTURES HEARD"}], fee: [{stat: "coin", amount: 1}],
+              gives: [{mark: "deep", amount: 1}], line: "Followed the advanced course"},
+             {id: "early", name: "Walk the halls", about: "The first days only, while all is new.", days: [1, 2], cost: 1,
+              line: "Walked the halls"},
+             {id: "once", name: "Meet the dean", about: "He sees each of them once.", days: [1, 4], cost: 1, most: 1,
+              line: "Met the dean"}],
+     cards: [], events: [], tests: [], grades: [], plan: {}}
+]

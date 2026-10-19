@@ -9,10 +9,12 @@
 //         "know.drop.<mob>.<item>"), `who` (his name),
 //         `seed` (a number: the dice of a walk that begins, or of a record walked again),
 //         `ask`: what is asked,
-//           "enter"    a walk begins: `act.target` is the zone;
+//           "enter"    a walk begins: `act.target` is the zone; with `act.kind` "story", a story
+//                      begins (storytable.pg, storylib.pg): `act.target` is the story;
 //           "act"      he does something: `act` is {kind, target, count}. On site: seek (target a
 //                      beast, count 1 or more for its pack), observe, gather (target an item),
-//                      study, rest, remedy, leave. Before an event's card: option (target its
+//                      study, rest, remedy, leave; in a story: tile (target its id, or the kind
+//                      `tile.<id>` as the page sends it), leave. Before an event's card: option (target its
 //                      id). In a fight: pick (target a row of the menu), target (count the
 //                      beast), do, move (target a row of the menu: that move, now), auto, step,
 //                      back;
@@ -53,7 +55,9 @@ import "fightcalc"
 import "fightpage"
 import "fightauto"
 import "encounterlib"
+import "storylib"
 import "expeditiontable"
+import "storytable"
 import "testbuilds"
 
 // The gear the smithy forges, for what it adds in a fight (fightcalc.pg's `gearSum`): a table
@@ -104,6 +108,10 @@ if (ask == "builds")
 {
     builds = buildRows()
 }
+else if (ask == "enter" and act.kind == "story")
+{
+    enterStory(act.target)
+}
 else if (ask == "enter")
 {
     enterZone(act.target)
@@ -129,22 +137,36 @@ else if (ask == "term")
     replayTerm(recipeById(replay), marksOf(recipeSteps, replay), marksOf(recipeMarks, replay))
 }
 
-// The pages of a walk under way
-if ((ask == "enter" or ask == "act" or ask == "look") and pick(run, "zone", "") != "")
+// The pages of a walk under way, or of a story (no zone, no beast to seek, never a record)
+if ((ask == "enter" or ask == "act" or ask == "look") and (pick(run, "zone", "") != "" or pick(run, "story", "") != ""))
 {
-    site = siteHead()
-    site.screen = "site"
+    if (pick(run, "story", "") != "")
+    {
+        site = storyHead()
+        works = storyTiles()
+        taken = storyTaken()
+        home = storyHome()
+    }
+    else
+    {
+        site = siteHead()
+        seeks = seekRows()
+        works = workRows()
+        taken = takenRows()
+        home = homeRows()
+    }
 
-    seeks = seekRows()
-    works = workRows()
+    site.screen = "site"
     bag = bagRows()
-    taken = takenRows()
-    home = homeRows()
 
     if (run.mode == "done")
     {
         site.screen = "done"
-        recipe = recipeOf()
+
+        if (pick(run, "story", "") == "")
+        {
+            recipe = recipeOf()
+        }
     }
     else if (run.event != "")
     {

@@ -1357,10 +1357,19 @@ fun endStay()
 }
 
 // One thing he does, wherever the walk stands: before an event's card only its answer, in a
-// fight only the fight's, else a day's work on site. The stay ends with its last day
+// fight only the fight's, else a day's work on site (in a story, its tiles: storylib.pg). The
+// stay ends with its last day
 fun walkAct(kind, target, count)
 {
+    var story = pick(run, "story", "") != ""
+
     run.refused = ""
+
+    // A story's months fall due at the end of the act that ends a day, and only then
+    if (story)
+    {
+        run.monthsDue = 0
+    }
 
     if (kind != "leave")
     {
@@ -1385,6 +1394,10 @@ fun walkAct(kind, target, count)
     else if (run.found != "")
     {
         fightAct(kind, target, count)
+    }
+    else if (story)
+    {
+        storyAct(kind, target)
     }
     else if (kind == "seek")
     {
@@ -1433,7 +1446,14 @@ fun walkAct(kind, target, count)
 
     if (run.mode != "done" and stayOver())
     {
-        endStay()
+        if (story)
+        {
+            endStory()
+        }
+        else
+        {
+            endStay()
+        }
     }
 }
 

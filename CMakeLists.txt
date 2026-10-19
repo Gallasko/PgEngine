@@ -1755,6 +1755,7 @@ if(NOT BUILD_STATIC_LIB AND BUILD_EXAMPLES)
             test/chronicle/placetile.cc
             test/chronicle/rules.cc
             test/chronicle/expedition.cc
+            test/chronicle/story.cc
             test/chronicle/analytics.cc
             test/chronicle/lifescene.cc
             test/chronicle/options.cc
