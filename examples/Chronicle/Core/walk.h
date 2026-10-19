@@ -19,12 +19,25 @@ namespace chronicle
         pg::RecordList foes;           // And what he fights: {n, id, name, hp, hpMax, at, alive}
         pg::RecordList account;        // The fight's log: {turn, text, figure, kind}
 
-        // A walk is under way: he is on site, and its screen is the page
+        // A walk is under way, or a story (rules/storytable.pg, played on the same screen): he is
+        // on site, and its screen is the page
         bool under() const
         {
-            auto zone = run.find("zone");
+            return not textOf("zone").empty() or story();
+        }
 
-            return zone != run.end() and not zone->second.toString().empty();
+        // And it is a story: no zone, never a record, its months run as its days add up to them
+        bool story() const
+        {
+            return not textOf("story").empty();
+        }
+
+    private:
+        std::string textOf(const char* key) const
+        {
+            auto it = run.find(key);
+
+            return it == run.end() ? std::string() : it->second.toString();
         }
     };
 

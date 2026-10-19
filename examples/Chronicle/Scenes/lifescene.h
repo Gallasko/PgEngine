@@ -205,6 +205,10 @@ namespace chronicle
         void applyBuild();                                // --build: the life made one of testbuilds.pg's builds, with --set on top; "list" or an unknown one says them
         bool built = false;                               // A build was applied: --walk takes him as he is
         void walkDo(const WalkAct& act);                  // One thing he does there, or in a fight
+        void beginStory(const std::string& activity);    // A row with a `story`: the story opens on the walk's screen, its row runs, its board given up front
+        void runStoryMonths(int months);                  // The months a story's days have added up to, each the life's own month, there and then; stops at a life's end
+        void endStory();                                  // The story is over: no record, no walk counted; a row left before its term gives back what it fed him ahead
+        bool storyMonth = false;                          // A month run by a story's days: its term neither enters a path nor brings him home, and the calendar stays stopped
         void showAdventure(bool shown);                   // The Adventure page in the middle column, or the choice back in it
         void chooseRecord(const std::string& id);         // The record the form of a queue is filled for
         void chooseZone(const std::string& zone);         // The place the Adventure page is about: its tile lit, its walks listed

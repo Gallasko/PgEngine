@@ -11119,6 +11119,504 @@ namespace pg
                 f.load<EmptyScene>();
             }
         }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // A story (rules/storytable.pg) is a row of the Life page that opens on the walk's on-site
+        // screen: its days are chosen there, and each month they add up to is a month of his life,
+        // run there and then. The tests' story `trial` (4 days, 4 months) has the hidden row
+        // `story.trial`, listed only for a life holding `test.stories`.
+        namespace
+        {
+            LifeSceneOptions storyOptions(float age = 12.5f)
+            {
+                LifeSceneOptions opt = LifeFixture::mockup();
+                opt.fresh = true;
+                opt.lives = 2;
+                opt.age = age;
+                opt.walkSeed = 11;
+
+                return opt;
+            }
+
+            // A life the trial is listed for, with the coin of its lectures and food for its months
+            LifeScene* storyLife(LifeFixture& f, const LifeSceneOptions& opt)
+            {
+                LifeScene* life = f.life(opt);
+
+                if (not life)
+                    return nullptr;
+
+                life->save.stats["test.stories"] = 1;
+                life->save.stats["coin"] = 10;
+                life->save.stats["rations"] = 12;
+
+                // The list as he stands now
+                life->onMonth();
+                f.settle();
+
+                return life;
+            }
+
+            std::string runText(const LifeScene* life, const std::string& key)
+            {
+                auto it = life->save.walk.run.find(key);
+
+                return it == life->save.walk.run.end() ? std::string() : it->second.toString();
+            }
+
+            std::string siteText(const LifeScene* life, const std::string& key)
+            {
+                auto it = life->walk.site.find(key);
+
+                return it == life->walk.site.end() ? std::string() : it->second.toString();
+            }
+
+            void openStory(LifeFixture& f)
+            {
+                f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "story.trial"});
+                f.frames(12);
+            }
+
+            // A tile of the day chosen, then done by the button; what comes up after it is answered,
+            // but the examination, which is left for the test to sit
+            void takeTile(LifeFixture& f, LifeScene* life, const std::string& tile)
+            {
+                answerEvents(f, life);
+
+                f.ecs.sendEvent(ActivitySelectedEvent{"walk.works", "tile." + tile});
+                f.settle();
+                f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.work"});
+                f.frames(8);
+
+                for (int guard = 0; guard < 4 and life->onWalk() and siteText(life, "screen") == "event" and runText(life, "event") != "story.exam"; ++guard)
+                {
+                    f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.option.0"});
+                    f.settle();
+                }
+            }
+
+            // Cards answered by their first answer, up to the masters' question of the third day
+            void upToTheQuestion(LifeFixture& f, LifeScene* life)
+            {
+                for (int guard = 0; guard < 4 and siteText(life, "screen") == "event" and runText(life, "event") != "story.crossroads"; ++guard)
+                {
+                    f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.option.0"});
+                    f.settle();
+                }
+            }
+        }
+
+        TEST(lifescene_test, a_story_row_opens_the_story)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = storyLife(f, storyOptions());
+            ASSERT_NE(life, nullptr);
+
+            auto list = life->piece<ActivityList>("activities");
+            ASSERT_NE(list, nullptr);
+            ASSERT_NE(list->find(&f.ecs, "story.trial"), nullptr);
+
+            const int begun = life->save.begun;
+
+            openStory(f);
+
+            ASSERT_TRUE(life->onWalk());
+            EXPECT_EQ(runText(life, "story"), "trial");
+            EXPECT_EQ(runText(life, "day"), "1");
+            EXPECT_EQ(life->save.running, "story.trial");
+            EXPECT_EQ(life->save.monthsIn, 0);
+            EXPECT_EQ(life->save.begun, begun + 1);
+            EXPECT_EQ(life->rules.running, "story.trial");
+            EXPECT_TRUE(life->paused);
+            EXPECT_EQ(life->walkScreen, "site");
+            EXPECT_FALSE(life->walkPage.empty());
+
+            // Not a walk's words: no way home, nothing met on a way, no place to know
+            f.settle();
+            EXPECT_EQ(walkPart(life, "homePanel")->get<Panel>()->title->spec.text, "If he left now");
+            EXPECT_EQ(walkPart(life, "cardPanel")->get<Panel>()->title->spec.text, "On this day");
+
+            auto registry = f.ecs.getSystem<GlossRegistry>();
+            ASSERT_NE(registry, nullptr);
+            const GlossSpec* stands = registry->find("walk/knowledge");
+            ASSERT_NE(stands, nullptr);
+            EXPECT_EQ(stands->title, "The trial");
+
+            // The calendar does not run under it: the days move it
+            const float age = life->save.age;
+            f.pass(5000.0f, 250.0f);
+
+            EXPECT_FLOAT_EQ(life->save.age, age);
+            EXPECT_TRUE(life->paused);
+
+            // Nor does the key that goes on with a work stopped
+            f.ecs.sendEvent(OnSDLScanCode{SDL_SCANCODE_SPACE, 0});
+            f.settle();
+            EXPECT_TRUE(life->paused);
+        }
+
+        TEST(lifescene_test, days_run_the_life_months)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = storyLife(f, storyOptions());
+            ASSERT_NE(life, nullptr);
+
+            openStory(f);
+            ASSERT_TRUE(life->onWalk());
+
+            // One ration left: the first month eats it, the next ones find nothing
+            life->save.stats["rations"] = 1;
+            life->save.stats["vit"] = 40;
+            life->save.stats["vitmax"] = 40;
+
+            const float age = life->save.age;
+            const size_t lines = life->save.log.size();
+
+            takeTile(f, life, "library");
+
+            ASSERT_TRUE(life->onWalk());
+            EXPECT_FLOAT_EQ(life->save.age, age + 1.0f / 12.0f);
+            EXPECT_EQ(life->save.monthsIn, 1);
+            EXPECT_EQ(life->save.stats["rations"], 0);
+            EXPECT_TRUE(life->paused);
+
+            // The month's account is the log's, as any month's: the last ration went
+            EXPECT_GT(life->save.log.size(), lines);
+
+            takeTile(f, life, "library");
+
+            EXPECT_FLOAT_EQ(life->save.age, age + 2.0f / 12.0f);
+            EXPECT_EQ(life->save.monthsIn, 2);
+
+            // A hungry month took from his Vitality, and the page says what it left him
+            const int hungry = life->save.stats["vit"];
+            EXPECT_LT(hungry, 40);
+            EXPECT_EQ(runText(life, "hp"), std::to_string(hungry));
+
+            takeTile(f, life, "lecture");
+
+            EXPECT_FLOAT_EQ(life->save.age, age + 3.0f / 12.0f);
+            EXPECT_EQ(life->save.monthsIn, 3);
+            EXPECT_TRUE(life->paused);
+
+            // The day's work did not give back what the month before had taken
+            EXPECT_LT(life->save.stats["vit"], hungry);
+            EXPECT_EQ(runText(life, "hp"), std::to_string(life->save.stats["vit"]));
+        }
+
+        TEST(lifescene_test, a_story_is_never_kept_as_a_record)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = storyLife(f, storyOptions());
+            ASSERT_NE(life, nullptr);
+
+            const size_t recipes = life->save.recipes.size();
+            const int walks = life->save.walksByHand;
+            const float age = life->save.age;
+
+            openStory(f);
+            ASSERT_TRUE(life->onWalk());
+
+            takeTile(f, life, "lecture");
+            takeTile(f, life, "library");
+            takeTile(f, life, "library");
+
+            // The fourth day is the examination's
+            answerEvents(f, life);
+            f.frames(12);
+
+            // Over: no record, no walk counted, no place walked, and nothing running
+            EXPECT_FALSE(life->onWalk());
+            EXPECT_TRUE(life->walkPage.empty());
+            EXPECT_EQ(life->save.recipes.size(), recipes);
+            EXPECT_EQ(life->save.walksByHand, walks);
+            EXPECT_TRUE(life->save.walkedAt.empty());
+            EXPECT_TRUE(life->save.running.empty());
+            EXPECT_TRUE(life->rules.running.empty());
+
+            // Its four months ran on its days, and its term came with the last
+            EXPECT_FLOAT_EQ(life->save.age, age + 4.0f / 12.0f);
+            EXPECT_EQ(life->save.done["story.trial"], 1);
+            EXPECT_TRUE(life->paused);
+
+            // The months stay where the story left them until he chooses what is next
+            f.pass(5000.0f, 250.0f);
+            EXPECT_FLOAT_EQ(life->save.age, age + 4.0f / 12.0f);
+        }
+
+        TEST(lifescene_test, leaving_a_story_early_spends_only_its_days)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = storyLife(f, storyOptions());
+            ASSERT_NE(life, nullptr);
+
+            const int before = life->save.stats["rations"];
+            const float age = life->save.age;
+
+            openStory(f);
+            ASSERT_TRUE(life->onWalk());
+
+            // The board gave its four months' rations as it began
+            const int board = (life->save.stats["rations"] - before) / 4;
+            ASSERT_GT(board, 0);
+
+            takeTile(f, life, "library");
+            ASSERT_TRUE(life->onWalk());
+
+            const int fed = life->save.stats["rations"];
+
+            // Leave is asked twice
+            answerEvents(f, life);
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.leave"});
+            f.settle();
+            ASSERT_TRUE(life->onWalk());
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.leave"});
+            f.frames(12);
+
+            EXPECT_FALSE(life->onWalk());
+            EXPECT_TRUE(life->save.running.empty());
+            EXPECT_EQ(life->save.done.count("story.trial"), 0u);
+
+            // One day of four is one month of four
+            EXPECT_FLOAT_EQ(life->save.age, age + 1.0f / 12.0f);
+
+            // The rations of the three months he did not stay go back
+            EXPECT_EQ(life->save.stats["rations"], fed - 3 * board);
+        }
+
+        TEST(lifescene_test, a_month_in_a_story_can_end_the_life)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = storyLife(f, storyOptions());
+            ASSERT_NE(life, nullptr);
+
+            openStory(f);
+            ASSERT_TRUE(life->onWalk());
+
+            life->save.stats["rations"] = 0;
+            life->save.stats["coin"] = 0;
+            life->save.stats["vit"] = 1;
+
+            takeTile(f, life, "library");
+
+            EXPECT_TRUE(life->ended);
+            EXPECT_FALSE(life->onWalk());
+            EXPECT_TRUE(life->walkPage.empty());
+            EXPECT_FALSE(life->ending.empty());
+        }
+
+        TEST(lifescene_test, a_story_saved_mid_term_reopens_where_it_was)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            const std::string path = "save/test_life_story.sz";
+            std::remove(path.c_str());
+
+            LifeSceneOptions opt = storyOptions();
+            opt.noSave = false;
+            opt.savePath = path;
+
+            LifeScene* life = storyLife(f, opt);
+            ASSERT_NE(life, nullptr);
+
+            openStory(f);
+            ASSERT_TRUE(life->onWalk());
+
+            takeTile(f, life, "lecture");
+
+            // The second day's work brings the third day, and its cards
+            f.ecs.sendEvent(ActivitySelectedEvent{"walk.works", "tile.library"});
+            f.settle();
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.work"});
+            f.frames(8);
+            upToTheQuestion(f, life);
+
+            ASSERT_EQ(siteText(life, "screen"), "event");
+            ASSERT_EQ(runText(life, "event"), "story.crossroads");
+
+            const float age = life->save.age;
+            const std::string day = runText(life, "day");
+
+            ASSERT_TRUE(life->saveNow());
+
+            f.load<EmptyScene>();
+            opt.fresh = false;
+
+            LifeScene* again = f.life(opt);
+            ASSERT_NE(again, nullptr);
+            f.frames(12);
+
+            ASSERT_TRUE(again->onWalk());
+            EXPECT_EQ(again->walkScreen, "site");
+            EXPECT_EQ(siteText(again, "screen"), "event");
+            EXPECT_EQ(runText(again, "event"), "story.crossroads");
+            EXPECT_EQ(runText(again, "day"), day);
+            EXPECT_EQ(again->save.running, "story.trial");
+            EXPECT_FLOAT_EQ(again->save.age, age);
+            EXPECT_TRUE(f.pos(walkPart(again, "cardPanel"))->visible);
+            EXPECT_TRUE(again->paused);
+
+            // No month runs on load, nor while the card waits
+            f.pass(5000.0f, 250.0f);
+            EXPECT_FLOAT_EQ(again->save.age, age);
+
+            // Mid-fight: the yard of the tests' fight story (no row opens it), sparring with the wolf
+            RuleWalk drill;
+            ASSERT_TRUE(again->rules.walk(again->save.age, again->save.character(), again->save.name, "enter", 11, WalkState{}, WalkAct{"story", "drill", 0},
+                                          std::vector<WalkRecipe>{}, RecordList{}, WalkQueue{}, "", drill));
+            again->save.walk = drill.state;
+            again->save.running.clear();
+            ASSERT_TRUE(again->saveNow());
+
+            f.load<EmptyScene>();
+
+            LifeScene* yard = f.life(opt);
+            ASSERT_NE(yard, nullptr);
+            f.frames(12);
+
+            ASSERT_TRUE(yard->onWalk());
+            EXPECT_EQ(runText(yard, "story"), "drill");
+
+            takeTile(f, yard, "bout");
+            ASSERT_EQ(yard->walkScreen, "fight");
+
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.move.guard"});
+            f.settle();
+
+            const size_t told = yard->save.walk.account.size();
+            const float yardAge = yard->save.age;
+            ASSERT_TRUE(yard->saveNow());
+
+            f.load<EmptyScene>();
+
+            LifeScene* fight = f.life(opt);
+            ASSERT_NE(fight, nullptr);
+            f.frames(12);
+
+            ASSERT_TRUE(fight->onWalk());
+            EXPECT_EQ(fight->walkScreen, "fight");
+            EXPECT_EQ(fight->save.walk.account.size(), told);
+            EXPECT_FLOAT_EQ(fight->save.age, yardAge);
+
+            f.pass(5000.0f, 250.0f);
+            EXPECT_FLOAT_EQ(fight->save.age, yardAge);
+
+            f.load<EmptyScene>();
+            std::remove(path.c_str());
+        }
+
+        TEST(lifescene_test, an_event_due_during_a_story_waits_for_its_end)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            // Ten and ten months once the list is filled: the Flood's answers open at eleven, on
+            // the story's second month
+            LifeScene* life = storyLife(f, storyOptions(10.75f));
+            ASSERT_NE(life, nullptr);
+
+            openStory(f);
+            ASSERT_TRUE(life->onWalk());
+
+            for (const char* tile : {"lecture", "library", "library"})
+            {
+                takeTile(f, life, tile);
+
+                ASSERT_TRUE(life->onWalk()) << tile;
+                EXPECT_EQ(life->save.running, "story.trial") << tile;
+                EXPECT_TRUE(life->save.setAside.empty()) << tile;
+                EXPECT_TRUE(life->paused) << tile;
+            }
+
+            EXPECT_GE(life->save.age, 11.0f);
+
+            // Its answers cannot be begun from under the story
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "flood.salvage"});
+            f.settle();
+            EXPECT_EQ(life->save.running, "story.trial");
+            EXPECT_TRUE(life->save.setAside.empty());
+
+            // The examination: the story is over, and the Flood is on the list
+            answerEvents(f, life);
+            f.frames(12);
+
+            ASSERT_FALSE(life->onWalk());
+            EXPECT_TRUE(life->save.setAside.empty());
+
+            auto list = life->piece<ActivityList>("activities");
+            ASSERT_NE(list, nullptr);
+            EXPECT_NE(list->find(&f.ecs, "flood.salvage"), nullptr);
+        }
+
+        TEST(lifescene_test, a_story_card_shows_four_answers)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = storyLife(f, storyOptions());
+            ASSERT_NE(life, nullptr);
+
+            openStory(f);
+            ASSERT_TRUE(life->onWalk());
+
+            takeTile(f, life, "lecture");
+
+            f.ecs.sendEvent(ActivitySelectedEvent{"walk.works", "tile.library"});
+            f.settle();
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.work"});
+            f.frames(8);
+            upToTheQuestion(f, life);
+
+            ASSERT_EQ(runText(life, "event"), "story.crossroads");
+            ASSERT_EQ(life->walk.options.size(), 4u);
+
+            auto shown = [&](LifeScene* l) {
+                const char* labels[] = {"The art of numbers", "The art of letters", "The art of the stars", "The art of healing"};
+
+                for (int i = 0; i < 4; ++i)
+                {
+                    const std::string name = "option" + std::to_string(i);
+                    EntityRef button = walkPart(l, name);
+
+                    ASSERT_FALSE(button.empty()) << name;
+                    EXPECT_TRUE(f.pos(button)->visible) << name;
+                    EXPECT_EQ(button->get<Button>()->label.spec.text, labels[i]) << name;
+                    EXPECT_FALSE(button->get<Button>()->spec.disabled) << name;
+                    EXPECT_TRUE(f.pos(walkPart(l, "optionLine" + std::to_string(i)))->visible) << name;
+                }
+            };
+
+            f.pass(100.0f, 50.0f);
+            EXPECT_FALSE(life->walkNarrow);
+            shown(life);
+
+            // A phone held upright: one column, the same four
+            f.resize(420.0f, 800.0f);
+            f.pass(200.0f, 50.0f);
+            f.frames(12);
+
+            ASSERT_TRUE(life->walkNarrow);
+            shown(life);
+
+            // The fourth is pressed as the others are
+            f.ecs.sendEvent(ButtonActivatedEvent{0, "walk.option.3"});
+            f.settle();
+            EXPECT_EQ(runText(life, "m.d"), "1");
+        }
+
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------

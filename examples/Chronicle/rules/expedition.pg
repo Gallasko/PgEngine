@@ -104,6 +104,14 @@ var builds = []
 var blocked = ""
 var stopped = ""
 
+// A story's months are run by the Life screen between two asks: his Vitality is what they left
+// him, not what the last ask did (outside a fight, which no month interrupts)
+if ((ask == "act" or ask == "look") and pick(run, "story", "") != "" and pick(run, "found", "") == "")
+{
+    run.hp = fieldHp()
+    run.hpMax = mostOf(after, "vit")
+}
+
 // The builds to try a fight with (--build, testbuilds.pg): nothing else is asked with them
 if (ask == "builds")
 {

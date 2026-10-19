@@ -109,7 +109,7 @@ namespace chronicle
         constexpr float HurtRiseMs = 900.0f;               // And what was taken lifts off it for that long,
         constexpr float HurtRise = 0.02f;                  // by so many pixels a millisecond
         constexpr float HurtZ = 150.0f;                    // Over the screen, under the tooltips
-        constexpr int MaxOptions = 3;                      // The buttons an event's card has
+        constexpr int MaxOptions = 4;                      // The buttons an event's card has (a story's card has up to four answers)
         constexpr int MaxChips = 6;                        // The places the order of a turn has
         constexpr int MaxFoes = 4;                         // The beasts the panel of what he fights has room for: a pack is four at most
         constexpr int MostWalks = 20;                      // The longest queue the form asks for
@@ -727,11 +727,12 @@ namespace chronicle
 
         if (fighting and not outcome.empty() and not (fought and wasOver))
         {
+            // (a story's fight whose time was called, "held", is neither won nor lost)
             if (outcome == "won")
                 ++save.fightsWon;
             else if (outcome == "fled")
                 ++save.fightsFled;
-            else
+            else if (outcome != "held")
                 ++save.fightsLost;
 
             if (intOf(answer.state.fight, "auto") > 0)
@@ -743,6 +744,39 @@ namespace chronicle
 
         takeStats(answer.after);
         writeEntries(answer.entries);
+
+        // A story's day that ended: the months it adds up to are his life's, run now. The rules
+        // count them (`monthsDue` is this act's alone): nothing is written back
+        if (walk.state.story())
+        {
+            const int months = intOf(walk.state.run, "monthsDue");
+
+            runStoryMonths(months);
+
+            // A month that left him nothing to live on: the life is over, and the story with it
+            if (ended)
+            {
+                save.walk = WalkState{};
+                walk = RuleWalk{};
+                seekChosen.clear();
+                workChosen.clear();
+
+                closeWalk();
+                return;
+            }
+
+            // The page as the months left him (his Vitality, what he holds)
+            if (months > 0 and textOf(walk.site, "screen") != "done")
+            {
+                RuleWalk looked;
+
+                if (askWalk("look", WalkAct{}, "", looked))
+                {
+                    walk = looked;
+                    save.walk = looked.state;
+                }
+            }
+        }
 
         if (textOf(walk.site, "screen") == "done")
         {
@@ -772,6 +806,13 @@ namespace chronicle
 
     void LifeScene::endWalk()
     {
+        // A story is never kept, nor counted as a walk: its months ran on its days
+        if (walk.state.story())
+        {
+            endStory();
+            return;
+        }
+
         const std::string zone = textOf(walk.recipe, "zone");
         const std::string activity = WalkActivity + zone;
         const std::string name = textOf(walk.recipe, "name");
@@ -878,6 +919,162 @@ namespace chronicle
             toast("Carried home from " + name);
         else
             toast("The record of " + name + " is kept: the Adventure page walks it again");
+
+        autoSave();
+    }
+
+    // ---- a story ------------------------------------------------------------------------------------------
+
+    void LifeScene::beginStory(const std::string& activity)
+    {
+        const RuleActivity* at = activityOf(activity);
+
+        if (not at or ended or onWalk() or not save.running.empty())
+            return;
+
+        const std::string story = textOf(at->fields, "story");
+
+        if (story.empty() or boolOf(at->fields, "locked") or not boolOf(at->fields, "listed"))
+            return;
+
+        // What beginning its row takes and gives, as any work's: a board's rations up front
+        RuleForecast forecast;
+
+        if (not rules.forecast(save.age, save.character(), activity, 0, forecast))
+        {
+            for (const auto& e : rules.errors)
+                LOG_ERROR(DOM, e);
+
+            return;
+        }
+
+        RuleWalk answer;
+
+        if (not askWalk("enter", WalkAct{"story", story, 0}, "", answer) or not answer.state.story())
+            return;
+
+        // He is there: the calendar does not run, the days he chooses move it
+        paused = true;
+        sinceMonth = 0.0f;
+
+        walk = answer;
+        save.walk = answer.state;
+
+        takeStats(answer.after);
+        writeEntries(answer.entries);
+
+        // Its row runs from here, its months the story's, each run as its days add up to it
+        save.running = activity;
+        save.monthsIn = 0;
+        ++save.begun;
+        rules.running = save.running;
+
+        takeStats(forecast.atStart);
+        writeEntries(forecast.begins);
+
+        if (auto facts = ecsRef->getSystem<WorldFacts>())
+            facts->setFact("activity." + activity + ".state", std::string("running"));
+
+        clearChoice();
+        leadDue = false;
+        seekChosen.clear();
+        workChosen.clear();
+
+        showWalk();
+
+        publish();
+        autoSave();
+    }
+
+    void LifeScene::runStoryMonths(int months)
+    {
+        // Each the life's own month, as the calendar runs it: eaten, made, mended, aged, paid. One
+        // that leaves him nothing to live on ends the life there
+        storyMonth = true;
+
+        for (int i = 0; i < months and not ended; ++i)
+            onMonth();
+
+        storyMonth = false;
+    }
+
+    void LifeScene::endStory()
+    {
+        const std::string story = textOf(walk.state.run, "story");
+        const std::string result = textOf(walk.state.run, "result");
+        const std::string name = textOf(walk.site, "title");
+
+        // The row that opened it: the story's own (`story`), done by now if its term came
+        std::string row;
+
+        for (const auto& a : activities)
+        {
+            if (textOf(a.fields, "story") == story)
+            {
+                row = textOf(a.fields, "id");
+                break;
+            }
+        }
+
+        save.walk = WalkState{};
+        walk = RuleWalk{};
+        seekChosen.clear();
+        workChosen.clear();
+
+        closeWalk();
+
+        // Left, or sent away, before its term: the row stops where its days left it, and what its
+        // board gave ahead for the months he will not stay goes back
+        if (not row.empty() and save.running == row)
+        {
+            leaveWork(row, save.monthsIn);
+
+            if (auto facts = ecsRef->getSystem<WorldFacts>())
+                facts->setFact("activity." + row + ".state", std::string("idle"));
+
+            save.running.clear();
+            save.monthsIn = 0;
+            rules.running.clear();
+        }
+
+        // Passed: the way into a path that the story is makes him one of it
+        const bool passed = result == "pass" or result == "merit" or result == "distinction";
+
+        if (const RuleActivity* at = activityOf(row); passed and at and boolOf(at->fields, "enters"))
+            save.aim = textOf(at->fields, "path");
+
+        // The months wait for his next choice
+        paused = true;
+        sinceMonth = 0.0f;
+
+        if (not save.setAside.empty() and save.running.empty())
+            takeUpSetAside();
+
+        refreshHoldings();
+
+        for (const auto& r : save.holdEarned(holdings))
+            addToLedger(r);
+
+        rules.done = save.terms();
+
+        fillActivities();
+        fillWindows();
+        publish();
+
+        if (result == "pass")
+            toast(name + " is behind him: passed");
+        else if (result == "merit")
+            toast(name + " is behind him: passed with merit");
+        else if (result == "distinction")
+            toast(name + " is behind him: passed with distinction");
+        else if (result == "fail")
+            toast(name + " is behind him: he failed it");
+        else if (result == "dropout")
+            toast(name + " is behind him: he was sent away");
+        else if (result == "left")
+            toast(name + " is behind him: he left before its end");
+        else
+            toast(name + " is behind him");
 
         autoSave();
     }
@@ -1405,6 +1602,16 @@ namespace chronicle
         if (auto panel = walkPiece<Panel>("statePanel"); panel and panel->title and panel->title->spec.text != save.name)
             panel->setHeading(ecs, save.name);
 
+        // A story is not a walk: no way home to turn to, nothing met on a way
+        if (walk.state.story())
+        {
+            for (auto [name, heading] : {std::pair<const char*, const char*>{"workPanel", "The day's work"}, {"cardPanel", "On this day"}, {"homePanel", "If he left now"}})
+            {
+                if (auto panel = walkPiece<Panel>(name); panel and panel->title and panel->title->spec.text != heading)
+                    panel->setHeading(ecs, heading);
+            }
+        }
+
         walkSay("vitality", textOf(site, "vitality"));
         walkSay("knowledge", textOf(site, "knowledge"));
         walkSay("knowledgeNote", textOf(site, "knowledgeNote"));
@@ -1419,7 +1626,18 @@ namespace chronicle
 
         // His panel's gloss: what knowing a place is, what each level of it brings, and how far
         // he is from the next
-        if (auto registry = ecs->getSystem<GlossRegistry>())
+        if (auto registry = ecs->getSystem<GlossRegistry>(); registry and walk.state.story())
+        {
+            // A story is no place to know: its gloss says what the days are worth
+            GlossSpec gloss;
+            gloss.inlineValues = true;
+            gloss.title = textOf(site, "title");
+            gloss.text = "His days here are months of his life: each month they add up to is lived as it comes, "
+                         "what he eats, mends and pays with it. Leaving keeps what the days have given him.";
+
+            registry->set(KnowledgeGloss, gloss);
+        }
+        else if (registry)
         {
             const int level = intOf(site, "level");
 

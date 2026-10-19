@@ -1683,7 +1683,8 @@ namespace chronicle
     {
         // A work stopped, by the key or by a part that fails. At nothing the months do not run on
         // their own: there is nothing to go on with
-        return not save.running.empty() and paused and not ended;
+        // On a story's screen its row runs, but its days move the months, not the calendar
+        return not save.running.empty() and paused and not ended and not onWalk();
     }
 
     float LifeScene::resumeRoom() const
@@ -4663,6 +4664,10 @@ namespace chronicle
 
     void LifeScene::pause(bool on)
     {
+        // On a walk's screen, or a story's, the calendar stays stopped: the days are his to choose
+        if (not on and onWalk())
+            return;
+
         paused = on;
 
         publishPace();
@@ -5028,6 +5033,13 @@ namespace chronicle
 
         if (not chosen or boolOf(chosen->fields, "locked") or not boolOf(chosen->fields, "listed"))
             return;
+
+        // A story: its days are chosen on the walk's screen, and its months run as they add up
+        if (not textOf(chosen->fields, "story").empty())
+        {
+            beginStory(id);
+            return;
+        }
 
         // A walk outside the town: he is there first, and its months run once he turns for home
         if (not textOf(chosen->fields, "zone").empty())
@@ -6136,10 +6148,11 @@ namespace chronicle
                 takeStats(forecast.atTerm);
                 writeEntries(forecast.entries);
 
-                // The way into a path, done: he is one of it, and its asks stand on his parts
+                // The way into a path, done: he is one of it, and its asks stand on his parts. A
+                // story's is his only by its result, which the story's end reads (endStory)
                 const RuleActivity* at = activityOf(save.running);
 
-                if (at and boolOf(at->fields, "enters"))
+                if (at and boolOf(at->fields, "enters") and not storyMonth)
                     save.aim = textOf(at->fields, "path");
 
                 // A work for the town: the place it raises, and the level it raises it to
@@ -6174,7 +6187,7 @@ namespace chronicle
                 fillWindows();
 
                 // Home from a walk: what a record brought is his now, and a queue sets out again
-                if (walked)
+                if (walked and not storyMonth)
                 {
                     homeFromWalk();
 
@@ -6182,8 +6195,9 @@ namespace chronicle
                         fillActivities();
                 }
 
-                // An answer done: the work it set aside goes on
-                if (not save.setAside.empty() and save.running.empty())
+                // An answer done: the work it set aside goes on. Not under a story: he is still
+                // on its screen, and the calendar stays stopped until it is over
+                if (not save.setAside.empty() and save.running.empty() and not storyMonth)
                     takeUpSetAside();
             }
 

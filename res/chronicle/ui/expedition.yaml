@@ -170,6 +170,8 @@ children:
           - {kind: Label, name: optionLine1, style: body-sm, color: ink-muted, overflow: wrap, text: "0 AP"}
           - {kind: Button, name: option2, variant: quiet, label: Leave him, tag: walk.option.2}
           - {kind: Label, name: optionLine2, style: body-sm, color: ink-muted, overflow: wrap, text: "0 AP"}
+          - {kind: Button, name: option3, variant: quiet, label: Walk on, tag: walk.option.3}
+          - {kind: Label, name: optionLine3, style: body-sm, color: ink-muted, overflow: wrap, text: "0 AP"}
           - {kind: Label, name: cardFoot, style: gloss, color: ink-muted, overflow: wrap, text: "The choice is written to the record; a walk by the record makes it again."}
 
       - kind: Panel

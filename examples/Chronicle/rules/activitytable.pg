@@ -48,6 +48,9 @@
 //           begins: its `years`), goto ("" or the page that confirming it opens, and nothing else),
 //           zone ("" or the zone of expeditiontable.pg it is a walk to: beginning it opens the
 //           on-site screen, and its months run once he is home),
+//           story ("" or the story of storytable.pg it opens: beginning it opens the story on the
+//           walk's on-site screen, and its months run there as its days add up to them; its
+//           `months` are the story's, and its term comes with the story's last month),
 //           until ("" or when it closes, as the row writes it: "CLOSES 5/11", the world's date
 //           (month/year) of the last month he may begin it, or "CLOSES THIS MONTH"; said from
 //           `closingShown` months before it), urgent (true from `closingUrgent` months before),
@@ -188,6 +191,10 @@
 //                    what he does). The works that
 //                    raise a place are not written here: they are made from towntable.pg.
 //   years: N         it takes N years of his life at once when it begins, on top of its months.
+//   story: "id"      beginning it opens that story of storytable.pg (whose `row` names it back)
+//                    on the walk's on-site screen: its days are chosen there, each month they add
+//                    up to is run as it comes, and its term is the story's last month. Its
+//                    `months` are the story's. A story keeps no record and is never walked again.
 //
 // An activity that brings a stat with a limit (lib.pg's `statLimits`) asks for room for it: one
 // more requirement, {stat, label "Room for Rations", current (the room left), needed 1, room
@@ -1181,7 +1188,14 @@ var activities = [
     {id: "teach", group: "Old age", name: "Teach the Young", glyph: "academy", months: 4, rank: "", each: "", path: "", fromAge: lastAge - 1, fromMonths: 8, finishBy: anyAge,
      gains: [{stat: "coin", amount: 6}],
      requires: [],
-     bonus: [{stat: "town.chapel", needed: 3, more: [{stat: "coin", amount: 4}]}]}
+     bonus: [{stat: "town.chapel", needed: 3, more: [{stat: "coin", amount: 4}]}]},
+
+    // The tests' story (storytable.pg's `trial`, lifescene.cc): listed for no life but one that
+    // holds `test.stories`. Its months are the story's, and it feeds him as a class's board does
+    {id: "story.trial", group: "A story", name: "Sit the Trial", glyph: "study", months: 4, rank: "", each: "RATIONS UP FRONT", path: "", board: true,
+     fromAge: 6, finishBy: anyAge, showFrom: 0, uses: 1, onlyWith: "test.stories", story: "trial",
+     gains: [],
+     requires: []}
 ]
 
 // The walks outside the town, one a zone, made from expeditiontable.pg: a row of the Adventure
@@ -2032,6 +2046,7 @@ for (var i = 0; i < len(activities); i++)
     a.goto = lookup(a, "goto", "")
     a.raises = lookup(a, "raises", "")
     a.zone = lookup(a, "zone", "")
+    a.story = lookup(a, "story", "")
     a.level = lookup(a, "level", 0)
     a.yearMonths = lookup(a, "years", 0) * 12
     a.done = count
