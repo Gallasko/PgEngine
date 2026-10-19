@@ -489,7 +489,9 @@ namespace chronicle
         std::vector<std::string> threatShown;     // The ones of them in red for it
         std::string warning;                      // What the rules say of the coming month ("RATIONS FOR 2 MONTHS"), "" for nothing
         std::string advice;                       // And what to do about it, as last said by a toast
+    public:   // Read by the tests
         std::string chosen;                       // The activity chosen in the list, "" for none: what the Begin button begins
+    private:
         std::string chosenList;                   // And the list it was chosen in: the choice's, the market's, or the town's places
         float sincePlaceClick = 1.0e9f;           // Ms since a place's tile was last clicked: a second click on the chosen one soon after begins it, as on a row
         std::string doneNow;                      // The last chosen thing its button did at once: chosen still once it can be done no more, its button stays greyed
@@ -538,6 +540,7 @@ namespace chronicle
         float alertLeft = 0.0f;                   // Milliseconds of red left
         bool endangered = false;                  // The last month took from what the life hangs on
 
+    public:   // The Options tab: the tests look at it
         // The Options page (lifeoptions.cpp): how the game is played and lit, kept on this machine,
         // and the save itself: exported, loaded, burnt. It takes the choice's place in the middle
         // column, as the Town page does
