@@ -134,7 +134,7 @@ fun newWorld(seed)
 {
     var st = {world: 0, lives: 1, town: {}, fund: {}, seen: {}, know: {},
               month: 72, stats: freshStats(), done: {}, running: "", monthsIn: 0, months: 0,
-              townKnown: false, dead: false, death: "", planHead: -1, reached: {}, reachedCount: 0, raises: "", raiseLevel: 0, aim: "",
+              townKnown: false, dead: false, death: "", planHead: -1, reached: {}, reachedCount: 0, raises: "", raiseLevel: 0, aim: "", path: "",
               dice: seed, stamp: 0, terms: 0, stash: {}}
     touch(st)
 
@@ -868,6 +868,7 @@ fun newLife(st, gift, town)
     st.dead = false
     st.death = ""
     st.terms = 0
+    st.path = ""
     touch(st)
 
     // What the town gives a life at its birth

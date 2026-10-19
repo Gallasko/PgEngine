@@ -385,13 +385,18 @@ fun storyPlanOf(st, story, rows)
         push(tiles, flat["tile." + toString(i)])
     }
 
-    var plan = {tiles: tiles, answers: {}, fees: [], gives: []}
+    var plan = {tiles: tiles, cards: {}, tests: {}, fees: [], gives: []}
 
     for (var k : flat)
     {
-        if (startsWith(k, "card.") or startsWith(k, "test."))
+        if (startsWith(k, "card."))
         {
-            plan.answers[substring(k, 5, strlen(k))] = flat[k]
+            plan.cards[substring(k, 5, strlen(k))] = flat[k]
+        }
+
+        if (startsWith(k, "test."))
+        {
+            plan.tests[substring(k, 5, strlen(k))] = flat[k]
         }
 
         if (startsWith(k, "fee."))
@@ -442,7 +447,13 @@ fun storyChoice(answer, plan, spent)
 
         if (up != none and startsWith(up, "story."))
         {
-            said = plan.answers[substring(up, 6, strlen(up))]
+            var upId = substring(up, 6, strlen(up))
+            said = plan.cards[upId]
+
+            if (said == none)
+            {
+                said = plan.tests[upId]
+            }
         }
 
         if (said != none)

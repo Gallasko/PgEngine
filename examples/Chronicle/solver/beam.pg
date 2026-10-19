@@ -136,6 +136,29 @@ fun expandKeep()
     return larger(3, (beamWidth + len(aims) - 1) / len(aims)) * len(aims)
 }
 
+// A story is played (whole: dear as a walk, its months run) by a world it is for: one that aims at
+// the class its row enters (or that aims at none, and is of none), and once a life, the first month
+// it is open to him (and its fees held, walks.pg's withStoryFees)
+fun storyHere(st, row)
+{
+    if (row.story == none or row.story == "")
+    {
+        return false
+    }
+
+    if (st.storyTried != none and st.storyTried[row.id] == st.lives)
+    {
+        return false
+    }
+
+    if (st.aim == row.path)
+    {
+        return true
+    }
+
+    return st.aim == "" and classOf(st) == ""
+}
+
 // A world's children, before they are pruned: {children, final (true: as they are, not pruned)}
 fun expandChildren(st, round)
 {
@@ -226,6 +249,25 @@ fun expandChildren(st, round)
 
     var walks = []
 
+    // The stories it plays this month (storyHere): marked on the world before any child is made of
+    // it, so that none of them plays one again in this life
+    var stories = {}
+
+    for (var sr : rows)
+    {
+        if (round == 0 and sr.months > 0 and isOpen(sr) and not spendsKept(st, sr, keeps) and storyHere(st, sr))
+        {
+            stories[sr.id] = 1
+
+            if (st.storyTried == none)
+            {
+                st.storyTried = {}
+            }
+
+            st.storyTried[sr.id] = st.lives
+        }
+    }
+
     for (var row : rows)
     {
         if (row.months > 0 and isOpen(row) and not spendsKept(st, row, keeps))
@@ -243,9 +285,9 @@ fun expandChildren(st, round)
             else if (row.story != none and row.story != "")
             {
                 // A story is played whole, by its plan, its months run as its days make them due
-                // (walks.pg's storyBy): the world comes out of it that many months on. Tried on the
-                // month's first choice only, being as dear as a walk
-                if (round == 0)
+                // (walks.pg's storyBy): the world comes out of it that many months on. Only by a
+                // world it is for, once a life (storyHere)
+                if (stories[row.id] != none)
                 {
                     var told = clone(st)
                     provisionFast(told, buy, row.months, asInt(row.upFront))

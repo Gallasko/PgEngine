@@ -5,9 +5,12 @@
 
 import "algorithm"
 import "string"
+import "math"
 import "life"
 import "walks"
 import "plan"
+import "reqs"
+import "beam"
 
 var boy = {str: 4, dex: 4, int: 4, vit: 35, vitmax: 35, arms: 0, discipline: 0, letters: 0, lore: 0,
            arcana: 0, stealth: 0, guile: 0, renown: 0, coin: 0}
@@ -166,3 +169,64 @@ for (var stat : ["collegium", "fire_course", "arcana"])
 
 check("solver_test.the_solver_knows_what_a_story_gives", makes.collegium == 1 and makes.fire_course == 1 and makes.arcana == 1,
       "collegium " + toString(makes.collegium) + ", fire_course " + toString(makes.fire_course) + ", arcana " + toString(makes.arcana))
+
+// solver_test.the_beam_plays_a_story_for_its_class_once: a beam world fit to enter the Collegium,
+// its fees in hand, plays the story only when it aims at the class the row enters (or at none), and
+// once a life: what it branches into after that never plays it again
+fun storyChildren(children)
+{
+    var n = 0
+
+    for (var c : children)
+    {
+        if (doneOf(c, "collegium") > 0 or statOf(c, "dropout.collegium") > 0)
+        {
+            n = n + 1
+        }
+    }
+
+    return n
+}
+
+fun beamYouth(aim)
+{
+    var w = newWorld(1)
+    w.month = 16 * 12
+    w.stats.int = 13
+    w.stats.letters = 3
+    w.stats.lore = 2
+    w.stats.coin = 45
+    w.stats.vit = 50
+    w.stats.vitmax = 50
+    w.aim = aim
+    touch(w)
+
+    return w
+}
+
+beamWidth = 10
+
+var warrior = beamYouth("warrior")
+var warriorGrown = expandChildren(warrior, 0)
+var warriorPlays = storyChildren(warriorGrown.children)
+
+var mage = beamYouth("mage")
+var mageGrown = expandChildren(mage, 0)
+var mageKids = mageGrown.children
+var magePlays = storyChildren(mageKids)
+var laterPlays = 0
+
+for (var kid : mageKids)
+{
+    if (storyChildren([kid]) == 0 and not kid.dead and kid.running == "")
+    {
+        var kidGrown = expandChildren(kid, 0)
+        laterPlays = laterPlays + storyChildren(kidGrown.children)
+    }
+}
+
+var againGrown = expandChildren(mage, 0)
+var againPlays = storyChildren(againGrown.children)
+
+check("solver_test.the_beam_plays_a_story_for_its_class_once", warriorPlays == 0 and magePlays == 1 and laterPlays == 0 and againPlays == 0,
+      "warrior " + toString(warriorPlays) + ", mage " + toString(magePlays) + ", its children after " + toString(laterPlays) + ", the same world again " + toString(againPlays))

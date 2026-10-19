@@ -580,7 +580,7 @@ fun gatherKeeps(st, rows)
 
     for (var row : rows)
     {
-        if (row.months > 0 and row.zone == "" and row.listed == true and row.locked == true and row.goto == "" and row.closed != true and row.spent != true and row.pathOpen == true and row.barred == "" and gatherFor(st, row))
+        if (row.months > 0 and row.zone == "" and (row.story == none or row.story == "") and row.listed == true and row.locked == true and row.goto == "" and row.closed != true and row.spent != true and row.pathOpen == true and row.barred == "" and gatherFor(st, row))
         {
             var lacks = resourceLacks(row)
 
@@ -617,7 +617,7 @@ fun gatherChildren(st, rows, children)
 
     for (var row : rows)
     {
-        if (row.months > 0 and row.zone == "" and row.listed == true and row.locked == true and row.goto == "" and row.closed != true and row.spent != true and row.pathOpen == true and row.barred == "" and gatherFor(st, row))
+        if (row.months > 0 and row.zone == "" and (row.story == none or row.story == "") and row.listed == true and row.locked == true and row.goto == "" and row.closed != true and row.spent != true and row.pathOpen == true and row.barred == "" and gatherFor(st, row))
         {
             var lacks = resourceLacks(row)
 
@@ -675,7 +675,7 @@ fun continueRepeat(st)
 
         var next = rowOf(st, r.then)
 
-        if (next == none or not isOpen(next) or next.months <= 0 or next.zone != "")
+        if (next == none or not isOpen(next) or next.months <= 0 or next.zone != "" or (next.story != none and next.story != ""))
         {
             return false
         }
