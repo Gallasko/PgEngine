@@ -21,7 +21,8 @@
 //           its months: 0 when they last the work), fromAge, finishBy,
 //           gains [{stat, amount, label, name}] (at term; label: the stat's short name, for a
 //           row; name: its full one, for a gloss),
-//           costs [{stat, amount, label, name}] (taken when it begins),
+//           costs [{stat, amount, label, name, held}] (taken when it begins; held: what he holds
+//           of it now),
 //           requires [{stat, label, current, needed, room, cost}] (current: the character's;
 //           flat: eased and anyOf are weighed here and not passed on; `cost` marks what is one
 //           of its costs, `room` what is room for a gain: neither is written on a tile),
@@ -1912,8 +1913,8 @@ for (var i = 0; i < len(activities); i++)
         push(requires, a.requires[r])
     }
 
-    // What it costs: asked before, taken when it begins
-    var costs = amountsOf(a, "costs")
+    // What it costs: asked before, taken when it begins. A copy: each says what he holds of it
+    var costs = entriesCopied(amountsOf(a, "costs"))
 
     for (var c = 0; c < len(costs); c++)
     {
@@ -1921,6 +1922,9 @@ for (var i = 0; i < len(activities); i++)
         cost.label = statShortName(cost.stat)
         // (under its own name when the row gives one: what a draw takes from the stash)
         cost.name = lookup(cost, "name", statName(cost.stat))
+        // (and what he holds of it, for the gloss to say on the cost's own line: the requirement it
+        // makes stays the rules' own, and keeps the row locked while he is short)
+        cost.held = statOf(character, cost.stat)
         push(requires, {stat: cost.stat, needed: cost.amount, cost: true})
     }
 

@@ -24,6 +24,8 @@
 //                       (activitytable.pg makes it from the same table: "raise.<id>.<level>")
 //            nextName, nextMonths, nextCoin (less the fund, never below 0), nextYears,
 //            nextCosts  what the next level asks, in one line: "6 mo · 5 coin · 20 Stone · 20 Water"
+//            nextTime   its months and years alone, as nextCosts says them ("6 mo"): the gloss says
+//                       the time, then each thing it takes once, a gap a line
 //            nextGives  what it will give
 //            nextLocked true while he cannot pay for it
 //            gaps [{stat, label, current, needed}]: what it takes from him, against what he has
@@ -104,7 +106,7 @@ for (var t = 0; t < len(townPlaces); t++)
     var shown = {id: place.id, name: place.name, glyph: place.glyph, about: place.about, level: level, most: most,
                  shown: placeShown(place, character, monthOf(age), done, lives),
                  gives: "", line: "NOT YET BUILT", tale: "", built: "", fund: fund,
-                 nextWork: "", nextName: "", nextMonths: 0, nextCoin: 0, nextYears: 0, nextCosts: "", nextGives: "", nextLocked: false,
+                 nextWork: "", nextName: "", nextMonths: 0, nextCoin: 0, nextYears: 0, nextCosts: "", nextTime: "", nextGives: "", nextLocked: false,
                  gaps: [], given: [], tiers: [], leaves: [], spends: [], leaveLine: "", stashLine: ""}
 
     // What it gives is what every level reached gives: none takes the place of the one before
@@ -176,6 +178,9 @@ for (var t = 0; t < len(townPlaces); t++)
 
             asks = asks + toString(shown.nextYears) + " years of his life"
         }
+
+        // Its time alone, for the gloss: the things it takes are its gaps, a line each
+        shown.nextTime = asks
 
         if (coin > 0)
         {

@@ -2138,6 +2138,79 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // A gloss says once what a work takes, with what he holds of it, and asks for none of it
+        // among its requirements. A work he cannot pay for stays locked.
+        TEST(lifescene_test, a_gloss_says_a_cost_once)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeSceneOptions opt = LifeFixture::mockup();
+            opt.fresh = true;
+            opt.lives = 2;
+            opt.age = 8.0f;
+
+            LifeScene* life = f.life(opt);
+            ASSERT_NE(life, nullptr);
+
+            life->save.stats["rations"] = 24;
+            life->save.stats["berries"] = 4;
+            life->onMonth();
+            f.settle();
+
+            auto registry = f.ecs.getSystem<GlossRegistry>();
+            ASSERT_NE(registry, nullptr);
+
+            auto section = [](const GlossSpec* g, const std::string& heading) {
+                std::vector<GlossRow> rows;
+                bool inside = false;
+
+                for (const auto& r : g->rows)
+                {
+                    if (r.heading)
+                        inside = r.label == heading;
+                    else if (inside)
+                        rows.push_back(r);
+                }
+
+                return rows;
+            };
+
+            // Drying berries takes three, and he has four: nothing asked, the cost says what he has
+            const GlossSpec* drying = registry->find("activity/dry.berries");
+            ASSERT_NE(drying, nullptr);
+
+            for (const auto& r : drying->rows)
+                EXPECT_NE(r.label, "REQUIREMENTS");
+
+            auto dried = section(drying, "COST");
+            ASSERT_EQ(dried.size(), 1u);
+            EXPECT_EQ(dried[0].label, "Berries");
+            EXPECT_EQ(dried[0].value, "\xE2\x88\x92" "3 (has 4)");
+            EXPECT_EQ(dried[0].tone, "");
+
+            // The pies take six: he is short, in the loss's colour, and the row stays locked
+            const GlossSpec* pies = registry->find("activity/pies");
+            ASSERT_NE(pies, nullptr);
+
+            for (const auto& r : section(pies, "REQUIREMENTS"))
+                EXPECT_NE(r.label, "Berries");
+
+            auto baked = section(pies, "COST");
+            ASSERT_EQ(baked.size(), 1u);
+            EXPECT_EQ(baked[0].label, "Berries");
+            EXPECT_EQ(baked[0].value, "\xE2\x88\x92" "6 (has 4)");
+            EXPECT_EQ(baked[0].tone, "loss");
+
+            auto list = life->piece<ActivityList>("activities");
+            ASSERT_NE(list, nullptr);
+            ASSERT_NE(list->find(&f.ecs, "pies"), nullptr);
+            EXPECT_EQ(list->find(&f.ecs, "pies")->spec.state, ActivityState::Locked);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // A kind learned from a study row is kept by the world: the next life can bind it.
         TEST(lifescene_test, a_kind_learned_is_kept_by_the_world)
         {
@@ -4423,8 +4496,10 @@ namespace pg
 
             EXPECT_EQ(in(campaign, "REWARD", "Coin").first, "+50");
             EXPECT_EQ(in(campaign, "REWARD", "Coin").second, "gain");
-            EXPECT_EQ(in(campaign, "COST", "Coin").first, "\xE2\x88\x92" "10");
-            EXPECT_EQ(in(campaign, "COST", "Coin").second, "loss");
+            // (what it takes says what he holds of it, plain while he has enough, and is not asked again)
+            EXPECT_EQ(in(campaign, "COST", "Coin").first, "\xE2\x88\x92" "10 (has 46)");
+            EXPECT_EQ(in(campaign, "COST", "Coin").second, "");
+            EXPECT_EQ(in(campaign, "REQUIREMENTS", "Coin").first, "<none>");
             EXPECT_EQ(in(campaign, "REQUIREMENTS", "Age").first, "17 / 21");
             EXPECT_EQ(in(campaign, "REQUIREMENTS", "Age").second, "loss");
             EXPECT_EQ(in(campaign, "REQUIREMENTS", "Arms").first, "5 / 6");
@@ -6408,26 +6483,42 @@ namespace pg
                 EXPECT_FALSE(life->piece<PlaceGrid>("places")->tile(id)->spec.ready) << id;
             }
 
-            // The place's gloss keeps it: the coin and the berries it asks against what he has, in the loss's colour
+            // The place's gloss keeps it: the coin and the berries it takes, with what he has of
+            // them, in the loss's colour. Each once: its time line says the time alone
             auto registry = f.ecs.getSystem<GlossRegistry>();
             ASSERT_NE(registry, nullptr);
 
             const GlossSpec* gloss = registry->find("place/market");
             ASSERT_NE(gloss, nullptr);
 
-            bool asked = false;
+            int coin = 0;
+            int berries = 0;
 
             for (const auto& row : gloss->rows)
-                asked = asked or (row.label == "Coin" and row.value == "0 / 5" and row.tone == "loss");
+            {
+                if (row.label == "Coin")
+                {
+                    ++coin;
+                    EXPECT_EQ(row.value, "\xE2\x88\x92" "5 (has 0)");
+                    EXPECT_EQ(row.tone, "loss");
+                }
 
-            EXPECT_TRUE(asked);
+                if (row.label == "Berries")
+                {
+                    ++berries;
+                    EXPECT_EQ(row.value, "\xE2\x88\x92" "20 (has 0)");
+                    EXPECT_EQ(row.tone, "loss");
+                }
 
-            bool berries = false;
+                if (row.label == "It takes")
+                {
+                    EXPECT_EQ(row.value.find("coin"), std::string::npos) << row.value;
+                    EXPECT_EQ(row.value.find("Berries"), std::string::npos) << row.value;
+                }
+            }
 
-            for (const auto& row : gloss->rows)
-                berries = berries or (row.label == "Berries" and row.value == "0 / 20" and row.tone == "loss");
-
-            EXPECT_TRUE(berries);
+            EXPECT_EQ(coin, 1);
+            EXPECT_EQ(berries, 1);
 
             // Nor an age, nor a stat: the Keep is years away and says nothing of it, and its gloss does
             auto list = life->piece<ActivityList>("activities");

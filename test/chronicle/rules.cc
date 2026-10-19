@@ -2737,6 +2737,11 @@ namespace pg
             EXPECT_EQ(intOf(forecast.atStart, "berries"), 0);
             EXPECT_EQ(intOf(forecast.atTerm, "coin"), 6);
             EXPECT_EQ(intOf(forecast.atTerm, "dex"), 7);
+
+            // Each cost says what he holds of it: the gloss writes it on the cost's line, and lists
+            // no requirement for it. The requirement stays the rules' own, and keeps the lock
+            EXPECT_EQ(intOf(bare.costs[0], "held"), 0);
+            EXPECT_EQ(intOf(ready.costs[0], "held"), 6);
         }
 
         // ----------------------------------------------------------------------------------------

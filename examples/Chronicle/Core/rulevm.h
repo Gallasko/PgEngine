@@ -101,8 +101,8 @@ namespace chronicle
     {
         pg::ElementMap fields;
         pg::RecordList gains;          // {stat, amount, label}: what the activity brings at term
-        pg::RecordList costs;          // {stat, amount, label}: what it takes when it begins
-        pg::RecordList requires;       // {stat, label, current, needed}: what it asks before it can start
+        pg::RecordList costs;          // {stat, amount, label, name, held}: what it takes when it begins, and what he holds of it
+        pg::RecordList requires;       // {stat, label, current, needed, room, cost}: what it asks before it can start
         pg::RecordList steps;          // {label, reached}: what a part or skill of his would make of it (its `bonus`), and whether he has it
     };
 
@@ -187,7 +187,7 @@ namespace chronicle
     };
 
     // A place of the town from town.pg: {id, name, glyph, about, level, most, shown, gives, line, tale,
-    // built, fund, nextWork, nextName, nextMonths, nextCoin, nextYears, nextCosts, nextGives,
+    // built, fund, nextWork, nextName, nextMonths, nextCoin, nextYears, nextCosts, nextTime, nextGives,
     // nextLocked, leaveLine} and what its next level takes from him.
     struct RulePlace
     {

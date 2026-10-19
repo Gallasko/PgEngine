@@ -514,6 +514,17 @@ namespace chronicle
             return (n < 0 ? std::string("\xE2\x88\x92") : std::string("+")) + std::to_string(n < 0 ? -n : n);
         }
 
+        // A gloss's line for a thing taken from him, once: what it takes and what he holds of it,
+        // "Berries −3 (has 4)", in the loss's colour while he holds too little (-1 held: nothing
+        // to say of what he holds, the line says what it takes alone)
+        GlossRow costRow(const std::string& name, int amount, int held)
+        {
+            if (held < 0)
+                return {name, signedText(-amount), ""};
+
+            return {name, signedText(-amount) + " (has " + std::to_string(held) + ")", held < amount ? "loss" : ""};
+        }
+
         std::string lower(std::string s)
         {
             for (char& c : s)
@@ -5653,10 +5664,13 @@ namespace chronicle
             if (not work.empty())
             {
                 gloss.rows.push_back({"NEXT UPGRADE", "", "", true});
-                gloss.rows.push_back({"It takes", textOf(place.fields, "nextCosts"), "time"});
+                // Its time, then each thing it takes once, on a line of its own: what it takes and
+                // what he holds of it
+                if (not textOf(place.fields, "nextTime").empty())
+                    gloss.rows.push_back({"It takes", textOf(place.fields, "nextTime"), "time"});
 
                 for (const auto& gap : place.gaps)
-                    gloss.rows.push_back({textOf(gap, "label"), std::to_string(intOf(gap, "current")) + " / " + std::to_string(intOf(gap, "needed")), intOf(gap, "current") < intOf(gap, "needed") ? "loss" : "gain"});
+                    gloss.rows.push_back(costRow(textOf(gap, "label"), intOf(gap, "needed"), intOf(gap, "current")));
 
                 if (intOf(place.fields, "fund") > 0)
                     gloss.rows.push_back({town.fundLine, std::to_string(intOf(place.fields, "fund")), "gain"});
@@ -6202,13 +6216,14 @@ namespace chronicle
             // What he has of it against what it asks, first: met in the gain's colour, short in
             // the loss's. The room a thing he holds still has is not said while there is some (its
             // ledger line says how full it is): only once there is none, and that is what stops him
+            // A cost is not one of them: its own line says what it takes and what he holds of it
             std::vector<GlossRow> asked;
 
             for (const auto& r : a.requires)
             {
                 const bool short_ = intOf(r, "current") < intOf(r, "needed");
 
-                if (boolOf(r, "room") and not short_)
+                if (boolOf(r, "cost") or (boolOf(r, "room") and not short_))
                     continue;
 
                 asked.push_back({textOf(r, "label"), std::to_string(intOf(r, "current")) + " / " + std::to_string(intOf(r, "needed")), short_ ? "loss" : "gain"});
@@ -6220,12 +6235,16 @@ namespace chronicle
             gloss.rows.insert(gloss.rows.end(), asked.begin(), asked.end());
 
             // Then in sections, a rule between two, each figure in the colour of the way it goes and
-            // under the stat's full name: the section says whether it is taken or brought
+            // under the stat's full name: the section says whether it is taken or brought. What it
+            // takes says what he holds of it, in the loss's colour while that is too little; the
+            // work he is at has paid
+            const bool atWork = textOf(a.fields, "id") == save.running;
+
             if (not a.costs.empty())
                 gloss.rows.push_back({"COST", "", "", true});
 
             for (const auto& c : a.costs)
-                gloss.rows.push_back({textOf(c, "name"), signedText(-intOf(c, "amount")), "loss"});
+                gloss.rows.push_back(costRow(textOf(c, "name"), intOf(c, "amount"), atWork ? -1 : intOf(c, "held")));
 
             // (a count the rules keep for themselves is not among it: `hidden`)
             std::vector<GlossRow> brought;
