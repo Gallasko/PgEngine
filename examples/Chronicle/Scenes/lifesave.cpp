@@ -243,6 +243,7 @@ namespace pg
         serialize(archive, "setAside", value.setAside);
         serialize(archive, "setAsideMonths", value.setAsideMonths);
         serialize(archive, "boardUpFront", value.boardUpFront);
+        serialize(archive, "coursesTaught", value.coursesTaught);
         serialize(archive, "stats", value.stats);
         serialize(archive, "parts", value.parts);
         serialize(archive, "skills", value.skills);
@@ -343,6 +344,31 @@ namespace pg
 
             data.stats.erase("scratches");
             data.vitalityIn = chronicle::LifeSave::VitalityPoints;
+        }
+
+        // A save from before the Collegium's term was played day by day: its scholar learned
+        // Firebolt with the class. He keeps it as the fire course's, unless a course is his already
+        data.coursesTaught = false;
+        defaultDeserialize(serialized, "coursesTaught", data.coursesTaught);
+
+        if (not data.coursesTaught)
+        {
+            const auto holds = [&data](const char* stat) { auto it = data.stats.find(stat); return it != data.stats.end() and it->second > 0; };
+
+            // A term begun as a row of months (its 35 coin paid) has no story to pass and its row
+            // no gains now: what its term gave is his as he is read, and its months run out as
+            // they were
+            if (data.running == "collegium" and not holds("collegium"))
+            {
+                data.stats["collegium"] += 1;
+                data.stats["arcana"] += 1;
+                data.stats["lore"] += 1;
+            }
+
+            if (holds("collegium") and not holds("fire_course") and not holds("frost_course") and not holds("storm_course"))
+                data.stats["fire_course"] = 1;
+
+            data.coursesTaught = true;
         }
 
         defaultDeserialize(serialized, "parts", data.parts);

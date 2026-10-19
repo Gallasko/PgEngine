@@ -85,7 +85,21 @@ for (var s = 0; s < len(standings); s++)
     }
 }
 
+// The class he left (its drop-out flag, storytable.pg's `dropout`): said in place of a life of no
+// class, or after the class he went to instead
+var leftCollegium = "He left the Collegium without its gown, and lived by what he had learned there."
+
+if (statOf(character, "dropout.collegium") > 0 and not standing)
+{
+    became = leftCollegium
+}
+
 push(story, became)
+
+if (statOf(character, "dropout.collegium") > 0 and standing)
+{
+    push(story, "He had left the Collegium before that, and kept what he had learned there.")
+}
 
 // The terms he completed, and the work he went back to most: the first of the table on a tie.
 // What is done at once is not a work

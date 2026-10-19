@@ -2468,6 +2468,30 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // A drop-out of the Collegium is said to have left it: in place of a life of no class, or
+        // after the class he went to instead.
+        TEST(rules_test, epitaph_says_he_left_the_collegium)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            RuleEpitaph epitaph;
+
+            ASSERT_TRUE(f.rules.epitaph(28.0f, {{"coin", ElementType{5}}, {"dropout.collegium", ElementType{1}}, {"fire_course", ElementType{1}}}, {}, epitaph)) << firstError(f.rules);
+            EXPECT_EQ(epitaph.story[0], "He left the Collegium without its gown, and lived by what he had learned there.");
+
+            ASSERT_TRUE(f.rules.epitaph(28.0f, {{"coin", ElementType{5}}, {"dropout.collegium", ElementType{1}}, {"keep_oath", ElementType{1}}}, {}, epitaph));
+            ASSERT_GE(epitaph.story.size(), 2u);
+            EXPECT_EQ(epitaph.story[0], "He swore himself to the Keep and served it under arms.");
+            EXPECT_EQ(epitaph.story[1], "He had left the Collegium before that, and kept what he had learned there.");
+
+            ASSERT_TRUE(f.rules.epitaph(28.0f, {{"coin", ElementType{5}}}, {}, epitaph));
+            EXPECT_EQ(epitaph.story[0], "He chose no class, and lived by the work of his hands.");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // What is said of a life when it ends: how it ended, what he became, what he worked at, what
         // he left and what is told of him, and his figures on one line.
         TEST(rules_test, epitaph_tells_the_life)

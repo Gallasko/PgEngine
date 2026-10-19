@@ -657,10 +657,30 @@ namespace pg
             knight["veteran"] = ElementType{1};
             EXPECT_EQ(learned(knight), (std::vector<std::string>{"tech.bow", "tech.heavy", "tech.sweep"}));
 
+            // The Collegium's workings come from its courses, not from the class: its fire course
+            // teaches Firebolt (a drop-out keeps it), and Orin his binding word
             ElementMap mage = hunter();
             mage["collegium"] = ElementType{1};
             mage["orin_known"] = ElementType{1};
+            EXPECT_EQ(learned(mage), (std::vector<std::string>{"tech.bow", "tech.binding"}));
+
+            mage["fire_course"] = ElementType{1};
             EXPECT_EQ(learned(mage), (std::vector<std::string>{"tech.bow", "tech.firebolt", "tech.binding"}));
+
+            ElementMap frost = hunter();
+            frost["frost_course"] = ElementType{1};
+            EXPECT_EQ(learned(frost), (std::vector<std::string>{"tech.bow", "tech.frostbolt"}));
+
+            ElementMap storm = hunter();
+            storm["storm_course"] = ElementType{1};
+            EXPECT_EQ(learned(storm), (std::vector<std::string>{"tech.bow", "tech.stormbolt"}));
+
+            // The basics' three cantrips
+            ElementMap basics = hunter();
+            basics["spark_taught"] = ElementType{1};
+            basics["rime_taught"] = ElementType{1};
+            basics["static_taught"] = ElementType{1};
+            EXPECT_EQ(learned(basics), (std::vector<std::string>{"tech.bow", "tech.spark", "tech.rime", "tech.static"}));
 
             ElementMap urchin = hunter();
             urchin["street_known"] = ElementType{1};
@@ -1650,6 +1670,7 @@ namespace pg
 
             ElementMap mage = hunter();
             mage["collegium"] = ElementType{1};
+            mage["fire_course"] = ElementType{1};
             mage["int"] = ElementType{16};
 
             auto w = boarFight(mage);
@@ -2267,6 +2288,7 @@ namespace pg
 
             ElementMap mage = knowing(hunter(), "quarry", 10);
             mage["collegium"] = ElementType{1};
+            mage["fire_course"] = ElementType{1};
             mage["int"] = ElementType{16};
             mage["arcana"] = ElementType{10};
             mage["vit"] = ElementType{300};
@@ -2938,7 +2960,7 @@ namespace pg
             Walker w(hunter());
 
             ASSERT_TRUE(w.ask("builds"));
-            ASSERT_EQ(w.last.builds.size(), 9u);
+            ASSERT_EQ(w.last.builds.size(), 11u);
 
             const ElementMap* keep = byId(w.last.builds, "keep");
 
@@ -2951,8 +2973,21 @@ namespace pg
             EXPECT_EQ(intOf(*keep, "know.study.hollow"), 10);
             EXPECT_EQ(intOf(*keep, "know.visit.quarry"), 1);
 
-            for (const char* id : {"plain", "blade", "scholar", "street", "hedge", "collegium", "hand", "greenwood"})
+            for (const char* id : {"plain", "blade", "scholar", "street", "hedge", "collegium", "collegium.dropout", "spellblade", "hand", "greenwood"})
                 EXPECT_NE(byId(w.last.builds, id), nullptr) << id;
+
+            // The Collegium's Firebolt is its fire course's: the scholar, the drop-out and the
+            // spell-blade of the Keep who left it all have it; the drop-out has not the class
+            for (const char* id : {"collegium", "collegium.dropout", "spellblade"})
+            {
+                ASSERT_NE(byId(w.last.builds, id), nullptr) << id;
+                EXPECT_EQ(intOf(*byId(w.last.builds, id), "stat.fire_course"), 1) << id;
+            }
+
+            EXPECT_EQ(intOf(*byId(w.last.builds, "collegium.dropout"), "stat.collegium"), 0);
+            EXPECT_EQ(intOf(*byId(w.last.builds, "collegium.dropout"), "stat.dropout.collegium"), 1);
+            EXPECT_EQ(intOf(*byId(w.last.builds, "spellblade"), "stat.keep_oath"), 1);
+            EXPECT_EQ(intOf(*byId(w.last.builds, "spellblade"), "stat.dropout.collegium"), 1);
 
             // Asked anything else, the walk says nothing of them
             ASSERT_TRUE(w.ask("enter", WalkAct{"", "hollow", 0}));

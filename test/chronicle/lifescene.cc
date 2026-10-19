@@ -10265,6 +10265,7 @@ namespace pg
             life->save.stats["walked.hedgerows"] = 1;
             life->save.knowledge["found.millpond"] = 1;
             life->save.stats["collegium"] = 1;
+            life->save.stats["fire_course"] = 1;
             life->save.stats["keep_oath"] = 1;
             life->onMonth();
             f.settle();
@@ -12036,6 +12037,407 @@ namespace pg
 
             ASSERT_TRUE(life->onWalk());
             EXPECT_FALSE(life->step.active);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // The Collegium's term, lived (rules/storytable.pg's `collegium`): its sixteen days are its
+        // 24 months. A youth fit to enter it, with the coin of its fees and a pupil of Mara's
+        namespace
+        {
+            LifeScene* collegiumLife(LifeFixture& f, const LifeSceneOptions& opt)
+            {
+                LifeScene* life = f.life(opt);
+
+                if (not life)
+                    return nullptr;
+
+                life->save.stats["int"] = 13;
+                life->save.stats["letters"] = 3;
+                life->save.stats["lore"] = 2;
+                life->save.stats["mara_student"] = 1;
+                life->save.stats["coin"] = 40;
+                life->save.stats["rations"] = 12;
+                life->save.stats["vit"] = 50;
+                life->save.stats["vitmax"] = 50;
+
+                life->onMonth();
+                f.settle();
+
+                return life;
+            }
+
+            bool collegiumScene(const std::string& event)
+            {
+                return event == "story.course" or event == "story.sent_away" or event == "story.theory" or event == "story.practical";
+            }
+
+            // One thing done in the term, as the page sends it; then a fight handed to his stance and
+            // back from it, and the chance meetings that came answered by their first answer
+            void termDo(LifeFixture& f, LifeScene* life, const std::string& kind, const std::string& target = "")
+            {
+                life->walkDo(WalkAct{kind, target, 0});
+                f.settle();
+
+                for (int guard = 0; guard < 60 and life->onWalk() and life->walkScreen == "fight"; ++guard)
+                {
+                    const bool over = life->save.walk.fight.count("over") > 0 and not life->save.walk.fight.at("over").toString().empty();
+
+                    life->walkDo(WalkAct{over ? "back" : "step", "", 0});
+                    f.settle();
+                }
+
+                for (int guard = 0; guard < 4 and life->onWalk() and siteText(life, "screen") == "event" and not collegiumScene(runText(life, "event")); ++guard)
+                {
+                    for (const auto& option : life->walk.options)
+                    {
+                        auto locked = option.find("locked");
+
+                        if (locked == option.end() or locked->second.get<int>() == 0)
+                        {
+                            life->walkDo(WalkAct{"option", option.at("id").toString(), 0});
+                            break;
+                        }
+                    }
+
+                    f.settle();
+                }
+            }
+
+            void termTiles(LifeFixture& f, LifeScene* life, const std::vector<std::string>& tiles)
+            {
+                for (const auto& tile : tiles)
+                {
+                    ASSERT_TRUE(life->onWalk()) << tile;
+                    ASSERT_EQ(siteText(life, "screen"), "site") << tile << " " << runText(life, "event");
+
+                    termDo(f, life, "tile." + tile);
+                }
+            }
+        }
+
+        // A pass makes him a scholar of the Collegium: the row's `enters` is his aim once the story
+        // is passed (not at the term the last month brings, inside the scene), its works open and
+        // its familiar slot is his
+        TEST(lifescene_test, a_passed_term_makes_him_a_mage)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = collegiumLife(f, storyOptions(16.5f));
+            ASSERT_NE(life, nullptr);
+
+            auto list = life->piece<ActivityList>("activities");
+            ASSERT_NE(list, nullptr);
+            ASSERT_NE(list->find(&f.ecs, "collegium"), nullptr);
+
+            const float age = life->save.age;
+
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "collegium"});
+            f.frames(12);
+
+            ASSERT_TRUE(life->onWalk());
+            EXPECT_EQ(runText(life, "story"), "collegium");
+            EXPECT_EQ(life->save.running, "collegium");
+
+            termTiles(f, life, {"lectures", "lectures", "lectures", "familiar", "familiar", "familiar"});
+
+            ASSERT_EQ(runText(life, "event"), "story.course");
+            termDo(f, life, "option", "fire");
+
+            termTiles(f, life, {"fire", "fire", "fire", "fire", "fire", "binding", "practice", "library"});
+
+            ASSERT_EQ(runText(life, "event"), "story.theory");
+            termDo(f, life, "option", "taught");
+
+            ASSERT_EQ(runText(life, "event"), "story.practical");
+            termDo(f, life, "option", "face");
+            f.frames(12);
+
+            // Over, and passed: twenty-four months gone, the term counted, and he is a mage
+            ASSERT_FALSE(life->onWalk());
+            EXPECT_NEAR(life->save.age, age + 2.0f, 1e-3f);
+            EXPECT_EQ(life->save.done["collegium"], 1);
+            EXPECT_EQ(life->save.stats["collegium"], 1);
+            EXPECT_EQ(life->save.stats["fire_course"], 1);
+            EXPECT_EQ(life->save.stats.count("dropout.collegium"), 0u);
+            EXPECT_EQ(life->save.aim, "mage");
+
+            // Its works open, in their order: its bread first
+            life->onMonth();
+            f.settle();
+
+            EXPECT_NE(list->find(&f.ecs, "study"), nullptr);
+            EXPECT_EQ(list->find(&f.ecs, "collegium"), nullptr);
+
+            // Its familiar slot: one bound, and a second may be
+            life->save.stats["scavenged"] = 2;
+            life->save.stats["berries"] = 12;
+            life->save.stats["rations"] = 24;
+            life->save.stats["fam.sprite"] = 1;
+            life->onMonth();
+            f.settle();
+
+            EXPECT_NE(list->find(&f.ecs, "bind.sprite"), nullptr);
+        }
+
+        // A failed term is a drop-out's: the term comes with the last month as any row's does, but
+        // the row's `enters` is not his aim, and the class is not his
+        TEST(lifescene_test, a_failed_term_is_no_mage)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = collegiumLife(f, storyOptions(16.5f));
+            ASSERT_NE(life, nullptr);
+
+            life->save.stats["int"] = 12;
+            life->save.stats.erase("mara_student");
+
+            const std::string aim = life->save.aim;
+
+            life->beginStory("collegium");
+            ASSERT_TRUE(life->onWalk());
+
+            // The curriculum and no more: no day of revision, nothing he holds counts for him
+            termTiles(f, life, {"lectures", "familiar", "familiar", "familiar", "familiar", "familiar"});
+
+            for (int day = 7; day <= 14 and life->onWalk() and siteText(life, "screen") == "site"; ++day)
+                termDo(f, life, day <= 13 ? "tile.scriptorium" : "tile.rest");
+
+            ASSERT_EQ(runText(life, "event"), "story.theory");
+            termDo(f, life, "option", "taught");
+
+            ASSERT_EQ(runText(life, "event"), "story.practical");
+            termDo(f, life, "option", "face");
+            f.frames(12);
+
+            ASSERT_FALSE(life->onWalk());
+            EXPECT_EQ(life->save.done["collegium"], 1);
+            EXPECT_EQ(life->save.stats["collegium"], 0);
+            EXPECT_EQ(life->save.stats["dropout.collegium"], 1);
+            EXPECT_EQ(life->save.aim, aim);
+            EXPECT_NE(life->save.aim, "mage");
+        }
+
+        // A drop-out keeps what the days gave him (the fire course's Firebolt), has spent the months
+        // of his days and no more, and the Collegium is shut to him
+        TEST(lifescene_test, a_collegium_dropout_keeps_his_spell)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = collegiumLife(f, storyOptions(16.5f));
+            ASSERT_NE(life, nullptr);
+
+            auto list = life->piece<ActivityList>("activities");
+            ASSERT_NE(list, nullptr);
+
+            const float age = life->save.age;
+
+            life->beginStory("collegium");
+            ASSERT_TRUE(life->onWalk());
+
+            termTiles(f, life, {"lectures", "lectures", "library", "library", "library", "library"});
+            ASSERT_EQ(runText(life, "event"), "story.course");
+            termDo(f, life, "option", "fire");
+            termTiles(f, life, {"fire", "fire", "fire"});
+
+            ASSERT_EQ(runText(life, "day"), "10");
+            EXPECT_EQ(life->save.stats["fire_course"], 1);
+
+            // Nine days of sixteen: thirteen months of twenty-four, all run as the days went
+            EXPECT_NEAR(life->save.age, age + 13.0f / 12.0f, 1e-3f);
+
+            answerEvents(f, life);
+            life->walkDo(WalkAct{"leave", "", 0});
+            f.settle();
+            ASSERT_TRUE(life->onWalk());
+            life->walkDo(WalkAct{"leave", "", 0});
+            f.frames(12);
+
+            ASSERT_FALSE(life->onWalk());
+            EXPECT_EQ(life->save.stats["fire_course"], 1);
+            EXPECT_EQ(life->save.stats["collegium"], 0);
+            EXPECT_EQ(life->save.stats["dropout.collegium"], 1);
+            EXPECT_EQ(life->save.done.count("collegium"), 0u);
+            EXPECT_TRUE(life->save.running.empty());
+            EXPECT_NEAR(life->save.age, age + 13.0f / 12.0f, 1e-3f);
+
+            // None after: the months stay where his leaving put them
+            f.pass(5000.0f, 250.0f);
+            EXPECT_NEAR(life->save.age, age + 13.0f / 12.0f, 1e-3f);
+
+            life->onMonth();
+            f.settle();
+            EXPECT_EQ(list->find(&f.ecs, "collegium"), nullptr);
+        }
+
+        // A drop-out of the Collegium is a man of no class: a door still open to him by his age and
+        // what it asks is open, and the Keep can make a spell-warrior of him
+        TEST(lifescene_test, a_dropout_can_swear_to_the_keep)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = collegiumLife(f, storyOptions(16.75f));
+            ASSERT_NE(life, nullptr);
+
+            life->save.stats["str"] = 12;
+            life->save.stats["arms"] = 3;
+            life->save.stats["discipline"] = 2;
+
+            life->beginStory("collegium");
+            ASSERT_TRUE(life->onWalk());
+
+            termTiles(f, life, {"lectures"});
+
+            answerEvents(f, life);
+            life->walkDo(WalkAct{"leave", "", 0});
+            f.settle();
+            life->walkDo(WalkAct{"leave", "", 0});
+            f.frames(12);
+
+            ASSERT_FALSE(life->onWalk());
+            ASSERT_EQ(life->save.stats["dropout.collegium"], 1);
+
+            life->onMonth();
+            f.settle();
+            EXPECT_GE(life->save.age, 17.0f);
+
+            auto list = life->piece<ActivityList>("activities");
+            ASSERT_NE(list, nullptr);
+            ASSERT_NE(list->find(&f.ecs, "keep"), nullptr);
+
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "keep"});
+            f.frames(12);
+
+            EXPECT_EQ(life->save.running, "keep");
+        }
+
+        // A life that a month of the term ends is not written after its death: opened again, it is
+        // the day before (and its month comes again)
+        TEST(lifescene_test, a_life_ended_in_the_collegium_is_not_saved_dead)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            const std::string path = "save/test_life_collegium_death.sz";
+            std::remove(path.c_str());
+
+            LifeSceneOptions opt = storyOptions(16.5f);
+            opt.noSave = false;
+            opt.savePath = path;
+
+            LifeScene* life = collegiumLife(f, opt);
+            ASSERT_NE(life, nullptr);
+
+            life->beginStory("collegium");
+            ASSERT_TRUE(life->onWalk());
+
+            life->save.stats["rations"] = 0;
+            life->save.stats["coin"] = 0;
+            life->save.stats["vit"] = 1;
+            ASSERT_TRUE(life->saveNow());
+
+            const float age = life->save.age;
+
+            termDo(f, life, "tile.library");
+            ASSERT_TRUE(life->ended);
+
+            LifeSave read;
+            ASSERT_TRUE(read.load(path));
+
+            EXPECT_TRUE(read.walk.under());
+            EXPECT_EQ(read.walk.run.at("day").toString(), "1");
+            EXPECT_FLOAT_EQ(read.age, age);
+            EXPECT_EQ(read.running, "collegium");
+
+            f.load<EmptyScene>();
+            std::remove(path.c_str());
+        }
+
+        // A scholar of the Collegium written before its term was a story learned Firebolt with the
+        // class: read again, he keeps it (the fire course is his). A save of today is left as it is
+        TEST(lifescene_test, an_old_collegium_save_keeps_firebolt)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            const std::string path = "save/test_life_old_collegium.sz";
+            std::remove(path.c_str());
+
+            LifeScene* life = f.life();
+            ASSERT_NE(life, nullptr);
+
+            EXPECT_TRUE(life->save.coursesTaught);
+
+            LifeSave old = life->save;
+            old.coursesTaught = false;
+            old.stats["collegium"] = 1;
+
+            ASSERT_TRUE(old.save(path));
+
+            LifeSave read;
+            ASSERT_TRUE(read.load(path));
+
+            EXPECT_EQ(read.stats["fire_course"], 1);
+            EXPECT_TRUE(read.coursesTaught);
+
+            // One who followed another course keeps his own
+            old.stats["frost_course"] = 1;
+            ASSERT_TRUE(old.save(path));
+
+            LifeSave frost;
+            ASSERT_TRUE(frost.load(path));
+            EXPECT_EQ(frost.stats.count("fire_course"), 0u);
+
+            // A scholar of today who stayed on the basics is not given it
+            LifeSave today = life->save;
+            today.stats["collegium"] = 1;
+            ASSERT_TRUE(today.save(path));
+
+            LifeSave basic;
+            ASSERT_TRUE(basic.load(path));
+            EXPECT_EQ(basic.stats.count("fire_course"), 0u);
+
+            // Nor one who was not of the Collegium
+            old.stats.erase("collegium");
+            old.stats.erase("frost_course");
+            ASSERT_TRUE(old.save(path));
+
+            LifeSave none;
+            ASSERT_TRUE(none.load(path));
+            EXPECT_EQ(none.stats.count("fire_course"), 0u);
+
+            // One written in the middle of its term, a row of months then (its coin paid): its row
+            // gives nothing at its term now, so what it gave is his as he is read, and its months
+            // run out as they were
+            old.running = "collegium";
+            old.monthsIn = 10;
+            old.stats["arcana"] = 0;
+            old.stats["lore"] = 2;
+            ASSERT_TRUE(old.save(path));
+
+            LifeSave midTerm;
+            ASSERT_TRUE(midTerm.load(path));
+            EXPECT_EQ(midTerm.running, "collegium");
+            EXPECT_EQ(midTerm.monthsIn, 10);
+            EXPECT_EQ(midTerm.stats["collegium"], 1);
+            EXPECT_EQ(midTerm.stats["arcana"], 1);
+            EXPECT_EQ(midTerm.stats["lore"], 3);
+            EXPECT_EQ(midTerm.stats["fire_course"], 1);
+
+            // Written again and read again, it is not given twice
+            ASSERT_TRUE(midTerm.save(path));
+
+            LifeSave again;
+            ASSERT_TRUE(again.load(path));
+            EXPECT_EQ(again.stats["arcana"], 1);
+            EXPECT_EQ(again.stats["lore"], 3);
+
+            std::remove(path.c_str());
         }
 
         // ----------------------------------------------------------------------------------------

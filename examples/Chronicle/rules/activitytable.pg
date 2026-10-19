@@ -683,12 +683,15 @@ var activities = [
      requires: [{stat: "str", needed: 12, eased: [{flag: "edric_support", needed: 11}, {flag: "town.yard", at: 2, needed: 11}]},
                 {stat: "arms", needed: 3, eased: [{flag: "smith_apprentice", needed: 2}, {flag: "levy_served", needed: 2}]}, {stat: "discipline", needed: 2}],
      costs: [{stat: "coin", amount: 10}]},
+    // Its term is a story (storytable.pg's `collegium`), lived day by day: each course paid at
+    // its door, the class his only if he passes its examinations. Who dropped out of it is not
+    // taken back (`whileNot`)
     {id: "collegium", group: "A class", name: "Enter the Collegium", glyph: "academy", months: 24, rank: "", each: "RATIONS UP FRONT", path: "mage", enters: true, board: true, fromAge: 16, showAge: 7, showFrom: 0, finishBy: 20, uses: 1,
-     major: true,
-     about: "Makes him a scholar of the Collegium, for life: it feeds him, its works open, and the other classes close. Nobody will say what the top floor is for. Whoever asks is given more reading.",
-     gains: [{stat: "collegium"}, {stat: "arcana"}, {stat: "lore"}],
+     major: true, story: "collegium", whileNot: "dropout.collegium",
+     about: "Sixteen days of lectures, an element to choose and two examinations, each course paid at its door. Who passes is a scholar of the Collegium for life: it feeds him, its works open, and the other classes close. Nobody will say what the top floor is for.",
+     gains: [],
      requires: [{stat: "int", needed: 12, eased: [{flag: "town.collegium", at: 3, needed: 11}, {flag: "anselm_trust", needed: 11}]}, {stat: "letters", needed: 3}, {stat: "lore", needed: 2, eased: {flag: "mara_student", needed: 1}}],
-     costs: [{stat: "coin", amount: 35}]},
+     costs: []},
     {id: "hand", group: "A class", name: "Earn the Hidden Hand's Trust", glyph: "guild", months: 18, rank: "", each: "RATIONS UP FRONT", path: "thief", enters: true, board: true, fromAge: 16, showAge: 7, showFrom: 0, finishBy: 21, uses: 1,
      major: true,
      about: "Makes him one of the Hidden Hand, for life: it feeds him, its works open, and the other classes close. The Hand has no door, no sign and no members. Ask anyone.",

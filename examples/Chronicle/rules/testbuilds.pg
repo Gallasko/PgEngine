@@ -88,7 +88,22 @@ var testBuilds = [
     {id: "collegium", name: "A scholar of the Collegium", age: 25, boy: false, approach: "open",
      about: "Firebolt and the binding word, spark and rime, reads the beast, and three fire flasks.",
      stats: withBag({str: 8, dex: 9, int: 18, vit: 80, arcana: 6, lore: 5,
-                     collegium: 1, orin_known: 1, letters: 2, forbidden_read: 1, mara_student: 1, flask: 3})},
+                     collegium: 1, fire_course: 1, orin_known: 1, letters: 2, forbidden_read: 1, mara_student: 1, flask: 3})},
+
+    // Who left the Collegium after its fire course (storytable.pg's `collegium`): the course's
+    // Firebolt is his, the class and its works are not (no binding word, little arcana)
+    {id: "collegium.dropout", name: "A drop-out of the Collegium", age: 25, boy: false, approach: "open",
+     about: "Left the Collegium after its fire course: Firebolt, spark and rime, reads the beast, and three fire flasks.",
+     stats: withBag({str: 8, dex: 9, int: 18, vit: 80, arcana: 2, lore: 5,
+                     fire_course: 1, "dropout.collegium": 1, letters: 2, forbidden_read: 1, mara_student: 1, flask: 3})},
+
+    // The spell-blade: a man of the Keep who had left the Collegium first, and throws a Firebolt
+    // between two cuts
+    {id: "spellblade", name: "A spell-blade of the Keep", age: 25, boy: false, approach: "open",
+     about: "Sworn to the Keep after leaving the Collegium: the heavy cut and the sweep, the slash, the hammer, the brace, his second wind, and a Firebolt.",
+     stats: withBag({str: 16, dex: 10, int: 8, vit: 90, arms: 8, discipline: 6,
+                     keep_oath: 1, veteran: 1, slash_learned: 1, smith_apprentice: 1, watch_known: 1, yard_breathing: 1,
+                     fire_course: 1, "dropout.collegium": 1})},
 
     {id: "hand", name: "A thief of the Hidden Hand", age: 25, boy: false, approach: "ambush",
      about: "Quick: the point and the feint, sand, the kick and the step; he lies in wait.",

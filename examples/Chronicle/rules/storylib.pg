@@ -64,6 +64,43 @@ fun storyNow()
     return storyOf(pick(run, "story", ""))
 }
 
+// A story's plan, flat, as the tests and the solver read it (expedition.pg's ask "plan"): its
+// id, row, days and months; its tiles in their order, a day each ("tile.<n>", from 0, `tiles` of
+// them); what it answers to each card ("card.<id>") and each test ("test.<id>"). {id: ""} for no
+// story
+fun planRow(id)
+{
+    var story = storyOf(id)
+
+    if (story.id == "")
+    {
+        return {id: ""}
+    }
+
+    var plan = pick(story, "plan", {})
+    var tiles = pick(plan, "tiles", [])
+    var cards = pick(plan, "cards", {})
+    var tests = pick(plan, "tests", {})
+    var row = {id: story.id, row: story.row, days: story.days, months: story.months, tiles: len(tiles)}
+
+    for (var i = 0; i < len(tiles); i++)
+    {
+        row["tile." + toString(i)] = tiles[i]
+    }
+
+    for (var k : cards)
+    {
+        row["card." + k] = cards[k]
+    }
+
+    for (var k : tests)
+    {
+        row["test." + k] = tests[k]
+    }
+
+    return row
+}
+
 // ---- the marks of the scene, and what holds ---------------------------------------------------------------
 
 fun markOf(key)
@@ -87,6 +124,18 @@ fun takenOf(id)
     return runOf("t." + id)
 }
 
+// A stat of his life as a story reads it: "done.<id>" is the terms of that work done in this life
+// (the walk's `done`), anything else what he holds
+fun storyStat(key)
+{
+    if (startsWith(key, "done."))
+    {
+        return pick(done, substring(key, 5), 0)
+    }
+
+    return mine(key)
+}
+
 // A mark of the scene, a tile taken ("tile.<id>") or a stat or flag of his life
 fun holds(key)
 {
@@ -95,7 +144,7 @@ fun holds(key)
         return takenOf(substring(key, 5)) > 0
     }
 
-    return markOf(key) > 0 or mine(key) > 0
+    return markOf(key) > 0 or storyStat(key) > 0
 }
 
 // The name the page gives a mark: the story's, or its id
@@ -123,17 +172,31 @@ fun needShort(tile)
     {
         var need = needs[i]
         var mark = pick(need, "mark", "")
+        var any = pick(need, "anyOf", [])
         var has = 0
         var name = ""
 
-        if (mark != "")
+        if (len(any) > 0)
+        {
+            // (any one of them: a mark, a flag, a tile taken)
+            for (var j = 0; j < len(any); j++)
+            {
+                if (holds(any[j]))
+                {
+                    has = 1
+                }
+            }
+
+            name = toUpperCase(statName(any[0]))
+        }
+        else if (mark != "")
         {
             has = markOf(mark)
             name = toUpperCase(markName(storyNow(), mark))
         }
         else
         {
-            has = mine(pick(need, "stat", ""))
+            has = storyStat(pick(need, "stat", ""))
             name = toUpperCase(statName(pick(need, "stat", "")))
         }
 
@@ -160,7 +223,8 @@ fun feeText(tile)
     return joined(parts, ", ")
 }
 
-// Whether a tile is shown today: within its days, nothing it shuts on holds, not taken its most
+// Whether a tile is shown today: within its days, nothing it shuts on holds, all it is shown with
+// holds, not taken its most
 fun tileOffered(tile)
 {
     var day = runOf("day")
@@ -176,6 +240,16 @@ fun tileOffered(tile)
     for (var i = 0; i < len(shut); i++)
     {
         if (holds(shut[i]))
+        {
+            return false
+        }
+    }
+
+    var only = pick(tile, "onlyWith", [])
+
+    for (var i = 0; i < len(only); i++)
+    {
+        if (not holds(only[i]))
         {
             return false
         }
@@ -441,7 +515,9 @@ fun giftText(gift)
     return ""
 }
 
-// What a tile gives, in words: the stats and things with their figures, the marks by their names
+// What a tile gives, in words: the stats and things with their figures, the marks by their names,
+// what it teaches once the days add up said to come in time (not how many: no figure), and not
+// once he has it
 fun givesText(story, tile)
 {
     var gives = pick(tile, "gives", [])
@@ -452,6 +528,13 @@ fun givesText(story, tile)
         if (typeOf(gives[i].mark) != "none")
         {
             push(parts, markName(story, gives[i].mark))
+        }
+        else if (len(pick(gives[i], "when", [])) > 0)
+        {
+            if (typeOf(gives[i].stat) != "none" and mine(gives[i].stat) <= 0)
+            {
+                push(parts, statName(gives[i].stat) + " in time")
+            }
         }
         else
         {
@@ -472,10 +555,49 @@ fun givesText(story, tile)
     return joined(parts, ", ")
 }
 
+// Whether a gift lands now: one with a `when` lands once all of it holds (the gifts before it in
+// the list counted), and only while he has none of it yet: what a course teaches is given once,
+// the day its days add up
+fun giftDue(gift)
+{
+    var when = pick(gift, "when", [])
+
+    if (len(when) == 0)
+    {
+        return true
+    }
+
+    for (var i = 0; i < len(when); i++)
+    {
+        if (not meets(when[i]))
+        {
+            return false
+        }
+    }
+
+    if (typeOf(gift.stat) != "none")
+    {
+        return mine(gift.stat) <= 0
+    }
+
+    if (typeOf(gift.mark) != "none")
+    {
+        return markOf(gift.mark) <= 0
+    }
+
+    return true
+}
+
 // A gift of a tile, as it lands: a mark of the scene, a stat on him, a thing in the bag, his
-// Vitality, a fight (on its own at once, else on the fight screen: `storyFight`)
+// Vitality, a fight (on its own at once, else on the fight screen: `storyFight`). One whose
+// `when` does not hold is not given
 fun giveGift(gift)
 {
+    if (not giftDue(gift))
+    {
+        return
+    }
+
     if (typeOf(gift.mark) != "none")
     {
         addMark(gift.mark, gift.amount)
@@ -552,12 +674,15 @@ fun takeTile(id)
 
     for (var i = 0; i < len(gives); i++)
     {
+        // (what is not given today is not said)
+        var due = giftDue(gives[i])
+
         giveGift(gives[i])
 
         // (a fight is told in its own line)
         var text = giftText(gives[i])
 
-        if (text != "" and typeOf(gives[i].fight) == "none")
+        if (due and text != "" and typeOf(gives[i].fight) == "none")
         {
             push(gave, text)
         }
@@ -785,10 +910,24 @@ fun upKind()
 }
 
 // A condition of a card or a need: a mark of the scene, or a stat or flag of his life, at `at`
-// or more (1 when it says none)
+// or more (1 when it says none); or `anyOf`, any one of them held
 fun meets(cond)
 {
     var at = pick(cond, "at", 1)
+    var any = pick(cond, "anyOf", [])
+
+    if (len(any) > 0)
+    {
+        for (var i = 0; i < len(any); i++)
+        {
+            if (holds(any[i]))
+            {
+                return true
+            }
+        }
+
+        return false
+    }
 
     if (typeOf(cond.mark) != "none")
     {
@@ -797,10 +936,26 @@ fun meets(cond)
 
     if (typeOf(cond.flag) != "none")
     {
-        return mine(cond.flag) >= at
+        return storyStat(cond.flag) >= at
     }
 
-    return mine(pick(cond, "stat", "")) >= at
+    return storyStat(pick(cond, "stat", "")) >= at
+}
+
+// A card's `when`: all of it holds (a card that says none: it holds)
+fun whenHolds(card)
+{
+    var when = pick(card, "when", [])
+
+    for (var w = 0; w < len(when); w++)
+    {
+        if (not meets(when[w]))
+        {
+            return false
+        }
+    }
+
+    return true
 }
 
 fun answered(id)
@@ -826,7 +981,9 @@ fun gateHolds(story)
 // The card that waits for him today, "" when none: first a card whose `when` is met, then the
 // card of the day, then, from the gate's day, the masters sending him away if the curriculum is
 // not followed (and no test opens), then the tests in their days' order. Each card opens once,
-// each test is sat once
+// each test is sat once. A card of a day that has a `when` opens on its day only if it holds
+// then: if not, it is missed ("missed.<card>"), and never opens (the fork that waits on the
+// lectures heard by the seventh day)
 fun dueCard()
 {
     var story = storyNow()
@@ -839,23 +996,9 @@ fun dueCard()
     {
         var card = cards[i]
 
-        if (card.id != gateCard and pick(card, "day", 0) == 0 and not answered(card.id))
+        if (card.id != gateCard and pick(card, "day", 0) == 0 and not answered(card.id) and whenHolds(card))
         {
-            var when = pick(card, "when", [])
-            var met = true
-
-            for (var w = 0; w < len(when); w++)
-            {
-                if (not meets(when[w]))
-                {
-                    met = false
-                }
-            }
-
-            if (met)
-            {
-                return card.id
-            }
+            return card.id
         }
     }
 
@@ -864,9 +1007,14 @@ fun dueCard()
     {
         var on = pick(cards[i], "day", 0)
 
-        if (cards[i].id != gateCard and on > 0 and on <= day and not answered(cards[i].id))
+        if (cards[i].id != gateCard and on > 0 and on <= day and not answered(cards[i].id) and runOf("missed." + cards[i].id) == 0)
         {
-            return cards[i].id
+            if (whenHolds(cards[i]))
+            {
+                return cards[i].id
+            }
+
+            run["missed." + cards[i].id] = 1
         }
     }
 
@@ -1188,9 +1336,11 @@ fun answerStep(kind, target, days, option)
 
     for (var i = 0; i < len(gives); i++)
     {
+        var due = giftDue(gives[i])
+
         giveGift(gives[i])
 
-        if (typeOf(gives[i].mark) == "none" and typeOf(gives[i].item) == "none" and giftText(gives[i]) != "")
+        if (due and typeOf(gives[i].mark) == "none" and typeOf(gives[i].item) == "none" and giftText(gives[i]) != "")
         {
             step.gave = addTo(step.gave, giftText(gives[i]))
         }
@@ -1344,7 +1494,7 @@ fun termValue(term, option)
         times = pick(swap, "times", times)
     }
 
-    var value = mine(key)
+    var value = storyStat(key)
 
     if (kind == "mark")
     {
@@ -1828,7 +1978,8 @@ fun storyDuel(view)
 // The day he is on, in words: "third day"; the last day once the scene is over
 fun storyDayText()
 {
-    var words = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth", "eleventh", "twelfth"]
+    var words = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth", "eleventh", "twelfth",
+                 "thirteenth", "fourteenth", "fifteenth", "sixteenth", "seventeenth", "eighteenth", "nineteenth", "twentieth"]
     var day = smaller(runOf("day"), larger(1, runOf("days")))
 
     if (day >= 1 and day <= len(words))

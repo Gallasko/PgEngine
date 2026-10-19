@@ -625,19 +625,28 @@ const walkTechniques = [
     {id: "wind", name: "Second wind", kind: "way", damage: "", breath: 0, cool: 4, power: 0, hit: 0, weight: 60, all: false, holds: false, effect: "wind",
      knows: ["yard_breathing"], where: "THE YARD'S BREATHING", line: "In on the step, out on the blow: breath back, and a little strength"},
 
-    // A boy's first workings: reading a beast, a spark, a rime, and the chapel's blessing
+    // A boy's first workings: reading a beast, a spark, a rime, and the chapel's blessing. The
+    // Collegium's elemental basics teach the spark and the rime too, and a storm cantrip of the
+    // same weight, the static (storytable.pg's `collegium`)
     {id: "read", name: "Read the beast", kind: "spell", damage: "", breath: 1, cool: 0, power: 0, hit: 0, weight: 60, all: false, holds: false, effect: "read",
      knows: ["letters"], where: "HIS LETTERS", line: "He sees what it is and what it means to do: known 3 of 4 for this fight"},
     {id: "spark", name: "Spark", kind: "spell", damage: "fire", breath: 1, cool: 0, power: 60, hit: 15, weight: 100, all: false, holds: false, trains: "int",
-     knows: ["forbidden_read"], where: "THE FORBIDDEN SHELF", line: "A small fire from nothing: it leaves the beast burning"},
+     knows: ["forbidden_read", "spark_taught"], where: "THE FORBIDDEN SHELF", line: "A small fire from nothing: it leaves the beast burning"},
     {id: "rime", name: "Rime", kind: "spell", damage: "frost", breath: 1, cool: 0, power: 60, hit: 15, weight: 100, all: false, holds: false, trains: "int",
-     knows: ["mara_student"], where: "MARA", line: "A breath of frost: it leaves the beast chilled, and frost on a burning beast shatters"},
+     knows: ["mara_student", "rime_taught"], where: "MARA", line: "A breath of frost: it leaves the beast chilled, and frost on a burning beast shatters"},
+    {id: "static", name: "Static", kind: "spell", damage: "storm", breath: 1, cool: 0, power: 60, hit: 15, weight: 100, all: false, holds: false, trains: "int",
+     knows: ["static_taught"], where: "THE ELEMENTAL BASICS", line: "A crackle between the fingers: it leaves the beast shocked, and storm on a burning beast flares"},
     {id: "blessing", name: "Blessing", kind: "spell", damage: "holy", breath: 1, cool: 1, power: 80, hit: 15, weight: 100, all: false, holds: false, trains: "int",
      knows: ["anselm_trust"], where: "FATHER ANSELM", line: "The office said aloud: what is not of this world cannot bear it"},
 
-    // The Collegium's: a first working, and what Magister Orin shows his assistant
+    // The Collegium's: the first working of each element, taught by its course (storytable.pg's
+    // `collegium`: a drop-out keeps it), and what Magister Orin shows his assistant
     {id: "firebolt", name: "Firebolt", kind: "spell", damage: "fire", breath: 2, cool: 1, power: 100, hit: 15, weight: 100, all: false, holds: false, trains: "arcana",
-     knows: ["collegium", "fire_course"], where: "THE COLLEGIUM", line: "A working thrown like a stone: it seldom misses, and leaves the beast burning"},
+     knows: ["fire_course"], where: "THE FIRE COURSE", line: "A working thrown like a stone: it seldom misses, and leaves the beast burning"},
+    {id: "frostbolt", name: "Frostbolt", kind: "spell", damage: "frost", breath: 2, cool: 1, power: 100, hit: 15, weight: 100, all: false, holds: false, trains: "arcana",
+     knows: ["frost_course"], where: "THE FROST COURSE", line: "A working thrown like a stone: it seldom misses, and leaves the beast chilled"},
+    {id: "stormbolt", name: "Stormbolt", kind: "spell", damage: "storm", breath: 2, cool: 1, power: 100, hit: 15, weight: 100, all: false, holds: false, trains: "arcana",
+     knows: ["storm_course"], where: "THE STORM COURSE", line: "A working thrown like a stone: it seldom misses, and leaves the beast shocked"},
     {id: "binding", name: "Binding word", kind: "spell", damage: "", breath: 2, cool: 3, power: 0, hit: 0, weight: 100, all: false, holds: true,
      knows: ["orin_known"], where: "MAGISTER ORIN", line: "The beast aimed at is held, and loses its next move"},
 

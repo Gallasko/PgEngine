@@ -1661,6 +1661,27 @@ statNames["know.fam.mole"] = "How to bind a stone mole"
 statNames["know.fam.weaver"] = "How to bind a gem weaver"
 statNames["know.fam.wisp"] = "How to bind a marsh wisp"
 
+// What the Collegium's term teaches as it goes (storytable.pg's `collegium`): the working of the
+// element he followed, the basics' three cantrips; what it marks him with; and who left it
+statNames["fire_course"] = "Firebolt"
+statNames["frost_course"] = "Frostbolt"
+statNames["storm_course"] = "Stormbolt"
+statNames["spark_taught"] = "Spark"
+statNames["rime_taught"] = "Rime"
+statNames["static_taught"] = "Static"
+statNames["suspected"] = "Suspected of the forbidden shelf"
+statNames["top_floor"] = "Spoken of on the top floor"
+statNames["dropout.collegium"] = "Left the Collegium"
+statShort["fire_course"] = "FIREBOLT"
+statShort["frost_course"] = "FROSTBOLT"
+statShort["storm_course"] = "STORMBOLT"
+statShort["spark_taught"] = "SPARK"
+statShort["rime_taught"] = "RIME"
+statShort["static_taught"] = "STATIC"
+statShort["suspected"] = "SUSPECTED"
+statShort["top_floor"] = "TOP FLOOR"
+statShort["dropout.collegium"] = "LEFT THE COLLEGIUM"
+
 // What teaching a familiar adds to each one's yield of a thing (the stat "more.<stat>"), and the
 // short names of the kinds the world teaches, said as what he knows.
 statShort["more.berries"] = "MORE BERRIES"

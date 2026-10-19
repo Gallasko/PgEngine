@@ -39,6 +39,8 @@
 //           records   `shelf`, `form`, `stops`;
 //         `recipe`, the figures a finished walk is kept under (`zone` "" until it is over);
 //         `builds`, asked "builds": the builds to try a fight with (testbuilds.pg), flat;
+//         `site`, asked "plan" (`act.target` a story): the story's plan, flat (storylib.pg's
+//         `planRow`), for the tests and the solver;
 //         `blocked` ("" or what the bag lacks for a record), `stopped` ("" or why a queue ends).
 //
 // A step of the record: {n, kind, target, count, ap, hp, text, gave, used, figure, tone, glyph,
@@ -116,6 +118,10 @@ if ((ask == "act" or ask == "look") and pick(run, "story", "") != "" and pick(ru
 if (ask == "builds")
 {
     builds = buildRows()
+}
+else if (ask == "plan")
+{
+    site = planRow(act.target)
 }
 else if (ask == "enter" and act.kind == "story")
 {
