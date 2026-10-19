@@ -21,10 +21,14 @@
 
 #define LOG_TEST(scope, msg) _SINGLE_LOG(scope, msg, pg::Logger::InfoLevel::test)
 
+// A level that is off: one expression, its message type-checked but never built (the operands of
+// `msg` are not evaluated, so a log in a hot loop costs nothing)
+#define _LOG_OFF(scope, msg) ((void)(scope), false ? (void)(pg::Strfy() << msg) : (void)0)
+
 #ifdef DEBUG
 // #define LOG_THIS(scope)
 #define LOG_THIS_MEMBER(scope) (void)(scope);
-#define LOG_MILE(scope, msg) (void)(scope); (void)(pg::Strfy() << msg);
+#define LOG_MILE(scope, msg) _LOG_OFF(scope, msg)
 #define LOG_INFO(scope, msg) _SINGLE_LOG(scope, msg, pg::Logger::InfoLevel::info)
 #define LOG_ERROR(scope, msg) _SINGLE_LOG(scope, msg, pg::Logger::InfoLevel::error)
 #define LOG_WARNING(scope, msg) _SINGLE_LOG(scope, msg, pg::Logger::InfoLevel::warning)
@@ -36,13 +40,13 @@
 #else
 #define LOG_THIS(scope) (void)(scope);
 #define LOG_THIS_MEMBER(scope) (void)(scope);
-#define LOG_MILE(scope, msg) (void)(scope); (void)(pg::Strfy() << msg);
+#define LOG_MILE(scope, msg) _LOG_OFF(scope, msg)
 
 #ifdef __EMSCRIPTEN__
 // One expression each, as the logging versions are: a braceless if / else or for body takes the whole macro
-#define LOG_INFO(scope, msg) ((void)(scope), (void)(pg::Strfy() << msg))
-#define LOG_ERROR(scope, msg) ((void)(scope), (void)(pg::Strfy() << msg))
-#define LOG_WARNING(scope, msg) ((void)(scope), (void)(pg::Strfy() << msg))
+#define LOG_INFO(scope, msg) _LOG_OFF(scope, msg)
+#define LOG_ERROR(scope, msg) _LOG_OFF(scope, msg)
+#define LOG_WARNING(scope, msg) _LOG_OFF(scope, msg)
 // #define LOG_INFO(scope, msg) _SINGLE_LOG(scope, msg, pg::Logger::InfoLevel::info)
 // #define LOG_ERROR(scope, msg) _SINGLE_LOG(scope, msg, pg::Logger::InfoLevel::error)
 #else
