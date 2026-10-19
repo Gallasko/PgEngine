@@ -150,7 +150,8 @@ namespace pg
         std::vector<Value> constants;
 
         // findConstant's index of `constants`: hash -> position, for the first constantsIndexed of them,
-        // hashed with constantIndexPool
+        // hashed with constantIndexPool. A long string's hash is of its text when it was indexed; valuesEqual
+        // always confirms a candidate, so a stale hash can only miss a twin, never merge two constants that differ
         std::unordered_multimap<size_t, uint32_t> constantIndex;
         size_t constantsIndexed = 0;
         AllocatorPool<std::string>* constantIndexPool = nullptr;
