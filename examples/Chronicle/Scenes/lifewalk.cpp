@@ -1621,7 +1621,9 @@ namespace chronicle
 
             // (a phone's head has the room for the figures only, beside its big one)
             walkSay("kicker", std::to_string(days) + " " + unit + (days == 1 ? "" : "S") + " \xC2\xB7 " + std::to_string(months) + (months == 1 ? " MONTH" : " MONTHS") + (walkNarrow ? "" : " OF HIS LIFE"));
-            walkSay("zoneLine", textOf(site, "stageText"));
+            // (a phone's head has one line for it: there the stage is its title, and its text is
+            // the record's line of that day)
+            walkSay("zoneLine", walkNarrow ? std::string() : textOf(site, "stageText"));
             walkSay("headNote", upper(textOf(site, "stage")));
         }
         else
@@ -1888,6 +1890,12 @@ namespace chronicle
 
         walkList("works", {{"", works}}, workChosen);
 
+        // A story's day that offers nothing (an examination's: sitting it is the day's work) has
+        // no day's work to choose: the panel leaves the column, with what it says, till a day
+        // offers some again
+        if (story)
+            walkShow("workPanel", not walk.works.empty());
+
         if (auto work = walkPiece<Button>("work"))
         {
             work->setLabel(ecs, workStands ? workName : "Do it");
@@ -1903,6 +1911,10 @@ namespace chronicle
 
         for (const auto& g : walk.gone)
             gone += (gone.empty() ? "" : ", ") + textOf(g, "name");
+
+        // (not on a day that offers nothing: the panel is not there)
+        if (story and walk.works.empty())
+            gone.clear();
 
         walkSay("goneNote", gone.empty() ? std::string() : "No longer offered: " + gone);
         walkShow("goneNote", not gone.empty(), "workPanel");

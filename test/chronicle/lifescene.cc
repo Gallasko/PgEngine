@@ -11773,6 +11773,49 @@ namespace pg
             EXPECT_EQ(walkText(life, "standing"), siteText(life, "standing"));
         }
 
+        // A phone's head has one line for the stage: its title, over the gauge; its text is the
+        // record's line of that day. Wide again, the head says it as before
+        TEST(lifescene_test, a_phone_story_head_says_the_stage_title_only)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = storyLife(f, storyOptions());
+            ASSERT_NE(life, nullptr);
+
+            openStory(f);
+            ASSERT_TRUE(life->onWalk());
+            f.pass(300.0f, 50.0f);
+
+            const std::string text = "Everything is new, and every door is open to him.";
+
+            ASSERT_FALSE(life->walkNarrow);
+            EXPECT_EQ(walkText(life, "zoneLine"), text);
+
+            f.resize(390.0f, 844.0f);
+            f.pass(200.0f, 50.0f);
+            f.frames(12);
+
+            ASSERT_TRUE(life->onWalk());
+            ASSERT_TRUE(life->walkNarrow);
+            EXPECT_EQ(walkText(life, "zoneLine"), "");
+            EXPECT_EQ(walkText(life, "headNote"), "THE FIRST DAYS");
+
+            // The record has it, as its first line
+            ASSERT_FALSE(life->save.walk.record.empty());
+            EXPECT_EQ(life->save.walk.record.front().at("text").toString(), "The first days. " + text);
+
+            // A day that offers its tiles keeps its day's work
+            EXPECT_TRUE(f.pos(walkPart(life, "workPanel"))->visible);
+
+            f.resize(1320.0f, 1020.0f);
+            f.pass(200.0f, 50.0f);
+            f.frames(12);
+
+            ASSERT_FALSE(life->walkNarrow);
+            EXPECT_EQ(walkText(life, "zoneLine"), text);
+        }
+
         TEST(lifescene_test, a_fresh_tile_carries_the_flair)
         {
             MockLogger logger;
@@ -12272,6 +12315,14 @@ namespace pg
             life->onMonth();
             f.settle();
             EXPECT_EQ(list->find(&f.ecs, "collegium"), nullptr);
+
+            // The Life page says what he kept, and that he left
+            auto ledger = life->piece<ResourceLedger>("ledger");
+            ASSERT_NE(ledger, nullptr);
+            ASSERT_NE(ledger->row("fire_course"), nullptr);
+            EXPECT_EQ(ledger->row("fire_course")->name.spec.text, "Firebolt");
+            ASSERT_NE(ledger->row("dropout.collegium"), nullptr);
+            EXPECT_EQ(ledger->row("dropout.collegium")->name.spec.text, "Left the Collegium");
         }
 
         // A drop-out of the Collegium is a man of no class: a door still open to him by his age and
@@ -12438,6 +12489,170 @@ namespace pg
             EXPECT_EQ(again.stats["lore"], 3);
 
             std::remove(path.c_str());
+        }
+
+        // An old save whose term a life event had set aside (it is taken up again as a row of
+        // months, whose gains are nothing now): read again, the class and the fire course are his
+        TEST(lifescene_test, an_old_save_with_the_collegium_set_aside_keeps_the_class)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            const std::string path = "save/test_life_old_collegium_aside.sz";
+            std::remove(path.c_str());
+
+            LifeScene* life = f.life();
+            ASSERT_NE(life, nullptr);
+
+            LifeSave old = life->save;
+            old.coursesTaught = false;
+            old.running = "";
+            old.setAside = "collegium";
+            old.setAsideMonths = 10;
+            old.stats.erase("collegium");
+            old.stats["arcana"] = 0;
+            old.stats["lore"] = 2;
+
+            ASSERT_TRUE(old.save(path));
+
+            LifeSave read;
+            ASSERT_TRUE(read.load(path));
+
+            EXPECT_EQ(read.setAside, "collegium");
+            EXPECT_EQ(read.stats["collegium"], 1);
+            EXPECT_EQ(read.stats["arcana"], 1);
+            EXPECT_EQ(read.stats["lore"], 3);
+            EXPECT_EQ(read.stats["fire_course"], 1);
+
+            std::remove(path.c_str());
+        }
+
+        // What the term taught, and that he left it, are his rows on the Life page: the drop-out
+        // who kept Firebolt sees it there before a fight
+        TEST(lifescene_test, what_a_term_taught_is_on_the_life_page)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = f.life();
+            ASSERT_NE(life, nullptr);
+
+            auto ledger = life->piece<ResourceLedger>("ledger");
+            ASSERT_NE(ledger, nullptr);
+
+            // As the term's days would leave them
+            life->save.stats["rations"] = 24;
+
+            const std::vector<std::pair<std::string, std::string>> rows = {
+                {"fire_course", "Firebolt"}, {"frost_course", "Frostbolt"}, {"storm_course", "Stormbolt"},
+                {"spark_taught", "Spark"}, {"rime_taught", "Rime"}, {"static_taught", "Static"},
+                {"suspected", "Suspected of the forbidden shelf"}, {"top_floor", "Spoken of on the top floor"},
+                {"dropout.collegium", "Left the Collegium"}};
+
+            for (const auto& [stat, name] : rows)
+            {
+                EXPECT_EQ(ledger->row(stat), nullptr) << stat;
+                life->save.stats[stat] = 1;
+            }
+
+            life->onMonth();
+            f.settle();
+
+            for (const auto& [stat, name] : rows)
+            {
+                ASSERT_NE(ledger->row(stat), nullptr) << stat;
+                EXPECT_EQ(ledger->row(stat)->name.spec.text, name) << stat;
+                EXPECT_EQ(ledger->row(stat)->figure.spec.text, "") << stat;
+            }
+        }
+
+        // The row asks the coin of the first days, and takes none: shut with 5, begun with 6, and
+        // the 6 still his on the first day
+        TEST(lifescene_test, the_collegium_asks_the_coin_of_its_first_days)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = collegiumLife(f, storyOptions(16.5f));
+            ASSERT_NE(life, nullptr);
+
+            life->save.stats["coin"] = 5;
+            life->onMonth();
+            f.settle();
+
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "collegium"});
+            f.frames(12);
+            EXPECT_FALSE(life->onWalk());
+
+            life->save.stats["coin"] = 6;
+            life->onMonth();
+            f.settle();
+
+            f.ecs.sendEvent(ActivityActivatedEvent{"life.activities", "collegium"});
+            f.frames(12);
+
+            ASSERT_TRUE(life->onWalk());
+            EXPECT_EQ(runText(life, "story"), "collegium");
+            EXPECT_EQ(life->save.stats["coin"], 6);
+        }
+
+        // The examinations' days offer nothing to choose: the day's work leaves the column (in
+        // place, at either width), and its dead button and its notes with it
+        TEST(lifescene_test, an_examination_day_has_no_days_work)
+        {
+            MockLogger logger;
+            LifeFixture f;
+
+            LifeScene* life = collegiumLife(f, storyOptions(16.5f));
+            ASSERT_NE(life, nullptr);
+
+            life->beginStory("collegium");
+            ASSERT_TRUE(life->onWalk());
+
+            termTiles(f, life, {"lectures", "lectures", "lectures", "familiar", "familiar", "familiar"});
+            ASSERT_EQ(runText(life, "event"), "story.course");
+            termDo(f, life, "option", "fire");
+            termTiles(f, life, {"fire", "fire", "fire", "fire", "fire", "binding", "practice"});
+
+            ASSERT_EQ(runText(life, "day"), "14");
+            f.pass(300.0f, 50.0f);
+            ASSERT_FALSE(walkPart(life, "workPanel").empty());
+            EXPECT_TRUE(f.pos(walkPart(life, "workPanel"))->visible);
+
+            const _unique_id page = life->walkPage.id;
+
+            termTiles(f, life, {"library"});
+            f.pass(300.0f, 50.0f);
+
+            ASSERT_EQ(runText(life, "day"), "15");
+            ASSERT_EQ(runText(life, "event"), "story.theory");
+            EXPECT_EQ(life->walkPage.id, page);
+            EXPECT_FALSE(f.pos(walkPart(life, "workPanel"))->visible);
+            EXPECT_FALSE(f.pos(walkPart(life, "goneNote"))->visible);
+            EXPECT_TRUE(f.pos(walkPart(life, "cardPanel"))->visible);
+
+            // On a phone, and back
+            f.resize(390.0f, 844.0f);
+            f.pass(200.0f, 50.0f);
+            f.frames(12);
+
+            ASSERT_TRUE(life->walkNarrow);
+            EXPECT_FALSE(f.pos(walkPart(life, "workPanel"))->visible);
+            EXPECT_TRUE(f.pos(walkPart(life, "cardPanel"))->visible);
+
+            f.resize(1320.0f, 1020.0f);
+            f.pass(200.0f, 50.0f);
+            f.frames(12);
+
+            ASSERT_FALSE(life->walkNarrow);
+            EXPECT_FALSE(f.pos(walkPart(life, "workPanel"))->visible);
+
+            // The practical's day the same
+            termDo(f, life, "option", "taught");
+            f.pass(300.0f, 50.0f);
+
+            ASSERT_EQ(runText(life, "event"), "story.practical");
+            EXPECT_FALSE(f.pos(walkPart(life, "workPanel"))->visible);
         }
 
         // ----------------------------------------------------------------------------------------

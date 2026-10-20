@@ -357,8 +357,8 @@ namespace pg
 
             // A term begun as a row of months (its 35 coin paid) has no story to pass and its row
             // no gains now: what its term gave is his as he is read, and its months run out as
-            // they were
-            if (data.running == "collegium" and not holds("collegium"))
+            // they were. So for one a life event had set aside: it is taken up again as a row
+            if ((data.running == "collegium" or data.setAside == "collegium") and not holds("collegium"))
             {
                 data.stats["collegium"] += 1;
                 data.stats["arcana"] += 1;
