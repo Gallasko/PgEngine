@@ -28,7 +28,9 @@
 //                    gives? [{mark, amount} | {stat, amount} | {item, amount} | {hp, amount}
 //                            | {fight (the beast's id), count? (1), turns? (the beast's), auto?,
 //                               wins? [...gifts given if he wins...]}]
-//                           (a stat lands on him when it is taken. A gift with `when` [{mark |
+//                           (a stat lands on him when it is taken; one with `said` is a flag,
+//                           said by its name and that word, "Firebolt learned", never "+1".
+//                           A gift with `when` [{mark |
 //                           stat, at}] lands once all of it holds, the gifts before it counted,
 //                           and only while he has none of it: what a course teaches, given the
 //                           day its days add up. A fight is fought with what
@@ -71,16 +73,20 @@
 //                     test's score at n or more), total? (all the scores together at it or more),
 //                     gives [...as a tile's...], line? (the life's log)}]
 //                        (from the lowest up: the last one reached is his; a fail drops him out);
-//            gate? {day, courses [mark...], least, card}
+//            gate? {day, courses [mark...], least, card, behind?}
 //                        (the curriculum: on `day`, before the tests, the marks of `courses`
 //                         together must come to `least`, or the card opens, and the tests never
-//                         do: he is sent away),
+//                         do: he is sent away. Before then, while they are fewer than `least`
+//                         spread over the days before `day`, the standing says `behind`, in
+//                         words, and no line that promises a pass),
 //            standing [{at, line, passes?}] (how he stands, in words, over what he would score if he sat
-//                     the tests today: the last line reached is said, never a figure. A fight
-//                     test is counted at its days on the dummies, and one beast beaten while he
-//                     knows a way to harm it. While a test would fall under its floor, a line
-//                     that `passes` (promises a pass) is not said, nor above the lowest: the
-//                     test's `behind` is, else the highest line under it that promises nothing),
+//                     the tests today, counting only what he has done: the last line reached is
+//                     said, never a figure. A card test is counted by its plain answer (no
+//                     answer of his own); a fight test at its days on the dummies, and one beast
+//                     beaten while he knows a way to harm it. While the curriculum is behind its
+//                     pace, or a test would fall under its floor, a line that `passes` (promises
+//                     a pass) is not said, nor above the lowest: the gate's `behind` is, or the
+//                     test's, else the highest line under it that promises nothing),
 //            plan {tiles [tile id...], cards {<card>: <answer>}, tests {<test>: <answer>}}}
 //                        (the solver's way through it, and the tests': each day the first of
 //                         `tiles` not yet spent that is offered and open that day, else the
@@ -127,31 +133,31 @@ const walkStories = [
              // followed it long enough. The basics for who chose none, or was given no choice
              {id: "fire", name: "The fire course", about: "The working of fire, taught to the few who chose it. Followed long enough, the first working is his.", days: [7, 13], cost: 1,
               onlyWith: ["course.fire"], fee: [{stat: "coin", amount: 3}],
-              gives: [{mark: "course", amount: 1}, {mark: "courses", amount: 1}, {stat: "fire_course", amount: 1, when: [{mark: "course", at: 2}]}],
+              gives: [{mark: "course", amount: 1}, {mark: "courses", amount: 1}, {stat: "fire_course", amount: 1, said: "learned", when: [{mark: "course", at: 2}]}],
               line: "Followed the fire course"},
              {id: "frost", name: "The frost course", about: "The working of frost, taught to the few who chose it. Followed long enough, the frost bolt is his.", days: [7, 13], cost: 1,
               onlyWith: ["course.frost"], fee: [{stat: "coin", amount: 3}],
-              gives: [{mark: "course", amount: 1}, {mark: "courses", amount: 1}, {stat: "frost_course", amount: 1, when: [{mark: "course", at: 2}]}],
+              gives: [{mark: "course", amount: 1}, {mark: "courses", amount: 1}, {stat: "frost_course", amount: 1, said: "learned", when: [{mark: "course", at: 2}]}],
               line: "Followed the frost course"},
              {id: "storm", name: "The storm course", about: "The working of storm, taught to the few who chose it. Followed long enough, the storm bolt is his.", days: [7, 13], cost: 1,
               onlyWith: ["course.storm"], fee: [{stat: "coin", amount: 3}],
-              gives: [{mark: "course", amount: 1}, {mark: "courses", amount: 1}, {stat: "storm_course", amount: 1, when: [{mark: "course", at: 2}]}],
+              gives: [{mark: "course", amount: 1}, {mark: "courses", amount: 1}, {stat: "storm_course", amount: 1, said: "learned", when: [{mark: "course", at: 2}]}],
               line: "Followed the storm course"},
              {id: "basics", name: "The elemental basics", about: "A little of each element, for who keeps to no one of them. Followed long enough, the three cantrips are his.", days: [7, 13], cost: 1,
               "not": ["course.fire", "course.frost", "course.storm"], fee: [{stat: "coin", amount: 3}],
               gives: [{mark: "elemental", amount: 1}, {mark: "courses", amount: 1},
-                      {stat: "spark_taught", amount: 1, when: [{mark: "elemental", at: 4}]}, {stat: "rime_taught", amount: 1, when: [{mark: "elemental", at: 4}]},
-                      {stat: "static_taught", amount: 1, when: [{mark: "elemental", at: 4}]}],
+                      {stat: "spark_taught", amount: 1, said: "learned", when: [{mark: "elemental", at: 4}]}, {stat: "rime_taught", amount: 1, said: "learned", when: [{mark: "elemental", at: 4}]},
+                      {stat: "static_taught", amount: 1, said: "learned", when: [{mark: "elemental", at: 4}]}],
               line: "Followed the elemental basics"},
 
              // The binding hall teaches the kind of familiar the world does not know yet: the well
              // imp, or for who knows it the kitchen brownie. Once
              {id: "binding", name: "The binding hall", about: "Where the Collegium binds its familiars. A student of the familiar studies may watch, and learn how the well imp is bound.", days: [7, 13], cost: 1,
               needs: [{mark: "familiar", at: 3, asks: "ASKS MORE OF THE FAMILIAR STUDIES"}], "not": ["know.fam.imp"], most: 1, fee: [{stat: "coin", amount: 3}],
-              gives: [{stat: "know.fam.imp", amount: 1}], line: "Learned in the binding hall how the well imp is bound"},
+              gives: [{stat: "know.fam.imp", amount: 1, said: "learned"}], line: "Learned in the binding hall how the well imp is bound"},
              {id: "hearthbinding", name: "The binding hall", about: "Where the Collegium binds its familiars. A student of the familiar studies may watch, and learn how the kitchen brownie is bound.", days: [7, 13], cost: 1,
               needs: [{mark: "familiar", at: 3, asks: "ASKS MORE OF THE FAMILIAR STUDIES"}], onlyWith: ["know.fam.imp"], "not": ["tile.binding", "know.fam.brownie"], most: 1,
-              fee: [{stat: "coin", amount: 3}], gives: [{stat: "know.fam.brownie", amount: 1}], line: "Learned in the binding hall how the kitchen brownie is bound"},
+              fee: [{stat: "coin", amount: 3}], gives: [{stat: "know.fam.brownie", amount: 1, said: "learned"}], line: "Learned in the binding hall how the kitchen brownie is bound"},
 
              // The dummies, for who has a working to throw at them (fought on its own)
              {id: "practice", name: "Practise on the dummies", about: "Straw and sacking in the yard, and a working thrown at it until it is thrown well.", days: [7, 14], cost: 1,
@@ -172,7 +178,7 @@ const walkStories = [
               options: [{id: "go", label: "Gather his things", ends: "dropout", line: "Sent away from the Collegium before its examinations"}]}],
 
      // Its chance meetings: none costs a day but by his choice, and the first answer of each costs
-     // nothing at all
+     // no day (the fever's costs him Vitality: going down to the halls with it)
      events: [{id: "notes", trigger: "day", weight: 1, days: [2, 13], once: false, title: "A second-year's notes",
                text: "A second-year has last year's notes, in a hand nobody else can read. The masters, he says, ask the same things every year.",
                options: [{id: "leave", label: "Leave him to them", ap: 0, hp: 0, items: [], effects: [], line: "He left the second-year to his notes"},
@@ -189,24 +195,25 @@ const walkStories = [
                           line: "Read on the stairs what was meant for the top floor"}]}],
 
      // The theory: his wits, twice his revision, his days of courses, and what his childhood gave
-     // him. From the old tome his lore counts twice in place of his wits; the forbidden shelf
-     // counts for much, and he is suspected of it; the Church fathers count a little, safely
+     // him. From the old tome his lore counts three times in place of his wits (more, for who has
+     // five lore or more); the forbidden shelf counts for much, and he is suspected of it; the
+     // Church fathers count a little, safely
      tests: [{id: "theory", day: 15, kind: "card", title: "The theory",
               text: "A long table, five masters behind it, and the questions read out one after another from a list nobody else has seen.",
               score: [{stat: "int", times: 1}, {mark: "revised", times: 2}, {mark: "courses", times: 1}, {stat: "letters", at: 3, times: 2},
                       {flag: "tome", times: 2}, {flag: "library_access", times: 2}, {flag: "mara_student", times: 2}, {flag: "forbidden_read", times: 2},
                       {flag: "anselm_trust", times: 2}, {stat: "done.chronicle", at: 1, times: 2}],
               options: [{id: "taught", label: "Answer what was taught", line: "Sat the theory"},
-                        {id: "tome", label: "Answer from the old tome", needs: [{stat: "tome", at: 1}], swap: {"from": "int", to: "lore", times: 2},
+                        {id: "tome", label: "Answer from the old tome", needs: [{stat: "tome", at: 1}], swap: {"from": "int", to: "lore", times: 3},
                          line: "Sat the theory from Father Anselm's tome"},
                         {id: "shelf", label: "Answer from the forbidden shelf", needs: [{stat: "forbidden_read", at: 1}], adds: 6,
-                         gives: [{stat: "suspected", amount: 1}], line: "Sat the theory from what the forbidden shelf had taught him"},
+                         gives: [{stat: "suspected", amount: 1, said: "by the masters"}], line: "Sat the theory from what the forbidden shelf had taught him"},
                         {id: "fathers", label: "Cite the Church fathers", needs: [{stat: "anselm_trust", at: 1}], adds: 3,
                          line: "Sat the theory on the Church fathers"}],
               behind: "The masters think him behind in his books."},
              {id: "practical", day: 16, kind: "fight", title: "The practical",
               text: "Two dummies stand in the sand of the yard. The masters along the wall have their pens ready, and will call time when they have seen enough.",
-              mob: "exam_dummy", count: 2, turns: 10, reaction: 5, practised: 2,
+              mob: "exam_dummy", count: 2, turns: 10, reaction: 5, practised: 3,
               options: [{id: "face", label: "Face the dummies", line: "Faced the examination dummies"}],
               behind: "The masters think him behind with the workings."}],
 
@@ -218,20 +225,24 @@ const walkStories = [
               {id: "merit", floors: {theory: 24, practical: 10}, total: 45,
                gives: [{stat: "collegium", amount: 1}, {stat: "arcana", amount: 2}, {stat: "lore", amount: 1}],
                line: "Passed the Collegium's examinations with merit"},
-              {id: "distinction", floors: {theory: 24, practical: 10}, total: 58,
+              {id: "distinction", floors: {theory: 24, practical: 10}, total: 70,
                gives: [{stat: "collegium", amount: 1}, {stat: "arcana", amount: 2}, {stat: "lore", amount: 1}, {stat: "top_floor", amount: 1}],
                line: "Passed the Collegium's examinations with distinction"}],
 
-     // How he stands, in words, over what he would score today: the two examinations together (a
-     // dummy counted broken while he has a way to harm it). The last two promise a pass, and are
-     // not said while either examination would fall under its floor: the masters say which
+     // How he stands, in words, over what he would score today, counting only what he has done:
+     // the two examinations together, the theory by its plain answer, the practical by his days
+     // on the dummies and one dummy broken while he has a way to harm it. The last three promise
+     // a pass, at the floors, the merit and the distinction, and are not said while either
+     // examination would fall under its floor, or the curriculum is behind: the masters say which
      standing: [{at: 0, line: "The masters do not know his name."},
                 {at: 24, line: "The masters think him behind."},
                 {at: 34, line: "The masters expect him to pass.", passes: true},
-                {at: 50, line: "The masters speak of him on the top floor.", passes: true}],
+                {at: 45, line: "The masters think well of him.", passes: true},
+                {at: 70, line: "The masters speak of him on the top floor.", passes: true}],
 
-     // Six days of courses, the lectures, the familiar studies and his element together
-     gate: {day: 15, courses: ["courses"], least: 6, card: "sent_away"},
+     // Six days of courses, the lectures, the familiar studies and his element together; who is
+     // behind their pace hears it from the second day
+     gate: {day: 15, courses: ["courses"], least: 6, card: "sent_away", behind: "The masters seldom see him in their lecture halls."},
 
      // The solver's way (and the tests'): the lectures, the familiar studies, the fire course,
      // the binding hall, a day on the dummies and one in the library: 36 coin in fees
@@ -315,7 +326,7 @@ const walkStories = [
      marks: [{id: "practised", name: "Days on the dummy"}, {id: "braved", name: "Bouts fought"}, {id: "boasted", name: "Boasts made"}],
      stages: [{"from": 1, to: 3, title: "The yard", text: "Posts, straw and sand, and the masters along the wall."}],
      tiles: [{id: "fire", name: "Learn the fire working", about: "A master shows him how the fire is thrown.", days: [1, 1], cost: 1,
-              gives: [{stat: "fire_course", amount: 1}], line: "Learned the fire working"},
+              gives: [{stat: "fire_course", amount: 1, said: "learned"}], line: "Learned the fire working"},
              {id: "idle", name: "Watch the others", about: "Nothing asked of him today.", days: [1, 3], cost: 1, line: "Watched the others"},
              {id: "bout", name: "Spar with the wolf", about: "The keeper's wolf, on a long chain.", days: [1, 1], cost: 1,
               gives: [{mark: "braved", amount: 1}, {stat: "renown", amount: 1}, {fight: "wolf"}], line: "Sparred with the wolf"},

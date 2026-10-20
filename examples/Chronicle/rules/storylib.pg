@@ -15,12 +15,17 @@
 //    Life screen runs them), ap (the days left: a day is one, so openStep and stayOver hold),
 //    apTotal, spent, hp, hpMax, hpStart, found: "", event ("" or "story.<id>": a card, a test or
 //    a chance meeting of the story waits for his answer), refused, leaving, result ("" while it
-//    runs, then "over", "left", "dropout" or the grade's id), seed, startMonth,
+//    runs, then "over", "left", "dropout" or the grade's id), left (the days he did not spend),
+//    seed, startMonth, took (the tile taken today, till the next day's note), giving (whose gifts
+//    are being given: "tile.<id>"), downed (cleared at once in a story: `storyHp`), fightMost,
+//    fightDays, fightTest, fightFrom (a story's fight: below),
 //    "m.<mark>" (a mark of the scene), "t.<tile>" (the times a tile was taken),
-//    "c.<card>" (a card answered), "met.<event>" (a chance meeting met),
-//    "sat.<test>" and "score.<test>" (a test sat, and what it scored)}
-// A step of the record is a day: kind "tile", target the tile's id. A mark is also written to
-// `marks` ({step, kind: "mark", id, n}), a stat it gave ({kind: "stat"}) and a fee ({kind: "fee"}),
+//    "seen.<tile>", "off.<tile>", "gone.<tile>" (what is offered: `noteOffer`),
+//    "c.<card>" (a card answered), "missed.<card>" (a card whose day went by), "met.<event>" (a
+//    chance meeting met), "sat.<test>" and "score.<test>" (a test sat, and what it scored)}
+// A step of the record is a day: kind "tile", target the tile's id; a stage's first day writes a
+// line of its own before it (kind "stage", no day). A mark is also written to
+// `marks` ({step, kind: "mark", id, n}), a stat it gave ({kind: "stat", said: its word or ""}) and a fee ({kind: "fee"}),
 // so the page says what the scene has given and taken. An answer is a step too: kind "card",
 // "event" (no day) or "test" (its day), target "<card>/<answer>".
 
@@ -359,10 +364,25 @@ fun enterStory(id)
     foes = []
     account = []
 
+    stageStep()
     noteOffer()
 
     // A card of the first day is there when he arrives
     openDue()
+}
+
+// A stage's first day: its title and its text are written to the record as a line of their own
+// (no day, no figure), once, by the act that begins the day (a look writes nothing). The head of
+// a phone has room for the title only
+fun stageStep()
+{
+    var story = storyNow()
+    var stage = storyStage(story)
+
+    if (stage.title != "" and runOf("day") == stage["from"])
+    {
+        openStep("stage", stage.title, 1, 0, stage.title + ". " + stage.text, story.glyph)
+    }
 }
 
 // What is offered, noted when a day begins (a look writes nothing, so what the page says of
@@ -428,9 +448,11 @@ fun goneRows()
     return rows
 }
 
-// What he would score at one test if he sat it today: what it scored, once sat; for a card, the
-// best answer open to him; for a fight, his days on the dummies, and one beast beaten if he has
-// a way to harm it (with none, he breaks nothing). Never said; only the words it picks are
+// What he would score at one test if he sat it today, counting only what he has done: what it
+// scored, once sat; for a card, the plain answer (what an answer of his own might add is not
+// counted: he has not given it yet); for a fight, his days on the dummies, and one beast beaten
+// if he has a way to harm it (with none, he breaks nothing). Never said; only the words it picks
+// are
 fun testEstimate(test)
 {
     if (pick(run, "sat." + test.id, 0) > 0)
@@ -450,29 +472,7 @@ fun testEstimate(test)
         return fought
     }
 
-    var options = pick(test, "options", [])
-    var best = testScore(test, {})
-
-    for (var j = 0; j < len(options); j++)
-    {
-        var open = true
-        var needs = pick(options[j], "needs", [])
-
-        for (var k = 0; k < len(needs); k++)
-        {
-            if (not meets(needs[k]))
-            {
-                open = false
-            }
-        }
-
-        if (open)
-        {
-            best = larger(best, testScore(test, options[j]))
-        }
-    }
-
-    return best
+    return testScore(test, {})
 }
 
 // Whether he knows a technique that deals harm (a blow or a working with a `damage`): what breaks
@@ -524,10 +524,42 @@ fun testFloor(story, id)
     return 0
 }
 
+// Whether the curriculum is behind its pace: before the gate's day, the courses he has followed
+// are fewer than its least spread over the days before it (on the fifth day of a gate of the
+// fifteenth that asks six, two). A sign that comes in time; never once it holds
+fun gateBehind(story)
+{
+    var gate = pick(story, "gate", {})
+    var on = pick(gate, "day", 0)
+    var day = runOf("day")
+
+    if (typeOf(story.gate) == "none" or on <= 1 or day >= on or gateHolds(story))
+    {
+        return false
+    }
+
+    return gateFollowed(story) * (on - 1) < pick(gate, "least", 0) * (day - 1)
+}
+
+// What the masters say of who is behind, when the one who is behind says nothing of his own: the
+// highest line reached that promises nothing
+fun promisesNothing(lines, reached)
+{
+    for (var j = reached; j >= 0; j--)
+    {
+        if (not pick(lines[j], "passes", false))
+        {
+            return lines[j].line
+        }
+    }
+
+    return ""
+}
+
 // How he stands, in words: the line of the story's `standing` the estimate has reached ("" when
-// the story says none). While a test would fall under its floor, no line that promises a pass
-// (`passes`) is said, and above the lowest the masters say on which side he is behind (the test's
-// `behind`): never a figure
+// the story says none). While the curriculum is behind its pace, or a test would fall under its
+// floor, no line that promises a pass (`passes`) is said, and above the lowest the masters say
+// where he is behind (the gate's `behind`, else the test's): never a figure
 fun standingLine(story)
 {
     var lines = pick(story, "standing", [])
@@ -548,24 +580,30 @@ fun standingLine(story)
         return ""
     }
 
+    var above = reached > 0 or pick(lines[reached], "passes", false)
+
+    if (above and gateBehind(story))
+    {
+        var gate = pick(story, "gate", {})
+
+        if (pick(gate, "behind", "") != "")
+        {
+            return gate.behind
+        }
+
+        return promisesNothing(lines, reached)
+    }
+
     for (var t = 0; t < len(tests); t++)
     {
-        if (testEstimate(tests[t]) < testFloor(story, tests[t].id) and (reached > 0 or pick(lines[reached], "passes", false)))
+        if (above and testEstimate(tests[t]) < testFloor(story, tests[t].id))
         {
             if (pick(tests[t], "behind", "") != "")
             {
                 return tests[t].behind
             }
 
-            for (var j = reached; j >= 0; j--)
-            {
-                if (not pick(lines[j], "passes", false))
-                {
-                    return lines[j].line
-                }
-            }
-
-            return ""
+            return promisesNothing(lines, reached)
         }
     }
 
@@ -592,6 +630,7 @@ fun endDay(days)
 
     if (runOf("day") <= runOf("days"))
     {
+        stageStep()
         noteOffer()
         openDue()
 
@@ -603,11 +642,17 @@ fun endDay(days)
 }
 
 // What a gift brings, in words, for the tile's gloss and the record ("" for a mark: the scene's
-// own count is not said in figures)
+// own count is not said in figures). A flag (a working, a kind of familiar, a mark on his name)
+// is said by its name and its `said` word ("Firebolt learned"); a counted stat by its figure
 fun giftText(gift)
 {
     if (typeOf(gift.stat) != "none")
     {
+        if (pick(gift, "said", "") != "")
+        {
+            return statName(gift.stat) + " " + gift.said
+        }
+
         return "+" + toString(gift.amount) + " " + statName(gift.stat)
     }
 
@@ -704,6 +749,19 @@ fun giftDue(gift)
     return true
 }
 
+// His Vitality moves in a story, outside a fight: brought to nothing, he is left with one and the
+// scene goes on (no one is carried home from a story: it ends only by its days, a test, the gate's
+// card, or his leaving)
+fun storyHp(amount)
+{
+    shiftHp(amount)
+
+    if (pick(run, "found", "") == "")
+    {
+        run.downed = 0
+    }
+}
+
 // A gift of a tile, as it lands: a mark of the scene, a stat on him, a thing in the bag, his
 // Vitality, a fight (on its own at once, else on the fight screen: `storyFight`). One whose
 // `when` does not hold is not given
@@ -721,7 +779,7 @@ fun giveGift(gift)
     else if (typeOf(gift.stat) != "none")
     {
         after[gift.stat] = mine(gift.stat) + gift.amount
-        push(marks, {step: len(record), kind: "stat", id: gift.stat, n: gift.amount})
+        push(marks, {step: len(record), kind: "stat", id: gift.stat, n: gift.amount, said: pick(gift, "said", "")})
     }
     else if (typeOf(gift.item) != "none")
     {
@@ -729,7 +787,7 @@ fun giveGift(gift)
     }
     else if (typeOf(gift.hp) != "none")
     {
-        shiftHp(gift.hp)
+        storyHp(gift.hp)
     }
     else if (typeOf(gift.fight) != "none")
     {
@@ -1079,8 +1137,8 @@ fun answered(id)
     return runOf("c." + id) > 0
 }
 
-// The curriculum: the marks of its courses together come to its least (no gate: it holds)
-fun gateHolds(story)
+// The curriculum followed: the marks of its courses together
+fun gateFollowed(story)
 {
     var gate = pick(story, "gate", {})
     var courses = pick(gate, "courses", [])
@@ -1091,7 +1149,15 @@ fun gateHolds(story)
         followed = followed + markOf(courses[i])
     }
 
-    return followed >= pick(gate, "least", 0)
+    return followed
+}
+
+// The curriculum: the marks of its courses together come to its least (no gate: it holds)
+fun gateHolds(story)
+{
+    var gate = pick(story, "gate", {})
+
+    return gateFollowed(story) >= pick(gate, "least", 0)
 }
 
 // The card that waits for him today, "" when none: first a card whose `when` is met, then the
@@ -1545,7 +1611,7 @@ fun answerEvent(event, option)
 
     if (pick(option, "hp", 0) != 0)
     {
-        shiftHp(option.hp)
+        storyHp(option.hp)
     }
 
     var items = pick(option, "items", [])
@@ -1819,6 +1885,8 @@ fun storyChoose(optionId)
 
     run.event = ""
 
+    var day = runOf("day")
+
     if (isTest and pick(up, "kind", "card") == "fight")
     {
         // Fought by hand: sat when he is back from it (storyFightBack)
@@ -1837,6 +1905,13 @@ fun storyChoose(optionId)
     else
     {
         answerEvent(up, option)
+    }
+
+    // An answer that leaves him in the same day may have opened a tile, or shut one: said that
+    // day, as a day's start says it (a day that ended has said it already)
+    if (run.mode != "done" and runOf("day") == day and pick(run, "found", "") == "" and pick(run, "result", "") == "")
+    {
+        noteOffer()
     }
 
     if (run.event == "")
@@ -2106,7 +2181,7 @@ fun storyDayText()
     return storyNow().unit + " " + toString(day)
 }
 
-// The stage of the day he is on ({"from": 0, title: ""} when none)
+// The stage of the day he is on ({title: "", text: ""} when none)
 fun storyStage(story)
 {
     var stages = pick(story, "stages", [])
@@ -2136,6 +2211,12 @@ fun storyHead()
     if (runOf("leaving") > 0)
     {
         leave = "Leave: " + daysText(runOf("ap")) + " are lost"
+
+        if (runOf("ap") == 1)
+        {
+            leave = "Leave: " + daysText(1) + " is lost"
+        }
+
         leaveNote = "PRESS AGAIN TO GO"
 
         if (pick(story, "dropout", "") != "")
@@ -2248,7 +2329,18 @@ fun storyTaken()
 
     for (var i = 0; i < len(stats); i++)
     {
-        push(rows, {id: "stat." + stats[i], name: statName(stats[i]), glyph: "training", value: "+" + toString(sumMarks(marks, "stat", stats[i])), tone: "gain"})
+        // (a flag by its word, "learned"; a counted stat by its figure)
+        var value = "+" + toString(sumMarks(marks, "stat", stats[i]))
+
+        for (var j = 0; j < len(marks); j++)
+        {
+            if (marks[j].kind == "stat" and marks[j].id == stats[i] and pick(marks[j], "said", "") != "")
+            {
+                value = marks[j].said
+            }
+        }
+
+        push(rows, {id: "stat." + stats[i], name: statName(stats[i]), glyph: "training", value: value, tone: "gain"})
     }
 
     var items = markIds(marks, "gain")
