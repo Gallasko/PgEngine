@@ -397,6 +397,32 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // His age is a sum of twelfths, a month at a time, and falls a hair short of the year it
+        // has reached: the figure counts whole months, as the rules do (lib.pg's `monthOf`), so
+        // the twelfth month of his fifteenth year makes him sixteen
+        TEST(lifeclock_test, the_figure_counts_whole_months)
+        {
+            MockLogger logger;
+            LifeClockFixture s;
+
+            LifeClock clock = s.make(lifeSpec(15.0f));
+            float age = 15.0f;
+
+            for (int month = 0; month < 12; ++month)
+                age += 1.0f / 12.0f;
+
+            clock.setAge(&s.ecs, age, false);
+
+            EXPECT_EQ(clock.age.spec.text, "16");
+
+            clock.setAge(&s.ecs, 16.0f - 1.0f / 12.0f, false);
+
+            EXPECT_EQ(clock.age.spec.text, "15");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         TEST(lifeclock_test, age_animates_and_running_follows)
         {
             MockLogger logger;

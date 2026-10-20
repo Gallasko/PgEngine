@@ -105,9 +105,13 @@ namespace chronicle
             ecs->removeEntity(child);
         }
 
+        // His whole years, counted in whole months as the rules count them (lib.pg's `monthOf`):
+        // an age summed a twelfth at a time falls a hair short of the year it has reached
         std::string ageText(float age)
         {
-            return std::to_string(static_cast<int>(std::floor(age)));
+            const int months = static_cast<int>(std::floor(age * 12.0f + 0.5f));
+
+            return std::to_string(months / 12);
         }
 
         // A milestone age as written on the scale: whole ages bare, others to one decimal.
