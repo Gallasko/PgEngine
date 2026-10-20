@@ -2158,13 +2158,21 @@ fun storyHead()
         percent = wholeOf(runOf("spent") * 100, runOf("days"))
     }
 
+    // (the word under the figure of days left: the last one is a day, not days)
+    var leftNote = toUpperCase(story.unit) + "S LEFT"
+
+    if (runOf("ap") == 1)
+    {
+        leftNote = toUpperCase(story.unit) + " LEFT"
+    }
+
     return {story: story.id, zone: "", mode: run.mode,
             kicker: toUpperCase(stage.title),
             title: story.name, line: stage.text,
             day: day, days: runOf("days"), unit: story.unit, dayText: unit + " " + toString(day) + " of " + toString(runOf("days")),
             stage: stage.title, stageText: stageText,
             months: runOf("monthsRun"), monthsTotal: runOf("months"), standing: standingLine(story),
-            daysLeft: toString(runOf("ap")), daysNote: toUpperCase(story.unit) + "S LEFT",
+            daysLeft: toString(runOf("ap")), daysNote: leftNote,
             vitality: "VITALITY " + toString(runOf("hp")) + " OF " + toString(runOf("hpMax")),
             vitalityPercent: wholeOf(runOf("hp") * 100, larger(1, runOf("hpMax"))),
             knowledge: "", knowledgeNote: "",

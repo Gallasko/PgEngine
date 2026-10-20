@@ -1323,6 +1323,35 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // The figure at the head's corner and the word under it agree: the last day is one day.
+        TEST(story_test, the_last_day_is_a_day_left)
+        {
+            MockLogger logger;
+            Walker w(student());
+
+            ASSERT_TRUE(w.ask("enter", WalkAct{"story", "trial", 0}));
+            EXPECT_EQ(textOf(w.last.site, "daysLeft"), "4");
+            EXPECT_EQ(textOf(w.last.site, "daysNote"), "DAYS LEFT");
+
+            // A lecture first, so the gate of the fourth day lets him through
+            ASSERT_TRUE(w.spend("lecture"));
+            w.answerAll();
+
+            ASSERT_TRUE(w.spend("library"));
+            w.answerAll();
+
+            // The fourth day, its examination waiting for him
+            ASSERT_TRUE(w.spend("library"));
+
+            EXPECT_EQ(w.day(), 4);
+            EXPECT_EQ(textOf(w.state.run, "result"), "");
+            EXPECT_EQ(textOf(w.last.site, "daysLeft"), "1");
+            EXPECT_EQ(textOf(w.last.site, "daysNote"), "DAY LEFT");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         // His standing is said in words, and rises with what he has read.
         TEST(story_test, the_standing_is_words_only)
         {
