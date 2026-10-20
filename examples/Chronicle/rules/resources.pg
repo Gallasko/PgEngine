@@ -216,7 +216,9 @@ var ties = ["watch_known", "street_known", "choir", "edric_support", "library_ac
             "shut_gate", "wall_held", "zealot", "doubts", "relic_bearer", "crusader_king",
             "whole_story", "working_marked", "first_seal", "stoneskin_bound", "galestep_bound", "firebolt2_bound",
             "chain_bound", "court_mage", "sealed_library", "grand_working", "own_counsel", "regicide",
-            "porters", "first_city"]
+            "porters", "first_city",
+            "fire_course", "frost_course", "storm_course", "spark_taught", "rime_taught", "static_taught", "suspected", "top_floor",
+            "dropout.collegium"]
 
 // What a walk brings home (expeditiontable.pg's `walkItems`): a remedy to drink in the field,
 // what is sold at the market, what a place of the town is built of, and what only a far place

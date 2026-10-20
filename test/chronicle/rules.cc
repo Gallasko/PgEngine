@@ -856,6 +856,106 @@ namespace pg
         // ----------------------------------------------------------------------------------------
         // ---------------------------        Test separator        -------------------------------
         // ----------------------------------------------------------------------------------------
+        // The Collegium asks the coin of its first days (two days of fees), and takes nothing up
+        // front: shut with 5, open with 6, and its window says so in words.
+        TEST(rules_test, the_collegium_asks_the_coin_of_its_first_days)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap man = boy();
+            man["int"] = ElementType{12};
+            man["letters"] = ElementType{3};
+            man["lore"] = ElementType{2};
+            man["coin"] = ElementType{5};
+
+            RuleActivity poor = activityAt(f.rules, 16.0f, man, "collegium");
+
+            EXPECT_TRUE(flag(poor.fields, "listed"));
+            EXPECT_TRUE(flag(poor.fields, "locked"));
+
+            bool asked = false;
+
+            for (const auto& r : poor.requires)
+            {
+                if (textOf(r, "stat") == "coin")
+                {
+                    asked = true;
+                    EXPECT_EQ(intOf(r, "needed"), 6);
+                }
+            }
+
+            EXPECT_TRUE(asked);
+            EXPECT_TRUE(poor.costs.empty());
+
+            man["coin"] = ElementType{6};
+
+            RuleActivity able = activityAt(f.rules, 16.0f, man, "collegium");
+
+            EXPECT_FALSE(flag(able.fields, "locked"));
+            EXPECT_TRUE(able.costs.empty());
+
+            RecordList windows;
+            ASSERT_TRUE(f.rules.windows(12.0f, boy(), windows)) << firstError(f.rules);
+            ASSERT_NE(byId(windows, "collegium"), nullptr);
+            EXPECT_NE(textOf(*byId(windows, "collegium"), "note").find("coin for its first days"), std::string::npos) << textOf(*byId(windows, "collegium"), "note");
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
+        // No event of his life opens over the Collegium's term: from 16, when it may first be begun,
+        // to 22, when a term begun by 20 would end, no answer of the Flood, the Levy, the Plague
+        // Year or the succession is listed (the Levy's close before he is 16, the Plague's open at
+        // 23): an event never comes over a story.
+        TEST(rules_test, no_life_event_opens_inside_a_collegium_term)
+        {
+            MockLogger logger;
+            RulesFixture f;
+
+            ElementMap man = boy();
+            man["int"] = ElementType{12};
+            man["letters"] = ElementType{3};
+            man["lore"] = ElementType{2};
+            man["coin"] = ElementType{40};
+
+            int events = 0;
+
+            for (int month = 16 * 12; month < 22 * 12; ++month)
+            {
+                const float age = static_cast<float>(month) / 12.0f;
+
+                std::vector<RuleActivity> rows;
+                ASSERT_TRUE(f.rules.activities(age, man, rows)) << firstError(f.rules);
+
+                for (const auto& a : rows)
+                {
+                    if (textOf(a.fields, "event").empty())
+                        continue;
+
+                    ++events;
+                    EXPECT_FALSE(flag(a.fields, "listed")) << textOf(a.fields, "id") << " at " << month / 12 << "." << month % 12;
+                }
+            }
+
+            // (the rows are there, every one shut: the test looked at them)
+            EXPECT_GT(events, 0);
+
+            // And the Levy's are listed the year before
+            std::vector<RuleActivity> rows;
+            ASSERT_TRUE(f.rules.activities(15.0f, man, rows));
+
+            bool levy = false;
+
+            for (const auto& a : rows)
+                levy = levy or (textOf(a.fields, "event") == "levy" and flag(a.fields, "listed"));
+
+            EXPECT_TRUE(levy);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // ---------------------------        Test separator        -------------------------------
+        // ----------------------------------------------------------------------------------------
         TEST(rules_test, forecast_at_term)
         {
             MockLogger logger;
