@@ -81,10 +81,11 @@ at work: it is a term of sixteen days, each chosen when it comes.
   exported file holds the chronicle alone. Not on the phone page yet.
 - **The Collegium, day by day.** *Enter the Collegium* opens a term of sixteen days on a page of
   its own, and his two years there pass as the days do: the gauge at the head says the day and
-  the months gone, and how the masters think of him is said in words under his Vitality. Each
+  the months gone, and how the masters think of him is said in words under his Vitality, by what
+  he has done so far (they tell him in time when they seldom see him in their lecture halls). Each
   day he chooses its work. In the first weeks every hall is open: the elemental lectures, the
   familiar studies, the library, copying for the scriptorium (it pays), a day's rest. Each course
-  is paid at its door, 3 coin a day.
+  is paid at its door, 3 coin a day. A stage's first day writes its words to the record.
 - **The choice of an element.** Twice at the elemental lectures by the seventh day, he gives his
   name to fire, frost or storm, or keeps to the basics of all three. Two days on his element and
   its bolt is his (*Firebolt*, *Frostbolt*, *Stormbolt*, the last a shock); four of the basics
@@ -97,7 +98,9 @@ at work: it is a term of sixteen days, each chosen when it comes.
   of it) or from the Church fathers. What his childhood gave him counts there: his letters, the
   tome, the library, Mara, the shelf, the Church, the old chronicle read. On the sixteenth, the
   practical: two dummies, by his own hand, before the masters call time. He passes, with merit
-  or with distinction, or fails. A pass makes him a scholar of the Collegium, as the term did.
+  or with distinction (an answer of his own, or days on the dummies), or fails. A pass makes him a
+  scholar of the Collegium, as the term did. What the term taught him, and that he left it, are
+  rows of the Life page.
 - **Chance days in the term.** A second-year's notes, fever in the dormitory, a master's errand
   for the top floor: each asks an answer before the day's work.
 - **Who leaves keeps what he learned.** *Leave* is asked twice. Who leaves, is sent away or fails
@@ -158,9 +161,9 @@ at work: it is a term of sixteen days, each chosen when it comes.
   guided first year no longer says his rations are running out the month before he is seven.
 - **A fed work's tooltip says how long its rations last** when his familiars eat them sooner than
   its term: "Rations 24 up front · lasts 6 mo".
-- **The Collegium asks no coin up front.** Its door asks Intelligence 12, Letters 3 and Lore 2, and
-  the fees of its courses as he follows them: about 35 coin for a whole curriculum, as before,
-  but paid a day at a time.
+- **The Collegium takes no coin up front.** Its door asks Intelligence 12, Letters 3 and Lore 2,
+  and coin for its first days (6, held, not taken); the fees of its courses are paid as he
+  follows them: about 35 coin for a whole curriculum, as before, but a day at a time.
 - **Firebolt is taught by the fire course**, no longer by the Collegium itself. A save that holds
   the Collegium keeps its Firebolt; one made in the middle of the old two years is given what the
   term gave, as it opens, and its months run out as they were.
