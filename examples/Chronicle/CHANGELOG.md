@@ -8,7 +8,8 @@ the `CHANGELOG.md` at the root of the repository.
 A life now gathers: piles of berries, water, firewood and stone that grow month by month, small
 creatures bound to him that make more of them, and a stash that keeps what he held for the life
 after him. The town is built of what he gathers, and gives back what gathering needs: room for
-another familiar, a new kind to bind, a bigger stash.
+another familiar, a new kind to bind, a bigger stash. And the Collegium is no longer two years
+at work: it is a term of sixteen days, each chosen when it comes.
 
 ### New
 
@@ -78,6 +79,32 @@ another familiar, a new kind to bind, a bigger stash.
   chronicle erases every life, the town and all knowledge once you type BURN. Your settings are
   kept in your save, and loading another save or burning the chronicle leaves them as they are; an
   exported file holds the chronicle alone. Not on the phone page yet.
+- **The Collegium, day by day.** *Enter the Collegium* opens a term of sixteen days on a page of
+  its own, and his two years there pass as the days do: the gauge at the head says the day and
+  the months gone, and how the masters think of him is said in words under his Vitality. Each
+  day he chooses its work. In the first weeks every hall is open: the elemental lectures, the
+  familiar studies, the library, copying for the scriptorium (it pays), a day's rest. Each course
+  is paid at its door, 3 coin a day.
+- **The choice of an element.** Twice at the elemental lectures by the seventh day, he gives his
+  name to fire, frost or storm, or keeps to the basics of all three. Two days on his element and
+  its bolt is his (*Firebolt*, *Frostbolt*, *Stormbolt*, the last a shock); four of the basics
+  teach *Spark*, *Rime* and a new *Static*. Three days of the familiar studies open the binding
+  hall, where he learns how the well imp is bound, or the kitchen brownie once he knows the imp.
+  Who has a working to throw can practise on the dummies.
+- **The examinations.** The fourteenth day is the last of study. On the fifteenth the masters
+  send away who has followed too few courses; the others sit the theory, answered from what was
+  taught, from the old tome, from the forbidden shelf (it counts for more, and he is suspected
+  of it) or from the Church fathers. What his childhood gave him counts there: his letters, the
+  tome, the library, Mara, the shelf, the Church, the old chronicle read. On the sixteenth, the
+  practical: two dummies, by his own hand, before the masters call time. He passes, with merit
+  or with distinction, or fails. A pass makes him a scholar of the Collegium, as the term did.
+- **Chance days in the term.** A second-year's notes, fever in the dormitory, a master's errand
+  for the top floor: each asks an answer before the day's work.
+- **Who leaves keeps what he learned.** *Leave* is asked twice. Who leaves, is sent away or fails
+  has dropped out: what the term gave him is his, a course's bolt with it, the months not lived
+  there are his again, and its rations for them go back. The Collegium does not take him back,
+  but the other classes stay open: a man of the Keep who had followed the fire course throws a
+  Firebolt between two cuts. His chronicle says he left.
 
 ### Changed
 
@@ -131,6 +158,17 @@ another familiar, a new kind to bind, a bigger stash.
   guided first year no longer says his rations are running out the month before he is seven.
 - **A fed work's tooltip says how long its rations last** when his familiars eat them sooner than
   its term: "Rations 24 up front · lasts 6 mo".
+- **The Collegium asks no coin up front.** Its door asks Intelligence 12, Letters 3 and Lore 2, and
+  the fees of its courses as he follows them: about 35 coin for a whole curriculum, as before,
+  but paid a day at a time.
+- **Firebolt is taught by the fire course**, no longer by the Collegium itself. A save that holds
+  the Collegium keeps its Firebolt; one made in the middle of the old two years is given what the
+  term gave, as it opens, and its months run out as they were.
+
+### Fixed
+
+- **His age** at the head of the page could read a year short in the month of his birthday
+  (15 at sixteen, until the next month).
 
 ## 0.7 - unreleased: the fight
 

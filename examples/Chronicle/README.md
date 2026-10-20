@@ -19,7 +19,7 @@ Run from the repo root (assets are read relative to the working directory):
 ./release/Chronicle --walk hollow --walk-seed 7   # the same walk with the same dice every time
 ./release/Chronicle --build keep --walk hollow    # a man of the Keep on the Hollow's site, every place known 4 of 4: its beasts and its boss to fight
 ./release/Chronicle --build hand --set dex=25 --set flask=3   # a build on the Life page, figures set on top (--set know.<key>=<n> for what the world knows)
-./release/Chronicle --build list                  # the builds (rules/testbuilds.pg, the fight matrix's too): plain, blade, scholar, street, hedge, keep, collegium, hand, greenwood
+./release/Chronicle --build list                  # the builds (rules/testbuilds.pg, the fight matrix's too): plain, blade, scholar, street, hedge, keep, collegium, collegium.dropout, spellblade, hand, greenwood
 ./release/Chronicle --dev TypeSpecimen --theme candle
 ```
 
@@ -774,7 +774,7 @@ arguments, compared by value. `Rules::nbRuns` counts the runs.
 | `achievements.pg` | - | `achievements`: `{id, kind (deed / guide / lore), name, entry, say, point, hold, order, asks[{fact, op, value}], gives[{stat, amount}], until[{fact, op, value}]}` |
 | `epitaph.pg` | `age`, `character`, `done`, `activityId` (`""`), `deeds` (the names of the deeds reached) | `epitaph`: `{cause ("He died an old man, in his thirty-third year."), story[text] (what he became, worked at, left, and what is told of him), text (the story as one paragraph), tally ("AGE 33 · WORKS 14 · COIN 31 · DEEDS 2"), ask ("" or, past `lastAge`, the line that asks for a comment or a rating)}` |
 | `town.pg` (`towntable.pg`) | `age`, `character` (with `town_known`, `town.<place>`, `fund.<place>`, `fund.<place>.<thing>`, `seen.<place>`, `stash.<id>`), `done`, `world`, `lives` | `places`: `{id, name, glyph, about, level, most, shown, gives, line, tale, built, fund, nextWork, nextName, nextMonths, nextCoin, nextYears, nextCosts, nextGives, nextLocked, gaps[{stat, label, current, needed}], given[{level, built, gives}], tiers[{level, built, gives, reached}], leaves[{stat, amount}], leaveLine, spends[{stat, amount}] (what the fund pays of the next level, `coin` its coin, taken from the fund when it is reached), stashLine}`; `start`: `[{stat, amount}]`; `opened`, `raisedLine`, `epitaphLine`, `fundLine`, `foundLine`; `gift`: `{stat, before, after, plain, chosen, things}`; `stash`: `[{stat, most}]` (what the stash keeps at his death, and the most of each); `stashLine`: `""` or the ending's sentence of what goes into the stash with no gift (a place's `stashLine` says it with the gift left to it) |
-| `expedition.pg` (`expeditiontable.pg`, `expeditionlib.pg`, `fightlib.pg`) | `age`, `character` (with `know.<key>`), `who`, `seed`, `ask` (enter, act, look, records, begin, term), the walk as it stands (`run`, `record`, `marks`, `fight`, `foes`, `account`), `act` `{kind, target, count}`, the records (`recipes`, `recipeSteps`, `recipeMarks`), `walks`, `queue`, `replay` | the walk as the run leaves it; `after{stats}`, `entries`; on site `site`, `seeks`, `works`, `card`, `options`, `bag`, `taken`, `home`; a fight `duel`, `menu`, `targets`, `order`, `hero`, `foe`, `preview`; the records `shelf`, `form`, `stops`; `recipe`, `blocked`, `stopped` |
+| `expedition.pg` (`expeditiontable.pg`, `expeditionlib.pg`, `fightlib.pg`, `storylib.pg`, `storytable.pg`) | `age`, `character` (with `know.<key>`), `who`, `seed`, `ask` (enter, act, look, records, begin, term, builds, plan; enter with `act.kind` "story" begins a story), the walk as it stands (`run`, `record`, `marks`, `fight`, `foes`, `account`), `act` `{kind, target, count}`, the records (`recipes`, `recipeSteps`, `recipeMarks`), `walks`, `queue`, `replay` | the walk as the run leaves it; `after{stats}`, `entries`; on site `site`, `seeks`, `works`, `card`, `options`, `bag`, `taken`, `home`; a fight `duel`, `menu`, `targets`, `order`, `hero`, `foe`, `preview`; the records `shelf`, `form`, `stops`; `recipe`, `blocked`, `stopped` |
 
 **Repetition** (`activitytable.pg`). `done` is the save's count of terms completed per activity.
 An activity may carry two optional fields:
@@ -1283,6 +1283,36 @@ The account of a fight has what the order of the turn leaves of its column (`fit
 A list given its rows again (`ActivityList::setRows`) does not build what it holds: a row that
 would be built the same is kept, moved if it only changed place, and keeps the selection; the
 others are made or let go of. So a term that ends makes again the tiles it changed, not the list.
+
+**The stories** (`storytable.pg`, `storylib.pg`). An activity with a `story` (the id of a table
+of `walkStories`) is not worked month by month: beginning it opens a scene of days on the walk's
+screen (`LifeScene::beginStory`), played once in a life, never kept as a record, never walked
+again and never on the Adventure page. The Collegium's term is the first: `collegium` has
+`story: "collegium"`, `whileNot: "dropout.collegium"` (who dropped out is not listed again) and
+no gains of its own, since the story gives them. The script is still `expedition.pg`, asked
+`enter` with `act.kind` `"story"`; the functions that play a story stand in `storylib.pg`
+(imported after `encounterlib.pg`, ahead of the tables: `expeditionlib.pg` is full), and the
+stories in `storytable.pg`, whose header is the format: a story's `days` and `months` (its
+row's), its `stages` (the head of the page), its `tiles` (the day's work: `days` it is offered,
+a `fee` paid when taken, `needs` shown shut till met, `onlyWith` not shown till held, `not`,
+`most`, `gives`, a gift with `when` landing once it holds, a `fight` fought on its own or on
+the fight screen), its `cards` (on their day, or when their `when` holds; an answer may end the
+scene), its own chance `events`, its `tests` (a card or a fight, scored from his stats, marks and
+flags), its `grades` (`floors` for each test, a `total`, what each gives), its `gate` (the
+courses that must be followed by its day, else its card sends him away) and its `standing`
+(how he stands, in words: a line that promises a pass is not said while a test would fall under
+its floor). The run is flat, as a walk's (`run.day`, `run["m.<mark>"]`, `run.monthsRun`); the
+rules own both month counters, and each day's end says how many months fell due
+(`run.monthsDue`), which the scene runs as the life's own (`runStoryMonths`: eaten, made, aged,
+paid, written once they have all run). A stat a tile gives is his when it is taken, so who leaves
+keeps it: the fire course's Firebolt is a drop-out's too. Left, sent away or failed, he drops out
+(`dropout`, the flag of the story, which the Collegium's door reads: `windows.pg`'s `left`);
+passed, the row's `enters` makes him one of its path (`endStory`). The page says what the days
+are worth over the story's name, the stage's title over the gauge and its line on its first day,
+a tile new today in the walk's vermilion and "No longer offered: ..." under the work. A story's
+`plan` is its way through for the solver (`walks.pg`'s `storyBy`) and the tests (`planRow`, asked
+`"plan"`). Two test stories, `trial` (its row `story.trial` is hidden behind `test.stories`) and
+`drill` (no row), are for `test/chronicle/story.cc`.
 
 **The guide and the lore** (`achievements.pg`, `kind`). An entry of the table is a deed (no
 `kind`), a step of the guide or a line of lore; the `AchievementSys` watches the asks of all
